@@ -1,5 +1,5 @@
 {
-  "name": "shellui",
+  "name": "@shellui/cli",
   "version": "0.0.1",
   "description": "ShellUI - a lightweight microfrontend shell to ship apps faster",
   "main": "index.js",
@@ -7,11 +7,25 @@
   "bin": {
     "shellui": "./bin/shellui.js"
   },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "start": "node bin/shellui.js start",
     "build": "node bin/shellui.js build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [
+    "microfrontend",
+    "shell",
+    "cli",
+    "vite",
+    "react",
+    "frontend"
+  ],
   "author": "ShellUI",
   "license": "MIT",
   "dependencies": {
