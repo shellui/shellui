@@ -19,7 +19,11 @@
     "publish:cli": "npm publish --workspace=@shellui/cli",
     "publish:core": "npm publish --workspace=@shellui/core",
     "publish:sdk": "npm publish --workspace=@shellui/sdk",
-    "publish:all": "npm run publish:cli && npm run publish:core && npm run publish:sdk"
+    "publish:all": "npm run publish:cli && npm run publish:core && npm run publish:sdk",
+    "docs:install": "cd tools/docusaurus && npm install",
+    "docs:start": "cd tools/docusaurus && npm start",
+    "docs:build": "cd tools/docusaurus && npm run build",
+    "docs:serve": "cd tools/docusaurus && npm run serve"
   },
   "keywords": [
     "monorepo",
