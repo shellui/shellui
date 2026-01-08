@@ -14,8 +14,10 @@ This monorepo contains the ShellUI packages:
 .
 ├── packages/
 │   ├── cli/          # CLI package
-│   ├── core/          # Core React app
-│   └── sdk/           # SDK package
+│   ├── core/         # Core React app
+│   └── sdk/          # SDK package
+├── docs/              # Documentation files
+├── tools/             # Development tools (Docusaurus)
 └── package.json       # Root workspace configuration
 ```
 
@@ -39,6 +41,14 @@ npm run build
 npm run build:cli
 npm run build:core
 npm run build:sdk
+```
+
+### Start development server
+
+```bash
+npm start
+# or
+npm run serve
 ```
 
 ### Run tests
@@ -65,14 +75,30 @@ npm run publish:sdk
 
 ## Workspace Scripts
 
+### Build Scripts
 - `npm run build` - Build all packages
+- `npm run build:packages` - Build all workspace packages
 - `npm run build:cli` - Build CLI package
 - `npm run build:core` - Build Core package
 - `npm run build:sdk` - Build SDK package
+
+### Development Scripts
+- `npm start` / `npm run serve` - Start development server
+- `npm test` - Run tests across all packages
+
+### Publishing Scripts
 - `npm run publish:all` - Publish all packages
 - `npm run publish:cli` - Publish CLI package
 - `npm run publish:core` - Publish Core package
 - `npm run publish:sdk` - Publish SDK package
+
+### Documentation Scripts
+- `npm run docs:install` - Install documentation dependencies
+- `npm run docs:start` - Start documentation development server
+- `npm run docs:build` - Build documentation site
+- `npm run docs:serve` - Serve built documentation
+
+### Utility Scripts
 - `npm run clean` - Clean all node_modules
 
 ## License

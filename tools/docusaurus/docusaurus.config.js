@@ -107,7 +107,7 @@ const config = {
             title: 'Resources',
             items: [
               {
-                label: 'Website',
+                label: 'ShellUI.com',
                 href: 'https://shellui.com',
               },
               {
@@ -116,7 +116,7 @@ const config = {
               },
               {
                 label: 'GitHub',
-                href: 'https://github.com/shellui/shellui',
+                href: 'https://github.com/shellui',
               },
             ],
           },
