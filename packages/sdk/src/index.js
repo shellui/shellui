@@ -6,7 +6,10 @@
 class ShellUISDK {
   constructor() {
     this.initialized = false;
-    this.currentPath = window.location.pathname + window.location.search + window.location.hash;
+    // Don't access window in constructor - it may not exist during SSR
+    this.currentPath = typeof window !== 'undefined' 
+      ? window.location.pathname + window.location.search + window.location.hash
+      : '';
     this.version = '0.0.1';
   }
 
@@ -31,6 +34,11 @@ class ShellUISDK {
    * Sets up listeners for various URL change events
    */
   setupUrlMonitoring() {
+    // Guard against SSR - window and document may not exist
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+
     // Listen for popstate (back/forward buttons)
     window.addEventListener('popstate', () => this.handleUrlChange());
 
@@ -63,6 +71,9 @@ class ShellUISDK {
   }
 
   handleUrlChange() {
+    if (typeof window === 'undefined') {
+      return;
+    }
     const newPath = window.location.pathname + window.location.search + window.location.hash;
     if (newPath !== this.currentPath) {
       this.currentPath = newPath;
@@ -74,6 +85,9 @@ class ShellUISDK {
    * Sends a message to the parent frame with the current path information
    */
   notifyParent() {
+    if (typeof window === 'undefined') {
+      return;
+    }
     const message = {
       type: 'SHELLUI_URL_CHANGED',
       payload: {
