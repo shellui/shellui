@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "ShellUI SDK - JavaScript SDK for ShellUI integration",
   "main": "src/index.js",
+  "types": "src/index.d.ts",
   "type": "module",
   "files": [
     "src",

@@ -17,7 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shellui/sdk": ["../sdk/src/index.js"]
     }
   },
   "include": ["src", "src/features"]
