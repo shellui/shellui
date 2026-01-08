@@ -4,15 +4,15 @@ interface ContentViewProps {
 
 export const ContentView = ({ url }: ContentViewProps) => {
   return (
-    <div style={{ marginTop: '2rem', width: '100%', height: '600px' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex' }}>
       <iframe 
         key={url}
         src={url}
         style={{
           width: '100%',
           height: '100%',
-          border: '1px solid #ddd',
-          borderRadius: '8px'
+          border: 'none',
+          display: 'block'
         }}
         title="Content Frame"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"

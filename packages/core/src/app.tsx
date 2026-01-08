@@ -1,15 +1,23 @@
 import React, { useMemo } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useConfig } from '../features/config/useConfig';
 import { ContentView } from './components/ContentView';
+import { DefaultLayout } from '../features/layouts/DefaultLayout';
 import type { NavigationItem } from '../features/config/types';
 
 const Home = () => {
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-      <h1>Welcome to ShellUI</h1>
-      <p>Select a navigation item to get started.</p>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100%',
+      flexDirection: 'column',
+      color: '#666'
+    }}>
+      <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 300 }}>Welcome to ShellUI</h1>
+      <p style={{ marginTop: '1rem', fontSize: '1.1rem' }}>Select a navigation item to get started.</p>
     </div>
   );
 };
@@ -35,7 +43,6 @@ const ViewRoute = ({ navigation }: ViewRouteProps) => {
 
 const AppContent = () => {
   const { config, loading, error } = useConfig();
-  const location = useLocation();
 
   // Memoize routes to prevent recreation on every render
   const navigationRoutes = useMemo(
@@ -52,7 +59,13 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
         <p>Loading configuration...</p>
       </div>
     );
@@ -60,59 +73,43 @@ const AppContent = () => {
 
   if (error) {
     return (
-      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
         <p style={{ color: 'red' }}>Error loading configuration: {error.message}</p>
       </div>
     );
   }
 
-  return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-      <h1>{config.title || 'ShellUI'}</h1>
-      
-      <div style={{ 
-        marginTop: '2rem', 
-        padding: '1rem', 
-        background: '#f5f5f5', 
-        borderRadius: '8px' 
-      }}>
-        <h2>Configuration</h2>
-        <pre>{JSON.stringify(config, null, 2)}</pre>
+  // If no navigation, show simple layout
+  if (!config.navigation || config.navigation.length === 0) {
+    return (
+      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
+        <h1>{config.title || 'ShellUI'}</h1>
+        <p>No navigation items configured.</p>
       </div>
+    );
+  }
 
-      {config.navigation && config.navigation.length > 0 && (
-        <nav style={{ marginTop: '2rem' }}>
-          {config.navigation.map((item) => {
-            const isActive = location.pathname === `/${item.path}`;
-            return (
-              <Link
-                key={item.path}
-                to={`/${item.path}`}
-                style={{ 
-                  marginRight: '1rem',
-                  padding: '0.5rem 1rem',
-                  textDecoration: 'none',
-                  border: '1px solid #0066cc',
-                  borderRadius: '4px',
-                  background: isActive ? '#0066cc' : 'transparent',
-                  color: isActive ? 'white' : '#0066cc',
-                  fontSize: '1rem',
-                  display: 'inline-block'
-                }}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
-
-      <Routes>
+  return (
+    <Routes>
+      <Route
+        element={
+          <DefaultLayout 
+            title={config.title} 
+            navigation={config.navigation || []} 
+          />
+        }
+      >
         <Route path="/" element={<Home />} />
         {navigationRoutes}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </div>
+      </Route>
+    </Routes>
   );
 };
 
