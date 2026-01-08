@@ -1,8 +1,102 @@
 import { createServer } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import fs from 'fs';
 import pc from 'picocolors';
 import { loadConfig, getCoreSrcPath, createViteDefine, resolvePackagePath } from '../utils/index.js';
+
+let currentServer = null;
+let configWatcher = null;
+let restartTimeout = null;
+let isFirstStart = true;
+
+/**
+ * Start the Vite server with current configuration
+ * @param {string} root - Root directory
+ * @param {string} cwd - Current working directory
+ * @param {boolean} shouldOpen - Whether to open the browser (only on first start)
+ * @returns {Promise<import('vite').ViteDevServer>}
+ */
+async function startServer(root, cwd, shouldOpen = false) {
+  // Load configuration
+  const config = loadConfig(root);
+  
+  // Get core package paths
+  const corePackagePath = resolvePackagePath('@shellui/core');
+  const coreSrcPath = getCoreSrcPath();
+
+  const server = await createServer({
+    root: coreSrcPath,
+    plugins: [react()],
+    define: createViteDefine(config),
+    server: {
+      port: config.port || 3000,
+      open: shouldOpen,
+      fs: {
+        allow: [corePackagePath, cwd]
+      }
+    },
+  });
+
+  await server.listen();
+  return server;
+}
+
+/**
+ * Restart the server when config changes
+ * @param {string} root - Root directory
+ * @param {string} cwd - Current working directory
+ */
+async function restartServer(root, cwd) {
+  if (restartTimeout) {
+    clearTimeout(restartTimeout);
+  }
+
+  restartTimeout = setTimeout(async () => {
+    try {
+      console.log(pc.yellow('\n🔄 Config file changed, restarting server...\n'));
+      
+      // Close existing server
+      if (currentServer) {
+        await currentServer.close();
+      }
+
+      // Start new server with updated config (don't open browser on restart)
+      currentServer = await startServer(root, cwd, false);
+      currentServer.printUrls();
+    } catch (e) {
+      console.error(pc.red(`Error restarting server: ${e.message}`));
+    }
+  }, 300); // Debounce: wait 300ms before restarting
+}
+
+/**
+ * Watch config file for changes
+ * @param {string} root - Root directory
+ * @param {string} cwd - Current working directory
+ */
+function watchConfig(root, cwd) {
+  const configPath = path.resolve(cwd, root, 'shellui.json');
+  
+  // Only watch if config file exists
+  if (!fs.existsSync(configPath)) {
+    console.log(pc.yellow(`No shellui.json found, config watching disabled.`));
+    return;
+  }
+
+  // Close existing watcher if any
+  if (configWatcher) {
+    configWatcher.close();
+  }
+
+  configWatcher = fs.watch(configPath, { persistent: true }, async (eventType) => {
+    if (eventType === 'change') {
+      await restartServer(root, cwd);
+    }
+  });
+
+  console.log(pc.green(`👀 Watching config file: ${configPath}`));
+}
 
 /**
  * Start command - Starts the ShellUI development server
@@ -12,30 +106,36 @@ export async function startCommand(root = '.') {
   const cwd = process.cwd();
   
   console.log(pc.blue(`Starting ShellUI...`));
-  
-  // Load configuration
-  const config = loadConfig(root);
-  
-  // Get core package paths
-  const corePackagePath = resolvePackagePath('@shellui/core');
-  const coreSrcPath = getCoreSrcPath();
 
   try {
-    const server = await createServer({
-      root: coreSrcPath,
-      plugins: [react()],
-      define: createViteDefine(config),
-      server: {
-        port: config.port || 3000,
-        open: true,
-        fs: {
-          allow: [corePackagePath, cwd]
-        }
-      },
+    // Start initial server (open browser only on first start)
+    currentServer = await startServer(root, cwd, isFirstStart);
+    isFirstStart = false;
+    currentServer.printUrls();
+
+    // Watch config file for changes
+    watchConfig(root, cwd);
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', async () => {
+      if (configWatcher) {
+        configWatcher.close();
+      }
+      if (currentServer) {
+        await currentServer.close();
+      }
+      process.exit(0);
     });
 
-    await server.listen();
-    server.printUrls();
+    process.on('SIGINT', async () => {
+      if (configWatcher) {
+        configWatcher.close();
+      }
+      if (currentServer) {
+        await currentServer.close();
+      }
+      process.exit(0);
+    });
   } catch (e) {
     console.error(pc.red(`Error starting server: ${e.message}`));
     process.exit(1);
