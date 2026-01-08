@@ -29,6 +29,11 @@ async function startServer(root, cwd, shouldOpen = false) {
     root: coreSrcPath,
     plugins: [react()],
     define: createViteDefine(config),
+    resolve: {
+      alias: {
+        '@': path.join(corePackagePath, 'src'),
+      },
+    },
     server: {
       port: config.port || 3000,
       open: shouldOpen,

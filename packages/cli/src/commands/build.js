@@ -2,7 +2,7 @@ import { build } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import pc from 'picocolors';
-import { loadConfig, getCoreSrcPath, createViteDefine } from '../utils/index.js';
+import { loadConfig, getCoreSrcPath, createViteDefine, resolvePackagePath } from '../utils/index.js';
 
 /**
  * Build command - Builds the ShellUI application for production
@@ -16,7 +16,8 @@ export async function buildCommand(root = '.') {
   // Load configuration
   const config = loadConfig(root);
   
-  // Get core package source path
+  // Get core package paths
+  const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
 
   try {
@@ -24,6 +25,11 @@ export async function buildCommand(root = '.') {
       root: coreSrcPath,
       plugins: [react()],
       define: createViteDefine(config),
+      resolve: {
+        alias: {
+          '@': path.join(corePackagePath, 'src'),
+        },
+      },
       build: {
         outDir: path.resolve(cwd, 'dist'),
         emptyOutDir: true,

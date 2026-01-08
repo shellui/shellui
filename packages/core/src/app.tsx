@@ -5,6 +5,7 @@ import { useConfig } from '../features/config/useConfig';
 import { ContentView } from './components/ContentView';
 import { DefaultLayout } from '../features/layouts/DefaultLayout';
 import type { NavigationItem } from '../features/config/types';
+import './index.css';
 
 const Home = () => {
   return (
