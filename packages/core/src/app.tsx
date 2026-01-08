@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { ContentView } from './components/ContentView';
 import { DefaultLayout } from './features/layouts/DefaultLayout';
@@ -29,21 +30,43 @@ interface ViewRouteProps {
 
 const ViewRoute = ({ navigation }: ViewRouteProps) => {
   const location = useLocation();
-  const currentPath = location.pathname.slice(1);
-  const navItem = useMemo(
-    () => navigation.find(item => item.path === currentPath),
-    [navigation, currentPath]
-  );
+  const pathname = location.pathname;
+
+  const navItem = useMemo(() => {
+    return navigation.find((item) => {
+      const pathPrefix = `/${item.path}`;
+      return pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`);
+    });
+  }, [navigation, pathname]);
 
   if (!navItem) {
     return <Navigate to="/" replace />;
   }
 
-  return <ContentView url={navItem.url} />;
+  // Calculate the relative path from the navItem.path
+  // e.g. if item.path is "docs" and pathname is "/docs/intro", subPath is "intro"
+  const pathPrefix = `/${navItem.path}`;
+  const subPath = pathname.length > pathPrefix.length 
+    ? pathname.slice(pathPrefix.length + 1) 
+    : '';
+
+  // Construct the final URL for the iframe
+  let finalUrl = navItem.url;
+  if (subPath) {
+    const baseUrl = navItem.url.endsWith('/') ? navItem.url : `${navItem.url}/`;
+    finalUrl = `${baseUrl}${subPath}`;
+  }
+
+  return <ContentView url={finalUrl} pathPrefix={navItem.path} />;
 };
 
 const AppContent = () => {
   const { config, loading, error } = useConfig();
+
+  // Initialize ShellUI SDK to support recursive nesting
+  useEffect(() => {
+    shellui.init();
+  }, []);
 
   // Memoize routes to prevent recreation on every render
   const navigationRoutes = useMemo(
@@ -51,7 +74,7 @@ const AppContent = () => {
       config.navigation?.map((item) => (
         <Route
           key={item.path}
-          path={`/${item.path}`}
+          path={`/${item.path}/*`}
           element={<ViewRoute navigation={config.navigation || []} />}
         />
       )),

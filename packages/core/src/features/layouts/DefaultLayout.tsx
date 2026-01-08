@@ -23,7 +23,8 @@ const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => 
   return (
     <SidebarMenu>
       {navigation.map((item) => {
-        const isActive = location.pathname === `/${item.path}`;
+        const pathPrefix = `/${item.path}`;
+        const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
         return (
           <SidebarMenuItem key={item.path}>
             <SidebarMenuButton

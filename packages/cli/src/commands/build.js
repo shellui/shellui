@@ -18,6 +18,7 @@ export async function buildCommand(root = '.') {
   
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
+  const sdkPackagePath = resolvePackagePath('@shellui/sdk');
   const coreSrcPath = getCoreSrcPath();
 
   try {
@@ -28,6 +29,7 @@ export async function buildCommand(root = '.') {
       resolve: {
         alias: {
           '@': path.join(corePackagePath, 'src'),
+          '@shellui/sdk': path.join(sdkPackagePath, 'src/index.js'),
         },
       },
       build: {

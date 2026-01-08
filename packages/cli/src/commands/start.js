@@ -23,6 +23,7 @@ async function startServer(root, cwd, shouldOpen = false) {
   
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
+  const sdkPackagePath = resolvePackagePath('@shellui/sdk');
   const coreSrcPath = getCoreSrcPath();
 
   const server = await createServer({
@@ -32,6 +33,7 @@ async function startServer(root, cwd, shouldOpen = false) {
     resolve: {
       alias: {
         '@': path.join(corePackagePath, 'src'),
+        '@shellui/sdk': path.join(sdkPackagePath, 'src/index.js'),
       },
     },
     server: {
