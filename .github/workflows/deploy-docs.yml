@@ -44,5 +44,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./tools/docusaurus/build
-          cname: # Optional: add your custom domain here
-
+          cname: docs.shellui.com
