@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface IconProps {
@@ -8,84 +8,34 @@ interface IconProps {
 }
 
 /**
- * Icon component that loads SVG icons from a path and renders them inline
+ * Icon component that displays SVG icons using an img tag
  * @param path - Path to the SVG file (e.g., '/icons/panel-left.svg')
  * @param className - Additional CSS classes
  * @param size - Icon size in pixels (default: 24)
  */
-export const Icon: React.FC<IconProps> = ({ path, className, size = 24 }) => {
-  const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!path) {
-      setError('Icon path is required');
-      setLoading(false);
-      return;
-    }
-
-    // Fetch SVG content
-    fetch(path)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Failed to load icon: ${res.status} ${res.statusText}`);
-        }
-        return res.text();
-      })
-      .then((text) => {
-        setSvgContent(text);
-        setLoading(false);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error(`Failed to load icon from ${path}:`, err);
-        setError(err.message);
-        setLoading(false);
-      });
-  }, [path]);
-
-  if (loading) {
+const IconComponent: React.FC<IconProps> = ({ path, className, size = 24 }) => {
+  if (!path) {
     return null;
-  }
-
-  if (error || !svgContent) {
-    return null;
-  }
-
-  // Parse SVG and inject className and size
-  const parser = new DOMParser();
-  const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-  const svgElement = svgDoc.documentElement;
-
-  // Check for parsing errors
-  const parserError = svgDoc.querySelector('parsererror');
-  if (parserError) {
-    console.error(`Failed to parse SVG from ${path}`);
-    return null;
-  }
-
-  // Set attributes
-  svgElement.setAttribute('width', size.toString());
-  svgElement.setAttribute('height', size.toString());
-  svgElement.setAttribute('class', cn('inline-block', className));
-  
-  // Ensure stroke and fill can be styled via CSS
-  if (!svgElement.getAttribute('stroke')) {
-    svgElement.setAttribute('stroke', 'currentColor');
-  }
-  if (!svgElement.getAttribute('fill')) {
-    svgElement.setAttribute('fill', 'none');
   }
 
   return (
-    <span
-      className={cn('inline-flex items-center justify-center', className)}
+    <img
+      src={path}
+      alt=""
+      className={cn('inline-block', className)}
       style={{ width: size, height: size }}
-      dangerouslySetInnerHTML={{ __html: svgElement.outerHTML }}
+      loading="eager"
+      decoding="sync"
     />
   );
 };
+
+IconComponent.displayName = 'Icon';
+
+export const Icon = React.memo(IconComponent);
+
+// Cache for icon component factories to prevent recreation
+const iconComponentCache = new Map<string, (props: { className?: string }) => React.ReactElement>();
 
 /**
  * Helper function to get icon component from icon path
@@ -95,7 +45,15 @@ export const Icon: React.FC<IconProps> = ({ path, className, size = 24 }) => {
 export const getIconComponent = (iconPath: string | undefined) => {
   if (!iconPath || typeof iconPath !== 'string') return null;
   
-  return (props: { className?: string }) => (
+  // Return cached component if it exists
+  if (iconComponentCache.has(iconPath)) {
+    return iconComponentCache.get(iconPath)!;
+  }
+  
+  // Create and cache new component
+  const component = (props: { className?: string }) => (
     <Icon path={iconPath} className={props.className} size={16} />
   );
+  iconComponentCache.set(iconPath, component);
+  return component;
 };

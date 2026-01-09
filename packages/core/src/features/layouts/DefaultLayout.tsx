@@ -28,12 +28,23 @@ const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => 
     return navigation.some(item => getIconComponent(item.icon) !== null);
   }, [navigation]);
 
+  // Memoize icon components to prevent recreation on every render
+  const iconComponents = useMemo(() => {
+    const components = new Map<string, ReturnType<typeof getIconComponent>>();
+    navigation.forEach(item => {
+      if (item.icon) {
+        components.set(item.path, getIconComponent(item.icon));
+      }
+    });
+    return components;
+  }, [navigation]);
+
   return (
     <SidebarMenu>
       {navigation.map((item) => {
         const pathPrefix = `/${item.path}`;
         const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-        const IconComponent = getIconComponent(item.icon);
+        const IconComponent = iconComponents.get(item.path);
         
         return (
           <SidebarMenuItem key={item.path}>

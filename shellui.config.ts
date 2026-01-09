@@ -13,7 +13,14 @@ const config: ShellUIConfig = {
     {
       label: 'Playground',
       path: 'playground',
-      url: 'http://localhost:4000/'
+      url: 'http://localhost:4000/',
+      icon: "/icons/play.svg"
+    },
+    {
+      label: 'ShellUI',
+      path: 'shellui',
+      url: 'https://shellui.com/',
+      icon: "/icons/user.svg"
     },
     {
       label: 'Sebastienbarbier',
