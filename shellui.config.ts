@@ -27,6 +27,12 @@ const config: ShellUIConfig = {
       label: 'Sebastienbarbier',
       path: 'sebastienbarbier',
       url: 'https://sebastienbarbier.com/'
+    },
+    {
+      label: 'Settings',
+      path: 'settings2',
+      url: '/settings',
+      icon: '/icons/settings.svg'
     }
   ]
 };

@@ -143,23 +143,19 @@ class ShellUISDK {
       return;
     }
 
+    // Send message to parent frame to open modal
+    const message = {
+      type: 'SHELLUI_OPEN_MODAL',
+      payload: {
+        url: url || null
+      }
+    };
+
     // Check if we're inside an iframe
     if (window.parent !== window) {
-      // Send message to parent frame to open modal
-      const message = {
-        type: 'SHELLUI_OPEN_MODAL',
-        payload: {
-          url: url || null
-        }
-      };
       window.parent.postMessage(message, '*');
     } else {
-      // Not in an iframe - dispatch a custom event
-      // This allows the app to listen for it if needed
-      const event = new CustomEvent('shellui:open-modal', {
-        detail: { url }
-      });
-      window.dispatchEvent(event);
+      window.postMessage(message, '*');
     }
   }
 
