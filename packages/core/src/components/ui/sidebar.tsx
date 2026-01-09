@@ -2,7 +2,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
-import { PanelLeft } from "lucide-react"
+import { Icon } from "@/components/Icon"
 
 type SidebarContextValue = {
   isCollapsed: boolean
@@ -77,7 +77,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft className="h-5 w-5" />
+      <Icon path="/icons/panel-left.svg" className="h-5 w-5" size={20} />
     </button>
   )
 })

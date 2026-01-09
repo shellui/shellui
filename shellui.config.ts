@@ -8,7 +8,7 @@ const config: ShellUIConfig = {
       label: 'Docs',
       path: 'docs',
       url: 'https://docs.shellui.com/',
-      icon: 'BookOpen'
+      icon: '/icons/book-open.svg'
     },
     {
       label: 'Playground',

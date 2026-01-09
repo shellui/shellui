@@ -26,6 +26,10 @@ async function startServer(root, cwd, shouldOpen = false) {
   const sdkPackagePath = resolvePackagePath('@shellui/sdk');
   const coreSrcPath = getCoreSrcPath();
 
+  // Check if static folder exists in project root
+  const staticPath = path.resolve(cwd, root, 'static');
+  const publicDir = fs.existsSync(staticPath) ? staticPath : false;
+
   const server = await createServer({
     root: coreSrcPath,
     plugins: [react()],
@@ -36,6 +40,7 @@ async function startServer(root, cwd, shouldOpen = false) {
         '@shellui/sdk': path.join(sdkPackagePath, 'src/index.js'),
       },
     },
+    publicDir: publicDir || false,
     server: {
       port: config.port || 3000,
       open: shouldOpen,

@@ -6,19 +6,19 @@
       "label": "Docs",
       "path": "docs",
       "url": "https://docs.shellui.com/",
-      "icon": "BookOpen"
+      "icon": "/icons/book-open.svg"
     },
     {
       "label": "Playground",
       "path": "playground",
       "url": "http://localhost:4000/",
-      "icon": "Play"
+      "icon": "/icons/play.svg"
     },
     {
       "label": "Sebastienbarbier",
       "path": "sebastienbarbier",
       "url": "https://sebastienbarbier.com/",
-      "icon": "User"
+      "icon": "/icons/user.svg"
     }
   ]
 }

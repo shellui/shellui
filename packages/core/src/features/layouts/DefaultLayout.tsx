@@ -12,41 +12,13 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import * as LucideIcons from 'lucide-react';
+import { getIconComponent } from '@/components/Icon';
 
 interface DefaultLayoutProps {
   title?: string;
   navigation: NavigationItem[];
 }
 
-// Helper function to get icon component from string name
-const getIconComponent = (iconName: string | undefined) => {
-  if (!iconName || typeof iconName !== 'string') return null;
-  
-  const icons = LucideIcons as unknown as Record<string, React.ComponentType<{ className?: string }>>;
-  
-  // First try the name as-is (in case it's already correct like "BookOpen")
-  if (icons[iconName]) {
-    return icons[iconName];
-  }
-  
-  // Convert kebab-case or snake_case to PascalCase
-  // e.g., "book-open" -> "BookOpen", "book_open" -> "BookOpen"
-  const normalizedName = iconName
-    .split(/[-_]/)
-    .map(part => {
-      // Handle already PascalCase parts
-      if (part.charAt(0) === part.charAt(0).toUpperCase()) {
-        return part;
-      }
-      // Convert to PascalCase
-      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
-    })
-    .join('');
-  
-  // Try to find the icon with normalized name
-  return icons[normalizedName] || null;
-};
 
 const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => {
   const location = useLocation();
