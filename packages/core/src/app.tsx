@@ -69,27 +69,6 @@ const AppContent = () => {
     shellui.init();
   }, []);
 
-  // Listen for SHELLUI_OPEN_MODAL messages from nested iframes at the app level
-  // This ensures modal requests propagate to the top-level ShellUI instance
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Only handle our own messages
-      if (event.data?.type === 'SHELLUI_OPEN_MODAL') {
-        // If we're in an iframe, propagate to parent
-        if (window.parent !== window) {
-          window.parent.postMessage({
-            type: 'SHELLUI_OPEN_MODAL',
-            payload: event.data.payload
-          }, '*');
-        }
-        // If we're at top level, the ContentView or ModalProvider will handle it
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
   // Extract path from settingsUrl (in case it's a full URL)
   // Must be before conditional returns to follow Rules of Hooks
   const settingsPath = useMemo(() => {
