@@ -17,9 +17,8 @@ export function resolvePackagePath(packageName) {
     return path.dirname(packageJsonPath);
   } catch (e) {
     // Fallback: assume workspace structure
-    // Go up from cli/src/utils.js -> cli -> packages -> packageName
-    const packagesDir = path.resolve(__dirname, '../../');
+    // Go up from cli/src/utils/package-path.js -> cli/src/utils -> cli/src -> cli -> packages -> packageName
+    const packagesDir = path.resolve(__dirname, '../../../');
     return path.join(packagesDir, packageName.replace('@shellui/', ''));
   }
 }
-

@@ -5,7 +5,7 @@
  * Import from './utils/index.js' to get all utilities.
  */
 
-export { resolvePackagePath } from '../utils.js';
+export { resolvePackagePath } from './package-path.js';
 export { loadConfig } from './config.js';
 export { getCoreSrcPath, createViteDefine } from './vite.js';
 
