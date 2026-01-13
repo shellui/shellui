@@ -16,13 +16,11 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ModalProvider, useModal } from '../modal/ModalContext';
 import { cn } from '@/lib/utils';
-import { getIconComponent } from '@/components/Icon';
 import { ContentView } from '@/components/ContentView';
 
 interface DefaultLayoutProps {
@@ -31,32 +29,20 @@ interface DefaultLayoutProps {
   settingsUrl?: string;
 }
 
-
 const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => {
   const location = useLocation();
 
   // Check if at least one navigation item has an icon
   const hasAnyIcons = useMemo(() => {
-    return navigation.some(item => getIconComponent(item.icon) !== null);
+    return navigation.some(item => !!item.icon);
   }, [navigation]);
 
-  // Memoize icon components to prevent recreation on every render
-  const iconComponents = useMemo(() => {
-    const components = new Map<string, ReturnType<typeof getIconComponent>>();
-    navigation.forEach(item => {
-      if (item.icon) {
-        components.set(item.path, getIconComponent(item.icon));
-      }
-    });
-    return components;
-  }, [navigation]);
 
   return (
     <SidebarMenu>
       {navigation.map((item) => {
         const pathPrefix = `/${item.path}`;
         const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-        const IconComponent = iconComponents.get(item.path);
         
         return (
           <SidebarMenuItem key={item.path}>
@@ -69,8 +55,8 @@ const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => 
               )}
             >
               <Link to={`/${item.path}`} className="flex items-center gap-2 w-full">
-                {IconComponent ? (
-                  <IconComponent className="h-4 w-4 shrink-0" />
+                {item.icon ? (
+                  <img src={item.icon} alt="" className="h-4 w-4 shrink-0" />
                 ) : hasAnyIcons ? (
                   <span className="h-4 w-4 shrink-0" />
                 ) : null}

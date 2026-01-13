@@ -2,7 +2,6 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
-import { Icon } from "@/components/Icon"
 
 type SidebarContextValue = {
   isCollapsed: boolean
@@ -66,7 +65,7 @@ const SidebarTrigger = React.forwardRef<
       ref={ref}
       onClick={toggle}
       className={cn(
-        "relative z-[9999] flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-lg backdrop-blur-md",
+        "relative z-[9999] flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-lg backdrop-blur-md cursor-pointer",
         className
       )}
       aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -77,11 +76,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <Icon 
-        path={isCollapsed ? "/icons/panel-left.svg" : "/icons/panel-left-closed.svg"} 
-        className="h-5 w-5 transition-transform duration-300" 
-        size={20} 
-      />
+      <img src={isCollapsed ? "/icons/panel-left.svg" : "/icons/panel-left-closed.svg"} alt="" className="h-5 w-5 transition-transform duration-300" />
     </button>
   )
 })
