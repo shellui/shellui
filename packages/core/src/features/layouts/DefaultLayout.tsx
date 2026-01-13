@@ -112,10 +112,7 @@ const DefaultLayoutContent = ({ title, navigation, settingsUrl }: DefaultLayoutP
       </div>
 
       <Dialog open={isOpen} onOpenChange={closeModal}>
-        <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
             <div className="flex-1" style={{ minHeight: 0 }}>
               <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} />
