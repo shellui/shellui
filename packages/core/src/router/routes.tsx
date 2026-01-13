@@ -11,12 +11,18 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
     // Settings route (if configured)
     path: "__settings", 
     element: <SettingsView />,
+    children: [
+      {
+        path: '*',
+        element: <NotFoundView />,
+      },
+    ],
   },
   {
     // Catch-all route
     path: '*',
     element: <NotFoundView />,
-  }
+  },
 ];
 
   // Main layout route with nested routes
