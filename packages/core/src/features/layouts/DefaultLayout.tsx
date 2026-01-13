@@ -26,7 +26,6 @@ import { ContentView } from '@/components/ContentView';
 interface DefaultLayoutProps {
   title?: string;
   navigation: NavigationItem[];
-  settingsUrl?: string;
 }
 
 const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => {
@@ -70,7 +69,7 @@ const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => 
   );
 };
 
-const DefaultLayoutContent = ({ title, navigation, settingsUrl }: DefaultLayoutProps) => {
+const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
 
   return (
@@ -92,7 +91,7 @@ const DefaultLayoutContent = ({ title, navigation, settingsUrl }: DefaultLayoutP
           <SidebarFooter>
             <SidebarMenuButton
               onClick={() => {
-                shellui.openModal(settingsUrl);
+                shellui.openModal("/__settings");
               }}
               className="w-full cursor-pointer"
             >
@@ -134,10 +133,10 @@ const DefaultLayoutContent = ({ title, navigation, settingsUrl }: DefaultLayoutP
   );
 };
 
-export const DefaultLayout = ({ title, navigation, settingsUrl }: DefaultLayoutProps) => {
+export const DefaultLayout = ({ title, navigation }: DefaultLayoutProps) => {
   return (
     <ModalProvider>
-      <DefaultLayoutContent title={title} navigation={navigation} settingsUrl={settingsUrl} />
+      <DefaultLayoutContent title={title} navigation={navigation} />
     </ModalProvider>
   );
 };

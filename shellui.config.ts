@@ -3,7 +3,6 @@ import type { ShellUIConfig } from '@shellui/core';
 const config: ShellUIConfig = {
   port: 4000,
   title: 'ShellUI',
-  settingsUrl: '/settings',
   navigation: [
     {
       label: 'Docs',
@@ -29,9 +28,14 @@ const config: ShellUIConfig = {
       url: 'https://sebastienbarbier.com/'
     },
     {
+      label: 'Page not found',
+      path: '404',
+      url: '/thisisnotfound'
+    },
+    {
       label: 'Settings',
-      path: 'settings2',
-      url: '/settings',
+      path: 'settings',
+      url: '__settings',
       icon: '/icons/settings.svg'
     }
   ]
