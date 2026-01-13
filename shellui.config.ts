@@ -13,7 +13,7 @@ const config: ShellUIConfig = {
     {
       label: 'Playground',
       path: 'playground',
-      url: 'http://localhost:4000/',
+      url: '/',
       icon: "/icons/play.svg"
     },
     {
@@ -35,7 +35,7 @@ const config: ShellUIConfig = {
     {
       label: 'Settings',
       path: 'settings',
-      url: '__settings',
+      url: '/__settings',
       icon: '/icons/settings.svg'
     }
   ]

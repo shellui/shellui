@@ -1,10 +1,10 @@
 import type { RouteObject } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
 import { HomeView } from '../components/HomeView';
-import { SettingsView } from '../components/SettingsView';
+import { SettingsView } from '../features/settings/SettingsView';
 import { ViewRoute } from '../components/ViewRoute';
 import { NotFoundView } from '../components/NotFoundView';
-import { DefaultLayout } from '../features/layouts/DefaultLayout';
+import { DefaultLayout } from '../features/modal/DefaultLayout';
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{

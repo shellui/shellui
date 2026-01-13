@@ -17,7 +17,7 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
-import { ModalProvider, useModal } from '../modal/ModalContext';
+import { ModalProvider, useModal } from './ModalContext';
 import { cn } from '@/lib/utils';
 import { ContentView } from '@/components/ContentView';
 

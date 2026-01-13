@@ -31,21 +31,22 @@ import {
   LockIcon,
   SettingsIcon,
 } from "./SettingsIcons"
+import { Link } from "react-router"
 
 const data = {
   nav: [
-    { name: "Notifications", icon: BellIcon },
-    { name: "Navigation", icon: MenuIcon },
-    { name: "Home", icon: HomeIcon },
-    { name: "Appearance", icon: PaintbrushIcon },
-    { name: "Messages & media", icon: MessageCircleIcon },
-    { name: "Language & region", icon: GlobeIcon },
-    { name: "Accessibility", icon: KeyboardIcon },
-    { name: "Mark as read", icon: CheckIcon },
-    { name: "Audio & video", icon: VideoIcon },
-    { name: "Connected accounts", icon: LinkIcon },
-    { name: "Privacy & visibility", icon: LockIcon },
-    { name: "Advanced", icon: SettingsIcon },
+    { name: "Notifications", icon: BellIcon, path: "notifications" },
+    { name: "Navigation", icon: MenuIcon, path: "navigation" },
+    { name: "Home", icon: HomeIcon, path: "home" },
+    { name: "Appearance", icon: PaintbrushIcon, path: "appearance" },
+    { name: "Messages & media", icon: MessageCircleIcon, path: "messages-and-media" },
+    { name: "Language & region", icon: GlobeIcon, path: "language-and-region" },
+    { name: "Accessibility", icon: KeyboardIcon, path: "accessibility" },
+    { name: "Mark as read", icon: CheckIcon, path: "mark-as-read" },
+    { name: "Audio & video", icon: VideoIcon, path: "audio-and-video" },
+    { name: "Connected accounts", icon: LinkIcon, path: "connected-accounts" },
+    { name: "Privacy & visibility", icon: LockIcon, path: "privacy-and-visibility" },
+    { name: "Advanced", icon: SettingsIcon, path: "advanced" },
   ],
 }
 
@@ -67,10 +68,10 @@ export const SettingsView = () => {
                         isActive={item.name === selectedItem}
                         onClick={() => setSelectedItem(item.name)}
                       >
-                        <a href="#" onClick={(e) => e.preventDefault()}>
+                        <Link to={`${item.path}`}>
                           <item.icon />
                           <span>{item.name}</span>
-                        </a>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
