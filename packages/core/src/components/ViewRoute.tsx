@@ -21,9 +21,6 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
   if (!navItem) {
     return <Navigate to="/" replace />;
   }
-
-  console.log('👉 navItem', navItem);
-
   // Calculate the relative path from the navItem.path
   // e.g. if item.path is "docs" and pathname is "/docs/intro", subPath is "intro"
   const pathPrefix = `/${navItem.path}`;
@@ -37,6 +34,5 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
     const baseUrl = navItem.url.endsWith('/') ? navItem.url : `${navItem.url}/`;
     finalUrl = `${baseUrl}${subPath}`;
   }
-  console.log('👉 finalUrl', finalUrl);
   return <ContentView url={finalUrl} pathPrefix={navItem.path} />;
 };

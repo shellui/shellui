@@ -31,7 +31,7 @@ import {
   LockIcon,
   SettingsIcon,
 } from "./SettingsIcons"
-import { Link } from "react-router"
+import { Link, useLocation } from "react-router"
 
 const data = {
   nav: [
@@ -51,7 +51,34 @@ const data = {
 }
 
 export const SettingsView = () => {
-  const [selectedItem, setSelectedItem] = React.useState("Messages & media")
+  const location = useLocation()
+  
+  // Find matching nav item by checking if URL contains or ends with the item path
+  const getSelectedItemFromUrl = () => {
+    const pathname = location.pathname
+    
+    // Find matching nav item by checking if pathname contains the item path
+    // This works regardless of the URL structure/prefix
+    const matchedItem = data.nav.find(item => {
+      // Normalize paths for comparison (remove leading/trailing slashes)
+      const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
+      const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
+      
+      // Check if pathname ends with the item path, or contains it as a path segment
+      return normalizedPathname === normalizedItemPath ||
+             normalizedPathname.endsWith(`/${normalizedItemPath}`) ||
+             normalizedPathname.includes(`/${normalizedItemPath}/`)
+    })
+    
+    return matchedItem?.name || "Messages & media"
+  }
+  
+  const [selectedItem, setSelectedItem] = React.useState(() => getSelectedItemFromUrl())
+  
+  // Update selectedItem when URL changes
+  React.useEffect(() => {
+    setSelectedItem(getSelectedItemFromUrl())
+  }, [location.pathname])
 
   return (
     <SidebarProvider>
