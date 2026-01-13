@@ -102,12 +102,18 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
           const url = event.data.payload?.url || undefined;
           openModal(url);
         }
+      } else if (event.data?.type === 'SHELLUI_CLOSE_MODAL') {
+        // Close modal when receiving close message
+        if (window.parent === window) {
+          // We're at top level, close modal
+          closeModal();
+        }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [openModal]);
+  }, [openModal, closeModal]);
 
   return (
     <ModalContext.Provider value={{ isOpen, modalUrl, openModal, closeModal }}>
