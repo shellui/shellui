@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { ContentView } from './components/ContentView';

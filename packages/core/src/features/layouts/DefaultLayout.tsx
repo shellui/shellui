@@ -1,4 +1,4 @@
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, Outlet } from 'react-router';
 import { useMemo } from 'react';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
