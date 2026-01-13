@@ -34,5 +34,5 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
     const baseUrl = navItem.url.endsWith('/') ? navItem.url : `${navItem.url}/`;
     finalUrl = `${baseUrl}${subPath}`;
   }
-  return <ContentView url={finalUrl} pathPrefix={navItem.path} />;
+  return <ContentView url={finalUrl} pathPrefix={navItem.path} navItem={navItem} />;
 };

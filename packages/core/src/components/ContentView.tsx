@@ -1,3 +1,4 @@
+import { NavigationItem } from '@/features/config/types';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -5,9 +6,10 @@ interface ContentViewProps {
   url: string;
   pathPrefix: string;
   ignoreMessages?: boolean;
+  navItem: NavigationItem;
 }
 
-export const ContentView = ({ url, pathPrefix, ignoreMessages = false }: ContentViewProps) => {
+export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }: ContentViewProps) => {
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInternalNavigation = useRef(false);
@@ -33,9 +35,9 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false }: Content
         const { pathname, search, hash } = payload;
         
         // Remove leading slash and trailing slashes from iframe pathname
-        let cleanPathname = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+        let cleanPathname = pathname.startsWith(navItem.url) ? pathname.slice(navItem.url.length) : pathname;
+        cleanPathname = cleanPathname.startsWith('/') ? cleanPathname.slice(1) : cleanPathname;
         cleanPathname = cleanPathname.replace(/\/+$/, ''); // Remove trailing slashes
-        
         // Construct the new path without trailing slashes
         let newShellPath = cleanPathname 
           ? `/${pathPrefix}/${cleanPathname}${search}${hash}`
