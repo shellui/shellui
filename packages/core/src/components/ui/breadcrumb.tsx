@@ -93,7 +93,7 @@ const BreadcrumbSeparator = ({
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="m9 18 6-6" />
+        <polyline points="9 18 15 12 9 6" />
       </svg>
     )}
   </li>
