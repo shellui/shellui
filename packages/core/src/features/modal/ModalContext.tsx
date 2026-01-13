@@ -97,12 +97,7 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'SHELLUI_OPEN_MODAL') {
         // If we're in an iframe, propagate to parent
-        if (window.parent !== window) {
-          window.parent.postMessage({
-            type: 'SHELLUI_OPEN_MODAL',
-            payload: event.data.payload
-          }, '*');
-        } else {
+        if (window.parent === window) {
           // We're at top level, open modal
           const url = event.data.payload?.url || undefined;
           openModal(url);

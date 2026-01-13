@@ -29,23 +29,6 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false }: Content
         return;
       }
 
-      if (type === 'SHELLUI_OPEN_MODAL') {
-        // ContentView always renders an iframe, so we should always propagate to parent
-        // The ModalProvider will handle opening the modal at the top level
-        // This ensures modals open in the parent ShellUI instance, not inside the iframe
-        if (window.parent !== window) {
-          // Forward the message to parent ShellUI instance
-          window.parent.postMessage({
-            type: 'SHELLUI_OPEN_MODAL',
-            payload: {
-              url: payload?.url || null
-            }
-          }, '*');
-        }
-        // Don't open locally here - let ModalProvider handle it at the top level
-        return;
-      }
-
       if (type === 'SHELLUI_URL_CHANGED') {
         const { pathname, search, hash } = payload;
         
