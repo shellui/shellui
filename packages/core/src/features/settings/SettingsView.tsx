@@ -17,38 +17,9 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import {
-  BellIcon,
-  MenuIcon,
-  HomeIcon,
-  PaintbrushIcon,
-  MessageCircleIcon,
-  GlobeIcon,
-  KeyboardIcon,
-  CheckIcon,
-  VideoIcon,
-  LinkIcon,
-  LockIcon,
-  SettingsIcon,
-} from "./SettingsIcons"
-import { useLocation, useNavigate } from "react-router"
+import { Route, Routes, useLocation, useNavigate } from "react-router"
+import { settingsRoutes } from "./SettingsRoutes"
 
-const data = {
-  nav: [
-    { name: "Notifications", icon: BellIcon, path: "notifications" },
-    { name: "Navigation", icon: MenuIcon, path: "navigation" },
-    { name: "Home", icon: HomeIcon, path: "home" },
-    { name: "Appearance", icon: PaintbrushIcon, path: "appearance" },
-    { name: "Messages & media", icon: MessageCircleIcon, path: "messages-and-media" },
-    { name: "Language & region", icon: GlobeIcon, path: "language-and-region" },
-    { name: "Accessibility", icon: KeyboardIcon, path: "accessibility" },
-    { name: "Mark as read", icon: CheckIcon, path: "mark-as-read" },
-    { name: "Audio & video", icon: VideoIcon, path: "audio-and-video" },
-    { name: "Connected accounts", icon: LinkIcon, path: "connected-accounts" },
-    { name: "Privacy & visibility", icon: LockIcon, path: "privacy-and-visibility" },
-    { name: "Advanced", icon: SettingsIcon, path: "advanced" },
-  ],
-}
 
 export const SettingsView = () => {
   const location = useLocation()
@@ -60,7 +31,7 @@ export const SettingsView = () => {
     
     // Find matching nav item by checking if pathname contains the item path
     // This works regardless of the URL structure/prefix
-    const matchedItem = data.nav.find(item => {
+    const matchedItem = settingsRoutes.find(item => {
       // Normalize paths for comparison (remove leading/trailing slashes)
       const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
       const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
@@ -71,7 +42,7 @@ export const SettingsView = () => {
              normalizedPathname.includes(`/${normalizedItemPath}/`)
     })
     
-    return matchedItem?.name || "Messages & media"
+    return matchedItem?.name
   }
   
   const [selectedItem, setSelectedItem] = React.useState(() => getSelectedItemFromUrl())
@@ -89,7 +60,7 @@ export const SettingsView = () => {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {data.nav.map((item) => (
+                  {settingsRoutes.map((item) => (
                     <SidebarMenuItem key={item.name}>
                       <SidebarMenuButton
                         asChild
@@ -109,7 +80,7 @@ export const SettingsView = () => {
           </SidebarContent>
         </Sidebar>
         <main className="flex h-full flex-1 flex-col overflow-hidden">
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+          { selectedItem && <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
             <div className="flex items-center gap-2 px-4">
               <Breadcrumb>
                 <BreadcrumbList>
@@ -123,14 +94,13 @@ export const SettingsView = () => {
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
-          </header>
+          </header>}
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-muted/50 aspect-video max-w-3xl rounded-xl"
-              />
-            ))}
+            <Routes>
+              {settingsRoutes.map((item) => (
+                <Route key={item.path} path={item.path} element={item.element} />
+              ))}
+            </Routes>
           </div>
         </main>
       </div>
