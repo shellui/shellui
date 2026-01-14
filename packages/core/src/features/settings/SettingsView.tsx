@@ -31,7 +31,7 @@ import {
   LockIcon,
   SettingsIcon,
 } from "./SettingsIcons"
-import { Link, useLocation } from "react-router"
+import { useLocation, useNavigate } from "react-router"
 
 const data = {
   nav: [
@@ -52,6 +52,7 @@ const data = {
 
 export const SettingsView = () => {
   const location = useLocation()
+  const navigate = useNavigate()
   
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = () => {
@@ -95,10 +96,10 @@ export const SettingsView = () => {
                         isActive={item.name === selectedItem}
                         onClick={() => setSelectedItem(item.name)}
                       >
-                        <Link to={`${item.path}`}>
+                        <button onClick={() => navigate(`${item.path}`)} className="cursor-pointer">
                           <item.icon />
                           <span>{item.name}</span>
-                        </Link>
+                        </button>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
@@ -113,7 +114,7 @@ export const SettingsView = () => {
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">Settings</BreadcrumbLink>
+                    Settings
                   </BreadcrumbItem>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
