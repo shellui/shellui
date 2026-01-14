@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { createAppRouter } from './router/router';
+import { SettingsProvider } from './features/settings/SettingsContext';
 import './index.css';
 
 const AppContent = () => {
@@ -64,7 +65,7 @@ const AppContent = () => {
     return null;
   }
 
-  return <RouterProvider router={router} />;
+  return <SettingsProvider><RouterProvider router={router} /></SettingsProvider>;
 };
 
 const App = () => {
