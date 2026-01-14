@@ -2,7 +2,6 @@ import * as React from "react"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -19,19 +18,29 @@ import {
 } from "@/components/ui/sidebar"
 import { Route, Routes, useLocation, useNavigate } from "react-router"
 import { settingsRoutes } from "./SettingsRoutes"
+import { useSettings } from "./SettingsContext"
 
 
 export const SettingsView = () => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { settings } = useSettings()
+  
+  // Filter routes based on developer features setting
+  const filteredRoutes = React.useMemo(() => {
+    if (settings.developerFeatures.enabled) {
+      return settingsRoutes
+    }
+    return settingsRoutes.filter(route => route.path !== "developpers")
+  }, [settings.developerFeatures.enabled])
   
   // Find matching nav item by checking if URL contains or ends with the item path
-  const getSelectedItemFromUrl = () => {
+  const getSelectedItemFromUrl = React.useCallback(() => {
     const pathname = location.pathname
     
     // Find matching nav item by checking if pathname contains the item path
     // This works regardless of the URL structure/prefix
-    const matchedItem = settingsRoutes.find(item => {
+    const matchedItem = filteredRoutes.find(item => {
       // Normalize paths for comparison (remove leading/trailing slashes)
       const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
       const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
@@ -43,14 +52,30 @@ export const SettingsView = () => {
     })
     
     return matchedItem?.name
-  }
+  }, [location.pathname, filteredRoutes])
   
-  const [selectedItem, setSelectedItem] = React.useState(() => getSelectedItemFromUrl())
+  const [selectedItem, setSelectedItem] = React.useState(() => {
+    // Initial state calculation
+    const pathname = location.pathname
+    const routes = settings.developerFeatures.enabled 
+      ? settingsRoutes 
+      : settingsRoutes.filter(route => route.path !== "developpers")
+    
+    const matchedItem = routes.find(item => {
+      const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
+      const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
+      return normalizedPathname === normalizedItemPath ||
+             normalizedPathname.endsWith(`/${normalizedItemPath}`) ||
+             normalizedPathname.includes(`/${normalizedItemPath}/`)
+    })
+    
+    return matchedItem?.name
+  })
   
-  // Update selectedItem when URL changes
+  // Update selectedItem when URL changes or routes change
   React.useEffect(() => {
     setSelectedItem(getSelectedItemFromUrl())
-  }, [location.pathname])
+  }, [getSelectedItemFromUrl])
 
   return (
     <SidebarProvider>
@@ -60,7 +85,7 @@ export const SettingsView = () => {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {settingsRoutes.map((item) => (
+                  {filteredRoutes.map((item) => (
                     <SidebarMenuItem key={item.name}>
                       <SidebarMenuButton
                         asChild
@@ -97,7 +122,7 @@ export const SettingsView = () => {
           </header>}
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
             <Routes>
-              {settingsRoutes.map((item) => (
+              {filteredRoutes.map((item) => (
                 <Route key={item.path} path={item.path} element={item.element} />
               ))}
             </Routes>

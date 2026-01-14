@@ -2,6 +2,7 @@ import type { RouteObject } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
 import { HomeView } from '../components/HomeView';
 import { SettingsView } from '../features/settings/SettingsView';
+import { SettingsProvider } from '../features/settings/SettingsContext';
 import { ViewRoute } from '../components/ViewRoute';
 import { NotFoundView } from '../components/NotFoundView';
 import { DefaultLayout } from '../features/modal/DefaultLayout';
@@ -10,7 +11,11 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{
     // Settings route (if configured)
     path: "__settings", 
-    element: <SettingsView />,
+    element: (
+      <SettingsProvider>
+        <SettingsView />
+      </SettingsProvider>
+    ),
     children: [
       {
         path: '*',
