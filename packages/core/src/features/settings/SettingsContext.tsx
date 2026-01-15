@@ -1,5 +1,5 @@
 import * as React from "react"
-import { notifyParentSettingsUpdate } from "./notifyParentSettingsUpdate"
+import { notifyParentSettingsUpdate } from "./utils/notifyParentSettingsUpdate"
 
 export interface Settings {
   developerFeatures: {
@@ -27,7 +27,7 @@ interface SettingsContextValue {
   ) => void
 }
 
-const SettingsContext = React.createContext<SettingsContextValue | undefined>(undefined)
+export const SettingsContext = React.createContext<SettingsContextValue | undefined>(undefined)
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
@@ -57,7 +57,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
 
     const handleMessage = (event: MessageEvent) => {
-      console.log('handleMessage', event)
       if (window.parent !== window) {
         return
       }
@@ -87,7 +86,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
         // Notify parent of settings update (skip on initial mount)
         if (!isInitialMount && window.parent !== window) {
           notifyParentSettingsUpdate(settings)
@@ -98,6 +96,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [settings])
+
+  // ACTIONS
 
   const updateSettings = React.useCallback((updates: Partial<Settings>) => {
     setSettings(prev => ({ ...prev, ...updates }))
