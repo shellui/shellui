@@ -5,6 +5,7 @@
 
 import { setupIframeMessageListener } from './utils/setupIframeMessageListener.js';
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
+import packageJson from '../package.json';
 
 class ShellUISDK {
   constructor() {
@@ -13,7 +14,7 @@ class ShellUISDK {
     this.currentPath = typeof window !== 'undefined' 
       ? window.location.pathname + window.location.search + window.location.hash
       : '';
-    this.version = '0.0.1';
+    this.version = packageJson.version;
   }
 
   /**
