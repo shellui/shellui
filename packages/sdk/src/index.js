@@ -6,6 +6,7 @@
 import { setupIframeMessageListener } from './utils/setupIframeMessageListener.js';
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
+import { openModal as openModalAction } from './actions/openModal.js';
 import packageJson from '../package.json';
 
 class ShellUISDK {
@@ -46,24 +47,7 @@ class ShellUISDK {
    * If not in an iframe, dispatches a custom event that can be handled by the app
    */
   openModal(url) {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    // Send message to parent frame to open modal
-    const message = {
-      type: 'SHELLUI_OPEN_MODAL',
-      payload: {
-        url: url || null
-      }
-    };
-
-    // Check if we're inside an iframe
-    if (window.parent !== window) {
-      window.parent.postMessage(message, '*');
-    } else {
-      window.postMessage(message, '*');
-    }
+    openModalAction(url);
   }
 
   getVersion() {
@@ -75,6 +59,7 @@ const sdk = new ShellUISDK();
 
 export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
+export const openModal = (url) => openModalAction(url);
 export const shellui = sdk;
 
 export default sdk;
