@@ -22,7 +22,9 @@
   ],
   "author": "ShellUI",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "roarr": "^7.21.2"
+  },
   "publishConfig": {
     "access": "public"
   }

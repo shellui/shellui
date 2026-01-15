@@ -1,9 +1,18 @@
 import * as React from "react"
 import { notifyParentSettingsUpdate } from "./utils/notifyParentSettingsUpdate"
+import { getLogger } from "@shellui/sdk"
+
+const logger = getLogger('shellcore')
 
 export interface Settings {
   developerFeatures: {
     enabled: boolean
+  }
+  logging: {
+    namespaces: {
+      shellsdk: boolean
+      shellcore: boolean
+    }
   }
   // Add more settings here as needed
   // appearance: { ... }
@@ -15,6 +24,12 @@ const STORAGE_KEY = 'shellui:settings'
 const defaultSettings: Settings = {
   developerFeatures: {
     enabled: false
+  },
+  logging: {
+    namespaces: {
+      shellsdk: false,
+      shellcore: false
+    }
   }
 }
 
@@ -40,11 +55,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem(STORAGE_KEY)
         if (stored) {
           const parsed = JSON.parse(stored)
-          // Merge with defaults to handle new settings
-          return { ...defaultSettings, ...parsed }
+          // Deep merge with defaults to handle new settings
+          return {
+            ...defaultSettings,
+            ...parsed,
+            logging: {
+              namespaces: {
+                ...defaultSettings.logging.namespaces,
+                ...parsed.logging?.namespaces
+              }
+            }
+          }
         }
       } catch (error) {
-        console.error('Failed to load settings from localStorage:', error)
+        logger.error('Failed to load settings from localStorage:', { error })
       }
     }
     return defaultSettings
@@ -70,9 +94,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             // Update state to reflect the new settings
             setSettings(newSettings)
             // TODO: propagate to all nodes
-            console.log('Root Parent received settings update:', newSettings, window.location.pathname) 
+            logger.info('Root Parent received settings update', { newSettings, pathname: window.location.pathname }) 
           } catch (error) {
-            console.error('Failed to update settings from message:', error)
+            logger.error('Failed to update settings from message:', { error })
           }
         }
       }
@@ -86,13 +110,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
         // Notify parent of settings update (skip on initial mount)
         if (!isInitialMount && window.parent !== window) {
           notifyParentSettingsUpdate(settings)
         }
         setIsInitialMount(false)
       } catch (error) {
-        console.error('Failed to save settings to localStorage:', error)
+        logger.error('Failed to save settings to localStorage:', { error })
       }
     }
   }, [settings])
