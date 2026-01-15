@@ -5,6 +5,7 @@
 
 import { setupIframeMessageListener } from './utils/setupIframeMessageListener.js';
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
+import { setupKeyListener } from './utils/setupKeyListener.js';
 import packageJson from '../package.json';
 
 class ShellUISDK {
@@ -30,41 +31,13 @@ class ShellUISDK {
     setupIframeMessageListener();
     
     // Listen for Escape key to close modal
-    this.setupEscapeKeyListener();
+    setupKeyListener();
     
     this.initialized = true;
     console.log('ShellUI SDK initialized');
     return this;
   }
 
-  /**
-   * Sets up a listener for the Escape key to close modal
-   * If in an iframe, sends a message to the parent
-   */
-  setupEscapeKeyListener() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape' || event.keyCode === 27) {
-        // Check if we're inside an iframe
-        if (window.parent !== window) {
-          const message = {
-            type: 'SHELLUI_CLOSE_MODAL'
-          };
-          window.parent.postMessage(message, '*');
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    
-    // Store cleanup function for potential future use
-    this._escapeKeyCleanup = () => {
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }
 
   /**
    * Opens the settings modal with optional URL

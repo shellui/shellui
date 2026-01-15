@@ -9,13 +9,6 @@ export interface ShellUIUrlPayload {
   fullPath: string;
 }
 
-export interface ShellUIUrlPayload {
-  pathname: string;
-  search: string;
-  hash: string;
-  fullPath: string;
-}
-
 export interface ShellUIMessage {
   type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL';
   payload: ShellUIUrlPayload | Record<string, never>;
@@ -32,21 +25,6 @@ export class ShellUISDK {
    * Initialize the SDK and start monitoring URL changes
    */
   init(): this;
-
-  /**
-   * Sets up listeners for various URL change events
-   */
-  setupUrlMonitoring(): void;
-
-  /**
-   * Internal handler for URL changes
-   */
-  handleUrlChange(): void;
-
-  /**
-   * Sends a message to the parent frame with the current path information
-   */
-  notifyParent(): void;
 
   /**
    * Opens the settings modal with optional URL
