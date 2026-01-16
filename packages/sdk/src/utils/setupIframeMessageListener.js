@@ -1,3 +1,7 @@
+import { getLogger } from '../logger/logger.js';
+
+const logger = getLogger('shellsdk');
+
 /**
  * Sets up a listener for messages from nested iframes
  * This ensures modal requests and settings updates from iframe content propagate to parent
@@ -29,7 +33,7 @@ export function setupIframeMessageListener() {
       }, '*');
     } 
     else {
-      console.warn('ShellSDK: unknown message', event.data)
+      logger.warn('ShellSDK: unknown message', event.data)
     }
   });
 }

@@ -7,7 +7,7 @@ import { setupIframeMessageListener } from './utils/setupIframeMessageListener.j
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
-import { getLogger } from './utils/logger.js';
+import { getLogger } from './logger/logger.js';
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
@@ -63,7 +63,7 @@ const sdk = new ShellUISDK();
 export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
-export { getLogger } from './utils/logger.js';
+export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 
 export default sdk;

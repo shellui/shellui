@@ -1,4 +1,8 @@
-/**
+import { getLogger } from '../logger/logger.js';
+
+const logger = getLogger('shellsdk');
+
+/** const logger = getLogger('shellsdk');
  * Sets up a listener for the Escape key to close modal
  * If in an iframe, sends a message to the parent
  * @returns {() => void} Cleanup function to remove the event listener
@@ -16,6 +20,7 @@ export function setupKeyListener() {
           type: 'SHELLUI_CLOSE_MODAL'
         };
         window.parent.postMessage(message, '*');
+        logger.info('Escape key pressed, sending message to parent to close modal');
       }
     }
   };
