@@ -13,6 +13,8 @@ export function setupKeyListener() {
   }
 
   const handleEscape = (event) => {
+
+    logger.info(`${event.key} (${event.keyCode}) pressed ${window.parent !== window ? 'inside iframe' : 'at top level'}`, { event });
     if (event.key === 'Escape' || event.keyCode === 27) {
       // Check if we're inside an iframe
       if (window.parent !== window) {
@@ -20,7 +22,6 @@ export function setupKeyListener() {
           type: 'SHELLUI_CLOSE_MODAL'
         };
         window.parent.postMessage(message, '*');
-        logger.info('Escape key pressed, sending message to parent to close modal');
       }
     }
   };
