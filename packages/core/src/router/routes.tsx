@@ -4,14 +4,14 @@ import { HomeView } from '../components/HomeView';
 import { SettingsView } from '../features/settings/SettingsView';
 import { ViewRoute } from '../components/ViewRoute';
 import { NotFoundView } from '../components/NotFoundView';
-import { DefaultLayout } from '../features/modal/DefaultLayout';
+import { DefaultLayout } from '../features/layouts/DefaultLayout';
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{
     // Settings route (if configured)
-    path: "__settings", 
+    path: "__settings",
     element: (
-        <SettingsView />
+      <SettingsView />
     ),
     children: [
       {
@@ -25,13 +25,13 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
     path: '*',
     element: <NotFoundView />,
   },
-];
+  ];
 
   // Main layout route with nested routes
   const layoutRoute: RouteObject = {
     element: (
-      <DefaultLayout 
-        title={config.title} 
+      <DefaultLayout
+        title={config.title}
         navigation={config.navigation || []}
       />
     ),

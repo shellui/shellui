@@ -17,7 +17,9 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
-import { ModalProvider, useModal } from './ModalContext';
+import { ModalProvider, useModal } from '../modal/ModalContext';
+import { SonnerProvider } from '../sonner/SonnerContext';
+import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { ContentView } from '@/components/ContentView';
 
@@ -127,6 +129,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
           )}
         </DialogContent>
       </Dialog>
+      <Toaster />
     </SidebarProvider>
   );
 };
@@ -134,7 +137,9 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
 export const DefaultLayout = ({ title, navigation }: DefaultLayoutProps) => {
   return (
     <ModalProvider>
-      <DefaultLayoutContent title={title} navigation={navigation} />
+      <SonnerProvider>
+        <DefaultLayoutContent title={title} navigation={navigation} />
+      </SonnerProvider>
     </ModalProvider>
   );
 };

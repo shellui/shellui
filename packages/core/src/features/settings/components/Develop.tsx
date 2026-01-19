@@ -1,5 +1,7 @@
 import { useSettings } from "../SettingsContext"
 import { Switch } from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { shellui } from "@shellui/sdk"
 
 export const Develop = () => {
   const { settings, updateSetting } = useSettings()
@@ -57,6 +59,116 @@ export const Develop = () => {
                 })
               }
             />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Testing</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Test ShellUI features and functionality.
+        </p>
+        
+        <div className="space-y-4">
+          <div>
+            <h4 className="text-sm font-medium mb-2">Toast Notifications</h4>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Success!",
+                    description: "Operation completed successfully",
+                    type: "success",
+                  });
+                }}
+                variant="outline"
+              >
+                Success Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Error",
+                    description: "Something went wrong. Please try again.",
+                    type: "error",
+                  });
+                }}
+                variant="outline"
+              >
+                Error Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Warning",
+                    description: "This action may have unintended consequences",
+                    type: "warning",
+                  });
+                }}
+                variant="outline"
+              >
+                Warning Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Information",
+                    description: "Here's some useful information for you",
+                    type: "info",
+                  });
+                }}
+                variant="outline"
+              >
+                Info Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Default Toast",
+                    description: "This is a default toast notification",
+                    type: "default",
+                  });
+                }}
+                variant="outline"
+              >
+                Default Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Toast with Action",
+                    description: "This toast has an action button",
+                    type: "success",
+                    action: {
+                      label: "Undo",
+                      onClick: () => {
+                        shellui.toast({
+                          title: "Undone",
+                          description: "Action has been undone",
+                          type: "info",
+                        });
+                      },
+                    },
+                  });
+                }}
+                variant="outline"
+              >
+                Toast with Action
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Persistent Toast",
+                    description: "This toast will stay until dismissed (10 seconds)",
+                    type: "info",
+                    duration: 10000,
+                  });
+                }}
+                variant="outline"
+              >
+                Long Duration Toast
+              </Button>
+            </div>
           </div>
         </div>
       </div>

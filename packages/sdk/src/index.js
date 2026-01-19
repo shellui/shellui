@@ -6,6 +6,7 @@
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
+import { toast as toastAction } from './actions/toast.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
@@ -55,6 +56,26 @@ class ShellUISDK {
    */
   openModal(url) {
     openModalAction(url);
+  }
+
+  /**
+   * Shows a toast notification
+   * @param {Object} options - Toast options
+   * @param {string} [options.title] - Toast title
+   * @param {string} [options.description] - Toast description
+   * @param {string} [options.type='default'] - Toast type: 'default', 'success', 'error', 'warning', 'info'
+   * @param {number} [options.duration] - Toast duration in milliseconds
+   * @param {Object} [options.action] - Action button configuration
+   * @param {string} options.action.label - Action button label
+   * @param {Function} options.action.onClick - Action button click handler
+   * @param {Object} [options.cancel] - Cancel button configuration
+   * @param {string} options.cancel.label - Cancel button label
+   * @param {Function} options.cancel.onClick - Cancel button click handler
+   * If inside an iframe, sends a message to the parent to show the toast
+   * If not in an iframe, dispatches a custom event that can be handled by the app
+   */
+  toast(options) {
+    toastAction(options);
   }
 
   getVersion() {
@@ -153,6 +174,7 @@ const sdk = new ShellUISDK();
 export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
+export const toast = (options) => toastAction(options);
 export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
 export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);
