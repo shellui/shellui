@@ -8,6 +8,7 @@ import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
 import { getLogger } from './logger/logger.js';
+import { FrameRegistry } from './utils/frameRegistry.js';
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
@@ -20,8 +21,8 @@ class ShellUISDK {
       ? window.location.pathname + window.location.search + window.location.hash
       : '';
     this.version = packageJson.version;
-    // Map to store iframe references with UUIDs
-    this.iframes = new Map();
+    // Frame registry for managing iframe references
+    this.frameRegistry = new FrameRegistry();
   }
 
   /**
@@ -44,8 +45,6 @@ class ShellUISDK {
     return this;
   }
 
-
-
   /**
    * Opens the settings modal with optional URL
    * @param {string} [url] - Optional URL or path to load in the modal iframe. Must be same domain or relative.
@@ -66,19 +65,7 @@ class ShellUISDK {
    * @returns {string|undefined} The UUID assigned to the iframe, or undefined if not found
    */
   getUuidByIframe(windowRef) {
-    if (!windowRef) {
-      return undefined;
-    }
-
-    // Iterate through the Map to find the iframe whose contentWindow matches
-    for (const [uuid, iframe] of this.iframes.entries()) {
-      // event.source is the iframe's contentWindow, so we need to compare
-      if (iframe && iframe.contentWindow === windowRef) {
-        return uuid;
-      }
-    }
-
-    return undefined;
+    return this.frameRegistry.getUuidByIframe(windowRef);
   }
 
   /**
@@ -87,26 +74,7 @@ class ShellUISDK {
    * @returns {string} The UUID assigned to the iframe
    */
   addIframe(iframe) {
-    if (!iframe || !(iframe instanceof HTMLIFrameElement)) {
-      throw new Error('addIframe requires a valid HTMLIFrameElement');
-    }
-
-    // Generate UUID using crypto.randomUUID() if available, otherwise fallback
-    let uuid;
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      uuid = crypto.randomUUID();
-    } else {
-      // Fallback UUID v4 generator
-      uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    }
-
-    this.iframes.set(uuid, iframe);
-    logger.debug(`Added iframe with UUID: ${uuid}`);
-    return uuid;
+    return this.frameRegistry.addIframe(iframe);
   }
 
   /**
@@ -115,29 +83,7 @@ class ShellUISDK {
    * @returns {boolean} True if the iframe was found and removed, false otherwise
    */
   removeIframe(identifier) {
-    if (typeof identifier === 'string') {
-      // Remove by UUID
-      const removed = this.iframes.delete(identifier);
-      if (removed) {
-        logger.debug(`Removed iframe with UUID: ${identifier}`);
-      } else {
-        logger.warn(`Iframe with UUID not found: ${identifier}`);
-      }
-      return removed;
-    } else if (identifier instanceof HTMLIFrameElement) {
-      // Remove by iframe element reference
-      for (const [uuid, iframe] of this.iframes.entries()) {
-        if (iframe === identifier) {
-          this.iframes.delete(uuid);
-          logger.debug(`Removed iframe with UUID: ${uuid}`);
-          return true;
-        }
-      }
-      logger.warn('Iframe element not found in registry');
-      return false;
-    } else {
-      throw new Error('removeIframe requires a UUID string or HTMLIFrameElement');
-    }
+    return this.frameRegistry.removeIframe(identifier);
   }
 }
 
