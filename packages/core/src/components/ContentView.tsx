@@ -30,7 +30,6 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   useEffect(() => {
 
     const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data) => {
-      console.log('SHELLUI_URL_CHANGED', data);
       if (ignoreMessages) {
         return;
       }
