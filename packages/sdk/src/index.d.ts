@@ -18,6 +18,7 @@ export class ShellUISDK {
   private initialized: boolean;
   private currentPath: string;
   private version: string;
+  private iframes: Map<string, HTMLIFrameElement>;
 
   constructor();
 
@@ -38,10 +39,26 @@ export class ShellUISDK {
    * Returns the current version of the SDK
    */
   getVersion(): string;
+
+  /**
+   * Adds an iframe reference and assigns a generated UUID to it
+   * @param iframe - The iframe element to register
+   * @returns The UUID assigned to the iframe
+   */
+  addIframe(iframe: HTMLIFrameElement): string;
+
+  /**
+   * Removes an iframe reference by UUID or iframe element
+   * @param identifier - The UUID string or iframe element to remove
+   * @returns True if the iframe was found and removed, false otherwise
+   */
+  removeIframe(identifier: string | HTMLIFrameElement): boolean;
 }
 
 export const init: () => ShellUISDK;
 export const getVersion: () => string;
+export const addIframe: (iframe: HTMLIFrameElement) => string;
+export const removeIframe: (identifier: string | HTMLIFrameElement) => boolean;
 export function getLogger(namespace: string): {
   log: (message: string, context?: Record<string, any>) => void;
   info: (message: string, context?: Record<string, any>) => void;

@@ -40,7 +40,7 @@ const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => 
       {navigation.map((item) => {
         const pathPrefix = `/${item.path}`;
         const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-        
+
         return (
           <SidebarMenuItem key={item.path}>
             <SidebarMenuButton
@@ -81,7 +81,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
               </Link>
             )}
           </SidebarHeader>
-          
+
           <SidebarContent>
             <NavigationContent navigation={navigation} />
           </SidebarContent>
@@ -112,14 +112,14 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
         <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
             <div className="flex-1" style={{ minHeight: 0 }}>
-              <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} />
+              <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigation.find(item => item.url === modalUrl)!} />
             </div>
           ) : (
             <div className="flex-1 p-4">
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                 <h3 className="font-semibold text-destructive mb-2">Error: Modal URL is undefined</h3>
                 <p className="text-sm text-muted-foreground">
-                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called without a valid URL parameter. 
+                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called without a valid URL parameter.
                   Please ensure you provide a URL when opening the modal.
                 </p>
               </div>

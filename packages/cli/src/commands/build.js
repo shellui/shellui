@@ -39,12 +39,12 @@ function copyDir(src, dest) {
  */
 export async function buildCommand(root = '.') {
   const cwd = process.cwd();
-  
+
   console.log(pc.blue(`Building ShellUI...`));
-  
+
   // Load configuration
   const config = await loadConfig(root);
-  
+
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
   const sdkPackagePath = resolvePackagePath('@shellui/sdk');
@@ -71,7 +71,7 @@ export async function buildCommand(root = '.') {
     // This ensures icons are served from the same path in dev and prod
     const staticPath = path.resolve(cwd, 'static');
     const distPath = path.resolve(cwd, 'dist');
-    
+
     if (fs.existsSync(staticPath)) {
       console.log(pc.blue('Copying static assets...'));
       // Copy contents of static directly to dist (not dist/static)

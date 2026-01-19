@@ -1,4 +1,5 @@
 import { NavigationItem } from '@/features/config/types';
+import { addIframe, removeIframe } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -15,6 +16,16 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   const isInternalNavigation = useRef(false);
   const [initialUrl] = useState(url);
 
+  useEffect(() => {
+    if (!iframeRef.current) {
+      return;
+    }
+    const iframeId = addIframe(iframeRef.current);
+    return () => {
+      removeIframe(iframeId);
+    };
+  }, []);
+
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -25,24 +36,23 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
       }
 
       // Only handle messages from this component's iframe
-      if (iframeRef.current && 
-          event.source !== iframeRef.current.contentWindow && 
-          event.source !== null) {
+      if (iframeRef.current &&
+        event.source !== iframeRef.current.contentWindow &&
+        event.source !== null) {
         return;
       }
-
       if (type === 'SHELLUI_URL_CHANGED') {
         const { pathname, search, hash } = payload;
-        
+
         // Remove leading slash and trailing slashes from iframe pathname
         let cleanPathname = pathname.startsWith(navItem.url) ? pathname.slice(navItem.url.length) : pathname;
         cleanPathname = cleanPathname.startsWith('/') ? cleanPathname.slice(1) : cleanPathname;
         cleanPathname = cleanPathname.replace(/\/+$/, ''); // Remove trailing slashes
         // Construct the new path without trailing slashes
-        let newShellPath = cleanPathname 
+        let newShellPath = cleanPathname
           ? `/${pathPrefix}/${cleanPathname}${search}${hash}`
           : `/${pathPrefix}${search}${hash}`;
-        
+
         // Normalize: remove trailing slashes from pathname part only (preserve query/hash)
         const urlParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
         if (urlParts) {
@@ -50,21 +60,21 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
           const queryHashPart = urlParts[2] || '';
           newShellPath = pathnamePart + queryHashPart;
         }
-        
+
         // Normalize current path for comparison (remove trailing slashes from pathname)
         const currentPathname = window.location.pathname.replace(/\/+$/, '') || '/';
         const currentPath = currentPathname + window.location.search + window.location.hash;
-        
+
         // Normalize new path for comparison
         const newPathParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
         const normalizedNewPathname = newPathParts?.[1]?.replace(/\/+$/, '') || '/';
         const normalizedNewPath = normalizedNewPathname + (newPathParts?.[2] || '');
-        
+
         if (currentPath !== normalizedNewPath) {
           // Mark this navigation as internal so we don't try to "push" it back to the iframe
           isInternalNavigation.current = true;
           navigate(newShellPath, { replace: true });
-          
+
           // Reset the flag after a short delay to allow the render cycle to complete
           setTimeout(() => {
             isInternalNavigation.current = false;
@@ -90,7 +100,7 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex' }}>
-      <iframe 
+      <iframe
         ref={iframeRef}
         src={initialUrl}
         style={{

@@ -14,8 +14,10 @@ export interface Settings {
       shellcore: boolean
     }
   }
+  appearance: {
+    theme: 'light' | 'dark' | 'system'
+  }
   // Add more settings here as needed
-  // appearance: { ... }
   // notifications: { ... }
 }
 
@@ -30,6 +32,9 @@ const defaultSettings: Settings = {
       shellsdk: false,
       shellcore: false
     }
+  },
+  appearance: {
+    theme: 'system'
   }
 }
 
@@ -47,7 +52,7 @@ export const SettingsContext = React.createContext<SettingsContextValue | undefi
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const [isInitialMount, setIsInitialMount] = React.useState(true)
-  
+
   const [settings, setSettings] = React.useState<Settings>(() => {
     // Initialize from localStorage
     if (typeof window !== 'undefined') {
@@ -64,6 +69,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 ...defaultSettings.logging.namespaces,
                 ...parsed.logging?.namespaces
               }
+            },
+            appearance: {
+              theme: parsed.appearance?.theme || defaultSettings.appearance.theme
             }
           }
         }
@@ -93,8 +101,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             // Confirm: root updated localStorage
             // Update state to reflect the new settings
             setSettings(newSettings)
+            const from = event.data.from || []
             // TODO: propagate to all nodes
-            logger.info('Root Parent received settings update', { newSettings, pathname: window.location.pathname }) 
+            logger.info('Root Parent received settings update', { newSettings, from, pathname: window.location.pathname })
           } catch (error) {
             logger.error('Failed to update settings from message:', { error })
           }

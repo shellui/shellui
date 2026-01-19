@@ -9,13 +9,18 @@ const logger = getLogger('shellsdk');
  */
 export function setupKeyListener() {
   if (typeof window === 'undefined') {
-    return () => {}; // Return no-op cleanup function
+    return () => { }; // Return no-op cleanup function
   }
 
   const handleEscape = (event) => {
 
-    logger.info(`${event.key} (${event.keyCode}) pressed ${window.parent !== window ? 'inside iframe' : 'at top level'}`, { event });
     if (event.key === 'Escape' || event.keyCode === 27) {
+      logger.info(`${event.key} (${event.keyCode}) pressed ${window.parent !== window ? 'inside iframe' : 'at top level'}`, {
+        key: event.key,
+        keyCode: event.keyCode,
+        code: event.code
+      });
+
       // Check if we're inside an iframe
       if (window.parent !== window) {
         const message = {
@@ -27,7 +32,7 @@ export function setupKeyListener() {
   };
 
   window.addEventListener('keydown', handleEscape);
-  
+
   // Return cleanup function
   return () => {
     window.removeEventListener('keydown', handleEscape);
