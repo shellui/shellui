@@ -15,39 +15,47 @@ Guide for developing ShellUI packages.
 
 ## Development Workflow
 
+### Prerequisites
+
+This project uses [pnpm](https://pnpm.io/) as its package manager. Install it globally if you haven't already:
+
+```bash
+npm install -g pnpm
+```
+
 ### Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Build all packages
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Build individual packages
 
 ```bash
-npm run build:cli
-npm run build:core
-npm run build:sdk
+pnpm run build:cli
+pnpm run build:core
+pnpm run build:sdk
 ```
 
 ### Run tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 ## Workspace Scripts
 
-- `npm run build` - Build all packages
-- `npm run build:cli` - Build CLI package
-- `npm run build:core` - Build Core package
-- `npm run build:sdk` - Build SDK package
-- `npm run clean` - Clean all node_modules
+- `pnpm run build` - Build all packages
+- `pnpm run build:cli` - Build CLI package
+- `pnpm run build:core` - Build Core package
+- `pnpm run build:sdk` - Build SDK package
+- `pnpm run clean` - Clean all node_modules
 
 ## Workspace Dependencies
 

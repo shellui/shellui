@@ -23,38 +23,46 @@ This monorepo contains the ShellUI packages:
 
 ## Development
 
+### Prerequisites
+
+This project uses [pnpm](https://pnpm.io/) as its package manager. Install it globally if you haven't already:
+
+```bash
+npm install -g pnpm
+```
+
 ### Install dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Build all packages
 
 ```bash
-npm run build
+pnpm run build
 ```
 
 ### Build individual packages
 
 ```bash
-npm run build:cli
-npm run build:core
-npm run build:sdk
+pnpm run build:cli
+pnpm run build:core
+pnpm run build:sdk
 ```
 
 ### Start development server
 
 ```bash
-npm start
+pnpm start
 # or
-npm run serve
+pnpm run serve
 ```
 
 ### Run tests
 
 ```bash
-npm test
+pnpm test
 ```
 
 ## Publishing
@@ -62,44 +70,44 @@ npm test
 ### Publish all packages
 
 ```bash
-npm run publish:all
+pnpm run publish:all
 ```
 
 ### Publish individual packages
 
 ```bash
-npm run publish:cli
-npm run publish:core
-npm run publish:sdk
+pnpm run publish:cli
+pnpm run publish:core
+pnpm run publish:sdk
 ```
 
 ## Workspace Scripts
 
 ### Build Scripts
-- `npm run build` - Build all packages
-- `npm run build:packages` - Build all workspace packages
-- `npm run build:cli` - Build CLI package
-- `npm run build:core` - Build Core package
-- `npm run build:sdk` - Build SDK package
+- `pnpm run build` - Build all packages
+- `pnpm run build:packages` - Build all workspace packages
+- `pnpm run build:cli` - Build CLI package
+- `pnpm run build:core` - Build Core package
+- `pnpm run build:sdk` - Build SDK package
 
 ### Development Scripts
-- `npm start` / `npm run serve` - Start development server
-- `npm test` - Run tests across all packages
+- `pnpm start` / `pnpm run serve` - Start development server
+- `pnpm test` - Run tests across all packages
 
 ### Publishing Scripts
-- `npm run publish:all` - Publish all packages
-- `npm run publish:cli` - Publish CLI package
-- `npm run publish:core` - Publish Core package
-- `npm run publish:sdk` - Publish SDK package
+- `pnpm run publish:all` - Publish all packages
+- `pnpm run publish:cli` - Publish CLI package
+- `pnpm run publish:core` - Publish Core package
+- `pnpm run publish:sdk` - Publish SDK package
 
 ### Documentation Scripts
-- `npm run docs:install` - Install documentation dependencies
-- `npm run docs:start` - Start documentation development server
-- `npm run docs:build` - Build documentation site
-- `npm run docs:serve` - Serve built documentation
+- `pnpm run docs:install` - Install documentation dependencies
+- `pnpm run docs:start` - Start documentation development server
+- `pnpm run docs:build` - Build documentation site
+- `pnpm run docs:serve` - Serve built documentation
 
 ### Utility Scripts
-- `npm run clean` - Clean all node_modules
+- `pnpm run clean` - Clean all node_modules
 
 ## License
 

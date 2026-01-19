@@ -27,7 +27,7 @@
   "author": "ShellUI",
   "license": "MIT",
   "dependencies": {
-    "@shellui/core": "*",
+    "@shellui/core": "workspace:*",
     "@vitejs/plugin-react": "^5.1.2",
     "cac": "^6.7.14",
     "picocolors": "^1.1.1",
