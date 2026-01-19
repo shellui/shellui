@@ -50,13 +50,13 @@ export class MessageListenerRegistry {
       typeListeners.forEach((listener) => {
         try {
           // Trigger listener if root node or event data to is empty array or contains *
-          if (window.parent === window || (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*')))) {
+          if (window.parent === window || (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) || messageType === 'SHELLUI_URL_CHANGED') {
             listener(event.data, event);
-          }
-          if (event.data.to) {
+          } else if (event.data.to) {
             this.sendMessage(messageType, event.data.payload, event.data.to);
+          } else {
+            logger.warn('Message received but no to or from specified, not sending to parent or children', event.data);
           }
-
         } catch (error) {
           logger.error(`Error in message listener for ${messageType}:`, { error });
         }
