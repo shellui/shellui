@@ -54,8 +54,6 @@ export class MessageListenerRegistry {
             listener(event.data, event);
           } else if (event.data.to) {
             this.sendMessage(messageType, event.data.payload, event.data.to);
-          } else {
-            logger.warn('Message received but no to or from specified, not sending to parent or children', event.data);
           }
         } catch (error) {
           logger.error(`Error in message listener for ${messageType}:`, { error });
