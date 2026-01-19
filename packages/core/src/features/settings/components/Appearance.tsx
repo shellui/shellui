@@ -48,7 +48,7 @@ export const Appearance = () => {
           Theme
         </label>
         <p className="text-sm text-muted-foreground">
-          Choose your preferred color scheme
+          Choose your preferred color scheme (current: {settings.appearance?.theme})
         </p>
         <ButtonGroup>
           {themes.map((theme) => {

@@ -1,5 +1,5 @@
 import { NavigationItem } from '@/features/config/types';
-import { addIframe, removeIframe } from '@shellui/sdk';
+import { addIframe, removeIframe, shellui } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -28,6 +28,15 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
 
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
+
+    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (event) => {
+      if (ignoreMessages) {
+        return;
+      }
+      console.log('SHELLUI_URL_CHANGED', event.payload);
+    });
+
+    // Keep handler outside of shellSDK to keep logic simplify as SHELLUI_URL_CHANGED is pretty specific
     const handleMessage = (event: MessageEvent) => {
       const { type, payload } = event.data;
 
@@ -84,7 +93,10 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      cleanup();
+    };
   }, [pathPrefix, navigate]);
 
   // Handle external URL changes (e.g. from Sidebar)

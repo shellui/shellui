@@ -1,3 +1,8 @@
+import { getLogger } from '../logger/logger.js';
+import { shellui } from '../index.js';
+
+const logger = getLogger('shellsdk');
+
 /**
  * Handles URL changes and notifies parent if the path has changed
  * @param {Object} sdk - The SDK instance with currentPath property
@@ -12,19 +17,17 @@ export function handleUrlChange(sdk) {
     if (typeof window === 'undefined') {
       return;
     }
+
     const message = {
-      type: 'SHELLUI_URL_CHANGED',
-      payload: {
-        pathname: window.location.pathname,
-        search: window.location.search,
-        hash: window.location.hash,
-        fullPath: window.location.pathname + window.location.search + window.location.hash
-      }
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+      fullPath: window.location.pathname + window.location.search + window.location.hash
     };
 
-    // Send to parent frame
     if (window.parent !== window) {
-      window.parent.postMessage(message, '*');
+      shellui.sendMessageToParent('SHELLUI_URL_CHANGED', message);
+      logger.debug('Sent SHELLUI_URL_CHANGED message to parent', message);
     }
   }
 }
@@ -49,12 +52,12 @@ export function setupUrlMonitoring(sdk) {
   const originalPushState = window.history.pushState;
   const originalReplaceState = window.history.replaceState;
 
-  window.history.pushState = function(...args) {
+  window.history.pushState = function (...args) {
     originalPushState.apply(this, args);
     handleUrlChange(sdk);
   };
 
-  window.history.replaceState = function(...args) {
+  window.history.replaceState = function (...args) {
     originalReplaceState.apply(this, args);
     handleUrlChange(sdk);
   };

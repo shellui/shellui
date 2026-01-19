@@ -10,8 +10,9 @@ export interface ShellUIUrlPayload {
 }
 
 export interface ShellUIMessage {
-  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL';
-  payload: ShellUIUrlPayload | Record<string, never>;
+  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED';
+  payload: ShellUIUrlPayload | Record<string, never> | { url?: string | null } | { [key: string]: any };
+  from?: string[];
 }
 
 export class ShellUISDK {
@@ -53,12 +54,70 @@ export class ShellUISDK {
    * @returns True if the iframe was found and removed, false otherwise
    */
   removeIframe(identifier: string | HTMLIFrameElement): boolean;
+
+  /**
+   * Adds a listener for a specific ShellUI message type
+   * @param messageType - The message type to listen for (e.g., 'SHELLUI_OPEN_MODAL', 'SHELLUI_URL_CHANGED')
+   * @param listener - The callback function to call when the message is received
+   *                   Receives (messageData, originalEvent) as arguments
+   * @returns A cleanup function to remove the listener (useful for useEffect)
+   */
+  addMessageListener(
+    messageType: string,
+    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+  ): () => void;
+
+  /**
+   * Removes a listener for a specific message type
+   * @param messageType - The message type
+   * @param listener - The listener function to remove
+   * @returns True if the listener was found and removed, false otherwise
+   */
+  removeMessageListener(
+    messageType: string,
+    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+  ): boolean;
+
+  /**
+   * Sends a message to specific iframes based on the 'to' array
+   * @param messageType - The message type (e.g., 'SHELLUI_OPEN_MODAL', 'SHELLUI_URL_CHANGED')
+   * @param payload - The message payload
+   * @param to - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
+   * @returns The number of iframes the message was sent to
+   */
+  sendMessage(messageType: string, payload: any, to?: string[]): number;
+
+  /**
+   * Propagates a message to all registered iframes (convenience method)
+   * @param messageType - The message type
+   * @param payload - The message payload
+   * @returns The number of iframes the message was sent to
+   */
+  propagateMessage(messageType: string, payload: any): number;
+
+  /**
+   * Sends a message to the parent window (if in an iframe)
+   * @param messageType - The message type
+   * @param payload - The message payload
+   * @returns True if the message was sent, false otherwise
+   */
+  sendMessageToParent(messageType: string, payload: any): boolean;
 }
 
 export const init: () => ShellUISDK;
 export const getVersion: () => string;
 export const addIframe: (iframe: HTMLIFrameElement) => string;
 export const removeIframe: (identifier: string | HTMLIFrameElement) => boolean;
+export const addMessageListener: (
+  messageType: string,
+  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+) => () => void;
+export const removeMessageListener: (
+  messageType: string,
+  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+) => boolean;
+export const sendMessage: (messageType: string, payload: any, to?: string[]) => number;
+export const propagateMessage: (messageType: string, payload: any) => number;
 export function getLogger(namespace: string): {
   log: (message: string, context?: Record<string, any>) => void;
   info: (message: string, context?: Record<string, any>) => void;

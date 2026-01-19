@@ -25,10 +25,10 @@ const AppContent = () => {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         height: '100vh',
         fontFamily: 'system-ui, sans-serif'
       }}>
@@ -39,10 +39,10 @@ const AppContent = () => {
 
   if (error) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
         height: '100vh',
         fontFamily: 'system-ui, sans-serif'
       }}>
@@ -74,7 +74,16 @@ const App = () => {
 
 export default App;
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+// Store root instance to handle HMR properly
+// Use window to persist across HMR reloads
+const container = document.getElementById('root')!;
+const root = (window as any).__shellui_root__ || ReactDOM.createRoot(container);
+
+if (!(window as any).__shellui_root__) {
+  (window as any).__shellui_root__ = root;
+}
+
+root.render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { notifyParentSettingsUpdate } from "./utils/notifyParentSettingsUpdate"
-import { getLogger } from "@shellui/sdk"
+import { getLogger, shellui, ShellUIMessage } from "@shellui/sdk"
 
 const logger = getLogger('shellcore')
 
@@ -88,31 +88,31 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const handleMessage = (event: MessageEvent) => {
-      if (window.parent !== window) {
-        return
-      }
-      if (event.data?.type === 'SHELLUI_SETTINGS_UPDATED') {
-        const newSettings = event.data.payload?.settings
-        if (newSettings) {
-          // Update localStorage with new settings value
+    const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
+      const payload = data.payload as { settings: Settings }
+      const newSettings = payload.settings
+      if (newSettings) {
+        // Update localStorage with new settings value
+        setSettings(newSettings)
+        if (window.parent === window) {
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
             // Confirm: root updated localStorage
             // Update state to reflect the new settings
-            setSettings(newSettings)
-            const from = event.data.from || []
-            // TODO: propagate to all nodes
-            logger.info('Root Parent received settings update', { newSettings, from, pathname: window.location.pathname })
+            // shellui.propagateMessage('SHELLUI_SETTINGS_UPDATED', { settings: newSettings })
+            logger.info('Root Parent received settings update', { newSettings, from: data.from, pathname: window.location.pathname })
+            shellui.propagateMessage('SHELLUI_SETTINGS', { settings: newSettings })
           } catch (error) {
             logger.error('Failed to update settings from message:', { error })
           }
         }
       }
-    }
 
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
+    });
+
+    return () => {
+      cleanup()
+    }
   }, [])
 
   // Persist to localStorage whenever settings change
@@ -122,7 +122,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
         // Notify parent of settings update (skip on initial mount)
         if (!isInitialMount && window.parent !== window) {
-          notifyParentSettingsUpdate(settings)
+          shellui.sendMessageToParent('SHELLUI_SETTINGS_UPDATED', { settings: settings })
         }
         setIsInitialMount(false)
       } catch (error) {

@@ -4,6 +4,7 @@
  */
 
 import { getLogger } from '../logger/logger.js';
+import { generateUuid } from './uuid.js';
 
 const logger = getLogger('shellsdk');
 
@@ -47,19 +48,8 @@ export class FrameRegistry {
       throw new Error('addIframe requires a valid HTMLIFrameElement');
     }
 
-    // Generate UUID using crypto.randomUUID() if available, otherwise fallback
-    let uuid;
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      uuid = crypto.randomUUID();
-    } else {
-      // Fallback UUID v4 generator
-      uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    }
-
+    // Generate UUID
+    const uuid = generateUuid();
     this.iframes.set(uuid, iframe);
     logger.debug(`Added iframe with UUID: ${uuid}`);
     return uuid;
@@ -94,5 +84,13 @@ export class FrameRegistry {
     } else {
       throw new Error('removeIframe requires a UUID string or HTMLIFrameElement');
     }
+  }
+
+  /**
+   * Gets all registered iframes as an array of [uuid, iframe] entries
+   * @returns {Array<[string, HTMLIFrameElement]>} Array of [uuid, iframe] tuples
+   */
+  getAllIframes() {
+    return Array.from(this.iframes.entries());
   }
 }

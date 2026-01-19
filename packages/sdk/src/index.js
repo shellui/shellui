@@ -3,12 +3,12 @@
  * Handles communication between the iframe content and the ShellUI parent frame.
  */
 
-import { setupIframeMessageListener } from './utils/setupIframeMessageListener.js';
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
+import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
@@ -23,6 +23,8 @@ class ShellUISDK {
     this.version = packageJson.version;
     // Frame registry for managing iframe references
     this.frameRegistry = new FrameRegistry();
+    // Message listener registry for managing message listeners
+    this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
   }
 
   /**
@@ -34,8 +36,8 @@ class ShellUISDK {
     // Monitor URL changes
     setupUrlMonitoring(this);
 
-    // Listen for messages from nested iframes to propagate modal requests
-    setupIframeMessageListener(this);
+    // Set up global listener if needed
+    this.messageListenerRegistry.setupGlobalListener();
 
     // Listen for Escape key to close modal
     setupKeyListener();
@@ -85,6 +87,65 @@ class ShellUISDK {
   removeIframe(identifier) {
     return this.frameRegistry.removeIframe(identifier);
   }
+
+  /**
+   * Adds a listener for a specific ShellUI message type
+   * @param {string} messageType - The message type to listen for (e.g., 'SHELLUI_OPEN_MODAL', 'SHELLUI_URL_CHANGED')
+   * @param {Function} listener - The callback function to call when the message is received
+   *                               Receives (messageData, originalEvent) as arguments
+   * @returns {Function} A cleanup function to remove the listener (useful for useEffect)
+   * @example
+   * const cleanup = sdk.addMessageListener('SHELLUI_OPEN_MODAL', (data, event) => {
+   *   console.log('Modal opened:', data.payload);
+   * });
+   * // Later, call cleanup() to remove the listener
+   */
+  addMessageListener(messageType, listener) {
+    return this.messageListenerRegistry.addMessageListener(messageType, listener);
+  }
+
+  /**
+   * Removes a listener for a specific message type
+   * @param {string} messageType - The message type
+   * @param {Function} listener - The listener function to remove
+   * @returns {boolean} True if the listener was found and removed, false otherwise
+   */
+  removeMessageListener(messageType, listener) {
+    return this.messageListenerRegistry.removeMessageListener(messageType, listener);
+  }
+
+  /**
+   * Sends a message to specific iframes based on the 'to' array
+   * @param {string} messageType - The message type (e.g., 'SHELLUI_OPEN_MODAL', 'SHELLUI_URL_CHANGED')
+   * @param {Object} payload - The message payload
+   * @param {string[]} [to=[]] - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
+   * @returns {number} The number of iframes the message was sent to
+   * @example
+   * // Send to specific iframes
+   * sdk.sendMessage('SHELLUI_CUSTOM', { data: 'hello' }, ['uuid-1', 'uuid-2']);
+   * 
+   * // Send to all iframes
+   * sdk.sendMessage('SHELLUI_CUSTOM', { data: 'hello' }, ['*']);
+   */
+  sendMessage(messageType, payload, to = []) {
+    return this.messageListenerRegistry.sendMessage(messageType, payload, to);
+  }
+
+  /**
+   * Propagates a message to all registered iframes (convenience method)
+   * @param {string} messageType - The message type
+   * @param {Object} payload - The message payload
+   * @returns {number} The number of iframes the message was sent to
+   * @example
+   * sdk.propagateMessage('SHELLUI_CUSTOM', { data: 'broadcast' });
+   */
+  propagateMessage(messageType, payload) {
+    return this.messageListenerRegistry.propagateMessage(messageType, payload);
+  }
+
+  sendMessageToParent(messageType, payload) {
+    return this.messageListenerRegistry.sendMessageToParent(messageType, payload);
+  }
 }
 
 const sdk = new ShellUISDK();
@@ -94,6 +155,11 @@ export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
 export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
+export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);
+export const removeMessageListener = (messageType, listener) => sdk.removeMessageListener(messageType, listener);
+export const sendMessage = (messageType, payload, to) => sdk.sendMessage(messageType, payload, to);
+export const propagateMessage = (messageType, payload) => sdk.propagateMessage(messageType, payload);
+export const sendMessageToParent = (messageType, payload) => sdk.sendMessageToParent(messageType, payload);
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 
