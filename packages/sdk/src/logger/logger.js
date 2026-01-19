@@ -52,12 +52,12 @@ function getSettings() {
  */
 function isNamespaceEnabled(namespace) {
   const settings = getSettings();
-  
+
   // First check if developer features are enabled
   if (!settings.developerFeatures?.enabled) {
     return false;
   }
-  
+
   // Then check if the specific namespace is enabled
   return settings.logging?.namespaces?.[namespace] === true;
 }
@@ -122,7 +122,7 @@ function setupRoarrWriter() {
     try {
       const logData = JSON.parse(message);
       const namespace = logData.context?.namespace;
-      
+
       // If namespace is specified, check if it's enabled
       if (namespace && !isNamespaceEnabled(namespace)) {
         return; // Skip logging if namespace is disabled
@@ -131,21 +131,21 @@ function setupRoarrWriter() {
       // Format and output the log
       const logLevel = logData.context?.logLevel || logData.logLevel || 0;
       const logMethod = logLevel >= 50 ? 'error' : logLevel >= 40 ? 'warn' : 'log';
-      
-      const messageText = logData.message || '';
-      
+      const messageText = logData.context.message || '';
+
       // Extract additional context (excluding namespace and logLevel)
       const contextWithoutNamespace = { ...logData.context };
       delete contextWithoutNamespace.namespace;
       delete contextWithoutNamespace.logLevel;
+      delete contextWithoutNamespace.message;
       const hasAdditionalContext = Object.keys(contextWithoutNamespace).length > 0;
-      
+
       if (namespace) {
         // Create styled namespace badge with background color
         const styles = getNamespaceStyles(namespace);
         const namespaceBadge = `[${NAMESPACE_COLORS[namespace]?.name || namespace}]`;
         const styleString = formatStyles(styles);
-        
+
         // Output with colored namespace badge and plain message text
         // Use %c for the badge styling, then empty string to reset for the message
         if (hasAdditionalContext) {
@@ -179,7 +179,7 @@ setupRoarrWriter();
  */
 export function getLogger(namespace) {
   const logger = roarrLogger.child({ namespace });
-  
+
   return {
     log: (message, context = {}) => {
       if (isNamespaceEnabled(namespace)) {
