@@ -29,8 +29,14 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
 
-    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data) => {
+    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data, event) => {
+
       if (ignoreMessages) {
+        return;
+      }
+
+      // Ignore URL CHANGE from other than ContentView iframe
+      if (event.source !== iframeRef.current?.contentWindow) {
         return;
       }
 

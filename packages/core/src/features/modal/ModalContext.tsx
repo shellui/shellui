@@ -1,3 +1,4 @@
+import { shellui } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 /**
@@ -15,17 +16,17 @@ export const validateAndNormalizeUrl = (url: string | undefined | null): string 
     if (url.startsWith('http://') || url.startsWith('https://')) {
       const urlObj = new URL(url);
       const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      
+
       // Allow same origin
       if (urlObj.origin === currentOrigin) {
         return url;
       }
-      
+
       // Allow localhost URLs (for development)
       if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
         return url;
       }
-      
+
       return null; // Different origin, reject for security
     }
 
@@ -82,37 +83,22 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
     setTimeout(() => setModalUrl(null), 200);
   }, []);
 
-  // Listen for custom events to open modal (when not in iframe)
-  useEffect(() => {
-    const handleOpenModal = (event: CustomEvent<{ url?: string }>) => {
-      openModal(event.detail?.url);
-    };
-
-    window.addEventListener('shellui:modal:open', handleOpenModal as EventListener);
-    return () => window.removeEventListener('shellui:modal:open', handleOpenModal as EventListener);
-  }, []);
 
   // Listen for postMessage events from nested iframes
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SHELLUI_OPEN_MODAL') {
-        // If we're in an iframe, propagate to parent
-        if (window.parent === window) {
-          // We're at top level, open modal
-          const url = event.data.payload?.url || undefined;
-          openModal(url);
-        }
-      } else if (event.data?.type === 'SHELLUI_CLOSE_MODAL') {
-        // Close modal when receiving close message
-        if (window.parent === window) {
-          // We're at top level, close modal
-          closeModal();
-        }
-      }
-    };
+    const cleanupOpenModal = shellui.addMessageListener('SHELLUI_OPEN_MODAL', (data) => {
+      const payload = data.payload as { url?: string };
+      openModal(payload.url);
+    });
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    const cleanupCloseModal = shellui.addMessageListener('SHELLUI_CLOSE_MODAL', () => {
+      closeModal();
+    });
+
+    return () => {
+      cleanupOpenModal();
+      cleanupCloseModal();
+    }
   }, [openModal, closeModal]);
 
   return (

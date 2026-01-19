@@ -28,8 +28,14 @@ export function toast(options = {}) {
       description: options.description,
       type: options.type || 'default',
       duration: options.duration,
-      action: options.action,
-      cancel: options.cancel,
+      action: {
+        ...options.action,
+        onClick: undefined, // Remove fct because not serializable
+      },
+      cancel: {
+        ...options.cancel,
+        onClick: undefined, // Remove fct because not serializable
+      },
     }
   };
 
