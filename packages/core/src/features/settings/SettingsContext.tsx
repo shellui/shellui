@@ -1,6 +1,5 @@
 import * as React from "react"
-import { notifyParentSettingsUpdate } from "./utils/notifyParentSettingsUpdate"
-import { getLogger, shellui, ShellUIMessage } from "@shellui/sdk"
+import { getLogger, shellui } from "@shellui/sdk"
 
 const logger = getLogger('shellcore')
 
