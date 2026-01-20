@@ -6,7 +6,7 @@ interface ToastOptions {
   id?: string;
   title?: string;
   description?: string;
-  type?: 'default' | 'success' | 'error' | 'warning' | 'info';
+  type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
   duration?: number;
   action?: {
     label: string;
@@ -40,9 +40,10 @@ interface SonnerProviderProps {
 
 export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   const toast = useCallback((options: ToastOptions) => {
-    const { title, description, type = 'default', duration, action, cancel, onDismiss, onAutoClose } = options;
+    const { id, title, description, type = 'default', duration, action, cancel, onDismiss, onAutoClose } = options;
 
     const toastOptions: Parameters<typeof sonnerToast>[1] = {
+      id,
       duration,
       action: action ? {
         label: action.label,
@@ -56,6 +57,56 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
       onAutoClose: onAutoClose,
     };
 
+    // If ID is provided, this is an update operation
+    if (id) {
+      switch (type) {
+        case 'success':
+          sonnerToast.success(title || 'Success', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+        case 'error':
+          sonnerToast.error(title || 'Error', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+        case 'warning':
+          sonnerToast.warning(title || 'Warning', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+        case 'info':
+          sonnerToast.info(title || 'Info', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+        case 'loading':
+          sonnerToast.loading(title || 'Loading...', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+        default:
+          sonnerToast(title || 'Notification', {
+            id,
+            description,
+            ...toastOptions,
+          });
+          break;
+      }
+      return;
+    }
+
+    // Create new toast
     switch (type) {
       case 'success':
         sonnerToast.success(title || 'Success', {
@@ -81,6 +132,12 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
           ...toastOptions,
         });
         break;
+      case 'loading':
+        sonnerToast.loading(title || 'Loading...', {
+          description,
+          ...toastOptions,
+        });
+        break;
       default:
         sonnerToast(title || 'Notification', {
           description,
@@ -93,7 +150,7 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   // Listen for postMessage events from nested iframes
   useEffect(() => {
 
-    const cleanup = shellui.addMessageListener('SHELLUI_TOAST', (data) => {
+    const cleanupToast = shellui.addMessageListener('SHELLUI_TOAST', (data) => {
       const payload = data.payload as ToastOptions;
       toast({
         ...payload,
@@ -134,8 +191,18 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
       });
     });
 
+    const cleanupToastUpdate = shellui.addMessageListener('SHELLUI_TOAST_UPDATE', (data) => {
+      const payload = data.payload as ToastOptions;
+      toast({
+        ...payload,
+        // For updates, we don't need to set up callbacks again
+        // The toast ID is used to update the existing toast
+      });
+    });
+
     return () => {
-      cleanup();
+      cleanupToast();
+      cleanupToastUpdate();
     }
   }, [toast]);
 

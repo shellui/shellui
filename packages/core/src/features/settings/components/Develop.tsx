@@ -136,6 +136,42 @@ export const Develop = () => {
               <Button
                 onClick={() => {
                   shellui.toast({
+                    title: "Loading...",
+                    description: "Please wait while we process your request",
+                    type: "loading",
+                  });
+                }}
+                variant="outline"
+              >
+                Loading Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  const toastId = shellui.toast({
+                    title: "Processing...",
+                    description: "Uploading your file",
+                    type: "loading",
+                  });
+
+                  // Simulate async operation and update toast
+                  if (typeof toastId === 'string') {
+                    setTimeout(() => {
+                      shellui.toastUpdate({
+                        id: toastId,
+                        type: "success",
+                        title: "Upload Complete!",
+                        description: "Your file has been uploaded successfully",
+                      });
+                    }, 2000);
+                  }
+                }}
+                variant="outline"
+              >
+                Loading → Success Toast
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
                     title: "Toast with Action",
                     description: "This toast has an action button",
                     type: "success",

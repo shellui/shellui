@@ -104,9 +104,10 @@ class ShellUISDK {
   /**
    * Shows a toast notification
    * @param {Object} options - Toast options
+   * @param {string} [options.id] - Optional toast ID. If provided, updates existing toast instead of creating new one
    * @param {string} [options.title] - Toast title
    * @param {string} [options.description] - Toast description
-   * @param {string} [options.type='default'] - Toast type: 'default', 'success', 'error', 'warning', 'info'
+   * @param {string} [options.type='default'] - Toast type: 'default', 'success', 'error', 'warning', 'info', 'loading'
    * @param {number} [options.duration] - Toast duration in milliseconds
    * @param {Object} [options.action] - Action button configuration
    * @param {string} options.action.label - Action button label
@@ -114,10 +115,29 @@ class ShellUISDK {
    * @param {Object} [options.cancel] - Cancel button configuration
    * @param {string} options.cancel.label - Cancel button label
    * @param {Function} options.cancel.onClick - Cancel button click handler
+   * @returns {string|void} Returns the toast ID if created, void if updating or in SSR
    * If inside an iframe, sends a message to the parent to show the toast
    * If not in an iframe, dispatches a custom event that can be handled by the app
    */
   toast(options) {
+    return toastAction(options);
+  }
+
+  /**
+   * Updates an existing toast notification by ID
+   * @param {Object} options - Toast update options
+   * @param {string} options.id - Toast ID (required)
+   * @param {string} [options.title] - Updated toast title
+   * @param {string} [options.description] - Updated toast description
+   * @param {string} [options.type] - Updated toast type: 'default', 'success', 'error', 'warning', 'info', 'loading'
+   * If inside an iframe, sends a message to the parent to update the toast
+   * If not in an iframe, dispatches a custom event that can be handled by the app
+   */
+  toastUpdate(options) {
+    if (!options || !options.id) {
+      logger.warn('toastUpdate requires an id');
+      return;
+    }
     toastAction(options);
   }
 
@@ -210,6 +230,7 @@ export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
 export const toast = (options) => toastAction(options);
+export const toastUpdate = (options) => sdk.toastUpdate(options);
 export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
 export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);

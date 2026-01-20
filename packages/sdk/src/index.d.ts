@@ -10,9 +10,10 @@ export interface ShellUIUrlPayload {
 }
 
 export interface ToastOptions {
+  id?: string;
   title?: string;
   description?: string;
-  type?: 'default' | 'success' | 'error' | 'warning' | 'info';
+  type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
   duration?: number;
   action?: {
     label: string;
@@ -24,9 +25,16 @@ export interface ToastOptions {
   };
 }
 
+export interface ToastUpdateOptions {
+  id: string;
+  title?: string;
+  description?: string;
+  type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
+}
+
 export interface ShellUIMessage {
-  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED' | 'SHELLUI_TOAST' | 'SHELLUI_TOAST_ACTION' | 'SHELLUI_TOAST_CANCEL' | 'SHELLUI_TOAST_CLEAR';
-  payload: ShellUIUrlPayload | Record<string, never> | { url?: string | null } | ToastOptions | { [key: string]: any };
+  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED' | 'SHELLUI_TOAST' | 'SHELLUI_TOAST_UPDATE' | 'SHELLUI_TOAST_ACTION' | 'SHELLUI_TOAST_CANCEL' | 'SHELLUI_TOAST_CLEAR';
+  payload: ShellUIUrlPayload | Record<string, never> | { url?: string | null } | ToastOptions | ToastUpdateOptions | { [key: string]: any };
   from?: string[];
   to?: string[];
 }
@@ -58,7 +66,15 @@ export class ShellUISDK {
    * If inside an iframe, sends a message to the parent to show the toast
    * If not in an iframe, dispatches a custom event that can be handled by the app
    */
-  toast(options?: ToastOptions): void;
+  toast(options?: ToastOptions): string | void;
+
+  /**
+   * Updates an existing toast notification by ID
+   * @param options - Toast update options (must include id)
+   * If inside an iframe, sends a message to the parent to update the toast
+   * If not in an iframe, dispatches a custom event that can be handled by the app
+   */
+  toastUpdate(options: ToastUpdateOptions): void;
 
   /**
    * Returns the current version of the SDK
@@ -131,7 +147,8 @@ export class ShellUISDK {
 export const init: () => ShellUISDK;
 export const getVersion: () => string;
 export const openModal: (url?: string) => void;
-export const toast: (options?: ToastOptions) => void;
+export const toast: (options?: ToastOptions) => string | void;
+export const toastUpdate: (options: ToastUpdateOptions) => void;
 export const addIframe: (iframe: HTMLIFrameElement) => string;
 export const removeIframe: (identifier: string | HTMLIFrameElement) => boolean;
 export const addMessageListener: (
