@@ -23,13 +23,13 @@ interface SonnerContextValue {
 
 const SonnerContext = createContext<SonnerContextValue | undefined>(undefined);
 
-export const useSonner = () => {
+export function useSonner() {
   const context = useContext(SonnerContext);
   if (!context) {
     throw new Error('useSonner must be used within a SonnerProvider');
   }
   return context;
-};
+}
 
 interface SonnerProviderProps {
   children: ReactNode;
