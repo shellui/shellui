@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSettings } from '../SettingsContext';
+import { useSettings } from '../settings/SettingsContext';
 
 const STORAGE_KEY = 'shellui:settings';
 
