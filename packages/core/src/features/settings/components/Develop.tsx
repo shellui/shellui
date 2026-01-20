@@ -156,7 +156,7 @@ export const Develop = () => {
                   // Simulate async operation and update toast
                   if (typeof toastId === 'string') {
                     setTimeout(() => {
-                      shellui.toastUpdate({
+                      shellui.toast({
                         id: toastId,
                         type: "success",
                         title: "Upload Complete!",

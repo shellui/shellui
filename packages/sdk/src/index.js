@@ -123,24 +123,6 @@ class ShellUISDK {
     return toastAction(options);
   }
 
-  /**
-   * Updates an existing toast notification by ID
-   * @param {Object} options - Toast update options
-   * @param {string} options.id - Toast ID (required)
-   * @param {string} [options.title] - Updated toast title
-   * @param {string} [options.description] - Updated toast description
-   * @param {string} [options.type] - Updated toast type: 'default', 'success', 'error', 'warning', 'info', 'loading'
-   * If inside an iframe, sends a message to the parent to update the toast
-   * If not in an iframe, dispatches a custom event that can be handled by the app
-   */
-  toastUpdate(options) {
-    if (!options || !options.id) {
-      logger.warn('toastUpdate requires an id');
-      return;
-    }
-    toastAction(options);
-  }
-
   getVersion() {
     return this.version;
   }
@@ -230,7 +212,6 @@ export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
 export const toast = (options) => toastAction(options);
-export const toastUpdate = (options) => sdk.toastUpdate(options);
 export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
 export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);
