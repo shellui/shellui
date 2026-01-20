@@ -1,5 +1,5 @@
 import * as React from "react"
-import { getLogger, shellui } from "@shellui/sdk"
+import { getLogger, shellui, ShellUIMessage } from "@shellui/sdk"
 
 const logger = getLogger('shellcore')
 
@@ -88,7 +88,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
 
     const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
-      const payload = data.payload as { settings: Settings }
+      const message = data as ShellUIMessage;
+      const payload = message.payload as { settings: Settings }
       const newSettings = payload.settings
       if (newSettings) {
         // Update localStorage with new settings value
@@ -98,9 +99,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
             // Confirm: root updated localStorage
             // Update state to reflect the new settings
-            // shellui.propagateMessage('SHELLUI_SETTINGS_UPDATED', { settings: newSettings })
-            logger.info('Root Parent received settings update', { newSettings, from: data.from, pathname: window.location.pathname })
-            shellui.propagateMessage('SHELLUI_SETTINGS', { settings: newSettings })
+            logger.info('Root Parent received settings update', message)
+            // shellui.propagateMessage({
+            //   type: 'SHELLUI_SETTINGS',
+            //   payload: { settings: newSettings }
+            // })
           } catch (error) {
             logger.error('Failed to update settings from message:', { error })
           }

@@ -28,6 +28,7 @@ export interface ShellUIMessage {
   type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED' | 'SHELLUI_TOAST';
   payload: ShellUIUrlPayload | Record<string, never> | { url?: string | null } | ToastOptions | { [key: string]: any };
   from?: string[];
+  to?: string[];
 }
 
 export class ShellUISDK {
@@ -108,7 +109,7 @@ export class ShellUISDK {
    * @param to - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
    * @returns The number of iframes the message was sent to
    */
-  sendMessage(messageType: string, payload: any, to?: string[]): number;
+  sendMessage(message: ShellUIMessage): number;
 
   /**
    * Propagates a message to all registered iframes (convenience method)
@@ -116,7 +117,7 @@ export class ShellUISDK {
    * @param payload - The message payload
    * @returns The number of iframes the message was sent to
    */
-  propagateMessage(messageType: string, payload: any): number;
+  propagateMessage(message: ShellUIMessage): number;
 
   /**
    * Sends a message to the parent window (if in an iframe)
@@ -142,7 +143,7 @@ export const removeMessageListener: (
   listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
 ) => boolean;
 export const sendMessage: (messageType: string, payload: any, to?: string[]) => number;
-export const propagateMessage: (messageType: string, payload: any) => number;
+export const propagateMessage: (message: ShellUIMessage) => number;
 export function getLogger(namespace: string): {
   log: (message: string, context?: Record<string, any>) => void;
   info: (message: string, context?: Record<string, any>) => void;

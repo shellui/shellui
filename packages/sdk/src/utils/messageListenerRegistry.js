@@ -52,8 +52,6 @@ export class MessageListenerRegistry {
           // Trigger listener if root node or event data to is empty array or contains *
           if (window.parent === window || (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) || messageType === 'SHELLUI_URL_CHANGED') {
             listener(event.data, event);
-          } else if (event.data.to) {
-            this.sendMessage(messageType, event.data.payload, event.data.to);
           }
         } catch (error) {
           logger.error(`Error in message listener for ${messageType}:`, { error });
@@ -61,14 +59,14 @@ export class MessageListenerRegistry {
       });
 
       logger.debug('Message received:', event.data);
+      // We ignore propagation of SHELLUI_URL_CHANGED messages to parent
+      if (messageType === 'SHELLUI_URL_CHANGED') {
+        return;
+      }
 
       // If message from children, propagate to parent
       const fromUuid = this.frameRegistry.getUuidByIframe(event.source);
       if (fromUuid) {
-        // We ignore propagation of SHELLUI_URL_CHANGED messages to parent
-        if (messageType === 'SHELLUI_URL_CHANGED') {
-          return;
-        }
         this.sendMessageToParent({
           type: messageType,
           payload: event.data.payload,
@@ -79,15 +77,11 @@ export class MessageListenerRegistry {
       // If message is from parent
       const fromParent = event.source === window.parent;
       if (fromParent) {
-        // We ignore propagation of SHELLUI_URL_CHANGED messages to children
-        if (messageType === 'SHELLUI_URL_CHANGED') {
-          return;
-        }
-        this.sendMessage(messageType, {
+        this.sendMessage({
           type: messageType,
           payload: event.data.payload,
           to: [...(event.data.to || [])]
-        }, [...(event.data.to || [])]);
+        });
       }
     };
 
@@ -225,7 +219,7 @@ export class MessageListenerRegistry {
    * @param {string[]} to - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
    * @returns {number} The number of iframes the message was sent to
    */
-  sendMessage(messageType, payload, to = []) {
+  sendMessage(message) {
     if (typeof window === 'undefined') {
       logger.warn('Cannot send message: window is undefined');
       return 0;
@@ -236,18 +230,18 @@ export class MessageListenerRegistry {
       return 0;
     }
 
-    if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
+    if (typeof message.type !== 'string' || !message.type.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
 
     // Check if we should send to all iframes (if '*' is in the 'to' array)
-    const sendToAll = to.includes('*');
+    const sendToAll = message.to?.includes('*');
 
     // Get all registered iframes
     const allIframes = this.frameRegistry.getAllIframes();
 
     if (allIframes.length === 0) {
-      logger.debug(`No iframes registered, message ${messageType} not sent`);
+      logger.debug(`No iframes registered, message ${message.type} not sent`);
       return 0;
     }
 
@@ -255,16 +249,16 @@ export class MessageListenerRegistry {
 
     // Send to all iframes if '*' is in 'to', otherwise filter by UUID
     for (const [uuid, iframe] of allIframes) {
-      if (sendToAll || to.includes(uuid)) {
+      if (sendToAll || message.to?.includes(uuid)) {
         try {
           if (iframe && iframe.contentWindow) {
             iframe.contentWindow.postMessage({
-              type: messageType,
-              payload: payload,
-              to: to.filter(t => t !== uuid)
+              type: message.type,
+              payload: message.payload,
+              to: (message.to || []).filter(t => t !== uuid)
             }, '*');
             sentCount++;
-            logger.debug(`Sent message ${messageType} to iframe ${uuid}`);
+            logger.debug(`Sent message ${message.type} to iframe ${uuid}`);
           } else {
             logger.warn(`Iframe ${uuid} has no contentWindow, skipping`);
           }
@@ -274,18 +268,25 @@ export class MessageListenerRegistry {
       }
     }
 
-    logger.debug(`Sent message ${messageType} to ${sentCount} iframe(s)`);
+    logger.debug(`Sent message ${message.type} to ${sentCount} iframe(s)`);
     return sentCount;
   }
 
   /**
-   * Propagates a message to all iframes (convenience method)
-   * @param {string} messageType - The message type
-   * @param {Object} payload - The message payload
-   * @returns {number} The number of iframes the message was sent to
+   * Propagates a message to all registered iframes. This is a convenience method
+   * to broadcast a ShellUI message to every iframe managed by the frame registry.
+   * 
+   * @param {Object} message - The ShellUI message to propagate.
+   * @param {string} message.type - The ShellUI message type (e.g., 'SHELLUI_OPEN_MODAL').
+   * @param {Object} [message.payload] - The message payload (optional).
+   * @returns {number} The number of iframes the message was sent to.
    */
-  propagateMessage(messageType, payload) {
-    return this.sendMessage(messageType, payload, ['*']);
+  propagateMessage(message) {
+    return this.sendMessage({
+      type: message.type,
+      payload: message.payload,
+      to: ['*']
+    });
   }
 
   /**

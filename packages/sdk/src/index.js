@@ -137,19 +137,11 @@ class ShellUISDK {
 
   /**
    * Sends a message to specific iframes based on the 'to' array
-   * @param {string} messageType - The message type (e.g., 'SHELLUI_OPEN_MODAL', 'SHELLUI_URL_CHANGED')
-   * @param {Object} payload - The message payload
-   * @param {string[]} [to=[]] - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
+   * @param {ShellUIMessage} message - The message to send
    * @returns {number} The number of iframes the message was sent to
-   * @example
-   * // Send to specific iframes
-   * sdk.sendMessage('SHELLUI_CUSTOM', { data: 'hello' }, ['uuid-1', 'uuid-2']);
-   * 
-   * // Send to all iframes
-   * sdk.sendMessage('SHELLUI_CUSTOM', { data: 'hello' }, ['*']);
    */
-  sendMessage(messageType, payload, to = []) {
-    return this.messageListenerRegistry.sendMessage(messageType, payload, to);
+  sendMessage(message) {
+    return this.messageListenerRegistry.sendMessage(message);
   }
 
   /**
@@ -160,8 +152,8 @@ class ShellUISDK {
    * @example
    * sdk.propagateMessage('SHELLUI_CUSTOM', { data: 'broadcast' });
    */
-  propagateMessage(messageType, payload) {
-    return this.messageListenerRegistry.propagateMessage(messageType, payload);
+  propagateMessage(message) {
+    return this.messageListenerRegistry.propagateMessage(message);
   }
 
   sendMessageToParent(message) {
@@ -179,8 +171,8 @@ export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
 export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);
 export const removeMessageListener = (messageType, listener) => sdk.removeMessageListener(messageType, listener);
-export const sendMessage = (messageType, payload, to) => sdk.sendMessage(messageType, payload, to);
-export const propagateMessage = (messageType, payload) => sdk.propagateMessage(messageType, payload);
+export const sendMessage = (message) => sdk.sendMessage(message);
+export const propagateMessage = (message) => sdk.propagateMessage(message);
 export const sendMessageToParent = (message) => sdk.sendMessageToParent(message);
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
