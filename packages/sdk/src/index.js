@@ -164,8 +164,8 @@ class ShellUISDK {
     return this.messageListenerRegistry.propagateMessage(messageType, payload);
   }
 
-  sendMessageToParent(messageType, payload) {
-    return this.messageListenerRegistry.sendMessageToParent(messageType, payload);
+  sendMessageToParent(message) {
+    return this.messageListenerRegistry.sendMessageToParent(message);
   }
 }
 
@@ -181,7 +181,7 @@ export const addMessageListener = (messageType, listener) => sdk.addMessageListe
 export const removeMessageListener = (messageType, listener) => sdk.removeMessageListener(messageType, listener);
 export const sendMessage = (messageType, payload, to) => sdk.sendMessage(messageType, payload, to);
 export const propagateMessage = (messageType, payload) => sdk.propagateMessage(messageType, payload);
-export const sendMessageToParent = (messageType, payload) => sdk.sendMessageToParent(messageType, payload);
+export const sendMessageToParent = (message) => sdk.sendMessageToParent(message);
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 

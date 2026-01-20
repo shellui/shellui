@@ -121,7 +121,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
         // Notify parent of settings update (skip on initial mount)
         if (!isInitialMount && window.parent !== window) {
-          shellui.sendMessageToParent('SHELLUI_SETTINGS_UPDATED', { settings: settings })
+          shellui.sendMessageToParent({
+            type: 'SHELLUI_SETTINGS_UPDATED',
+            payload: { settings: settings }
+          })
         }
         setIsInitialMount(false)
       } catch (error) {

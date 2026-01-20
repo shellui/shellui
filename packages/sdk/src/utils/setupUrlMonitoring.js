@@ -26,7 +26,10 @@ export function handleUrlChange(sdk) {
     };
 
     if (window.parent !== window) {
-      shellui.sendMessageToParent('SHELLUI_URL_CHANGED', message);
+      shellui.sendMessageToParent({
+        type: 'SHELLUI_URL_CHANGED',
+        payload: message
+      });
       logger.debug('Sent SHELLUI_URL_CHANGED message to parent', message);
     }
   }

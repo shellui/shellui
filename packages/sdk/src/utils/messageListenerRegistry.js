@@ -69,8 +69,9 @@ export class MessageListenerRegistry {
         if (messageType === 'SHELLUI_URL_CHANGED') {
           return;
         }
-        this.sendMessageToParent(messageType, {
-          ...event.data.payload,
+        this.sendMessageToParent({
+          type: messageType,
+          payload: event.data.payload,
           from: [fromUuid, ...(event.data.from || [])]
         });
       }
@@ -83,7 +84,8 @@ export class MessageListenerRegistry {
           return;
         }
         this.sendMessage(messageType, {
-          ...event.data.payload,
+          type: messageType,
+          payload: event.data.payload,
           to: [...(event.data.to || [])]
         }, [...(event.data.to || [])]);
       }
@@ -292,18 +294,15 @@ export class MessageListenerRegistry {
    * @param {Object} payload - The message payload
    * @returns {boolean} True if the message was sent, false otherwise
    */
-  sendMessageToParent(messageType, payload) {
+  sendMessageToParent(message) {
     if (typeof window === 'undefined') {
       logger.warn('Cannot send message to parent: window is undefined');
       return false;
     }
 
     if (window.parent !== window) {
-      window.parent.postMessage({
-        type: messageType,
-        payload: payload
-      }, '*');
-      logger.debug(`Sent message ${messageType} to parent window`);
+      window.parent.postMessage(message, '*');
+      logger.debug(`Sent message ${message.type} to parent window`);
       return true;
     }
     return false;

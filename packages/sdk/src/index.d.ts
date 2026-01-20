@@ -124,7 +124,7 @@ export class ShellUISDK {
    * @param payload - The message payload
    * @returns True if the message was sent, false otherwise
    */
-  sendMessageToParent(messageType: string, payload: any): boolean;
+  sendMessageToParent(message: ShellUIMessage): boolean;
 }
 
 export const init: () => ShellUISDK;
