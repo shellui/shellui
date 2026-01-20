@@ -3,6 +3,7 @@ import { createContext, useContext, useCallback, ReactNode, useEffect } from 're
 import { toast as sonnerToast } from 'sonner';
 
 interface ToastOptions {
+  id?: string;
   title?: string;
   description?: string;
   type?: 'default' | 'success' | 'error' | 'warning' | 'info';
@@ -15,6 +16,8 @@ interface ToastOptions {
     label: string;
     onClick: () => void;
   };
+  onDismiss?: () => void;
+  onAutoClose?: () => void;
 }
 
 interface SonnerContextValue {
@@ -37,7 +40,7 @@ interface SonnerProviderProps {
 
 export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   const toast = useCallback((options: ToastOptions) => {
-    const { title, description, type = 'default', duration, action, cancel } = options;
+    const { title, description, type = 'default', duration, action, cancel, onDismiss, onAutoClose } = options;
 
     const toastOptions: Parameters<typeof sonnerToast>[1] = {
       duration,
@@ -49,6 +52,8 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
         label: cancel.label,
         onClick: cancel.onClick,
       } : undefined,
+      onDismiss: onDismiss,
+      onAutoClose: onAutoClose,
     };
 
     switch (type) {
@@ -90,7 +95,43 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
 
     const cleanup = shellui.addMessageListener('SHELLUI_TOAST', (data) => {
       const payload = data.payload as ToastOptions;
-      toast(payload);
+      toast({
+        ...payload,
+        onDismiss: () => {
+          shellui.sendMessage({
+            type: 'SHELLUI_TOAST_CLEAR',
+            payload: { id: payload.id },
+            to: data.from,
+          });
+        },
+        onAutoClose: () => {
+          shellui.sendMessage({
+            type: 'SHELLUI_TOAST_CLEAR',
+            payload: { id: payload.id },
+            to: data.from,
+          });
+        },
+        action: payload.action && {
+          label: payload.action?.label,
+          onClick: () => {
+            shellui.sendMessage({
+              type: 'SHELLUI_TOAST_ACTION',
+              payload: { id: payload.id },
+              to: data.from,
+            });
+          },
+        },
+        cancel: payload.cancel && {
+          label: payload.cancel?.label,
+          onClick: () => {
+            shellui.sendMessage({
+              type: 'SHELLUI_TOAST_CANCEL',
+              payload: { id: payload.id },
+              to: data.from,
+            });
+          },
+        },
+      });
     });
 
     return () => {

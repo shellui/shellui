@@ -42,6 +42,9 @@ export class MessageListenerRegistry {
       if (!messageType.startsWith('SHELLUI_')) {
         return;
       }
+      // If message from children, propagate to parent
+      const fromUuid = this.frameRegistry.getUuidByIframe(event.source);
+
 
       // Get all listeners for this message type
       const typeListeners = this.listeners.get(messageType) ?? [];
@@ -51,7 +54,7 @@ export class MessageListenerRegistry {
         try {
           // Trigger listener if root node or event data to is empty array or contains *
           if (window.parent === window || (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) || messageType === 'SHELLUI_URL_CHANGED') {
-            listener(event.data, event);
+            listener({ ...event.data, from: [fromUuid, ...(event.data.from || [])] }, event);
           }
         } catch (error) {
           logger.error(`Error in message listener for ${messageType}:`, { error });
@@ -64,8 +67,7 @@ export class MessageListenerRegistry {
         return;
       }
 
-      // If message from children, propagate to parent
-      const fromUuid = this.frameRegistry.getUuidByIframe(event.source);
+
       if (fromUuid) {
         this.sendMessageToParent({
           type: messageType,

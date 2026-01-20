@@ -10,6 +10,7 @@ import { toast as toastAction } from './actions/toast.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
+import { CallbackRegistry } from './utils/callbackRegistry.js';
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
@@ -26,6 +27,8 @@ class ShellUISDK {
     this.frameRegistry = new FrameRegistry();
     // Message listener registry for managing message listeners
     this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
+    //
+    this.callbackRegistry = new CallbackRegistry();
   }
 
   /**
@@ -43,9 +46,49 @@ class ShellUISDK {
     // Listen for Escape key to close modal
     setupKeyListener();
 
+    // Set up callback registry message listeners
+    this._setupCallbackListeners();
+
     this.initialized = true;
     logger.info(`ShellUI SDK ${this.version} initialized`);
     return this;
+  }
+
+  /**
+   * Sets up message listeners for callback triggers
+   * Handles action/cancel clicks and cleanup messages
+   * @private
+   */
+  _setupCallbackListeners() {
+    // Listen for toast action clicks
+    this.addMessageListener('SHELLUI_TOAST_ACTION', (data) => {
+      const { id } = data.payload || {};
+      if (id) {
+        this.callbackRegistry.triggerAction(id);
+      } else {
+        logger.warn('SHELLUI_TOAST_ACTION message missing id');
+      }
+    });
+
+    // Listen for toast cancel clicks
+    this.addMessageListener('SHELLUI_TOAST_CANCEL', (data) => {
+      const { id } = data.payload || {};
+      if (id) {
+        this.callbackRegistry.triggerCancel(id);
+      } else {
+        logger.warn('SHELLUI_TOAST_CANCEL message missing id');
+      }
+    });
+
+    // Listen for toast cleanup (dismiss/autoclose)
+    this.addMessageListener('SHELLUI_TOAST_CLEAR', (data) => {
+      const { id } = data.payload || {};
+      if (id) {
+        this.callbackRegistry.clear(id);
+      } else {
+        logger.warn('SHELLUI_TOAST_CLEAR message missing id');
+      }
+    });
   }
 
   /**
@@ -174,6 +217,7 @@ export const removeMessageListener = (messageType, listener) => sdk.removeMessag
 export const sendMessage = (message) => sdk.sendMessage(message);
 export const propagateMessage = (message) => sdk.propagateMessage(message);
 export const sendMessageToParent = (message) => sdk.sendMessageToParent(message);
+export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 

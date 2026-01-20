@@ -1,4 +1,5 @@
 import { shellui } from '../index';
+import { generateUuid } from '../utils/uuid.js';
 /**
  * Shows a toast notification
  * @param {Object} options - Toast options
@@ -20,10 +21,22 @@ export function toast(options = {}) {
     return;
   }
 
+  // Generate a unique toast ID
+  const toastId = generateUuid();
+
+  // Store action and cancel handlers if they exist
+  if (options.action?.onClick || options.cancel?.onClick) {
+    shellui.callbackRegistry.register(toastId, {
+      action: options.action?.onClick,
+      cancel: options.cancel?.onClick,
+    });
+  }
+
   // Send message to parent frame to show toast
   const message = {
     type: 'SHELLUI_TOAST',
     payload: {
+      id: toastId,
       title: options.title,
       description: options.description,
       type: options.type || 'default',
@@ -34,7 +47,7 @@ export function toast(options = {}) {
       },
       cancel: {
         ...options.cancel,
-        onClick: undefined, // Remove fct because not serializable
+        onClick: (undefined), // Remove fct because not serializable
       },
     }
   };
