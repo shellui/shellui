@@ -100,10 +100,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             // Confirm: root updated localStorage
             // Update state to reflect the new settings
             logger.info('Root Parent received settings update', message)
-            // shellui.propagateMessage({
-            //   type: 'SHELLUI_SETTINGS',
-            //   payload: { settings: newSettings }
-            // })
+            shellui.propagateMessage({
+              type: 'SHELLUI_SETTINGS',
+              payload: { settings: newSettings }
+            })
           } catch (error) {
             logger.error('Failed to update settings from message:', { error })
           }
@@ -111,8 +111,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
+      const message = data as ShellUIMessage;
+      const payload = message.payload as { settings: Settings }
+      const newSettings = payload.settings
+      if (newSettings) {
+        setIsInitialMount(true)
+        setSettings(newSettings)
+      }
+    })
+
     return () => {
       cleanup()
+      cleanupSettings()
     }
   }, [])
 

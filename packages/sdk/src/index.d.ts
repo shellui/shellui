@@ -26,7 +26,7 @@ export interface ToastOptions {
 }
 
 export interface ShellUIMessage {
-  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED' | 'SHELLUI_TOAST' | 'SHELLUI_TOAST_UPDATE' | 'SHELLUI_TOAST_ACTION' | 'SHELLUI_TOAST_CANCEL' | 'SHELLUI_TOAST_CLEAR';
+  type: 'SHELLUI_URL_CHANGED' | 'SHELLUI_OPEN_MODAL' | 'SHELLUI_CLOSE_MODAL' | 'SHELLUI_SETTINGS_UPDATED' | 'SHELLUI_SETTINGS' | 'SHELLUI_TOAST' | 'SHELLUI_TOAST_ACTION' | 'SHELLUI_TOAST_CANCEL' | 'SHELLUI_TOAST_CLEAR';
   payload: ShellUIUrlPayload | Record<string, never> | { url?: string | null } | ToastOptions | { [key: string]: any };
   from?: string[];
   to?: string[];
