@@ -4,6 +4,30 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ShellUI</title>
+    <script>
+      // Initialize theme immediately to prevent FOUC
+      (function() {
+        try {
+          const stored = localStorage.getItem('shellui:settings');
+          let theme = 'system';
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            theme = parsed.appearance?.theme || 'system';
+          }
+          
+          if (theme === 'system') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            if (mediaQuery.matches) {
+              document.documentElement.classList.add('dark');
+            }
+          } else if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      })();
+    </script>
     <style>
       * {
         box-sizing: border-box;

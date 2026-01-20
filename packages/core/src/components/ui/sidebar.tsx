@@ -65,14 +65,12 @@ const SidebarTrigger = React.forwardRef<
       ref={ref}
       onClick={toggle}
       className={cn(
-        "relative z-[9999] flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-lg backdrop-blur-md cursor-pointer",
+        "relative z-[9999] flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-lg backdrop-blur-md cursor-pointer bg-background/95 border border-border",
         className
       )}
       aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       style={{ 
-        zIndex: 9999, 
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        border: '1px solid rgba(0, 0, 0, 0.1)'
+        zIndex: 9999
       }}
       {...props}
     >

@@ -111,5 +111,17 @@
   * {
     outline-color: hsl(var(--ring) / 0.5);
   }
+  
+  /* Invert sidebar icons in dark mode - target all icons in sidebar context */
+  .dark [data-sidebar="sidebar"] img[src*="/icons/"],
+  .dark [data-sidebar="sidebar"] img[src*="icons/"],
+  .dark [data-sidebar="sidebar"] img[src$=".svg"] {
+    filter: invert(1) brightness(1.2);
+  }
+  
+  /* Sidebar trigger button icon should adapt to theme */
+  .dark button[aria-label*="sidebar"] img {
+    filter: invert(1);
+  }
 }
 
