@@ -13,7 +13,7 @@ export const Develop = () => {
         <p className="text-sm text-muted-foreground mb-4">
           Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.
         </p>
-        
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
@@ -27,12 +27,12 @@ export const Develop = () => {
             <Switch
               id="log-shellsdk"
               checked={settings.logging?.namespaces?.shellsdk || false}
-              onCheckedChange={(checked) => 
-                updateSetting('logging', { 
-                  namespaces: { 
-                    ...settings.logging?.namespaces, 
-                    shellsdk: checked 
-                  } 
+              onCheckedChange={(checked) =>
+                updateSetting('logging', {
+                  namespaces: {
+                    ...settings.logging?.namespaces,
+                    shellsdk: checked
+                  }
                 })
               }
             />
@@ -50,12 +50,12 @@ export const Develop = () => {
             <Switch
               id="log-shellcore"
               checked={settings.logging?.namespaces?.shellcore || false}
-              onCheckedChange={(checked) => 
-                updateSetting('logging', { 
-                  namespaces: { 
-                    ...settings.logging?.namespaces, 
-                    shellcore: checked 
-                  } 
+              onCheckedChange={(checked) =>
+                updateSetting('logging', {
+                  namespaces: {
+                    ...settings.logging?.namespaces,
+                    shellcore: checked
+                  }
                 })
               }
             />
@@ -68,7 +68,7 @@ export const Develop = () => {
         <p className="text-sm text-muted-foreground mb-4">
           Test ShellUI features and functionality.
         </p>
-        
+
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium mb-2">Toast Notifications</h4>
@@ -154,6 +154,38 @@ export const Develop = () => {
                 variant="outline"
               >
                 Toast with Action
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.toast({
+                    title: "Toast with Action",
+                    description: "This toast has an action button",
+                    type: "success",
+                    action: {
+                      label: "Undo",
+                      onClick: () => {
+                        shellui.toast({
+                          title: "Undone",
+                          description: "Action has been undone",
+                          type: "info",
+                        });
+                      },
+                    },
+                    cancel: {
+                      label: "Cancel",
+                      onClick: () => {
+                        shellui.toast({
+                          title: "Cancelled",
+                          description: "Action has been cancelled",
+                          type: "info",
+                        });
+                      },
+                    },
+                  });
+                }}
+                variant="outline"
+              >
+                Toast with Action AND cancel
               </Button>
               <Button
                 onClick={() => {
