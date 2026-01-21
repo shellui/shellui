@@ -93,7 +93,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const newSettings = payload.settings
       if (newSettings) {
         // Update localStorage with new settings value
-        setSettings(newSettings)
+        setSettings(newSettings);
         if (window.parent === window) {
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
@@ -127,39 +127,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Persist to localStorage whenever settings change
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-        // Notify parent of settings update (skip on initial mount)
-        if (!isInitialMount && window.parent !== window) {
-          shellui.sendMessageToParent({
-            type: 'SHELLUI_SETTINGS_UPDATED',
-            payload: { settings: settings }
-          })
-        }
-        setIsInitialMount(false)
-      } catch (error) {
-        logger.error('Failed to save settings to localStorage:', { error })
-      }
-    }
-  }, [settings])
 
   // ACTIONS
-
   const updateSettings = React.useCallback((updates: Partial<Settings>) => {
-    setSettings(prev => ({ ...prev, ...updates }))
+    const newSettings = { ...settings, ...updates }
+    shellui.sendMessageToParent({
+      type: 'SHELLUI_SETTINGS_UPDATED',
+      payload: { settings: newSettings }
+    })
   }, [])
 
   const updateSetting = React.useCallback(<K extends keyof Settings>(
     key: K,
     updates: Partial<Settings[K]>
   ) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: { ...prev[key], ...updates }
-    }))
+    updateSettings({ [key]: updates })
   }, [])
 
   const value = React.useMemo(

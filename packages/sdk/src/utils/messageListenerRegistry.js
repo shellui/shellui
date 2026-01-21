@@ -67,7 +67,6 @@ export class MessageListenerRegistry {
         return;
       }
 
-
       if (fromUuid) {
         this.sendMessageToParent({
           type: messageType,
