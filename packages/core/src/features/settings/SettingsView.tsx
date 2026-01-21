@@ -11,6 +11,7 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -35,6 +36,27 @@ export const SettingsView = () => {
     }
     return settingsRoutes.filter(route => route.path !== "developpers")
   }, [settings.developerFeatures.enabled])
+
+  // Group routes by category
+  const groupedRoutes = React.useMemo(() => {
+    const groups = [
+      {
+        title: "Preferences",
+        routes: filteredRoutes.filter(route =>
+          ["notifications", "appearance", "language-and-region"].includes(route.path)
+        )
+      },
+      {
+        title: "System",
+        routes: filteredRoutes.filter(route => route.path === "advanced")
+      },
+      {
+        title: "Developer",
+        routes: filteredRoutes.filter(route => route.path === "developpers")
+      }
+    ]
+    return groups.filter(group => group.routes.length > 0)
+  }, [filteredRoutes])
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = React.useCallback(() => {
@@ -90,25 +112,28 @@ export const SettingsView = () => {
         {/* Desktop Sidebar */}
         <Sidebar className="hidden md:flex">
           <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {filteredRoutes.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={item.name === selectedItem?.name}
-                      >
-                        <button onClick={() => navigate(`${item.path}`)} className="cursor-pointer">
-                          <item.icon />
-                          <span>{item.name}</span>
-                        </button>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {groupedRoutes.map((group) => (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.routes.map((item) => (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={item.name === selectedItem?.name}
+                        >
+                          <button onClick={() => navigate(`${item.path}`)} className="cursor-pointer">
+                            <item.icon />
+                            <span>{item.name}</span>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
           </SidebarContent>
         </Sidebar>
 
@@ -116,28 +141,45 @@ export const SettingsView = () => {
         <div className="md:hidden flex h-full w-full flex-col overflow-hidden">
           {isSettingsRoot ? (
             // Show list of settings pages
-            <div className="flex flex-1 flex-col overflow-y-auto">
-              <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+            <div className="flex flex-1 flex-col overflow-y-auto bg-background">
+              <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
                 <h1 className="text-lg font-semibold">Settings</h1>
               </header>
-              <div className="flex flex-1 flex-col p-4 gap-2">
-                {filteredRoutes.map((item) => {
-                  const Icon = item.icon
-                  return (
-                    <Button
-                      key={item.name}
-                      variant="outline"
-                      className="w-full justify-between h-auto py-4 px-4"
-                      onClick={() => navigate(`${item.path}`)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon />
-                        <span className="text-base font-medium">{item.name}</span>
-                      </div>
-                      <ChevronRightIcon />
-                    </Button>
-                  )
-                })}
+              <div className="flex flex-1 flex-col p-4 gap-6">
+                {groupedRoutes.map((group) => (
+                  <div key={group.title} className="flex flex-col gap-2">
+                    <h2 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2">
+                      {group.title}
+                    </h2>
+                    <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                      {group.routes.map((item, itemIndex) => {
+                        const Icon = item.icon
+                        const isLast = itemIndex === group.routes.length - 1
+                        return (
+                          <div key={item.name} className="relative">
+                            {!isLast && (
+                              <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-gray-300 dark:bg-gray-600" />
+                            )}
+                            <button
+                              onClick={() => navigate(`${item.path}`)}
+                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-700 transition-colors cursor-pointer rounded-none"
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <div className="flex-shrink-0 text-foreground/70">
+                                  <Icon />
+                                </div>
+                                <span className="text-sm font-normal text-foreground">{item.name}</span>
+                              </div>
+                              <div className="flex-shrink-0 ml-2 text-foreground/40">
+                                <ChevronRightIcon />
+                              </div>
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
