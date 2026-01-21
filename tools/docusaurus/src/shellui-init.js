@@ -14,6 +14,6 @@ export function onRouteUpdate({ location }) {
   if (ExecutionEnvironment.canUseDOM) {
     // Manually trigger a sync with the parent frame on every route change
     // This ensures that Docusaurus transitions are captured immediately
-    shellui.notifyParent();
+    // shellui.notifyParent();
   }
 }

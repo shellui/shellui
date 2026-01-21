@@ -1,4 +1,4 @@
-import { shellui } from '../index';
+import { shellui } from '../index.js';
 import { generateUuid } from '../utils/uuid.js';
 /**
  * Shows a toast notification

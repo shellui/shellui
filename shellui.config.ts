@@ -13,7 +13,7 @@ const config: ShellUIConfig = {
     {
       label: 'Docs',
       path: 'docs',
-      url: 'https://docs.shellui.com/',
+      url: 'http://localhost:3000',
       icon: '/icons/book-open.svg'
     },
     {
