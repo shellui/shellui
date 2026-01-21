@@ -5,16 +5,16 @@ const config: ShellUIConfig = {
   title: 'ShellUI',
   navigation: [
     {
-      label: 'Docs',
-      path: 'docs',
-      url: 'https://docs.shellui.com/',
-      icon: '/icons/book-open.svg'
-    },
-    {
       label: 'Playground',
       path: 'playground',
       url: '/',
       icon: "/icons/play.svg"
+    },
+    {
+      label: 'Docs',
+      path: 'docs',
+      url: 'https://docs.shellui.com/',
+      icon: '/icons/book-open.svg'
     },
     {
       label: 'ShellUI',
@@ -28,15 +28,20 @@ const config: ShellUIConfig = {
       url: 'https://sebastienbarbier.com/'
     },
     {
-      label: 'Page not found',
-      path: '404',
-      url: '/thisisnotfound'
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/__settings',
-      icon: '/icons/settings.svg'
+      title: 'System',
+      items: [
+        {
+          label: 'Page not found',
+          path: '404',
+          url: '/thisisnotfound'
+        },
+        {
+          label: 'Settings',
+          path: 'settings',
+          url: '/__settings',
+          icon: '/icons/settings.svg'
+        }
+      ]
     }
   ]
 };

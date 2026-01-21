@@ -1,7 +1,7 @@
 import { Link, useLocation, Outlet } from 'react-router';
 import { useMemo } from 'react';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem } from '../config/types';
+import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   Sidebar,
   SidebarProvider,
@@ -9,6 +9,9 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -25,52 +28,125 @@ import { ContentView } from '@/components/ContentView';
 
 interface DefaultLayoutProps {
   title?: string;
-  navigation: NavigationItem[];
+  navigation: (NavigationItem | NavigationGroup)[];
 }
 
-const NavigationContent = ({ navigation }: { navigation: NavigationItem[] }) => {
+// Helper function to flatten navigation items from groups or flat array
+const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]): NavigationItem[] => {
+  if (navigation.length === 0) {
+    return [];
+  }
+  
+  return navigation.flatMap(item => {
+    // Check if item is a group
+    if ('title' in item && 'items' in item) {
+      return (item as NavigationGroup).items;
+    }
+    // It's a standalone NavigationItem
+    return item as NavigationItem;
+  });
+};
+
+const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
   const location = useLocation();
 
   // Check if at least one navigation item has an icon
   const hasAnyIcons = useMemo(() => {
-    return navigation.some(item => !!item.icon);
+    return navigation.some(item => {
+      if ('title' in item && 'items' in item) {
+        // It's a group
+        return (item as NavigationGroup).items.some(navItem => !!navItem.icon);
+      }
+      // It's a standalone item
+      return !!(item as NavigationItem).icon;
+    });
   }, [navigation]);
 
+  // Helper to check if an item is a group
+  const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup => {
+    return 'title' in item && 'items' in item;
+  };
 
+  // Render navigation items - handle both groups and standalone items
   return (
-    <SidebarMenu>
+    <>
       {navigation.map((item) => {
-        const pathPrefix = `/${item.path}`;
-        const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
+        if (isGroup(item)) {
+          // Render as a group
+          return (
+            <SidebarGroup key={item.title} className="mt-0">
+              <SidebarGroupLabel className="mb-1">{item.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">
+                  {item.items.map((navItem) => {
+                    const pathPrefix = `/${navItem.path}`;
+                    const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
 
-        return (
-          <SidebarMenuItem key={item.path}>
-            <SidebarMenuButton
-              asChild
-              isActive={isActive}
-              className={cn(
-                "w-full",
-                isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-              )}
-            >
-              <Link to={`/${item.path}`} className="flex items-center gap-2 w-full">
-                {item.icon ? (
-                  <img src={item.icon} alt="" className="h-4 w-4 shrink-0" />
-                ) : hasAnyIcons ? (
-                  <span className="h-4 w-4 shrink-0" />
-                ) : null}
-                <span className="truncate">{item.label}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        );
+                    return (
+                      <SidebarMenuItem key={navItem.path}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          className={cn(
+                            "w-full",
+                            isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                          )}
+                        >
+                          <Link to={`/${navItem.path}`} className="flex items-center gap-2 w-full">
+                            {navItem.icon ? (
+                              <img src={navItem.icon} alt="" className="h-4 w-4 shrink-0" />
+                            ) : hasAnyIcons ? (
+                              <span className="h-4 w-4 shrink-0" />
+                            ) : null}
+                            <span className="truncate">{navItem.label}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        } else {
+          // Render as a standalone item
+          const pathPrefix = `/${item.path}`;
+          const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
+
+          return (
+            <SidebarMenu key={item.path} className="gap-0.5">
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  className={cn(
+                    "w-full",
+                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                >
+                  <Link to={`/${item.path}`} className="flex items-center gap-2 w-full">
+                    {item.icon ? (
+                      <img src={item.icon} alt="" className="h-4 w-4 shrink-0" />
+                    ) : hasAnyIcons ? (
+                      <span className="h-4 w-4 shrink-0" />
+                    ) : null}
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          );
+        }
       })}
-    </SidebarMenu>
+    </>
   );
 };
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
+  
+  // Flatten navigation items for finding nav items by URL
+  const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
   return (
     <SidebarProvider>
@@ -84,7 +160,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
             )}
           </SidebarHeader>
 
-          <SidebarContent>
+          <SidebarContent className="gap-1">
             <NavigationContent navigation={navigation} />
           </SidebarContent>
 
@@ -114,7 +190,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
         <DialogContent className="max-w-4xl w-full h-[80vh] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
             <div className="flex-1" style={{ minHeight: 0 }}>
-              <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigation.find(item => item.url === modalUrl)!} />
+              <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigationItems.find(item => item.url === modalUrl)!} />
             </div>
           ) : (
             <div className="flex-1 p-4">
