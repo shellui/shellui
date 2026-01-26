@@ -1,27 +1,29 @@
+import { useTranslation } from "react-i18next"
 import { useSettings } from "../SettingsContext"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
 
 export const Develop = () => {
+  const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Logging</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('develop.logging.title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.
+          {t('develop.logging.description')}
         </p>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <label htmlFor="log-shellsdk" className="text-sm font-medium leading-none">
-                Show ShellSDK logs
+                {t('develop.logging.shellsdk.label')}
               </label>
               <p className="text-sm text-muted-foreground">
-                Enable logging for ShellUI SDK operations
+                {t('develop.logging.shellsdk.description')}
               </p>
             </div>
             <Switch
@@ -41,10 +43,10 @@ export const Develop = () => {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <label htmlFor="log-shellcore" className="text-sm font-medium leading-none">
-                Show ShellCore logs
+                {t('develop.logging.shellcore.label')}
               </label>
               <p className="text-sm text-muted-foreground">
-                Enable logging for ShellUI Core operations
+                {t('develop.logging.shellcore.description')}
               </p>
             </div>
             <Switch
@@ -64,92 +66,92 @@ export const Develop = () => {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-2">Testing</h3>
+        <h3 className="text-lg font-semibold mb-2">{t('develop.testing.title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Test ShellUI features and functionality.
+          {t('develop.testing.description')}
         </p>
 
         <div className="space-y-4">
           <div>
-            <h4 className="text-sm font-medium mb-2">Toast Notifications</h4>
+            <h4 className="text-sm font-medium mb-2">{t('develop.testing.toastNotifications.title')}</h4>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Success!",
-                    description: "Operation completed successfully",
+                    title: t('develop.testing.toastNotifications.messages.success.title'),
+                    description: t('develop.testing.toastNotifications.messages.success.description'),
                     type: "success",
                   });
                 }}
                 variant="outline"
               >
-                Success Toast
+                {t('develop.testing.toastNotifications.buttons.success')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Error",
-                    description: "Something went wrong. Please try again.",
+                    title: t('develop.testing.toastNotifications.messages.error.title'),
+                    description: t('develop.testing.toastNotifications.messages.error.description'),
                     type: "error",
                   });
                 }}
                 variant="outline"
               >
-                Error Toast
+                {t('develop.testing.toastNotifications.buttons.error')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Warning",
-                    description: "This action may have unintended consequences",
+                    title: t('develop.testing.toastNotifications.messages.warning.title'),
+                    description: t('develop.testing.toastNotifications.messages.warning.description'),
                     type: "warning",
                   });
                 }}
                 variant="outline"
               >
-                Warning Toast
+                {t('develop.testing.toastNotifications.buttons.warning')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Information",
-                    description: "Here's some useful information for you",
+                    title: t('develop.testing.toastNotifications.messages.info.title'),
+                    description: t('develop.testing.toastNotifications.messages.info.description'),
                     type: "info",
                   });
                 }}
                 variant="outline"
               >
-                Info Toast
+                {t('develop.testing.toastNotifications.buttons.info')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Default Toast",
-                    description: "This is a default toast notification",
+                    title: t('develop.testing.toastNotifications.messages.default.title'),
+                    description: t('develop.testing.toastNotifications.messages.default.description'),
                     type: "default",
                   });
                 }}
                 variant="outline"
               >
-                Default Toast
+                {t('develop.testing.toastNotifications.buttons.default')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Loading...",
-                    description: "Please wait while we process your request",
+                    title: t('develop.testing.toastNotifications.messages.loading.title'),
+                    description: t('develop.testing.toastNotifications.messages.loading.description'),
                     type: "loading",
                   });
                 }}
                 variant="outline"
               >
-                Loading Toast
+                {t('develop.testing.toastNotifications.buttons.loading')}
               </Button>
               <Button
                 onClick={() => {
                   const toastId = shellui.toast({
-                    title: "Processing...",
-                    description: "Uploading your file",
+                    title: t('develop.testing.toastNotifications.messages.processing.title'),
+                    description: t('develop.testing.toastNotifications.messages.processing.description'),
                     type: "loading",
                   });
 
@@ -159,28 +161,28 @@ export const Develop = () => {
                       shellui.toast({
                         id: toastId,
                         type: "success",
-                        title: "Upload Complete!",
-                        description: "Your file has been uploaded successfully",
+                        title: t('develop.testing.toastNotifications.messages.uploadComplete.title'),
+                        description: t('develop.testing.toastNotifications.messages.uploadComplete.description'),
                       });
                     }, 2000);
                   }
                 }}
                 variant="outline"
               >
-                Loading → Success Toast
+                {t('develop.testing.toastNotifications.buttons.loadingSuccess')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Toast with Action",
-                    description: "This toast has an action button",
+                    title: t('develop.testing.toastNotifications.messages.withAction.title'),
+                    description: t('develop.testing.toastNotifications.messages.withAction.description'),
                     type: "success",
                     action: {
-                      label: "Undo",
+                      label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
                       onClick: () => {
                         shellui.toast({
-                          title: "Undone",
-                          description: "Action has been undone",
+                          title: t('develop.testing.toastNotifications.messages.undone.title'),
+                          description: t('develop.testing.toastNotifications.messages.undone.description'),
                           type: "info",
                         });
                       },
@@ -189,30 +191,30 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                Toast with Action
+                {t('develop.testing.toastNotifications.buttons.withAction')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Toast with Action",
-                    description: "This toast has an action button",
+                    title: t('develop.testing.toastNotifications.messages.withAction.title'),
+                    description: t('develop.testing.toastNotifications.messages.withAction.description'),
                     type: "success",
                     action: {
-                      label: "Undo",
+                      label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
                       onClick: () => {
                         shellui.toast({
-                          title: "Undone",
-                          description: "Action has been undone",
+                          title: t('develop.testing.toastNotifications.messages.undone.title'),
+                          description: t('develop.testing.toastNotifications.messages.undone.description'),
                           type: "info",
                         });
                       },
                     },
                     cancel: {
-                      label: "Cancel",
+                      label: t('develop.testing.toastNotifications.messages.actionLabels.cancel'),
                       onClick: () => {
                         shellui.toast({
-                          title: "Cancelled",
-                          description: "Action has been cancelled",
+                          title: t('develop.testing.toastNotifications.messages.cancelled.title'),
+                          description: t('develop.testing.toastNotifications.messages.cancelled.description'),
                           type: "info",
                         });
                       },
@@ -221,20 +223,20 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                Toast with Action AND cancel
+                {t('develop.testing.toastNotifications.buttons.withActionAndCancel')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.toast({
-                    title: "Persistent Toast",
-                    description: "This toast will stay until dismissed (10 seconds)",
+                    title: t('develop.testing.toastNotifications.messages.persistent.title'),
+                    description: t('develop.testing.toastNotifications.messages.persistent.description'),
                     type: "info",
                     duration: 10000,
                   });
                 }}
                 variant="outline"
               >
-                Long Duration Toast
+                {t('develop.testing.toastNotifications.buttons.longDuration')}
               </Button>
             </div>
           </div>

@@ -1,0 +1,131 @@
+{
+  "title": "Settings",
+  "categories": {
+    "preferences": "Preferences",
+    "system": "System",
+    "developer": "Developer"
+  },
+  "routes": {
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "languageAndRegion": "Language & region",
+    "advanced": "Advanced",
+    "develop": "Develop"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Manage your notification preferences."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "theme": "Theme",
+    "themeDescription": "Choose your preferred color scheme (current: {{theme}})",
+    "themes": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "languageAndRegion": {
+    "title": "Language & region",
+    "description": "Configure your language and regional settings.",
+    "language": "Language",
+    "languageDescription": "Choose your preferred language. Changes will be applied immediately."
+  },
+  "advanced": {
+    "title": "Advanced",
+    "description": "Advanced settings and configuration options.",
+    "developerFeatures": {
+      "label": "Show features for developers",
+      "description": "Enable developer tools and settings in the settings menu."
+    }
+  },
+  "develop": {
+    "title": "Develop",
+    "logging": {
+      "title": "Logging",
+      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",
+      "shellsdk": {
+        "label": "Show ShellSDK logs",
+        "description": "Enable logging for ShellUI SDK operations"
+      },
+      "shellcore": {
+        "label": "Show ShellCore logs",
+        "description": "Enable logging for ShellUI Core operations"
+      }
+    },
+    "testing": {
+      "title": "Testing",
+      "description": "Test ShellUI features and functionality.",
+      "toastNotifications": {
+        "title": "Toast Notifications",
+        "buttons": {
+          "success": "Success Toast",
+          "error": "Error Toast",
+          "warning": "Warning Toast",
+          "info": "Info Toast",
+          "default": "Default Toast",
+          "loading": "Loading Toast",
+          "loadingSuccess": "Loading → Success Toast",
+          "withAction": "Toast with Action",
+          "withActionAndCancel": "Toast with Action AND cancel",
+          "longDuration": "Long Duration Toast"
+        },
+        "messages": {
+          "success": {
+            "title": "Success!",
+            "description": "Operation completed successfully"
+          },
+          "error": {
+            "title": "Error",
+            "description": "Something went wrong. Please try again."
+          },
+          "warning": {
+            "title": "Warning",
+            "description": "This action may have unintended consequences"
+          },
+          "info": {
+            "title": "Information",
+            "description": "Here's some useful information for you"
+          },
+          "default": {
+            "title": "Default Toast",
+            "description": "This is a default toast notification"
+          },
+          "loading": {
+            "title": "Loading...",
+            "description": "Please wait while we process your request"
+          },
+          "processing": {
+            "title": "Processing...",
+            "description": "Uploading your file"
+          },
+          "uploadComplete": {
+            "title": "Upload Complete!",
+            "description": "Your file has been uploaded successfully"
+          },
+          "withAction": {
+            "title": "Toast with Action",
+            "description": "This toast has an action button"
+          },
+          "undone": {
+            "title": "Undone",
+            "description": "Action has been undone"
+          },
+          "cancelled": {
+            "title": "Cancelled",
+            "description": "Action has been cancelled"
+          },
+          "persistent": {
+            "title": "Persistent Toast",
+            "description": "This toast will stay until dismissed (10 seconds)"
+          },
+          "actionLabels": {
+            "undo": "Undo",
+            "cancel": "Cancel"
+          }
+        }
+      }
+    }
+  }
+}

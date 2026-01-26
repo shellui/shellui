@@ -1,5 +1,6 @@
 import { Link, useLocation, Outlet } from 'react-router';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
@@ -49,6 +50,20 @@ const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]
 
 const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
   const location = useLocation();
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language || 'en';
+  
+  // Helper function to resolve localized strings
+  const resolveLocalizedString = (
+    value: string | { en: string; fr: string; [key: string]: string },
+    lang: string
+  ): string => {
+    if (typeof value === 'string') {
+      return value;
+    }
+    // Try current language first, then English as fallback
+    return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
+  };
 
   // Check if at least one navigation item has an icon
   const hasAnyIcons = useMemo(() => {
@@ -73,14 +88,16 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
       {navigation.map((item) => {
         if (isGroup(item)) {
           // Render as a group
+          const groupTitle = resolveLocalizedString(item.title, currentLanguage);
           return (
-            <SidebarGroup key={item.title} className="mt-0">
-              <SidebarGroupLabel className="mb-1">{item.title}</SidebarGroupLabel>
+            <SidebarGroup key={groupTitle} className="mt-0">
+              <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {item.items.map((navItem) => {
                     const pathPrefix = `/${navItem.path}`;
                     const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
+                    const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
 
                     return (
                       <SidebarMenuItem key={navItem.path}>
@@ -98,7 +115,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
                             ) : hasAnyIcons ? (
                               <span className="h-4 w-4 shrink-0" />
                             ) : null}
-                            <span className="truncate">{navItem.label}</span>
+                            <span className="truncate">{itemLabel}</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
@@ -112,6 +129,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
           // Render as a standalone item
           const pathPrefix = `/${item.path}`;
           const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
+          const itemLabel = resolveLocalizedString(item.label, currentLanguage);
 
           return (
             <SidebarMenu key={item.path} className="gap-0.5">
@@ -130,7 +148,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
                     ) : hasAnyIcons ? (
                       <span className="h-4 w-4 shrink-0" />
                     ) : null}
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate">{itemLabel}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -144,6 +162,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
+  const { t } = useTranslation('common');
   
   // Flatten navigation items for finding nav items by URL
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
@@ -172,7 +191,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
               className="w-full cursor-pointer"
             >
               <img src="/icons/settings.svg" alt="" className="h-4 w-4 shrink-0" />
-              <span className="truncate">Settings</span>
+              <span className="truncate">{t('settings')}</span>
             </SidebarMenuButton>
           </SidebarFooter>
         </Sidebar>

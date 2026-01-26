@@ -6,6 +6,8 @@ import { useConfig } from './features/config/useConfig';
 import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsContext';
 import { useTheme } from './features/theme/useTheme';
+import { I18nProvider } from './i18n/I18nProvider';
+import './i18n/config'; // Initialize i18n
 import './index.css';
 
 const AppContent = () => {
@@ -79,7 +81,9 @@ const AppWithTheme = () => {
 const App = () => {
   return (
     <SettingsProvider>
-      <AppWithTheme />
+      <I18nProvider>
+        <AppWithTheme />
+      </I18nProvider>
     </SettingsProvider>
   );
 };

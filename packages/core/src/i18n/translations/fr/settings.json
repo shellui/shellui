@@ -1,0 +1,131 @@
+{
+  "title": "Paramètres",
+  "categories": {
+    "preferences": "Préférences",
+    "system": "Système",
+    "developer": "Développeur"
+  },
+  "routes": {
+    "notifications": "Notifications",
+    "appearance": "Apparence",
+    "languageAndRegion": "Langue et région",
+    "advanced": "Avancé",
+    "develop": "Développement"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "description": "Gérez vos préférences de notification."
+  },
+  "appearance": {
+    "title": "Apparence",
+    "theme": "Thème",
+    "themeDescription": "Choisissez votre schéma de couleurs préféré (actuel : {{theme}})",
+    "themes": {
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Système"
+    }
+  },
+  "languageAndRegion": {
+    "title": "Langue et région",
+    "description": "Configurez vos paramètres de langue et de région.",
+    "language": "Langue",
+    "languageDescription": "Choisissez votre langue préférée. Les modifications seront appliquées immédiatement."
+  },
+  "advanced": {
+    "title": "Avancé",
+    "description": "Paramètres avancés et options de configuration.",
+    "developerFeatures": {
+      "label": "Afficher les fonctionnalités pour les développeurs",
+      "description": "Activez les outils et paramètres de développement dans le menu des paramètres."
+    }
+  },
+  "develop": {
+    "title": "Développement",
+    "logging": {
+      "title": "Journalisation",
+      "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de ShellUI affichent des informations de débogage.",
+      "shellsdk": {
+        "label": "Afficher les journaux ShellSDK",
+        "description": "Activez la journalisation pour les opérations ShellUI SDK"
+      },
+      "shellcore": {
+        "label": "Afficher les journaux ShellCore",
+        "description": "Activez la journalisation pour les opérations ShellUI Core"
+      }
+    },
+    "testing": {
+      "title": "Tests",
+      "description": "Testez les fonctionnalités de ShellUI.",
+      "toastNotifications": {
+        "title": "Notifications Toast",
+        "buttons": {
+          "success": "Toast de succès",
+          "error": "Toast d'erreur",
+          "warning": "Toast d'avertissement",
+          "info": "Toast d'information",
+          "default": "Toast par défaut",
+          "loading": "Toast de chargement",
+          "loadingSuccess": "Toast de chargement → Succès",
+          "withAction": "Toast avec action",
+          "withActionAndCancel": "Toast avec action ET annulation",
+          "longDuration": "Toast longue durée"
+        },
+        "messages": {
+          "success": {
+            "title": "Succès !",
+            "description": "Opération terminée avec succès"
+          },
+          "error": {
+            "title": "Erreur",
+            "description": "Quelque chose s'est mal passé. Veuillez réessayer."
+          },
+          "warning": {
+            "title": "Avertissement",
+            "description": "Cette action peut avoir des conséquences imprévues"
+          },
+          "info": {
+            "title": "Information",
+            "description": "Voici des informations utiles pour vous"
+          },
+          "default": {
+            "title": "Toast par défaut",
+            "description": "Ceci est une notification toast par défaut"
+          },
+          "loading": {
+            "title": "Chargement...",
+            "description": "Veuillez patienter pendant le traitement de votre demande"
+          },
+          "processing": {
+            "title": "Traitement...",
+            "description": "Téléchargement de votre fichier"
+          },
+          "uploadComplete": {
+            "title": "Téléchargement terminé !",
+            "description": "Votre fichier a été téléchargé avec succès"
+          },
+          "withAction": {
+            "title": "Toast avec action",
+            "description": "Ce toast a un bouton d'action"
+          },
+          "undone": {
+            "title": "Annulé",
+            "description": "L'action a été annulée"
+          },
+          "cancelled": {
+            "title": "Annulé",
+            "description": "L'action a été annulée"
+          },
+          "persistent": {
+            "title": "Toast persistant",
+            "description": "Ce toast restera jusqu'à sa fermeture (10 secondes)"
+          },
+          "actionLabels": {
+            "undo": "Annuler",
+            "cancel": "Annuler"
+          }
+        }
+      }
+    }
+  }
+}

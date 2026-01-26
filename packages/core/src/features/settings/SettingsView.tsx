@@ -18,7 +18,8 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import { Route, Routes, useLocation, useNavigate } from "react-router"
-import { settingsRoutes } from "./SettingsRoutes"
+import { useTranslation } from "react-i18next"
+import { createSettingsRoutes } from "./SettingsRoutes"
 import { useSettings } from "./SettingsContext"
 import { Button } from "@/components/ui/button"
 import { ChevronRightIcon, ChevronLeftIcon } from "./SettingsIcons"
@@ -28,6 +29,10 @@ export const SettingsView = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { settings } = useSettings()
+  const { t } = useTranslation('settings')
+
+  // Create routes with translations
+  const settingsRoutes = React.useMemo(() => createSettingsRoutes(t), [t])
 
   // Filter routes based on developer features setting
   const filteredRoutes = React.useMemo(() => {
@@ -35,28 +40,28 @@ export const SettingsView = () => {
       return settingsRoutes
     }
     return settingsRoutes.filter(route => route.path !== "developpers")
-  }, [settings.developerFeatures.enabled])
+  }, [settings.developerFeatures.enabled, settingsRoutes])
 
   // Group routes by category
   const groupedRoutes = React.useMemo(() => {
     const groups = [
       {
-        title: "Preferences",
+        title: t("categories.preferences"),
         routes: filteredRoutes.filter(route =>
           ["notifications", "appearance", "language-and-region"].includes(route.path)
         )
       },
       {
-        title: "System",
+        title: t("categories.system"),
         routes: filteredRoutes.filter(route => route.path === "advanced")
       },
       {
-        title: "Developer",
+        title: t("categories.developer"),
         routes: filteredRoutes.filter(route => route.path === "developpers")
       }
     ]
     return groups.filter(group => group.routes.length > 0)
-  }, [filteredRoutes])
+  }, [filteredRoutes, t])
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = React.useCallback(() => {
@@ -143,7 +148,7 @@ export const SettingsView = () => {
             // Show list of settings pages
             <div className="flex flex-1 flex-col overflow-y-auto bg-background">
               <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
-                <h1 className="text-lg font-semibold">Settings</h1>
+                <h1 className="text-lg font-semibold">{t("title")}</h1>
               </header>
               <div className="flex flex-1 flex-col p-4 gap-6">
                 {groupedRoutes.map((group) => (
@@ -215,7 +220,7 @@ export const SettingsView = () => {
                 <Breadcrumb>
                   <BreadcrumbList>
                     <BreadcrumbItem>
-                      Settings
+                      {t("title")}
                     </BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>

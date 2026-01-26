@@ -1,20 +1,22 @@
+import { useTranslation } from "react-i18next"
 import { Switch } from "@/components/ui/switch"
 import { useSettings } from "../SettingsContext"
 
 export const Advanced = () => {
+  const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
 
   return (
     <div className="space-y-4">
-      <p className="text-muted-foreground">Advanced settings and configuration options.</p>
+      <p className="text-muted-foreground">{t('advanced.description')}</p>
       
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <label htmlFor="developer-features" className="text-sm font-medium leading-none">
-            Show features for developers
+            {t('advanced.developerFeatures.label')}
           </label>
           <p className="text-sm text-muted-foreground">
-            Enable developer tools and settings in the settings menu.
+            {t('advanced.developerFeatures.description')}
           </p>
         </div>
         <Switch

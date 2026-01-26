@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useSettings } from "../SettingsContext"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
@@ -32,23 +33,24 @@ const MonitorIcon = () => (
 )
 
 export const Appearance = () => {
+  const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
   const currentTheme = settings.appearance?.theme || 'system'
 
   const themes = [
-    { value: 'light' as const, label: 'Light', icon: SunIcon },
-    { value: 'dark' as const, label: 'Dark', icon: MoonIcon },
-    { value: 'system' as const, label: 'System', icon: MonitorIcon },
+    { value: 'light' as const, label: t('appearance.themes.light'), icon: SunIcon },
+    { value: 'dark' as const, label: t('appearance.themes.dark'), icon: MoonIcon },
+    { value: 'system' as const, label: t('appearance.themes.system'), icon: MonitorIcon },
   ]
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium leading-none">
-          Theme
+          {t('appearance.theme')}
         </label>
         <p className="text-sm text-muted-foreground">
-          Choose your preferred color scheme (current: {settings.appearance?.theme})
+          {t('appearance.themeDescription', { theme: currentTheme })}
         </p>
         <ButtonGroup>
           {themes.map((theme) => {

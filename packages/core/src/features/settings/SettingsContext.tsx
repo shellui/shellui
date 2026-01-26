@@ -16,6 +16,9 @@ export interface Settings {
   appearance: {
     theme: 'light' | 'dark' | 'system'
   }
+  language: {
+    code: 'en' | 'fr'
+  }
   // Add more settings here as needed
   // notifications: { ... }
 }
@@ -34,6 +37,9 @@ const defaultSettings: Settings = {
   },
   appearance: {
     theme: 'system'
+  },
+  language: {
+    code: 'en'
   }
 }
 
@@ -71,6 +77,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             },
             appearance: {
               theme: parsed.appearance?.theme || defaultSettings.appearance.theme
+            },
+            language: {
+              code: parsed.language?.code || defaultSettings.language.code
             }
           }
         }
@@ -131,11 +140,22 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   // ACTIONS
   const updateSettings = React.useCallback((updates: Partial<Settings>) => {
     const newSettings = { ...settings, ...updates }
+    
+    // Update localStorage immediately if we're in the root window
+    if (typeof window !== 'undefined' && window.parent === window) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
+        setSettings(newSettings)
+      } catch (error) {
+        logger.error('Failed to update settings in localStorage:', { error })
+      }
+    }
+    
     shellui.sendMessageToParent({
       type: 'SHELLUI_SETTINGS_UPDATED',
       payload: { settings: newSettings }
     })
-  }, [])
+  }, [settings])
 
   const updateSetting = React.useCallback(<K extends keyof Settings>(
     key: K,

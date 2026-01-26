@@ -11,33 +11,33 @@ import { LanguageAndRegion } from "./components/LanguageAndRegion"
 import { Advanced } from "./components/Advanced"
 import { Develop } from "./components/Develop"
 
-export const settingsRoutes = [
+export const createSettingsRoutes = (t: (key: string) => string) => [
   {
-    name: "Notifications",
+    name: t("routes.notifications"),
     icon: BellIcon,
     path: "notifications",
     element: <Notifications />
   },
   {
-    name: "Appearance",
+    name: t("routes.appearance"),
     icon: PaintbrushIcon,
     path: "appearance",
     element: <Appearance />
   },
   {
-    name: "Language & region",
+    name: t("routes.languageAndRegion"),
     icon: GlobeIcon,
     path: "language-and-region",
     element: <LanguageAndRegion />
   },
   {
-    name: "Advanced",
+    name: t("routes.advanced"),
     icon: SettingsIcon,
     path: "advanced",
     element: <Advanced />
   },
   {
-    name: "Develop",
+    name: t("routes.develop"),
     icon: CodeIcon,
     path: "developpers",
     element: <Develop />

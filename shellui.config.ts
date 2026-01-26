@@ -5,13 +5,18 @@ const config: ShellUIConfig = {
   title: 'ShellUI',
   navigation: [
     {
+      // Simple string label (backward compatible)
       label: 'Playground',
       path: 'playground',
       url: '/',
       icon: "/icons/play.svg"
     },
     {
-      label: 'Docs',
+      // Language-specific label (new feature)
+      label: {
+        en: 'Docs',
+        fr: 'Documentation'
+      },
       path: 'docs',
       url: 'http://localhost:3000',
       icon: '/icons/book-open.svg'
@@ -28,15 +33,25 @@ const config: ShellUIConfig = {
       url: 'https://sebastienbarbier.com/'
     },
     {
-      title: 'System',
+      // Group title can also be localized
+      title: {
+        en: 'System',
+        fr: 'Système'
+      },
       items: [
         {
-          label: 'Page not found',
+          label: {
+            en: 'Page not found',
+            fr: 'Page non trouvée'
+          },
           path: '404',
           url: '/thisisnotfound'
         },
         {
-          label: 'Settings',
+          label: {
+            en: 'Settings',
+            fr: 'Paramètres'
+          },
           path: 'settings',
           url: '/__settings',
           icon: '/icons/settings.svg'
