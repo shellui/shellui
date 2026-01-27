@@ -16,6 +16,13 @@ const GlobeIcon = () => (
   </svg>
 );
 
+const ClockIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
 // Common timezones list
 const COMMON_TIMEZONES = [
   { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
@@ -197,7 +204,7 @@ export const LanguageAndRegion = () => {
         </ButtonGroup>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium leading-none">
             {t('languageAndRegion.region')}
@@ -232,25 +239,23 @@ export const LanguageAndRegion = () => {
             );
           })}
         </Select>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">
-          {t('languageAndRegion.currentDateTime')}
-        </label>
-        <div className="p-4 rounded-lg border bg-muted/50">
-          <div className="text-sm text-muted-foreground mb-1">
-            {currentDateTime.date}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/60 border border-border/50">
+          <ClockIcon />
+          <div className="flex items-baseline gap-2">
+            <span className="text-lg font-semibold tabular-nums">
+              {currentDateTime.time}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {currentDateTime.date}
+            </span>
           </div>
-          <div className="text-2xl font-semibold">
-            {currentDateTime.time}
-          </div>
-          <div className="text-xs text-muted-foreground mt-2">
-            {t('languageAndRegion.timezoneLabel')}: {getTimezoneDisplayName(currentTimezone, currentLanguage)}
-            {isUsingBrowserTimezone && (
-              <span className="ml-1">({t('languageAndRegion.defaultBrowser')})</span>
-            )}
-          </div>
+        </div>
+        <div className="text-xs text-muted-foreground flex items-center gap-1">
+          <span>{t('languageAndRegion.timezoneLabel')}:</span>
+          <span className="font-medium">{getTimezoneDisplayName(currentTimezone, currentLanguage)}</span>
+          {isUsingBrowserTimezone && (
+            <span className="ml-1">({t('languageAndRegion.defaultBrowser')})</span>
+          )}
         </div>
       </div>
     </div>
