@@ -234,7 +234,7 @@ export const blueTheme: ThemeDefinition = {
       popover: '#FFFFFF', // White
       popoverForeground: '#020617', // Very dark blue-gray
       primary: '#3B82F6', // Blue
-      primaryForeground: '#0F172A', // Dark blue-gray
+      primaryForeground: '#FFFFFF', // White
       secondary: '#F1F5F9', // Light gray-blue
       secondaryForeground: '#0F172A', // Dark blue-gray
       muted: '#F1F5F9', // Light gray-blue
@@ -264,7 +264,7 @@ export const blueTheme: ThemeDefinition = {
       popover: '#020617', // Very dark blue-gray
       popoverForeground: '#F8FAFC', // Off-white
       primary: '#3B82F6', // Blue
-      primaryForeground: '#0F172A', // Dark blue-gray
+      primaryForeground: '#FFFFFF', // White
       secondary: '#1E293B', // Dark blue-gray
       secondaryForeground: '#F8FAFC', // Off-white
       muted: '#1E293B', // Dark blue-gray

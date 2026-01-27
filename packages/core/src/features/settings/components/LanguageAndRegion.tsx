@@ -213,10 +213,8 @@ export const LanguageAndRegion = () => {
                 className={cn(
                   "h-10 px-4 transition-all flex items-center gap-2",
                   isSelected && [
-                    "bg-secondary text-secondary-foreground",
                     "shadow-md",
-                    "font-semibold",
-                    "border-2 border-primary"
+                    "font-semibold"
                   ],
                   !isSelected && [
                     "bg-background hover:bg-accent/50",
