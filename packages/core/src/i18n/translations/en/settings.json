@@ -35,8 +35,8 @@
     "regionDescription": "Select your timezone. Dates throughout the app will adjust to this timezone.",
     "currentDateTime": "Current date and time",
     "timezoneLabel": "Timezone",
-    "resetToBrowser": "Reset to browser timezone",
-    "defaultBrowser": "Default browser"
+    "resetToBrowser": "Reset to automatic timezone",
+    "defaultBrowser": "Automatic"
   },
   "advanced": {
     "title": "Advanced",

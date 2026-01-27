@@ -35,8 +35,8 @@
     "regionDescription": "Sélectionnez votre fuseau horaire. Les dates dans toute l'application s'adapteront à ce fuseau horaire.",
     "currentDateTime": "Date et heure actuelles",
     "timezoneLabel": "Fuseau horaire",
-    "resetToBrowser": "Réinitialiser au fuseau horaire du navigateur",
-    "defaultBrowser": "Navigateur par défaut"
+    "resetToBrowser": "Réinitialiser au fuseau horaire automatique",
+    "defaultBrowser": "Automatique"
   },
   "advanced": {
     "title": "Avancé",
