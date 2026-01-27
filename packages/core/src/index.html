@@ -6,25 +6,63 @@
     <title>ShellUI</title>
     <script>
       // Initialize theme immediately to prevent FOUC
+      // This sets both the dark class AND CSS variables before React loads
       (function() {
         try {
           const stored = localStorage.getItem('shellui:settings');
           let theme = 'system';
+          let themeName = 'default';
           if (stored) {
             const parsed = JSON.parse(stored);
             theme = parsed.appearance?.theme || 'system';
+            themeName = parsed.appearance?.themeName || 'default';
           }
           
+          // Determine if dark mode
+          let isDark = false;
           if (theme === 'system') {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            if (mediaQuery.matches) {
-              document.documentElement.classList.add('dark');
-            }
-          } else if (theme === 'dark') {
+            isDark = mediaQuery.matches;
+          } else {
+            isDark = theme === 'dark';
+          }
+          
+          // Apply dark class
+          if (isDark) {
             document.documentElement.classList.add('dark');
           }
+          
+          // Set default theme CSS variables immediately
+          // This ensures bg-primary works from the start
+          // These HSL values match the default theme in themes.ts
+          const root = document.documentElement;
+          
+          if (isDark) {
+            // Dark mode default theme colors
+            root.style.setProperty('--primary', '142 71% 55%');
+            root.style.setProperty('--primary-foreground', '0 0% 100%');
+            root.style.setProperty('--background', '222.2 84% 4.9%');
+            root.style.setProperty('--foreground', '210 40% 98%');
+          } else {
+            // Light mode default theme colors  
+            root.style.setProperty('--primary', '142 71% 45%');
+            root.style.setProperty('--primary-foreground', '0 0% 100%');
+            root.style.setProperty('--background', '0 0% 100%');
+            root.style.setProperty('--foreground', '222.2 84% 4.9%');
+          }
+          
+          // Set other essential variables with defaults
+          root.style.setProperty('--card', isDark ? '222.2 84% 4.9%' : '0 0% 100%');
+          root.style.setProperty('--card-foreground', isDark ? '210 40% 98%' : '222.2 84% 4.9%');
+          root.style.setProperty('--secondary', isDark ? '217.2 32.6% 17.5%' : '210 40% 96.1%');
+          root.style.setProperty('--muted', isDark ? '217.2 32.6% 17.5%' : '210 40% 96.1%');
+          root.style.setProperty('--border', isDark ? '217.2 32.6% 17.5%' : '214.3 31.8% 91.4%');
+          root.style.setProperty('--input', isDark ? '217.2 32.6% 17.5%' : '214.3 31.8% 91.4%');
+          root.style.setProperty('--ring', isDark ? '212.7 26.8% 83.9%' : '222.2 84% 4.9%');
+          root.style.setProperty('--radius', '0.5rem');
         } catch (e) {
           // Ignore errors
+          console.error('[Theme Init] Error:', e);
         }
       })();
     </script>

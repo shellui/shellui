@@ -21,6 +21,10 @@
     "title": "Appearance",
     "theme": "Theme",
     "themeDescription": "Choose your preferred color scheme (current: {{theme}})",
+    "mode": "Mode",
+    "modeDescription": "Choose light, dark, or system mode (current: {{mode}})",
+    "colorTheme": "Color Theme",
+    "colorThemeDescription": "Select a color theme. Each theme has light and dark variants.",
     "themes": {
       "light": "Light",
       "dark": "Dark",

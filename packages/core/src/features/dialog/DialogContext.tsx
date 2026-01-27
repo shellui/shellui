@@ -224,7 +224,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
             <Button 
               onClick={handleOk} 
               variant="default"
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md"
+              className="font-semibold shadow-md"
             >
               {okLabel || 'Confirm'}
             </Button>

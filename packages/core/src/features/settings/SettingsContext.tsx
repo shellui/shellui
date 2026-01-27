@@ -15,6 +15,7 @@ export interface Settings {
   }
   appearance: {
     theme: 'light' | 'dark' | 'system'
+    themeName: string
   }
   language: {
     code: 'en' | 'fr'
@@ -47,7 +48,8 @@ const defaultSettings: Settings = {
     }
   },
   appearance: {
-    theme: 'system'
+    theme: 'system',
+    themeName: 'default'
   },
   language: {
     code: 'en'
@@ -89,7 +91,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               }
             },
             appearance: {
-              theme: parsed.appearance?.theme || defaultSettings.appearance.theme
+              theme: parsed.appearance?.theme || defaultSettings.appearance.theme,
+              themeName: parsed.appearance?.themeName || defaultSettings.appearance.themeName
             },
             language: {
               code: parsed.language?.code || defaultSettings.language.code
