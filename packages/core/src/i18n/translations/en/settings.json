@@ -30,7 +30,13 @@
     "title": "Language & region",
     "description": "Configure your language and regional settings.",
     "language": "Language",
-    "languageDescription": "Choose your preferred language. Changes will be applied immediately."
+    "languageDescription": "Choose your preferred language. Changes will be applied immediately.",
+    "region": "Region",
+    "regionDescription": "Select your timezone. Dates throughout the app will adjust to this timezone.",
+    "currentDateTime": "Current date and time",
+    "timezoneLabel": "Timezone",
+    "resetToBrowser": "Reset to browser timezone",
+    "defaultBrowser": "Default browser"
   },
   "advanced": {
     "title": "Advanced",

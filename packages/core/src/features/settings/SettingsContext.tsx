@@ -19,11 +19,22 @@ export interface Settings {
   language: {
     code: 'en' | 'fr'
   }
+  region: {
+    timezone: string
+  }
   // Add more settings here as needed
   // notifications: { ... }
 }
 
 const STORAGE_KEY = 'shellui:settings'
+
+// Get browser's timezone as default
+const getBrowserTimezone = (): string => {
+  if (typeof window !== 'undefined' && Intl) {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone
+  }
+  return 'UTC'
+}
 
 const defaultSettings: Settings = {
   developerFeatures: {
@@ -40,6 +51,9 @@ const defaultSettings: Settings = {
   },
   language: {
     code: 'en'
+  },
+  region: {
+    timezone: getBrowserTimezone()
   }
 }
 
@@ -78,6 +92,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             },
             language: {
               code: parsed.language?.code || defaultSettings.language.code
+            },
+            region: {
+              // Only use stored timezone if it exists, otherwise use browser's current timezone
+              timezone: parsed.region?.timezone || getBrowserTimezone()
             }
           }
         }

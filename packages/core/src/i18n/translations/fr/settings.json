@@ -30,7 +30,13 @@
     "title": "Langue et région",
     "description": "Configurez vos paramètres de langue et de région.",
     "language": "Langue",
-    "languageDescription": "Choisissez votre langue préférée. Les modifications seront appliquées immédiatement."
+    "languageDescription": "Choisissez votre langue préférée. Les modifications seront appliquées immédiatement.",
+    "region": "Région",
+    "regionDescription": "Sélectionnez votre fuseau horaire. Les dates dans toute l'application s'adapteront à ce fuseau horaire.",
+    "currentDateTime": "Date et heure actuelles",
+    "timezoneLabel": "Fuseau horaire",
+    "resetToBrowser": "Réinitialiser au fuseau horaire du navigateur",
+    "defaultBrowser": "Navigateur par défaut"
   },
   "advanced": {
     "title": "Avancé",
