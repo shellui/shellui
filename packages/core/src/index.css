@@ -151,6 +151,39 @@
     outline-color: hsl(var(--ring) / 0.5);
   }
   
+  /* Ensure Sonner toasts use theme variables - override Sonner defaults */
+  [data-sonner-toast] {
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+  
+  [data-sonner-toast] [data-description] {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+  
+  [data-sonner-toast] [data-button],
+  [data-sonner-toast] button[data-button] {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  [data-sonner-toast] [data-button]:hover,
+  [data-sonner-toast] button[data-button]:hover {
+    background-color: hsl(var(--primary) / 0.9) !important;
+  }
+  
+  [data-sonner-toast] [data-cancel],
+  [data-sonner-toast] button[data-cancel] {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+  }
+  
+  [data-sonner-toast] [data-cancel]:hover,
+  [data-sonner-toast] button[data-cancel]:hover {
+    background-color: hsl(var(--muted) / 0.8) !important;
+  }
+  
   /* Invert sidebar icons in dark mode - target all icons in sidebar context */
   .dark [data-sidebar="sidebar"] img[src*="/icons/"],
   .dark [data-sidebar="sidebar"] img[src*="icons/"],
