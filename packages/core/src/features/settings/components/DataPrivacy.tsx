@@ -8,27 +8,22 @@ export const DataPrivacy = () => {
   const { resetAllData } = useSettings()
 
   const handleResetClick = () => {
-    shellui.toast({
+    shellui.dialog({
       title: t('dataPrivacy.resetData.toast.title'),
       description: t('dataPrivacy.resetData.toast.description'),
-      type: "warning",
-      duration: 0, // Don't auto-dismiss
-      action: {
-        label: t('dataPrivacy.resetData.toast.confirm'),
-        onClick: () => {
-          resetAllData()
-          shellui.toast({
-            title: t('dataPrivacy.resetData.toast.success.title'),
-            description: t('dataPrivacy.resetData.toast.success.description'),
-            type: "success",
-          })
-        },
+      mode: "delete",
+      okLabel: t('dataPrivacy.resetData.toast.confirm'),
+      cancelLabel: t('dataPrivacy.resetData.toast.cancel'),
+      onOk: () => {
+        resetAllData()
+        shellui.toast({
+          title: t('dataPrivacy.resetData.toast.success.title'),
+          description: t('dataPrivacy.resetData.toast.success.description'),
+          type: "success",
+        })
       },
-      cancel: {
-        label: t('dataPrivacy.resetData.toast.cancel'),
-        onClick: () => {
-          // User cancelled, no action needed
-        },
+      onCancel: () => {
+        // User cancelled, no action needed
       },
     })
   }
