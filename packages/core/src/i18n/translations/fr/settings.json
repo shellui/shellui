@@ -10,6 +10,7 @@
     "appearance": "Apparence",
     "languageAndRegion": "Langue et région",
     "advanced": "Avancé",
+    "dataPrivacy": "Confidentialité des données",
     "develop": "Développement"
   },
   "notifications": {
@@ -44,6 +45,25 @@
     "developerFeatures": {
       "label": "Afficher les fonctionnalités pour les développeurs",
       "description": "Activez les outils et paramètres de développement dans le menu des paramètres."
+    }
+  },
+  "dataPrivacy": {
+    "title": "Confidentialité des données",
+    "description": "Gérez vos paramètres de confidentialité des données et réinitialisez toutes les données de l'application.",
+    "resetData": {
+      "title": "Réinitialiser toutes les données",
+      "description": "Cela supprimera définitivement tous vos paramètres et données d'application. Cette action ne peut pas être annulée.",
+      "button": "Réinitialiser toutes les données",
+      "toast": {
+        "title": "Réinitialiser toutes les données ?",
+        "description": "Cela supprimera définitivement tous vos paramètres, préférences et autres données d'application. Cette action ne peut pas être annulée.",
+        "confirm": "Réinitialiser toutes les données",
+        "cancel": "Annuler",
+        "success": {
+          "title": "Données réinitialisées",
+          "description": "Toutes les données de l'application ont été réinitialisées avec succès."
+        }
+      }
     }
   },
   "develop": {

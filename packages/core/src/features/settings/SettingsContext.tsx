@@ -64,6 +64,7 @@ interface SettingsContextValue {
     key: K,
     updates: Partial<Settings[K]>
   ) => void
+  resetAllData: () => void
 }
 
 export const SettingsContext = React.createContext<SettingsContextValue | undefined>(undefined)
@@ -184,13 +185,57 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     updateSettings({ [key]: mergedValue } as Partial<Settings>)
   }, [settings, updateSettings])
 
+  const resetAllData = React.useCallback(() => {
+    // Clear all localStorage data
+    if (typeof window !== 'undefined') {
+      try {
+        // Clear settings
+        localStorage.removeItem(STORAGE_KEY)
+        
+        // Clear all other localStorage items that start with shellui:
+        const keysToRemove: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('shellui:')) {
+            keysToRemove.push(key)
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key))
+        
+        // Reset settings to defaults
+        const newSettings = defaultSettings
+        setSettings(newSettings)
+        
+        // If we're in the root window, update localStorage with defaults
+        if (window.parent === window) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
+          shellui.propagateMessage({
+            type: 'SHELLUI_SETTINGS',
+            payload: { settings: newSettings }
+          })
+        }
+        
+        // Notify parent about reset
+        shellui.sendMessageToParent({
+          type: 'SHELLUI_SETTINGS_UPDATED',
+          payload: { settings: newSettings }
+        })
+        
+        logger.info('All app data has been reset')
+      } catch (error) {
+        logger.error('Failed to reset all data:', { error })
+      }
+    }
+  }, [])
+
   const value = React.useMemo(
     () => ({
       settings,
       updateSettings,
       updateSetting,
+      resetAllData,
     }),
-    [settings, updateSettings, updateSetting]
+    [settings, updateSettings, updateSetting, resetAllData]
   )
 
   return (

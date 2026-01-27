@@ -10,6 +10,7 @@
     "appearance": "Appearance",
     "languageAndRegion": "Language & region",
     "advanced": "Advanced",
+    "dataPrivacy": "Data Privacy",
     "develop": "Develop"
   },
   "notifications": {
@@ -44,6 +45,25 @@
     "developerFeatures": {
       "label": "Show features for developers",
       "description": "Enable developer tools and settings in the settings menu."
+    }
+  },
+  "dataPrivacy": {
+    "title": "Data Privacy",
+    "description": "Manage your data privacy settings and reset all app data.",
+    "resetData": {
+      "title": "Reset All Data",
+      "description": "This will permanently delete all your settings and app data. This action cannot be undone.",
+      "button": "Reset All Data",
+      "toast": {
+        "title": "Reset All Data?",
+        "description": "This will permanently delete all your settings, preferences, and other app data. This action cannot be undone.",
+        "confirm": "Reset All Data",
+        "cancel": "Cancel",
+        "success": {
+          "title": "Data Reset",
+          "description": "All app data has been reset successfully."
+        }
+      }
     }
   },
   "develop": {

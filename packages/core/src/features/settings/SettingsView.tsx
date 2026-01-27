@@ -48,12 +48,14 @@ export const SettingsView = () => {
       {
         title: t("categories.preferences"),
         routes: filteredRoutes.filter(route =>
-          ["notifications", "appearance", "language-and-region"].includes(route.path)
+          ["notifications", "appearance", "language-and-region", "data-privacy"].includes(route.path)
         )
       },
       {
         title: t("categories.system"),
-        routes: filteredRoutes.filter(route => route.path === "advanced")
+        routes: filteredRoutes.filter(route => 
+          ["advanced"].includes(route.path)
+        )
       },
       {
         title: t("categories.developer"),
