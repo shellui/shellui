@@ -184,6 +184,18 @@
     background-color: hsl(var(--muted) / 0.8) !important;
   }
   
+  /* Color success toast icon */
+  [data-sonner-toast][data-type="success"] [data-icon],
+  [data-sonner-toast][data-type="success"] svg {
+    color: hsl(var(--primary)) !important;
+  }
+  
+  /* Color error toast icon */
+  [data-sonner-toast][data-type="error"] [data-icon],
+  [data-sonner-toast][data-type="error"] svg {
+    color: hsl(var(--destructive)) !important;
+  }
+  
   /* Invert sidebar icons in dark mode - target all icons in sidebar context */
   .dark [data-sidebar="sidebar"] img[src*="/icons/"],
   .dark [data-sidebar="sidebar"] img[src*="icons/"],

@@ -43,7 +43,8 @@ const ThemePreview = ({ theme, isSelected, isDark }: { theme: ThemeDefinition; i
     <div className={cn(
       "relative overflow-hidden rounded-lg border-2 transition-all",
       isSelected ? "border-primary shadow-lg" : "border-border"
-    )}>
+    )}
+    style={{ backgroundColor: colors.background }}>
       <div className="p-3 space-y-2">
         {/* Primary color */}
         <div 
@@ -78,7 +79,7 @@ const ThemePreview = ({ theme, isSelected, isDark }: { theme: ThemeDefinition; i
         </div>
       </div>
       {/* Theme name overlay */}
-      <div className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm px-2 py-1">
+      <div className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm px-2 py-1" style={{ backgroundColor: colors.background }}>
         <p className="text-xs font-medium text-center">{theme.displayName}</p>
       </div>
     </div>

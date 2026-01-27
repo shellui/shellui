@@ -306,7 +306,7 @@ export const warmYellowTheme: ThemeDefinition = {
       cardForeground: '#3E2723', // Warm dark brown
       popover: '#FFFEF5', // Slightly off-white cream
       popoverForeground: '#3E2723', // Warm dark brown
-      primary: '#8B5CF6', // Warm purple (complements yellow)
+      primary: '#F59E0B', // Warm golden amber (complements yellow)
       primaryForeground: '#FFFFFF', // White
       secondary: '#F5E6D3', // Warm beige
       secondaryForeground: '#3E2723', // Warm dark brown
@@ -318,16 +318,16 @@ export const warmYellowTheme: ThemeDefinition = {
       destructiveForeground: '#FFFFFF', // White
       border: '#E8D5B7', // Warm tan border
       input: '#E8D5B7', // Warm tan input border
-      ring: '#8B5CF6', // Warm purple ring
+      ring: '#F59E0B', // Warm golden amber ring
       radius: '0.5rem',
       sidebarBackground: '#FFF8E7', // Warm cream
       sidebarForeground: '#5D4037', // Medium warm brown
-      sidebarPrimary: '#8B5CF6', // Warm purple
+      sidebarPrimary: '#F59E0B', // Warm golden amber
       sidebarPrimaryForeground: '#FFFFFF', // White
       sidebarAccent: '#F5E6D3', // Warm beige
       sidebarAccentForeground: '#3E2723', // Warm dark brown
       sidebarBorder: '#E8D5B7', // Warm tan
-      sidebarRing: '#8B5CF6', // Warm purple
+      sidebarRing: '#F59E0B', // Warm golden amber
     },
     dark: {
       background: '#2E2419', // Dark warm brown
@@ -336,7 +336,7 @@ export const warmYellowTheme: ThemeDefinition = {
       cardForeground: '#FFF8E7', // Warm cream
       popover: '#3E2723', // Dark warm brown
       popoverForeground: '#FFF8E7', // Warm cream
-      primary: '#A78BFA', // Lighter warm purple
+      primary: '#FBBF24', // Bright golden amber (lighter for dark mode)
       primaryForeground: '#FFFFFF', // White for better contrast
       secondary: '#4E342E', // Medium dark warm brown
       secondaryForeground: '#FFF8E7', // Warm cream
@@ -348,16 +348,16 @@ export const warmYellowTheme: ThemeDefinition = {
       destructiveForeground: '#FFF8E7', // Warm cream
       border: '#5D4037', // Medium warm brown border
       input: '#5D4037', // Medium warm brown input border
-      ring: '#A78BFA', // Lighter warm purple ring
+      ring: '#FBBF24', // Bright golden amber ring
       radius: '0.5rem',
       sidebarBackground: '#2E2419', // Dark warm brown
       sidebarForeground: '#D7CCC8', // Light warm gray
-      sidebarPrimary: '#A78BFA', // Lighter warm purple
-      sidebarPrimaryForeground: '#FFFFFF', // White for better contrast
+      sidebarPrimary: '#FBBF24', // Bright golden amber
+      sidebarPrimaryForeground: '#2E2419', // Dark warm brown for better contrast
       sidebarAccent: '#4E342E', // Medium dark warm brown
       sidebarAccentForeground: '#FFF8E7', // Warm cream
       sidebarBorder: '#5D4037', // Medium warm brown
-      sidebarRing: '#A78BFA', // Lighter warm purple
+      sidebarRing: '#FBBF24', // Bright golden amber
     },
   },
 };

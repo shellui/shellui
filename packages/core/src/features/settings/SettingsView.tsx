@@ -158,18 +158,18 @@ export const SettingsView = () => {
                     <h2 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2">
                       {group.title}
                     </h2>
-                    <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+                    <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
                       {group.routes.map((item, itemIndex) => {
                         const Icon = item.icon
                         const isLast = itemIndex === group.routes.length - 1
                         return (
                           <div key={item.name} className="relative">
                             {!isLast && (
-                              <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-gray-300 dark:bg-gray-600" />
+                              <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
                             )}
                             <button
                               onClick={() => navigate(`${item.path}`)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-700 transition-colors cursor-pointer rounded-none"
+                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-accent hover:text-accent-foreground active:bg-accent active:text-accent-foreground transition-colors cursor-pointer rounded-none"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div className="flex-shrink-0 text-foreground/70">
