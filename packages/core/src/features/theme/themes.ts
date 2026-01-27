@@ -326,7 +326,7 @@ export const warmYellowTheme: ThemeDefinition = {
       input: '#E8D5B7', // Warm tan input border
       ring: '#F59E0B', // Warm golden amber ring
       radius: '0.5rem',
-      sidebarBackground: '#FFF8E7', // Warm cream
+      sidebarBackground: '#FFF5E1', // Slightly warmer cream (subtle contrast with main background)
       sidebarForeground: '#5D4037', // Medium warm brown
       sidebarPrimary: '#F59E0B', // Warm golden amber
       sidebarPrimaryForeground: '#FFFFFF', // White
@@ -356,7 +356,7 @@ export const warmYellowTheme: ThemeDefinition = {
       input: '#5D4037', // Medium warm brown input border
       ring: '#FBBF24', // Bright golden amber ring
       radius: '0.5rem',
-      sidebarBackground: '#2E2419', // Dark warm brown
+      sidebarBackground: '#35281F', // Slightly warmer dark brown (subtle contrast with main background)
       sidebarForeground: '#D7CCC8', // Light warm gray
       sidebarPrimary: '#FBBF24', // Bright golden amber
       sidebarPrimaryForeground: '#2E2419', // Dark warm brown for better contrast
