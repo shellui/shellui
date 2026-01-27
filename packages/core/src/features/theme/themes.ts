@@ -146,6 +146,9 @@ export interface ThemeDefinition {
   displayName: string;
   colors: ThemeColors;
   fontFamily?: string; // Optional custom font family
+  letterSpacing?: string; // Optional custom letter spacing (e.g., "0.02em")
+  textShadow?: string; // Optional custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
+  lineHeight?: string; // Optional custom line height (e.g., "1.6")
 }
 
 /**
@@ -297,7 +300,10 @@ export const blueTheme: ThemeDefinition = {
 export const warmYellowTheme: ThemeDefinition = {
   name: 'warm-yellow',
   displayName: 'Warm Yellow',
-  fontFamily: '"Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+  fontFamily: '"Comic Sans MS", "Comic Sans", "Chalkboard SE", "Comic Neue", cursive, sans-serif',
+  letterSpacing: '0.02em',
+  textShadow: '1px 1px 2px rgba(0, 0, 0, 0.1)',
+  lineHeight: '1.6',
   colors: {
     light: {
       background: '#FFF8E7', // Warm cream/yellowish
@@ -443,11 +449,55 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   // Apply custom font family if provided
   if (theme.fontFamily) {
     root.style.setProperty('--font-family', theme.fontFamily);
+    // Apply to both root and body to ensure it applies everywhere
+    root.style.fontFamily = theme.fontFamily;
     document.body.style.fontFamily = theme.fontFamily;
+    
+    // Apply optional font styling properties generically
+    if (theme.letterSpacing) {
+      root.style.setProperty('--letter-spacing', theme.letterSpacing);
+      root.style.letterSpacing = theme.letterSpacing;
+    } else {
+      root.style.removeProperty('--letter-spacing');
+      root.style.letterSpacing = '';
+    }
+    
+    if (theme.textShadow) {
+      root.style.setProperty('--text-shadow', theme.textShadow);
+      // Apply slightly lighter shadow to body for better readability
+      const bodyShadow = theme.textShadow.replace(/rgba\(([^)]+)\)/, (match, rgba) => {
+        // Reduce opacity by ~20% for body text
+        const values = rgba.split(',').map((v: string) => v.trim());
+        if (values.length === 4) {
+          const opacity = parseFloat(values[3]);
+          return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${Math.max(0, opacity * 0.8)})`;
+        }
+        return match;
+      });
+      document.body.style.textShadow = bodyShadow;
+    } else {
+      root.style.removeProperty('--text-shadow');
+      document.body.style.textShadow = '';
+    }
+    
+    if (theme.lineHeight) {
+      root.style.setProperty('--line-height', theme.lineHeight);
+      document.body.style.lineHeight = theme.lineHeight;
+    } else {
+      root.style.removeProperty('--line-height');
+      document.body.style.lineHeight = '';
+    }
   } else {
     // Reset to default if no font specified
     root.style.removeProperty('--font-family');
+    root.style.removeProperty('--letter-spacing');
+    root.style.removeProperty('--text-shadow');
+    root.style.removeProperty('--line-height');
+    root.style.fontFamily = '';
+    root.style.letterSpacing = '';
     document.body.style.fontFamily = '';
+    document.body.style.textShadow = '';
+    document.body.style.lineHeight = '';
   }
   
   // Verify primary color is set (for debugging)

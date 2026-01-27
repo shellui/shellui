@@ -79,6 +79,31 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
+    letter-spacing: var(--letter-spacing, normal);
+    text-shadow: var(--text-shadow, none);
+    line-height: var(--line-height, 1.5);
+  }
+  
+  /* Creative styling for warm-yellow theme - playful headings and buttons */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: var(--letter-spacing, normal);
+    text-shadow: var(--text-shadow, none);
+  }
+  
+  /* Add playful styling to buttons for Comic Sans theme */
+  button, [role="button"] {
+    letter-spacing: var(--letter-spacing, normal);
+    transition: transform 0.2s ease, filter 0.2s ease;
+  }
+  
+  button:hover, [role="button"]:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+  }
+  
+  /* Playful input styling */
+  input, textarea, select {
+    letter-spacing: var(--letter-spacing, normal);
   }
 }
 :root {

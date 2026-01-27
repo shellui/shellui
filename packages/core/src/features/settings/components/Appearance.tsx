@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
 import { cn } from "@/lib/utils"
 import { useEffect, useState } from "react"
-import { getAllThemes, getTheme, registerTheme, type ThemeDefinition } from "@/features/theme/themes"
+import { getAllThemes, registerTheme, type ThemeDefinition } from "@/features/theme/themes"
 
 const SunIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -80,7 +80,16 @@ const ThemePreview = ({ theme, isSelected, isDark }: { theme: ThemeDefinition; i
       </div>
       {/* Theme name overlay */}
       <div className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm px-2 py-1" style={{ backgroundColor: colors.background }}>
-        <p className="text-xs font-medium text-center">{theme.displayName}</p>
+        <p 
+          className="text-xs font-medium text-center"
+          style={theme.fontFamily ? { 
+            fontFamily: theme.fontFamily,
+            letterSpacing: theme.letterSpacing || 'normal',
+            textShadow: theme.textShadow || 'none'
+          } : {}}
+        >
+          {theme.displayName}
+        </p>
       </div>
     </div>
   );
