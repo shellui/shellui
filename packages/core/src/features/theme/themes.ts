@@ -145,6 +145,7 @@ export interface ThemeDefinition {
   name: string;
   displayName: string;
   colors: ThemeColors;
+  fontFamily?: string; // Optional custom font family
 }
 
 /**
@@ -290,11 +291,84 @@ export const blueTheme: ThemeDefinition = {
 };
 
 /**
+ * Warm Yellow theme - Custom yellowish theme with warm tones
+ * Colors are in hex format (e.g., "#FFFFFF" or "FFFFFF" for white)
+ */
+export const warmYellowTheme: ThemeDefinition = {
+  name: 'warm-yellow',
+  displayName: 'Warm Yellow',
+  fontFamily: '"Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+  colors: {
+    light: {
+      background: '#FFF8E7', // Warm cream/yellowish
+      foreground: '#3E2723', // Warm dark brown
+      card: '#FFFEF5', // Slightly off-white cream
+      cardForeground: '#3E2723', // Warm dark brown
+      popover: '#FFFEF5', // Slightly off-white cream
+      popoverForeground: '#3E2723', // Warm dark brown
+      primary: '#8B5CF6', // Warm purple (complements yellow)
+      primaryForeground: '#FFFFFF', // White
+      secondary: '#F5E6D3', // Warm beige
+      secondaryForeground: '#3E2723', // Warm dark brown
+      muted: '#F5E6D3', // Warm beige
+      mutedForeground: '#6D4C41', // Medium warm brown
+      accent: '#FFE082', // Light warm yellow
+      accentForeground: '#3E2723', // Warm dark brown
+      destructive: '#E57373', // Soft red (works with warm tones)
+      destructiveForeground: '#FFFFFF', // White
+      border: '#E8D5B7', // Warm tan border
+      input: '#E8D5B7', // Warm tan input border
+      ring: '#8B5CF6', // Warm purple ring
+      radius: '0.5rem',
+      sidebarBackground: '#FFF8E7', // Warm cream
+      sidebarForeground: '#5D4037', // Medium warm brown
+      sidebarPrimary: '#8B5CF6', // Warm purple
+      sidebarPrimaryForeground: '#FFFFFF', // White
+      sidebarAccent: '#F5E6D3', // Warm beige
+      sidebarAccentForeground: '#3E2723', // Warm dark brown
+      sidebarBorder: '#E8D5B7', // Warm tan
+      sidebarRing: '#8B5CF6', // Warm purple
+    },
+    dark: {
+      background: '#2E2419', // Dark warm brown
+      foreground: '#FFF8E7', // Warm cream (inverted)
+      card: '#3E2723', // Dark warm brown
+      cardForeground: '#FFF8E7', // Warm cream
+      popover: '#3E2723', // Dark warm brown
+      popoverForeground: '#FFF8E7', // Warm cream
+      primary: '#A78BFA', // Lighter warm purple
+      primaryForeground: '#FFFFFF', // White for better contrast
+      secondary: '#4E342E', // Medium dark warm brown
+      secondaryForeground: '#FFF8E7', // Warm cream
+      muted: '#4E342E', // Medium dark warm brown
+      mutedForeground: '#D7CCC8', // Light warm gray
+      accent: '#FFB74D', // Warm orange accent
+      accentForeground: '#2E2419', // Dark warm brown for better contrast
+      destructive: '#EF5350', // Softer red for dark mode
+      destructiveForeground: '#FFF8E7', // Warm cream
+      border: '#5D4037', // Medium warm brown border
+      input: '#5D4037', // Medium warm brown input border
+      ring: '#A78BFA', // Lighter warm purple ring
+      radius: '0.5rem',
+      sidebarBackground: '#2E2419', // Dark warm brown
+      sidebarForeground: '#D7CCC8', // Light warm gray
+      sidebarPrimary: '#A78BFA', // Lighter warm purple
+      sidebarPrimaryForeground: '#FFFFFF', // White for better contrast
+      sidebarAccent: '#4E342E', // Medium dark warm brown
+      sidebarAccentForeground: '#FFF8E7', // Warm cream
+      sidebarBorder: '#5D4037', // Medium warm brown
+      sidebarRing: '#A78BFA', // Lighter warm purple
+    },
+  },
+};
+
+/**
  * Registry of all available themes
  */
 const themeRegistry = new Map<string, ThemeDefinition>([
   ['default', defaultTheme],
   ['blue', blueTheme],
+  ['warm-yellow', warmYellowTheme],
 ]);
 
 /**
@@ -365,6 +439,16 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   root.style.setProperty('--sidebar-accent-foreground', hexToHsl(colors.sidebarAccentForeground));
   root.style.setProperty('--sidebar-border', hexToHsl(colors.sidebarBorder));
   root.style.setProperty('--sidebar-ring', hexToHsl(colors.sidebarRing));
+  
+  // Apply custom font family if provided
+  if (theme.fontFamily) {
+    root.style.setProperty('--font-family', theme.fontFamily);
+    document.body.style.fontFamily = theme.fontFamily;
+  } else {
+    // Reset to default if no font specified
+    root.style.removeProperty('--font-family');
+    document.body.style.fontFamily = '';
+  }
   
   // Verify primary color is set (for debugging)
   const actualPrimary = root.style.getPropertyValue('--primary');
