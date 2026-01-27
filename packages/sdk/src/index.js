@@ -7,6 +7,7 @@ import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
 import { toast as toastAction } from './actions/toast.js';
+import { dialog as dialogAction } from './actions/dialog.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
@@ -89,6 +90,28 @@ class ShellUISDK {
         logger.warn('SHELLUI_TOAST_CLEAR message missing id');
       }
     });
+
+    // Listen for dialog OK clicks
+    this.addMessageListener('SHELLUI_DIALOG_OK', (data) => {
+      const { id } = data.payload || {};
+      if (id) {
+        this.callbackRegistry.triggerAction(id);
+        this.callbackRegistry.clear(id);
+      } else {
+        logger.warn('SHELLUI_DIALOG_OK message missing id');
+      }
+    });
+
+    // Listen for dialog cancel clicks
+    this.addMessageListener('SHELLUI_DIALOG_CANCEL', (data) => {
+      const { id } = data.payload || {};
+      if (id) {
+        this.callbackRegistry.triggerCancel(id);
+        this.callbackRegistry.clear(id);
+      } else {
+        logger.warn('SHELLUI_DIALOG_CANCEL message missing id');
+      }
+    });
   }
 
   /**
@@ -121,6 +144,25 @@ class ShellUISDK {
    */
   toast(options) {
     return toastAction(options);
+  }
+
+  /**
+   * Shows a dialog
+   * @param {Object} options - Dialog options
+   * @param {string} [options.id] - Optional dialog ID. If provided, updates existing dialog instead of creating new one
+   * @param {string} options.title - Dialog title
+   * @param {string} [options.description] - Dialog description
+   * @param {string} [options.mode='ok'] - Dialog mode: 'ok', 'okCancel', 'delete', 'confirm', 'onlyCancel'
+   * @param {Function} [options.onOk] - OK/Confirm button callback
+   * @param {Function} [options.onCancel] - Cancel button callback
+   * @param {string} [options.okLabel] - Custom OK button label
+   * @param {string} [options.cancelLabel] - Custom Cancel button label
+   * @returns {string|void} Returns the dialog ID if created, void if updating or in SSR
+   * If inside an iframe, sends a message to the parent to show the dialog
+   * If not in an iframe, dispatches a custom event that can be handled by the app
+   */
+  dialog(options) {
+    return dialogAction(options);
   }
 
   getVersion() {
@@ -212,6 +254,7 @@ export const init = () => sdk.init();
 export const getVersion = () => sdk.getVersion();
 export const openModal = (url) => openModalAction(url);
 export const toast = (options) => toastAction(options);
+export const dialog = (options) => dialogAction(options);
 export const addIframe = (iframe) => sdk.addIframe(iframe);
 export const removeIframe = (identifier) => sdk.removeIframe(identifier);
 export const addMessageListener = (messageType, listener) => sdk.addMessageListener(messageType, listener);

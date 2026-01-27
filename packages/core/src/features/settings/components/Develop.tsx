@@ -3,6 +3,7 @@ import { useSettings } from "../SettingsContext"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
+import { ToastTestButtons } from "./ToastTestButtons"
 
 export const Develop = () => {
   const { t } = useTranslation('settings')
@@ -72,171 +73,123 @@ export const Develop = () => {
         </p>
 
         <div className="space-y-4">
+          <ToastTestButtons />
+          
           <div>
-            <h4 className="text-sm font-medium mb-2">{t('develop.testing.toastNotifications.title')}</h4>
+            <h4 className="text-sm font-medium mb-2">Dialog Testing</h4>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.success.title'),
-                    description: t('develop.testing.toastNotifications.messages.success.description'),
-                    type: "success",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.success')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.error.title'),
-                    description: t('develop.testing.toastNotifications.messages.error.description'),
-                    type: "error",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.error')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.warning.title'),
-                    description: t('develop.testing.toastNotifications.messages.warning.description'),
-                    type: "warning",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.warning')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.info.title'),
-                    description: t('develop.testing.toastNotifications.messages.info.description'),
-                    type: "info",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.info')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.default.title'),
-                    description: t('develop.testing.toastNotifications.messages.default.description'),
-                    type: "default",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.default')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.loading.title'),
-                    description: t('develop.testing.toastNotifications.messages.loading.description'),
-                    type: "loading",
-                  });
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.loading')}
-              </Button>
-              <Button
-                onClick={() => {
-                  const toastId = shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.processing.title'),
-                    description: t('develop.testing.toastNotifications.messages.processing.description'),
-                    type: "loading",
-                  });
-
-                  // Simulate async operation and update toast
-                  if (typeof toastId === 'string') {
-                    setTimeout(() => {
+                  shellui.dialog({
+                    title: "Simple OK Dialog",
+                    description: "This is a simple dialog with just an OK button.",
+                    mode: "ok",
+                    onOk: () => {
                       shellui.toast({
-                        id: toastId,
+                        title: "OK clicked",
                         type: "success",
-                        title: t('develop.testing.toastNotifications.messages.uploadComplete.title'),
-                        description: t('develop.testing.toastNotifications.messages.uploadComplete.description'),
                       });
-                    }, 2000);
-                  }
-                }}
-                variant="outline"
-              >
-                {t('develop.testing.toastNotifications.buttons.loadingSuccess')}
-              </Button>
-              <Button
-                onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.withAction.title'),
-                    description: t('develop.testing.toastNotifications.messages.withAction.description'),
-                    type: "success",
-                    action: {
-                      label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
-                      onClick: () => {
-                        shellui.toast({
-                          title: t('develop.testing.toastNotifications.messages.undone.title'),
-                          description: t('develop.testing.toastNotifications.messages.undone.description'),
-                          type: "info",
-                        });
-                      },
                     },
                   });
                 }}
                 variant="outline"
               >
-                {t('develop.testing.toastNotifications.buttons.withAction')}
+                OK Dialog
               </Button>
               <Button
                 onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.withAction.title'),
-                    description: t('develop.testing.toastNotifications.messages.withAction.description'),
-                    type: "success",
-                    action: {
-                      label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
-                      onClick: () => {
-                        shellui.toast({
-                          title: t('develop.testing.toastNotifications.messages.undone.title'),
-                          description: t('develop.testing.toastNotifications.messages.undone.description'),
-                          type: "info",
-                        });
-                      },
+                  shellui.dialog({
+                    title: "OK Cancel Dialog",
+                    description: "This dialog has both OK and Cancel buttons.",
+                    mode: "okCancel",
+                    onOk: () => {
+                      shellui.toast({
+                        title: "OK clicked",
+                        type: "success",
+                      });
                     },
-                    cancel: {
-                      label: t('develop.testing.toastNotifications.messages.actionLabels.cancel'),
-                      onClick: () => {
-                        shellui.toast({
-                          title: t('develop.testing.toastNotifications.messages.cancelled.title'),
-                          description: t('develop.testing.toastNotifications.messages.cancelled.description'),
-                          type: "info",
-                        });
-                      },
+                    onCancel: () => {
+                      shellui.toast({
+                        title: "Cancel clicked",
+                        type: "info",
+                      });
                     },
                   });
                 }}
                 variant="outline"
               >
-                {t('develop.testing.toastNotifications.buttons.withActionAndCancel')}
+                OK Cancel Dialog
               </Button>
               <Button
                 onClick={() => {
-                  shellui.toast({
-                    title: t('develop.testing.toastNotifications.messages.persistent.title'),
-                    description: t('develop.testing.toastNotifications.messages.persistent.description'),
-                    type: "info",
-                    duration: 10000,
+                  shellui.dialog({
+                    title: "Delete Confirmation",
+                    description: "Are you sure you want to delete this item? This action cannot be undone.",
+                    mode: "delete",
+                    okLabel: "Delete",
+                    cancelLabel: "Cancel",
+                    onOk: () => {
+                      shellui.toast({
+                        title: "Item deleted",
+                        type: "success",
+                      });
+                    },
+                    onCancel: () => {
+                      shellui.toast({
+                        title: "Deletion cancelled",
+                        type: "info",
+                      });
+                    },
                   });
                 }}
                 variant="outline"
               >
-                {t('develop.testing.toastNotifications.buttons.longDuration')}
+                Delete Dialog
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.dialog({
+                    title: "Confirm Action",
+                    description: "Do you want to proceed with this action?",
+                    mode: "confirm",
+                    okLabel: "Confirm",
+                    cancelLabel: "Cancel",
+                    onOk: () => {
+                      shellui.toast({
+                        title: "Action confirmed",
+                        type: "success",
+                      });
+                    },
+                    onCancel: () => {
+                      shellui.toast({
+                        title: "Action cancelled",
+                        type: "info",
+                      });
+                    },
+                  });
+                }}
+                variant="outline"
+              >
+                Confirm Dialog
+              </Button>
+              <Button
+                onClick={() => {
+                  shellui.dialog({
+                    title: "Only Cancel Dialog",
+                    description: "This dialog only has a Cancel button.",
+                    mode: "onlyCancel",
+                    cancelLabel: "Close",
+                    onCancel: () => {
+                      shellui.toast({
+                        title: "Dialog closed",
+                        type: "info",
+                      });
+                    },
+                  });
+                }}
+                variant="outline"
+              >
+                Only Cancel Dialog
               </Button>
             </div>
           </div>
