@@ -56,8 +56,6 @@ export const SettingsContext = React.createContext<SettingsContextValue | undefi
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
-  const [isInitialMount, setIsInitialMount] = React.useState(true)
-
   const [settings, setSettings] = React.useState<Settings>(() => {
     // Initialize from localStorage
     if (typeof window !== 'undefined') {
@@ -125,7 +123,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const payload = message.payload as { settings: Settings }
       const newSettings = payload.settings
       if (newSettings) {
-        setIsInitialMount(true)
         setSettings(newSettings)
       }
     })
@@ -161,8 +158,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     key: K,
     updates: Partial<Settings[K]>
   ) => {
-    updateSettings({ [key]: updates })
-  }, [])
+    // Deep merge: preserve existing nested properties
+    const currentValue = settings[key]
+    const mergedValue = typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)
+      ? { ...currentValue, ...updates }
+      : updates
+    updateSettings({ [key]: mergedValue } as Partial<Settings>)
+  }, [settings, updateSettings])
 
   const value = React.useMemo(
     () => ({
