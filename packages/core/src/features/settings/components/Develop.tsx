@@ -12,7 +12,7 @@ export const Develop = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">{t('develop.logging.title')}</h3>
+        <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.logging.title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
           {t('develop.logging.description')}
         </p>
@@ -20,7 +20,7 @@ export const Develop = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <label htmlFor="log-shellsdk" className="text-sm font-medium leading-none">
+              <label htmlFor="log-shellsdk" className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
                 {t('develop.logging.shellsdk.label')}
               </label>
               <p className="text-sm text-muted-foreground">
@@ -43,7 +43,7 @@ export const Develop = () => {
 
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <label htmlFor="log-shellcore" className="text-sm font-medium leading-none">
+              <label htmlFor="log-shellcore" className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
                 {t('develop.logging.shellcore.label')}
               </label>
               <p className="text-sm text-muted-foreground">
@@ -67,7 +67,7 @@ export const Develop = () => {
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-2">{t('develop.testing.title')}</h3>
+        <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.title')}</h3>
         <p className="text-sm text-muted-foreground mb-4">
           {t('develop.testing.description')}
         </p>
@@ -76,7 +76,7 @@ export const Develop = () => {
           <ToastTestButtons />
           
           <div>
-            <h4 className="text-sm font-medium mb-2">Dialog Testing</h4>
+            <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>Dialog Testing</h4>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {

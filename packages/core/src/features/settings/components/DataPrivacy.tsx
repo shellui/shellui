@@ -34,7 +34,7 @@ export const DataPrivacy = () => {
       
       <div className="space-y-2">
         <div className="space-y-0.5">
-          <label className="text-sm font-medium leading-none">
+          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
             {t('dataPrivacy.resetData.title')}
           </label>
           <p className="text-sm text-muted-foreground">

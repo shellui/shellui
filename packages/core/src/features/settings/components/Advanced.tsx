@@ -12,7 +12,7 @@ export const Advanced = () => {
       
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <label htmlFor="developer-features" className="text-sm font-medium leading-none">
+          <label htmlFor="developer-features" className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
             {t('advanced.developerFeatures.label')}
           </label>
           <p className="text-sm text-muted-foreground">

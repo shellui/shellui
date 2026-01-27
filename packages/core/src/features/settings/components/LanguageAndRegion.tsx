@@ -194,7 +194,7 @@ export const LanguageAndRegion = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">
+        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
           {t('languageAndRegion.language')}
         </label>
         <p className="text-sm text-muted-foreground">
@@ -234,7 +234,7 @@ export const LanguageAndRegion = () => {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium leading-none">
+          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
             {t('languageAndRegion.region')}
           </label>
           {!isUsingBrowserTimezone && (

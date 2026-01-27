@@ -7,7 +7,7 @@ export const ToastTestButtons = () => {
 
   return (
     <div>
-      <h4 className="text-sm font-medium mb-2">{t('develop.testing.toastNotifications.title')}</h4>
+      <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.toastNotifications.title')}</h4>
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() => {

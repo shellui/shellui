@@ -155,7 +155,7 @@ export const SettingsView = () => {
               <div className="flex flex-1 flex-col p-4 gap-6">
                 {groupedRoutes.map((group) => (
                   <div key={group.title} className="flex flex-col gap-2">
-                    <h2 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2">
+                    <h2 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
                       {group.title}
                     </h2>
                     <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
