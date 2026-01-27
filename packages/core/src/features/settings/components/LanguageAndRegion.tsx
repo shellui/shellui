@@ -23,36 +23,66 @@ const ClockIcon = () => (
   </svg>
 );
 
-// Common timezones list
-const COMMON_TIMEZONES = [
-  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-  { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
-  { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
-  { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
-  { value: 'America/Toronto', label: 'Toronto' },
-  { value: 'America/Vancouver', label: 'Vancouver' },
-  { value: 'Europe/London', label: 'London' },
-  { value: 'Europe/Paris', label: 'Paris' },
-  { value: 'Europe/Berlin', label: 'Berlin' },
-  { value: 'Europe/Rome', label: 'Rome' },
-  { value: 'Europe/Madrid', label: 'Madrid' },
-  { value: 'Europe/Amsterdam', label: 'Amsterdam' },
-  { value: 'Europe/Stockholm', label: 'Stockholm' },
-  { value: 'Europe/Zurich', label: 'Zurich' },
-  { value: 'Asia/Tokyo', label: 'Tokyo' },
-  { value: 'Asia/Shanghai', label: 'Shanghai' },
-  { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
-  { value: 'Asia/Singapore', label: 'Singapore' },
-  { value: 'Asia/Dubai', label: 'Dubai' },
-  { value: 'Asia/Kolkata', label: 'Mumbai, New Delhi' },
-  { value: 'Asia/Bangkok', label: 'Bangkok' },
-  { value: 'Australia/Sydney', label: 'Sydney' },
-  { value: 'Australia/Melbourne', label: 'Melbourne' },
-  { value: 'Pacific/Auckland', label: 'Auckland' },
-  { value: 'America/Sao_Paulo', label: 'São Paulo' },
-  { value: 'America/Mexico_City', label: 'Mexico City' },
-  { value: 'America/Buenos_Aires', label: 'Buenos Aires' },
+// Timezones organized by region
+const TIMEZONE_GROUPS = [
+  {
+    label: 'UTC',
+    timezones: [
+      { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+    ],
+  },
+  {
+    label: 'North America',
+    timezones: [
+      { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
+      { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
+      { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
+      { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
+      { value: 'America/Toronto', label: 'Toronto' },
+      { value: 'America/Vancouver', label: 'Vancouver' },
+      { value: 'America/Mexico_City', label: 'Mexico City' },
+    ],
+  },
+  {
+    label: 'South America',
+    timezones: [
+      { value: 'America/Sao_Paulo', label: 'São Paulo' },
+      { value: 'America/Buenos_Aires', label: 'Buenos Aires' },
+    ],
+  },
+  {
+    label: 'Europe',
+    timezones: [
+      { value: 'Europe/London', label: 'London' },
+      { value: 'Europe/Paris', label: 'Paris' },
+      { value: 'Europe/Berlin', label: 'Berlin' },
+      { value: 'Europe/Rome', label: 'Rome' },
+      { value: 'Europe/Madrid', label: 'Madrid' },
+      { value: 'Europe/Amsterdam', label: 'Amsterdam' },
+      { value: 'Europe/Stockholm', label: 'Stockholm' },
+      { value: 'Europe/Zurich', label: 'Zurich' },
+    ],
+  },
+  {
+    label: 'Asia',
+    timezones: [
+      { value: 'Asia/Tokyo', label: 'Tokyo' },
+      { value: 'Asia/Shanghai', label: 'Shanghai' },
+      { value: 'Asia/Hong_Kong', label: 'Hong Kong' },
+      { value: 'Asia/Singapore', label: 'Singapore' },
+      { value: 'Asia/Dubai', label: 'Dubai' },
+      { value: 'Asia/Kolkata', label: 'Mumbai, New Delhi' },
+      { value: 'Asia/Bangkok', label: 'Bangkok' },
+    ],
+  },
+  {
+    label: 'Australia & Pacific',
+    timezones: [
+      { value: 'Australia/Sydney', label: 'Sydney' },
+      { value: 'Australia/Melbourne', label: 'Melbourne' },
+      { value: 'Pacific/Auckland', label: 'Auckland' },
+    ],
+  },
 ];
 
 // Format date based on timezone and language
@@ -230,14 +260,18 @@ export const LanguageAndRegion = () => {
           }}
           className="w-full"
         >
-          {COMMON_TIMEZONES.map((tz) => {
-            const isBrowserTimezone = tz.value === browserTimezone;
-            return (
-              <option key={tz.value} value={tz.value}>
-                {tz.label}{isBrowserTimezone ? ` (${t('languageAndRegion.defaultBrowser')})` : ''}
-              </option>
-            );
-          })}
+          {TIMEZONE_GROUPS.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.timezones.map((tz) => {
+                const isBrowserTimezone = tz.value === browserTimezone;
+                return (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}{isBrowserTimezone ? ` (${t('languageAndRegion.defaultBrowser')})` : ''}
+                  </option>
+                );
+              })}
+            </optgroup>
+          ))}
         </Select>
         <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/60 border border-border/50">
           <ClockIcon />
