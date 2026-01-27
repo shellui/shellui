@@ -1,3 +1,5 @@
 {
-  "settings": "Settings"
+  "settings": "Settings",
+  "welcome": "Welcome to ShellUI",
+  "getStarted": "Select a navigation item to get started."
 }
