@@ -20,5 +20,6 @@ export interface NavigationGroup {
 export interface ShellUIConfig {
   port?: number;
   title?: string;
+  language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   navigation?: (NavigationItem | NavigationGroup)[];
 }

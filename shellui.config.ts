@@ -3,6 +3,12 @@ import type { ShellUIConfig } from '@shellui/core';
 const config: ShellUIConfig = {
   port: 4000,
   title: 'ShellUI',
+  // Enable specific languages: single language string or array of language codes
+  // Examples:
+  // language: 'en',           // Only English
+  // language: ['en', 'fr'],  // English and French
+  // language: ['fr'],         // Only French
+  language: ['en', 'fr'], // Enable both English and French
   navigation: [
     {
       // Simple string label (backward compatible)

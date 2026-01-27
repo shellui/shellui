@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../SettingsContext';
-import { supportedLanguages } from '@/i18n/config';
+import { useConfig } from '@/features/config/useConfig';
+import { getSupportedLanguages } from '@/i18n/config';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,11 @@ const GlobeIcon = () => (
 export const LanguageAndRegion = () => {
   const { t } = useTranslation('settings');
   const { settings, updateSetting } = useSettings();
+  const { config } = useConfig();
   const currentLanguage = settings.language?.code || 'en';
+  
+  // Get supported languages based on config
+  const supportedLanguages = getSupportedLanguages(config?.language);
 
   return (
     <div className="space-y-4">

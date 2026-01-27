@@ -7,12 +7,11 @@ import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsContext';
 import { useTheme } from './features/theme/useTheme';
 import { I18nProvider } from './i18n/I18nProvider';
+import type { ShellUIConfig } from './features/config/types';
 import './i18n/config'; // Initialize i18n
 import './index.css';
 
-const AppContent = () => {
-  const { config, loading, error } = useConfig();
-
+const AppContent = ({ config }: { config: ShellUIConfig }) => {
   // Initialize ShellUI SDK to support recursive nesting
   useEffect(() => {
     shellui.init();
@@ -20,11 +19,33 @@ const AppContent = () => {
 
   // Create router from config using data mode
   const router = useMemo(() => {
-    if (!config || loading || error) {
+    if (!config) {
       return null;
     }
     return createAppRouter(config);
-  }, [config, loading, error]);
+  }, [config]);
+
+  // If no navigation, show simple layout
+  if (!config.navigation || config.navigation.length === 0) {
+    return (
+      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
+        <h1>{config.title || 'ShellUI'}</h1>
+        <p>No navigation items configured.</p>
+      </div>
+    );
+  }
+
+  if (!router) {
+    return null;
+  }
+
+  return <RouterProvider router={router} />;
+};
+
+const AppWithTheme = () => {
+  const { config, loading, error } = useConfig();
+  // Apply theme based on settings
+  useTheme();
 
   if (loading) {
     return (
@@ -54,36 +75,17 @@ const AppContent = () => {
     );
   }
 
-  // If no navigation, show simple layout
-  if (!config.navigation || config.navigation.length === 0) {
-    return (
-      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-        <h1>{config.title || 'ShellUI'}</h1>
-        <p>No navigation items configured.</p>
-      </div>
-    );
-  }
-
-  if (!router) {
-    return null;
-  }
-
-  return <RouterProvider router={router} />;
-};
-
-const AppWithTheme = () => {
-  // Apply theme based on settings
-  useTheme();
-
-  return <AppContent />;
+  return (
+    <I18nProvider config={config}>
+      <AppContent config={config} />
+    </I18nProvider>
+  );
 };
 
 const App = () => {
   return (
     <SettingsProvider>
-      <I18nProvider>
-        <AppWithTheme />
-      </I18nProvider>
+      <AppWithTheme />
     </SettingsProvider>
   );
 };
