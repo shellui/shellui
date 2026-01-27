@@ -84,6 +84,13 @@ export interface ThemeDefinition {
   name: string;
   displayName: string;
   colors: ThemeColors;
+  fontFamily?: string; // Optional custom font family (backward compatible)
+  headingFontFamily?: string; // Optional font family for headings (h1-h6)
+  bodyFontFamily?: string; // Optional font family for body text
+  fontFiles?: string[]; // Optional array of font file URLs or paths to load (e.g., Google Fonts links or local paths)
+  letterSpacing?: string; // Optional custom letter spacing (e.g., "0.02em")
+  textShadow?: string; // Optional custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
+  lineHeight?: string; // Optional custom line height (e.g., "1.6")
 }
 
 export interface ShellUIConfig {

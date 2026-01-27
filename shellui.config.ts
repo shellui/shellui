@@ -12,68 +12,77 @@ const config: ShellUIConfig = {
   // Custom themes - register additional themes beyond the default ones
   themes: [
     {
-      name: 'purple',
-      displayName: 'Purple',
+      name: 'sebastienbarbier',
+      displayName: 'sebastienbarbier.com',
+      // Load Google Fonts for Open Sans and Source Serif
+      fontFiles: [
+        'https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap',
+      ],
+      // Serif for headings, sans-serif for body
+      headingFontFamily: '"Source Serif Pro", Georgia, serif',
+      bodyFontFamily: '"Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      lineHeight: '1.6',
+      letterSpacing: '0.01em',
       colors: {
         light: {
-          background: '#FFFFFF', // White
-          foreground: '#020617', // Very dark blue-gray
-          card: '#FFFFFF', // White
-          cardForeground: '#020617', // Very dark blue-gray
-          popover: '#FFFFFF', // White
-          popoverForeground: '#020617', // Very dark blue-gray
-          primary: '#A855F7', // Purple
-          primaryForeground: '#F8FAFC', // Off-white
-          secondary: '#F1F5F9', // Light gray-blue
-          secondaryForeground: '#0F172A', // Dark blue-gray
-          muted: '#F1F5F9', // Light gray-blue
-          mutedForeground: '#64748B', // Medium gray-blue
-          accent: '#F1F5F9', // Light gray-blue
-          accentForeground: '#0F172A', // Dark blue-gray
-          destructive: '#EF4444', // Red
-          destructiveForeground: '#F8FAFC', // Off-white
-          border: '#E2E8F0', // Light gray
-          input: '#E2E8F0', // Light gray
-          ring: '#A855F7', // Purple
-          radius: '0.5rem',
-          sidebarBackground: '#FAFAFA', // Off-white
-          sidebarForeground: '#334155', // Dark gray-blue
-          sidebarPrimary: '#A855F7', // Purple
-          sidebarPrimaryForeground: '#FFFFFF', // White
-          sidebarAccent: '#F4F4F5', // Light gray
-          sidebarAccentForeground: '#0F172A', // Very dark blue-gray
-          sidebarBorder: '#E2E8F0', // Light gray
-          sidebarRing: '#A855F7', // Purple
+          background: '#F8F5F2', // Warm beige/cream background (from sebastienbarbier.com)
+          foreground: '#202124', // Dark gray text (on-background)
+          card: '#F2EDEA', // Surface color - slightly lighter beige
+          cardForeground: '#202124', // Dark gray text
+          popover: '#F2EDEA', // Surface color
+          popoverForeground: '#202124', // Dark gray text
+          primary: '#1F1D1D', // Very dark gray (almost black) - primary color
+          primaryForeground: '#E8EAED', // Light gray (on-primary)
+          secondary: '#A37200', // Gold/brown accent color
+          secondaryForeground: '#FFF9EB', // Very light cream (on-secondary)
+          muted: '#F2EDEA', // Surface color for muted elements
+          mutedForeground: '#5F5959', // Medium gray (grey-16 from palette)
+          accent: '#DBB778', // Light gold (secondary-variant)
+          accentForeground: '#202124', // Dark gray
+          destructive: '#DC2626', // Red
+          destructiveForeground: '#FFFFFF', // White
+          border: '#D7D5D5', // Light gray border (grey-4 from palette)
+          input: '#D7D5D5', // Light gray input border
+          ring: '#A37200', // Gold ring color
+          radius: '0.375rem', // Slightly smaller radius for cleaner look
+          sidebarBackground: '#F2EDEA', // Surface color
+          sidebarForeground: '#202124', // Dark gray text
+          sidebarPrimary: '#1F1D1D', // Very dark gray
+          sidebarPrimaryForeground: '#E8EAED', // Light gray
+          sidebarAccent: '#F8F5F2', // Background color for accent
+          sidebarAccentForeground: '#202124', // Dark gray
+          sidebarBorder: '#D7D5D5', // Light gray border
+          sidebarRing: '#A37200', // Gold ring
         },
         dark: {
-          background: '#020617', // Very dark blue-gray
-          foreground: '#F8FAFC', // Off-white
-          card: '#020617', // Very dark blue-gray
-          cardForeground: '#F8FAFC', // Off-white
-          popover: '#020617', // Very dark blue-gray
-          popoverForeground: '#F8FAFC', // Off-white
-          primary: '#A855F7', // Purple
-          primaryForeground: '#0F172A', // Dark blue-gray
-          secondary: '#1E293B', // Dark blue-gray
-          secondaryForeground: '#F8FAFC', // Off-white
-          muted: '#1E293B', // Dark blue-gray
-          mutedForeground: '#94A3B8', // Medium gray-blue
-          accent: '#1E293B', // Dark blue-gray
-          accentForeground: '#F8FAFC', // Off-white
-          destructive: '#991B1B', // Dark red
-          destructiveForeground: '#F8FAFC', // Off-white
-          border: '#1E293B', // Dark blue-gray
-          input: '#1E293B', // Dark blue-gray
-          ring: '#A855F7', // Purple
-          radius: '0.5rem',
-          sidebarBackground: '#0F172A', // Very dark blue-gray
-          sidebarForeground: '#F1F5F9', // Light gray-blue
-          sidebarPrimary: '#A855F7', // Purple
-          sidebarPrimaryForeground: '#0F172A', // Dark blue-gray
-          sidebarAccent: '#18181B', // Very dark gray
-          sidebarAccentForeground: '#F1F5F9', // Light gray-blue
-          sidebarBorder: '#18181B', // Very dark gray
-          sidebarRing: '#A855F7', // Purple
+          background: '#1F1D1D', // Very dark gray (primary color becomes background)
+          foreground: '#E8EAED', // Light gray (on-primary becomes foreground)
+          card: '#2A2828', // Slightly lighter dark gray (grey-21)
+          cardForeground: '#E8EAED', // Light gray
+          popover: '#2A2828', // Slightly lighter dark gray
+          popoverForeground: '#E8EAED', // Light gray
+          primary: '#DBB778', // Light gold (secondary-variant becomes primary in dark)
+          primaryForeground: '#202124', // Dark gray
+          secondary: '#A37200', // Gold/brown accent (same as light)
+          secondaryForeground: '#FFF9EB', // Very light cream
+          muted: '#2A2828', // Dark gray
+          mutedForeground: '#9C9696', // Medium gray (grey-10)
+          accent: '#A37200', // Gold accent
+          accentForeground: '#FFF9EB', // Very light cream
+          destructive: '#EF4444', // Red
+          destructiveForeground: '#FFFFFF', // White
+          border: '#3F3B3B', // Medium dark gray border (grey-19)
+          input: '#3F3B3B', // Medium dark gray input border
+          ring: '#DBB778', // Light gold ring
+          radius: '0.375rem', // Slightly smaller radius for cleaner look
+          sidebarBackground: '#1F1D1D', // Very dark gray
+          sidebarForeground: '#E8EAED', // Light gray text
+          sidebarPrimary: '#DBB778', // Light gold
+          sidebarPrimaryForeground: '#202124', // Dark gray
+          sidebarAccent: '#2A2828', // Dark gray accent
+          sidebarAccentForeground: '#E8EAED', // Light gray
+          sidebarBorder: '#2A2828', // Dark gray border
+          sidebarRing: '#DBB778', // Light gold ring
         },
       },
     },

@@ -158,7 +158,7 @@ export const Appearance = () => {
     <div className="space-y-6">
       {/* Theme Mode Selection (Light/Dark/System) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">
+        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
           {t('appearance.mode')}
         </label>
         <p className="text-sm text-muted-foreground">
@@ -199,7 +199,7 @@ export const Appearance = () => {
 
       {/* Theme Selection (Color Scheme) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none">
+        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
           {t('appearance.colorTheme')}
         </label>
         <p className="text-sm text-muted-foreground">

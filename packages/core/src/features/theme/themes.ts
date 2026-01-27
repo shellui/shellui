@@ -145,7 +145,10 @@ export interface ThemeDefinition {
   name: string;
   displayName: string;
   colors: ThemeColors;
-  fontFamily?: string; // Optional custom font family
+  fontFamily?: string; // Optional custom font family (backward compatible)
+  headingFontFamily?: string; // Optional font family for headings (h1-h6)
+  bodyFontFamily?: string; // Optional font family for body text
+  fontFiles?: string[]; // Optional array of font file URLs or paths to load (e.g., Google Fonts links or local paths)
   letterSpacing?: string; // Optional custom letter spacing (e.g., "0.02em")
   textShadow?: string; // Optional custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
   lineHeight?: string; // Optional custom line height (e.g., "1.6")
@@ -446,63 +449,97 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   root.style.setProperty('--sidebar-border', hexToHsl(colors.sidebarBorder));
   root.style.setProperty('--sidebar-ring', hexToHsl(colors.sidebarRing));
   
-  // Apply custom font family if provided
-  if (theme.fontFamily) {
-    root.style.setProperty('--font-family', theme.fontFamily);
-    // Apply to both root and body to ensure it applies everywhere
-    root.style.fontFamily = theme.fontFamily;
-    document.body.style.fontFamily = theme.fontFamily;
-    
-    // Apply optional font styling properties generically
-    if (theme.letterSpacing) {
-      root.style.setProperty('--letter-spacing', theme.letterSpacing);
-      root.style.letterSpacing = theme.letterSpacing;
-    } else {
-      root.style.removeProperty('--letter-spacing');
-      root.style.letterSpacing = '';
-    }
-    
-    if (theme.textShadow) {
-      root.style.setProperty('--text-shadow', theme.textShadow);
-      // Apply slightly lighter shadow to body for better readability
-      const bodyShadow = theme.textShadow.replace(/rgba\(([^)]+)\)/, (match, rgba) => {
-        // Reduce opacity by ~20% for body text
-        const values = rgba.split(',').map((v: string) => v.trim());
-        if (values.length === 4) {
-          const opacity = parseFloat(values[3]);
-          return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${Math.max(0, opacity * 0.8)})`;
-        }
-        return match;
-      });
-      document.body.style.textShadow = bodyShadow;
-    } else {
-      root.style.removeProperty('--text-shadow');
-      document.body.style.textShadow = '';
-    }
-    
-    if (theme.lineHeight) {
-      root.style.setProperty('--line-height', theme.lineHeight);
-      document.body.style.lineHeight = theme.lineHeight;
-    } else {
-      root.style.removeProperty('--line-height');
-      document.body.style.lineHeight = '';
-    }
+  // Load custom font files if provided
+  // Always clean up existing theme fonts first (for theme switching)
+  const head = document.head || document.getElementsByTagName('head')[0];
+  const existingFontLinks = head.querySelectorAll('link[data-theme-font], style[data-theme-font]');
+  existingFontLinks.forEach(link => link.remove());
+  
+  if (theme.fontFiles && theme.fontFiles.length > 0) {
+    theme.fontFiles.forEach((fontFile, index) => {
+      // Check if it's a Google Fonts link or a regular stylesheet
+      if (fontFile.includes('fonts.googleapis.com') || fontFile.endsWith('.css')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fontFile;
+        link.setAttribute('data-theme-font', theme.name);
+        head.appendChild(link);
+      } else {
+        // Assume it's a font file URL - create @font-face rule
+        const style = document.createElement('style');
+        style.setAttribute('data-theme-font', theme.name);
+        // Extract font name from URL or use a generic name
+        const fontName = `ThemeFont-${theme.name}-${index}`;
+        style.textContent = `
+          @font-face {
+            font-family: '${fontName}';
+            src: url('${fontFile}') format('woff2');
+          }
+        `;
+        head.appendChild(style);
+      }
+    });
+  }
+  
+  // Apply custom font families
+  // Priority: headingFontFamily/bodyFontFamily > fontFamily (backward compatible)
+  const bodyFont = theme.bodyFontFamily || theme.fontFamily;
+  const headingFont = theme.headingFontFamily || theme.fontFamily || bodyFont;
+  
+  if (bodyFont) {
+    root.style.setProperty('--body-font-family', bodyFont);
+    root.style.setProperty('--font-family', bodyFont); // Backward compatibility
+    document.body.style.fontFamily = bodyFont;
   } else {
-    // Reset to default if no font specified
+    root.style.removeProperty('--body-font-family');
     root.style.removeProperty('--font-family');
-    root.style.removeProperty('--letter-spacing');
-    root.style.removeProperty('--text-shadow');
-    root.style.removeProperty('--line-height');
-    root.style.fontFamily = '';
-    root.style.letterSpacing = '';
     document.body.style.fontFamily = '';
+  }
+  
+  if (headingFont) {
+    root.style.setProperty('--heading-font-family', headingFont);
+    // Apply to headings via CSS variable (will be used in CSS)
+  } else {
+    root.style.removeProperty('--heading-font-family');
+  }
+  
+  // Apply optional font styling properties generically
+  if (theme.letterSpacing) {
+    root.style.setProperty('--letter-spacing', theme.letterSpacing);
+    root.style.letterSpacing = theme.letterSpacing;
+  } else {
+    root.style.removeProperty('--letter-spacing');
+    root.style.letterSpacing = '';
+  }
+  
+  if (theme.textShadow) {
+    root.style.setProperty('--text-shadow', theme.textShadow);
+    // Apply slightly lighter shadow to body for better readability
+    const bodyShadow = theme.textShadow.replace(/rgba\(([^)]+)\)/, (match, rgba) => {
+      // Reduce opacity by ~20% for body text
+      const values = rgba.split(',').map((v: string) => v.trim());
+      if (values.length === 4) {
+        const opacity = parseFloat(values[3]);
+        return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${Math.max(0, opacity * 0.8)})`;
+      }
+      return match;
+    });
+    document.body.style.textShadow = bodyShadow;
+  } else {
+    root.style.removeProperty('--text-shadow');
     document.body.style.textShadow = '';
+  }
+  
+  if (theme.lineHeight) {
+    root.style.setProperty('--line-height', theme.lineHeight);
+    document.body.style.lineHeight = theme.lineHeight;
+  } else {
+    root.style.removeProperty('--line-height');
     document.body.style.lineHeight = '';
   }
   
   // Verify primary color is set (for debugging)
   const actualPrimary = root.style.getPropertyValue('--primary');
-  const computedPrimary = getComputedStyle(root).getPropertyValue('--primary');
   
   // Validate HSL format (should be "H S% L%" like "142 71% 45%")
   const hslFormat = /^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/;
@@ -511,11 +548,6 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
     console.error(`[Theme] Failed to set --primary CSS variable. Expected HSL from ${colors.primary}, got: "${actualPrimary}"`);
   } else if (!hslFormat.test(actualPrimary.trim())) {
     console.error(`[Theme] Invalid HSL format for --primary: "${actualPrimary}". Expected format: "H S% L%"`);
-  } else {
-    // Log successful setting for debugging (only in dev mode)
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Theme] Set --primary to: "${actualPrimary}" (computed: "${computedPrimary}")`);
-    }
   }
   
   // Force a reflow to ensure Tailwind picks up the changes
