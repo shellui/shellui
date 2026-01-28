@@ -155,6 +155,52 @@
             "cancel": "Annuler"
           }
         }
+      },
+      "dialogTesting": {
+        "title": "Tests de dialogue",
+        "buttons": {
+          "okDialog": "Dialogue OK",
+          "okCancelDialog": "Dialogue OK Annuler",
+          "deleteDialog": "Dialogue de suppression",
+          "confirmDialog": "Dialogue de confirmation",
+          "onlyCancelDialog": "Dialogue Annuler uniquement"
+        },
+        "dialogs": {
+          "ok": {
+            "title": "Dialogue OK simple",
+            "description": "Ceci est un dialogue simple avec uniquement un bouton OK."
+          },
+          "okCancel": {
+            "title": "Dialogue OK Annuler",
+            "description": "Ce dialogue a à la fois des boutons OK et Annuler."
+          },
+          "delete": {
+            "title": "Confirmation de suppression",
+            "description": "Êtes-vous sûr de vouloir supprimer cet élément ? Cette action ne peut pas être annulée.",
+            "okLabel": "Supprimer",
+            "cancelLabel": "Annuler"
+          },
+          "confirm": {
+            "title": "Confirmer l'action",
+            "description": "Voulez-vous procéder à cette action ?",
+            "okLabel": "Confirmer",
+            "cancelLabel": "Annuler"
+          },
+          "onlyCancel": {
+            "title": "Dialogue Annuler uniquement",
+            "description": "Ce dialogue n'a qu'un bouton Annuler.",
+            "cancelLabel": "Fermer"
+          }
+        },
+        "toasts": {
+          "okClicked": "OK cliqué",
+          "cancelClicked": "Annuler cliqué",
+          "itemDeleted": "Élément supprimé",
+          "deletionCancelled": "Suppression annulée",
+          "actionConfirmed": "Action confirmée",
+          "actionCancelled": "Action annulée",
+          "dialogClosed": "Dialogue fermé"
+        }
       }
     }
   }

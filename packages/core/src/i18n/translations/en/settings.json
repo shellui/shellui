@@ -155,6 +155,52 @@
             "cancel": "Cancel"
           }
         }
+      },
+      "dialogTesting": {
+        "title": "Dialog Testing",
+        "buttons": {
+          "okDialog": "OK Dialog",
+          "okCancelDialog": "OK Cancel Dialog",
+          "deleteDialog": "Delete Dialog",
+          "confirmDialog": "Confirm Dialog",
+          "onlyCancelDialog": "Only Cancel Dialog"
+        },
+        "dialogs": {
+          "ok": {
+            "title": "Simple OK Dialog",
+            "description": "This is a simple dialog with just an OK button."
+          },
+          "okCancel": {
+            "title": "OK Cancel Dialog",
+            "description": "This dialog has both OK and Cancel buttons."
+          },
+          "delete": {
+            "title": "Delete Confirmation",
+            "description": "Are you sure you want to delete this item? This action cannot be undone.",
+            "okLabel": "Delete",
+            "cancelLabel": "Cancel"
+          },
+          "confirm": {
+            "title": "Confirm Action",
+            "description": "Do you want to proceed with this action?",
+            "okLabel": "Confirm",
+            "cancelLabel": "Cancel"
+          },
+          "onlyCancel": {
+            "title": "Only Cancel Dialog",
+            "description": "This dialog only has a Cancel button.",
+            "cancelLabel": "Close"
+          }
+        },
+        "toasts": {
+          "okClicked": "OK clicked",
+          "cancelClicked": "Cancel clicked",
+          "itemDeleted": "Item deleted",
+          "deletionCancelled": "Deletion cancelled",
+          "actionConfirmed": "Action confirmed",
+          "actionCancelled": "Action cancelled",
+          "dialogClosed": "Dialog closed"
+        }
       }
     }
   }

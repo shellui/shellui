@@ -3,7 +3,7 @@ import { useSettings } from "../SettingsContext"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
-import { ToastTestButtons } from "./ToastTestButtons"
+import { ToastTestButtons } from "./develop/ToastTestButtons"
 
 export const Develop = () => {
   const { t } = useTranslation('settings')
@@ -76,17 +76,17 @@ export const Develop = () => {
           <ToastTestButtons />
           
           <div>
-            <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>Dialog Testing</h4>
+            <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.dialogTesting.title')}</h4>
             <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
                   shellui.dialog({
-                    title: "Simple OK Dialog",
-                    description: "This is a simple dialog with just an OK button.",
+                    title: t('develop.testing.dialogTesting.dialogs.ok.title'),
+                    description: t('develop.testing.dialogTesting.dialogs.ok.description'),
                     mode: "ok",
                     onOk: () => {
                       shellui.toast({
-                        title: "OK clicked",
+                        title: t('develop.testing.dialogTesting.toasts.okClicked'),
                         type: "success",
                       });
                     },
@@ -94,23 +94,23 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                OK Dialog
+                {t('develop.testing.dialogTesting.buttons.okDialog')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.dialog({
-                    title: "OK Cancel Dialog",
-                    description: "This dialog has both OK and Cancel buttons.",
+                    title: t('develop.testing.dialogTesting.dialogs.okCancel.title'),
+                    description: t('develop.testing.dialogTesting.dialogs.okCancel.description'),
                     mode: "okCancel",
                     onOk: () => {
                       shellui.toast({
-                        title: "OK clicked",
+                        title: t('develop.testing.dialogTesting.toasts.okClicked'),
                         type: "success",
                       });
                     },
                     onCancel: () => {
                       shellui.toast({
-                        title: "Cancel clicked",
+                        title: t('develop.testing.dialogTesting.toasts.cancelClicked'),
                         type: "info",
                       });
                     },
@@ -118,25 +118,25 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                OK Cancel Dialog
+                {t('develop.testing.dialogTesting.buttons.okCancelDialog')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.dialog({
-                    title: "Delete Confirmation",
-                    description: "Are you sure you want to delete this item? This action cannot be undone.",
+                    title: t('develop.testing.dialogTesting.dialogs.delete.title'),
+                    description: t('develop.testing.dialogTesting.dialogs.delete.description'),
                     mode: "delete",
-                    okLabel: "Delete",
-                    cancelLabel: "Cancel",
+                    okLabel: t('develop.testing.dialogTesting.dialogs.delete.okLabel'),
+                    cancelLabel: t('develop.testing.dialogTesting.dialogs.delete.cancelLabel'),
                     onOk: () => {
                       shellui.toast({
-                        title: "Item deleted",
+                        title: t('develop.testing.dialogTesting.toasts.itemDeleted'),
                         type: "success",
                       });
                     },
                     onCancel: () => {
                       shellui.toast({
-                        title: "Deletion cancelled",
+                        title: t('develop.testing.dialogTesting.toasts.deletionCancelled'),
                         type: "info",
                       });
                     },
@@ -144,25 +144,25 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                Delete Dialog
+                {t('develop.testing.dialogTesting.buttons.deleteDialog')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.dialog({
-                    title: "Confirm Action",
-                    description: "Do you want to proceed with this action?",
+                    title: t('develop.testing.dialogTesting.dialogs.confirm.title'),
+                    description: t('develop.testing.dialogTesting.dialogs.confirm.description'),
                     mode: "confirm",
-                    okLabel: "Confirm",
-                    cancelLabel: "Cancel",
+                    okLabel: t('develop.testing.dialogTesting.dialogs.confirm.okLabel'),
+                    cancelLabel: t('develop.testing.dialogTesting.dialogs.confirm.cancelLabel'),
                     onOk: () => {
                       shellui.toast({
-                        title: "Action confirmed",
+                        title: t('develop.testing.dialogTesting.toasts.actionConfirmed'),
                         type: "success",
                       });
                     },
                     onCancel: () => {
                       shellui.toast({
-                        title: "Action cancelled",
+                        title: t('develop.testing.dialogTesting.toasts.actionCancelled'),
                         type: "info",
                       });
                     },
@@ -170,18 +170,18 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                Confirm Dialog
+                {t('develop.testing.dialogTesting.buttons.confirmDialog')}
               </Button>
               <Button
                 onClick={() => {
                   shellui.dialog({
-                    title: "Only Cancel Dialog",
-                    description: "This dialog only has a Cancel button.",
+                    title: t('develop.testing.dialogTesting.dialogs.onlyCancel.title'),
+                    description: t('develop.testing.dialogTesting.dialogs.onlyCancel.description'),
                     mode: "onlyCancel",
-                    cancelLabel: "Close",
+                    cancelLabel: t('develop.testing.dialogTesting.dialogs.onlyCancel.cancelLabel'),
                     onCancel: () => {
                       shellui.toast({
-                        title: "Dialog closed",
+                        title: t('develop.testing.dialogTesting.toasts.dialogClosed'),
                         type: "info",
                       });
                     },
@@ -189,7 +189,7 @@ export const Develop = () => {
                 }}
                 variant="outline"
               >
-                Only Cancel Dialog
+                {t('develop.testing.dialogTesting.buttons.onlyCancelDialog')}
               </Button>
             </div>
           </div>
