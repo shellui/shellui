@@ -176,7 +176,7 @@ export const Appearance = () => {
                   updateSetting('appearance', { theme: theme.value })
                 }}
                 className={cn(
-                  "h-10 px-4 transition-all flex items-center gap-2",
+                  "h-10 px-4 transition-all flex items-center gap-2 cursor-pointer",
                   isSelected && [
                     "shadow-md",
                     "font-semibold"
@@ -215,7 +215,7 @@ export const Appearance = () => {
                   updateSetting('appearance', { themeName: theme.name })
                 }}
                 className={cn(
-                  "text-left transition-all",
+                  "text-left transition-all cursor-pointer",
                   isSelected && "ring-2 ring-primary ring-offset-2 rounded-lg"
                 )}
                 aria-label={theme.displayName}
