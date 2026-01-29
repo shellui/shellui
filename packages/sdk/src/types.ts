@@ -79,7 +79,8 @@ export type ShellUIMessageType =
   | 'SHELLUI_DIALOG'
   | 'SHELLUI_DIALOG_UPDATE'
   | 'SHELLUI_DIALOG_OK'
-  | 'SHELLUI_DIALOG_CANCEL';
+  | 'SHELLUI_DIALOG_CANCEL'
+  | 'SHELLUI_INITIALIZED';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

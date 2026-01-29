@@ -58,6 +58,11 @@ export class ShellUISDK {
     
     this.initialized = true;
     logger.info(`ShellUI SDK ${this.version} initialized`);
+
+    this.sendMessageToParent({
+      type: 'SHELLUI_INITIALIZED',
+      payload: {}
+    });
     return Promise.resolve(this);
   }
 
