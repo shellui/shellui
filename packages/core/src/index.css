@@ -271,15 +271,15 @@
 }
 
 [data-dialog-overlay][data-state="open"] {
-  animation: dialog-overlay-fade-in 0.2s ease-out;
+  animation: dialog-overlay-fade-in 0.1s ease-out;
 }
 [data-dialog-overlay][data-state="closed"] {
-  animation: dialog-overlay-fade-out 0.2s ease-in;
+  animation: dialog-overlay-fade-out 0.1s ease-in;
 }
 
 [data-dialog-content][data-state="open"] {
-  animation: dialog-content-in 0.2s ease-out 0.15s both;
+  animation: dialog-content-in 0.1s ease-out 0.05s both;
 }
 [data-dialog-content][data-state="closed"] {
-  animation: dialog-content-out 0.2s ease-in both;
+  animation: dialog-content-out 0.1s ease-in both;
 }

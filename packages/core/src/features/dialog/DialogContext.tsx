@@ -1,5 +1,8 @@
 import { shellui } from '@shellui/sdk';
-import { createContext, useContext, useCallback, ReactNode, useEffect, useState } from 'react';
+import { createContext, useContext, useCallback, ReactNode, useEffect, useRef, useState } from 'react';
+
+/** Match exit animation duration in index.css (overlay + content ~0.1s + buffer) */
+const DIALOG_EXIT_ANIMATION_MS = 200;
 import {
   Dialog,
   DialogContent,
@@ -54,6 +57,15 @@ interface DialogState {
 export const DialogProvider = ({ children }: DialogProviderProps) => {
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const unmountTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleUnmount = useCallback(() => {
+    if (unmountTimeoutRef.current) clearTimeout(unmountTimeoutRef.current);
+    unmountTimeoutRef.current = setTimeout(() => {
+      unmountTimeoutRef.current = null;
+      setDialogState(null);
+    }, DIALOG_EXIT_ANIMATION_MS);
+  }, []);
 
   const handleOpenChange = useCallback((open: boolean) => {
     setIsOpen(open);
@@ -67,10 +79,10 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
           to: dialogState.from,
         });
       }
-      // Clear dialog state when closed
-      setDialogState(null);
+      // Unmount after exit animation finishes
+      scheduleUnmount();
     }
-  }, [dialogState]);
+  }, [dialogState, scheduleUnmount]);
 
   const handleOk = useCallback(() => {
     if (dialogState?.from && dialogState.from.length > 0) {
@@ -81,8 +93,8 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       });
     }
     setIsOpen(false);
-    setDialogState(null);
-  }, [dialogState]);
+    scheduleUnmount();
+  }, [dialogState, scheduleUnmount]);
 
   const handleCancel = useCallback(() => {
     if (dialogState?.from && dialogState.from.length > 0) {
@@ -93,13 +105,17 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       });
     }
     setIsOpen(false);
-    setDialogState(null);
-  }, [dialogState]);
+    scheduleUnmount();
+  }, [dialogState, scheduleUnmount]);
 
   const dialog = useCallback((options: DialogOptions) => {
     // Only show dialog if window is root
     if (typeof window === 'undefined' || window.parent !== window) {
       return;
+    }
+    if (unmountTimeoutRef.current) {
+      clearTimeout(unmountTimeoutRef.current);
+      unmountTimeoutRef.current = null;
     }
 
     setDialogState({
@@ -121,6 +137,10 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     }
 
     const cleanupDialog = shellui.addMessageListener('SHELLUI_DIALOG', (data) => {
+      if (unmountTimeoutRef.current) {
+        clearTimeout(unmountTimeoutRef.current);
+        unmountTimeoutRef.current = null;
+      }
       const payload = data.payload as DialogOptions & { id: string };
       setDialogState({
         id: payload.id,
@@ -135,6 +155,10 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     });
 
     const cleanupDialogUpdate = shellui.addMessageListener('SHELLUI_DIALOG_UPDATE', (data) => {
+      if (unmountTimeoutRef.current) {
+        clearTimeout(unmountTimeoutRef.current);
+        unmountTimeoutRef.current = null;
+      }
       const payload = data.payload as DialogOptions & { id: string };
       setDialogState({
         id: payload.id,
@@ -151,6 +175,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     return () => {
       cleanupDialog();
       cleanupDialogUpdate();
+      if (unmountTimeoutRef.current) clearTimeout(unmountTimeoutRef.current);
     };
   }, []);
 
