@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useSettings } from "../SettingsContext"
+import { useSettings } from "../hooks/useSettings"
 import { useConfig } from "@/features/config/useConfig"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"

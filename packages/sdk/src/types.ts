@@ -38,6 +38,32 @@ export interface DialogOptions {
   onCancel?: () => void;
 }
 
+
+export interface Settings {
+  developerFeatures: {
+    enabled: boolean
+  }
+  logging: {
+    namespaces: {
+      shellsdk: boolean
+      shellcore: boolean
+    }
+  }
+  appearance: {
+    theme: 'light' | 'dark' | 'system'
+    themeName: string
+  }
+  language: {
+    code: 'en' | 'fr'
+  }
+  region: {
+    timezone: string
+  }
+  // Add more settings here as needed
+  // notifications: { ... }
+}
+
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'

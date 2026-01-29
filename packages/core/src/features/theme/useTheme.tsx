@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import * as React from 'react';
-import { useSettings } from '../settings/SettingsContext';
+import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
 import { getTheme, registerTheme, applyTheme, type ThemeDefinition } from './themes';
 

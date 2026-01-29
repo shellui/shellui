@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useSettings } from "../SettingsContext"
+import { useSettings } from "../hooks/useSettings"
 import { Switch } from "@/components/ui/switch"
 import { ToastTestButtons } from "./develop/ToastTestButtons"
 import { DialogTestButtons } from "./develop/DialogTestButtons"

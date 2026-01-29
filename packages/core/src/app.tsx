@@ -4,7 +4,7 @@ import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { createAppRouter } from './router/router';
-import { SettingsProvider } from './features/settings/SettingsContext';
+import { SettingsProvider } from './features/settings/SettingsProvider';
 import { useTheme } from './features/theme/useTheme';
 import { I18nProvider } from './i18n/I18nProvider';
 import type { ShellUIConfig } from './features/config/types';

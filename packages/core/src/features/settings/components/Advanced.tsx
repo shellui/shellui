@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Switch } from "@/components/ui/switch"
-import { useSettings } from "../SettingsContext"
+import { useSettings } from "../hooks/useSettings"
 
 export const Advanced = () => {
   const { t } = useTranslation('settings')

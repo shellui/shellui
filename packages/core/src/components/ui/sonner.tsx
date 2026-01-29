@@ -1,5 +1,5 @@
 import React from "react"
-import { useSettings } from "@/features/settings/SettingsContext"
+import { useSettings } from "@/features/settings/hooks/useSettings"
 import { Toaster as Sonner } from "sonner"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>

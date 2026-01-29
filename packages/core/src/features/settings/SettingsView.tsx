@@ -20,7 +20,7 @@ import {
 import { Route, Routes, useLocation, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { createSettingsRoutes } from "./SettingsRoutes"
-import { useSettings } from "./SettingsContext"
+import { useSettings } from "./hooks/useSettings"
 import { Button } from "@/components/ui/button"
 import { ChevronRightIcon, ChevronLeftIcon } from "./SettingsIcons"
 

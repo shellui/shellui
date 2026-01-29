@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useSettings } from '../features/settings/SettingsContext';
+import { useSettings } from '../features/settings/hooks/useSettings';
 import { initializeI18n } from './config';
 import i18n from './config';
 import type { ShellUIConfig } from '../features/config/types';
