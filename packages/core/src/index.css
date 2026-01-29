@@ -235,3 +235,51 @@
   }
 }
 
+/* Dialog / modal overlay and content animations */
+[data-dialog-content] {
+  left: 50%;
+  top: 50%;
+}
+
+@keyframes dialog-overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dialog-overlay-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes dialog-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes dialog-content-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+[data-dialog-overlay][data-state="open"] {
+  animation: dialog-overlay-fade-in 0.2s ease-out;
+}
+[data-dialog-overlay][data-state="closed"] {
+  animation: dialog-overlay-fade-out 0.2s ease-in;
+}
+
+[data-dialog-content][data-state="open"] {
+  animation: dialog-content-in 0.2s ease-out 0.15s both;
+}
+[data-dialog-content][data-state="closed"] {
+  animation: dialog-content-out 0.2s ease-in both;
+}
