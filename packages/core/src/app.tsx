@@ -3,15 +3,17 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
+import { ConfigProvider } from './features/config/ConfigProvider';
 import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsProvider';
-import { useTheme } from './features/theme/useTheme';
+import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
-import type { ShellUIConfig } from './features/config/types';
 import './i18n/config'; // Initialize i18n
 import './index.css';
 
-const AppContent = ({ config }: { config: ShellUIConfig }) => {
+const AppContent = () => {
+
+  const { config } = useConfig();
   // Initialize ShellUI SDK to support recursive nesting
   useEffect(() => {
     shellui.init();
@@ -43,11 +45,9 @@ const AppContent = ({ config }: { config: ShellUIConfig }) => {
 };
 
 const AppWithTheme = () => {
-  const { config, loading, error } = useConfig();
-  // Apply theme based on settings
-  useTheme();
+  const { isLoading, error } = useConfig();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div style={{
         display: 'flex',
@@ -76,17 +76,21 @@ const AppWithTheme = () => {
   }
 
   return (
-    <I18nProvider config={config}>
-      <AppContent config={config} />
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <AppContent />
+      </I18nProvider>
+    </ThemeProvider>
   );
 };
 
 const App = () => {
   return (
-    <SettingsProvider>
-      <AppWithTheme />
-    </SettingsProvider>
+    <ConfigProvider>
+      <SettingsProvider>
+        <AppWithTheme />
+      </SettingsProvider>
+    </ConfigProvider>
   );
 };
 

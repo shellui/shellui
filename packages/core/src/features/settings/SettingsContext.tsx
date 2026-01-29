@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useContext, createContext } from "react"
 import { Settings } from "@shellui/sdk"
 
 interface SettingsContextValue {
@@ -11,10 +11,10 @@ interface SettingsContextValue {
   resetAllData: () => void
 }
 
-export const SettingsContext = React.createContext<SettingsContextValue | undefined>(undefined)
+export const SettingsContext = createContext<SettingsContextValue | undefined>(undefined)
 
 export function useSettings() {
-  const context = React.useContext(SettingsContext)
+  const context = useContext(SettingsContext)
   if (context === undefined) {
     throw new Error('useSettings must be used within a SettingsProvider')
   }

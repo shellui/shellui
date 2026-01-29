@@ -1,4 +1,4 @@
-import type { ShellUIConfig } from '@shellui/core';
+import { type ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   port: 4000,
