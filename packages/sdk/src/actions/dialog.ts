@@ -33,6 +33,7 @@ export function dialog(options?: DialogOptions): string | void {
       mode: options.mode ?? 'ok',
       okLabel: options.okLabel,
       cancelLabel: options.cancelLabel,
+      size: options.size,
       onOk: undefined,
       onCancel: undefined,
     },

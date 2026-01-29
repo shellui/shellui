@@ -4,16 +4,42 @@ import { createContext, useContext, useCallback, ReactNode, useEffect, useRef, u
 /** Match exit animation duration in index.css (overlay + content ~0.1s + buffer) */
 const DIALOG_EXIT_ANIMATION_MS = 200;
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
+/** Trash icon (matches lucide trash-2) */
+const TrashIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    <line x1="10" x2="10" y1="11" y2="17" />
+    <line x1="14" x2="14" y1="11" y2="17" />
+  </svg>
+);
 
 export type DialogMode = 'ok' | 'okCancel' | 'delete' | 'confirm' | 'onlyCancel';
+
+export type AlertDialogSize = 'default' | 'sm';
 
 interface DialogOptions {
   id?: string;
@@ -22,6 +48,7 @@ interface DialogOptions {
   mode?: DialogMode;
   okLabel?: string;
   cancelLabel?: string;
+  size?: AlertDialogSize;
   onOk?: () => void;
   onCancel?: () => void;
 }
@@ -51,6 +78,7 @@ interface DialogState {
   mode: DialogMode;
   okLabel?: string;
   cancelLabel?: string;
+  size?: AlertDialogSize;
   from?: string[];
 }
 
@@ -125,6 +153,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       mode: options.mode || 'ok',
       okLabel: options.okLabel,
       cancelLabel: options.cancelLabel,
+      size: options.size,
     });
     setIsOpen(true);
   }, []);
@@ -149,6 +178,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
         mode: payload.mode || 'ok',
         okLabel: payload.okLabel,
         cancelLabel: payload.cancelLabel,
+        size: payload.size,
         from: data.from,
       });
       setIsOpen(true);
@@ -167,6 +197,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
         mode: payload.mode || 'ok',
         okLabel: payload.okLabel,
         cancelLabel: payload.cancelLabel,
+        size: payload.size,
         from: data.from,
       });
       setIsOpen(true);
@@ -187,95 +218,59 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     switch (mode) {
       case 'ok':
         return (
-          <Button 
-            onClick={handleOk} 
-            variant="default"
-            className="font-semibold shadow-md"
-          >
+          <AlertDialogAction onClick={handleOk}>
             {okLabel || 'OK'}
-          </Button>
+          </AlertDialogAction>
         );
-      
+
       case 'okCancel':
         return (
           <>
-            <Button 
-              onClick={handleCancel} 
-              variant="ghost"
-              className="font-medium"
-            >
+            <AlertDialogCancel variant="outline" onClick={handleCancel}>
               {cancelLabel || 'Cancel'}
-            </Button>
-            <Button 
-              onClick={handleOk} 
-              variant="default"
-              className="font-semibold shadow-md"
-            >
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleOk}>
               {okLabel || 'OK'}
-            </Button>
+            </AlertDialogAction>
           </>
         );
-      
+
       case 'delete':
         return (
           <>
-            <Button 
-              onClick={handleCancel} 
-              variant="ghost"
-              className="font-medium"
-            >
+            <AlertDialogCancel variant="outline" onClick={handleCancel}>
               {cancelLabel || 'Cancel'}
-            </Button>
-            <Button 
-              onClick={handleOk} 
-              variant="default"
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md"
-            >
+            </AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleOk}>
               {okLabel || 'Delete'}
-            </Button>
+            </AlertDialogAction>
           </>
         );
-      
+
       case 'confirm':
         return (
           <>
-            <Button 
-              onClick={handleCancel} 
-              variant="ghost"
-              className="font-medium"
-            >
+            <AlertDialogCancel variant="outline" onClick={handleCancel}>
               {cancelLabel || 'Cancel'}
-            </Button>
-            <Button 
-              onClick={handleOk} 
-              variant="default"
-              className="font-semibold shadow-md"
-            >
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleOk}>
               {okLabel || 'Confirm'}
-            </Button>
+            </AlertDialogAction>
           </>
         );
-      
+
       case 'onlyCancel':
         return (
-          <Button 
-            onClick={handleCancel} 
-            variant="ghost"
-            className="font-medium"
-          >
+          <AlertDialogCancel variant="outline" onClick={handleCancel}>
             {cancelLabel || 'Cancel'}
-          </Button>
+          </AlertDialogCancel>
         );
-      
+
       default:
         return (
-          <Button 
-            onClick={handleOk} 
-            variant="default"
-            className="font-semibold shadow-md"
-          >
+          <AlertDialogAction onClick={handleOk}>
             {okLabel || 'OK'}
-          </Button>
+          </AlertDialogAction>
         );
     }
   };
@@ -284,19 +279,24 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     <DialogContext.Provider value={{ dialog }}>
       {children}
       {dialogState && (
-        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{dialogState.title}</DialogTitle>
-              {dialogState.description && (
-                <DialogDescription>{dialogState.description}</DialogDescription>
+        <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+          <AlertDialogContent size={dialogState.size ?? 'default'}>
+            <AlertDialogHeader>
+              {dialogState.mode === 'delete' && (
+                <AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
+                  <TrashIcon />
+                </AlertDialogMedia>
               )}
-            </DialogHeader>
-            <DialogFooter>
+              <AlertDialogTitle>{dialogState.title}</AlertDialogTitle>
+              {dialogState.description && (
+                <AlertDialogDescription>{dialogState.description}</AlertDialogDescription>
+              )}
+            </AlertDialogHeader>
+            <AlertDialogFooter>
               {renderButtons()}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </DialogContext.Provider>
   );

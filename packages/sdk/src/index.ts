@@ -23,7 +23,7 @@ import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, LoggerInstance, Settings } from './types';
+export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, LoggerInstance, Settings } from './types';
 
 export class ShellUISDK {
   initialized = false;

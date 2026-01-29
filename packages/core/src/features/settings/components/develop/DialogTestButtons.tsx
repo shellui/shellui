@@ -33,6 +33,7 @@ export const DialogTestButtons = () => {
               title: t('develop.testing.dialogTesting.dialogs.okCancel.title'),
               description: t('develop.testing.dialogTesting.dialogs.okCancel.description'),
               mode: "okCancel",
+              size: "sm",
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.okClicked'),
@@ -59,6 +60,7 @@ export const DialogTestButtons = () => {
               mode: "delete",
               okLabel: t('develop.testing.dialogTesting.dialogs.delete.okLabel'),
               cancelLabel: t('develop.testing.dialogTesting.dialogs.delete.cancelLabel'),
+              size: "sm",
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.itemDeleted'),
@@ -85,6 +87,7 @@ export const DialogTestButtons = () => {
               mode: "confirm",
               okLabel: t('develop.testing.dialogTesting.dialogs.confirm.okLabel'),
               cancelLabel: t('develop.testing.dialogTesting.dialogs.confirm.cancelLabel'),
+              size: "sm",
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.actionConfirmed'),
@@ -110,6 +113,7 @@ export const DialogTestButtons = () => {
               description: t('develop.testing.dialogTesting.dialogs.onlyCancel.description'),
               mode: "onlyCancel",
               cancelLabel: t('develop.testing.dialogTesting.dialogs.onlyCancel.cancelLabel'),
+              size: "sm",
               onCancel: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.dialogClosed'),

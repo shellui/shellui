@@ -27,6 +27,8 @@ export interface ToastOptions {
 
 export type DialogMode = 'ok' | 'okCancel' | 'delete' | 'confirm' | 'onlyCancel';
 
+export type AlertDialogSize = 'default' | 'sm';
+
 export interface DialogOptions {
   id?: string;
   title: string;
@@ -34,6 +36,7 @@ export interface DialogOptions {
   mode?: DialogMode;
   okLabel?: string;
   cancelLabel?: string;
+  size?: AlertDialogSize;
   onOk?: () => void;
   onCancel?: () => void;
 }
