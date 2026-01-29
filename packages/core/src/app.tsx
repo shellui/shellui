@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useLayoutEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
@@ -12,12 +12,7 @@ import './i18n/config'; // Initialize i18n
 import './index.css';
 
 const AppContent = () => {
-
   const { config } = useConfig();
-  // Initialize ShellUI SDK to support recursive nesting
-  useEffect(() => {
-    shellui.init();
-  }, []);
 
   // Create router from config using data mode
   const router = useMemo(() => {
@@ -44,51 +39,28 @@ const AppContent = () => {
   return <RouterProvider router={router} />;
 };
 
-const AppWithTheme = () => {
-  const { isLoading, error } = useConfig();
+const App = () => {
+
+  const [isLoading, setIsLoading] = useState(true);
+  // Initialize ShellUI SDK to support recursive nesting
+  useLayoutEffect(() => {
+    shellui.init().then(() => {
+      setIsLoading(false);
+    });
+  }, []);
 
   if (isLoading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, sans-serif'
-      }}>
-        <p>Loading configuration...</p>
-      </div>
-    );
+    return null;
   }
 
-  if (error) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        fontFamily: 'system-ui, sans-serif'
-      }}>
-        <p style={{ color: 'red' }}>Error loading configuration: {error.message}</p>
-      </div>
-    );
-  }
-
-  return (
-    <ThemeProvider>
-      <I18nProvider>
-        <AppContent />
-      </I18nProvider>
-    </ThemeProvider>
-  );
-};
-
-const App = () => {
   return (
     <ConfigProvider>
       <SettingsProvider>
-        <AppWithTheme />
+        <ThemeProvider>
+          <I18nProvider>
+            <AppContent />
+          </I18nProvider>
+        </ThemeProvider>
       </SettingsProvider>
     </ConfigProvider>
   );

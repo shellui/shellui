@@ -39,6 +39,11 @@ const defaultSettings: Settings = {
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     const [settings, setSettings] = React.useState<Settings>(() => {
+
+      if (shellui.initialSettings) {
+        return shellui.initialSettings;
+      }
+
       // Initialize from localStorage
       if (typeof window !== 'undefined') {
         try {
@@ -103,6 +108,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           }
         }
       });
+
+      const cleanupSettingsRequested = shellui.addMessageListener('SHELLUI_SETTINGS_REQUESTED', () => {
+        shellui.propagateMessage({
+          type: 'SHELLUI_SETTINGS',
+          payload: { settings }
+        })
+      })
   
       const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (data: ShellUIMessage) => {
         const message = data as ShellUIMessage;
@@ -116,6 +128,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return () => {
         cleanup()
         cleanupSettings()
+        cleanupSettingsRequested()
       }
     }, [])
   

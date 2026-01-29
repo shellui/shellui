@@ -16,6 +16,7 @@ import type {
   ShellUIMessage,
   ToastOptions,
   DialogOptions,
+  Settings,
 } from './types';
 
 import packageJson from '../package.json';
@@ -31,6 +32,7 @@ export class ShellUISDK {
   frameRegistry: FrameRegistry;
   messageListenerRegistry: MessageListenerRegistry;
   callbackRegistry: CallbackRegistry;
+  initialSettings: Settings | null;
 
   constructor() {
     this.currentPath =
@@ -41,6 +43,7 @@ export class ShellUISDK {
     this.frameRegistry = new FrameRegistry();
     this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
     this.callbackRegistry = new CallbackRegistry();
+    this.initialSettings = null;
   }
 
   async init(): Promise<this> {
@@ -51,9 +54,28 @@ export class ShellUISDK {
     await setupKeyListener();
     await this._setupCallbackListeners();
 
+    await this._setupInitialSettings();
+    
     this.initialized = true;
     logger.info(`ShellUI SDK ${this.version} initialized`);
     return Promise.resolve(this);
+  }
+
+  private async _setupInitialSettings(): Promise<void> {
+    if (window.parent === window) {
+      return;
+    }
+    return new Promise((resolve) => {
+      this.addMessageListener('SHELLUI_SETTINGS', (data) => {
+        const { settings } = data.payload as { settings: Settings };
+        this.initialSettings = settings;
+        resolve();
+      });
+      this.sendMessageToParent({
+        type: 'SHELLUI_SETTINGS_REQUESTED',
+        payload: {}
+      });
+    });
   }
 
   private _setupCallbackListeners(): void {
