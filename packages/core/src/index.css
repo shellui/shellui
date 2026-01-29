@@ -94,11 +94,9 @@
   /* Add playful styling to buttons for Comic Sans theme */
   button, [role="button"] {
     letter-spacing: var(--letter-spacing, normal);
-    transition: transform 0.2s ease, filter 0.2s ease;
   }
   
   button:hover, [role="button"]:hover {
-    transform: scale(1.02);
     filter: brightness(1.05);
   }
   

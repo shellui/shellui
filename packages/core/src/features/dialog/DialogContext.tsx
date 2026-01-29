@@ -201,7 +201,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
           <>
             <Button 
               onClick={handleCancel} 
-              variant="outline"
+              variant="ghost"
               className="font-medium"
             >
               {cancelLabel || 'Cancel'}
@@ -221,7 +221,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
           <>
             <Button 
               onClick={handleCancel} 
-              variant="outline"
+              variant="ghost"
               className="font-medium"
             >
               {cancelLabel || 'Cancel'}
@@ -241,7 +241,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
           <>
             <Button 
               onClick={handleCancel} 
-              variant="outline"
+              variant="ghost"
               className="font-medium"
             >
               {cancelLabel || 'Cancel'}
@@ -260,7 +260,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
         return (
           <Button 
             onClick={handleCancel} 
-            variant="outline"
+            variant="ghost"
             className="font-medium"
           >
             {cancelLabel || 'Cancel'}

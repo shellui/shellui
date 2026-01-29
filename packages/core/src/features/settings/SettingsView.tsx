@@ -169,7 +169,7 @@ export const SettingsView = () => {
                             )}
                             <button
                               onClick={() => navigate(`${item.path}`)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-accent hover:text-accent-foreground active:bg-accent active:text-accent-foreground transition-colors cursor-pointer rounded-none"
+                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
                                 <div className="flex-shrink-0 text-foreground/70">
