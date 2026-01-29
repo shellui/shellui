@@ -73,7 +73,7 @@ export class MessageListenerRegistry {
 
       logger.debug('Message received:', event.data);
 
-      if (messageType === 'SHELLUI_URL_CHANGED') {
+      if (messageType === 'SHELLUI_URL_CHANGED' || messageType === 'SHELLUI_INITIALIZED') {
         return;
       }
 

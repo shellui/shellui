@@ -2,6 +2,7 @@ import { NavigationItem } from '@/features/config/types';
 import { addIframe, removeIframe, shellui, ShellUIUrlPayload, ShellUIMessage } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { LoadingOverlay } from './LoadingOverlay';
 
 interface ContentViewProps {
   url: string;
@@ -15,6 +16,7 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInternalNavigation = useRef(false);
   const [initialUrl] = useState(url);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!iframeRef.current) {
@@ -85,6 +87,23 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     };
   }, [pathPrefix, navigate]);
 
+  // Hide loading overlay when iframe sends SHELLUI_INITIALIZED
+  useEffect(() => {
+    const cleanup = shellui.addMessageListener('SHELLUI_INITIALIZED', (_data: ShellUIMessage, event: MessageEvent) => {
+      if (event.source === iframeRef.current?.contentWindow) {
+        setIsLoading(false);
+      }
+    });
+    return () => cleanup();
+  }, []);
+
+  // Fallback: hide overlay after 3s if SHELLUI_INITIALIZED was not received
+  useEffect(() => {
+    if (!isLoading) return;
+    const timeoutId = setTimeout(() => setIsLoading(false), 400);
+    return () => clearTimeout(timeoutId);
+  }, [isLoading]);
+
   // Handle external URL changes (e.g. from Sidebar)
   useEffect(() => {
     if (iframeRef.current && !isInternalNavigation.current) {
@@ -92,12 +111,13 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
       // to avoid unnecessary reloads
       if (iframeRef.current.src !== url) {
         iframeRef.current.src = url;
+        setIsLoading(true);
       }
     }
   }, [url]);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}>
       <iframe
         ref={iframeRef}
         src={initialUrl}
@@ -111,6 +131,7 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="no-referrer-when-downgrade"
       />
+      {isLoading && <LoadingOverlay />}
     </div>
   );
 };

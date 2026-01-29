@@ -281,3 +281,9 @@
 [data-dialog-content][data-state="closed"] {
   animation: dialog-content-out 0.1s ease-in both;
 }
+
+/* Loading overlay top bar animation – grows from left to right */
+@keyframes loading-bar-slide {
+  from { width: 0%; }
+  to { width: 100%; }
+}
