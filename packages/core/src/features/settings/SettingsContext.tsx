@@ -116,8 +116,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
-      const message = data as ShellUIMessage;
+    const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (message: ShellUIMessage) => {
       const payload = message.payload as { settings: Settings }
       const newSettings = payload.settings
       if (newSettings) {
@@ -128,7 +127,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
             // Confirm: root updated localStorage
             // Update state to reflect the new settings
-            logger.info('Root Parent received settings update', message)
+            logger.info('Root Parent received settings update', { message })
             shellui.propagateMessage({
               type: 'SHELLUI_SETTINGS',
               payload: { settings: newSettings }
@@ -140,7 +139,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
+    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (data: ShellUIMessage) => {
       const message = data as ShellUIMessage;
       const payload = message.payload as { settings: Settings }
       const newSettings = payload.settings

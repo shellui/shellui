@@ -1,5 +1,5 @@
 import { NavigationItem } from '@/features/config/types';
-import { addIframe, removeIframe, shellui, ShellUIUrlPayload } from '@shellui/sdk';
+import { addIframe, removeIframe, shellui, ShellUIUrlPayload, ShellUIMessage } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
@@ -29,8 +29,9 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
 
-    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data, event) => {
+    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data: ShellUIMessage, event: MessageEvent) => {
 
+      
       if (ignoreMessages) {
         return;
       }

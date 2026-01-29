@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import * as React from 'react';
 import { useSettings } from '../settings/SettingsContext';
 import { useConfig } from '../config/useConfig';
-import { getTheme, registerTheme, applyTheme, getAllThemes, type ThemeDefinition } from './themes';
+import { getTheme, registerTheme, applyTheme, type ThemeDefinition } from './themes';
 
 const STORAGE_KEY = 'shellui:settings';
 

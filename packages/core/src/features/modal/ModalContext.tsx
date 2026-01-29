@@ -1,4 +1,4 @@
-import { shellui } from '@shellui/sdk';
+import { shellui, ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 /**
@@ -86,7 +86,7 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
 
   // Listen for postMessage events from nested iframes
   useEffect(() => {
-    const cleanupOpenModal = shellui.addMessageListener('SHELLUI_OPEN_MODAL', (data) => {
+    const cleanupOpenModal = shellui.addMessageListener('SHELLUI_OPEN_MODAL', (data: ShellUIMessage) => {
       const payload = data.payload as { url?: string };
       openModal(payload.url);
     });

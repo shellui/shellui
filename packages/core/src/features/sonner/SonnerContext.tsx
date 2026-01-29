@@ -1,4 +1,4 @@
-import { shellui } from '@shellui/sdk';
+import { shellui, ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
 import { toast as sonnerToast } from 'sonner';
 
@@ -150,7 +150,7 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   // Listen for postMessage events from nested iframes
   useEffect(() => {
 
-    const cleanupToast = shellui.addMessageListener('SHELLUI_TOAST', (data) => {
+    const cleanupToast = shellui.addMessageListener('SHELLUI_TOAST', (data: ShellUIMessage) => {
       const payload = data.payload as ToastOptions;
       toast({
         ...payload,
@@ -191,7 +191,7 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
       });
     });
 
-    const cleanupToastUpdate = shellui.addMessageListener('SHELLUI_TOAST_UPDATE', (data) => {
+    const cleanupToastUpdate = shellui.addMessageListener('SHELLUI_TOAST_UPDATE', (data: ShellUIMessage) => {
       const payload = data.payload as ToastOptions;
       toast({
         ...payload,

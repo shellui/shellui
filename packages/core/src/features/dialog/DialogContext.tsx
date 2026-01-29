@@ -1,4 +1,4 @@
-import { shellui } from '@shellui/sdk';
+import { shellui, ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useCallback, ReactNode, useEffect, useRef, useState } from 'react';
 
 /** Match exit animation duration in index.css (overlay + content ~0.1s + buffer) */
@@ -136,7 +136,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       return;
     }
 
-    const cleanupDialog = shellui.addMessageListener('SHELLUI_DIALOG', (data) => {
+    const cleanupDialog = shellui.addMessageListener('SHELLUI_DIALOG', (data: ShellUIMessage) => {
       if (unmountTimeoutRef.current) {
         clearTimeout(unmountTimeoutRef.current);
         unmountTimeoutRef.current = null;
@@ -154,7 +154,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       setIsOpen(true);
     });
 
-    const cleanupDialogUpdate = shellui.addMessageListener('SHELLUI_DIALOG_UPDATE', (data) => {
+    const cleanupDialogUpdate = shellui.addMessageListener('SHELLUI_DIALOG_UPDATE', (data: ShellUIMessage) => {
       if (unmountTimeoutRef.current) {
         clearTimeout(unmountTimeoutRef.current);
         unmountTimeoutRef.current = null;

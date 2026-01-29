@@ -43,17 +43,17 @@ export class ShellUISDK {
     this.callbackRegistry = new CallbackRegistry();
   }
 
-  init(): this {
+  async init(): Promise<this> {
     if (this.initialized) return this;
 
-    setupUrlMonitoring(this);
-    this.messageListenerRegistry.setupGlobalListener();
-    setupKeyListener();
-    this._setupCallbackListeners();
+    await setupUrlMonitoring(this);
+    await this.messageListenerRegistry.setupGlobalListener();
+    await setupKeyListener();
+    await this._setupCallbackListeners();
 
     this.initialized = true;
     logger.info(`ShellUI SDK ${this.version} initialized`);
-    return this;
+    return Promise.resolve(this);
   }
 
   private _setupCallbackListeners(): void {
@@ -168,7 +168,7 @@ export class ShellUISDK {
 
 const sdk = new ShellUISDK();
 
-export const init = (): ShellUISDK => sdk.init();
+export const init = async (): Promise<ShellUISDK> => await sdk.init();
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (url?: string): void => openModalAction(url);
 export const toast = (options?: ToastOptions): string | void =>
