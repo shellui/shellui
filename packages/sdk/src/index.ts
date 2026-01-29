@@ -66,10 +66,11 @@ export class ShellUISDK {
       return;
     }
     return new Promise((resolve) => {
-      this.addMessageListener('SHELLUI_SETTINGS', (data) => {
+      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', (data) => {
         const { settings } = data.payload as { settings: Settings };
         this.initialSettings = settings;
         resolve();
+        cleanup();
       });
       this.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_REQUESTED',
