@@ -3,15 +3,19 @@ import { shellui } from '../index.js';
 
 const logger = getLogger('shellsdk');
 
+export interface ShellSDKLike {
+  currentPath: string;
+}
+
 /**
  * Handles URL changes and notifies parent if the path has changed
- * @param {Object} sdk - The SDK instance with currentPath property
  */
-export function handleUrlChange(sdk) {
+export function handleUrlChange(sdk: ShellSDKLike): void {
   if (typeof window === 'undefined') {
     return;
   }
-  const newPath = window.location.pathname + window.location.search + window.location.hash;
+  const newPath =
+    window.location.pathname + window.location.search + window.location.hash;
   if (newPath !== sdk.currentPath) {
     sdk.currentPath = newPath;
     if (typeof window === 'undefined') {
@@ -22,13 +26,16 @@ export function handleUrlChange(sdk) {
       pathname: window.location.pathname,
       search: window.location.search,
       hash: window.location.hash,
-      fullPath: window.location.pathname + window.location.search + window.location.hash
+      fullPath:
+        window.location.pathname +
+        window.location.search +
+        window.location.hash,
     };
 
     if (window.parent !== window) {
       shellui.sendMessageToParent({
         type: 'SHELLUI_URL_CHANGED',
-        payload: message
+        payload: message,
       });
       logger.debug('Sent SHELLUI_URL_CHANGED message to parent', message);
     }
@@ -37,39 +44,39 @@ export function handleUrlChange(sdk) {
 
 /**
  * Sets up listeners for various URL change events
- * @param {Object} sdk - The SDK instance
  */
-export function setupUrlMonitoring(sdk) {
-  // Guard against SSR - window and document may not exist
+export function setupUrlMonitoring(sdk: ShellSDKLike): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
 
-  // Listen for popstate (back/forward buttons)
   window.addEventListener('popstate', () => handleUrlChange(sdk));
-
-  // Listen for hashchange
   window.addEventListener('hashchange', () => handleUrlChange(sdk));
 
-  // Intercept pushState and replaceState
   const originalPushState = window.history.pushState;
   const originalReplaceState = window.history.replaceState;
 
-  window.history.pushState = function (...args) {
+  window.history.pushState = function (
+    ...args: Parameters<History['pushState']>
+  ) {
     originalPushState.apply(this, args);
     handleUrlChange(sdk);
   };
 
-  window.history.replaceState = function (...args) {
+  window.history.replaceState = function (
+    ...args: Parameters<History['replaceState']>
+  ) {
     originalReplaceState.apply(this, args);
     handleUrlChange(sdk);
   };
 
-  // Monitor clicks on same-origin links to catch re-renders or local routing
-  document.addEventListener('click', (e) => {
-    const link = e.target.closest('a');
-    if (link && link.href && new URL(link.href).origin === window.location.origin) {
-      // Wait a bit for the framework to handle the route
+  document.addEventListener('click', (e: MouseEvent) => {
+    const link = (e.target as Element)?.closest('a');
+    if (
+      link &&
+      link.href &&
+      new URL(link.href).origin === window.location.origin
+    ) {
       setTimeout(() => handleUrlChange(sdk), 0);
     }
   });

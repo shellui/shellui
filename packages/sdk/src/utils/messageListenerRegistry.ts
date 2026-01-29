@@ -4,65 +4,75 @@
  */
 
 import { getLogger } from '../logger/logger.js';
+import type { ShellUIMessage } from '../types.js';
+import type { FrameRegistry } from './frameRegistry.js';
 
 const logger = getLogger('shellsdk');
 
-/**
- * MessageListenerRegistry class for managing message listeners
- */
+export type MessageListener = (
+  messageData: ShellUIMessage,
+  originalEvent: MessageEvent
+) => void;
+
 export class MessageListenerRegistry {
-  constructor(frameRegistry = null) {
-    // Map to store listeners by message type
-    // Key: message type (e.g., 'SHELLUI_OPEN_MODAL')
-    // Value: Set of listener functions
-    this.listeners = new Map();
-    this.messageHandler = null;
-    this.isListening = false;
-    // Reference to frame registry for sending messages to iframes
+  private listeners = new Map<string, Set<MessageListener>>();
+  private messageHandler: ((event: MessageEvent) => void) | null = null;
+  private isListening = false;
+  private frameRegistry: FrameRegistry | null;
+
+  constructor(frameRegistry: FrameRegistry | null = null) {
     this.frameRegistry = frameRegistry;
   }
 
-  /**
-   * Sets up the global message listener if not already set up
-   */
-  setupGlobalListener() {
+  setupGlobalListener(): void {
     if (typeof window === 'undefined' || this.isListening) {
       return;
     }
 
-    this.messageHandler = (event) => {
-      // Only handle ShellUI messages
+    this.messageHandler = (event: MessageEvent) => {
       if (!event.data || typeof event.data !== 'object' || !event.data.type) {
         return;
       }
 
-      const messageType = event.data.type;
+      const messageType = event.data.type as string;
 
-      // Check if this is a ShellUI message
       if (!messageType.startsWith('SHELLUI_')) {
         return;
       }
-      // If message from children, propagate to parent
-      const fromUuid = this.frameRegistry.getUuidByIframe(event.source);
 
+      const fromUuid = this.frameRegistry?.getUuidByIframe(
+        event.source as Window
+      );
 
-      // Get all listeners for this message type
       const typeListeners = this.listeners.get(messageType) ?? [];
 
-      // Call all registered listeners
       typeListeners.forEach((listener) => {
         try {
-          // Trigger listener if root node or event data to is empty array or contains *
-          if (window.parent === window || (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) || messageType === 'SHELLUI_URL_CHANGED') {
-            listener({ ...event.data, from: [fromUuid, ...(event.data.from || [])] }, event);
+          if (
+            window.parent === window ||
+            (event.data.to &&
+              (event.data.to.length === 0 || event.data.to.includes('*'))) ||
+            messageType === 'SHELLUI_URL_CHANGED'
+          ) {
+            listener(
+              {
+                ...event.data,
+                from: [fromUuid, ...(event.data.from || [])].filter(
+                  Boolean
+                ) as string[],
+              },
+              event
+            );
           }
         } catch (error) {
-          logger.error(`Error in message listener for ${messageType}:`, { error });
+          logger.error(`Error in message listener for ${messageType}:`, {
+            error,
+          });
         }
       });
 
       logger.debug('Message received:', event.data);
-      // We ignore propagation of SHELLUI_URL_CHANGED messages to parent
+
       if (messageType === 'SHELLUI_URL_CHANGED') {
         return;
       }
@@ -71,17 +81,16 @@ export class MessageListenerRegistry {
         this.sendMessageToParent({
           type: messageType,
           payload: event.data.payload,
-          from: [fromUuid, ...(event.data.from || [])]
+          from: [fromUuid, ...(event.data.from || [])],
         });
       }
 
-      // If message is from parent
       const fromParent = event.source === window.parent;
       if (fromParent) {
         this.sendMessage({
           type: messageType,
           payload: event.data.payload,
-          to: [...(event.data.to || [])]
+          to: [...(event.data.to || [])],
         });
       }
     };
@@ -91,10 +100,7 @@ export class MessageListenerRegistry {
     logger.debug('Global message listener set up');
   }
 
-  /**
-   * Tears down the global message listener
-   */
-  teardownGlobalListener() {
+  teardownGlobalListener(): void {
     if (!this.isListening || !this.messageHandler) {
       return;
     }
@@ -105,13 +111,10 @@ export class MessageListenerRegistry {
     logger.debug('Global message listener torn down');
   }
 
-  /**
-   * Adds a listener for a specific message type
-   * @param {string} messageType - The message type to listen for (e.g., 'SHELLUI_OPEN_MODAL')
-   * @param {Function} listener - The callback function to call when the message is received
-   * @returns {Function} A cleanup function to remove the listener
-   */
-  addMessageListener(messageType, listener) {
+  addMessageListener(
+    messageType: string,
+    listener: MessageListener
+  ): () => void {
     if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
@@ -120,29 +123,24 @@ export class MessageListenerRegistry {
       throw new Error('listener must be a function');
     }
 
-    // Ensure we have a Set for this message type
     if (!this.listeners.has(messageType)) {
       this.listeners.set(messageType, new Set());
     }
 
-    const typeListeners = this.listeners.get(messageType);
+    const typeListeners = this.listeners.get(messageType)!;
     typeListeners.add(listener);
 
     logger.debug(`Added listener for message type: ${messageType}`);
 
-    // Return cleanup function
     return () => {
       this.removeMessageListener(messageType, listener);
     };
   }
 
-  /**
-   * Removes a listener for a specific message type
-   * @param {string} messageType - The message type
-   * @param {Function} listener - The listener function to remove
-   * @returns {boolean} True if the listener was found and removed, false otherwise
-   */
-  removeMessageListener(messageType, listener) {
+  removeMessageListener(
+    messageType: string,
+    listener: MessageListener
+  ): boolean {
     if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
@@ -154,14 +152,9 @@ export class MessageListenerRegistry {
 
     const removed = typeListeners.delete(listener);
 
-    // Clean up empty Sets
     if (typeListeners.size === 0) {
       this.listeners.delete(messageType);
     }
-
-    // If no listeners remain, we could tear down the global listener
-    // But we keep it active in case listeners are added again
-    // The overhead is minimal and it's simpler
 
     if (removed) {
       logger.debug(`Removed listener for message type: ${messageType}`);
@@ -170,22 +163,12 @@ export class MessageListenerRegistry {
     return removed;
   }
 
-  /**
-   * Gets the number of listeners for a specific message type
-   * @param {string} messageType - The message type
-   * @returns {number} The number of listeners for this message type
-   */
-  getListenerCount(messageType) {
+  getListenerCount(messageType: string): number {
     const typeListeners = this.listeners.get(messageType);
     return typeListeners ? typeListeners.size : 0;
   }
 
-  /**
-   * Removes all listeners for a specific message type
-   * @param {string} messageType - The message type
-   * @returns {number} The number of listeners removed
-   */
-  removeAllListeners(messageType) {
+  removeAllListeners(messageType: string): number {
     if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
@@ -201,26 +184,18 @@ export class MessageListenerRegistry {
     return count;
   }
 
-  /**
-   * Removes all listeners for all message types
-   */
-  removeAllListenersForAllTypes() {
+  removeAllListenersForAllTypes(): void {
     const totalCount = Array.from(this.listeners.values()).reduce(
       (sum, set) => sum + set.size,
       0
     );
     this.listeners.clear();
-    logger.debug(`Removed all ${totalCount} listeners for all message types`);
+    logger.debug(
+      `Removed all ${totalCount} listeners for all message types`
+    );
   }
 
-  /**
-   * Sends a message to specific iframes based on the 'to' array
-   * @param {string} messageType - The message type (e.g., 'SHELLUI_OPEN_MODAL')
-   * @param {Object} payload - The message payload
-   * @param {string[]} to - Array of iframe UUIDs to send to. If contains '*', sends to all iframes
-   * @returns {number} The number of iframes the message was sent to
-   */
-  sendMessage(message) {
+  sendMessage(message: ShellUIMessage): number {
     if (typeof window === 'undefined') {
       logger.warn('Cannot send message: window is undefined');
       return 0;
@@ -231,14 +206,14 @@ export class MessageListenerRegistry {
       return 0;
     }
 
-    if (typeof message.type !== 'string' || !message.type.startsWith('SHELLUI_')) {
+    if (
+      typeof message.type !== 'string' ||
+      !message.type.startsWith('SHELLUI_')
+    ) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
 
-    // Check if we should send to all iframes (if '*' is in the 'to' array)
     const sendToAll = message.to?.includes('*');
-
-    // Get all registered iframes
     const allIframes = this.frameRegistry.getAllIframes();
 
     if (allIframes.length === 0) {
@@ -248,16 +223,18 @@ export class MessageListenerRegistry {
 
     let sentCount = 0;
 
-    // Send to all iframes if '*' is in 'to', otherwise filter by UUID
     for (const [uuid, iframe] of allIframes) {
       if (sendToAll || message.to?.includes(uuid)) {
         try {
-          if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({
-              type: message.type,
-              payload: message.payload,
-              to: (message.to || []).filter(t => t !== uuid)
-            }, '*');
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage(
+              {
+                type: message.type,
+                payload: message.payload,
+                to: (message.to || []).filter((t) => t !== uuid),
+              },
+              '*'
+            );
             sentCount++;
             logger.debug(`Sent message ${message.type} to iframe ${uuid}`);
           } else {
@@ -273,30 +250,15 @@ export class MessageListenerRegistry {
     return sentCount;
   }
 
-  /**
-   * Propagates a message to all registered iframes. This is a convenience method
-   * to broadcast a ShellUI message to every iframe managed by the frame registry.
-   * 
-   * @param {Object} message - The ShellUI message to propagate.
-   * @param {string} message.type - The ShellUI message type (e.g., 'SHELLUI_OPEN_MODAL').
-   * @param {Object} [message.payload] - The message payload (optional).
-   * @returns {number} The number of iframes the message was sent to.
-   */
-  propagateMessage(message) {
+  propagateMessage(message: ShellUIMessage): number {
     return this.sendMessage({
       type: message.type,
       payload: message.payload,
-      to: ['*']
+      to: ['*'],
     });
   }
 
-  /**
-   * Sends a message to the parent window (if in an iframe)
-   * @param {string} messageType - The message type
-   * @param {Object} payload - The message payload
-   * @returns {boolean} True if the message was sent, false otherwise
-   */
-  sendMessageToParent(message) {
+  sendMessageToParent(message: ShellUIMessage): boolean {
     if (typeof window === 'undefined') {
       logger.warn('Cannot send message to parent: window is undefined');
       return false;

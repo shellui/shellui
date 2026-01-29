@@ -1,17 +1,17 @@
 {
   "name": "@shellui/sdk",
   "version": "0.0.3",
-  "description": "ShellUI SDK - JavaScript SDK for ShellUI integration",
-  "main": "src/index.js",
-  "types": "src/index.d.ts",
+  "description": "ShellUI SDK - TypeScript/JavaScript SDK for ShellUI integration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "files": [
-    "src",
+    "dist",
     "README.md",
     "package.json"
   ],
   "scripts": {
-    "build": "echo 'SDK build complete'",
+    "build": "tsc",
     "test": "echo \"No tests specified for @shellui/sdk\""
   },
   "keywords": [
@@ -24,6 +24,9 @@
   "license": "MIT",
   "dependencies": {
     "roarr": "^7.21.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"

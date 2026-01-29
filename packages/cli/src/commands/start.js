@@ -37,7 +37,7 @@ async function startServer(root, cwd, shouldOpen = false) {
     resolve: {
       alias: {
         '@': path.join(corePackagePath, 'src'),
-        '@shellui/sdk': path.join(sdkPackagePath, 'src/index.js'),
+        '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
       },
     },
     publicDir: publicDir || false,

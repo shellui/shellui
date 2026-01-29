@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "description": "ShellUI monorepo - CLI, Core, and SDK packages",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "node packages/cli/bin/shellui.js build",
     "build:packages": "pnpm -r run build",

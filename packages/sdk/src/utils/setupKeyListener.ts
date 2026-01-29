@@ -2,29 +2,32 @@ import { getLogger } from '../logger/logger.js';
 
 const logger = getLogger('shellsdk');
 
-/** const logger = getLogger('shellsdk');
+/**
  * Sets up a listener for the Escape key to close modal
  * If in an iframe, sends a message to the parent
- * @returns {() => void} Cleanup function to remove the event listener
+ * @returns Cleanup function to remove the event listener
  */
-export function setupKeyListener() {
+export function setupKeyListener(): () => void {
   if (typeof window === 'undefined') {
-    return () => { }; // Return no-op cleanup function
+    return () => {};
   }
 
-  const handleEscape = (event) => {
-
+  const handleEscape = (event: KeyboardEvent) => {
     if (event.key === 'Escape' || event.keyCode === 27) {
-      logger.info(`${event.key} (${event.keyCode}) pressed ${window.parent !== window ? 'inside iframe' : 'at top level'}`, {
-        key: event.key,
-        keyCode: event.keyCode,
-        code: event.code
-      });
+      logger.info(
+        `${event.key} (${event.keyCode}) pressed ${
+          window.parent !== window ? 'inside iframe' : 'at top level'
+        }`,
+        {
+          key: event.key,
+          keyCode: event.keyCode,
+          code: event.code,
+        }
+      );
 
-      // Check if we're inside an iframe
       if (window.parent !== window) {
         const message = {
-          type: 'SHELLUI_CLOSE_MODAL'
+          type: 'SHELLUI_CLOSE_MODAL',
         };
         window.parent.postMessage(message, '*');
       }
@@ -33,7 +36,6 @@ export function setupKeyListener() {
 
   window.addEventListener('keydown', handleEscape);
 
-  // Return cleanup function
   return () => {
     window.removeEventListener('keydown', handleEscape);
   };

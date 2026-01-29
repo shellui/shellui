@@ -58,7 +58,7 @@ export async function buildCommand(root = '.') {
       resolve: {
         alias: {
           '@': path.join(corePackagePath, 'src'),
-          '@shellui/sdk': path.join(sdkPackagePath, 'src/index.js'),
+          '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
         },
       },
       build: {
