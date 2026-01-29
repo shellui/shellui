@@ -130,7 +130,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         cleanupSettings()
         cleanupSettingsRequested()
       }
-    }, [])
+    }, [settings])
   
   
     // ACTIONS

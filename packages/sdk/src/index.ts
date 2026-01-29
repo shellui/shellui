@@ -53,7 +53,6 @@ export class ShellUISDK {
     await this.messageListenerRegistry.setupGlobalListener();
     await setupKeyListener();
     await this._setupCallbackListeners();
-
     await this._setupInitialSettings();
     
     this.initialized = true;
