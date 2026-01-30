@@ -201,6 +201,16 @@
           "actionCancelled": "Action cancelled",
           "dialogClosed": "Dialog closed"
         }
+      },
+      "drawerTesting": {
+        "title": "Drawer Testing",
+        "buttons": {
+          "drawerRight": "Drawer from right",
+          "drawerLeft": "Drawer from left",
+          "drawerTop": "Drawer from top",
+          "drawerBottom": "Drawer from bottom",
+          "closeDrawer": "Close drawer"
+        }
       }
     }
   }

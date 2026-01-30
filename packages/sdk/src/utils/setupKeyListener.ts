@@ -26,10 +26,8 @@ export function setupKeyListener(): () => void {
       );
 
       if (window.parent !== window) {
-        const message = {
-          type: 'SHELLUI_CLOSE_MODAL',
-        };
-        window.parent.postMessage(message, '*');
+        window.parent.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
+        window.parent.postMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} }, '*');
       }
     }
   };

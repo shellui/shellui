@@ -201,6 +201,16 @@
           "actionCancelled": "Action annulée",
           "dialogClosed": "Dialogue fermé"
         }
+      },
+      "drawerTesting": {
+        "title": "Tests du tiroir",
+        "buttons": {
+          "drawerRight": "Tiroir depuis la droite",
+          "drawerLeft": "Tiroir depuis la gauche",
+          "drawerTop": "Tiroir depuis le haut",
+          "drawerBottom": "Tiroir depuis le bas",
+          "closeDrawer": "Fermer le tiroir"
+        }
       }
     }
   }

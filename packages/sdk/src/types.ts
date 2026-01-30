@@ -67,10 +67,14 @@ export interface Settings {
 }
 
 
+export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
   | 'SHELLUI_CLOSE_MODAL'
+  | 'SHELLUI_OPEN_DRAWER'
+  | 'SHELLUI_CLOSE_DRAWER'
   | 'SHELLUI_SETTINGS_UPDATED'
   | 'SHELLUI_SETTINGS'
   | 'SHELLUI_SETTINGS_REQUESTED'
@@ -91,6 +95,7 @@ export interface ShellUIMessage {
     | ShellUIUrlPayload
     | Record<string, never>
     | { url?: string | null }
+    | { url?: string; position?: DrawerPosition }
     | ToastOptions
     | DialogOptions
     | { [key: string]: unknown };

@@ -21,7 +21,9 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { ModalProvider, useModal } from '../modal/ModalContext';
+import { DrawerProvider, useDrawer } from '../drawer/DrawerContext';
 import { SonnerProvider } from '../sonner/SonnerContext';
 import { DialogProvider } from '../alertDialog/DialogContext';
 import { Toaster } from '@/components/ui/sonner';
@@ -164,6 +166,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
+  const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, closeDrawer } = useDrawer();
   const { t } = useTranslation('common');
   
   // Flatten navigation items for finding nav items by URL
@@ -226,6 +229,26 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
           )}
         </DialogContent>
       </Dialog>
+
+      <Drawer open={isDrawerOpen} onOpenChange={(open) => !open && closeDrawer()} direction={drawerPosition}>
+        <DrawerContent direction={drawerPosition} className="p-0 overflow-hidden flex flex-col">
+          {drawerUrl ? (
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ContentView url={drawerUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigationItems.find(item => item.url === drawerUrl)!} />
+            </div>
+          ) : (
+            <div className="flex-1 p-4">
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                <h3 className="font-semibold text-destructive mb-2">Error: Drawer URL is undefined</h3>
+                <p className="text-sm text-muted-foreground">
+                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openDrawer</code> function was called without a valid URL parameter.
+                  Please ensure you provide a URL when opening the drawer.
+                </p>
+              </div>
+            </div>
+          )}
+        </DrawerContent>
+      </Drawer>
       <Toaster />
     </SidebarProvider>
   );
@@ -234,11 +257,13 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
 export const DefaultLayout = ({ title, navigation }: DefaultLayoutProps) => {
   return (
     <ModalProvider>
-      <SonnerProvider>
-        <DialogProvider>
-          <DefaultLayoutContent title={title} navigation={navigation} />
-        </DialogProvider>
-      </SonnerProvider>
+      <DrawerProvider>
+        <SonnerProvider>
+          <DialogProvider>
+            <DefaultLayoutContent title={title} navigation={navigation} />
+          </DialogProvider>
+        </SonnerProvider>
+      </DrawerProvider>
     </ModalProvider>
   );
 };
