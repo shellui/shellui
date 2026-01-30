@@ -1,6 +1,7 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@/lib/utils"
+import { Z_INDEX } from "@/lib/z-index"
 
 const Dialog = DialogPrimitive.Root
 
@@ -18,9 +19,10 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     data-dialog-overlay
     className={cn(
-      "fixed inset-0 z-[10000] bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]",
+      "fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]",
       className
     )}
+    style={{ zIndex: Z_INDEX.MODAL_OVERLAY }}
     {...props}
   />
 ))
@@ -39,11 +41,11 @@ const DialogContent = React.forwardRef<
       data-dialog-content
       data-has-content={hasContent}
       className={cn(
-        "fixed left-[50%] top-[50%] z-[10001] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background px-6 pt-0 pb-0 shadow-lg sm:rounded-lg",
+        "fixed left-[50%] top-[50%] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-6 border bg-background px-6 pt-0 pb-0 shadow-lg sm:rounded-lg",
         "data-[has-content=false]:gap-0 data-[has-content=false]:[&>[data-dialog-header]]:border-b-0 data-[has-content=false]:[&>[data-dialog-header]]:pb-0",
         className
       )}
-      style={{ backgroundColor: 'hsl(var(--background))' }}
+      style={{ backgroundColor: 'hsl(var(--background))', zIndex: Z_INDEX.MODAL_CONTENT }}
       {...props}
     >
       {children}

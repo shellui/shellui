@@ -2,6 +2,7 @@ import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
+import { Z_INDEX } from "@/lib/z-index"
 import { Button, type ButtonProps } from "@/components/ui/button"
 
 const AlertDialog = AlertDialogPrimitive.Root
@@ -18,16 +19,17 @@ const AlertDialogOverlay = React.forwardRef<
     ref={ref}
     data-dialog-overlay
     className={cn(
-      "fixed inset-0 z-[10000] bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]",
+      "fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]",
       className
     )}
+    style={{ zIndex: Z_INDEX.ALERT_DIALOG_OVERLAY }}
     {...props}
   />
 ))
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const alertDialogContentVariants = cva(
-  "fixed left-[50%] top-[50%] z-[10001] grid w-full min-w-0 max-w-[calc(100vw-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden sm:rounded-lg",
+  "fixed left-[50%] top-[50%] grid w-full min-w-0 max-w-[calc(100vw-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden sm:rounded-lg",
   {
     variants: {
       size: {
@@ -48,7 +50,7 @@ interface AlertDialogContentProps
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   AlertDialogContentProps
->(({ className, size = "default", children, ...props }, ref) => (
+>(({ className, size = "default", children, style, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
@@ -56,6 +58,7 @@ const AlertDialogContent = React.forwardRef<
       data-dialog-content
       className={cn(alertDialogContentVariants({ size }), "group", className)}
       data-size={size}
+      style={{ zIndex: Z_INDEX.ALERT_DIALOG_CONTENT, ...style }}
       {...props}
     >
       {children}

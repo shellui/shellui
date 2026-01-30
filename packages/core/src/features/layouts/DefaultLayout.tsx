@@ -26,6 +26,7 @@ import { SonnerProvider } from '../sonner/SonnerContext';
 import { DialogProvider } from '../alertDialog/DialogContext';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import { Z_INDEX } from '@/lib/z-index';
 import { ContentView } from '@/components/ContentView';
 
 interface DefaultLayoutProps {
@@ -199,7 +200,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
-          <div className="absolute top-4 left-4 z-[9999]">
+          <div className="absolute top-4 left-4" style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}>
             <SidebarTrigger />
           </div>
           <Outlet />
