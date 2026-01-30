@@ -1,8 +1,10 @@
 import { NavigationItem } from '@/features/config/types';
-import { addIframe, removeIframe, shellui, ShellUIUrlPayload, ShellUIMessage } from '@shellui/sdk';
-import { useEffect, useRef, useState } from 'react';
+import { addIframe, removeIframe, shellui, ShellUIUrlPayload, ShellUIMessage, getLogger } from '@shellui/sdk';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingOverlay } from './LoadingOverlay';
+
+const logger = getLogger('shellcore');
 
 interface ContentViewProps {
   url: string;
@@ -97,10 +99,13 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     return () => cleanup();
   }, []);
 
-  // Fallback: hide overlay after 3s if SHELLUI_INITIALIZED was not received
+  // Fallback: hide overlay after 400ms if SHELLUI_INITIALIZED was not received
   useEffect(() => {
     if (!isLoading) return;
-    const timeoutId = setTimeout(() => setIsLoading(false), 400);
+    const timeoutId = setTimeout(() => {
+      logger.info('ContentView: Timeout expired, hiding loading overlay');
+      setIsLoading(false)
+    }, 400);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
 

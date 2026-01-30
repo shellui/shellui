@@ -52,7 +52,8 @@ export class MessageListenerRegistry {
             window.parent === window ||
             (event.data.to &&
               (event.data.to.length === 0 || event.data.to.includes('*'))) ||
-            messageType === 'SHELLUI_URL_CHANGED'
+            messageType === 'SHELLUI_URL_CHANGED' ||
+            messageType === 'SHELLUI_INITIALIZED'
           ) {
             listener(
               {

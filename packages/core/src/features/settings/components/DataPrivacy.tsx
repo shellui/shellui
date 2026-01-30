@@ -12,6 +12,7 @@ export const DataPrivacy = () => {
       title: t('dataPrivacy.resetData.toast.title'),
       description: t('dataPrivacy.resetData.toast.description'),
       mode: "delete",
+      size: "sm",
       okLabel: t('dataPrivacy.resetData.toast.confirm'),
       cancelLabel: t('dataPrivacy.resetData.toast.cancel'),
       onOk: () => {
