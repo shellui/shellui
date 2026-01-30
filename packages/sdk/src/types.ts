@@ -69,6 +69,14 @@ export interface Settings {
 
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
+/** Size as CSS length: e.g. "400px", "80vh", "50vw" */
+export interface OpenDrawerOptions {
+  url?: string;
+  position?: DrawerPosition;
+  /** CSS length for drawer size: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
+  size?: string;
+}
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -95,7 +103,7 @@ export interface ShellUIMessage {
     | ShellUIUrlPayload
     | Record<string, never>
     | { url?: string | null }
-    | { url?: string; position?: DrawerPosition }
+    | { url?: string; position?: DrawerPosition; size?: string }
     | ToastOptions
     | DialogOptions
     | { [key: string]: unknown };

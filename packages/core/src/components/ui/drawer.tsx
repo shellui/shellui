@@ -47,30 +47,42 @@ const DrawerOverlay = React.forwardRef<
 ));
 DrawerOverlay.displayName = VaulDrawer.Overlay.displayName;
 
+/** Base layout classes per direction — max dimension is applied via style so size prop can override. */
 const drawerContentByDirection: Record<
   DrawerDirection,
   string
 > = {
   bottom:
-    'fixed inset-x-0 bottom-0 mt-24 flex h-auto max-h-[96vh] flex-col rounded-t-[10px] border border-border bg-background',
+    'fixed inset-x-0 bottom-0 mt-24 flex h-auto flex-col border border-border bg-background',
   top:
-    'fixed inset-x-0 top-0 mb-24 flex h-auto max-h-[96vh] flex-col rounded-b-[10px] border border-border bg-background',
+    'fixed inset-x-0 top-0 mb-24 flex h-auto flex-col border border-border bg-background',
   left:
-    'fixed inset-y-0 left-0 mr-24 flex h-full w-auto max-w-[96vw] flex-col rounded-r-[10px] border border-border bg-background',
+    'fixed inset-y-0 left-0 mr-24 flex h-full w-auto flex-col border border-border bg-background',
   right:
-    'fixed inset-y-0 right-0 ml-24 flex h-full w-auto max-w-[96vw] flex-col rounded-l-[10px] border border-border bg-background',
+    'fixed inset-y-0 right-0 ml-24 flex h-full w-auto flex-col border border-border bg-background',
 };
 
 interface DrawerContentProps
-  extends React.ComponentPropsWithoutRef<typeof VaulDrawer.Content> {
+  extends Omit<React.ComponentPropsWithoutRef<typeof VaulDrawer.Content>, 'direction'> {
   direction?: DrawerDirection;
+  /** CSS length: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
+  size?: string | null;
+  className?: string;
+  children?: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
 const DrawerContent = React.forwardRef<
   React.ComponentRef<typeof VaulDrawer.Content>,
   DrawerContentProps
->(({ className, direction = 'right', children, ...props }, ref) => {
+>(({ className, direction = 'right', size, children, style, ...props }, ref) => {
   const pos: DrawerDirection = direction;
+  const isVertical = pos === 'top' || pos === 'bottom';
+  // Set dimension via inline style; use both width/height and max so Vaul/defaults don't override.
+  const effectiveSize = size?.trim() || (isVertical ? '80vh' : '80vw');
+  const sizeStyle = isVertical
+    ? { height: effectiveSize, maxHeight: effectiveSize }
+    : { width: effectiveSize, maxWidth: effectiveSize };
   return (
   <DrawerPortal>
     <DrawerOverlay />
@@ -85,6 +97,8 @@ const DrawerContent = React.forwardRef<
       style={{
         backgroundColor: 'hsl(var(--background))',
         zIndex: Z_INDEX.DRAWER_CONTENT,
+        ...sizeStyle,
+        ...style,
       }}
       {...props}
     >

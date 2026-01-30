@@ -209,6 +209,8 @@
           "drawerLeft": "Drawer from left",
           "drawerTop": "Drawer from top",
           "drawerBottom": "Drawer from bottom",
+          "drawerRightNarrow": "Drawer right (400px)",
+          "drawerBottomHalf": "Drawer bottom (60vh)",
           "closeDrawer": "Close drawer"
         }
       }

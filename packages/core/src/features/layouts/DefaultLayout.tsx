@@ -166,7 +166,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
-  const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, closeDrawer } = useDrawer();
+  const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
   const { t } = useTranslation('common');
   
   // Flatten navigation items for finding nav items by URL
@@ -231,7 +231,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
       </Dialog>
 
       <Drawer open={isDrawerOpen} onOpenChange={(open) => !open && closeDrawer()} direction={drawerPosition}>
-        <DrawerContent direction={drawerPosition} className="p-0 overflow-hidden flex flex-col">
+        <DrawerContent direction={drawerPosition} size={drawerSize} className="p-0 overflow-hidden flex flex-col">
           {drawerUrl ? (
             <div className="flex-1 min-h-0 flex flex-col">
               <ContentView url={drawerUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigationItems.find(item => item.url === drawerUrl)!} />

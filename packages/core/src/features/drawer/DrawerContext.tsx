@@ -33,11 +33,19 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
 export const DEFAULT_DRAWER_POSITION: DrawerDirection = 'right';
 
+interface OpenDrawerOptions {
+  url?: string;
+  position?: DrawerDirection;
+  /** CSS length: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
+  size?: string;
+}
+
 interface DrawerContextValue {
   isOpen: boolean;
   drawerUrl: string | null;
   position: DrawerDirection;
-  openDrawer: (url?: string, position?: DrawerDirection) => void;
+  size: string | null;
+  openDrawer: (options?: OpenDrawerOptions) => void;
   closeDrawer: () => void;
 }
 
@@ -59,11 +67,14 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [drawerUrl, setDrawerUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
+  const [size, setSize] = useState<string | null>(null);
 
-  const openDrawer = useCallback((url?: string, pos?: DrawerDirection) => {
+  const openDrawer = useCallback((options?: OpenDrawerOptions) => {
+    const url = options?.url;
     const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
     setDrawerUrl(validatedUrl);
-    setPosition(pos ?? DEFAULT_DRAWER_POSITION);
+    setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
+    setSize(options?.size ?? null);
     setIsOpen(true);
   }, []);
 
@@ -76,8 +87,8 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
 
   useEffect(() => {
     const cleanupOpen = shellui.addMessageListener('SHELLUI_OPEN_DRAWER', (data: ShellUIMessage) => {
-      const payload = data.payload as { url?: string; position?: DrawerDirection };
-      openDrawer(payload.url, payload.position);
+      const payload = data.payload as { url?: string; position?: DrawerDirection; size?: string };
+      openDrawer({ url: payload.url, position: payload.position, size: payload.size });
     });
 
     const cleanupClose = shellui.addMessageListener('SHELLUI_CLOSE_DRAWER', () => {
@@ -92,7 +103,7 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
 
   return (
     <DrawerContext.Provider
-      value={{ isOpen, drawerUrl, position, openDrawer, closeDrawer }}
+      value={{ isOpen, drawerUrl, position, size, openDrawer, closeDrawer }}
     >
       {children}
     </DrawerContext.Provider>

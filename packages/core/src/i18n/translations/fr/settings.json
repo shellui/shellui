@@ -209,6 +209,8 @@
           "drawerLeft": "Tiroir depuis la gauche",
           "drawerTop": "Tiroir depuis le haut",
           "drawerBottom": "Tiroir depuis le bas",
+          "drawerRightNarrow": "Tiroir droite (400px)",
+          "drawerBottomHalf": "Tiroir bas (60vh)",
           "closeDrawer": "Fermer le tiroir"
         }
       }

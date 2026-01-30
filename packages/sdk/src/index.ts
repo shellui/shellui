@@ -19,14 +19,14 @@ import type {
   ToastOptions,
   DialogOptions,
   Settings,
-  DrawerPosition,
+  OpenDrawerOptions,
 } from './types';
 
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, LoggerInstance, Settings } from './types';
+export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings } from './types';
 
 export class ShellUISDK {
   initialized = false;
@@ -141,8 +141,8 @@ export class ShellUISDK {
     openModalAction(url);
   }
 
-  openDrawer(url?: string, position?: DrawerPosition): void {
-    openDrawerAction(url, position);
+  openDrawer(options?: OpenDrawerOptions): void {
+    openDrawerAction(options);
   }
 
   closeDrawer(): void {
@@ -211,8 +211,8 @@ const sdk = new ShellUISDK();
 export const init = async (): Promise<ShellUISDK> => await sdk.init();
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (url?: string): void => openModalAction(url);
-export const openDrawer = (url?: string, position?: DrawerPosition): void =>
-  openDrawerAction(url, position);
+export const openDrawer = (options?: OpenDrawerOptions): void =>
+  openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
 export const toast = (options?: ToastOptions): string | void =>
   toastAction(options);
