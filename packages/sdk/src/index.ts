@@ -88,6 +88,7 @@ export class ShellUISDK {
       const { id } = (data.payload as { id?: string }) ?? {};
       if (id) {
         this.callbackRegistry.triggerAction(id);
+        this.callbackRegistry.clear(id);
       } else {
         logger.warn('SHELLUI_TOAST_ACTION message missing id');
       }
@@ -97,6 +98,7 @@ export class ShellUISDK {
       const { id } = (data.payload as { id?: string }) ?? {};
       if (id) {
         this.callbackRegistry.triggerCancel(id);
+        this.callbackRegistry.clear(id);
       } else {
         logger.warn('SHELLUI_TOAST_CANCEL message missing id');
       }

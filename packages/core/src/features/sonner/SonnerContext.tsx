@@ -168,26 +168,36 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
             to: data.from,
           });
         },
-        action: payload.action && {
-          label: payload.action?.label,
-          onClick: () => {
-            shellui.sendMessage({
-              type: 'SHELLUI_TOAST_ACTION',
-              payload: { id: payload.id },
-              to: data.from,
-            });
-          },
-        },
-        cancel: payload.cancel && {
-          label: payload.cancel?.label,
-          onClick: () => {
-            shellui.sendMessage({
-              type: 'SHELLUI_TOAST_CANCEL',
-              payload: { id: payload.id },
-              to: data.from,
-            });
-          },
-        },
+        action: payload.action && (() => {
+          let actionSent = false;
+          return {
+            label: payload.action?.label ?? undefined,
+            onClick: () => {
+              if (actionSent) return;
+              actionSent = true;
+              shellui.sendMessage({
+                type: 'SHELLUI_TOAST_ACTION',
+                payload: { id: payload.id },
+                to: data.from,
+              });
+            },
+          };
+        })(),
+        cancel: payload.cancel && (() => {
+          let cancelSent = false;
+          return {
+            label: payload.cancel?.label ?? undefined,
+            onClick: () => {
+              if (cancelSent) return;
+              cancelSent = true;
+              shellui.sendMessage({
+                type: 'SHELLUI_TOAST_CANCEL',
+                payload: { id: payload.id },
+                to: data.from,
+              });
+            },
+          };
+        })(),
       });
     });
 
