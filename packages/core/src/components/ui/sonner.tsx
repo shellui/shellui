@@ -13,7 +13,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       position="top-center"
       theme={settings.appearance.theme as "light" | "dark" | "system"}
       className="toaster group"
-      style={{ zIndex: Z_INDEX.TOAST }}
+      style={{
+        zIndex: Z_INDEX.TOAST,
+        // Re-enable pointer events so toasts stay clickable when a Radix modal is open
+        // (Radix sets body.style.pointerEvents = 'none' and only the dialog content gets 'auto')
+        pointerEvents: 'auto',
+      }}
       toastOptions={{
         classNames: {
           toast:

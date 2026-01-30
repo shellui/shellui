@@ -31,8 +31,20 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+>(({ className, children, onPointerDownOutside, ...props }, ref) => {
   const hasContent = React.Children.count(children) > 2
+
+  const handlePointerDownOutside = React.useCallback(
+    (event: React.ComponentProps<typeof DialogPrimitive.Content>['onPointerDownOutside'] extends (e: infer E) => void ? E : never) => {
+      const target = event?.target as Element | null
+      if (target?.closest?.('[data-sonner-toaster]')) {
+        event.preventDefault()
+      }
+      onPointerDownOutside?.(event)
+    },
+    [onPointerDownOutside]
+  )
+
   return (
   <DialogPortal>
     <DialogOverlay />
@@ -46,6 +58,7 @@ const DialogContent = React.forwardRef<
         className
       )}
       style={{ backgroundColor: 'hsl(var(--background))', zIndex: Z_INDEX.MODAL_CONTENT }}
+      onPointerDownOutside={handlePointerDownOutside}
       {...props}
     >
       {children}
