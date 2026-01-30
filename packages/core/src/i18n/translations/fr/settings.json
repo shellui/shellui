@@ -202,6 +202,13 @@
           "dialogClosed": "Dialogue fermé"
         }
       },
+      "modalTesting": {
+        "title": "Tests du modal",
+        "description": "Ouvre les paramètres dans un modal. Fermez avec le bouton × ou en cliquant à l'extérieur.",
+        "buttons": {
+          "openModal": "Ouvrir le modal (paramètres)"
+        }
+      },
       "drawerTesting": {
         "title": "Tests du tiroir",
         "buttons": {

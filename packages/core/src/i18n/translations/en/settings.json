@@ -202,6 +202,13 @@
           "dialogClosed": "Dialog closed"
         }
       },
+      "modalTesting": {
+        "title": "Modal Testing",
+        "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",
+        "buttons": {
+          "openModal": "Open modal (settings)"
+        }
+      },
       "drawerTesting": {
         "title": "Drawer Testing",
         "buttons": {

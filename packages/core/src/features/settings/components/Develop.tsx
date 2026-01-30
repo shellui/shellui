@@ -3,6 +3,7 @@ import { useSettings } from "../hooks/useSettings"
 import { Switch } from "@/components/ui/switch"
 import { ToastTestButtons } from "./develop/ToastTestButtons"
 import { DialogTestButtons } from "./develop/DialogTestButtons"
+import { ModalTestButtons } from "./develop/ModalTestButtons"
 import { DrawerTestButtons } from "./develop/DrawerTestButtons"
 
 export const Develop = () => {
@@ -75,6 +76,7 @@ export const Develop = () => {
         <div className="space-y-4">
           <ToastTestButtons />
           <DialogTestButtons />
+          <ModalTestButtons />
           <DrawerTestButtons />
         </div>
       </div>
