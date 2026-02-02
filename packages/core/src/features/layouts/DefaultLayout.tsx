@@ -70,6 +70,18 @@ const filterNavigationForSidebar = (navigation: (NavigationItem | NavigationGrou
     .filter((item): item is NavigationItem | NavigationGroup => item !== null);
 };
 
+// DuckDuckGo favicon URL for a given page URL (used when openIn === 'external' and no icon is set)
+const getExternalFaviconUrl = (url: string): string | null => {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname;
+    if (!hostname) return null;
+    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
+  } catch {
+    return null;
+  }
+};
+
 // Split navigation by position: start (main content) and end (footer). End is flattened to NavigationItem[].
 const splitNavigationByPosition = (
   navigation: (NavigationItem | NavigationGroup)[]
@@ -134,8 +146,10 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
     const isExternal = navItem.openIn === 'external';
     const isActive = !isOverlay && !isExternal && (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
-    const iconEl = navItem.icon ? (
-      <img src={navItem.icon} alt="" className="h-4 w-4 shrink-0" />
+    const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
+    const iconSrc = navItem.icon ?? faviconUrl ?? null;
+    const iconEl = iconSrc ? (
+      <img src={iconSrc} alt="" className={cn('h-4 w-4', 'shrink-0')} />
     ) : hasAnyIcons ? (
       <span className="h-4 w-4 shrink-0" />
     ) : null;
