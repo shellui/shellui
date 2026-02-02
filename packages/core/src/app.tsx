@@ -1,4 +1,4 @@
-import React, { useMemo, useLayoutEffect, useState, useEffect } from 'react';
+import React, { useMemo, useLayoutEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
@@ -13,13 +13,6 @@ import './index.css';
 
 const AppContent = () => {
   const { config } = useConfig();
-
-  // Sync document title with config
-  useEffect(() => {
-    if (config?.title) {
-      document.title = config.title;
-    }
-  }, [config?.title]);
 
   // Create router from config using data mode
   const router = useMemo(() => {
