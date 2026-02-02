@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Route, Routes, useLocation, useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
+import urls from "@/constants/urls"
 import { createSettingsRoutes } from "./SettingsRoutes"
 import { useSettings } from "./hooks/useSettings"
 import { Button } from "@/components/ui/button"
@@ -101,15 +102,15 @@ export const SettingsView = () => {
   // Navigate back to settings root
   const handleBackToSettings = React.useCallback(() => {
     // Extract the base settings path from current location
-    // If we're at a settings subpage, go to /__settings
+    // If we're at a settings subpage, go to settings root
     const pathParts = location.pathname.split('/').filter(Boolean)
-    const settingsIndex = pathParts.indexOf('__settings')
+    const settingsSegment = urls.settings.split('/').filter(Boolean).pop()
+    const settingsIndex = settingsSegment !== undefined ? pathParts.indexOf(settingsSegment) : -1
     if (settingsIndex !== -1) {
       const basePath = '/' + pathParts.slice(0, settingsIndex + 1).join('/')
       navigate(basePath)
     } else {
-      // Fallback: navigate to /__settings directly
-      navigate('/__settings')
+      navigate(urls.settings)
     }
   }, [navigate, location.pathname])
 

@@ -2,14 +2,13 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
 import type { OpenDrawerOptions } from "@shellui/sdk"
-
-const SETTINGS_DRAWER_URL = "/__settings"
+import urls from "@/constants/urls"
 
 export const DrawerTestButtons = () => {
   const { t } = useTranslation('settings')
 
   const openDrawer = (options: OpenDrawerOptions) => {
-    shellui.openDrawer({ url: SETTINGS_DRAWER_URL, ...options })
+    shellui.openDrawer({ url: urls.settings, ...options })
   }
 
   return (

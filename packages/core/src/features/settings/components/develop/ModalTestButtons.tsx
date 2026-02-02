@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
-
-const SETTINGS_MODAL_URL = "/__settings"
+import urls from "@/constants/urls"
 
 export const ModalTestButtons = () => {
   const { t } = useTranslation('settings')
@@ -12,7 +11,7 @@ export const ModalTestButtons = () => {
       <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.modalTesting.title')}</h4>
       <div className="flex flex-wrap gap-2">
         <Button
-          onClick={() => shellui.openModal(SETTINGS_MODAL_URL)}
+          onClick={() => shellui.openModal(urls.settings)}
           variant="outline"
         >
           {t('develop.testing.modalTesting.buttons.openModal')}
