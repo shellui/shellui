@@ -1,5 +1,5 @@
-import { Link, useLocation, Outlet, useNavigate } from 'react-router';
-import { useMemo, useEffect } from 'react';
+import { Link, useLocation, Outlet } from 'react-router';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -17,58 +17,16 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { ModalProvider, useModal } from '../modal/ModalContext';
-import { DrawerProvider, useDrawer } from '../drawer/DrawerContext';
-import { SonnerProvider } from '../sonner/SonnerContext';
-import { DialogProvider } from '../alertDialog/DialogContext';
-import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '@/lib/z-index';
-import { ContentView } from '@/components/ContentView';
+import { filterNavigationForSidebar, flattenNavigationItems, splitNavigationByPosition } from './utils';
+import { LayoutProviders } from './LayoutProviders';
+import { OverlayShell } from './OverlayShell';
 
 interface DefaultLayoutProps {
   title?: string;
   navigation: (NavigationItem | NavigationGroup)[];
 }
-
-// Helper function to flatten navigation items from groups or flat array
-const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]): NavigationItem[] => {
-  if (navigation.length === 0) {
-    return [];
-  }
-  
-  return navigation.flatMap(item => {
-    // Check if item is a group
-    if ('title' in item && 'items' in item) {
-      return (item as NavigationGroup).items;
-    }
-    // It's a standalone NavigationItem
-    return item as NavigationItem;
-  });
-};
-
-// Filter navigation for sidebar: remove items with hidden, and groups that become empty
-const filterNavigationForSidebar = (navigation: (NavigationItem | NavigationGroup)[]): (NavigationItem | NavigationGroup)[] => {
-  if (navigation.length === 0) return [];
-  return navigation
-    .map((item) => {
-      if ('title' in item && 'items' in item) {
-        const group = item as NavigationGroup;
-        const visibleItems = group.items.filter((navItem) => !navItem.hidden);
-        if (visibleItems.length === 0) return null;
-        return { ...group, items: visibleItems };
-      }
-      const navItem = item as NavigationItem;
-      if (navItem.hidden) return null;
-      return item;
-    })
-    .filter((item): item is NavigationItem | NavigationGroup => item !== null);
-};
 
 // DuckDuckGo favicon URL for a given page URL (used when openIn === 'external' and no icon is set)
 const getExternalFaviconUrl = (url: string): string | null => {
@@ -80,29 +38,6 @@ const getExternalFaviconUrl = (url: string): string | null => {
   } catch {
     return null;
   }
-};
-
-// Split navigation by position: start (main content) and end (footer). End is flattened to NavigationItem[].
-const splitNavigationByPosition = (
-  navigation: (NavigationItem | NavigationGroup)[]
-): { start: (NavigationItem | NavigationGroup)[]; end: NavigationItem[] } => {
-  const start: (NavigationItem | NavigationGroup)[] = [];
-  const end: NavigationItem[] = [];
-  for (const item of navigation) {
-    const position = 'position' in item ? (item.position ?? 'start') : 'start';
-    if (position === 'end') {
-      if ('title' in item && 'items' in item) {
-        const group = item as NavigationGroup;
-        end.push(...group.items.filter((navItem) => !navItem.hidden));
-      } else {
-        const navItem = item as NavigationItem;
-        if (!navItem.hidden) end.push(navItem);
-      }
-    } else {
-      start.push(item);
-    }
-  }
-  return { start, end };
 };
 
 const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
@@ -236,156 +171,53 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 };
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
-  const navigate = useNavigate();
-  const { isOpen, modalUrl, closeModal } = useModal();
-  const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
-  const { t } = useTranslation('common');
-
-  const { startNav, endItems } = useMemo(() => {
+  const { startNav, endItems, navigationItems } = useMemo(() => {
     const { start, end } = splitNavigationByPosition(navigation);
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
+      navigationItems: flattenNavigationItems(navigation),
     };
   }, [navigation]);
 
-  // Flatten navigation items for finding nav items by URL
-  const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
-
-  // When opening modal, close drawer so only one overlay is visible
-  useEffect(() => {
-    const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
-      closeDrawer();
-    });
-    return () => cleanup();
-  }, [closeDrawer]);
-
-  // Handle SHELLUI_NAVIGATE from sub-apps: close overlay, validate URL (startsWith nav item), then navigate or toast error
-  useEffect(() => {
-    const cleanup = shellui.addMessageListener('SHELLUI_NAVIGATE', (data) => {
-      const payload = data.payload as { url?: string };
-      const rawUrl = payload?.url;
-      if (typeof rawUrl !== 'string' || !rawUrl.trim()) return;
-
-      let pathname: string;
-      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-        try {
-          pathname = new URL(rawUrl).pathname;
-        } catch {
-          pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-        }
-      } else {
-        pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-      }
-
-      closeModal();
-      closeDrawer();
-
-      const isHomepage = pathname === '/' || pathname === '';
-      const isAllowed =
-        isHomepage ||
-        navigationItems.some(
-          (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`)
-        );
-      if (isAllowed) {
-        navigate(pathname || '/');
-      } else {
-        shellui.toast({
-          type: 'error',
-          title: t('navigationError') ?? 'Navigation error',
-          description: t('navigationNotAllowed') ?? 'This URL is not configured in the app navigation.',
-        });
-      }
-    });
-    return () => cleanup();
-  }, [navigate, closeModal, closeDrawer, navigationItems, t]);
-
   return (
-    <SidebarProvider>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar>
-          <SidebarHeader className="border-b border-sidebar-border pb-4">
-            {title && (
-              <Link to="/" className="text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
-                {title}
-              </Link>
-            )}
-          </SidebarHeader>
+    <LayoutProviders>
+      <SidebarProvider>
+        <OverlayShell navigationItems={navigationItems}>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar>
+              <SidebarHeader className="border-b border-sidebar-border pb-4">
+                {title && (
+                  <Link to="/" className="text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
+                    {title}
+                  </Link>
+                )}
+              </SidebarHeader>
 
-          <SidebarContent className="gap-1">
-            <NavigationContent navigation={startNav} />
-          </SidebarContent>
+              <SidebarContent className="gap-1">
+                <NavigationContent navigation={startNav} />
+              </SidebarContent>
 
-          {endItems.length > 0 && (
-            <SidebarFooter>
-              <NavigationContent navigation={endItems} />
-            </SidebarFooter>
-          )}
-        </Sidebar>
+              {endItems.length > 0 && (
+                <SidebarFooter>
+                  <NavigationContent navigation={endItems} />
+                </SidebarFooter>
+              )}
+            </Sidebar>
 
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
-          <div className="absolute top-4 left-4" style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}>
-            <SidebarTrigger />
+            <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
+              <div className="absolute top-4 left-4" style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}>
+                <SidebarTrigger />
+              </div>
+              <Outlet />
+            </main>
           </div>
-          <Outlet />
-        </main>
-      </div>
-
-      <Dialog open={isOpen} onOpenChange={closeModal}>
-        <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[680px] flex flex-col p-0 overflow-hidden">
-          {modalUrl ? (
-            <div className="flex-1" style={{ minHeight: 0 }}>
-              <ContentView url={modalUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigationItems.find(item => item.url === modalUrl)!} />
-            </div>
-          ) : (
-            <div className="flex-1 p-4">
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                <h3 className="font-semibold text-destructive mb-2">Error: Modal URL is undefined</h3>
-                <p className="text-sm text-muted-foreground">
-                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called without a valid URL parameter.
-                  Please ensure you provide a URL when opening the modal.
-                </p>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Drawer open={isDrawerOpen} onOpenChange={(open) => !open && closeDrawer()} direction={drawerPosition}>
-        <DrawerContent direction={drawerPosition} size={drawerSize} className="p-0 overflow-hidden flex flex-col">
-          {drawerUrl ? (
-            <div className="flex-1 min-h-0 flex flex-col">
-              <ContentView url={drawerUrl} pathPrefix="settings" ignoreMessages={true} navItem={navigationItems.find(item => item.url === drawerUrl)!} />
-            </div>
-          ) : (
-            <div className="flex-1 p-4">
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                <h3 className="font-semibold text-destructive mb-2">Error: Drawer URL is undefined</h3>
-                <p className="text-sm text-muted-foreground">
-                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openDrawer</code> function was called without a valid URL parameter.
-                  Please ensure you provide a URL when opening the drawer.
-                </p>
-              </div>
-            </div>
-          )}
-        </DrawerContent>
-      </Drawer>
-      <Toaster />
-    </SidebarProvider>
+        </OverlayShell>
+      </SidebarProvider>
+    </LayoutProviders>
   );
 };
 
 export const DefaultLayout = ({ title, navigation }: DefaultLayoutProps) => {
-  return (
-    <ModalProvider>
-      <DrawerProvider>
-        <SonnerProvider>
-          <DialogProvider>
-            <DefaultLayoutContent title={title} navigation={navigation} />
-          </DialogProvider>
-        </SonnerProvider>
-      </DrawerProvider>
-    </ModalProvider>
-  );
+  return <DefaultLayoutContent title={title} navigation={navigation} />;
 };

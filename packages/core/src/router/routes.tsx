@@ -1,26 +1,11 @@
 import type { RouteObject } from 'react-router';
-import type { ShellUIConfig, NavigationItem, NavigationGroup } from '../features/config/types';
+import type { ShellUIConfig } from '../features/config/types';
 import { HomeView } from '../components/HomeView';
 import { SettingsView } from '../features/settings/SettingsView';
 import { ViewRoute } from '../components/ViewRoute';
 import { NotFoundView } from '../components/NotFoundView';
-import { DefaultLayout } from '../features/layouts/DefaultLayout';
-
-// Helper function to flatten navigation items from groups or flat array
-const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]): NavigationItem[] => {
-  if (navigation.length === 0) {
-    return [];
-  }
-  
-  return navigation.flatMap(item => {
-    // Check if item is a group
-    if ('title' in item && 'items' in item) {
-      return (item as NavigationGroup).items;
-    }
-    // It's a standalone NavigationItem
-    return item as NavigationItem;
-  });
-};
+import { AppLayout } from '../features/layouts/AppLayout';
+import { flattenNavigationItems } from '../features/layouts/utils';
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{
@@ -46,7 +31,8 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   // Main layout route with nested routes
   const layoutRoute: RouteObject = {
     element: (
-      <DefaultLayout
+      <AppLayout
+        layout={config.layout}
         title={config.title}
         navigation={config.navigation || []}
       />

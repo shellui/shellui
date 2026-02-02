@@ -3,6 +3,8 @@ import { type ShellUIConfig } from '@shellui/core';
 const config: ShellUIConfig = {
   port: 4000,
   title: 'ShellUI',
+  // Layout: 'sidebar' (default) or 'fullscreen' (content only, no navigation)
+  layout: 'sidebar',
   // Enable specific languages: single language string or array of language codes
   // Examples:
   // language: 'en',           // Only English

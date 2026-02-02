@@ -8,6 +8,9 @@ export type LocalizedString = string | {
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area. */
+export type LayoutType = 'sidebar' | 'fullscreen';
+
 export interface NavigationItem {
   label: string | LocalizedString;
   path: string;
@@ -110,6 +113,8 @@ export interface ShellUIConfig {
   port?: number;
   title?: string;
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
+  /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
+  layout?: LayoutType;
   navigation?: (NavigationItem | NavigationGroup)[];
   themes?: ThemeDefinition[]; // Custom themes to register
   defaultTheme?: string; // Default theme name to use
