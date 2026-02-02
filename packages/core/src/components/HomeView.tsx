@@ -4,16 +4,14 @@ export const HomeView = () => {
   const { t } = useTranslation('common');
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center', 
-      height: '100%',
-      flexDirection: 'column',
-      color: '#666'
-    }}>
-      <h1 style={{ margin: 0, fontSize: '2rem', fontWeight: 300 }}>{t('welcome')}</h1>
-      <p style={{ marginTop: '1rem', fontSize: '1.1rem' }}>{t('getStarted')}</p>
+    <div className="flex flex-col items-center justify-center h-full p-8 md:p-10">
+      <h1
+        className="m-0 text-3xl font-light text-foreground"
+        style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+      >
+        {t('welcome')}
+      </h1>
+      <p className="mt-4 text-lg text-muted-foreground">{t('getStarted')}</p>
     </div>
   );
 };
