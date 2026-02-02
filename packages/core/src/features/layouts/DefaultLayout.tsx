@@ -191,6 +191,14 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   // Flatten navigation items for finding nav items by URL
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
+  // When opening modal, close drawer so only one overlay is visible
+  useEffect(() => {
+    const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
+      closeDrawer();
+    });
+    return () => cleanup();
+  }, [closeDrawer]);
+
   // Handle SHELLUI_NAVIGATE from sub-apps: close overlay, validate URL (startsWith nav item), then navigate or toast error
   useEffect(() => {
     const cleanup = shellui.addMessageListener('SHELLUI_NAVIGATE', (data) => {

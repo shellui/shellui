@@ -1,6 +1,7 @@
 import { shellui, ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { DrawerDirection } from '@/components/ui/drawer';
+import { useModal } from '../modal/ModalContext';
 
 /**
  * Validates and normalizes a URL to ensure it's from the same domain or localhost
@@ -64,19 +65,21 @@ interface DrawerProviderProps {
 }
 
 export const DrawerProvider = ({ children }: DrawerProviderProps) => {
+  const { closeModal } = useModal();
   const [isOpen, setIsOpen] = useState(false);
   const [drawerUrl, setDrawerUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
   const [size, setSize] = useState<string | null>(null);
 
   const openDrawer = useCallback((options?: OpenDrawerOptions) => {
+    closeModal();
     const url = options?.url;
     const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
     setDrawerUrl(validatedUrl);
     setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
     setSize(options?.size ?? null);
     setIsOpen(true);
-  }, []);
+  }, [closeModal]);
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
