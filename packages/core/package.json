@@ -13,6 +13,10 @@
     "./types": {
       "types": "./src/features/config/types.ts",
       "default": "./src/features/config/types.ts"
+    },
+    "./constants/urls": {
+      "types": "./src/constants/urls.ts",
+      "default": "./src/constants/urls.ts"
     }
   },
   "files": [

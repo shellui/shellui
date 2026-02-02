@@ -6,11 +6,12 @@ import { ViewRoute } from '../components/ViewRoute';
 import { NotFoundView } from '../components/NotFoundView';
 import { AppLayout } from '../features/layouts/AppLayout';
 import { flattenNavigationItems } from '../features/layouts/utils';
+import urls from '../constants/urls';
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{
     // Settings route (if configured)
-    path: "__settings",
+    path: urls.settings,
     element: (
       <SettingsView />
     ),

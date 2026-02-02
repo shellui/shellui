@@ -5,3 +5,4 @@
 
 export type { ShellUIConfig, NavigationItem, NavigationGroup, LocalizedString, ThemeDefinition, ThemeColors, DrawerPosition, LayoutType } from './features/config/types.js';
 export { useConfig } from './features/config/useConfig.js';
+export { default as urls } from './constants/urls.js';

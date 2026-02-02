@@ -1,4 +1,5 @@
 import { type ShellUIConfig } from '@shellui/core';
+import urls from '@shellui/core/constants/urls';
 
 const config: ShellUIConfig = {
   port: 4000,
@@ -105,8 +106,7 @@ const config: ShellUIConfig = {
       },
       path: 'docs',
       url: 'http://localhost:3000',
-      icon: '/icons/book-open.svg',
-      openIn: 'modal'
+      icon: '/icons/book-open.svg'
     },
     {
       label: 'ShellUI',
@@ -145,18 +145,18 @@ const config: ShellUIConfig = {
             fr: 'Paramètres'
           },
           path: 'settings',
-          url: '/__settings',
-          icon: '/icons/settings.svg'
-        }
-      ]
-    },
+            url: urls.settings,
+            icon: '/icons/settings.svg'
+          }
+        ]
+      },
     {
       label: {
         en: 'Settings',
         fr: 'Paramètres'
       },
       path: 'settings',
-      url: '/__settings',
+      url: urls.settings,
       icon: '/icons/settings.svg',
       openIn: 'modal',
       position: 'end'
