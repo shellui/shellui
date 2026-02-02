@@ -3,30 +3,30 @@
  * Handles communication between the iframe content and the ShellUI parent frame.
  */
 
-import { setupUrlMonitoring } from './utils/setupUrlMonitoring';
-import { setupKeyListener } from './utils/setupKeyListener';
-import { openModal as openModalAction } from './actions/openModal';
-import { openDrawer as openDrawerAction } from './actions/openDrawer';
-import { closeDrawer as closeDrawerAction } from './actions/closeDrawer';
-import { toast as toastAction } from './actions/toast';
-import { dialog as dialogAction } from './actions/dialog';
-import { getLogger } from './logger/logger';
-import { FrameRegistry } from './utils/frameRegistry';
-import { MessageListenerRegistry } from './utils/messageListenerRegistry';
-import { CallbackRegistry } from './utils/callbackRegistry';
+import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
+import { setupKeyListener } from './utils/setupKeyListener.js';
+import { openModal as openModalAction } from './actions/openModal.js';
+import { openDrawer as openDrawerAction } from './actions/openDrawer.js';
+import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
+import { toast as toastAction } from './actions/toast.js';
+import { dialog as dialogAction } from './actions/dialog.js';
+import { getLogger } from './logger/logger.js';
+import { FrameRegistry } from './utils/frameRegistry.js';
+import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
+import { CallbackRegistry } from './utils/callbackRegistry.js';
 import type {
   ShellUIMessage,
   ToastOptions,
   DialogOptions,
   Settings,
   OpenDrawerOptions,
-} from './types';
+} from './types.js';
 
 import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types';
+export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types.js';
 
 export class ShellUISDK {
   initialized = false;

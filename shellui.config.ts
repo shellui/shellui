@@ -5,7 +5,6 @@ const config: ShellUIConfig = {
   port: 4000,
   title: 'shellui',
   favicon: '/favicon.svg',
-  appIcon: '/favicon.svg',
   logo: '/logo.svg',
   // Layout: 'sidebar' (default) or 'fullscreen' (content only, no navigation)
   layout: 'sidebar',

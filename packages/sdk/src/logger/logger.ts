@@ -100,12 +100,14 @@ function formatStyles(styles: Record<string, string>): string {
     .join('; ');
 }
 
+let writerInitialized = false;
+
 function setupRoarrWriter(): void {
   if (typeof window === 'undefined') {
     return;
   }
 
-  if (ROARR.write) {
+  if (writerInitialized) {
     return;
   }
 
@@ -171,6 +173,8 @@ function setupRoarrWriter(): void {
       console.log(message);
     }
   };
+  
+  writerInitialized = true;
 }
 
 setupRoarrWriter();
@@ -181,27 +185,27 @@ export function getLogger(namespace: string): LoggerInstance {
   return {
     log: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        logger({ ...context, message });
+        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message });
       }
     },
     info: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        logger({ ...context, message, logLevel: 30 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 30 });
       }
     },
     warn: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        logger({ ...context, message, logLevel: 40 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 40 });
       }
     },
     error: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        logger({ ...context, message, logLevel: 50 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 50 });
       }
     },
     debug: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        logger({ ...context, message, logLevel: 20 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 20 });
       }
     },
   };
