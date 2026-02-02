@@ -1,4 +1,4 @@
-import React, { useMemo, useLayoutEffect, useState } from 'react';
+import React, { useMemo, useLayoutEffect, useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
@@ -13,6 +13,14 @@ import './index.css';
 
 const AppContent = () => {
   const { config } = useConfig();
+
+  // Apply favicon from config when available (allows projects to override default)
+  useEffect(() => {
+    if (config?.favicon) {
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) link.href = config.favicon;
+    }
+  }, [config?.favicon]);
 
   // Create router from config using data mode
   const router = useMemo(() => {

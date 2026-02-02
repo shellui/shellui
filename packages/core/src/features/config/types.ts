@@ -112,6 +112,12 @@ export interface ThemeDefinition {
 export interface ShellUIConfig {
   port?: number;
   title?: string;
+  /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */
+  favicon?: string;
+  /** App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header. */
+  appIcon?: string;
+  /** Logo path (e.g. '/logo.svg'). If defined, displayed as image in sidebar header instead of text title. */
+  logo?: string;
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
   layout?: LayoutType;

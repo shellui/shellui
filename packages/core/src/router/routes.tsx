@@ -35,6 +35,8 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
       <AppLayout
         layout={config.layout}
         title={config.title}
+        appIcon={config.appIcon}
+        logo={config.logo}
         navigation={config.navigation || []}
       />
     ),
