@@ -118,7 +118,8 @@ const config: ShellUIConfig = {
       label: 'Sebastienbarbier',
       path: 'sebastienbarbier',
       url: 'https://sebastienbarbier.com/',
-      openIn: 'external'
+      openIn: 'external',
+      position: 'end'
     },
     {
       // Group title can also be localized
@@ -146,6 +147,17 @@ const config: ShellUIConfig = {
           icon: '/icons/settings.svg'
         }
       ]
+    },
+    {
+      label: {
+        en: 'Settings',
+        fr: 'Paramètres'
+      },
+      path: 'settings',
+      url: '/__settings',
+      icon: '/icons/settings.svg',
+      openIn: 'modal',
+      position: 'end'
     }
   ]
 };

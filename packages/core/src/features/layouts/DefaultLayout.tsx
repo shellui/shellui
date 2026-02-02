@@ -70,6 +70,29 @@ const filterNavigationForSidebar = (navigation: (NavigationItem | NavigationGrou
     .filter((item): item is NavigationItem | NavigationGroup => item !== null);
 };
 
+// Split navigation by position: start (main content) and end (footer). End is flattened to NavigationItem[].
+const splitNavigationByPosition = (
+  navigation: (NavigationItem | NavigationGroup)[]
+): { start: (NavigationItem | NavigationGroup)[]; end: NavigationItem[] } => {
+  const start: (NavigationItem | NavigationGroup)[] = [];
+  const end: NavigationItem[] = [];
+  for (const item of navigation) {
+    const position = 'position' in item ? (item.position ?? 'start') : 'start';
+    if (position === 'end') {
+      if ('title' in item && 'items' in item) {
+        const group = item as NavigationGroup;
+        end.push(...group.items.filter((navItem) => !navItem.hidden));
+      } else {
+        const navItem = item as NavigationItem;
+        if (!navItem.hidden) end.push(navItem);
+      }
+    } else {
+      start.push(item);
+    }
+  }
+  return { start, end };
+};
+
 const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
   const location = useLocation();
   const { i18n } = useTranslation();
@@ -203,7 +226,15 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
   const { isOpen, modalUrl, closeModal } = useModal();
   const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
   const { t } = useTranslation('common');
-  
+
+  const { startNav, endItems } = useMemo(() => {
+    const { start, end } = splitNavigationByPosition(navigation);
+    return {
+      startNav: filterNavigationForSidebar(start),
+      endItems: end,
+    };
+  }, [navigation]);
+
   // Flatten navigation items for finding nav items by URL
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
@@ -268,20 +299,14 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
           </SidebarHeader>
 
           <SidebarContent className="gap-1">
-            <NavigationContent navigation={filterNavigationForSidebar(navigation)} />
+            <NavigationContent navigation={startNav} />
           </SidebarContent>
 
-          <SidebarFooter>
-            <SidebarMenuButton
-              onClick={() => {
-                shellui.openModal("/__settings");
-              }}
-              className="w-full cursor-pointer"
-            >
-              <img src="/icons/settings.svg" alt="" className="h-4 w-4 shrink-0" />
-              <span className="truncate">{t('settings')}</span>
-            </SidebarMenuButton>
-          </SidebarFooter>
+          {endItems.length > 0 && (
+            <SidebarFooter>
+              <NavigationContent navigation={endItems} />
+            </SidebarFooter>
+          )}
         </Sidebar>
 
         {/* Main Content Area */}

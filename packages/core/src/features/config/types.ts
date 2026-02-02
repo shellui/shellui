@@ -19,11 +19,15 @@ export interface NavigationItem {
   openIn?: 'default' | 'modal' | 'drawer' | 'external';
   /** Optional drawer position when openIn === 'drawer'. Default is 'right' if omitted. */
   drawerPosition?: DrawerPosition;
+  /** Sidebar position: 'start' (default) or 'end'. End items are rendered in the sidebar footer. */
+  position?: 'start' | 'end';
 }
 
 export interface NavigationGroup {
   title: string | LocalizedString;
   items: NavigationItem[];
+  /** Sidebar position: 'start' (default) or 'end'. End groups are rendered in the sidebar footer. */
+  position?: 'start' | 'end';
 }
 
 export interface ThemeColors {
