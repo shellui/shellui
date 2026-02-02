@@ -48,7 +48,7 @@ export const SettingsView = () => {
       {
         title: t("categories.preferences"),
         routes: filteredRoutes.filter(route =>
-          ["notifications", "appearance", "language-and-region", "data-privacy"].includes(route.path)
+          ["appearance", "language-and-region", "data-privacy"].includes(route.path)
         )
       },
       {
@@ -101,7 +101,7 @@ export const SettingsView = () => {
   // Navigate back to settings root
   const handleBackToSettings = React.useCallback(() => {
     // Extract the base settings path from current location
-    // If we're at /__settings/notifications, go to /__settings
+    // If we're at a settings subpage, go to /__settings
     const pathParts = location.pathname.split('/').filter(Boolean)
     const settingsIndex = pathParts.indexOf('__settings')
     if (settingsIndex !== -1) {

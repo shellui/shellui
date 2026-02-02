@@ -6,16 +6,11 @@
     "developer": "Développeur"
   },
   "routes": {
-    "notifications": "Notifications",
     "appearance": "Apparence",
     "languageAndRegion": "Langue et région",
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
     "develop": "Développement"
-  },
-  "notifications": {
-    "title": "Notifications",
-    "description": "Gérez vos préférences de notification."
   },
   "appearance": {
     "title": "Apparence",
