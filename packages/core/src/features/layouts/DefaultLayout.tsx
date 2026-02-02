@@ -104,6 +104,64 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
     return 'title' in item && 'items' in item;
   };
 
+  // Render a single nav item link or modal/drawer trigger
+  const renderNavItem = (navItem: NavigationItem) => {
+    const pathPrefix = `/${navItem.path}`;
+    const isOverlay = navItem.openIn === 'modal' || navItem.openIn === 'drawer';
+    const isExternal = navItem.openIn === 'external';
+    const isActive = !isOverlay && !isExternal && (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
+    const iconEl = navItem.icon ? (
+      <img src={navItem.icon} alt="" className="h-4 w-4 shrink-0" />
+    ) : hasAnyIcons ? (
+      <span className="h-4 w-4 shrink-0" />
+    ) : null;
+    const externalIcon = isExternal ? (
+      <img src="/icons/external-link.svg" alt="" className="ml-auto h-4 w-4 shrink-0 opacity-70" aria-hidden />
+    ) : null;
+    const content = (
+      <>
+        {iconEl}
+        <span className="truncate">{itemLabel}</span>
+        {externalIcon}
+      </>
+    );
+    const linkOrTrigger =
+      navItem.openIn === 'modal' ? (
+        <button type="button" onClick={() => shellui.openModal(navItem.url)} className="flex items-center gap-2 w-full cursor-pointer text-left">
+          {content}
+        </button>
+      ) : navItem.openIn === 'drawer' ? (
+        <button
+          type="button"
+          onClick={() => shellui.openDrawer({ url: navItem.url, position: navItem.drawerPosition })}
+          className="flex items-center gap-2 w-full cursor-pointer text-left"
+        >
+          {content}
+        </button>
+      ) : navItem.openIn === 'external' ? (
+        <a href={navItem.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full">
+          {content}
+        </a>
+      ) : (
+        <Link to={`/${navItem.path}`} className="flex items-center gap-2 w-full">
+          {content}
+        </Link>
+      );
+    return (
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className={cn(
+          "w-full",
+          isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+        )}
+      >
+        {linkOrTrigger}
+      </SidebarMenuButton>
+    );
+  };
+
   // Render navigation items - handle both groups and standalone items
   return (
     <>
@@ -116,63 +174,21 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
               <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
-                  {item.items.map((navItem) => {
-                    const pathPrefix = `/${navItem.path}`;
-                    const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-                    const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
-
-                    return (
-                      <SidebarMenuItem key={navItem.path}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={isActive}
-                          className={cn(
-                            "w-full",
-                            isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                          )}
-                        >
-                          <Link to={`/${navItem.path}`} className="flex items-center gap-2 w-full">
-                            {navItem.icon ? (
-                              <img src={navItem.icon} alt="" className="h-4 w-4 shrink-0" />
-                            ) : hasAnyIcons ? (
-                              <span className="h-4 w-4 shrink-0" />
-                            ) : null}
-                            <span className="truncate">{itemLabel}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
+                  {item.items.map((navItem) => (
+                    <SidebarMenuItem key={navItem.path}>
+                      {renderNavItem(navItem)}
+                    </SidebarMenuItem>
+                  ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
           );
         } else {
           // Render as a standalone item
-          const pathPrefix = `/${item.path}`;
-          const isActive = location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-          const itemLabel = resolveLocalizedString(item.label, currentLanguage);
-
           return (
             <SidebarMenu key={item.path} className="gap-0.5">
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive}
-                  className={cn(
-                    "w-full",
-                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                  )}
-                >
-                  <Link to={`/${item.path}`} className="flex items-center gap-2 w-full">
-                    {item.icon ? (
-                      <img src={item.icon} alt="" className="h-4 w-4 shrink-0" />
-                    ) : hasAnyIcons ? (
-                      <span className="h-4 w-4 shrink-0" />
-                    ) : null}
-                    <span className="truncate">{itemLabel}</span>
-                  </Link>
-                </SidebarMenuButton>
+                {renderNavItem(item)}
               </SidebarMenuItem>
             </SidebarMenu>
           );

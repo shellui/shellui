@@ -103,18 +103,22 @@ const config: ShellUIConfig = {
       },
       path: 'docs',
       url: 'http://localhost:3000',
-      icon: '/icons/book-open.svg'
+      icon: '/icons/book-open.svg',
+      openIn: 'modal'
     },
     {
       label: 'ShellUI',
       path: 'shellui',
       url: 'https://shellui.com/',
-      icon: "/icons/user.svg"
+      icon: "/icons/user.svg",
+      openIn: 'drawer',
+      drawerPosition: 'right'
     },
     {
       label: 'Sebastienbarbier',
       path: 'sebastienbarbier',
-      url: 'https://sebastienbarbier.com/'
+      url: 'https://sebastienbarbier.com/',
+      openIn: 'external'
     },
     {
       // Group title can also be localized

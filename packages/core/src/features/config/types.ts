@@ -5,6 +5,9 @@ export type LocalizedString = string | {
   [key: string]: string; // Allow other language codes
 };
 
+/** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
+export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
+
 export interface NavigationItem {
   label: string | LocalizedString;
   path: string;
@@ -12,6 +15,10 @@ export interface NavigationItem {
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
   /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
   hidden?: boolean;
+  /** How to open this link: 'default' (navigate in main area), 'modal', 'drawer', or 'external' (target="_blank"). */
+  openIn?: 'default' | 'modal' | 'drawer' | 'external';
+  /** Optional drawer position when openIn === 'drawer'. Default is 'right' if omitted. */
+  drawerPosition?: DrawerPosition;
 }
 
 export interface NavigationGroup {

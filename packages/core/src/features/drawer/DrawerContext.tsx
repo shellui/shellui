@@ -4,7 +4,8 @@ import type { DrawerDirection } from '@/components/ui/drawer';
 import { useModal } from '../modal/ModalContext';
 
 /**
- * Validates and normalizes a URL to ensure it's from the same domain or localhost
+ * Validates and normalizes a URL for the drawer iframe.
+ * Allows same-origin, localhost, and external http(s) URLs (e.g. from nav config).
  */
 const validateAndNormalizeUrl = (url: string | undefined | null): string | null => {
   if (!url || typeof url !== 'string') {
@@ -13,11 +14,8 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
   try {
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      const urlObj = new URL(url);
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      if (urlObj.origin === currentOrigin) return url;
-      if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') return url;
-      return null;
+      new URL(url); // validate
+      return url;
     }
 
     if (url.startsWith('/') || url.startsWith('./') || !url.startsWith('//')) {
