@@ -22,6 +22,7 @@ export const DataPrivacy = () => {
           description: t('dataPrivacy.resetData.toast.success.description'),
           type: "success",
         })
+        shellui.navigate('/')
       },
       onCancel: () => {
         // User cancelled, no action needed

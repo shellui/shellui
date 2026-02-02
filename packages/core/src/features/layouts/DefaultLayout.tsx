@@ -194,11 +194,14 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
       closeModal();
       closeDrawer();
 
-      const isAllowed = navigationItems.some(
-        (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`)
-      );
+      const isHomepage = pathname === '/' || pathname === '';
+      const isAllowed =
+        isHomepage ||
+        navigationItems.some(
+          (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`)
+        );
       if (isAllowed) {
-        navigate(pathname);
+        navigate(pathname || '/');
       } else {
         shellui.toast({
           type: 'error',
