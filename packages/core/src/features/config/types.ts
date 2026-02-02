@@ -10,6 +10,8 @@ export interface NavigationItem {
   path: string;
   url: string;
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
+  /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
+  hidden?: boolean;
 }
 
 export interface NavigationGroup {

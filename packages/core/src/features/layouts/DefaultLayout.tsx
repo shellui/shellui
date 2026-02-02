@@ -52,6 +52,24 @@ const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]
   });
 };
 
+// Filter navigation for sidebar: remove items with hidden, and groups that become empty
+const filterNavigationForSidebar = (navigation: (NavigationItem | NavigationGroup)[]): (NavigationItem | NavigationGroup)[] => {
+  if (navigation.length === 0) return [];
+  return navigation
+    .map((item) => {
+      if ('title' in item && 'items' in item) {
+        const group = item as NavigationGroup;
+        const visibleItems = group.items.filter((navItem) => !navItem.hidden);
+        if (visibleItems.length === 0) return null;
+        return { ...group, items: visibleItems };
+      }
+      const navItem = item as NavigationItem;
+      if (navItem.hidden) return null;
+      return item;
+    })
+    .filter((item): item is NavigationItem | NavigationGroup => item !== null);
+};
+
 const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
   const location = useLocation();
   const { i18n } = useTranslation();
@@ -226,7 +244,7 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
           </SidebarHeader>
 
           <SidebarContent className="gap-1">
-            <NavigationContent navigation={navigation} />
+            <NavigationContent navigation={filterNavigationForSidebar(navigation)} />
           </SidebarContent>
 
           <SidebarFooter>

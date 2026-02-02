@@ -28,7 +28,7 @@ export const NotFoundView = () => {
 
   const navItems =
     config?.navigation && config.navigation.length > 0
-      ? flattenNavigationItems(config.navigation)
+      ? flattenNavigationItems(config.navigation).filter((item) => !item.hidden)
       : [];
 
   const handleNavigate = (path: string) => {

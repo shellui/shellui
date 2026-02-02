@@ -129,7 +129,8 @@ const config: ShellUIConfig = {
             fr: 'Page non trouvée'
           },
           path: '404',
-          url: '/thisisnotfound'
+          url: '/thisisnotfound',
+          hidden: true
         },
         {
           label: {
