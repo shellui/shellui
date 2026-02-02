@@ -162,7 +162,7 @@ export const Appearance = () => {
           {t('appearance.mode')}
         </label>
         <p className="text-sm text-muted-foreground">
-          {t('appearance.modeDescription', { mode: currentTheme })}
+          {t('appearance.modeDescription')}
         </p>
         <ButtonGroup>
           {modeThemes.map((theme) => {

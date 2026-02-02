@@ -17,13 +17,13 @@
     "theme": "Theme",
     "themeDescription": "Choose your preferred color scheme (current: {{theme}})",
     "mode": "Mode",
-    "modeDescription": "Choose light, dark, or system mode (current: {{mode}})",
+    "modeDescription": "Choose light, dark, or automatic mode.",
     "colorTheme": "Color Theme",
     "colorThemeDescription": "Select a color theme. Each theme has light and dark variants.",
     "themes": {
       "light": "Light",
       "dark": "Dark",
-      "system": "System"
+      "system": "Automatic"
     }
   },
   "languageAndRegion": {

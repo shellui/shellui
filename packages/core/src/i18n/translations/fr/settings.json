@@ -17,13 +17,13 @@
     "theme": "Thème",
     "themeDescription": "Choisissez votre schéma de couleurs préféré (actuel : {{theme}})",
     "mode": "Mode",
-    "modeDescription": "Choisissez le mode clair, sombre ou système (actuel : {{mode}})",
+    "modeDescription": "Choisissez le mode clair, sombre ou automatique.",
     "colorTheme": "Thème de couleur",
     "colorThemeDescription": "Sélectionnez un thème de couleur. Chaque thème a des variantes claires et sombres.",
     "themes": {
       "light": "Clair",
       "dark": "Sombre",
-      "system": "Système"
+      "system": "Automatique"
     }
   },
   "languageAndRegion": {
