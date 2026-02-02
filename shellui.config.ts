@@ -3,7 +3,7 @@ import urls from '@shellui/core/constants/urls';
 
 const config: ShellUIConfig = {
   port: 4000,
-  title: 'ShellUI',
+  title: 'shellui',
   // Layout: 'sidebar' (default) or 'fullscreen' (content only, no navigation)
   layout: 'sidebar',
   // Enable specific languages: single language string or array of language codes

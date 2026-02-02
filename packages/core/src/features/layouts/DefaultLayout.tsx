@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -170,7 +170,19 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
   );
 };
 
+function resolveLocalizedLabel(
+  value: string | { en: string; fr: string; [key: string]: string },
+  lang: string
+): string {
+  if (typeof value === 'string') return value;
+  return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
+}
+
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
+  const location = useLocation();
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language || 'en';
+
   const { startNav, endItems, navigationItems } = useMemo(() => {
     const { start, end } = splitNavigationByPosition(navigation);
     return {
@@ -179,6 +191,23 @@ const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
       navigationItems: flattenNavigationItems(navigation),
     };
   }, [navigation]);
+
+  useEffect(() => {
+    if (!title) return;
+    const pathname = location.pathname.replace(/^\/+|\/+$/g, '') || '';
+    const segment = pathname.split('/')[0];
+    if (!segment) {
+      document.title = title;
+      return;
+    }
+    const navItem = navigationItems.find((item) => item.path === segment);
+    if (navItem) {
+      const label = resolveLocalizedLabel(navItem.label, currentLanguage);
+      document.title = `${label} | ${title}`;
+    } else {
+      document.title = title;
+    }
+  }, [location.pathname, title, navigationItems, currentLanguage]);
 
   return (
     <LayoutProviders>

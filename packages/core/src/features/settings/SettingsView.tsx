@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next"
 import urls from "@/constants/urls"
 import { createSettingsRoutes } from "./SettingsRoutes"
 import { useSettings } from "./hooks/useSettings"
+import { useConfig } from "../config/useConfig"
 import { Button } from "@/components/ui/button"
 import { ChevronRightIcon, ChevronLeftIcon } from "./SettingsIcons"
 
@@ -30,7 +31,15 @@ export const SettingsView = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { settings } = useSettings()
+  const { config } = useConfig()
   const { t } = useTranslation('settings')
+
+  React.useEffect(() => {
+    if (config?.title) {
+      const settingsLabel = t('settings', { ns: 'common' })
+      document.title = `${settingsLabel} | ${config.title}`
+    }
+  }, [config?.title, t])
 
   // Create routes with translations
   const settingsRoutes = React.useMemo(() => createSettingsRoutes(t), [t])

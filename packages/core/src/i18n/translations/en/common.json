@@ -1,6 +1,6 @@
 {
   "settings": "Settings",
-  "welcome": "Welcome to ShellUI",
+  "welcome": "Welcome to {{title}}",
   "getStarted": "Select a navigation item to get started.",
   "navigationError": "Navigation error",
   "navigationNotAllowed": "This URL is not configured in the app navigation."
