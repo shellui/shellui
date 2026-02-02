@@ -72,6 +72,13 @@
   },
   "develop": {
     "title": "Develop",
+    "navigation": {
+      "title": "Navigate to",
+      "description": "Send a navigation request to the root app. This closes any open drawer or modal and navigates to the selected item.",
+      "selectLabel": "Navigation item",
+      "placeholder": "Select a destination…",
+      "empty": "No navigation items available (open from root to see items)."
+    },
     "logging": {
       "title": "Logging",
       "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",

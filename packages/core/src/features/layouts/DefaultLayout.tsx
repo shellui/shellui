@@ -1,5 +1,5 @@
-import { Link, useLocation, Outlet } from 'react-router';
-import { useMemo } from 'react';
+import { Link, useLocation, Outlet, useNavigate } from 'react-router';
+import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -165,12 +165,50 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 };
 
 const DefaultLayoutContent = ({ title, navigation }: DefaultLayoutProps) => {
+  const navigate = useNavigate();
   const { isOpen, modalUrl, closeModal } = useModal();
   const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
   const { t } = useTranslation('common');
   
   // Flatten navigation items for finding nav items by URL
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
+
+  // Handle SHELLUI_NAVIGATE from sub-apps: close overlay, validate URL (startsWith nav item), then navigate or toast error
+  useEffect(() => {
+    const cleanup = shellui.addMessageListener('SHELLUI_NAVIGATE', (data) => {
+      const payload = data.payload as { url?: string };
+      const rawUrl = payload?.url;
+      if (typeof rawUrl !== 'string' || !rawUrl.trim()) return;
+
+      let pathname: string;
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        try {
+          pathname = new URL(rawUrl).pathname;
+        } catch {
+          pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+        }
+      } else {
+        pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
+      }
+
+      closeModal();
+      closeDrawer();
+
+      const isAllowed = navigationItems.some(
+        (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`)
+      );
+      if (isAllowed) {
+        navigate(pathname);
+      } else {
+        shellui.toast({
+          type: 'error',
+          title: t('navigationError') ?? 'Navigation error',
+          description: t('navigationNotAllowed') ?? 'This URL is not configured in the app navigation.',
+        });
+      }
+    });
+    return () => cleanup();
+  }, [navigate, closeModal, closeDrawer, navigationItems, t]);
 
   return (
     <SidebarProvider>

@@ -26,7 +26,7 @@ import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings } from './types';
+export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types';
 
 export class ShellUISDK {
   initialized = false;
@@ -149,6 +149,13 @@ export class ShellUISDK {
     closeDrawerAction();
   }
 
+  navigate(url: string): void {
+    this.sendMessageToParent({
+      type: 'SHELLUI_NAVIGATE',
+      payload: { url },
+    });
+  }
+
   toast(options?: ToastOptions): string | void {
     return toastAction(options);
   }
@@ -214,6 +221,7 @@ export const openModal = (url?: string): void => openModalAction(url);
 export const openDrawer = (options?: OpenDrawerOptions): void =>
   openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
+export const navigate = (url: string): void => sdk.navigate(url);
 export const toast = (options?: ToastOptions): string | void =>
   toastAction(options);
 export const dialog = (options?: DialogOptions): string | void =>

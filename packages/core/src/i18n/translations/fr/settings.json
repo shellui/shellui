@@ -72,6 +72,13 @@
   },
   "develop": {
     "title": "Développement",
+    "navigation": {
+      "title": "Naviguer vers",
+      "description": "Envoyer une demande de navigation à l'application racine. Cela ferme tout tiroir ou modal ouvert et navigue vers l'élément sélectionné.",
+      "selectLabel": "Élément de navigation",
+      "placeholder": "Choisir une destination…",
+      "empty": "Aucun élément de navigation disponible (ouvrez depuis la racine pour voir les éléments)."
+    },
     "logging": {
       "title": "Journalisation",
       "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de ShellUI affichent des informations de débogage.",

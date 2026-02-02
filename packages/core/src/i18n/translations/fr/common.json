@@ -1,5 +1,7 @@
 {
   "settings": "Paramètres",
   "welcome": "Bienvenue sur ShellUI",
-  "getStarted": "Sélectionnez un élément de navigation pour commencer."
+  "getStarted": "Sélectionnez un élément de navigation pour commencer.",
+  "navigationError": "Erreur de navigation",
+  "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application."
 }

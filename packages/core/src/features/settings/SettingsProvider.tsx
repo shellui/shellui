@@ -1,8 +1,42 @@
 import * as React from "react"
 import { getLogger, shellui, ShellUIMessage } from "@shellui/sdk"
-import { Settings } from "@shellui/sdk"
+import { Settings, type SettingsNavigationItem } from "@shellui/sdk"
 import { SettingsContext } from "./SettingsContext"
+import { useConfig } from "../config/useConfig"
+import { useTranslation } from "react-i18next"
+import type { NavigationItem, NavigationGroup } from "../config/types"
+
 const logger = getLogger('shellcore')
+
+function flattenNavigationItems(navigation: (NavigationItem | NavigationGroup)[]): NavigationItem[] {
+  if (navigation.length === 0) return []
+  return navigation.flatMap((item) => {
+    if ('title' in item && 'items' in item) return (item as NavigationGroup).items
+    return [item as NavigationItem]
+  })
+}
+
+function resolveLabel(
+  value: string | { en: string; fr: string; [key: string]: string },
+  lang: string
+): string {
+  if (typeof value === 'string') return value
+  return value[lang] || value.en || value.fr || Object.values(value)[0] || ''
+}
+
+function buildSettingsWithNavigation(
+  settings: Settings,
+  navigation: (NavigationItem | NavigationGroup)[] | undefined,
+  lang: string
+): Settings {
+  if (!navigation?.length) return settings
+  const items: SettingsNavigationItem[] = flattenNavigationItems(navigation).map((item) => ({
+    path: item.path,
+    url: item.url,
+    label: resolveLabel(item.label, lang),
+  }))
+  return { ...settings, navigation: { items } }
+}
 
 const STORAGE_KEY = 'shellui:settings'
 
@@ -37,7 +71,8 @@ const defaultSettings: Settings = {
   }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
-
+    const { config } = useConfig()
+    const { i18n } = useTranslation()
     const [settings, setSettings] = React.useState<Settings>(() => {
 
       if (shellui.initialSettings) {
@@ -95,12 +130,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (window.parent === window) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
-              // Confirm: root updated localStorage
-              // Update state to reflect the new settings
+              // Confirm: root updated localStorage; re-inject navigation when propagating
+              const settingsToPropagate = buildSettingsWithNavigation(
+                newSettings,
+                config.navigation,
+                i18n.language || 'en'
+              )
               logger.info('Root Parent received settings update', { message })
               shellui.propagateMessage({
                 type: 'SHELLUI_SETTINGS',
-                payload: { settings: newSettings }
+                payload: { settings: settingsToPropagate }
               })
             } catch (error) {
               logger.error('Failed to update settings from message:', { error })
@@ -110,9 +149,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       });
 
       const cleanupSettingsRequested = shellui.addMessageListener('SHELLUI_SETTINGS_REQUESTED', () => {
+        const settingsWithNav = buildSettingsWithNavigation(
+          settings,
+          config.navigation,
+          i18n.language || 'en'
+        )
         shellui.propagateMessage({
           type: 'SHELLUI_SETTINGS',
-          payload: { settings }
+          payload: { settings: settingsWithNav }
         })
       })
   
@@ -130,7 +174,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         cleanupSettings()
         cleanupSettingsRequested()
       }
-    }, [settings])
+    }, [settings, config.navigation, i18n.language])
   
   
     // ACTIONS
@@ -189,9 +233,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           // If we're in the root window, update localStorage with defaults
           if (window.parent === window) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
+            const settingsToPropagate = buildSettingsWithNavigation(
+              newSettings,
+              config.navigation,
+              i18n.language || 'en'
+            )
             shellui.propagateMessage({
               type: 'SHELLUI_SETTINGS',
-              payload: { settings: newSettings }
+              payload: { settings: settingsToPropagate }
             })
           }
           
@@ -206,7 +255,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           logger.error('Failed to reset all data:', { error })
         }
       }
-    }, [])
+    }, [config.navigation, i18n.language])
   
     const value = React.useMemo(
       () => ({

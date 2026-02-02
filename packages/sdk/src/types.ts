@@ -42,6 +42,13 @@ export interface DialogOptions {
 }
 
 
+/** Navigation item exposed to sub-apps (root-level nav config) */
+export interface SettingsNavigationItem {
+  path: string
+  url: string
+  label?: string
+}
+
 export interface Settings {
   developerFeatures: {
     enabled: boolean
@@ -61,6 +68,10 @@ export interface Settings {
   }
   region: {
     timezone: string
+  }
+  /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
+  navigation?: {
+    items: SettingsNavigationItem[]
   }
   // Add more settings here as needed
   // notifications: { ... }
@@ -83,6 +94,7 @@ export type ShellUIMessageType =
   | 'SHELLUI_CLOSE_MODAL'
   | 'SHELLUI_OPEN_DRAWER'
   | 'SHELLUI_CLOSE_DRAWER'
+  | 'SHELLUI_NAVIGATE'
   | 'SHELLUI_SETTINGS_UPDATED'
   | 'SHELLUI_SETTINGS'
   | 'SHELLUI_SETTINGS_REQUESTED'
@@ -103,6 +115,7 @@ export interface ShellUIMessage {
     | ShellUIUrlPayload
     | Record<string, never>
     | { url?: string | null }
+    | { url: string }
     | { url?: string; position?: DrawerPosition; size?: string }
     | ToastOptions
     | DialogOptions
