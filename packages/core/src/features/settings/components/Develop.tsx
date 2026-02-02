@@ -93,11 +93,13 @@ export const Develop = () => {
               }}
             >
               <option value="">{t('develop.navigation.placeholder')}</option>
-              {settings.navigation.items.map((item) => (
-                <option key={item.path} value={`/${item.path}`}>
-                  {item.label ?? item.path}
-                </option>
-              ))}
+              {settings.navigation.items
+                .filter((item, index, self) => index === self.findIndex((i) => i.path === item.path))
+                .map((item) => (
+                  <option key={item.path} value={`/${item.path}`}>
+                    {item.label ?? item.path}
+                  </option>
+                ))}
             </Select>
           </div>
         ) : (
