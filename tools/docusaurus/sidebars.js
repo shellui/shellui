@@ -35,6 +35,7 @@ const sidebars = {
         'cli',
         'core',
         'sdk',
+        'tauri',
       ],
     },
     {

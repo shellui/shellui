@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "shellui",
+  "version": "0.1.0",
+  "identifier": "com.shellui.app",
+  "build": {
+    "beforeDevCommand": {
+      "cwd": "../..",
+      "script": "pnpm start",
+      "wait": false
+    },
+    "devUrl": "http://localhost:4000",
+    "beforeBuildCommand": {
+      "cwd": "../..",
+      "script": "pnpm build"
+    },
+    "frontendDist": "../../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "shellui",
+        "width": 1024,
+        "height": 768
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

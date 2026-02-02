@@ -24,6 +24,7 @@ New to ShellUI? Follow these steps to get up and running:
 - [@shellui/cli](/cli) - Command-line tool for ShellUI
 - [@shellui/core](/core) - Core React application runtime
 - [@shellui/sdk](/sdk) - JavaScript SDK for ShellUI integration
+- [@shellui/tauri](/tauri) - Tauri desktop app (native build from shellui.config.ts)
 
 ## Developer Resources
 

@@ -21,7 +21,10 @@
     "docs:install": "cd tools/docusaurus && pnpm install",
     "docs:start": "cd tools/docusaurus && pnpm start",
     "docs:build": "cd tools/docusaurus && pnpm run build",
-    "docs:serve": "cd tools/docusaurus && pnpm run serve"
+    "docs:serve": "cd tools/docusaurus && pnpm run serve",
+    "tauri:install": "pnpm --filter @shellui/tauri run install:deps",
+    "tauri:dev": "pnpm --filter @shellui/tauri run dev",
+    "tauri:build": "pnpm --filter @shellui/tauri run build"
   },
   "keywords": [
     "monorepo",
