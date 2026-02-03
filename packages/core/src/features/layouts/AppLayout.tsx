@@ -1,7 +1,9 @@
+import { lazy, Suspense } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
-import { DefaultLayout } from './DefaultLayout';
-import { FullscreenLayout } from './FullscreenLayout';
-import { WindowsLayout } from './WindowsLayout';
+
+const DefaultLayout = lazy(() => import('./DefaultLayout').then((m) => ({ default: m.DefaultLayout })));
+const FullscreenLayout = lazy(() => import('./FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })));
+const WindowsLayout = lazy(() => import('./WindowsLayout').then((m) => ({ default: m.WindowsLayout })));
 
 interface AppLayoutProps {
   layout?: LayoutType;
@@ -11,13 +13,29 @@ interface AppLayoutProps {
   navigation: (NavigationItem | NavigationGroup)[];
 }
 
-/** Renders the layout based on config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. */
+function LayoutFallback() {
+  return <div className="min-h-screen bg-background" aria-hidden />;
+}
+
+/** Renders the layout based on config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
 export function AppLayout({ layout = 'sidebar', title, appIcon, logo, navigation }: AppLayoutProps) {
+  let LayoutComponent: React.LazyExoticComponent<React.ComponentType<any>>;
+  let layoutProps: Record<string, unknown>;
+
   if (layout === 'fullscreen') {
-    return <FullscreenLayout title={title} navigation={navigation} />;
+    LayoutComponent = FullscreenLayout;
+    layoutProps = { title, navigation };
+  } else if (layout === 'windows') {
+    LayoutComponent = WindowsLayout;
+    layoutProps = { title, appIcon, logo, navigation };
+  } else {
+    LayoutComponent = DefaultLayout;
+    layoutProps = { title, appIcon, logo, navigation };
   }
-  if (layout === 'windows') {
-    return <WindowsLayout title={title} appIcon={appIcon} logo={logo} navigation={navigation} />;
-  }
-  return <DefaultLayout title={title} appIcon={appIcon} logo={logo} navigation={navigation} />;
+
+  return (
+    <Suspense fallback={<LayoutFallback />}>
+      <LayoutComponent {...layoutProps} />
+    </Suspense>
+  );
 }
