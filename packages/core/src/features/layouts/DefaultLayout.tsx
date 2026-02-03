@@ -6,7 +6,6 @@ import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   Sidebar,
   SidebarProvider,
-  SidebarTrigger,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
@@ -18,7 +17,6 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
 import { filterNavigationForSidebar, flattenNavigationItems, splitNavigationByPosition } from './utils';
 import { LayoutProviders } from './LayoutProviders';
 import { OverlayShell } from './OverlayShell';
@@ -180,7 +178,7 @@ function resolveLocalizedLabel(
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
 }
 
-const DefaultLayoutContent = ({ title, appIcon, logo, navigation }: DefaultLayoutProps) => {
+const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) => {
   const location = useLocation();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
@@ -241,9 +239,6 @@ const DefaultLayoutContent = ({ title, appIcon, logo, navigation }: DefaultLayou
             </Sidebar>
 
             <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
-              <div className="absolute top-4 left-4" style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}>
-                <SidebarTrigger />
-              </div>
               <Outlet />
             </main>
           </div>
