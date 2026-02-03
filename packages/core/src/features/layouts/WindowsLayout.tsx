@@ -86,13 +86,22 @@ function AppWindow({
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
   const [bounds, setBounds] = useState(win.bounds);
-  const dragRef = useRef<{ startX: number; startY: number; startBounds: WindowState['bounds'] } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    startBounds: WindowState['bounds'];
+    lastDx: number;
+    lastDy: number;
+  } | null>(null);
   const resizeRef = useRef<{
     edge: string;
     startX: number;
     startY: number;
     startBounds: WindowState['bounds'];
   } | null>(null);
+  const resizeRafRef = useRef<number | null>(null);
+  const pendingResizeBoundsRef = useRef<WindowState['bounds'] | null>(null);
 
   useEffect(() => {
     setBounds(win.bounds);
@@ -102,8 +111,48 @@ function AppWindow({
     onBoundsChange(bounds);
   }, [bounds, onBoundsChange]);
 
-  const handleTitleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const onPointerMove = useCallback((e: PointerEvent) => {
+    if (!dragRef.current) return;
+    const d = dragRef.current;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    d.lastDx = dx;
+    d.lastDy = dy;
+    const el = containerRef.current;
+    if (el) {
+      el.style.willChange = 'transform';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+    }
+  }, []);
+
+  const onPointerUp = useCallback(
+    (e: PointerEvent) => {
+      const el = containerRef.current;
+      if (el) {
+        el.removeEventListener('pointermove', onPointerMove);
+        el.removeEventListener('pointerup', onPointerUp as (e: Event) => void);
+        el.releasePointerCapture(e.pointerId);
+      }
+      if (dragRef.current) {
+        const d = dragRef.current;
+        if (el) {
+          el.style.transform = '';
+          el.style.willChange = '';
+        }
+        const finalBounds: WindowState['bounds'] = {
+          ...d.startBounds,
+          x: Math.max(0, d.startBounds.x + d.lastDx),
+          y: Math.max(0, d.startBounds.y + d.lastDy),
+        };
+        setBounds(finalBounds);
+        dragRef.current = null;
+      }
+    },
+    [onPointerMove]
+  );
+
+  const handleTitlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (e.button !== 0) return;
       e.preventDefault();
       onFocus();
@@ -111,9 +160,17 @@ function AppWindow({
         startX: e.clientX,
         startY: e.clientY,
         startBounds: { ...bounds },
+        lastDx: 0,
+        lastDy: 0,
       };
+      const el = containerRef.current;
+      if (el) {
+        el.setPointerCapture(e.pointerId);
+        el.addEventListener('pointermove', onPointerMove, { passive: true });
+        el.addEventListener('pointerup', onPointerUp as (e: Event) => void);
+      }
     },
-    [bounds, onFocus]
+    [bounds, onFocus, onPointerMove, onPointerUp]
   );
 
   const handleResizeMouseDown = useCallback(
@@ -132,52 +189,46 @@ function AppWindow({
     [bounds, onFocus]
   );
 
+  // Resize only: move/up on window (resize handles are outside iframe). Drag uses pointer capture.
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      if (dragRef.current) {
-        const { startX, startY, startBounds } = dragRef.current;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        setBounds((b) => ({
-          ...b,
-          x: Math.max(0, startBounds.x + dx),
-          y: Math.max(0, startBounds.y + dy),
-        }));
-      } else if (resizeRef.current) {
+      if (resizeRef.current) {
         const { edge, startX, startY, startBounds } = resizeRef.current;
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        setBounds((b) => {
-          const next = { ...startBounds };
-          if (edge.includes('e')) {
-            next.w = Math.max(MIN_WIDTH, startBounds.w + dx);
-          }
-          if (edge.includes('w')) {
-            const newW = Math.max(MIN_WIDTH, startBounds.w - dx);
-            next.x = startBounds.x + startBounds.w - newW;
-            next.w = newW;
-          }
-          if (edge.includes('s')) {
-            next.h = Math.max(MIN_HEIGHT, startBounds.h + dy);
-          }
-          if (edge.includes('n')) {
-            const newH = Math.max(MIN_HEIGHT, startBounds.h - dy);
-            next.y = startBounds.y + startBounds.h - newH;
-            next.h = newH;
-          }
-          return next;
-        });
+        const next: WindowState['bounds'] = { ...startBounds };
+        if (edge.includes('e')) next.w = Math.max(MIN_WIDTH, startBounds.w + dx);
+        if (edge.includes('w')) {
+          const newW = Math.max(MIN_WIDTH, startBounds.w - dx);
+          next.x = startBounds.x + startBounds.w - newW;
+          next.w = newW;
+        }
+        if (edge.includes('s')) next.h = Math.max(MIN_HEIGHT, startBounds.h + dy);
+        if (edge.includes('n')) {
+          const newH = Math.max(MIN_HEIGHT, startBounds.h - dy);
+          next.y = startBounds.y + startBounds.h - newH;
+          next.h = newH;
+        }
+        pendingResizeBoundsRef.current = next;
+        if (resizeRafRef.current == null) {
+          resizeRafRef.current = requestAnimationFrame(() => {
+            const pending = pendingResizeBoundsRef.current;
+            resizeRafRef.current = null;
+            pendingResizeBoundsRef.current = null;
+            if (pending) setBounds(pending);
+          });
+        }
       }
     };
     const onUp = () => {
-      dragRef.current = null;
       resizeRef.current = null;
     };
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousemove', onMove, { passive: true });
     window.addEventListener('mouseup', onUp);
     return () => {
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
+      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
     };
   }, []);
 
@@ -190,6 +241,7 @@ function AppWindow({
 
   return (
     <div
+      ref={containerRef}
       className="absolute flex flex-col rounded-lg border border-border bg-card shadow-lg overflow-hidden"
       style={{
         left: bounds.x,
@@ -201,10 +253,10 @@ function AppWindow({
       onClick={onFocus}
       onMouseDown={onFocus}
     >
-      {/* Title bar */}
+      {/* Title bar: pointer capture so drag continues when cursor is over iframe or outside window */}
       <div
         className="flex items-center gap-2 pl-2 pr-1 py-1 bg-muted/80 border-b border-border cursor-move select-none shrink-0"
-        onMouseDown={handleTitleMouseDown}
+        onPointerDown={handleTitlePointerDown}
       >
         {win.icon && (
           <img
