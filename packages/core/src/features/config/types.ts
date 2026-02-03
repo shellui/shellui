@@ -113,6 +113,16 @@ export interface ThemeDefinition {
   lineHeight?: string; // Optional custom line height (e.g., "1.6")
 }
 
+/** Sentry error reporting configuration. Only used in production; ignored in dev. */
+export interface SentryConfig {
+  /** Sentry DSN (Data Source Name). Required for Sentry to receive events. */
+  dsn: string;
+  /** Environment name (e.g. 'production', 'staging'). Shown in Sentry dashboard. */
+  environment?: string;
+  /** Release identifier (e.g. git SHA or version). Used for release-based grouping. */
+  release?: string;
+}
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -128,4 +138,6 @@ export interface ShellUIConfig {
   navigation?: (NavigationItem | NavigationGroup)[];
   themes?: ThemeDefinition[]; // Custom themes to register
   defaultTheme?: string; // Default theme name to use
+  /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
+  sentry?: SentryConfig;
 }

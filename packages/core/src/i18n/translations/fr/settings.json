@@ -41,6 +41,12 @@
   "advanced": {
     "title": "Avancé",
     "description": "Paramètres avancés et options de configuration.",
+    "errorReporting": {
+      "label": "Signalement d'erreurs",
+      "statusConfigured": "Configuré. Vous pouvez le désactiver ci-dessous.",
+      "statusNotConfigured": "Non configuré.",
+      "description": "Autoriser cette application à envoyer des rapports d'erreurs pour aider à corriger les problèmes."
+    },
     "developerFeatures": {
       "label": "Afficher les fonctionnalités pour les développeurs",
       "description": "Activez les outils et paramètres de développement dans le menu des paramètres."

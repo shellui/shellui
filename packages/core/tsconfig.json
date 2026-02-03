@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@shellui/sdk": ["../sdk/dist/index.d.ts"]
+      "@shellui/sdk": ["../sdk/src/index.ts"]
     }
   },
   "include": ["src", "src/features"]

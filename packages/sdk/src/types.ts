@@ -53,6 +53,10 @@ export interface Settings {
   developerFeatures: {
     enabled: boolean
   }
+  /** User toggle for sending error reports (only relevant when app has reporting configured). */
+  errorReporting: {
+    enabled: boolean
+  }
   logging: {
     namespaces: {
       shellsdk: boolean

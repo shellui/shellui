@@ -52,6 +52,9 @@ const defaultSettings: Settings = {
     developerFeatures: {
       enabled: false
     },
+    errorReporting: {
+      enabled: true
+    },
     logging: {
       namespaces: {
         shellsdk: false,
@@ -89,6 +92,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             return {
               ...defaultSettings,
               ...parsed,
+              errorReporting: {
+                enabled: parsed.errorReporting?.enabled ?? defaultSettings.errorReporting.enabled
+              },
               logging: {
                 namespaces: {
                   ...defaultSettings.logging.namespaces,

@@ -8,6 +8,7 @@ import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsProvider';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
+import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
 

@@ -7,7 +7,7 @@ const config: ShellUIConfig = {
   favicon: '/favicon.svg',
   logo: '/logo.svg',
   // Layout: 'sidebar' (default), 'fullscreen' (content only), or 'windows' (taskbar + multi-window)
-  layout: 'windows',
+  layout: 'sidebar',
   // Enable specific languages: single language string or array of language codes
   // Examples:
   // language: 'en',           // Only English

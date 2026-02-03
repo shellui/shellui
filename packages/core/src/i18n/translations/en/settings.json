@@ -41,6 +41,12 @@
   "advanced": {
     "title": "Advanced",
     "description": "Advanced settings and configuration options.",
+    "errorReporting": {
+      "label": "Error reporting",
+      "statusConfigured": "Configured. You can turn it off below.",
+      "statusNotConfigured": "Not configured.",
+      "description": "Allow this app to send error reports to help fix issues."
+    },
     "developerFeatures": {
       "label": "Show features for developers",
       "description": "Enable developer tools and settings in the settings menu."

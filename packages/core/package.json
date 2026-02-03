@@ -38,6 +38,7 @@
   "license": "MIT",
   "dependencies": {
     "@radix-ui/react-collapsible": "^1.1.12",
+    "@sentry/react": "^8.0.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-separator": "^1.1.8",
