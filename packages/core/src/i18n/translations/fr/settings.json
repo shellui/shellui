@@ -80,6 +80,12 @@
       "placeholder": "Choisir une destination…",
       "empty": "Aucun élément de navigation disponible (ouvrez depuis la racine pour voir les éléments)."
     },
+    "layout": {
+      "title": "Disposition",
+      "description": "Basculer entre la disposition avec barre latérale et la disposition fenêtres (barre des tâches). Remplace la config de l'app pour cette session.",
+      "sidebar": "Barre latérale",
+      "windows": "Fenêtres"
+    },
     "logging": {
       "title": "Journalisation",
       "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de ShellUI affichent des informations de débogage.",

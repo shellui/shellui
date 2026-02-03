@@ -5,16 +5,19 @@ import { useConfig } from "../../config/useConfig"
 import { flattenNavigationItems, resolveLocalizedString } from "../../layouts/utils"
 import { Switch } from "@/components/ui/switch"
 import { Select } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import { ToastTestButtons } from "./develop/ToastTestButtons"
 import { DialogTestButtons } from "./develop/DialogTestButtons"
 import { ModalTestButtons } from "./develop/ModalTestButtons"
 import { DrawerTestButtons } from "./develop/DrawerTestButtons"
+import type { LayoutType } from "../../config/types"
 
 export const Develop = () => {
   const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
   const { config } = useConfig()
   const currentLanguage = settings.language?.code || 'en'
+  const effectiveLayout: LayoutType = settings.layout ?? config?.layout ?? 'sidebar'
   const navItems =
     config?.navigation?.length
       ? flattenNavigationItems(config.navigation).filter(
@@ -110,6 +113,25 @@ export const Develop = () => {
         ) : (
           <p className="text-sm text-muted-foreground">{t('develop.navigation.empty')}</p>
         )}
+      </div>
+
+      <div>
+        <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.layout.title')}</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          {t('develop.layout.description')}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(['sidebar', 'windows'] as const).map((layoutMode) => (
+            <Button
+              key={layoutMode}
+              variant={effectiveLayout === layoutMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => updateSetting('layout', layoutMode as LayoutType)}
+            >
+              {t(`develop.layout.${layoutMode}`)}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div>

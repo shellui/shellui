@@ -73,6 +73,8 @@ export interface Settings {
   region: {
     timezone: string
   }
+  /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows'. When set, overrides config.layout (e.g. from Develop settings). */
+  layout?: 'sidebar' | 'fullscreen' | 'windows'
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
     items: SettingsNavigationItem[]

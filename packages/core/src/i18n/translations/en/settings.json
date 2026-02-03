@@ -80,6 +80,12 @@
       "placeholder": "Select a destination…",
       "empty": "No navigation items available (open from root to see items)."
     },
+    "layout": {
+      "title": "Layout",
+      "description": "Switch between sidebar layout and windows (taskbar) layout. This overrides the app config for this session.",
+      "sidebar": "Sidebar",
+      "windows": "Windows"
+    },
     "logging": {
       "title": "Logging",
       "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",

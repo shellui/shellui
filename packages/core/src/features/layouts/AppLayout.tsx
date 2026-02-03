@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
+import { useSettings } from '../settings/SettingsContext';
 
 const DefaultLayout = lazy(() => import('./DefaultLayout').then((m) => ({ default: m.DefaultLayout })));
 const FullscreenLayout = lazy(() => import('./FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })));
@@ -17,15 +18,18 @@ function LayoutFallback() {
   return <div className="min-h-screen bg-background" aria-hidden />;
 }
 
-/** Renders the layout based on config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
+/** Renders the layout based on settings.layout (override) or config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
 export function AppLayout({ layout = 'sidebar', title, appIcon, logo, navigation }: AppLayoutProps) {
+  const { settings } = useSettings();
+  const effectiveLayout: LayoutType = settings.layout ?? layout;
+
   let LayoutComponent: React.LazyExoticComponent<React.ComponentType<any>>;
   let layoutProps: Record<string, unknown>;
 
-  if (layout === 'fullscreen') {
+  if (effectiveLayout === 'fullscreen') {
     LayoutComponent = FullscreenLayout;
     layoutProps = { title, navigation };
-  } else if (layout === 'windows') {
+  } else if (effectiveLayout === 'windows') {
     LayoutComponent = WindowsLayout;
     layoutProps = { title, appIcon, logo, navigation };
   } else {
