@@ -1,31 +1,48 @@
+import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
-import { HomeView } from '../components/HomeView';
-import { SettingsView } from '../features/settings/SettingsView';
-import { ViewRoute } from '../components/ViewRoute';
-import { NotFoundView } from '../components/NotFoundView';
 import { AppLayout } from '../features/layouts/AppLayout';
 import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
+
+// Lazy load route components
+const HomeView = lazy(() => import('../components/HomeView').then((m) => ({ default: m.HomeView })));
+const SettingsView = lazy(() => import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
+const ViewRoute = lazy(() => import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })));
+const NotFoundView = lazy(() => import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })));
+
+function RouteFallback() {
+  return <div className="min-h-screen bg-background" aria-hidden />;
+}
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [{
     // Settings route (if configured)
     path: urls.settings,
     element: (
-      <SettingsView />
+      <Suspense fallback={<RouteFallback />}>
+        <SettingsView />
+      </Suspense>
     ),
     children: [
       {
         path: '*',
-        element: <NotFoundView />,
+        element: (
+          <Suspense fallback={<RouteFallback />}>
+            <NotFoundView />
+          </Suspense>
+        ),
       },
     ],
   },
   {
     // Catch-all route
     path: '*',
-    element: <NotFoundView />,
+    element: (
+      <Suspense fallback={<RouteFallback />}>
+        <NotFoundView />
+      </Suspense>
+    ),
   },
   ];
 
@@ -43,7 +60,11 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
     children: [
       {
         path: '/',
-        element: <HomeView />,
+        element: (
+          <Suspense fallback={<RouteFallback />}>
+            <HomeView />
+          </Suspense>
+        ),
       },
     ],
   };
@@ -54,7 +75,11 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
     navigationItems.forEach((item) => {
       layoutRoute.children!.push({
         path: `/${item.path}/*`,
-        element: <ViewRoute navigation={navigationItems} />,
+        element: (
+          <Suspense fallback={<RouteFallback />}>
+            <ViewRoute navigation={navigationItems} />
+          </Suspense>
+        ),
       });
     });
   }
