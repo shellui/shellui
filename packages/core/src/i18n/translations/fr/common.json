@@ -3,5 +3,14 @@
   "welcome": "Bienvenue sur {{title}}",
   "getStarted": "Sélectionnez un élément de navigation pour commencer.",
   "navigationError": "Erreur de navigation",
-  "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application."
+  "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application.",
+  "errorBoundary": {
+    "titleChunk": "La page n'a pas pu être chargée",
+    "titleGeneric": "Une erreur s'est produite",
+    "descriptionChunk": "Cela peut arriver après une mise à jour ou en cas de problème réseau. Essayez d'actualiser la page.",
+    "descriptionGeneric": "Une erreur inattendue s'est produite. Vous pouvez réessayer ou revenir à l'accueil.",
+    "tryAgain": "Réessayer",
+    "goToHome": "Retour à l'accueil",
+    "errorDetails": "Détails de l'erreur"
+  }
 }

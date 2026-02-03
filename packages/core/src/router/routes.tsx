@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router';
+import { Outlet } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
+import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
 import { AppLayout } from '../features/layouts/AppLayout';
 import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
@@ -16,34 +18,42 @@ function RouteFallback() {
 }
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
-  const routes: RouteObject[] = [{
-    // Settings route (if configured)
-    path: urls.settings,
-    element: (
-      <Suspense fallback={<RouteFallback />}>
-        <SettingsView />
-      </Suspense>
-    ),
-    children: [
-      {
-        path: '*',
-        element: (
-          <Suspense fallback={<RouteFallback />}>
-            <NotFoundView />
-          </Suspense>
-        ),
-      },
-    ],
-  },
-  {
-    // Catch-all route
-    path: '*',
-    element: (
-      <Suspense fallback={<RouteFallback />}>
-        <NotFoundView />
-      </Suspense>
-    ),
-  },
+  const routes: RouteObject[] = [
+    {
+      path: '/',
+      element: <Outlet />,
+      errorElement: <RouteErrorBoundary />,
+      children: [
+        {
+          // Settings route (if configured)
+          path: urls.settings.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <SettingsView />
+            </Suspense>
+          ),
+          children: [
+            {
+              path: '*',
+              element: (
+                <Suspense fallback={<RouteFallback />}>
+                  <NotFoundView />
+                </Suspense>
+              ),
+            },
+          ],
+        },
+        {
+          // Catch-all route
+          path: '*',
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <NotFoundView />
+            </Suspense>
+          ),
+        },
+      ],
+    },
   ];
 
   // Main layout route with nested routes
@@ -83,7 +93,7 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
       });
     });
   }
-  routes.push(layoutRoute);
+  routes[0].children!.push(layoutRoute);
 
   return routes;
 };
