@@ -4,7 +4,7 @@ import { useConfig } from '../features/config/useConfig';
 export const HomeView = () => {
   const { t } = useTranslation('common');
   const { config } = useConfig();
-
+  
   return (
     <div className="flex flex-col items-center justify-center h-full p-8 md:p-10">
       <h1
