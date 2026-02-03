@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { shellui } from "@shellui/sdk"
 import { useSettings } from "../hooks/useSettings"
+import { useConfig } from "../../config/useConfig"
+import { flattenNavigationItems, resolveLocalizedString } from "../../layouts/utils"
 import { Switch } from "@/components/ui/switch"
 import { Select } from "@/components/ui/select"
 import { ToastTestButtons } from "./develop/ToastTestButtons"
@@ -11,6 +13,14 @@ import { DrawerTestButtons } from "./develop/DrawerTestButtons"
 export const Develop = () => {
   const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
+  const { config } = useConfig()
+  const currentLanguage = settings.language?.code || 'en'
+  const navItems =
+    config?.navigation?.length
+      ? flattenNavigationItems(config.navigation).filter(
+          (item, index, self) => index === self.findIndex((i) => i.path === item.path)
+        )
+      : []
 
   return (
     <div className="space-y-6">
@@ -74,7 +84,7 @@ export const Develop = () => {
         <p className="text-sm text-muted-foreground mb-4">
           {t('develop.navigation.description')}
         </p>
-        {settings.navigation?.items?.length ? (
+        {navItems.length ? (
           <div className="space-y-2">
             <label htmlFor="develop-nav-select" className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
               {t('develop.navigation.selectLabel')}
@@ -85,21 +95,16 @@ export const Develop = () => {
               onChange={(e) => {
                 const path = e.target.value
                 if (path) {
-                  shellui.sendMessageToParent({
-                    type: 'SHELLUI_NAVIGATE',
-                    payload: { url: path.startsWith('/') ? path : `/${path}` },
-                  })
+                  shellui.navigate(path.startsWith('/') ? path : `/${path}`)
                 }
               }}
             >
               <option value="">{t('develop.navigation.placeholder')}</option>
-              {settings.navigation.items
-                .filter((item, index, self) => index === self.findIndex((i) => i.path === item.path))
-                .map((item) => (
-                  <option key={item.path} value={`/${item.path}`}>
-                    {item.label ?? item.path}
-                  </option>
-                ))}
+              {navItems.map((item) => (
+                <option key={item.path} value={`/${item.path}`}>
+                  {resolveLocalizedString(item.label, currentLanguage) || item.path}
+                </option>
+              ))}
             </Select>
           </div>
         ) : (

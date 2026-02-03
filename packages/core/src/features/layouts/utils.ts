@@ -1,4 +1,14 @@
-import type { NavigationItem, NavigationGroup } from '../config/types';
+import type { NavigationItem, NavigationGroup, LocalizedString } from '../config/types';
+
+/** Resolve a localized string to a single string for the given language. */
+export function resolveLocalizedString(
+  value: LocalizedString | undefined,
+  lang: string
+): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
+}
 
 /** Flatten navigation items from groups or flat array. */
 export function flattenNavigationItems(
