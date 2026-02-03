@@ -17,6 +17,10 @@ export const Z_INDEX = {
   /** Alert dialog overlay and content (confirmations; above toasts) */
   ALERT_DIALOG_OVERLAY: 10200,
   ALERT_DIALOG_CONTENT: 10201,
+  /** Windows layout: taskbar (below windows), windows use dynamic z-index above this */
+  WINDOWS_TASKBAR: 9000,
+  /** Base z-index for windows; each window gets base + order */
+  WINDOWS_WINDOW_BASE: 9001,
 } as const;
 
 export type ZIndexLayer = keyof typeof Z_INDEX;

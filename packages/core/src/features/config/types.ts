@@ -8,8 +8,8 @@ export type LocalizedString = string | {
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area. */
-export type LayoutType = 'sidebar' | 'fullscreen';
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop. */
+export type LayoutType = 'sidebar' | 'fullscreen' | 'windows';
 
 export interface NavigationItem {
   label: string | LocalizedString;
