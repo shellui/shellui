@@ -18,6 +18,10 @@ export interface NavigationItem {
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
   /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
   hidden?: boolean;
+  /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
+  hiddenOnMobile?: boolean;
+  /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */
+  hiddenOnDesktop?: boolean;
   /** How to open this link: 'default' (navigate in main area), 'modal', 'drawer', or 'external' (target="_blank"). */
   openIn?: 'default' | 'modal' | 'drawer' | 'external';
   /** Optional drawer position when openIn === 'drawer'. Default is 'right' if omitted. */

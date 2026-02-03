@@ -25,6 +25,38 @@ export function flattenNavigationItems(
   });
 }
 
+export type Viewport = 'mobile' | 'desktop';
+
+/** Filter navigation by viewport: remove hidden and viewport-specific hidden items (and empty groups). */
+export function filterNavigationByViewport(
+  navigation: (NavigationItem | NavigationGroup)[],
+  viewport: Viewport
+): (NavigationItem | NavigationGroup)[] {
+  if (navigation.length === 0) return [];
+  const hideOnMobile = viewport === 'mobile';
+  const hideOnDesktop = viewport === 'desktop';
+  return navigation
+    .map((item) => {
+      if ('title' in item && 'items' in item) {
+        const group = item as NavigationGroup;
+        const visibleItems = group.items.filter((navItem) => {
+          if (navItem.hidden) return false;
+          if (hideOnMobile && navItem.hiddenOnMobile) return false;
+          if (hideOnDesktop && navItem.hiddenOnDesktop) return false;
+          return true;
+        });
+        if (visibleItems.length === 0) return null;
+        return { ...group, items: visibleItems };
+      }
+      const navItem = item as NavigationItem;
+      if (navItem.hidden) return null;
+      if (hideOnMobile && navItem.hiddenOnMobile) return null;
+      if (hideOnDesktop && navItem.hiddenOnDesktop) return null;
+      return item;
+    })
+    .filter((item): item is NavigationItem | NavigationGroup => item !== null);
+}
+
 /** Filter navigation for sidebar: remove hidden items and groups that become empty. */
 export function filterNavigationForSidebar(
   navigation: (NavigationItem | NavigationGroup)[]

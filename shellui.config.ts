@@ -123,7 +123,8 @@ const config: ShellUIConfig = {
       path: 'sebastienbarbier',
       url: 'https://sebastienbarbier.com/',
       openIn: 'external',
-      position: 'end'
+      position: 'end',
+      hiddenOnMobile: true
     },
     {
       // Group title can also be localized
@@ -161,7 +162,8 @@ const config: ShellUIConfig = {
       url: urls.settings,
       icon: '/icons/settings.svg',
       openIn: 'modal',
-      position: 'end'
+      position: 'end',
+      hiddenOnMobile: true
     }
   ]
 };

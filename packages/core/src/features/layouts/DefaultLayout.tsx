@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -17,7 +17,14 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
-import { filterNavigationForSidebar, flattenNavigationItems, splitNavigationByPosition } from './utils';
+import { Z_INDEX } from '@/lib/z-index';
+import {
+  filterNavigationByViewport,
+  filterNavigationForSidebar,
+  flattenNavigationItems,
+  resolveLocalizedString as resolveNavLabel,
+  splitNavigationByPosition,
+} from './utils';
 import { LayoutProviders } from './LayoutProviders';
 import { OverlayShell } from './OverlayShell';
 
@@ -170,6 +177,41 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
   );
 };
 
+/** Reusable sidebar inner: header, main nav, footer. Used in desktop Sidebar and mobile Drawer. */
+const SidebarInner = ({
+  title,
+  logo,
+  startNav,
+  endItems,
+}: {
+  title?: string;
+  logo?: string;
+  startNav: (NavigationItem | NavigationGroup)[];
+  endItems: (NavigationItem | NavigationGroup)[];
+}) => (
+  <>
+    <SidebarHeader className="border-b border-sidebar-border pb-4">
+      {(title || logo) && (
+        <Link to="/" className="flex items-center pl-1 pr-3 py-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
+          {logo && logo.trim() ? (
+            <img src={logo} alt={title || 'Logo'} className="h-5 w-auto shrink-0 object-contain sidebar-logo" />
+          ) : title ? (
+            <span className="leading-none">{title}</span>
+          ) : null}
+        </Link>
+      )}
+    </SidebarHeader>
+    <SidebarContent className="gap-1">
+      <NavigationContent navigation={startNav} />
+    </SidebarContent>
+    {endItems.length > 0 && (
+      <SidebarFooter>
+        <NavigationContent navigation={endItems} />
+      </SidebarFooter>
+    )}
+  </>
+);
+
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
   lang: string
@@ -178,17 +220,293 @@ function resolveLocalizedLabel(
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
 }
 
+/** Approximate width per slot (icon + label + padding) and gap for dynamic slot count. */
+const BOTTOM_NAV_SLOT_WIDTH = 64;
+const BOTTOM_NAV_GAP = 4;
+const BOTTOM_NAV_PX = 12;
+/** Max slots in the row (Home + nav + optional More) to avoid overflow/duplicated wrap. */
+const BOTTOM_NAV_MAX_SLOTS = 6;
+
+/** True when the icon is a local app icon (/icons/); external images (avatars, favicons) are shown as-is. */
+const isAppIcon = (src: string) => src.startsWith('/icons/');
+
+/** Single nav item for bottom bar: icon + label, link or action. */
+const BottomNavItem = ({
+  item,
+  label,
+  isActive,
+  iconSrc,
+  applyIconTheme,
+}: {
+  item: NavigationItem;
+  label: string;
+  isActive: boolean;
+  iconSrc: string | null;
+  applyIconTheme: boolean;
+}) => {
+  const pathPrefix = `/${item.path}`;
+  const content = (
+    <span className="flex flex-col items-center justify-center gap-1 w-full min-w-0 max-w-full overflow-hidden">
+      {iconSrc ? (
+        <img
+          src={iconSrc}
+          alt=""
+          className={cn(
+            'size-4 shrink-0 rounded-sm object-cover',
+            applyIconTheme && 'opacity-90 dark:opacity-100 dark:invert'
+          )}
+        />
+      ) : (
+        <span className="size-4 shrink-0 rounded-sm bg-muted" />
+      )}
+      <span className="text-[11px] leading-tight truncate w-full min-w-0 text-center block">{label}</span>
+    </span>
+  );
+  const baseClass = cn(
+    'flex flex-col items-center justify-center rounded-md py-1.5 px-2 min-w-0 max-w-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    isActive
+      ? 'bg-accent text-accent-foreground [&_span]:text-accent-foreground'
+      : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground [&_span]:inherit'
+  );
+  if (item.openIn === 'modal') {
+    return (
+      <button type="button" onClick={() => shellui.openModal(item.url)} className={baseClass}>
+        {content}
+      </button>
+    );
+  }
+  if (item.openIn === 'drawer') {
+    return (
+      <button
+        type="button"
+        onClick={() => shellui.openDrawer({ url: item.url, position: item.drawerPosition })}
+        className={baseClass}
+      >
+        {content}
+      </button>
+    );
+  }
+  if (item.openIn === 'external') {
+    return (
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className={baseClass}>
+        {content}
+      </a>
+    );
+  }
+  return (
+    <Link to={pathPrefix} className={baseClass}>
+      {content}
+    </Link>
+  );
+};
+
+/** Caret up: expand (show second line). */
+const CaretUpIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn('shrink-0', className)}
+    aria-hidden
+  >
+    <path d="m18 15-6-6-6 6" />
+  </svg>
+);
+
+/** Caret down: collapse (hide second line). */
+const CaretDownIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn('shrink-0', className)}
+    aria-hidden
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+/** Home icon for mobile bottom bar (same as sidebar logo action). */
+const HomeIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={cn('shrink-0', className)}
+    aria-hidden
+  >
+    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
+/** Mobile bottom nav: Home + nav items; More only when not all fit. Dynamic from width. */
+const MobileBottomNav = ({
+  items,
+  currentLanguage,
+}: {
+  items: NavigationItem[];
+  currentLanguage: string;
+}) => {
+  const location = useLocation();
+  const [expanded, setExpanded] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const [rowWidth, setRowWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      setRowWidth(w);
+    });
+    ro.observe(el);
+    setRowWidth(el.getBoundingClientRect().width);
+    return () => ro.disconnect();
+  }, []);
+
+  const { rowItems, overflowItems, hasMore } = useMemo(() => {
+    const list = items.slice();
+    const contentWidth = Math.max(0, rowWidth - BOTTOM_NAV_PX * 2);
+    const slotTotal = BOTTOM_NAV_SLOT_WIDTH + BOTTOM_NAV_GAP;
+    const computedSlots = rowWidth > 0 ? Math.floor((contentWidth + BOTTOM_NAV_GAP) / slotTotal) : 5;
+    const totalSlots = Math.min(Math.max(0, computedSlots), BOTTOM_NAV_MAX_SLOTS);
+    const slotsForNav = totalSlots - 1;
+    const allFit = list.length <= slotsForNav;
+    const maxInRow = allFit ? list.length : Math.max(0, totalSlots - 2);
+    const row = list.slice(0, maxInRow);
+    const rowPaths = new Set(row.map((i) => i.path));
+    const overflow = list.filter((item) => !rowPaths.has(item.path));
+    return {
+      rowItems: row,
+      overflowItems: overflow,
+      hasMore: overflow.length > 0,
+    };
+  }, [items, rowWidth]);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [location.pathname]);
+
+  const renderItem = (item: NavigationItem, index: number) => {
+    const pathPrefix = `/${item.path}`;
+    const isOverlayOrExternal = item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external';
+    const isActive = !isOverlayOrExternal && (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    const label = resolveNavLabel(item.label, currentLanguage);
+    const faviconUrl = item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
+    const iconSrc = item.icon ?? faviconUrl ?? null;
+    const applyIconTheme = iconSrc ? isAppIcon(iconSrc) : false;
+    return (
+      <BottomNavItem
+        key={`${item.path}-${item.url}-${index}`}
+        item={item}
+        label={label}
+        isActive={isActive}
+        iconSrc={iconSrc}
+        applyIconTheme={applyIconTheme}
+      />
+    );
+  };
+
+  return (
+    <nav
+      ref={navRef}
+      className="fixed bottom-0 left-0 right-0 z-[9999] md:hidden border-t border-sidebar-border bg-sidebar-background overflow-hidden pt-2"
+      style={{
+        zIndex: Z_INDEX.SIDEBAR_TRIGGER,
+        paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
+      }}
+    >
+      {/* Top row: Home + nav items + More/Less — single row, no wrap */}
+      <div className="flex flex-row flex-nowrap items-center justify-center gap-1 px-3 overflow-x-hidden">
+        <Link
+          to="/"
+          className={cn(
+            'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            location.pathname === '/' || location.pathname === ''
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground [&_span]:text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit'
+          )}
+          aria-label="Home"
+        >
+          <span className="size-4 shrink-0 flex items-center justify-center [&_svg]:text-current">
+            <HomeIcon className="size-4" />
+          </span>
+          <span className="text-[11px] leading-tight">Home</span>
+        </Link>
+        {rowItems.map((item, i) => renderItem(item, i))}
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer',
+              'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+            )}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Show less' : 'Show more'}
+          >
+            <span className="size-4 shrink-0 flex items-center justify-center">
+              {expanded ? <CaretDownIcon className="size-4" /> : <CaretUpIcon className="size-4" />}
+            </span>
+            <span className="text-[11px] leading-tight">{expanded ? 'Less' : 'More'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Expanded: only overflow items — render list only when expanded so it clears when collapsed */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-300 ease-out',
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        )}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pt-3 pb-2 border-t border-sidebar-border/50 mt-1">
+            <div className="grid grid-cols-5 gap-2 justify-items-center max-w-xs mx-auto">
+              {expanded ? overflowItems.map((item, i) => renderItem(item, i)) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
 const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) => {
   const location = useLocation();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
 
-  const { startNav, endItems, navigationItems } = useMemo(() => {
-    const { start, end } = splitNavigationByPosition(navigation);
+  const { startNav, endItems, navigationItems, mobileNavItems } = useMemo(() => {
+    const desktopNav = filterNavigationByViewport(navigation, 'desktop');
+    const mobileNav = filterNavigationByViewport(navigation, 'mobile');
+    const { start, end } = splitNavigationByPosition(desktopNav);
+    const flat = flattenNavigationItems(desktopNav);
+    const mobileFlat = flattenNavigationItems(mobileNav);
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
-      navigationItems: flattenNavigationItems(navigation),
+      navigationItems: flat,
+      mobileNavItems: mobileFlat,
     };
   }, [navigation]);
 
@@ -214,34 +532,20 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
       <SidebarProvider>
         <OverlayShell navigationItems={navigationItems}>
           <div className="flex h-screen overflow-hidden">
-            <Sidebar>
-              <SidebarHeader className="border-b border-sidebar-border pb-4">
-                {(title || logo) && (
-                  <Link to="/" className="flex items-center pl-1 pr-3 py-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
-                    {logo && logo.trim() ? (
-                      <img src={logo} alt={title || 'Logo'} className="h-5 w-auto shrink-0 object-contain sidebar-logo" />
-                    ) : title ? (
-                      <span className="leading-none">{title}</span>
-                    ) : null}
-                  </Link>
-                )}
-              </SidebarHeader>
-
-              <SidebarContent className="gap-1">
-                <NavigationContent navigation={startNav} />
-              </SidebarContent>
-
-              {endItems.length > 0 && (
-                <SidebarFooter>
-                  <NavigationContent navigation={endItems} />
-                </SidebarFooter>
-              )}
+            {/* Desktop sidebar: visible from md up */}
+            <Sidebar className={cn('hidden md:flex shrink-0')}>
+              <SidebarInner title={title} logo={logo} startNav={startNav} endItems={endItems} />
             </Sidebar>
 
-            <main className="flex-1 flex flex-col overflow-hidden bg-background relative">
-              <Outlet />
+            <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
+              <div className="flex-1 flex flex-col overflow-auto pb-16 md:pb-0">
+                <Outlet />
+              </div>
             </main>
           </div>
+
+          {/* Mobile bottom nav: visible only below md */}
+          <MobileBottomNav items={mobileNavItems} currentLanguage={currentLanguage} />
         </OverlayShell>
       </SidebarProvider>
     </LayoutProviders>
