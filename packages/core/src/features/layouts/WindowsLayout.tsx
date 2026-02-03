@@ -53,6 +53,15 @@ const DEFAULT_WIDTH = 720;
 const DEFAULT_HEIGHT = 480;
 const TASKBAR_HEIGHT = 48;
 
+function getMaximizedBounds(): WindowState['bounds'] {
+  return {
+    x: 0,
+    y: 0,
+    w: typeof window !== 'undefined' ? window.innerWidth : 800,
+    h: typeof window !== 'undefined' ? window.innerHeight - TASKBAR_HEIGHT : 600,
+  };
+}
+
 function buildFinalUrl(baseUrl: string, path: string, pathname: string): string {
   const pathPrefix = `/${path}`;
   const subPath =
@@ -86,6 +95,8 @@ function AppWindow({
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
   const [bounds, setBounds] = useState(win.bounds);
+  const [isMaximized, setIsMaximized] = useState(false);
+  const boundsBeforeMaximizeRef = useRef<WindowState['bounds']>(bounds);
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     startX: number;
@@ -110,6 +121,14 @@ function AppWindow({
   useEffect(() => {
     onBoundsChange(bounds);
   }, [bounds, onBoundsChange]);
+
+  // When maximized, keep filling the viewport on window resize
+  useEffect(() => {
+    if (!isMaximized) return;
+    const onResize = () => setBounds(getMaximizedBounds());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [isMaximized]);
 
   const onPointerMove = useCallback((e: PointerEvent) => {
     if (!dragRef.current) return;
@@ -153,7 +172,9 @@ function AppWindow({
 
   const handleTitlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || isMaximized) return;
+      // Don't start drag when clicking a button (close, maximize) so their click handlers run
+      if ((e.target as Element).closest('button')) return;
       e.preventDefault();
       onFocus();
       dragRef.current = {
@@ -170,11 +191,64 @@ function AppWindow({
         el.addEventListener('pointerup', onPointerUp as (e: Event) => void);
       }
     },
-    [bounds, onFocus, onPointerMove, onPointerUp]
+    [bounds, isMaximized, onFocus, onPointerMove, onPointerUp]
   );
 
-  const handleResizeMouseDown = useCallback(
-    (e: React.MouseEvent, edge: string) => {
+  const handleMaximizeToggle = useCallback(() => {
+    if (isMaximized) {
+      setBounds(boundsBeforeMaximizeRef.current);
+      setIsMaximized(false);
+    } else {
+      boundsBeforeMaximizeRef.current = { ...bounds };
+      setBounds(getMaximizedBounds());
+      setIsMaximized(true);
+    }
+  }, [isMaximized, bounds]);
+
+  const onResizePointerMove = useCallback((e: PointerEvent) => {
+    if (!resizeRef.current) return;
+    const { edge, startX, startY, startBounds } = resizeRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    const next: WindowState['bounds'] = { ...startBounds };
+    if (edge.includes('e')) next.w = Math.max(MIN_WIDTH, startBounds.w + dx);
+    if (edge.includes('w')) {
+      const newW = Math.max(MIN_WIDTH, startBounds.w - dx);
+      next.x = startBounds.x + startBounds.w - newW;
+      next.w = newW;
+    }
+    if (edge.includes('s')) next.h = Math.max(MIN_HEIGHT, startBounds.h + dy);
+    if (edge.includes('n')) {
+      const newH = Math.max(MIN_HEIGHT, startBounds.h - dy);
+      next.y = startBounds.y + startBounds.h - newH;
+      next.h = newH;
+    }
+    pendingResizeBoundsRef.current = next;
+    if (resizeRafRef.current == null) {
+      resizeRafRef.current = requestAnimationFrame(() => {
+        const pending = pendingResizeBoundsRef.current;
+        resizeRafRef.current = null;
+        pendingResizeBoundsRef.current = null;
+        if (pending) setBounds(pending);
+      });
+    }
+  }, []);
+
+  const onResizePointerUp = useCallback(
+    (e: PointerEvent) => {
+      const el = containerRef.current;
+      if (el) {
+        el.removeEventListener('pointermove', onResizePointerMove as (e: Event) => void);
+        el.removeEventListener('pointerup', onResizePointerUp as (e: Event) => void);
+        el.releasePointerCapture(e.pointerId);
+      }
+      resizeRef.current = null;
+    },
+    [onResizePointerMove]
+  );
+
+  const handleResizePointerDown = useCallback(
+    (e: React.PointerEvent, edge: string) => {
       if (e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();
@@ -185,52 +259,17 @@ function AppWindow({
         startY: e.clientY,
         startBounds: { ...bounds },
       };
-    },
-    [bounds, onFocus]
-  );
-
-  // Resize only: move/up on window (resize handles are outside iframe). Drag uses pointer capture.
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (resizeRef.current) {
-        const { edge, startX, startY, startBounds } = resizeRef.current;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        const next: WindowState['bounds'] = { ...startBounds };
-        if (edge.includes('e')) next.w = Math.max(MIN_WIDTH, startBounds.w + dx);
-        if (edge.includes('w')) {
-          const newW = Math.max(MIN_WIDTH, startBounds.w - dx);
-          next.x = startBounds.x + startBounds.w - newW;
-          next.w = newW;
-        }
-        if (edge.includes('s')) next.h = Math.max(MIN_HEIGHT, startBounds.h + dy);
-        if (edge.includes('n')) {
-          const newH = Math.max(MIN_HEIGHT, startBounds.h - dy);
-          next.y = startBounds.y + startBounds.h - newH;
-          next.h = newH;
-        }
-        pendingResizeBoundsRef.current = next;
-        if (resizeRafRef.current == null) {
-          resizeRafRef.current = requestAnimationFrame(() => {
-            const pending = pendingResizeBoundsRef.current;
-            resizeRafRef.current = null;
-            pendingResizeBoundsRef.current = null;
-            if (pending) setBounds(pending);
-          });
-        }
+      const el = containerRef.current;
+      if (el) {
+        el.setPointerCapture(e.pointerId);
+        el.addEventListener('pointermove', onResizePointerMove as (e: Event) => void, {
+          passive: true,
+        });
+        el.addEventListener('pointerup', onResizePointerUp as (e: Event) => void);
       }
-    };
-    const onUp = () => {
-      resizeRef.current = null;
-    };
-    window.addEventListener('mousemove', onMove, { passive: true });
-    window.addEventListener('mouseup', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
-    };
-  }, []);
+    },
+    [bounds, onFocus, onResizePointerMove, onResizePointerUp]
+  );
 
   const finalUrl = useMemo(
     () => buildFinalUrl(win.baseUrl, win.path, win.pathname),
@@ -273,6 +312,21 @@ function AppWindow({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
+            handleMaximizeToggle();
+          }}
+          className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          aria-label={isMaximized ? 'Restore' : 'Maximize'}
+        >
+          {isMaximized ? (
+            <RestoreIcon className="h-4 w-4" />
+          ) : (
+            <MaximizeIcon className="h-4 w-4" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
             onClose();
           }}
           className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -302,8 +356,9 @@ function AppWindow({
           navItem={navItem}
         />
       </div>
-      {/* Resize handles */}
-      {(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((edge) => (
+      {/* Resize handles (hidden when maximized) */}
+      {!isMaximized &&
+        (['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((edge) => (
         <div
           key={edge}
           className={cn(
@@ -332,10 +387,54 @@ function AppWindow({
                     ? { top: 8, bottom: 8 }
                     : undefined
           }
-          onMouseDown={(e) => handleResizeMouseDown(e, edge)}
+          onPointerDown={(e) => handleResizePointerDown(e, edge)}
         />
       ))}
     </div>
+  );
+}
+
+function MaximizeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+      <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
+function RestoreIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="10" height="10" rx="1" />
+      <rect x="11" y="11" width="10" height="10" rx="1" />
+    </svg>
   );
 }
 
