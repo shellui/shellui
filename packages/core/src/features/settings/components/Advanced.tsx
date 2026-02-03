@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next"
-import * as Sentry from "@sentry/react"
 import { Switch } from "@/components/ui/switch"
 import { useConfig } from "@/features/config/useConfig"
-import { initSentry } from "@/features/sentry/initSentry"
+import { closeSentry, initSentry } from "@/features/sentry/initSentry"
 import { useSettings } from "../hooks/useSettings"
 
 export const Advanced = () => {
@@ -16,7 +15,7 @@ export const Advanced = () => {
     if (checked) {
       initSentry()
     } else {
-      Sentry.close()
+      closeSentry()
     }
   }
 
