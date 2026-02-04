@@ -26,7 +26,7 @@ import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types.js';
+export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DialogPosition, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types.js';
 
 export class ShellUISDK {
   initialized = false;
@@ -133,6 +133,16 @@ export class ShellUISDK {
         this.callbackRegistry.clear(id);
       } else {
         logger.warn('SHELLUI_DIALOG_CANCEL message missing id');
+      }
+    });
+
+    this.addMessageListener('SHELLUI_DIALOG_SECONDARY', (data) => {
+      const { id } = (data.payload as { id?: string }) ?? {};
+      if (id) {
+        this.callbackRegistry.triggerSecondary(id);
+        this.callbackRegistry.clear(id);
+      } else {
+        logger.warn('SHELLUI_DIALOG_SECONDARY message missing id');
       }
     });
   }

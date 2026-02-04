@@ -8,6 +8,7 @@ import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsProvider';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
+import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
@@ -76,7 +77,9 @@ const App = () => {
       <SettingsProvider>
         <ThemeProvider>
           <I18nProvider>
-            <AppContent />
+            <DialogProvider>
+              <AppContent />
+            </DialogProvider>
           </I18nProvider>
         </ThemeProvider>
       </SettingsProvider>

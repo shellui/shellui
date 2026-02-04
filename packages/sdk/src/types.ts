@@ -29,6 +29,8 @@ export type DialogMode = 'ok' | 'okCancel' | 'delete' | 'confirm' | 'onlyCancel'
 
 export type AlertDialogSize = 'default' | 'sm';
 
+export type DialogPosition = 'center' | 'bottom-left';
+
 export interface DialogOptions {
   id?: string;
   title: string;
@@ -37,6 +39,12 @@ export interface DialogOptions {
   okLabel?: string;
   cancelLabel?: string;
   size?: AlertDialogSize;
+  position?: DialogPosition;
+  secondaryButton?: {
+    label: string;
+    onClick: () => void;
+  };
+  icon?: string; // Icon identifier (e.g., 'cookie') - React nodes cannot be serialized
   onOk?: () => void;
   onCancel?: () => void;
 }
@@ -124,6 +132,7 @@ export type ShellUIMessageType =
   | 'SHELLUI_DIALOG_UPDATE'
   | 'SHELLUI_DIALOG_OK'
   | 'SHELLUI_DIALOG_CANCEL'
+  | 'SHELLUI_DIALOG_SECONDARY'
   | 'SHELLUI_INITIALIZED';
 
 export interface ShellUIMessage {

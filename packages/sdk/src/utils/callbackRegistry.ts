@@ -12,6 +12,7 @@ const logger = getLogger('shellsdk');
 interface CallbackEntry {
   action?: () => void;
   cancel?: () => void;
+  secondary?: () => void;
   createdAt: Date;
 }
 
@@ -20,7 +21,7 @@ export class CallbackRegistry {
 
   register(
     id: string,
-    { action, cancel }: { action?: () => void; cancel?: () => void } = {}
+    { action, cancel, secondary }: { action?: () => void; cancel?: () => void; secondary?: () => void } = {}
   ): void {
     if (!id) {
       logger.warn('Cannot register callback without ID');
@@ -30,12 +31,14 @@ export class CallbackRegistry {
     this.callbacks.set(id, {
       action,
       cancel,
+      secondary,
       createdAt: new Date(),
     });
 
     logger.debug(`Registered callbacks for ID ${id}`, {
       hasAction: !!action,
       hasCancel: !!cancel,
+      hasSecondary: !!secondary,
     });
   }
 
@@ -84,6 +87,30 @@ export class CallbackRegistry {
     }
 
     logger.warn(`No cancel callback found for ID ${id}`);
+    return false;
+  }
+
+  triggerSecondary(id: string): boolean {
+    const callbacks = this.callbacks.get(id);
+    if (!callbacks) {
+      logger.warn(`No callbacks found for ID ${id}`);
+      return false;
+    }
+
+    if (callbacks.secondary && typeof callbacks.secondary === 'function') {
+      try {
+        callbacks.secondary();
+        logger.debug(`Triggered secondary callback for ID ${id}`);
+        return true;
+      } catch (error) {
+        logger.error(`Error triggering secondary callback for ID ${id}:`, {
+          error,
+        });
+        return false;
+      }
+    }
+
+    logger.warn(`No secondary callback found for ID ${id}`);
     return false;
   }
 

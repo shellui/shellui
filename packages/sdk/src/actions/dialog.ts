@@ -15,10 +15,11 @@ export function dialog(options?: DialogOptions): string | void {
 
   const dialogId = options.id ?? generateUuid();
 
-  if (options.onOk || options.onCancel) {
+  if (options.onOk || options.onCancel || options.secondaryButton?.onClick) {
     shellui.callbackRegistry.register(dialogId, {
       action: options.onOk,
       cancel: options.onCancel,
+      secondary: options.secondaryButton?.onClick,
     });
   }
 
@@ -34,6 +35,12 @@ export function dialog(options?: DialogOptions): string | void {
       okLabel: options.okLabel,
       cancelLabel: options.cancelLabel,
       size: options.size,
+      position: options.position,
+      secondaryButton: options.secondaryButton ? {
+        label: options.secondaryButton.label,
+        onClick: undefined,
+      } : undefined,
+      icon: options.icon,
       onOk: undefined,
       onCancel: undefined,
     },
