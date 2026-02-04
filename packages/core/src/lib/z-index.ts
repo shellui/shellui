@@ -17,6 +17,9 @@ export const Z_INDEX = {
   /** Alert dialog overlay and content (confirmations; above toasts) */
   ALERT_DIALOG_OVERLAY: 10200,
   ALERT_DIALOG_CONTENT: 10201,
+  /** Cookie consent (above everything to ensure visibility) */
+  COOKIE_CONSENT_OVERLAY: 10300,
+  COOKIE_CONSENT_CONTENT: 10301,
   /** Windows layout: taskbar (below windows), windows use dynamic z-index above this */
   WINDOWS_TASKBAR: 9000,
   /** Base z-index for windows; each window gets base + order */

@@ -55,6 +55,26 @@
   "dataPrivacy": {
     "title": "Data Privacy",
     "description": "Manage your data privacy settings and reset all app data.",
+    "cookieConsent": {
+      "title": "Cookie Consent",
+      "descriptionConsented": "You have made a choice about cookies. Reset to be asked again on your next visit.",
+      "descriptionNotConsented": "You have not yet made a choice about cookies.",
+      "statusAcceptedAll": "You have accepted all cookies. This helps us provide you with the best experience.",
+      "statusRejectedAll": "You have rejected non-essential cookies. Only strictly necessary cookies are active.",
+      "labelAcceptedAll": "All accepted",
+      "labelRejectedAll": "Non-essential rejected",
+      "button": "Reset Cookie Consent",
+      "dialog": {
+        "title": "Reset Cookie Consent?",
+        "description": "This will clear your cookie preferences. You will be asked to accept or reject cookies on your next visit.",
+        "confirm": "Reset",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "title": "Cookie Consent Reset",
+        "description": "You will be asked about cookies on your next visit."
+      }
+    },
     "resetData": {
       "title": "Reset All Data",
       "description": "This will permanently delete all your settings and app data. This action cannot be undone.",

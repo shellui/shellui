@@ -73,6 +73,17 @@ export interface Settings {
   region: {
     timezone: string
   }
+  /**
+   * Cookie consent: hosts the user has accepted. Only enable a feature when its cookie host is in acceptedHosts.
+   * consentedCookieHosts = list of hosts that were in config when user last gave consent; if config has a host
+   * not in this list, re-prompt and pre-fill with acceptedHosts so existing approvals are kept.
+   */
+  cookieConsent?: {
+    /** Hosts the user has accepted (e.g. ["sentry.io", ".example.com"]). */
+    acceptedHosts: string[]
+    /** Hosts that were in config when user last consented; used to detect new cookies and re-collect consent. */
+    consentedCookieHosts: string[]
+  }
   /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows'. When set, overrides config.layout (e.g. from Develop settings). */
   layout?: 'sidebar' | 'fullscreen' | 'windows'
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */

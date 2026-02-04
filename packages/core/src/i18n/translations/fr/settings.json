@@ -55,6 +55,26 @@
   "dataPrivacy": {
     "title": "Confidentialité des données",
     "description": "Gérez vos paramètres de confidentialité des données et réinitialisez toutes les données de l'application.",
+    "cookieConsent": {
+      "title": "Consentement aux cookies",
+      "descriptionConsented": "Vous avez fait un choix concernant les cookies. Réinitialisez pour être redemandé lors de votre prochaine visite.",
+      "descriptionNotConsented": "Vous n'avez pas encore fait de choix concernant les cookies.",
+      "statusAcceptedAll": "Vous avez accepté tous les cookies. Cela nous aide à vous offrir la meilleure expérience.",
+      "statusRejectedAll": "Vous avez refusé les cookies non essentiels. Seuls les cookies strictement nécessaires sont actifs.",
+      "labelAcceptedAll": "Tous acceptés",
+      "labelRejectedAll": "Non essentiels refusés",
+      "button": "Réinitialiser le consentement",
+      "dialog": {
+        "title": "Réinitialiser le consentement aux cookies ?",
+        "description": "Cela effacera vos préférences de cookies. Vous serez invité à accepter ou refuser les cookies lors de votre prochaine visite.",
+        "confirm": "Réinitialiser",
+        "cancel": "Annuler"
+      },
+      "toast": {
+        "title": "Consentement réinitialisé",
+        "description": "Vous serez invité à choisir vos préférences de cookies lors de votre prochaine visite."
+      }
+    },
     "resetData": {
       "title": "Réinitialiser toutes les données",
       "description": "Cela supprimera définitivement tous vos paramètres et données d'application. Cette action ne peut pas être annulée.",

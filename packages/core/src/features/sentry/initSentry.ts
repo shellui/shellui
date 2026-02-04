@@ -1,3 +1,5 @@
+import { getCookieConsentAccepted } from '../cookieConsent/cookieConsent';
+
 const SETTINGS_KEY = 'shellui:settings';
 
 /** True after @sentry/react has been lazy-loaded and init() was called. */
@@ -5,6 +7,8 @@ let sentryLoaded = false;
 
 function isErrorReportingEnabled(): boolean {
   if (typeof window === 'undefined') return true;
+  // If cookie consent is configured with a cookie for sentry.io, only enable when user accepted it
+  if (!getCookieConsentAccepted('sentry.io')) return false;
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (!stored) return true;

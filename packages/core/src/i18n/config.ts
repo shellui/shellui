@@ -2,8 +2,10 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import enCommon from './translations/en/common.json';
 import enSettings from './translations/en/settings.json';
+import enCookieConsent from './translations/en/cookieConsent.json';
 import frCommon from './translations/fr/common.json';
 import frSettings from './translations/fr/settings.json';
+import frCookieConsent from './translations/fr/cookieConsent.json';
 
 export const allSupportedLanguages = [
   { code: 'en', name: 'English', nativeName: 'English' },
@@ -16,10 +18,12 @@ const resources = {
   en: {
     common: enCommon,
     settings: enSettings,
+    cookieConsent: enCookieConsent,
   },
   fr: {
     common: frCommon,
     settings: frSettings,
+    cookieConsent: frCookieConsent,
   },
 };
 

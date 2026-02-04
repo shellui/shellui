@@ -6,6 +6,44 @@ const config: ShellUIConfig = {
   title: 'shellui',
   favicon: '/favicon.svg',
   logo: '/logo.svg',
+  // Cookie consent: register cookies by host; accepted hosts stored in settings. Use host to gate features (e.g. getCookieConsentAccepted('sentry.io')).
+  // consentedCookieHosts records which hosts were in config at last consent so we can detect new cookies and re-prompt while keeping existing approvals.
+  cookieConsent: {
+    cookies: [
+      {
+        name: 'Sentry Error Reporting',
+        host: 'sentry.io',
+        durationSeconds: 31536000, // 1 year
+        type: 'third_party',
+        category: 'functional_performance',
+        description: 'Helps us fix errors and improve stability.',
+      },
+      {
+        name: 'Session',
+        host: '.example.com',
+        durationSeconds: 86400, // 1 day
+        type: 'first_party',
+        category: 'strict_necessary',
+        description: 'Keeps you signed in.',
+      },
+      {
+        name: 'Session 3',
+        host: '.example3.com',
+        durationSeconds: 86400, // 1 day
+        type: 'first_party',
+        category: 'strict_necessary',
+        description: 'Keeps you signed in.',
+      },
+      {
+        name: 'Session 4',
+        host: '.example4.com',
+        durationSeconds: 86400, // 1 day
+        type: 'first_party',
+        category: 'strict_necessary',
+        description: 'Keeps you signed in.',
+      },
+    ],
+  },
   // Layout: 'sidebar' (default), 'fullscreen' (content only), or 'windows' (taskbar + multi-window)
   layout: 'sidebar',
   // Enable specific languages: single language string or array of language codes

@@ -8,6 +8,7 @@ import { createAppRouter } from './router/router';
 import { SettingsProvider } from './features/settings/SettingsProvider';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
+import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
@@ -34,10 +35,13 @@ const AppContent = () => {
   // If no navigation, show simple layout
   if (!config.navigation || config.navigation.length === 0) {
     return (
-      <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-        <h1>{config.title || 'ShellUI'}</h1>
-        <p>No navigation items configured.</p>
-      </div>
+      <>
+        <CookieConsentModal />
+        <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
+          <h1>{config.title || 'ShellUI'}</h1>
+          <p>No navigation items configured.</p>
+        </div>
+      </>
     );
   }
 
@@ -45,7 +49,12 @@ const AppContent = () => {
     return null;
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <CookieConsentModal />
+      <RouterProvider router={router} />
+    </>
+  );
 };
 
 const App = () => {

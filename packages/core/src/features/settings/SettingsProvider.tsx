@@ -70,16 +70,25 @@ const defaultSettings: Settings = {
     },
     region: {
       timezone: getBrowserTimezone()
+    },
+    cookieConsent: {
+      acceptedHosts: [],
+      consentedCookieHosts: []
     }
   }
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const { config } = useConfig()
     const { i18n } = useTranslation()
+    // Use a ref to always have current settings for message listeners (avoids closure issues)
+    const settingsRef = React.useRef<Settings | null>(null)
     const [settings, setSettings] = React.useState<Settings>(() => {
+      let initialSettings: Settings
 
       if (shellui.initialSettings) {
-        return shellui.initialSettings;
+        initialSettings = shellui.initialSettings
+        settingsRef.current = initialSettings
+        return initialSettings
       }
 
       // Initialize from localStorage
@@ -89,7 +98,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (stored) {
             const parsed = JSON.parse(stored)
             // Deep merge with defaults to handle new settings
-            return {
+            initialSettings = {
               ...defaultSettings,
               ...parsed,
               errorReporting: {
@@ -111,15 +120,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               region: {
                 // Only use stored timezone if it exists, otherwise use browser's current timezone
                 timezone: parsed.region?.timezone || getBrowserTimezone()
+              },
+              cookieConsent: {
+                acceptedHosts: Array.isArray(parsed.cookieConsent?.acceptedHosts) ? parsed.cookieConsent.acceptedHosts : (defaultSettings.cookieConsent?.acceptedHosts ?? []),
+                consentedCookieHosts: Array.isArray(parsed.cookieConsent?.consentedCookieHosts) ? parsed.cookieConsent.consentedCookieHosts : (defaultSettings.cookieConsent?.consentedCookieHosts ?? [])
               }
             }
+            settingsRef.current = initialSettings
+            return initialSettings
           }
         } catch (error) {
           logger.error('Failed to load settings from localStorage:', { error })
         }
       }
+      settingsRef.current = defaultSettings
       return defaultSettings
     })
+
+    // Keep ref in sync with state for message listeners
+    React.useEffect(() => {
+      settingsRef.current = settings
+    }, [settings])
   
     // Listen for settings updates from parent/other nodes
     React.useEffect(() => {
@@ -155,8 +176,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       });
 
       const cleanupSettingsRequested = shellui.addMessageListener('SHELLUI_SETTINGS_REQUESTED', () => {
+        // Use ref to always get current settings (avoids stale closure)
+        const currentSettings = settingsRef.current ?? defaultSettings
         const settingsWithNav = buildSettingsWithNavigation(
-          settings,
+          currentSettings,
           config.navigation,
           i18n.language || 'en'
         )
@@ -187,21 +210,32 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const updateSettings = React.useCallback((updates: Partial<Settings>) => {
       const newSettings = { ...settings, ...updates }
       
-      // Update localStorage immediately if we're in the root window
+      // Update localStorage and propagate to children if we're in the root window
       if (typeof window !== 'undefined' && window.parent === window) {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
           setSettings(newSettings)
+          // Propagate to child iframes (sendMessageToParent does nothing in root)
+          const settingsWithNav = buildSettingsWithNavigation(
+            newSettings,
+            config.navigation,
+            i18n.language || 'en'
+          )
+          shellui.propagateMessage({
+            type: 'SHELLUI_SETTINGS',
+            payload: { settings: settingsWithNav }
+          })
         } catch (error) {
           logger.error('Failed to update settings in localStorage:', { error })
         }
       }
       
+      // For child iframes, send to parent (parent will propagate to siblings)
       shellui.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_UPDATED',
         payload: { settings: newSettings }
       })
-    }, [settings])
+    }, [settings, config.navigation, i18n.language])
   
     const updateSetting = React.useCallback(<K extends keyof Settings>(
       key: K,

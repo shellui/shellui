@@ -123,6 +123,47 @@ export interface SentryConfig {
   release?: string;
 }
 
+/**
+ * Cookie consent categories for privacy-friendly grouping in the UI.
+ * - strict_necessary: Required for the app to work; typically no consent needed.
+ * - functional_performance: Analytics, performance, preferences.
+ * - targeting: Advertising, personalisation.
+ * - social_media_embedded: Social widgets, embedded content.
+ */
+export type CookieConsentCategory =
+  | 'strict_necessary'
+  | 'functional_performance'
+  | 'targeting'
+  | 'social_media_embedded';
+
+/**
+ * Definition of a cookie that can be toggled by the user via cookie consent.
+ * Host is the unique key: use it to gate features (e.g. getCookieConsentAccepted('sentry.io')).
+ */
+export interface CookieDefinition {
+  /** Display name for the cookie (e.g. "Sentry Error Reporting"). */
+  name: string;
+  /** Host or domain the cookie belongs to (e.g. "sentry.io", ".example.com"). Unique key for consent and feature gating. */
+  host: string;
+  /** Duration in seconds (e.g. 31536000 for 1 year). */
+  durationSeconds: number;
+  /** Type label for clarity (e.g. "first_party", "third_party", "http_only"). */
+  type: string;
+  /** Category for grouping in the consent UI. */
+  category: CookieConsentCategory;
+  /** Optional short description shown in the consent / settings UI. */
+  description?: string;
+}
+
+/**
+ * Cookie consent configuration. Accepted hosts are stored in settings; store
+ * consentedCookieHosts when user submits so we can detect new cookies and re-prompt while keeping existing approvals.
+ */
+export interface CookieConsentConfig {
+  /** List of cookies the app may use. User consent is collected per category/cookie. */
+  cookies: CookieDefinition[];
+}
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -140,4 +181,6 @@ export interface ShellUIConfig {
   defaultTheme?: string; // Default theme name to use
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
   sentry?: SentryConfig;
+  /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
+  cookieConsent?: CookieConsentConfig;
 }
