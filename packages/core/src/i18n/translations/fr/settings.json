@@ -50,11 +50,35 @@
     "developerFeatures": {
       "label": "Afficher les fonctionnalités pour les développeurs",
       "description": "Activez les outils et paramètres de développement dans le menu des paramètres."
+    },
+    "dangerZone": {
+      "title": "Zone de danger",
+      "description": "Actions irréversibles et destructives.",
+      "reset": {
+        "title": "Réinitialiser toutes les données",
+        "warning": "Cela supprimera définitivement tous vos paramètres, préférences et autres données d'application. Cette action ne peut pas être annulée.",
+        "button": "Réinitialiser toutes les données",
+        "toast": {
+          "title": "Réinitialiser toutes les données ?",
+          "description": "Cela supprimera définitivement tous vos paramètres, préférences et autres données d'application. Cette action ne peut pas être annulée.",
+          "confirm": "Réinitialiser toutes les données",
+          "cancel": "Annuler",
+          "success": {
+            "title": "Données réinitialisées",
+            "description": "Toutes les données de l'application ont été réinitialisées avec succès."
+          }
+        }
+      }
     }
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",
-    "description": "Gérez vos paramètres de confidentialité des données et réinitialisez toutes les données de l'application.",
+    "description": "Gérez vos paramètres de confidentialité des données et vos préférences de cookies.",
+    "noCookiesConfigured": {
+      "title": "Utilisation des cookies",
+      "description": "Cette application n'utilise que des cookies strictement essentiels nécessaires au bon fonctionnement de l'application. Ces cookies sont acceptés par défaut et ne peuvent pas être désactivés.",
+      "info": "Aucun cookie optionnel n'est configuré pour cette application."
+    },
     "cookieConsent": {
       "title": "Consentement aux cookies",
       "descriptionConsented": "Vous avez fait un choix concernant les cookies. Réinitialisez pour être redemandé immédiatement.",

@@ -16,7 +16,10 @@ const config: ShellUIConfig = {
         durationSeconds: 31536000, // 1 year
         type: 'third_party',
         category: 'functional_performance',
-        description: 'Helps us fix errors and improve stability.',
+        description: {
+          en: 'Helps us fix errors and improve stability.',
+          fr: 'Nous aide à corriger les erreurs et à améliorer la stabilité.',
+        },
       },
       {
         name: 'Session',

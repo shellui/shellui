@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useConfig } from '../config/useConfig';
 import { useSettings } from '../settings/hooks/useSettings';
+import { resolveLocalizedString } from '../layouts/utils';
 import type { CookieConsentCategory, CookieDefinition } from '../config/types';
 
 /** Category display order and labels */
@@ -26,12 +27,13 @@ function formatDuration(seconds: number, t: (key: string, options?: Record<strin
 }
 
 export function CookiePreferencesView() {
-  const { t } = useTranslation('cookieConsent');
+  const { t, i18n } = useTranslation('cookieConsent');
   const { config } = useConfig();
   const { settings, updateSetting } = useSettings();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const isInitialConsent = searchParams.get('initial') === 'true';
+  const currentLanguage = i18n.language || 'en';
 
   const cookies = config?.cookieConsent?.cookies ?? [];
   const allHosts = useMemo(() => cookies.map((c) => c.host), [cookies]);
@@ -260,9 +262,11 @@ export function CookiePreferencesView() {
                           <span className="text-sm font-medium truncate">
                             {cookie.name}
                           </span>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                            {cookie.description}
-                          </p>
+                          {cookie.description && (
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                              {resolveLocalizedString(cookie.description, currentLanguage)}
+                            </p>
+                          )}
                           <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground/70">
                             <span>{cookie.host}</span>
                             <span>•</span>

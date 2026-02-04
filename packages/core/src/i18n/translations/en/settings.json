@@ -50,11 +50,35 @@
     "developerFeatures": {
       "label": "Show features for developers",
       "description": "Enable developer tools and settings in the settings menu."
+    },
+    "dangerZone": {
+      "title": "Danger Zone",
+      "description": "Irreversible and destructive actions.",
+      "reset": {
+        "title": "Reset All Data",
+        "warning": "This will permanently delete all your settings, preferences, and other app data. This action cannot be undone.",
+        "button": "Reset All Data",
+        "toast": {
+          "title": "Reset All Data?",
+          "description": "This will permanently delete all your settings, preferences, and other app data. This action cannot be undone.",
+          "confirm": "Reset All Data",
+          "cancel": "Cancel",
+          "success": {
+            "title": "Data Reset",
+            "description": "All app data has been reset successfully."
+          }
+        }
+      }
     }
   },
   "dataPrivacy": {
     "title": "Data Privacy",
-    "description": "Manage your data privacy settings and reset all app data.",
+    "description": "Manage your data privacy settings and cookie preferences.",
+    "noCookiesConfigured": {
+      "title": "Cookie Usage",
+      "description": "This application only uses strictly essential cookies that are necessary for the application to function properly. These cookies are accepted by default and cannot be disabled.",
+      "info": "No optional cookies are configured for this application."
+    },
     "cookieConsent": {
       "title": "Cookie Consent",
       "descriptionConsented": "You have made a choice about cookies. Reset to be asked again right away.",

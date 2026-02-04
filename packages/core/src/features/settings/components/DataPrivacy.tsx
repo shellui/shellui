@@ -8,7 +8,7 @@ import urls from "@/constants/urls"
 export const DataPrivacy = () => {
   const { t } = useTranslation('settings')
   const { config } = useConfig()
-  const { settings, resetAllData, updateSetting } = useSettings()
+  const { settings, updateSetting } = useSettings()
 
   const cookies = config?.cookieConsent?.cookies ?? []
   const hasCookieConsent = cookies.length > 0
@@ -33,34 +33,28 @@ export const DataPrivacy = () => {
     })
   }
 
-  const handleResetClick = () => {
-    shellui.dialog({
-      title: t('dataPrivacy.resetData.toast.title'),
-      description: t('dataPrivacy.resetData.toast.description'),
-      mode: "delete",
-      size: "sm",
-      okLabel: t('dataPrivacy.resetData.toast.confirm'),
-      cancelLabel: t('dataPrivacy.resetData.toast.cancel'),
-      onOk: () => {
-        resetAllData()
-        shellui.toast({
-          title: t('dataPrivacy.resetData.toast.success.title'),
-          description: t('dataPrivacy.resetData.toast.success.description'),
-          type: "success",
-        })
-        shellui.navigate('/')
-      },
-      onCancel: () => {
-        // User cancelled, no action needed
-      },
-    })
-  }
-
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground">{t('dataPrivacy.description')}</p>
 
-      {hasCookieConsent && (
+      {!hasCookieConsent ? (
+        <div className="rounded-lg border bg-card p-4 space-y-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+              {t('dataPrivacy.noCookiesConfigured.title')}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t('dataPrivacy.noCookiesConfigured.description')}
+            </p>
+          </div>
+          <div className="flex items-start gap-2 text-sm">
+            <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+            <span className="text-muted-foreground">
+              {t('dataPrivacy.noCookiesConfigured.info')}
+            </span>
+          </div>
+        </div>
+      ) : (
         <div className="space-y-3">
           <div className="space-y-0.5">
             <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
@@ -108,24 +102,6 @@ export const DataPrivacy = () => {
           </div>
         </div>
       )}
-      
-      <div className="space-y-2">
-        <div className="space-y-0.5">
-          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-            {t('dataPrivacy.resetData.title')}
-          </label>
-          <p className="text-sm text-muted-foreground">
-            {t('dataPrivacy.resetData.description')}
-          </p>
-        </div>
-        <Button
-          variant="destructive"
-          onClick={handleResetClick}
-          className="w-full sm:w-auto"
-        >
-          {t('dataPrivacy.resetData.button')}
-        </Button>
-      </div>
     </div>
   )
 }

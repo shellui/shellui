@@ -151,8 +151,8 @@ export interface CookieDefinition {
   type: string;
   /** Category for grouping in the consent UI. */
   category: CookieConsentCategory;
-  /** Optional short description shown in the consent / settings UI. */
-  description?: string;
+  /** Optional short description shown in the consent / settings UI. Can be a string or localized object with language keys. */
+  description?: LocalizedString;
 }
 
 /**
