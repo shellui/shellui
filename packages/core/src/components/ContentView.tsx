@@ -121,8 +121,32 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     }
   }, [url]);
 
+  // Suppress browser warning about allow-same-origin + allow-scripts
+  // This is expected and acceptable: the iframe loads trusted microfrontend content from the same origin.
+  // The warning cannot be suppressed programmatically as it's a browser security feature.
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const originalWarn = console.warn;
+      console.warn = (...args: any[]) => {
+        const message = args[0]?.toString() || '';
+        // Suppress the specific sandbox warning
+        if (message.includes('allow-scripts') && message.includes('allow-same-origin') && message.includes('sandbox')) {
+          return;
+        }
+        originalWarn.apply(console, args);
+      };
+      return () => {
+        console.warn = originalWarn;
+      };
+    }
+  }, []);
+
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}>
+      {/* Note: allow-same-origin is required for same-origin iframe content (e.g., Vite dev server, cookies, localStorage).
+          While this allows the iframe to remove its own sandboxing, it's acceptable here because the iframe content
+          is trusted microfrontend content from the same application origin.
+          Browser security warnings about this combination cannot be suppressed programmatically. */}
       <iframe
         ref={iframeRef}
         src={initialUrl}

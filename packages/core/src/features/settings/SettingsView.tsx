@@ -17,7 +17,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { Route, Routes, useLocation, useNavigate } from "react-router"
+import { Route, Routes, useLocation, useNavigate, Navigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import urls from "@/constants/urls"
 import { createSettingsRoutes } from "./SettingsRoutes"
@@ -140,7 +140,7 @@ export const SettingsView = () => {
                           asChild
                           isActive={item.name === selectedItem?.name}
                         >
-                          <button onClick={() => navigate(`${item.path}`)} className="cursor-pointer">
+                          <button onClick={() => navigate(`${urls.settings}/${item.path}`)} className="cursor-pointer">
                             <item.icon />
                             <span>{item.name}</span>
                           </button>
@@ -178,7 +178,7 @@ export const SettingsView = () => {
                               <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
                             )}
                             <button
-                              onClick={() => navigate(`${item.path}`)}
+                              onClick={() => navigate(`${urls.settings}/${item.path}`)}
                               className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -215,6 +215,7 @@ export const SettingsView = () => {
               </header>
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
                 <Routes>
+                  <Route index element={filteredRoutes.length > 0 ? <Navigate to={`${urls.settings}/${filteredRoutes[0].path}`} replace /> : null} />
                   {filteredRoutes.map((item) => (
                     <Route key={item.path} path={item.path} element={item.element} />
                   ))}
@@ -245,6 +246,7 @@ export const SettingsView = () => {
           )}
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
             <Routes>
+              <Route index element={filteredRoutes.length > 0 ? <Navigate to={`${urls.settings}/${filteredRoutes[0].path}`} replace /> : null} />
               {filteredRoutes.map((item) => (
                 <Route key={item.path} path={item.path} element={item.element} />
               ))}

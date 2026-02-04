@@ -45,6 +45,11 @@ async function startServer(root, cwd, shouldOpen = false) {
       },
     },
     publicDir: publicDir || false,
+    // Disable source maps in dev mode to avoid errors from missing source map files
+    // Source maps are enabled in build mode for production debugging
+    esbuild: {
+      sourcemap: false,
+    },
     server: {
       port: config.port || 3000,
       open: shouldOpen,

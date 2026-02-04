@@ -27,22 +27,12 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
       children: [
         {
           // Settings route (if configured)
-          path: urls.settings.replace(/^\//, ''),
+          path: `${urls.settings.replace(/^\//, '')}/*`,
           element: (
             <Suspense fallback={<RouteFallback />}>
               <SettingsView />
             </Suspense>
           ),
-          children: [
-            {
-              path: '*',
-              element: (
-                <Suspense fallback={<RouteFallback />}>
-                  <NotFoundView />
-                </Suspense>
-              ),
-            },
-          ],
         },
         {
           // Cookie preferences route

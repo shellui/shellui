@@ -40,6 +40,7 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
         },
         build: {
           write: false,
+          sourcemap: false, // Disable source maps for service worker in dev mode
           rollupOptions: {
             input: swPath,
             output: {
@@ -69,7 +70,9 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
       }
       
       if (outputChunk && outputChunk.code) {
-        swCode = outputChunk.code;
+        // Strip any source map references from the code
+        // This prevents browser devtools from trying to load non-existent source maps
+        swCode = outputChunk.code.replace(/\/\/# sourceMappingURL=.*$/gm, '');
         console.log('✓ Dev service worker built successfully');
       } else {
         buildError = `Service worker build completed but no output chunk found. Result type: ${typeof result}, isArray: ${Array.isArray(result)}`;
@@ -99,6 +102,27 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
         if (!swCode && !buildError) {
           await buildServiceWorker();
         }
+      });
+      
+      // Handle source map requests first - return empty source map instead of 404
+      // This prevents browser devtools from showing errors when source maps don't exist
+      // (e.g., from React DevTools or other browser extensions)
+      server.middlewares.use((req, res, next) => {
+        if (req.url && req.url.endsWith('.map')) {
+          // Return a valid but empty source map to satisfy devtools
+          // This prevents errors while still disabling source maps in dev mode
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({
+            version: 3,
+            sources: [],
+            names: [],
+            mappings: '',
+            file: req.url.replace('.map', '')
+          }));
+          return;
+        }
+        next();
       });
       
       // Serve the service worker at /sw.js

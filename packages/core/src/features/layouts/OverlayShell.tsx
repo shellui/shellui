@@ -4,12 +4,13 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Toaster } from '@/components/ui/sonner';
 import { ContentView } from '@/components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
+import { resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
   navigationItems: NavigationItem[];
@@ -21,7 +22,8 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
   const navigate = useNavigate();
   const { isOpen, modalUrl, closeModal } = useModal();
   const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
-  const { t } = useTranslation('common');
+  const { t, i18n } = useTranslation('common');
+  const currentLanguage = i18n.language || 'en';
 
   useEffect(() => {
     const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
@@ -75,24 +77,41 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
       <Dialog open={isOpen} onOpenChange={closeModal}>
         <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[680px] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
-            <div className="flex-1" style={{ minHeight: 0 }}>
-              <ContentView
-                url={modalUrl}
-                pathPrefix="settings"
-                ignoreMessages={true}
-                navItem={navigationItems.find((item) => item.url === modalUrl)!}
-              />
-            </div>
-          ) : (
-            <div className="flex-1 p-4">
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                <h3 className="font-semibold text-destructive mb-2">Error: Modal URL is undefined</h3>
-                <p className="text-sm text-muted-foreground">
-                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called
-                  without a valid URL parameter. Please ensure you provide a URL when opening the modal.
-                </p>
+            <>
+              <DialogTitle className="sr-only">
+                {resolveLocalizedString(
+                  navigationItems.find((item) => item.url === modalUrl)?.label,
+                  currentLanguage
+                )}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                {t('modalContent') ?? 'Modal content'}
+              </DialogDescription>
+              <div className="flex-1" style={{ minHeight: 0 }}>
+                <ContentView
+                  url={modalUrl}
+                  pathPrefix="settings"
+                  ignoreMessages={true}
+                  navItem={navigationItems.find((item) => item.url === modalUrl)!}
+                />
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <DialogTitle className="sr-only">Error: Modal URL is undefined</DialogTitle>
+              <DialogDescription className="sr-only">
+                The openModal function was called without a valid URL parameter.
+              </DialogDescription>
+              <div className="flex-1 p-4">
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+                  <h3 className="font-semibold text-destructive mb-2">Error: Modal URL is undefined</h3>
+                  <p className="text-sm text-muted-foreground">
+                    The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called
+                    without a valid URL parameter. Please ensure you provide a URL when opening the modal.
+                  </p>
+                </div>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
