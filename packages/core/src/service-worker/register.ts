@@ -7,6 +7,11 @@ let waitingServiceWorker: ServiceWorker | null = null;
 let registrationPromise: Promise<void> | null = null;
 let statusListeners: Array<(status: { registered: boolean; updateAvailable: boolean }) => void> = [];
 
+// Cache for service worker file existence check to avoid duplicate fetches
+let swFileExistsCache: Promise<boolean> | null = null;
+let swFileExistsCacheTime: number = 0;
+const SW_FILE_EXISTS_CACHE_TTL = 5000; // Cache for 5 seconds
+
 // Notify all listeners of status changes
 async function notifyStatusListeners() {
   const registered = await isServiceWorkerRegistered();
@@ -23,50 +28,155 @@ export interface ServiceWorkerRegistrationOptions {
 }
 
 /**
+ * Disable caching automatically when errors occur
+ * This helps prevent hard-to-debug issues
+ */
+async function disableCachingAutomatically(reason: string): Promise<void> {
+  console.error(`[Service Worker] Auto-disabling caching due to error: ${reason}`);
+  
+  try {
+    // Unregister service worker first
+    await unregisterServiceWorker();
+    
+    // Disable caching in settings
+    // We need to access settings through localStorage since we're in a module
+    if (typeof window !== 'undefined') {
+      const STORAGE_KEY = 'shellui_settings';
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const settings = JSON.parse(stored);
+          // Only update if caching is currently enabled to avoid unnecessary updates
+          if (settings.caching?.enabled !== false) {
+            settings.caching = { enabled: false };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+            
+            // Notify the app to reload settings via message system
+            shellui.sendMessageToParent({
+              type: 'SHELLUI_SETTINGS_UPDATED',
+              payload: { settings }
+            });
+            
+            // Also dispatch event for local listeners
+            window.dispatchEvent(new CustomEvent('shellui:settings-updated', { 
+              detail: { settings } 
+            }));
+            
+            // Show a toast notification
+            shellui.toast({
+              title: 'Caching Disabled',
+              description: `Service worker caching has been automatically disabled due to an error: ${reason}`,
+              type: 'error',
+              duration: 10000,
+            });
+          }
+        } else {
+          // No settings stored, create default with caching disabled
+          const defaultSettings = {
+            caching: { enabled: false }
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
+          
+          shellui.toast({
+            title: 'Caching Disabled',
+            description: `Service worker caching has been automatically disabled due to an error: ${reason}`,
+            type: 'error',
+            duration: 10000,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to disable caching in settings:', error);
+        // Still show toast even if settings update fails
+        shellui.toast({
+          title: 'Caching Error',
+          description: `Service worker error: ${reason}. Please disable caching manually in settings.`,
+          type: 'error',
+          duration: 10000,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Failed to disable caching automatically:', error);
+  }
+}
+
+/**
  * Check if service worker file exists
+ * Uses caching to prevent duplicate fetches when called concurrently
  */
 export async function serviceWorkerFileExists(): Promise<boolean> {
-  try {
-    // Use a timestamp to prevent caching
-    const response = await fetch(`/sw.js?t=${Date.now()}`, { 
-      method: 'GET',
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
-      }
-    });
-    
-    // If not ok or 404, file doesn't exist
-    if (!response.ok || response.status === 404) {
-      return false;
-    }
-    
-    // Check content type - should be JavaScript
-    const contentType = response.headers.get('content-type') || '';
-    const isJavaScript = contentType.includes('javascript') || 
-                         contentType.includes('application/javascript') || 
-                         contentType.includes('text/javascript');
-    
-    // If content type is HTML, it's likely Vite's dev server returning index.html
-    // which means the file doesn't exist
-    if (contentType.includes('text/html')) {
-      return false;
-    }
-    
-    // Try to read a bit of the content to verify it's actually a service worker
-    const text = await response.text();
-    // Service worker files typically start with imports or have workbox/precache references
-    const looksLikeServiceWorker = text.includes('workbox') || 
-                                   text.includes('precache') || 
-                                   text.includes('serviceWorker') ||
-                                   text.includes('self.addEventListener');
-    
-    return isJavaScript || looksLikeServiceWorker;
-  } catch (error) {
-    // Any error (network, CORS, etc.) means the file doesn't exist or isn't accessible
-    return false;
+  const now = Date.now();
+  
+  // Return cached promise if it's still valid and in progress
+  if (swFileExistsCache && (now - swFileExistsCacheTime) < SW_FILE_EXISTS_CACHE_TTL) {
+    return swFileExistsCache;
   }
+  
+  // Create a new fetch promise and cache it
+  swFileExistsCache = (async () => {
+    try {
+      // Use a timestamp to prevent caching
+      const response = await fetch(`/sw.js?t=${Date.now()}`, { 
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
+      // Handle 500 errors - server error, disable caching
+      if (response.status >= 500) {
+        await disableCachingAutomatically(`Server error (${response.status}) when fetching service worker`);
+        return false;
+      }
+      
+      // If not ok or 404, file doesn't exist
+      if (!response.ok || response.status === 404) {
+        return false;
+      }
+      
+      // Check content type - should be JavaScript
+      const contentType = response.headers.get('content-type') || '';
+      const isJavaScript = contentType.includes('javascript') || 
+                           contentType.includes('application/javascript') || 
+                           contentType.includes('text/javascript');
+      
+      // If content type is HTML, it's likely Vite's dev server returning index.html
+      // which means the file doesn't exist
+      if (contentType.includes('text/html')) {
+        return false;
+      }
+      
+      // Try to read a bit of the content to verify it's actually a service worker
+      const text = await response.text();
+      // Service worker files typically start with imports or have workbox/precache references
+      const looksLikeServiceWorker = text.includes('workbox') || 
+                                     text.includes('precache') || 
+                                     text.includes('serviceWorker') ||
+                                     text.includes('self.addEventListener');
+      
+      // If we got a response but it doesn't look like a service worker, disable caching
+      if (!isJavaScript && !looksLikeServiceWorker) {
+        await disableCachingAutomatically('Service worker file appears to be invalid or corrupted');
+        return false;
+      }
+      
+      return isJavaScript || looksLikeServiceWorker;
+    } catch (error) {
+      // Network errors - disable caching if it's a critical error
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        // Don't disable on network errors - might be offline
+        return false;
+      }
+      // Other errors - disable caching
+      await disableCachingAutomatically(`Network error: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    }
+  })();
+  
+  swFileExistsCacheTime = now;
+  return swFileExistsCache;
 }
 
 /**
@@ -86,10 +196,22 @@ export async function registerServiceWorker(
     return;
   }
 
-  // Check if service worker file exists (only in production builds)
+  // Check if service worker file exists (works in both dev and production)
   const swExists = await serviceWorkerFileExists();
   if (!swExists) {
-    console.warn('Service worker file not found. Service workers are only available in production builds.');
+    // In dev mode, the service worker might not be ready yet, try again after a short delay
+    // Only retry once to avoid infinite loops
+    if (!registrationPromise) {
+      setTimeout(async () => {
+        const retryExists = await serviceWorkerFileExists();
+        if (retryExists && !registrationPromise) {
+          // Retry registration if file becomes available
+          registerServiceWorker(options);
+        } else if (!retryExists) {
+          console.warn('Service worker file not found. Service workers may not be available.');
+        }
+      }, 1000);
+    }
     return;
   }
 
@@ -163,6 +285,24 @@ export async function registerServiceWorker(
       notifyStatusListeners();
     });
 
+    // Handle service worker errors - disable caching on critical errors
+    wb.addEventListener('redundant', (event) => {
+      console.error('[Service Worker] Service worker became redundant:', event);
+      disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+    });
+
+    // Handle external service worker errors
+    navigator.serviceWorker.addEventListener('error', (event) => {
+      console.error('[Service Worker] Service worker error event:', event);
+      disableCachingAutomatically(`Service worker error: ${event.message || 'Unknown error'}`);
+    });
+
+    // Handle message errors from service worker
+    navigator.serviceWorker.addEventListener('messageerror', (event) => {
+      console.error('[Service Worker] Service worker message error:', event);
+      // Don't disable on message errors - they're usually not critical
+    });
+
       // Register the service worker
       await wb.register();
       notifyStatusListeners();
@@ -174,13 +314,20 @@ export async function registerServiceWorker(
         }
       }, 60 * 60 * 1000); // Check every hour
     } catch (error) {
-      // Only log error if it's not about missing file (we already checked)
-      if (error instanceof Error && !error.message.includes('Failed to fetch') && !error.message.includes('insecure')) {
-        console.error('Service worker registration failed:', error);
-      } else if (error instanceof DOMException && error.name !== 'SecurityError') {
-        console.error('Service worker registration failed:', error);
+      // Handle registration errors - disable caching
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[Service Worker] Registration failed:', error);
+      
+      // Disable caching on critical errors
+      if (
+        errorMessage.includes('Failed to register') ||
+        errorMessage.includes('script error') ||
+        errorMessage.includes('SyntaxError') ||
+        errorMessage.includes('TypeError') ||
+        (error instanceof DOMException && error.name !== 'SecurityError')
+      ) {
+        await disableCachingAutomatically(`Registration failed: ${errorMessage}`);
       }
-      // Silently fail if service worker file doesn't exist (dev mode)
     } finally {
       registrationPromise = null;
     }
@@ -301,8 +448,7 @@ export async function getServiceWorkerStatus(): Promise<{
  */
 export function addStatusListener(listener: (status: { registered: boolean; updateAvailable: boolean }) => void): () => void {
   statusListeners.push(listener);
-  // Immediately call with current status
-  getServiceWorkerStatus().then(status => listener(status));
+  // Don't call immediately - let the component do the initial check to avoid duplicate fetches
   
   // Return unsubscribe function
   return () => {

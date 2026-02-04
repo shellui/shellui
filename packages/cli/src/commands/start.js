@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
 import { loadConfig, getCoreSrcPath, createViteDefine, resolvePackagePath } from '../utils/index.js';
+import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 
 let currentServer = null;
 let configWatcher = null;
@@ -32,7 +33,10 @@ async function startServer(root, cwd, shouldOpen = false) {
 
   const server = await createServer({
     root: coreSrcPath,
-    plugins: [react()],
+    plugins: [
+      react(),
+      serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackagePath),
+    ],
     define: createViteDefine(config),
     resolve: {
       alias: {

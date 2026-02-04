@@ -65,6 +65,26 @@ pnpm run serve
 pnpm test
 ```
 
+### Serve production build locally
+
+After building, you can serve the production build locally with SPA routing support:
+
+```bash
+# Build the application
+pnpm build
+
+# Serve using Node.js HTTP server (supports SPA routing)
+# Default port is 8000
+pnpm run serve:dist
+
+# Or specify a custom port directly
+node tools/serve/server.js 8080
+```
+
+The server automatically serves `index.html` for all routes, enabling client-side routing to work correctly. This is useful for testing the production build locally.
+
+**Note:** The build process automatically creates a `404.html` file (identical to `index.html`) for hosting providers that support it (like Netlify, Vercel, etc.).
+
 ## Publishing
 
 ### Publish all packages

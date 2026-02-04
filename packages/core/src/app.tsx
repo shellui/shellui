@@ -31,6 +31,18 @@ const AppContent = () => {
   // Register or unregister service worker based on caching setting
   useEffect(() => {
     const cachingEnabled = settings?.caching?.enabled ?? true; // Default to enabled
+    
+    // Don't register service worker if navigation is empty or undefined
+    // This helps prevent issues in development or misconfigured apps
+    if (!config?.navigation || config.navigation.length === 0) {
+      if (cachingEnabled) {
+        console.warn('[Service Worker] Caching disabled: No navigation items configured');
+        // Disable caching automatically when navigation is empty
+        unregisterServiceWorker();
+      }
+      return;
+    }
+    
     if (cachingEnabled) {
       registerServiceWorker({
         enabled: true,
@@ -38,7 +50,7 @@ const AppContent = () => {
     } else {
       unregisterServiceWorker();
     }
-  }, [settings?.caching?.enabled]);
+  }, [settings?.caching?.enabled, config?.navigation]);
 
   // Create router from config using data mode
   const router = useMemo(() => {

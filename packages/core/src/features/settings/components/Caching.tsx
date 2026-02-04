@@ -18,25 +18,35 @@ export const Caching = () => {
   const [isRegistered, setIsRegistered] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [isDevelopmentMode, setIsDevelopmentMode] = useState(true) // Start as true, will be updated
+  const [swFileExists, setSwFileExists] = useState(true) // Track if service worker file exists
 
   const cachingEnabled = settings?.caching?.enabled ?? true
 
   useEffect(() => {
-    const checkStatus = async () => {
+    // Don't check service worker status if caching is disabled
+    if (!cachingEnabled) {
+      setIsRegistered(false)
+      setUpdateAvailable(false)
+      setIsLoading(false)
+      setSwFileExists(false)
+      return
+    }
+
+    // Initial check with loading state
+    const initialCheck = async () => {
       setIsLoading(true)
       
-      // Check if service worker file exists (development vs production)
-      const swExists = await serviceWorkerFileExists()
-      const isDev = !swExists
-      setIsDevelopmentMode(isDev)
+      // First check if service worker file exists
+      const exists = await serviceWorkerFileExists()
+      setSwFileExists(exists)
       
-      // Only check service worker status if not in dev mode
-      if (!isDev) {
+      if (exists) {
+        // Check service worker status only if file exists
         const status = await getServiceWorkerStatus()
         setIsRegistered(status.registered)
         setUpdateAvailable(status.updateAvailable)
       } else {
+        // File doesn't exist, so service worker can't be registered
         setIsRegistered(false)
         setUpdateAvailable(false)
       }
@@ -44,34 +54,70 @@ export const Caching = () => {
       setIsLoading(false)
     }
     
-    // Initial check immediately
-    checkStatus()
-    
-    // Listen for status changes (only if not in dev mode)
-    const unsubscribe = addStatusListener((status) => {
-      if (!isDevelopmentMode) {
+    // Background refresh without affecting loading state
+    const refreshStatus = async () => {
+      // Skip if caching was disabled (check current setting value)
+      const currentCachingEnabled = settings?.caching?.enabled ?? true
+      if (!currentCachingEnabled) {
+        return
+      }
+      
+      // Check if file exists first
+      const exists = await serviceWorkerFileExists()
+      setSwFileExists(exists)
+      
+      if (exists) {
+        // Check service worker status only if file exists
+        const status = await getServiceWorkerStatus()
         setIsRegistered(status.registered)
         setUpdateAvailable(status.updateAvailable)
+      } else {
+        // File doesn't exist, so service worker can't be registered
+        setIsRegistered(false)
+        setUpdateAvailable(false)
       }
-      setIsLoading(false)
+    }
+    
+    // Initial check immediately
+    initialCheck()
+    
+    // Listen for status changes
+    const unsubscribe = addStatusListener((status) => {
+      // Only update if caching is still enabled (check current setting value)
+      const currentCachingEnabled = settings?.caching?.enabled ?? true
+      if (currentCachingEnabled) {
+        setIsRegistered(status.registered)
+        setUpdateAvailable(status.updateAvailable)
+        setIsLoading(false)
+      }
     })
     
-    // Also check periodically as fallback
-    const interval = setInterval(checkStatus, 5000)
+    // Also check periodically as fallback (background refresh) - less frequent to avoid excessive fetches
+    const interval = setInterval(refreshStatus, 30000) // Check every 30 seconds instead of 5
     
     return () => {
       unsubscribe()
       clearInterval(interval)
     }
-  }, [cachingEnabled, isDevelopmentMode])
+  }, [cachingEnabled])
 
   const handleToggleCaching = async (enabled: boolean) => {
     updateSetting('caching', { enabled })
     
+    if (!enabled) {
+      // Immediately clear status when disabled
+      setIsRegistered(false)
+      setUpdateAvailable(false)
+      setSwFileExists(false)
+      return
+    }
+    
     // Give it a moment to register/unregister
     setTimeout(async () => {
-      const registered = await isServiceWorkerRegistered()
-      setIsRegistered(registered)
+      if (enabled) {
+        const registered = await isServiceWorkerRegistered()
+        setIsRegistered(registered)
+      }
     }, 1000)
   }
 
@@ -125,24 +171,9 @@ export const Caching = () => {
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">{t('caching.loading')}</div>
-      ) : (
-        <>
-          {isDevelopmentMode && (
-            <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 p-4 space-y-3">
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium leading-none text-orange-600 dark:text-orange-400" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                  {t('caching.developmentMode.title')}
-                </h3>
-                <p className="text-sm text-orange-700 dark:text-orange-300">
-                  {t('caching.developmentMode.description')}
-                </p>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+      ) : null}
 
-      {!isLoading && !isDevelopmentMode && (
+      {!isLoading && (
         <div className="space-y-4">
         <div className="flex items-center justify-between rounded-lg border bg-card p-4">
           <div className="space-y-0.5">
@@ -163,22 +194,43 @@ export const Caching = () => {
 
         {cachingEnabled && (
           <>
+            {!swFileExists && (
+              <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium leading-none text-red-600 dark:text-red-400" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                    Service Worker Not Available
+                  </h3>
+                  <p className="text-sm text-red-700 dark:text-red-300">
+                    The service worker file could not be found. Caching is not available. This may be a development server issue.
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <div className="space-y-1">
                 <h3 className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
                   {t('caching.status.title')}
                 </h3>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
-                    {isRegistered ? "●" : "○"} {t('caching.status.registered')}
-                  </span>
-                  {updateAvailable && (
+                  {swFileExists ? (
                     <>
-                      <span className="text-muted-foreground/50">|</span>
-                      <span className="text-blue-600 dark:text-blue-400">
-                        ● {t('caching.status.updateAvailable')}
+                      <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}>
+                        {isRegistered ? "●" : "○"} {isRegistered ? t('caching.status.registered') : 'Not Running'}
                       </span>
+                      {updateAvailable && (
+                        <>
+                          <span className="text-muted-foreground/50">|</span>
+                          <span className="text-blue-600 dark:text-blue-400">
+                            ● {t('caching.status.updateAvailable')}
+                          </span>
+                        </>
+                      )}
                     </>
+                  ) : (
+                    <span className="text-red-600 dark:text-red-400">
+                      ✗ Failed - Service worker file not found
+                    </span>
                   )}
                 </div>
               </div>

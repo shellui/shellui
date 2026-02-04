@@ -169,6 +169,17 @@ export async function buildCommand(root = '.') {
       console.log(pc.green('Static assets copied!'));
     }
 
+    // Copy index.html to 404.html for SPA routing support
+    // This allows hosting providers (like Netlify, Vercel) to serve index.html for all routes
+    const indexPath = path.join(distPath, 'index.html');
+    const notFoundPath = path.join(distPath, '404.html');
+    
+    if (fs.existsSync(indexPath)) {
+      console.log(pc.blue('Creating 404.html for SPA routing...'));
+      fs.copyFileSync(indexPath, notFoundPath);
+      console.log(pc.green('404.html created!'));
+    }
+
     console.log(pc.green('Build complete!'));
   } catch (e) {
     console.error(pc.red(`Error building: ${e.message}`));
