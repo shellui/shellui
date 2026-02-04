@@ -92,6 +92,11 @@ export interface Settings {
     /** Hosts that were in config when user last consented; used to detect new cookies and re-collect consent. */
     consentedCookieHosts: string[]
   }
+  /** App caching settings for service worker */
+  caching?: {
+    /** Whether app caching is enabled */
+    enabled: boolean
+  }
   /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows'. When set, overrides config.layout (e.g. from Develop settings). */
   layout?: 'sidebar' | 'fullscreen' | 'windows'
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */

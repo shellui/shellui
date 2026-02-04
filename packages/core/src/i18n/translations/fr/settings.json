@@ -10,6 +10,7 @@
     "languageAndRegion": "Langue et région",
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
+    "caching": "Mise en cache",
     "develop": "Développement"
   },
   "appearance": {
@@ -116,6 +117,51 @@
           "description": "Toutes les données de l'application ont été réinitialisées avec succès."
         }
       }
+    }
+  },
+  "caching": {
+    "title": "Mise en cache",
+    "description": "Gérez la mise en cache de l'application et les capacités hors ligne. Lorsqu'elle est activée, l'application met en cache les fichiers pour un chargement plus rapide et un accès hors ligne.",
+    "loading": "Chargement du statut de mise en cache...",
+    "developmentMode": {
+      "title": "Mode développement",
+      "description": "La mise en cache de l'application n'est disponible que dans les builds de production. Compilez votre application avec 'shellui build' pour activer la mise en cache du service worker."
+    },
+    "enabled": {
+      "title": "Mise en cache de l'application",
+      "descriptionEnabled": "La mise en cache de l'application est activée. Les fichiers sont mis en cache pour un chargement plus rapide et un accès hors ligne.",
+      "descriptionDisabled": "La mise en cache de l'application est désactivée. Les fichiers ne seront pas mis en cache."
+    },
+    "status": {
+      "title": "Statut de mise en cache",
+      "registered": "Service worker enregistré",
+      "updateAvailable": "Mise à jour disponible"
+    },
+    "update": {
+      "title": "Mise à jour disponible",
+      "description": "Une nouvelle version de l'application est disponible. Installez-la maintenant pour obtenir les dernières fonctionnalités et améliorations.",
+      "button": "Installer maintenant"
+    },
+    "updateInstalling": {
+      "title": "Installation de la mise à jour",
+      "description": "La nouvelle version est en cours d'installation. La page sera rechargée sous peu."
+    },
+    "updateError": {
+      "title": "Échec de la mise à jour",
+      "description": "Échec de l'installation de la mise à jour. Veuillez réessayer plus tard."
+    },
+    "reset": {
+      "title": "Réinitialiser à la dernière version",
+      "description": "Effacer tous les fichiers mis en cache et recharger l'application pour obtenir la dernière version du serveur.",
+      "button": "Réinitialiser à la dernière version"
+    },
+    "resetSuccess": {
+      "title": "Réinitialisation réussie",
+      "description": "Tous les fichiers mis en cache ont été effacés. L'application sera rechargée avec la dernière version."
+    },
+    "resetError": {
+      "title": "Échec de la réinitialisation",
+      "description": "Échec de l'effacement des fichiers mis en cache. Veuillez réessayer plus tard."
     }
   },
   "develop": {

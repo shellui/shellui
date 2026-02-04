@@ -20,7 +20,7 @@ export const Develop = () => {
   const effectiveLayout: LayoutType = settings.layout ?? config?.layout ?? 'sidebar'
   const navItems =
     config?.navigation?.length
-      ? flattenNavigationItems(config.navigation).filter(
+      ? flattenNavigationItems(config?.navigation ?? []).filter(
           (item, index, self) => index === self.findIndex((i) => i.path === item.path)
         )
       : []

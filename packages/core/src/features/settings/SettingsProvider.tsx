@@ -74,6 +74,9 @@ const defaultSettings: Settings = {
     cookieConsent: {
       acceptedHosts: [],
       consentedCookieHosts: []
+    },
+    caching: {
+      enabled: true
     }
   }
 
@@ -124,6 +127,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               cookieConsent: {
                 acceptedHosts: Array.isArray(parsed.cookieConsent?.acceptedHosts) ? parsed.cookieConsent.acceptedHosts : (defaultSettings.cookieConsent?.acceptedHosts ?? []),
                 consentedCookieHosts: Array.isArray(parsed.cookieConsent?.consentedCookieHosts) ? parsed.cookieConsent.consentedCookieHosts : (defaultSettings.cookieConsent?.consentedCookieHosts ?? [])
+              },
+              caching: {
+                enabled: parsed.caching?.enabled ?? true
               }
             }
             settingsRef.current = initialSettings
@@ -160,7 +166,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               // Confirm: root updated localStorage; re-inject navigation when propagating
               const settingsToPropagate = buildSettingsWithNavigation(
                 newSettings,
-                config.navigation,
+                config?.navigation,
                 i18n.language || 'en'
               )
               logger.info('Root Parent received settings update', { message })
@@ -180,7 +186,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         const currentSettings = settingsRef.current ?? defaultSettings
         const settingsWithNav = buildSettingsWithNavigation(
           currentSettings,
-          config.navigation,
+          config?.navigation,
           i18n.language || 'en'
         )
         shellui.propagateMessage({
@@ -203,7 +209,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         cleanupSettings()
         cleanupSettingsRequested()
       }
-    }, [settings, config.navigation, i18n.language])
+    }, [settings, config?.navigation, i18n.language])
   
   
     // ACTIONS
@@ -218,7 +224,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           // Propagate to child iframes (sendMessageToParent does nothing in root)
           const settingsWithNav = buildSettingsWithNavigation(
             newSettings,
-            config.navigation,
+            config?.navigation,
             i18n.language || 'en'
           )
           shellui.propagateMessage({
@@ -235,7 +241,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         type: 'SHELLUI_SETTINGS_UPDATED',
         payload: { settings: newSettings }
       })
-    }, [settings, config.navigation, i18n.language])
+    }, [settings, config?.navigation, i18n.language])
   
     const updateSetting = React.useCallback(<K extends keyof Settings>(
       key: K,
@@ -275,7 +281,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings))
             const settingsToPropagate = buildSettingsWithNavigation(
               newSettings,
-              config.navigation,
+              config?.navigation,
               i18n.language || 'en'
             )
             shellui.propagateMessage({
@@ -295,7 +301,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           logger.error('Failed to reset all data:', { error })
         }
       }
-    }, [config.navigation, i18n.language])
+    }, [config?.navigation, i18n.language])
   
     const value = React.useMemo(
       () => ({

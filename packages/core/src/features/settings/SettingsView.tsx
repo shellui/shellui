@@ -58,7 +58,7 @@ export const SettingsView = () => {
       {
         title: t("categories.preferences"),
         routes: filteredRoutes.filter(route =>
-          ["appearance", "language-and-region", "data-privacy"].includes(route.path)
+          ["appearance", "language-and-region", "data-privacy", "caching"].includes(route.path)
         )
       },
       {

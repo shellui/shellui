@@ -13,9 +13,12 @@ import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal'
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
+import { registerServiceWorker, unregisterServiceWorker } from './service-worker/register';
+import { useSettings } from './features/settings/hooks/useSettings';
 
 const AppContent = () => {
   const { config } = useConfig();
+  const { settings } = useSettings();
 
   // Apply favicon from config when available (allows projects to override default)
   useEffect(() => {
@@ -24,6 +27,18 @@ const AppContent = () => {
       if (link) link.href = config.favicon;
     }
   }, [config?.favicon]);
+
+  // Register or unregister service worker based on caching setting
+  useEffect(() => {
+    const cachingEnabled = settings?.caching?.enabled ?? true; // Default to enabled
+    if (cachingEnabled) {
+      registerServiceWorker({
+        enabled: true,
+      });
+    } else {
+      unregisterServiceWorker();
+    }
+  }, [settings?.caching?.enabled]);
 
   // Create router from config using data mode
   const router = useMemo(() => {

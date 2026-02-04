@@ -10,6 +10,7 @@
     "languageAndRegion": "Language & region",
     "advanced": "Advanced",
     "dataPrivacy": "Data Privacy",
+    "caching": "Caching",
     "develop": "Develop"
   },
   "appearance": {
@@ -116,6 +117,51 @@
           "description": "All app data has been reset successfully."
         }
       }
+    }
+  },
+  "caching": {
+    "title": "Caching",
+    "description": "Manage app caching and offline capabilities. When enabled, the app caches files for faster loading and offline access.",
+    "loading": "Loading caching status...",
+    "developmentMode": {
+      "title": "Development Mode",
+      "description": "App caching is only available in production builds. Build your app with 'shellui build' to enable service worker caching."
+    },
+    "enabled": {
+      "title": "App Caching",
+      "descriptionEnabled": "App caching is enabled. Files are cached for faster loading and offline access.",
+      "descriptionDisabled": "App caching is disabled. Files will not be cached."
+    },
+    "status": {
+      "title": "Caching Status",
+      "registered": "Service worker registered",
+      "updateAvailable": "Update available"
+    },
+    "update": {
+      "title": "Update Available",
+      "description": "A new version of the app is available. Install it now to get the latest features and improvements.",
+      "button": "Install Now"
+    },
+    "updateInstalling": {
+      "title": "Installing Update",
+      "description": "The new version is being installed. The page will reload shortly."
+    },
+    "updateError": {
+      "title": "Update Failed",
+      "description": "Failed to install the update. Please try again later."
+    },
+    "reset": {
+      "title": "Reset to Latest Version",
+      "description": "Clear all cached files and reload the app to get the latest version from the server.",
+      "button": "Reset to Latest Version"
+    },
+    "resetSuccess": {
+      "title": "Reset Successful",
+      "description": "All cached files have been cleared. The app will reload with the latest version."
+    },
+    "resetError": {
+      "title": "Reset Failed",
+      "description": "Failed to clear cached files. Please try again later."
     }
   },
   "develop": {
