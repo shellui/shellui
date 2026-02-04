@@ -99,29 +99,34 @@ export const SettingsView = () => {
 
   // Check if we're at the settings root (no specific route selected)
   const isSettingsRoot = React.useMemo(() => {
-    const pathname = location.pathname.replace(/^\/+|\/+$/g, '')
-    return !filteredRoutes.some(item => {
-      const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
-      return pathname === normalizedItemPath ||
-        pathname.endsWith(`/${normalizedItemPath}`) ||
-        pathname.includes(`/${normalizedItemPath}/`)
-    })
+    const pathname = location.pathname
+    // Normalize the settings URL (remove leading/trailing slashes)
+    const normalizedSettingsPath = urls.settings.replace(/^\/+|\/+$/g, '')
+    // Normalize the current pathname (remove leading/trailing slashes)
+    const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
+    
+    // Check if we're exactly at the settings root
+    // This handles both "/__settings" and "/__settings/" cases
+    if (normalizedPathname === normalizedSettingsPath) {
+      return true
+    }
+    
+    // If pathname starts with settings path followed by a slash, we're at a subpage
+    // e.g., "__settings/appearance" means we're NOT at root
+    const settingsPathWithSlash = `${normalizedSettingsPath}/`
+    if (normalizedPathname.startsWith(settingsPathWithSlash)) {
+      return false
+    }
+    
+    // Pathname doesn't match settings path structure - not in settings
+    return false
   }, [location.pathname, filteredRoutes])
 
   // Navigate back to settings root
   const handleBackToSettings = React.useCallback(() => {
-    // Extract the base settings path from current location
-    // If we're at a settings subpage, go to settings root
-    const pathParts = location.pathname.split('/').filter(Boolean)
-    const settingsSegment = urls.settings.split('/').filter(Boolean).pop()
-    const settingsIndex = settingsSegment !== undefined ? pathParts.indexOf(settingsSegment) : -1
-    if (settingsIndex !== -1) {
-      const basePath = '/' + pathParts.slice(0, settingsIndex + 1).join('/')
-      navigate(basePath)
-    } else {
-      navigate(urls.settings)
-    }
-  }, [navigate, location.pathname])
+    // Navigate to settings root, replacing current history entry
+    navigate(urls.settings, { replace: true })
+  }, [navigate])
 
   return (
     <SidebarProvider>
@@ -246,7 +251,19 @@ export const SettingsView = () => {
           )}
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
             <Routes>
-              <Route index element={filteredRoutes.length > 0 ? <Navigate to={`${urls.settings}/${filteredRoutes[0].path}`} replace /> : null} />
+              <Route 
+                index 
+                element={
+                  <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+                    <div className="max-w-md">
+                      <h2 className="text-lg font-semibold mb-2">{t("title")}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {t("selectCategory", { defaultValue: "Select a category from the sidebar to get started." })}
+                      </p>
+                    </div>
+                  </div>
+                } 
+              />
               {filteredRoutes.map((item) => (
                 <Route key={item.path} path={item.path} element={item.element} />
               ))}
