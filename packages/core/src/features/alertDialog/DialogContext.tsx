@@ -15,7 +15,10 @@ import {
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
+  AlertDialogOverlay,
+  AlertDialogPortal,
 } from '@/components/ui/alert-dialog';
+import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 
 /** Trash icon (matches lucide trash-2) */
 const TrashIcon = () => (
@@ -344,40 +347,47 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
 
     return (
       <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-        <div
-          className="fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]"
-          style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }}
-        />
-        <div
-          className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
-          style={{
-            bottom: 16,
-            left: 16,
-            zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
-            backgroundColor: 'hsl(var(--background))',
-          }}
-          data-cookie-consent
-        >
-          <div className="flex items-start gap-4 p-6 sm:gap-5 sm:p-7">
-            {dialogState.iconType === 'cookie' && (
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
-                aria-hidden
-              >
-                <CookieIcon className="h-5 w-5 text-primary" />
-              </div>
-            )}
-            <div className="flex-1 space-y-2">
-              <h2 className="text-base font-semibold leading-tight">{dialogState.title}</h2>
-              {dialogState.description && (
-                <p className="text-sm leading-relaxed text-muted-foreground">{dialogState.description}</p>
+        <AlertDialogPortal>
+          <AlertDialogOverlay style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }} />
+          <AlertDialogPrimitive.Content
+            className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
+            style={{
+              bottom: 16,
+              left: 16,
+              zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
+              backgroundColor: 'hsl(var(--background))',
+              top: 'auto',
+              right: 'auto',
+              transform: 'none',
+            }}
+            data-dialog-content
+            data-cookie-consent
+          >
+            <div className="flex items-start gap-4 p-6 sm:gap-5 sm:p-7">
+              {dialogState.iconType === 'cookie' && (
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+                  aria-hidden
+                >
+                  <CookieIcon className="h-5 w-5 text-primary" />
+                </div>
               )}
+              <div className="flex-1 space-y-2">
+                <AlertDialogTitle className="text-base font-semibold leading-tight">
+                  {dialogState.title}
+                </AlertDialogTitle>
+                {dialogState.description && (
+                  <AlertDialogDescription className="text-sm leading-relaxed">
+                    {dialogState.description}
+                  </AlertDialogDescription>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-between rounded-b-xl border-t border-border bg-muted/50 px-6 py-4 sm:px-7">
-            {renderButtons()}
-          </div>
-        </div>
+            <div className="flex items-center justify-between rounded-b-xl border-t border-border bg-muted/50 px-6 py-4 sm:px-7">
+              {renderButtons()}
+            </div>
+          </AlertDialogPrimitive.Content>
+        </AlertDialogPortal>
       </AlertDialog>
     );
   };

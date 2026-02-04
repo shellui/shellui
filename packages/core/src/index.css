@@ -309,6 +309,35 @@
   animation: dialog-content-out 0.1s ease-in both;
 }
 
+/* Cookie consent dialog (bottom-left) animations */
+@keyframes cookie-dialog-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes cookie-dialog-content-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+[data-cookie-consent][data-state="open"] {
+  animation: cookie-dialog-content-in 0.15s ease-out 0.05s both;
+}
+[data-cookie-consent][data-state="closed"] {
+  animation: cookie-dialog-content-out 0.15s ease-in both;
+}
+
 /* Loading overlay top bar animation – grows from left to right */
 @keyframes loading-bar-slide {
   from { width: 0%; }
