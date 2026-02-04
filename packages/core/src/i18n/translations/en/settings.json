@@ -61,9 +61,12 @@
       "descriptionNotConsented": "You have not yet made a choice about cookies.",
       "statusAcceptedAll": "You have accepted all cookies. This helps us provide you with the best experience.",
       "statusRejectedAll": "You have rejected non-essential cookies. Only strictly necessary cookies are active.",
+      "statusCustom": "You have customized your cookie preferences. Some cookies are enabled based on your choices.",
       "labelAcceptedAll": "All accepted",
-      "labelRejectedAll": "Non-essential rejected",
+      "labelCustom": "Custom",
+      "labelRejectedAll": "All rejected",
       "button": "Reset Cookie Consent",
+      "manageButton": "Manage Preferences",
       "dialog": {
         "title": "Reset Cookie Consent?",
         "description": "This will clear your cookie preferences. You will be asked to accept or reject cookies on your next visit.",

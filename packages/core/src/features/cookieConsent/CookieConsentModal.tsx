@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { shellui } from '@shellui/sdk';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useConfig } from '../config/useConfig';
 import { useSettings } from '../settings/hooks/useSettings';
 import { Z_INDEX } from '@/lib/z-index';
+import { CookiePreferencesDrawer } from './CookiePreferencesDrawer';
 
 /**
  * Shows a friendly cookie consent modal on first visit (when user has not yet consented).
@@ -16,11 +17,15 @@ export function CookieConsentModal() {
   const { config } = useConfig();
   const { settings, updateSetting } = useSettings();
   const closedByChoiceRef = useRef(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   const cookieConsent = config?.cookieConsent;
   const cookies = cookieConsent?.cookies ?? [];
   const consentedHosts = settings?.cookieConsent?.consentedCookieHosts ?? [];
   const allHosts = cookies.map((c) => c.host);
+  const strictNecessaryHosts = cookies
+    .filter((c) => c.category === 'strict_necessary')
+    .map((c) => c.host);
 
   // Check if there are new cookies that weren't in the list when user last consented
   const hasNewCookies = allHosts.some((host) => !consentedHosts.includes(host));
@@ -45,10 +50,10 @@ export function CookieConsentModal() {
 
   const saveReject = useCallback(() => {
     updateSetting('cookieConsent', {
-      acceptedHosts: [],
+      acceptedHosts: strictNecessaryHosts,
       consentedCookieHosts: allHosts,
     });
-  }, [allHosts, updateSetting]);
+  }, [strictNecessaryHosts, allHosts, updateSetting]);
 
   const handleAccept = () => {
     closedByChoiceRef.current = true;
@@ -58,6 +63,15 @@ export function CookieConsentModal() {
   const handleReject = () => {
     closedByChoiceRef.current = true;
     saveReject();
+  };
+
+  const handleSetPreferences = () => {
+    closedByChoiceRef.current = true;
+    setPreferencesOpen(true);
+  };
+
+  const handlePreferencesOpenChange = (nextOpen: boolean) => {
+    setPreferencesOpen(nextOpen);
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -79,50 +93,66 @@ export function CookieConsentModal() {
 
   if (!open) return null;
 
+  // Hide modal when preferences drawer is open
+  const showModal = open && !preferencesOpen;
+
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay
-          className="fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]"
-          style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }}
-        />
-        <DialogPrimitive.Content
-          className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
-          style={{
-            bottom: 16,
-            left: 16,
-            zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
-            backgroundColor: 'hsl(var(--background))',
-          }}
-          data-cookie-consent
-        >
-          <div className="flex items-start gap-4 p-6 sm:gap-5 sm:p-7">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
-              aria-hidden
-            >
-              <CookieIcon className="h-5 w-5 text-primary" />
+    <>
+      <DialogPrimitive.Root open={showModal} onOpenChange={handleOpenChange}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay
+            className="fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]"
+            style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }}
+          />
+          <DialogPrimitive.Content
+            className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
+            style={{
+              bottom: 16,
+              left: 16,
+              zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
+              backgroundColor: 'hsl(var(--background))',
+            }}
+            data-cookie-consent
+          >
+            <div className="flex items-start gap-4 p-6 sm:gap-5 sm:p-7">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+                aria-hidden
+              >
+                <CookieIcon className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 space-y-2">
+                <DialogPrimitive.Title className="text-base font-semibold leading-tight">
+                  {title}
+                </DialogPrimitive.Title>
+                <DialogPrimitive.Description className="text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </DialogPrimitive.Description>
+              </div>
             </div>
-            <div className="flex-1 space-y-2">
-              <DialogPrimitive.Title className="text-base font-semibold leading-tight">
-                {title}
-              </DialogPrimitive.Title>
-              <DialogPrimitive.Description className="text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </DialogPrimitive.Description>
+          <div className="flex items-center justify-between rounded-b-xl border-t border-border bg-muted/50 px-6 py-4 sm:px-7">
+            <Button size="sm" variant="ghost" onClick={handleSetPreferences}>
+              {t('setPreferences')}
+            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" onClick={handleReject}>
+                {t('reject')}
+              </Button>
+              <Button size="sm" onClick={handleAccept}>
+                {t('accept')}
+              </Button>
             </div>
           </div>
-          <div className="flex justify-end gap-2 rounded-b-xl border-t border-border bg-muted/50 px-6 py-4 sm:px-7">
-            <Button size="sm" variant="ghost" onClick={handleReject}>
-              {t('reject')}
-            </Button>
-            <Button size="sm" onClick={handleAccept}>
-              {t('accept')}
-            </Button>
-          </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      <CookiePreferencesDrawer
+        open={preferencesOpen}
+        onOpenChange={handlePreferencesOpenChange}
+        isInitialConsent
+      />
+    </>
   );
 }
 

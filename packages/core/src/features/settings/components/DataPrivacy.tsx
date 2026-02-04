@@ -3,6 +3,7 @@ import { useSettings } from "../hooks/useSettings"
 import { useConfig } from "@/features/config/useConfig"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
+import urls from "@/constants/urls"
 
 export const DataPrivacy = () => {
   const { t } = useTranslation('settings')
@@ -16,8 +17,14 @@ export const DataPrivacy = () => {
   // Determine consent status
   const acceptedHosts = settings?.cookieConsent?.acceptedHosts ?? []
   const allHosts = cookies.map((c) => c.host)
+  const strictNecessaryHosts = cookies.filter((c) => c.category === 'strict_necessary').map((c) => c.host)
+  
   const acceptedAll = hasConsented && acceptedHosts.length === allHosts.length && allHosts.every(h => acceptedHosts.includes(h))
-  const rejectedAll = hasConsented && acceptedHosts.length === 0
+  // "Rejected all" means only strictly necessary cookies are accepted
+  const rejectedAll = hasConsented && acceptedHosts.length === strictNecessaryHosts.length && 
+    strictNecessaryHosts.every(h => acceptedHosts.includes(h)) && 
+    !acceptedHosts.some(h => !strictNecessaryHosts.includes(h))
+  const isCustom = hasConsented && !acceptedAll && !rejectedAll
 
   const handleResetCookieConsent = () => {
     shellui.dialog({
@@ -79,13 +86,17 @@ export const DataPrivacy = () => {
                   ? t('dataPrivacy.cookieConsent.statusAcceptedAll')
                   : rejectedAll
                     ? t('dataPrivacy.cookieConsent.statusRejectedAll')
-                    : t('dataPrivacy.cookieConsent.descriptionConsented')}
+                    : t('dataPrivacy.cookieConsent.statusCustom')}
             </p>
           </div>
           {hasConsented && (
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <span className={acceptedAll ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
                 {acceptedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
+              </span>
+              <span className="text-muted-foreground/50">|</span>
+              <span className={isCustom ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}>
+                {isCustom ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelCustom')}
               </span>
               <span className="text-muted-foreground/50">|</span>
               <span className={rejectedAll ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}>
@@ -93,14 +104,23 @@ export const DataPrivacy = () => {
               </span>
             </div>
           )}
-          <Button
-            variant="outline"
-            onClick={handleResetCookieConsent}
-            disabled={!hasConsented}
-            className="w-full sm:w-auto"
-          >
-            {t('dataPrivacy.cookieConsent.button')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => shellui.openDrawer({ url: urls.cookiePreferences, size: '420px' })}
+              className="w-full sm:w-auto"
+            >
+              {t('dataPrivacy.cookieConsent.manageButton')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleResetCookieConsent}
+              disabled={!hasConsented}
+              className="w-full sm:w-auto"
+            >
+              {t('dataPrivacy.cookieConsent.button')}
+            </Button>
+          </div>
         </div>
       )}
       

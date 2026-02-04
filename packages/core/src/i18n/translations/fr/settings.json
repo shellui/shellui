@@ -61,9 +61,12 @@
       "descriptionNotConsented": "Vous n'avez pas encore fait de choix concernant les cookies.",
       "statusAcceptedAll": "Vous avez accepté tous les cookies. Cela nous aide à vous offrir la meilleure expérience.",
       "statusRejectedAll": "Vous avez refusé les cookies non essentiels. Seuls les cookies strictement nécessaires sont actifs.",
+      "statusCustom": "Vous avez personnalisé vos préférences de cookies. Certains cookies sont activés selon vos choix.",
       "labelAcceptedAll": "Tous acceptés",
-      "labelRejectedAll": "Non essentiels refusés",
+      "labelCustom": "Personnalisé",
+      "labelRejectedAll": "Tous refusés",
       "button": "Réinitialiser le consentement",
+      "manageButton": "Gérer les préférences",
       "dialog": {
         "title": "Réinitialiser le consentement aux cookies ?",
         "description": "Cela effacera vos préférences de cookies. Vous serez invité à accepter ou refuser les cookies lors de votre prochaine visite.",

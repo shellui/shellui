@@ -1,8 +1,50 @@
 {
   "title": "Votre vie privée compte",
-  "description": "Nous utilisons des cookies pour améliorer votre expérience, analyser l'utilisation de l'application et corriger les problèmes. Vous pouvez tout accepter ou refuser les cookies non essentiels. Vous pourrez modifier votre choix à tout moment dans les paramètres.",
+  "description": "Nous utilisons des cookies pour améliorer votre expérience, analyser l'utilisation de l'application et corriger les problèmes. Vous pouvez tout accepter, tout refuser ou personnaliser vos préférences.",
   "titleRenewal": "Nos cookies ont évolué",
   "descriptionRenewal": "Nous avons mis à jour notre politique de cookies avec de nouvelles fonctionnalités ou services. Veuillez confirmer vos préférences pour continuer avec la meilleure expérience.",
   "accept": "Tout accepter",
-  "reject": "Refuser les non essentiels"
+  "reject": "Tout refuser",
+  "setPreferences": "Personnaliser",
+  "preferences": {
+    "title": "Préférences des cookies",
+    "description": "Gérez vos préférences de cookies. Activez ou désactivez les cookies par catégorie ou individuellement.",
+    "acceptAll": "Tout accepter",
+    "rejectAll": "Tout refuser",
+    "save": "Enregistrer les préférences",
+    "partial": "Partiel",
+    "required": "Requis",
+    "alwaysOn": "Toujours actif",
+    "noCookies": "Aucun cookie configuré.",
+    "categories": {
+      "strict_necessary": {
+        "title": "Strictement nécessaires",
+        "description": "Essentiels au fonctionnement du site. Ne peuvent pas être désactivés."
+      },
+      "functional_performance": {
+        "title": "Fonctionnels et performance",
+        "description": "Nous aident à améliorer le site en collectant des données d'utilisation anonymes et des rapports d'erreurs."
+      },
+      "targeting": {
+        "title": "Ciblage et publicité",
+        "description": "Utilisés pour diffuser des publicités personnalisées."
+      },
+      "social_media_embedded": {
+        "title": "Réseaux sociaux et contenu intégré",
+        "description": "Activent les fonctionnalités de réseaux sociaux et le contenu intégré de tiers."
+      }
+    },
+    "duration": {
+      "seconds": "{{count}} seconde",
+      "seconds_other": "{{count}} secondes",
+      "minutes": "{{count}} minute",
+      "minutes_other": "{{count}} minutes",
+      "hours": "{{count}} heure",
+      "hours_other": "{{count}} heures",
+      "days": "{{count}} jour",
+      "days_other": "{{count}} jours",
+      "years": "{{count}} an",
+      "years_other": "{{count}} ans"
+    }
+  }
 }

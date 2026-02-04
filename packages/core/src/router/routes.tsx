@@ -10,6 +10,7 @@ import urls from '../constants/urls';
 // Lazy load route components
 const HomeView = lazy(() => import('../components/HomeView').then((m) => ({ default: m.HomeView })));
 const SettingsView = lazy(() => import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
+const CookiePreferencesView = lazy(() => import('../features/cookieConsent/CookiePreferencesView').then((m) => ({ default: m.CookiePreferencesView })));
 const ViewRoute = lazy(() => import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })));
 const NotFoundView = lazy(() => import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })));
 
@@ -42,6 +43,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
               ),
             },
           ],
+        },
+        {
+          // Cookie preferences route
+          path: urls.cookiePreferences.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <CookiePreferencesView />
+            </Suspense>
+          ),
         },
         {
           // Catch-all route
