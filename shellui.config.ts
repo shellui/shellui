@@ -21,30 +21,6 @@ const config: ShellUIConfig = {
           fr: 'Nous aide à corriger les erreurs et à améliorer la stabilité.',
         },
       },
-      {
-        name: 'Session',
-        host: '.example.com',
-        durationSeconds: 86400, // 1 day
-        type: 'first_party',
-        category: 'strict_necessary',
-        description: 'Keeps you signed in.',
-      },
-      {
-        name: 'Session 3',
-        host: '.example3.com',
-        durationSeconds: 86400, // 1 day
-        type: 'first_party',
-        category: 'strict_necessary',
-        description: 'Keeps you signed in.',
-      },
-      {
-        name: 'Session 4',
-        host: '.example4.com',
-        durationSeconds: 86400, // 1 day
-        type: 'first_party',
-        category: 'strict_necessary',
-        description: 'Keeps you signed in.',
-      },
     ],
   },
   // Layout: 'sidebar' (default), 'fullscreen' (content only), or 'windows' (taskbar + multi-window)
