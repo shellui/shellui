@@ -25,30 +25,55 @@ export const Caching = () => {
   useEffect(() => {
     // Don't check service worker status if caching is disabled
     if (!cachingEnabled) {
+      // Immediately clear all state and hide error messages
       setIsRegistered(false)
       setUpdateAvailable(false)
       setIsLoading(false)
-      setSwFileExists(false)
+      setSwFileExists(true) // Set to true to prevent error messages from showing
       return
     }
 
     // Initial check with loading state
     const initialCheck = async () => {
+      // Double-check caching is still enabled before proceeding
+      const currentCachingEnabled = settings?.caching?.enabled ?? true
+      if (!currentCachingEnabled) {
+        setIsLoading(false)
+        return
+      }
+      
       setIsLoading(true)
       
       // First check if service worker file exists
       const exists = await serviceWorkerFileExists()
+      
+      // Check again if caching was disabled during the async operation
+      const stillEnabled = settings?.caching?.enabled ?? true
+      if (!stillEnabled) {
+        setIsLoading(false)
+        return
+      }
+      
       setSwFileExists(exists)
       
       if (exists) {
         // Check service worker status only if file exists
         const status = await getServiceWorkerStatus()
-        setIsRegistered(status.registered)
-        setUpdateAvailable(status.updateAvailable)
+        
+        // Final check before updating state
+        const finalCheck = settings?.caching?.enabled ?? true
+        if (finalCheck) {
+          setIsRegistered(status.registered)
+          setUpdateAvailable(status.updateAvailable)
+        }
       } else {
         // File doesn't exist, so service worker can't be registered
-        setIsRegistered(false)
-        setUpdateAvailable(false)
+        // Only update if caching is still enabled
+        const finalCheck = settings?.caching?.enabled ?? true
+        if (finalCheck) {
+          setIsRegistered(false)
+          setUpdateAvailable(false)
+        }
       }
       
       setIsLoading(false)
@@ -64,17 +89,33 @@ export const Caching = () => {
       
       // Check if file exists first
       const exists = await serviceWorkerFileExists()
+      
+      // Check again if caching was disabled during the async operation
+      const stillEnabled = settings?.caching?.enabled ?? true
+      if (!stillEnabled) {
+        return
+      }
+      
       setSwFileExists(exists)
       
       if (exists) {
         // Check service worker status only if file exists
         const status = await getServiceWorkerStatus()
-        setIsRegistered(status.registered)
-        setUpdateAvailable(status.updateAvailable)
+        
+        // Final check before updating state
+        const finalCheck = settings?.caching?.enabled ?? true
+        if (finalCheck) {
+          setIsRegistered(status.registered)
+          setUpdateAvailable(status.updateAvailable)
+        }
       } else {
         // File doesn't exist, so service worker can't be registered
-        setIsRegistered(false)
-        setUpdateAvailable(false)
+        // Only update if caching is still enabled
+        const finalCheck = settings?.caching?.enabled ?? true
+        if (finalCheck) {
+          setIsRegistered(false)
+          setUpdateAvailable(false)
+        }
       }
     }
     
@@ -102,19 +143,26 @@ export const Caching = () => {
   }, [cachingEnabled])
 
   const handleToggleCaching = async (enabled: boolean) => {
+    // Immediately clear all state before updating setting to prevent error flashes
+    if (!enabled) {
+      setIsRegistered(false)
+      setUpdateAvailable(false)
+      setSwFileExists(true) // Set to true to hide error messages immediately
+      setIsLoading(false)
+    }
+    
     updateSetting('caching', { enabled })
     
     if (!enabled) {
-      // Immediately clear status when disabled
-      setIsRegistered(false)
-      setUpdateAvailable(false)
-      setSwFileExists(false)
+      // Already cleared above, just return
       return
     }
     
     // Give it a moment to register/unregister
     setTimeout(async () => {
-      if (enabled) {
+      // Double-check caching is still enabled before updating state
+      const currentCachingEnabled = settings?.caching?.enabled ?? true
+      if (enabled && currentCachingEnabled) {
         const registered = await isServiceWorkerRegistered()
         setIsRegistered(registered)
       }
@@ -174,107 +222,116 @@ export const Caching = () => {
       ) : null}
 
       {!isLoading && (
-        <div className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-          <div className="space-y-0.5">
-            <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-              {t('caching.enabled.title')}
-            </label>
-            <p className="text-sm text-muted-foreground">
-              {cachingEnabled 
-                ? t('caching.enabled.descriptionEnabled')
-                : t('caching.enabled.descriptionDisabled')}
-            </p>
-          </div>
-          <Switch
-            checked={cachingEnabled}
-            onCheckedChange={handleToggleCaching}
-          />
-        </div>
-
-        {cachingEnabled && (
-          <>
-            {!swFileExists && (
-              <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium leading-none text-red-600 dark:text-red-400" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                    Service Worker Not Available
-                  </h3>
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    The service worker file could not be found. Caching is not available. This may be a development server issue.
-                  </p>
-                </div>
+        <div className="space-y-6">
+          {/* Enable/Disable Caching */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                  {t('caching.enabled.title')}
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  {cachingEnabled 
+                    ? t('caching.enabled.descriptionEnabled')
+                    : t('caching.enabled.descriptionDisabled')}
+                </p>
               </div>
-            )}
-            
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                  {t('caching.status.title')}
-                </h3>
-                <div className="flex items-center gap-2 text-sm">
-                  {swFileExists ? (
-                    <>
-                      <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}>
-                        {isRegistered ? "●" : "○"} {isRegistered ? t('caching.status.registered') : 'Not Running'}
-                      </span>
-                      {updateAvailable && (
-                        <>
-                          <span className="text-muted-foreground/50">|</span>
-                          <span className="text-blue-600 dark:text-blue-400">
-                            ● {t('caching.status.updateAvailable')}
-                          </span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <span className="text-red-600 dark:text-red-400">
-                      ✗ Failed - Service worker file not found
-                    </span>
-                  )}
-                </div>
-              </div>
+              <Switch
+                checked={cachingEnabled}
+                onCheckedChange={handleToggleCaching}
+              />
             </div>
+          </div>
 
-            {updateAvailable && (
-              <div className="rounded-lg border bg-card p-4 space-y-3">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                    {t('caching.update.title')}
-                  </h3>
+          {cachingEnabled && (
+            <>
+              {/* Error Message */}
+              {!swFileExists && cachingEnabled && (
+                <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-medium leading-none text-red-600 dark:text-red-400" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                      Service Worker Not Available
+                    </h3>
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      The service worker file could not be found. Caching is not available. This may be a development server issue.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Status */}
+              {cachingEnabled && (
+                <div className="space-y-2">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                      {t('caching.status.title')}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {swFileExists && cachingEnabled ? (
+                      <>
+                        <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}>
+                          {isRegistered ? "●" : "○"} {isRegistered ? t('caching.status.registered') : 'Not Running'}
+                        </span>
+                        {updateAvailable && (
+                          <>
+                            <span className="text-muted-foreground/50">|</span>
+                            <span className="text-blue-600 dark:text-blue-400">
+                              ● {t('caching.status.updateAvailable')}
+                            </span>
+                          </>
+                        )}
+                      </>
+                    ) : cachingEnabled ? (
+                      <span className="text-red-600 dark:text-red-400">
+                        ✗ Failed - Service worker file not found
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              )}
+
+              {/* Update Available */}
+              {updateAvailable && (
+                <div className="space-y-2">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                      {t('caching.update.title')}
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('caching.update.description')}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={handleUpdateNow}
+                    className="w-full sm:w-auto"
+                  >
+                    {t('caching.update.button')}
+                  </Button>
+                </div>
+              )}
+
+              {/* Reset Cache */}
+              <div className="space-y-2">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                    {t('caching.reset.title')}
+                  </label>
                   <p className="text-sm text-muted-foreground">
-                    {t('caching.update.description')}
+                    {t('caching.reset.description')}
                   </p>
                 </div>
                 <Button
                   variant="outline"
-                  onClick={handleUpdateNow}
+                  onClick={handleResetToLatest}
                   className="w-full sm:w-auto"
                 >
-                  {t('caching.update.button')}
+                  {t('caching.reset.button')}
                 </Button>
               </div>
-            )}
-
-            <div className="rounded-lg border bg-card p-4 space-y-3">
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                  {t('caching.reset.title')}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('caching.reset.description')}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleResetToLatest}
-                className="w-full sm:w-auto"
-              >
-                {t('caching.reset.button')}
-              </Button>
-            </div>
-          </>
-        )}
+            </>
+          )}
         </div>
       )}
     </div>

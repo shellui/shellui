@@ -6,6 +6,7 @@ let updateAvailable = false;
 let waitingServiceWorker: ServiceWorker | null = null;
 let registrationPromise: Promise<void> | null = null;
 let statusListeners: Array<(status: { registered: boolean; updateAvailable: boolean }) => void> = [];
+let isInitialRegistration = false; // Track if this is the first registration (no reload needed)
 
 // Cache for service worker file existence check to avoid duplicate fetches
 let swFileExistsCache: Promise<boolean> | null = null;
@@ -226,9 +227,14 @@ export async function registerServiceWorker(
       const existingRegistration = await navigator.serviceWorker.getRegistration();
       if (existingRegistration && wb) {
         // Already registered, just update
+        isInitialRegistration = false; // This is an update check
         wb.update();
         return;
       }
+
+      // Check if there's already a service worker controlling the page
+      // If not, this is an initial registration (don't reload)
+      isInitialRegistration = !navigator.serviceWorker.controller;
 
       // Register the service worker
       wb = new Workbox('/sw.js', { type: 'classic' });
@@ -268,16 +274,27 @@ export async function registerServiceWorker(
     // Handle service worker activated
     wb.addEventListener('activated', (event) => {
       notifyStatusListeners();
-      if (event.isUpdate) {
-        // New service worker activated, reload the page
+      // Only reload if this is an update (not initial registration)
+      if (event.isUpdate && !isInitialRegistration) {
+        // New service worker activated via update, reload the page
         window.location.reload();
       }
+      // Reset flag after activation
+      isInitialRegistration = false;
     });
 
     // Handle service worker controlling
     wb.addEventListener('controlling', () => {
       notifyStatusListeners();
-      window.location.reload();
+      // Only reload if this is an update scenario (not initial registration)
+      // The controlling event fires when a service worker takes control
+      // We only want to reload if it's taking control due to an update
+      if (!isInitialRegistration && updateAvailable) {
+        // Service worker took control after update, reload the page
+        window.location.reload();
+      }
+      // Reset flag after controlling
+      isInitialRegistration = false;
     });
 
     // Handle service worker registered
@@ -338,6 +355,7 @@ export async function registerServiceWorker(
 
 /**
  * Update the service worker immediately
+ * This will reload the page when the update is installed
  */
 export async function updateServiceWorker(): Promise<void> {
   if (!wb || !waitingServiceWorker) {
@@ -345,10 +363,15 @@ export async function updateServiceWorker(): Promise<void> {
   }
 
   try {
+    // Mark that this is an update (not initial registration)
+    isInitialRegistration = false;
+    
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
     
     // Wait for the new service worker to take control
+    // This will trigger a reload via the 'controlling' event handler
+    // which is fine since this is an explicit update action
     wb.addEventListener('controlling', () => {
       window.location.reload();
     });
@@ -358,7 +381,7 @@ export async function updateServiceWorker(): Promise<void> {
 }
 
 /**
- * Unregister the service worker
+ * Unregister the service worker silently (no page reload)
  */
 export async function unregisterServiceWorker(): Promise<void> {
   if (!('serviceWorker' in navigator)) {
@@ -366,22 +389,33 @@ export async function unregisterServiceWorker(): Promise<void> {
   }
 
   try {
+    // Set flag to prevent any reloads during unregistration
+    isInitialRegistration = true;
+    
     const registration = await navigator.serviceWorker.getRegistration();
     if (registration) {
       await registration.unregister();
       
-      // Clear all caches
+      // Clear all caches silently
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
     }
-    wb = null;
+    
+    // Clean up workbox instance
+    if (wb) {
+      // Remove all event listeners to prevent any reloads
+      wb = null;
+    }
+    
     updateAvailable = false;
     waitingServiceWorker = null;
+    isInitialRegistration = false;
     notifyStatusListeners();
   } catch (error) {
     console.error('Failed to unregister service worker:', error);
+    isInitialRegistration = false;
   }
 }
 
