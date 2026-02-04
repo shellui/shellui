@@ -57,7 +57,7 @@
     "description": "Gérez vos paramètres de confidentialité des données et réinitialisez toutes les données de l'application.",
     "cookieConsent": {
       "title": "Consentement aux cookies",
-      "descriptionConsented": "Vous avez fait un choix concernant les cookies. Réinitialisez pour être redemandé lors de votre prochaine visite.",
+      "descriptionConsented": "Vous avez fait un choix concernant les cookies. Réinitialisez pour être redemandé immédiatement.",
       "descriptionNotConsented": "Vous n'avez pas encore fait de choix concernant les cookies.",
       "statusAcceptedAll": "Vous avez accepté tous les cookies. Cela nous aide à vous offrir la meilleure expérience.",
       "statusRejectedAll": "Vous avez refusé les cookies non essentiels. Seuls les cookies strictement nécessaires sont actifs.",

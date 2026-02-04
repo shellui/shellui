@@ -1,5 +1,6 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -28,6 +29,9 @@ export function CookiePreferencesView() {
   const { t } = useTranslation('cookieConsent');
   const { config } = useConfig();
   const { settings, updateSetting } = useSettings();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isInitialConsent = searchParams.get('initial') === 'true';
 
   const cookies = config?.cookieConsent?.cookies ?? [];
   const allHosts = useMemo(() => cookies.map((c) => c.host), [cookies]);
@@ -44,6 +48,53 @@ export function CookiePreferencesView() {
   const [localAcceptedHosts, setLocalAcceptedHosts] = useState<string[]>(() =>
     [...new Set([...currentAcceptedHosts, ...strictNecessaryHosts])]
   );
+
+  // Track if save/accept/reject was clicked to avoid rejecting on intentional close
+  const actionClickedRef = useRef(false);
+
+  // Reset local state when drawer opens (when URL changes to include initial param)
+  useEffect(() => {
+    if (isInitialConsent) {
+      // Always include strict necessary hosts
+      setLocalAcceptedHosts([...new Set([...currentAcceptedHosts, ...strictNecessaryHosts])]);
+    }
+  }, [isInitialConsent, currentAcceptedHosts, strictNecessaryHosts]);
+
+  // Handle drawer close without saving during initial consent
+  useEffect(() => {
+    if (!isInitialConsent) return;
+
+    const handleDrawerClose = () => {
+      // If closing without saving during initial consent, reject all except strict necessary
+      // Check if user has never consented and no action was clicked
+      const neverConsented = (settings?.cookieConsent?.consentedCookieHosts ?? []).length === 0;
+      if (neverConsented && !actionClickedRef.current) {
+        updateSetting('cookieConsent', {
+          acceptedHosts: strictNecessaryHosts,
+          consentedCookieHosts: allHosts,
+        });
+      }
+    };
+
+    const cleanup = shellui.addMessageListener('SHELLUI_CLOSE_DRAWER', handleDrawerClose);
+    return cleanup;
+  }, [isInitialConsent, strictNecessaryHosts, allHosts, updateSetting, settings]);
+
+  // Cleanup on unmount: if initial consent and drawer closes without save, reject all
+  useEffect(() => {
+    return () => {
+      if (isInitialConsent && !actionClickedRef.current) {
+        // Check if user has never consented
+        const neverConsented = (settings?.cookieConsent?.consentedCookieHosts ?? []).length === 0;
+        if (neverConsented) {
+          updateSetting('cookieConsent', {
+            acceptedHosts: strictNecessaryHosts,
+            consentedCookieHosts: allHosts,
+          });
+        }
+      }
+    };
+  }, [isInitialConsent, strictNecessaryHosts, allHosts, updateSetting, settings]);
 
   // Group cookies by category
   const cookiesByCategory = useMemo(() => {
@@ -93,6 +144,7 @@ export function CookiePreferencesView() {
 
   // Accept all
   const handleAcceptAll = useCallback(() => {
+    actionClickedRef.current = true;
     updateSetting('cookieConsent', {
       acceptedHosts: allHosts,
       consentedCookieHosts: allHosts,
@@ -102,6 +154,7 @@ export function CookiePreferencesView() {
 
   // Reject all except strict necessary (which are always enabled)
   const handleRejectAll = useCallback(() => {
+    actionClickedRef.current = true;
     updateSetting('cookieConsent', {
       acceptedHosts: strictNecessaryHosts,
       consentedCookieHosts: allHosts,
@@ -111,6 +164,7 @@ export function CookiePreferencesView() {
 
   // Save custom preferences (always include strict necessary)
   const handleSave = useCallback(() => {
+    actionClickedRef.current = true;
     const hostsToSave = [...new Set([...localAcceptedHosts, ...strictNecessaryHosts])];
     updateSetting('cookieConsent', {
       acceptedHosts: hostsToSave,
@@ -257,7 +311,7 @@ export function CookiePreferencesView() {
         <Button
           size="sm"
           onClick={handleSave}
-          disabled={!hasChanges}
+          disabled={!hasChanges && !isInitialConsent}
           className="w-full"
         >
           {t('preferences.save')}

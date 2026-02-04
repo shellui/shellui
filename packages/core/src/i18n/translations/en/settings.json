@@ -57,7 +57,7 @@
     "description": "Manage your data privacy settings and reset all app data.",
     "cookieConsent": {
       "title": "Cookie Consent",
-      "descriptionConsented": "You have made a choice about cookies. Reset to be asked again on your next visit.",
+      "descriptionConsented": "You have made a choice about cookies. Reset to be asked again right away.",
       "descriptionNotConsented": "You have not yet made a choice about cookies.",
       "statusAcceptedAll": "You have accepted all cookies. This helps us provide you with the best experience.",
       "statusRejectedAll": "You have rejected non-essential cookies. Only strictly necessary cookies are active.",

@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { shellui } from '@shellui/sdk';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useConfig } from '../config/useConfig';
 import { useSettings } from '../settings/hooks/useSettings';
 import { Z_INDEX } from '@/lib/z-index';
-import { CookiePreferencesDrawer } from './CookiePreferencesDrawer';
+import urls from '@/constants/urls';
 
 /**
  * Shows a friendly cookie consent modal on first visit (when user has not yet consented).
@@ -17,7 +17,6 @@ export function CookieConsentModal() {
   const { config } = useConfig();
   const { settings, updateSetting } = useSettings();
   const closedByChoiceRef = useRef(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   const cookieConsent = config?.cookieConsent;
   const cookies = cookieConsent?.cookies ?? [];
@@ -67,11 +66,7 @@ export function CookieConsentModal() {
 
   const handleSetPreferences = () => {
     closedByChoiceRef.current = true;
-    setPreferencesOpen(true);
-  };
-
-  const handlePreferencesOpenChange = (nextOpen: boolean) => {
-    setPreferencesOpen(nextOpen);
+    shellui.openDrawer({ url: `${urls.cookiePreferences}?initial=true`, size: '420px' });
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -93,12 +88,8 @@ export function CookieConsentModal() {
 
   if (!open) return null;
 
-  // Hide modal when preferences drawer is open
-  const showModal = open && !preferencesOpen;
-
   return (
-    <>
-      <DialogPrimitive.Root open={showModal} onOpenChange={handleOpenChange}>
+    <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay
             className="fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]"
@@ -146,13 +137,6 @@ export function CookieConsentModal() {
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-
-      <CookiePreferencesDrawer
-        open={preferencesOpen}
-        onOpenChange={handlePreferencesOpenChange}
-        isInitialConsent
-      />
-    </>
   );
 }
 

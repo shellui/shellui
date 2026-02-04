@@ -27,22 +27,9 @@ export const DataPrivacy = () => {
   const isCustom = hasConsented && !acceptedAll && !rejectedAll
 
   const handleResetCookieConsent = () => {
-    shellui.dialog({
-      title: t('dataPrivacy.cookieConsent.dialog.title'),
-      description: t('dataPrivacy.cookieConsent.dialog.description'),
-      mode: "confirm",
-      size: "sm",
-      okLabel: t('dataPrivacy.cookieConsent.dialog.confirm'),
-      cancelLabel: t('dataPrivacy.cookieConsent.dialog.cancel'),
-      onOk: () => {
-        updateSetting('cookieConsent', {
-          acceptedHosts: [],
-          consentedCookieHosts: [],
-        })
-      },
-      onCancel: () => {
-        // User cancelled, no action needed
-      },
+    updateSetting('cookieConsent', {
+      acceptedHosts: [],
+      consentedCookieHosts: [],
     })
   }
 
