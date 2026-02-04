@@ -76,21 +76,19 @@ export const DataPrivacy = () => {
                     : t('dataPrivacy.cookieConsent.statusCustom')}
             </p>
           </div>
-          {hasConsented && (
-            <div className="flex items-center gap-2 text-sm flex-wrap">
-              <span className={acceptedAll ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
-                {acceptedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
-              </span>
-              <span className="text-muted-foreground/50">|</span>
-              <span className={isCustom ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}>
-                {isCustom ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelCustom')}
-              </span>
-              <span className="text-muted-foreground/50">|</span>
-              <span className={rejectedAll ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}>
-                {rejectedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelRejectedAll')}
-              </span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <span className={acceptedAll ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
+              {acceptedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
+            </span>
+            <span className="text-muted-foreground/50">|</span>
+            <span className={isCustom ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}>
+              {isCustom ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelCustom')}
+            </span>
+            <span className="text-muted-foreground/50">|</span>
+            <span className={rejectedAll ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}>
+              {rejectedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelRejectedAll')}
+            </span>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
