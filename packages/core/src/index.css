@@ -97,7 +97,7 @@
   }
   
   button:hover, [role="button"]:hover {
-    filter: brightness(1.05);
+    filter: brightness(0.95);
   }
   
   /* Playful input styling */
