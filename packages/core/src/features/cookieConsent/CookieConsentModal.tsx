@@ -87,7 +87,7 @@ export function CookieConsentModal() {
           style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }}
         />
         <DialogPrimitive.Content
-          className="fixed w-full max-w-[380px] rounded-lg border border-border bg-background text-foreground shadow-lg"
+          className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
           style={{
             bottom: 16,
             left: 16,
@@ -96,15 +96,15 @@ export function CookieConsentModal() {
           }}
           data-cookie-consent
         >
-          <div className="flex items-start gap-3 p-4">
+          <div className="flex items-start gap-4 p-6 sm:gap-5 sm:p-7">
             <div
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10"
               aria-hidden
             >
               <CookieIcon className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1 space-y-1">
-              <DialogPrimitive.Title className="text-sm font-semibold leading-tight">
+            <div className="flex-1 space-y-2">
+              <DialogPrimitive.Title className="text-base font-semibold leading-tight">
                 {title}
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-sm leading-relaxed text-muted-foreground">
@@ -112,7 +112,7 @@ export function CookieConsentModal() {
               </DialogPrimitive.Description>
             </div>
           </div>
-          <div className="flex justify-end gap-2 rounded-b-lg border-t border-border bg-muted/50 px-4 py-3">
+          <div className="flex justify-end gap-2 rounded-b-xl border-t border-border bg-muted/50 px-6 py-4 sm:px-7">
             <Button size="sm" variant="ghost" onClick={handleReject}>
               {t('reject')}
             </Button>
@@ -130,22 +130,11 @@ function CookieIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      viewBox="0 0 256 256"
+      fill="currentColor"
       className={className}
     >
-      {/* Cookie outline */}
-      <circle cx="12" cy="12" r="10" />
-      {/* Chocolate chips */}
-      <circle cx="8" cy="9" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="8" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="9" cy="14" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="14" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="11" r="1" fill="currentColor" stroke="none" />
+      <path d="M164.49 163.51a12 12 0 1 1-17 0a12 12 0 0 1 17 0m-81-8a12 12 0 1 0 17 0a12 12 0 0 0-16.98 0Zm9-39a12 12 0 1 0-17 0a12 12 0 0 0 17-.02Zm48-1a12 12 0 1 0 0 17a12 12 0 0 0 0-17M232 128A104 104 0 1 1 128 24a8 8 0 0 1 8 8a40 40 0 0 0 40 40a8 8 0 0 1 8 8a40 40 0 0 0 40 40a8 8 0 0 1 8 8m-16.31 7.39A56.13 56.13 0 0 1 168.5 87.5a56.13 56.13 0 0 1-47.89-47.19a88 88 0 1 0 95.08 95.08" />
     </svg>
   );
 }
