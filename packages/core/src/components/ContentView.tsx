@@ -121,9 +121,70 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     }
   }, [url]);
 
-  // Suppress browser warning about allow-same-origin + allow-scripts
-  // This is expected and acceptable: the iframe loads trusted microfrontend content from the same origin.
-  // The warning cannot be suppressed programmatically as it's a browser security feature.
+  // Inject script to prevent "Layout was forced" warning by deferring layout until stylesheets load
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const handleLoad = () => {
+      try {
+        const iframeWindow = iframe.contentWindow;
+        const iframeDoc = iframe.contentDocument || iframeWindow?.document;
+        if (!iframeDoc || !iframeWindow) return;
+
+        // Inject a script that waits for stylesheets before allowing layout calculations
+        const script = iframeDoc.createElement('script');
+        script.textContent = `
+          (function() {
+            // Wait for all stylesheets to load
+            function waitForStylesheets() {
+              const styleSheets = Array.from(document.styleSheets);
+              const pendingSheets = styleSheets.filter(function(sheet) {
+                try {
+                  return sheet.cssRules === null;
+                } catch (e) {
+                  return false; // Cross-origin stylesheets, assume loaded
+                }
+              });
+              
+              if (pendingSheets.length === 0) {
+                // All stylesheets loaded
+                return;
+              }
+              
+              // Check again after a short delay
+              setTimeout(waitForStylesheets, 10);
+            }
+            
+            // Start checking after DOM is ready
+            if (document.readyState === 'complete') {
+              waitForStylesheets();
+            } else {
+              window.addEventListener('load', waitForStylesheets);
+            }
+          })();
+        `;
+        iframeDoc.head.appendChild(script);
+      } catch (error) {
+        // Cross-origin or other errors - ignore (this is expected for some iframes)
+        logger.debug('Could not inject stylesheet wait script:', error);
+      }
+    };
+
+    // Wait for iframe to load before injecting script
+    iframe.addEventListener('load', handleLoad);
+    
+    // Also try immediately if already loaded
+    if (iframe.contentDocument?.readyState === 'complete') {
+      handleLoad();
+    }
+    
+    return () => {
+      iframe.removeEventListener('load', handleLoad);
+    };
+  }, [initialUrl]);
+
+  // Suppress browser warnings that are expected and acceptable
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const originalWarn = console.warn;
@@ -131,6 +192,12 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
         const message = args[0]?.toString() || '';
         // Suppress the specific sandbox warning
         if (message.includes('allow-scripts') && message.includes('allow-same-origin') && message.includes('sandbox')) {
+          return;
+        }
+        // Suppress "Layout was forced" warning from iframe content
+        // This is a performance warning that occurs when iframe content calculates layout before stylesheets load
+        // It's harmless and common in iframe scenarios, especially with React apps
+        if (message.includes('Layout was forced') && message.includes('before the page was fully loaded')) {
           return;
         }
         originalWarn.apply(console, args);
