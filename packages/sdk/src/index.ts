@@ -145,6 +145,12 @@ export class ShellUISDK {
         logger.warn('SHELLUI_DIALOG_SECONDARY message missing id');
       }
     });
+
+    this.addMessageListener('SHELLUI_REFRESH_PAGE', () => {
+      if (typeof window !== 'undefined' && window.parent === window) {
+        window.location.reload();
+      }
+    });
   }
 
   openModal(url?: string): void {

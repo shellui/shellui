@@ -84,7 +84,7 @@ export const SettingsView = () => {
       {
         title: t("categories.system"),
         routes: filteredRoutes.filter(route =>
-          ["advanced"].includes(route.path)
+          ["update-app", "advanced"].includes(route.path)
         )
       },
       {

@@ -5,9 +5,11 @@ import {
   CodeIcon,
   ShieldIcon,
   PackageIcon,
+  RefreshDoubleIcon,
 } from "./SettingsIcons"
 import { Appearance } from "./components/Appearance"
 import { LanguageAndRegion } from "./components/LanguageAndRegion"
+import { UpdateApp } from "./components/UpdateApp"
 import { Advanced } from "./components/Advanced"
 import { Develop } from "./components/Develop"
 import { DataPrivacy } from "./components/DataPrivacy"
@@ -26,6 +28,12 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     icon: GlobeIcon,
     path: "language-and-region",
     element: <LanguageAndRegion />
+  },
+  {
+    name: t("routes.updateApp"),
+    icon: RefreshDoubleIcon,
+    path: "update-app",
+    element: <UpdateApp />
   },
   {
     name: t("routes.advanced"),

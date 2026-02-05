@@ -8,10 +8,25 @@
   "routes": {
     "appearance": "Apparence",
     "languageAndRegion": "Langue et région",
+    "updateApp": "Mise à jour logicielle",
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
+  },
+  "updateApp": {
+    "description": "Consultez la version de l'application et vérifiez les mises à jour. Lorsqu'une mise à jour est disponible, vous pouvez l'installer depuis ici.",
+    "currentVersion": "Version actuelle",
+    "status": "État des mises à jour",
+    "statusUpToDate": "À jour",
+    "statusUpdateAvailable": "Mise à jour disponible",
+    "checkForUpdate": "Vérifier les mises à jour",
+    "checking": "Vérification…",
+    "versionUnknown": "—",
+    "tauriComingSoon": "Les mises à jour de l'application bureau seront bientôt disponibles. Vous serez notifié lorsqu'une nouvelle version sera prête.",
+    "swDisabledMessage": "L'application se mettra à jour lors du rechargement de la page.",
+    "refreshApp": "Actualiser l'application",
+    "youAreUpToDate": "Vous êtes à jour"
   },
   "appearance": {
     "title": "Apparence",

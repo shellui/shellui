@@ -170,6 +170,8 @@ export type RuntimeType = 'browser' | 'tauri';
 export interface ShellUIConfig {
   port?: number;
   title?: string;
+  /** App version string (e.g. "1.2.0"). Shown in Settings > System > Update app. */
+  version?: string;
   /** Set to 'tauri' when the app runs inside Tauri so service worker is disabled and hidden. */
   runtime?: RuntimeType;
   /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */

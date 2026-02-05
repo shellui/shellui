@@ -8,10 +8,25 @@
   "routes": {
     "appearance": "Appearance",
     "languageAndRegion": "Language & region",
+    "updateApp": "Software update",
     "advanced": "Advanced",
     "dataPrivacy": "Data Privacy",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
+  },
+  "updateApp": {
+    "description": "Check your app version and look for updates. When an update is available, you can install it from here.",
+    "currentVersion": "Current version",
+    "status": "Update status",
+    "statusUpToDate": "Up to date",
+    "statusUpdateAvailable": "Update available",
+    "checkForUpdate": "Check for update",
+    "checking": "Checking…",
+    "versionUnknown": "—",
+    "tauriComingSoon": "Updates for the desktop app will be available soon. You will be notified when a new version is ready.",
+    "swDisabledMessage": "The app will update when you refresh the page.",
+    "refreshApp": "Refresh app",
+    "youAreUpToDate": "You are up to date"
   },
   "appearance": {
     "title": "Appearance",

@@ -518,6 +518,15 @@ export async function getServiceWorkerStatus(): Promise<{
 }
 
 /**
+ * Manually trigger a check for service worker updates (browser only).
+ * Resolves when the check is complete. Listen to addStatusListener for updateAvailable changes.
+ */
+export async function checkForServiceWorkerUpdate(): Promise<void> {
+  if (isTauri() || !wb) return;
+  await wb.update();
+}
+
+/**
  * Add a listener for service worker status changes
  */
 export function addStatusListener(listener: (status: { registered: boolean; updateAvailable: boolean }) => void): () => void {
