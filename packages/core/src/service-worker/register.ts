@@ -75,6 +75,8 @@ export interface ServiceWorkerRegistrationOptions {
  * This helps prevent hard-to-debug issues
  */
 async function disableCachingAutomatically(reason: string): Promise<void> {
+  // CRITICAL: Log to console in addition to logger so we can see what's happening
+  console.error('[Service Worker] Auto-disabling due to error:', reason);
   logger.error(`Auto-disabling caching due to error: ${reason}`);
   
   try {
@@ -172,9 +174,11 @@ export async function serviceWorkerFileExists(): Promise<boolean> {
         }
       });
       
-      // Handle 500 errors - server error, disable caching
+      // Handle 500 errors - server error, but don't disable caching immediately
+      // This might be a transient server issue, just return false
       if (response.status >= 500) {
-        await disableCachingAutomatically(`Server error (${response.status}) when fetching service worker`);
+        console.warn(`[Service Worker] Server error (${response.status}) when fetching service worker - not disabling`);
+        logger.warn(`Server error (${response.status}) when fetching service worker - not disabling to avoid false positives`);
         return false;
       }
       
@@ -203,21 +207,25 @@ export async function serviceWorkerFileExists(): Promise<boolean> {
                                      text.includes('serviceWorker') ||
                                      text.includes('self.addEventListener');
       
-      // If we got a response but it doesn't look like a service worker, disable caching
+      // If we got a response but it doesn't look like a service worker, log warning but don't disable
+      // This could be a dev server issue or temporary problem
       if (!isJavaScript && !looksLikeServiceWorker) {
-        await disableCachingAutomatically('Service worker file appears to be invalid or corrupted');
+        console.warn('[Service Worker] File does not look like a service worker - not disabling');
+        logger.warn('Service worker file appears to be invalid or corrupted - not disabling to avoid false positives');
         return false;
       }
       
       return isJavaScript || looksLikeServiceWorker;
     } catch (error) {
-      // Network errors - disable caching if it's a critical error
+      // Network errors - don't disable caching, might be offline or transient issue
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         // Don't disable on network errors - might be offline
+        console.warn('[Service Worker] Network error when checking file existence - not disabling');
         return false;
       }
-      // Other errors - disable caching
-      await disableCachingAutomatically(`Network error: ${error instanceof Error ? error.message : String(error)}`);
+      // Other errors - log but don't disable, could be transient
+      console.warn('[Service Worker] Error checking file existence - not disabling:', error);
+      logger.warn('Network error checking service worker file - not disabling to avoid false positives', { error });
       return false;
     }
   })();
@@ -445,14 +453,21 @@ export async function registerServiceWorker(
       waitingServiceWorker = null;
       toastShownForServiceWorkerId = null; // Reset so we can show toast for the next update
       
+      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
+      // Check both in-memory flag and sessionStorage to ensure we only reload when user explicitly requested it
+      const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
+        sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
+      const shouldReload = isIntentionalUpdate || isIntentionalUpdatePersisted;
+      
       // Clear intentional update flag after activation (update is complete)
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('shellui:service-worker:intentional-update');
       }
       
-      // Only reload if this is an update (not initial registration)
-      if (event.isUpdate && !isInitialRegistration) {
-        // New service worker activated via update, reload the page
+      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
+      // Do NOT reload automatically when a new service worker is installed - wait for user action
+      if (event.isUpdate && !isInitialRegistration && shouldReload) {
+        // User explicitly clicked "Install Now", so reload to use the new version
         window.location.reload();
       }
       // Reset flag after activation
@@ -463,11 +478,18 @@ export async function registerServiceWorker(
     // Handle service worker controlling
     controllingHandler = () => {
       notifyStatusListeners();
-      // Only reload if this is an update scenario (not initial registration)
+      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
       // The controlling event fires when a service worker takes control
-      // We only want to reload if it's taking control due to an update
-      if (!isInitialRegistration && updateAvailable) {
-        // Service worker took control after update, reload the page
+      // We only want to reload if the user explicitly requested the update
+      // Check both in-memory flag and sessionStorage to ensure we only reload when user explicitly requested it
+      const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
+        sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
+      const shouldReload = isIntentionalUpdate || isIntentionalUpdatePersisted;
+      
+      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
+      // Do NOT reload automatically when a service worker takes control - wait for user action
+      if (!isInitialRegistration && updateAvailable && shouldReload) {
+        // User explicitly clicked "Install Now", so reload to use the new version
         window.location.reload();
       }
       // Reset flag after controlling
@@ -514,22 +536,32 @@ export async function registerServiceWorker(
       // and without these checks, it would disable the service worker right after install
       if (!isUpdateFlow) {
         // Double-check asynchronously in case the sync check missed it
+        // CRITICAL: Be very defensive here - only disable if we're absolutely sure it's an error
         navigator.serviceWorker.getRegistration().then(registration => {
           const hasWaitingAsync = !!registration?.waiting;
-          if (!hasWaitingAsync) {
-            // No waiting service worker found, so this is truly unexpected
-            logger.warn('Service worker became redundant unexpectedly (not during update)');
-            disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+          const hasInstallingAsync = !!registration?.installing;
+          const hasActiveAsync = !!registration?.active;
+          
+          // CRITICAL: Only disable if there's NO waiting, NO installing, and NO active service worker
+          // If any of these exist, it means an update is in progress and redundant is expected
+          if (!hasWaitingAsync && !hasInstallingAsync && !hasActiveAsync) {
+            // No service worker at all - this is truly unexpected and likely an error
+            console.warn('[Service Worker] Redundant event: No service workers found, disabling');
+            logger.warn('Service worker became redundant unexpectedly (no service workers found)');
+            disableCachingAutomatically('Service worker became redundant (no service workers found)');
           } else {
-            // Found waiting service worker on async check - it's an update, ignore
-            logger.info('Service worker became redundant - async check confirms update in progress');
+            // Service workers exist - this is likely part of an update flow, don't disable
+            console.info('[Service Worker] Redundant event: Service workers exist, likely update in progress - ignoring');
+            logger.info('Service worker became redundant but other service workers exist - likely update in progress, ignoring');
           }
-        }).catch(() => {
-          // If async check fails, assume it's not an update and disable
-          logger.warn('Service worker became redundant unexpectedly (async check failed)');
-          disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+        }).catch((error) => {
+          // CRITICAL: If async check fails, DON'T disable - this could be a transient error
+          // Log the error but don't disable the service worker
+          console.warn('[Service Worker] Redundant event: Async check failed, but NOT disabling:', error);
+          logger.warn('Service worker redundant event: Async check failed, but NOT disabling to avoid false positives', { error });
         });
       } else {
+        console.info('[Service Worker] Redundant event: Intentional update detected - ignoring');
         logger.info('Service worker became redundant as part of normal update - this is expected and safe');
         // CRITICAL: Don't clear the sessionStorage flag immediately - wait until activation
         // Clearing it too early could cause issues if redundant fires multiple times
@@ -541,6 +573,7 @@ export async function registerServiceWorker(
     // Handle external service worker errors
     // Only disable caching on critical errors, not during normal update operations
     serviceWorkerErrorHandler = (event: any) => {
+      console.error('[Service Worker] Error event:', event);
       logger.error('Service worker error event:', event);
       
       // Check if this is an intentional update (check both in-memory flag and sessionStorage)
@@ -548,14 +581,32 @@ export async function registerServiceWorker(
         sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
       const isUpdateFlow = isIntentionalUpdate || isIntentionalUpdatePersisted;
       
-      // Don't disable caching during intentional updates - some errors are expected during transitions
+      // CRITICAL: Be very defensive - only disable on truly critical errors
+      // Many service worker errors are non-fatal and don't require disabling
       if (!isUpdateFlow) {
         // Only disable on actual errors, not warnings or non-critical issues
-        const errorMessage = event.message || 'Unknown error';
-        // Some errors are expected during service worker updates, so be selective
-        if (!errorMessage.includes('update') && !errorMessage.includes('activate')) {
+        const errorMessage = event.message || event.error?.message || 'Unknown error';
+        const errorName = event.error?.name || '';
+        
+        // CRITICAL: Only disable on critical errors, ignore common non-fatal errors
+        // Many errors during service worker lifecycle are expected and don't require disabling
+        const isCriticalError = 
+          !errorMessage.includes('update') && 
+          !errorMessage.includes('activate') &&
+          !errorMessage.includes('install') &&
+          !errorName.includes('AbortError') &&
+          !errorName.includes('NetworkError');
+        
+        if (isCriticalError) {
+          console.error('[Service Worker] Critical error detected, disabling:', errorMessage);
           disableCachingAutomatically(`Service worker error: ${errorMessage}`);
+        } else {
+          console.warn('[Service Worker] Non-critical error, ignoring:', errorMessage);
+          logger.warn('Service worker non-critical error, not disabling:', { errorMessage, errorName });
         }
+      } else {
+        console.info('[Service Worker] Error during update flow, ignoring');
+        logger.info('Service worker error during update flow, ignoring');
       }
     };
     navigator.serviceWorker.addEventListener('error', serviceWorkerErrorHandler);
@@ -636,19 +687,27 @@ export async function registerServiceWorker(
       // Store interval and handler for cleanup (though cleanup is best-effort)
       // The interval will continue until page reload, which is acceptable
     } catch (error) {
-      // Handle registration errors - disable caching
+      // Handle registration errors - be very selective about disabling
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorName = error instanceof Error && 'name' in error ? (error as any).name : '';
+      console.error('[Service Worker] Registration error:', errorMessage, errorName);
       logger.error('Registration failed:', error);
       
-      // Disable caching on critical errors
-      if (
-        errorMessage.includes('Failed to register') ||
-        errorMessage.includes('script error') ||
+      // CRITICAL: Only disable on truly critical errors that indicate the service worker is broken
+      // Many registration errors are transient or non-fatal
+      const isCriticalError = 
+        (errorMessage.includes('Failed to register') && !errorMessage.includes('already registered')) ||
+        (errorMessage.includes('script error') && !errorMessage.includes('network')) ||
         errorMessage.includes('SyntaxError') ||
-        errorMessage.includes('TypeError') ||
-        (error instanceof DOMException && error.name !== 'SecurityError')
-      ) {
+        (errorMessage.includes('TypeError') && !errorMessage.includes('fetch')) ||
+        (error instanceof DOMException && error.name !== 'SecurityError' && error.name !== 'AbortError');
+      
+      if (isCriticalError) {
+        console.error('[Service Worker] Critical registration error, disabling:', errorMessage);
         await disableCachingAutomatically(`Registration failed: ${errorMessage}`);
+      } else {
+        console.warn('[Service Worker] Non-critical registration error, NOT disabling:', errorMessage);
+        logger.warn('Non-critical registration error, not disabling:', { errorMessage, errorName });
       }
     } finally {
       registrationPromise = null;

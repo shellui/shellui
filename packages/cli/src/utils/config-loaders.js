@@ -58,10 +58,18 @@ export async function loadTypeScriptConfig(configPath, configDir) {
         ? ['-y', 'tsx', tempScriptPath]
         : [tsxPath, tempScriptPath];
       
+      // Pass environment variables to child process, including build detection vars
+      const childEnv = {
+        ...process.env,
+        // Ensure build detection variables are passed to the child process
+        NODE_ENV: process.env.NODE_ENV || 'development',
+        SHELLUI_BUILD: process.env.SHELLUI_BUILD || 'false',
+      };
+      
       const child = spawn(command, args, {
         cwd: configDir,
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: process.env
+        env: childEnv
       });
       
       let stdout = '';

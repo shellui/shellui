@@ -43,6 +43,11 @@ export async function buildCommand(root = '.') {
 
   console.log(pc.blue(`Building ShellUI...`));
 
+  // Set environment variable to indicate this is a build
+  // This allows shellui.config.ts to detect build mode and generate build ID
+  process.env.SHELLUI_BUILD = 'true';
+  process.env.NODE_ENV = 'production';
+
   // Load configuration
   const config = await loadConfig(root);
   
