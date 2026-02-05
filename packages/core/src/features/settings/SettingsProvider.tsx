@@ -75,7 +75,7 @@ const defaultSettings: Settings = {
       acceptedHosts: [],
       consentedCookieHosts: []
     },
-    caching: {
+    serviceWorker: {
       enabled: true
     }
   }
@@ -128,8 +128,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 acceptedHosts: Array.isArray(parsed.cookieConsent?.acceptedHosts) ? parsed.cookieConsent.acceptedHosts : (defaultSettings.cookieConsent?.acceptedHosts ?? []),
                 consentedCookieHosts: Array.isArray(parsed.cookieConsent?.consentedCookieHosts) ? parsed.cookieConsent.consentedCookieHosts : (defaultSettings.cookieConsent?.consentedCookieHosts ?? [])
               },
-              caching: {
-                enabled: parsed.caching?.enabled ?? true
+              serviceWorker: {
+                // Migrate from legacy "caching" key if present
+                enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? true
               }
             }
             settingsRef.current = initialSettings

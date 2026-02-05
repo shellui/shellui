@@ -120,22 +120,26 @@
     }
   },
   "caching": {
-    "title": "Mise en cache",
-    "description": "Gérez la mise en cache de l'application et les capacités hors ligne. Lorsqu'elle est activée, l'application met en cache les fichiers pour un chargement plus rapide et un accès hors ligne.",
-    "loading": "Chargement du statut de mise en cache...",
+    "title": "Service Worker",
+    "description": "Un service worker s'exécute en arrière-plan et peut mettre en cache l'application pour un chargement plus rapide et une utilisation hors ligne. Lorsqu'il est activé, il stocke les fichiers localement pour que l'application se charge rapidement et fonctionne sans connexion. Vous pouvez l'activer ou le désactiver ci-dessous.",
+    "loading": "Chargement du statut du service worker...",
     "developmentMode": {
       "title": "Mode développement",
       "description": "La mise en cache de l'application n'est disponible que dans les builds de production. Compilez votre application avec 'shellui build' pour activer la mise en cache du service worker."
     },
     "enabled": {
-      "title": "Mise en cache de l'application",
-      "descriptionEnabled": "La mise en cache de l'application est activée. Les fichiers sont mis en cache pour un chargement plus rapide et un accès hors ligne.",
-      "descriptionDisabled": "La mise en cache de l'application est désactivée. Les fichiers ne seront pas mis en cache."
+      "title": "Activer le service worker",
+      "descriptionEnabled": "Le service worker est activé. Il met en cache l'application pour un chargement plus rapide et un accès hors ligne.",
+      "descriptionDisabled": "Le service worker est désactivé. L'application ne sera pas mise en cache et se chargera toujours depuis le réseau."
     },
     "status": {
-      "title": "Statut de mise en cache",
-      "registered": "Service worker enregistré",
-      "updateAvailable": "Mise à jour disponible"
+      "title": "Statut du service worker",
+      "registered": "Enregistré",
+      "notRunning": "Non actif",
+      "disabled": "Désactivé",
+      "updateAvailable": "Mise à jour disponible",
+      "fileNotFound": "Fichier du service worker introuvable",
+      "fileNotFoundDescription": "Le fichier du service worker est introuvable. La mise en cache n'est pas disponible. Il peut s'agir d'un problème de serveur de développement."
     },
     "update": {
       "title": "Mise à jour disponible",

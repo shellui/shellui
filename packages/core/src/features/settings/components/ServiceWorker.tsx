@@ -20,11 +20,11 @@ export const ServiceWorker = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [swFileExists, setSwFileExists] = useState(true) // Track if service worker file exists
 
-  const cachingEnabled = settings?.caching?.enabled ?? true
+  const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true
 
   useEffect(() => {
-    // Don't check service worker status if caching is disabled
-    if (!cachingEnabled) {
+    // Don't check service worker status if disabled
+    if (!serviceWorkerEnabled) {
       // Immediately clear all state and hide error messages
       setIsRegistered(false)
       setUpdateAvailable(false)
@@ -35,9 +35,9 @@ export const ServiceWorker = () => {
 
     // Initial check with loading state
     const initialCheck = async () => {
-      // Double-check caching is still enabled before proceeding
-      const currentCachingEnabled = settings?.caching?.enabled ?? true
-      if (!currentCachingEnabled) {
+      // Double-check service worker is still enabled before proceeding
+      const stillEnabled = settings?.serviceWorker?.enabled ?? true
+      if (!stillEnabled) {
         setIsLoading(false)
         return
       }
@@ -47,9 +47,9 @@ export const ServiceWorker = () => {
       // First check if service worker file exists
       const exists = await serviceWorkerFileExists()
       
-      // Check again if caching was disabled during the async operation
-      const stillEnabled = settings?.caching?.enabled ?? true
-      if (!stillEnabled) {
+      // Check again if service worker was disabled during the async operation
+      const currentEnabled = settings?.serviceWorker?.enabled ?? true
+      if (!currentEnabled) {
         setIsLoading(false)
         return
       }
@@ -61,15 +61,15 @@ export const ServiceWorker = () => {
         const status = await getServiceWorkerStatus()
         
         // Final check before updating state
-        const finalCheck = settings?.caching?.enabled ?? true
+        const finalCheck = settings?.serviceWorker?.enabled ?? true
         if (finalCheck) {
           setIsRegistered(status.registered)
           setUpdateAvailable(status.updateAvailable)
         }
       } else {
         // File doesn't exist, so service worker can't be registered
-        // Only update if caching is still enabled
-        const finalCheck = settings?.caching?.enabled ?? true
+        // Only update if service worker is still enabled
+        const finalCheck = settings?.serviceWorker?.enabled ?? true
         if (finalCheck) {
           setIsRegistered(false)
           setUpdateAvailable(false)
@@ -81,18 +81,18 @@ export const ServiceWorker = () => {
     
     // Background refresh without affecting loading state
     const refreshStatus = async () => {
-      // Skip if caching was disabled (check current setting value)
-      const currentCachingEnabled = settings?.caching?.enabled ?? true
-      if (!currentCachingEnabled) {
+      // Skip if service worker was disabled (check current setting value)
+      const currentEnabled = settings?.serviceWorker?.enabled ?? true
+      if (!currentEnabled) {
         return
       }
       
       // Check if file exists first
       const exists = await serviceWorkerFileExists()
       
-      // Check again if caching was disabled during the async operation
-      const stillEnabled = settings?.caching?.enabled ?? true
-      if (!stillEnabled) {
+      // Check again if service worker was disabled during the async operation
+      const currentEnabledAfter = settings?.serviceWorker?.enabled ?? true
+      if (!currentEnabledAfter) {
         return
       }
       
@@ -103,15 +103,15 @@ export const ServiceWorker = () => {
         const status = await getServiceWorkerStatus()
         
         // Final check before updating state
-        const finalCheck = settings?.caching?.enabled ?? true
+        const finalCheck = settings?.serviceWorker?.enabled ?? true
         if (finalCheck) {
           setIsRegistered(status.registered)
           setUpdateAvailable(status.updateAvailable)
         }
       } else {
         // File doesn't exist, so service worker can't be registered
-        // Only update if caching is still enabled
-        const finalCheck = settings?.caching?.enabled ?? true
+        // Only update if service worker is still enabled
+        const finalCheck = settings?.serviceWorker?.enabled ?? true
         if (finalCheck) {
           setIsRegistered(false)
           setUpdateAvailable(false)
@@ -124,9 +124,9 @@ export const ServiceWorker = () => {
     
     // Listen for status changes
     const unsubscribe = addStatusListener((status) => {
-      // Only update if caching is still enabled (check current setting value)
-      const currentCachingEnabled = settings?.caching?.enabled ?? true
-      if (currentCachingEnabled) {
+      // Only update if service worker is still enabled (check current setting value)
+      const currentEnabled = settings?.serviceWorker?.enabled ?? true
+      if (currentEnabled) {
         setIsRegistered(status.registered)
         setUpdateAvailable(status.updateAvailable)
         setIsLoading(false)
@@ -140,9 +140,9 @@ export const ServiceWorker = () => {
       unsubscribe()
       clearInterval(interval)
     }
-  }, [cachingEnabled])
+  }, [serviceWorkerEnabled])
 
-  const handleToggleCaching = async (enabled: boolean) => {
+  const handleToggleServiceWorker = async (enabled: boolean) => {
     // Immediately clear all state before updating setting to prevent error flashes
     if (!enabled) {
       setIsRegistered(false)
@@ -151,7 +151,7 @@ export const ServiceWorker = () => {
       setIsLoading(false)
     }
     
-    updateSetting('caching', { enabled })
+    updateSetting('serviceWorker', { enabled })
     
     if (!enabled) {
       // Already cleared above, just return
@@ -160,9 +160,9 @@ export const ServiceWorker = () => {
     
     // Give it a moment to register/unregister
     setTimeout(async () => {
-      // Double-check caching is still enabled before updating state
-      const currentCachingEnabled = settings?.caching?.enabled ?? true
-      if (enabled && currentCachingEnabled) {
+      // Double-check service worker is still enabled before updating state
+      const currentEnabled = settings?.serviceWorker?.enabled ?? true
+      if (enabled && currentEnabled) {
         const registered = await isServiceWorkerRegistered()
         setIsRegistered(registered)
       }
@@ -223,7 +223,7 @@ export const ServiceWorker = () => {
 
       {!isLoading && (
         <div className="space-y-6">
-          {/* Enable/Disable Caching */}
+          {/* Enable/Disable service worker */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -231,62 +231,64 @@ export const ServiceWorker = () => {
                   {t('caching.enabled.title')}
                 </label>
                 <p className="text-sm text-muted-foreground">
-                  {cachingEnabled 
+                  {serviceWorkerEnabled 
                     ? t('caching.enabled.descriptionEnabled')
                     : t('caching.enabled.descriptionDisabled')}
                 </p>
               </div>
               <Switch
-                checked={cachingEnabled}
-                onCheckedChange={handleToggleCaching}
+                checked={serviceWorkerEnabled}
+                onCheckedChange={handleToggleServiceWorker}
               />
             </div>
           </div>
 
-          {cachingEnabled && (
+          {/* Status – always visible; shows Disabled when off */}
+          <div className="space-y-2">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                {t('caching.status.title')}
+              </label>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              {!serviceWorkerEnabled ? (
+                <span className="text-muted-foreground">
+                  ○ {t('caching.status.disabled')}
+                </span>
+              ) : !swFileExists ? (
+                <span className="text-red-600 dark:text-red-400">
+                  ✗ {t('caching.status.fileNotFound')}
+                </span>
+              ) : (
+                <>
+                  <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}>
+                    {isRegistered ? "●" : "○"} {isRegistered ? t('caching.status.registered') : t('caching.status.notRunning')}
+                  </span>
+                  {updateAvailable && (
+                    <>
+                      <span className="text-muted-foreground/50">|</span>
+                      <span className="text-blue-600 dark:text-blue-400">
+                        ● {t('caching.status.updateAvailable')}
+                      </span>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {serviceWorkerEnabled && (
             <>
-              {/* Error Message */}
-              {!swFileExists && cachingEnabled && (
+              {/* Error Message when file missing */}
+              {!swFileExists && (
                 <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
                   <div className="space-y-1">
                     <h3 className="text-sm font-medium leading-none text-red-600 dark:text-red-400" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                      Service Worker Not Available
+                      {t('caching.status.fileNotFound')}
                     </h3>
                     <p className="text-sm text-red-700 dark:text-red-300">
-                      The service worker file could not be found. Caching is not available. This may be a development server issue.
+                      {t('caching.status.fileNotFoundDescription')}
                     </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Status */}
-              {cachingEnabled && (
-                <div className="space-y-2">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                      {t('caching.status.title')}
-                    </label>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {swFileExists && cachingEnabled ? (
-                      <>
-                        <span className={isRegistered ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}>
-                          {isRegistered ? "●" : "○"} {isRegistered ? t('caching.status.registered') : 'Not Running'}
-                        </span>
-                        {updateAvailable && (
-                          <>
-                            <span className="text-muted-foreground/50">|</span>
-                            <span className="text-blue-600 dark:text-blue-400">
-                              ● {t('caching.status.updateAvailable')}
-                            </span>
-                          </>
-                        )}
-                      </>
-                    ) : cachingEnabled ? (
-                      <span className="text-red-600 dark:text-red-400">
-                        ✗ Failed - Service worker file not found
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               )}

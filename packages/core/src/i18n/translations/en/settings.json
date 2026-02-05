@@ -120,22 +120,26 @@
     }
   },
   "caching": {
-    "title": "Caching",
-    "description": "Manage app caching and offline capabilities. When enabled, the app caches files for faster loading and offline access.",
-    "loading": "Loading caching status...",
+    "title": "Service Worker",
+    "description": "A service worker runs in the background and can cache the app for faster loading and offline use. When enabled, it stores files locally so the app loads quickly and works without a connection. You can enable or disable it below.",
+    "loading": "Loading service worker status...",
     "developmentMode": {
       "title": "Development Mode",
       "description": "App caching is only available in production builds. Build your app with 'shellui build' to enable service worker caching."
     },
     "enabled": {
-      "title": "App Caching",
-      "descriptionEnabled": "App caching is enabled. Files are cached for faster loading and offline access.",
-      "descriptionDisabled": "App caching is disabled. Files will not be cached."
+      "title": "Enable service worker",
+      "descriptionEnabled": "The service worker is enabled. It caches the app for faster loading and offline access.",
+      "descriptionDisabled": "The service worker is disabled. The app will not be cached and will always load from the network."
     },
     "status": {
-      "title": "Caching Status",
-      "registered": "Service worker registered",
-      "updateAvailable": "Update available"
+      "title": "Service worker status",
+      "registered": "Registered",
+      "notRunning": "Not running",
+      "disabled": "Disabled",
+      "updateAvailable": "Update available",
+      "fileNotFound": "Service worker file not found",
+      "fileNotFoundDescription": "The service worker file could not be found. Caching is not available. This may be a development server issue."
     },
     "update": {
       "title": "Update Available",

@@ -39,17 +39,21 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
     // Unregister service worker first
     await unregisterServiceWorker();
     
-    // Disable caching in settings
+    // Disable service worker in settings
     // We need to access settings through localStorage since we're in a module
     if (typeof window !== 'undefined') {
-      const STORAGE_KEY = 'shellui_settings';
+      const STORAGE_KEY = 'shellui:settings';
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const settings = JSON.parse(stored);
-          // Only update if caching is currently enabled to avoid unnecessary updates
-          if (settings.caching?.enabled !== false) {
-            settings.caching = { enabled: false };
+          // Only update if service worker is currently enabled to avoid unnecessary updates
+          if (settings.serviceWorker?.enabled !== false) {
+            settings.serviceWorker = { enabled: false };
+            // Migrate legacy key so old cached shape is updated
+            if (settings.caching !== undefined) {
+              delete settings.caching;
+            }
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
             
             // Notify the app to reload settings via message system
@@ -65,32 +69,32 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
             
             // Show a toast notification
             shellui.toast({
-              title: 'Caching Disabled',
-              description: `Service worker caching has been automatically disabled due to an error: ${reason}`,
+              title: 'Service Worker Disabled',
+              description: `The service worker has been automatically disabled due to an error: ${reason}`,
               type: 'error',
               duration: 10000,
             });
           }
         } else {
-          // No settings stored, create default with caching disabled
+          // No settings stored, create default with service worker disabled
           const defaultSettings = {
-            caching: { enabled: false }
+            serviceWorker: { enabled: false }
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
           
           shellui.toast({
-            title: 'Caching Disabled',
-            description: `Service worker caching has been automatically disabled due to an error: ${reason}`,
+            title: 'Service Worker Disabled',
+            description: `The service worker has been automatically disabled due to an error: ${reason}`,
             type: 'error',
             duration: 10000,
           });
         }
       } catch (error) {
-        console.error('Failed to disable caching in settings:', error);
+        console.error('Failed to disable service worker in settings:', error);
         // Still show toast even if settings update fails
         shellui.toast({
-          title: 'Caching Error',
-          description: `Service worker error: ${reason}. Please disable caching manually in settings.`,
+          title: 'Service Worker Error',
+          description: `Service worker error: ${reason}. Please disable it manually in settings.`,
           type: 'error',
           duration: 10000,
         });
