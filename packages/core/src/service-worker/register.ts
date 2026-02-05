@@ -10,7 +10,7 @@ let registrationPromise: Promise<void> | null = null;
 let statusListeners: Array<(status: { registered: boolean; updateAvailable: boolean }) => void> = [];
 let isInitialRegistration = false; // Track if this is the first registration (no reload needed)
 let eventListenersAdded = false; // Track if event listeners have been added to prevent duplicates
-let toastShownForServiceWorkerId: string | null = null; // Track which service worker we've shown toast for (simple single source of truth)
+let toastShownForServiceWorkerId: string | null = null; // Track which service worker we've shown toast for (prevents duplicates within same page load)
 let isIntentionalUpdate = false; // Track if we're performing an intentional update (user clicked Install Now)
 
 // Store event handler references so we can remove them if needed
@@ -353,13 +353,14 @@ export async function registerServiceWorker(
         const currentWaitingSW = registration.waiting;
         const currentWaitingSWId = currentWaitingSW.scriptURL;
         
-        // SIMPLE CHECK: If we've already shown toast for this service worker, don't show again
+        // SIMPLE CHECK: If we've already shown toast for this service worker in this page load, don't show again
+        // This prevents duplicate toasts within the same page load, but allows showing after refresh
         if (toastShownForServiceWorkerId === currentWaitingSWId) {
           return;
         }
         
         // Mark that we've shown toast for this service worker IMMEDIATELY
-        // This prevents duplicate toasts even if the event fires multiple times
+        // This prevents duplicate toasts even if the event fires multiple times in the same page load
         toastShownForServiceWorkerId = currentWaitingSWId;
         
         // Update state
@@ -447,32 +448,59 @@ export async function registerServiceWorker(
     };
     wb.addEventListener('registered', registeredHandler);
 
-    // Handle service worker errors - disable caching on critical errors
-    // Note: 'redundant' event fires when a service worker is replaced, which is NORMAL during updates
-    // Only disable caching if this happens unexpectedly (not during an intentional update)
+    // CRITICAL: Handle service worker 'redundant' event
+    // This event fires when a service worker is replaced, which is NORMAL during updates
+    // The 'redundant' event fires for the OLD service worker when a NEW one takes control
+    // During intentional updates (user clicked "Install Now"), this is EXPECTED behavior
+    // We MUST check for intentional updates BEFORE disabling, otherwise we'll disable the
+    // service worker right after the user explicitly asked to install an update!
     redundantHandler = (event: any) => {
       logger.info('Service worker became redundant:', event);
       
-      // Check if this is an intentional update (check both in-memory flag and sessionStorage)
-      // sessionStorage survives page reloads, so it works even after the app refreshes
+      // CRITICAL CHECK: Verify this is an intentional update BEFORE doing anything
+      // Check sessionStorage FIRST (survives page reloads) - this is set BEFORE skip waiting
+      // Then check in-memory flag as backup
+      // This prevents race conditions where the flag might not be set yet
       const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
         sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
-      const isUpdateFlow = isIntentionalUpdate || isIntentionalUpdatePersisted;
       
-      // Don't disable caching if this is part of a normal update flow
+      // CRITICAL: Also check if there's a waiting service worker - if there is, we're in update flow
+      // This provides an additional safety check in case sessionStorage check fails
+      // A waiting service worker means an update is in progress, so redundant is expected
+      // We check synchronously first (waitingServiceWorker variable), then async if needed
+      const hasWaitingServiceWorkerSync = !!waitingServiceWorker;
+      
+      // CRITICAL: If ANY of these indicate an intentional update, DO NOT disable
+      // The combination of checks prevents false positives from disabling during updates
+      // This is the KEY fix - we check multiple signals to be absolutely sure it's an update
+      const isUpdateFlow = isIntentionalUpdate || isIntentionalUpdatePersisted || hasWaitingServiceWorkerSync;
+      
+      // CRITICAL: Only disable if this is NOT part of a normal update flow
+      // Disabling during an update would break the user's explicit "Install Now" action
+      // This bug has been seen many times - the redundant event fires during normal updates
+      // and without these checks, it would disable the service worker right after install
       if (!isUpdateFlow) {
-        logger.warn('Service worker became redundant unexpectedly');
-        disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+        // Double-check asynchronously in case the sync check missed it
+        navigator.serviceWorker.getRegistration().then(registration => {
+          const hasWaitingAsync = !!registration?.waiting;
+          if (!hasWaitingAsync) {
+            // No waiting service worker found, so this is truly unexpected
+            logger.warn('Service worker became redundant unexpectedly (not during update)');
+            disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+          } else {
+            // Found waiting service worker on async check - it's an update, ignore
+            logger.info('Service worker became redundant - async check confirms update in progress');
+          }
+        }).catch(() => {
+          // If async check fails, assume it's not an update and disable
+          logger.warn('Service worker became redundant unexpectedly (async check failed)');
+          disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+        });
       } else {
-        logger.info('Service worker became redundant as part of normal update - this is expected');
-        // Clear the sessionStorage flag after handling
-        if (typeof window !== 'undefined') {
-          sessionStorage.removeItem('shellui:service-worker:intentional-update');
-        }
-        // Reset the flag after a short delay to allow for the update to complete
-        setTimeout(() => {
-          isIntentionalUpdate = false;
-        }, 1000);
+        logger.info('Service worker became redundant as part of normal update - this is expected and safe');
+        // CRITICAL: Don't clear the sessionStorage flag immediately - wait until activation
+        // Clearing it too early could cause issues if redundant fires multiple times
+        // The activated handler will clear it when the update is complete
       }
     };
     wb.addEventListener('redundant', redundantHandler);
@@ -522,6 +550,17 @@ export async function registerServiceWorker(
           // The browser will check the service worker file with cache: 'reload' when update() is called
         } catch (e) {
           // Ignore if updateViaCache can't be set (some browsers don't support it)
+        }
+        
+        // Check if there's already a waiting service worker (from before page refresh)
+        // If so, trigger the waiting handler to show toast
+        if (registration.waiting && waitingHandler) {
+          // Update state first
+          updateAvailable = true;
+          waitingServiceWorker = registration.waiting;
+          // Trigger the waiting handler to show toast
+          // The handler will check if toast was already shown in this page load
+          waitingHandler();
         }
       }
       
@@ -584,24 +623,35 @@ export async function updateServiceWorker(): Promise<void> {
   }
 
   try {
+    // CRITICAL: Set intentional update flag FIRST, before any other operations
+    // This flag MUST be set in sessionStorage BEFORE skip waiting is called
+    // The 'redundant' event can fire very quickly after skip waiting, and if this flag
+    // isn't set yet, the redundant handler will think it's an error and disable the SW
+    // This is the ROOT CAUSE of the bug where service worker gets disabled on "Install Now"
+    const INTENTIONAL_UPDATE_KEY = 'shellui:service-worker:intentional-update';
+    if (typeof window !== 'undefined') {
+      // CRITICAL: Set this IMMEDIATELY - don't wait for anything else
+      sessionStorage.setItem(INTENTIONAL_UPDATE_KEY, 'true');
+    }
+    
+    // CRITICAL: Also set in-memory flag immediately
+    // This provides backup protection in case sessionStorage has issues
+    isIntentionalUpdate = true;
+    
     // CRITICAL: Ensure service worker setting is preserved and enabled before reload
     // This prevents the service worker from being disabled after refresh
     // The user explicitly clicked "Install Now", so we must keep the service worker enabled
     if (typeof window !== 'undefined') {
       const STORAGE_KEY = 'shellui:settings';
-      const INTENTIONAL_UPDATE_KEY = 'shellui:service-worker:intentional-update';
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
           const settings = JSON.parse(stored);
-          // Always ensure service worker is enabled when user clicks Install Now
+          // CRITICAL: Always ensure service worker is enabled when user clicks Install Now
           // This ensures it stays enabled after the page reloads
+          // Without this, the service worker could be disabled after the reload
           settings.serviceWorker = { enabled: true };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-          
-          // Mark that we're performing an intentional update (survives page reload)
-          // This prevents the redundant event handler from disabling the service worker
-          sessionStorage.setItem(INTENTIONAL_UPDATE_KEY, 'true');
           
           // Notify the app about the settings update (in case it's listening)
           shellui.sendMessageToParent({
@@ -614,18 +664,15 @@ export async function updateServiceWorker(): Promise<void> {
             serviceWorker: { enabled: true }
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
-          // Mark intentional update
-          sessionStorage.setItem(INTENTIONAL_UPDATE_KEY, 'true');
         }
       } catch (error) {
         logger.warn('Failed to preserve settings before update:', error);
-        // Even if we fail to preserve settings, continue with the update
-        // The app.tsx will default to enabled anyway
+        // CRITICAL: Even if settings update fails, the intentional update flag is already set
+        // This prevents the redundant handler from disabling the service worker
+        // The app.tsx will default to enabled anyway, so continue with the update
       }
     }
     
-    // Mark that this is an intentional update initiated by the user
-    isIntentionalUpdate = true;
     // Mark that this is an update (not initial registration)
     isInitialRegistration = false;
     
@@ -791,9 +838,41 @@ export async function getServiceWorkerStatus(): Promise<{
   updateAvailable: boolean;
 }> {
   const registered = await isServiceWorkerRegistered();
+  
+  // Actually check if there's a waiting service worker (more reliable than in-memory flag)
+  // This ensures we get the correct state even after page reloads
+  let actuallyUpdateAvailable = false;
+  if (registered && !isTauri()) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.waiting) {
+        // There's a waiting service worker, so an update is available
+        actuallyUpdateAvailable = true;
+        // Sync the in-memory flag with the actual state
+        updateAvailable = true;
+        waitingServiceWorker = registration.waiting;
+      } else {
+        // No waiting service worker, so no update is available
+        actuallyUpdateAvailable = false;
+        // Sync the in-memory flag with the actual state
+        updateAvailable = false;
+        waitingServiceWorker = null;
+      }
+    } catch (error) {
+      logger.error('Failed to check service worker registration:', error);
+      // Fall back to in-memory flag if check fails
+      actuallyUpdateAvailable = updateAvailable;
+    }
+  } else {
+    // Not registered or Tauri, so no update available
+    actuallyUpdateAvailable = false;
+    updateAvailable = false;
+    waitingServiceWorker = null;
+  }
+  
   return {
     registered,
-    updateAvailable,
+    updateAvailable: actuallyUpdateAvailable,
   };
 }
 

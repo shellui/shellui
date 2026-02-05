@@ -27,7 +27,9 @@
     "swDisabledMessage": "L'application se mettra à jour lors du rechargement de la page.",
     "refreshApp": "Actualiser l'application",
     "youAreUpToDate": "Vous êtes à jour",
-    "installNow": "Installer maintenant"
+    "installNow": "Installer maintenant",
+    "checkError": "Erreur lors de la vérification des mises à jour. Réessayer",
+    "tryAgain": "Réessayer"
   },
   "appearance": {
     "title": "Apparence",

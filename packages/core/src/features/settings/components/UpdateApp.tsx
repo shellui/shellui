@@ -9,9 +9,11 @@ import {
   checkForServiceWorkerUpdate,
   updateServiceWorker,
 } from "@/service-worker/register"
-import { shellui } from "@shellui/sdk"
+import { shellui, getLogger } from "@shellui/sdk"
 import { CheckIcon } from "../SettingsIcons"
 import { useState, useEffect } from "react"
+
+const logger = getLogger('shellcore')
 
 export const UpdateApp = () => {
   const { t } = useTranslation("settings")
@@ -20,6 +22,7 @@ export const UpdateApp = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [checking, setChecking] = useState(false)
   const [showUpToDateInButton, setShowUpToDateInButton] = useState(false)
+  const [checkError, setCheckError] = useState(false)
 
   const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true
 
@@ -32,9 +35,10 @@ export const UpdateApp = () => {
     load()
     const unsubscribe = addStatusListener((status) => {
       setUpdateAvailable(status.updateAvailable)
-      // If an update becomes available, hide the "You are up to date" message
+      // If an update becomes available, hide the "You are up to date" message and clear any errors
       if (status.updateAvailable) {
         setShowUpToDateInButton(false)
+        setCheckError(false)
       }
     })
     return unsubscribe
@@ -43,6 +47,7 @@ export const UpdateApp = () => {
   const handleCheckForUpdate = async () => {
     if (isTauri()) return
     setShowUpToDateInButton(false)
+    setCheckError(false)
     setChecking(true)
     try {
       // Check current status before triggering update check
@@ -71,6 +76,10 @@ export const UpdateApp = () => {
           window.setTimeout(() => setShowUpToDateInButton(false), 3000)
         }
       }
+    } catch (error) {
+      // Error occurred during update check - show error message in button
+      setCheckError(true)
+      logger.error('Failed to check for service worker update:', error)
     } finally {
       setChecking(false)
     }
@@ -161,7 +170,7 @@ export const UpdateApp = () => {
               <Button
                 variant="outline"
                 onClick={handleCheckForUpdate}
-                disabled={checking}
+                disabled={checking || updateAvailable}
                 className="w-full sm:w-auto"
               >
                 {checking ? (
@@ -169,6 +178,10 @@ export const UpdateApp = () => {
                     <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" aria-hidden />
                     {t("updateApp.checking")}
                   </>
+                ) : checkError ? (
+                  <span className="inline-flex items-center gap-2 text-red-600 dark:text-red-400">
+                    {t("updateApp.checkError")} — {t("updateApp.tryAgain")}
+                  </span>
                 ) : showUpToDateInButton && !updateAvailable ? (
                   <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckIcon />

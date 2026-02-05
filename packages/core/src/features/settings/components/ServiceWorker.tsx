@@ -172,11 +172,8 @@ export const ServiceWorker = () => {
   const handleUpdateNow = async () => {
     try {
       await updateServiceWorker()
-      shellui.toast({
-        title: t('caching.updateInstalling.title'),
-        description: t('caching.updateInstalling.description'),
-        type: 'info',
-      })
+      // Don't show toast here - updateServiceWorker() will handle the reload
+      // and the update process already provides feedback through the UI
     } catch (error) {
       shellui.toast({
         title: t('caching.updateError.title'),

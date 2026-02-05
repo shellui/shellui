@@ -27,7 +27,9 @@
     "swDisabledMessage": "The app will update when you refresh the page.",
     "refreshApp": "Refresh app",
     "youAreUpToDate": "You are up to date",
-    "installNow": "Install Now"
+    "installNow": "Install Now",
+    "checkError": "Error checking for updates. Try again",
+    "tryAgain": "Try again"
   },
   "appearance": {
     "title": "Appearance",
