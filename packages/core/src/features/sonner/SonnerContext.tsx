@@ -205,10 +205,43 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
 
     const cleanupToastUpdate = shellui.addMessageListener('SHELLUI_TOAST_UPDATE', (data: ShellUIMessage) => {
       const payload = data.payload as ToastOptions;
+      // CRITICAL: When updating a toast, we MUST re-register action handlers
+      // The callbackRegistry still has the callbacks, but the toast button needs onClick handlers
+      // that trigger the callbackRegistry via SHELLUI_TOAST_ACTION messages
       toast({
         ...payload,
-        // For updates, we don't need to set up callbacks again
-        // The toast ID is used to update the existing toast
+        // Re-register action handlers so the button works after update
+        // These handlers send messages that trigger the callbackRegistry
+        action: payload.action && (() => {
+          let actionSent = false;
+          return {
+            label: payload.action?.label ?? undefined,
+            onClick: () => {
+              if (actionSent) return;
+              actionSent = true;
+              shellui.sendMessage({
+                type: 'SHELLUI_TOAST_ACTION',
+                payload: { id: payload.id },
+                to: data.from,
+              });
+            },
+          };
+        })(),
+        cancel: payload.cancel && (() => {
+          let cancelSent = false;
+          return {
+            label: payload.cancel?.label ?? undefined,
+            onClick: () => {
+              if (cancelSent) return;
+              cancelSent = true;
+              shellui.sendMessage({
+                type: 'SHELLUI_TOAST_CANCEL',
+                payload: { id: payload.id },
+                to: data.from,
+              });
+            },
+          };
+        })(),
       });
     });
 

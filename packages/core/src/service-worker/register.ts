@@ -342,6 +342,11 @@ export async function registerServiceWorker(
         eventListenersAdded = true;
 
     // Handle service worker updates
+    // CRITICAL: Use a consistent toast ID to prevent duplicate toasts
+    // If the handler is called multiple times (event listener + manual call), 
+    // using the same ID will update the existing toast instead of creating a new one
+    const UPDATE_AVAILABLE_TOAST_ID = 'shellui:update-available';
+    
     waitingHandler = async () => {
       try {
         // Get the waiting service worker
@@ -353,14 +358,20 @@ export async function registerServiceWorker(
         const currentWaitingSW = registration.waiting;
         const currentWaitingSWId = currentWaitingSW.scriptURL;
         
-        // SIMPLE CHECK: If we've already shown toast for this service worker in this page load, don't show again
+        // CRITICAL: Check flag BEFORE updating state to prevent race conditions
+        // If we've already shown toast for this service worker in this page load, don't show again
         // This prevents duplicate toasts within the same page load, but allows showing after refresh
         if (toastShownForServiceWorkerId === currentWaitingSWId) {
+          // Already shown, but ensure state is correct
+          updateAvailable = true;
+          waitingServiceWorker = currentWaitingSW;
+          notifyStatusListeners();
           return;
         }
         
-        // Mark that we've shown toast for this service worker IMMEDIATELY
-        // This prevents duplicate toasts even if the event fires multiple times in the same page load
+        // CRITICAL: Mark that we've shown toast for this service worker IMMEDIATELY
+        // This must happen BEFORE showing the toast to prevent race conditions
+        // If the handler is called twice quickly, both might pass the check before the flag is set
         toastShownForServiceWorkerId = currentWaitingSWId;
         
         // Update state
@@ -372,8 +383,35 @@ export async function registerServiceWorker(
         if (options.onUpdateAvailable) {
           options.onUpdateAvailable();
         } else {
-          // Default behavior: show toast
+          // CRITICAL: Use consistent toast ID so duplicate calls update the same toast
+          // This prevents multiple toasts from appearing if the handler is called multiple times
+          // CRITICAL: Always create fresh action handlers that reference the current waitingServiceWorker
+          // This ensures the action handler always has the correct service worker reference
+          // even if the toast is updated later
+          const actionHandler = () => {
+            logger.info('Install Now clicked, updating service worker...');
+            // CRITICAL: Get the current waitingServiceWorker at click time, not at toast creation time
+            // This ensures it works even if the toast was created earlier and then updated
+            if (waitingServiceWorker) {
+              updateServiceWorker().catch(error => {
+                logger.error('Failed to update service worker:', error);
+              });
+            } else {
+              logger.warn('Install Now clicked but no waiting service worker found');
+              // Try to get it from registration as fallback
+              navigator.serviceWorker.getRegistration().then(registration => {
+                if (registration?.waiting) {
+                  waitingServiceWorker = registration.waiting;
+                  updateServiceWorker().catch(error => {
+                    logger.error('Failed to update service worker:', error);
+                  });
+                }
+              });
+            }
+          };
+          
           shellui.toast({
+            id: UPDATE_AVAILABLE_TOAST_ID, // Use consistent ID to prevent duplicates
             title: 'New version available',
             description: 'A new version of the app is available. Install now or later?',
             type: 'info',
@@ -381,12 +419,7 @@ export async function registerServiceWorker(
             position: 'bottom-left',
             action: {
               label: 'Install Now',
-              onClick: () => {
-                logger.info('Install Now clicked, updating service worker...');
-                updateServiceWorker().catch(error => {
-                  logger.error('Failed to update service worker:', error);
-                });
-              },
+              onClick: actionHandler, // Use the handler function
             },
             cancel: {
               label: 'Later',
@@ -397,7 +430,7 @@ export async function registerServiceWorker(
           });
         }
       } catch (error) {
-        logger.error('Error in waiting handler:', error);
+        logger.error('Error in waiting handler:', { error });
         // On error, reset the flag so we can try again for this service worker
         toastShownForServiceWorkerId = null;
       }
@@ -554,13 +587,25 @@ export async function registerServiceWorker(
         
         // Check if there's already a waiting service worker (from before page refresh)
         // If so, trigger the waiting handler to show toast
+        // CRITICAL: Only call manually if handler exists and we haven't already shown toast
+        // This prevents duplicate toasts if the event listener already fired
         if (registration.waiting && waitingHandler) {
-          // Update state first
-          updateAvailable = true;
-          waitingServiceWorker = registration.waiting;
-          // Trigger the waiting handler to show toast
-          // The handler will check if toast was already shown in this page load
-          waitingHandler();
+          const waitingSWId = registration.waiting.scriptURL;
+          // CRITICAL: Check flag BEFORE calling handler to prevent duplicate toasts
+          // The waiting event might have already fired and shown the toast
+          if (toastShownForServiceWorkerId !== waitingSWId) {
+            // Update state first
+            updateAvailable = true;
+            waitingServiceWorker = registration.waiting;
+            // Trigger the waiting handler to show toast
+            // The handler will check the flag again and show toast if needed
+            waitingHandler();
+          } else {
+            // Toast already shown, just update state
+            updateAvailable = true;
+            waitingServiceWorker = registration.waiting;
+            notifyStatusListeners();
+          }
         }
       }
       
