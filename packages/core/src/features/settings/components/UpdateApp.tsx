@@ -90,7 +90,6 @@ export const UpdateApp = () => {
   if (isTauri()) {
     return (
       <div className="space-y-6">
-        <p className="text-muted-foreground">{t("updateApp.description")}</p>
         <div className="space-y-2">
           <div className="space-y-0.5">
             <label className="text-sm font-medium leading-none" style={{ fontFamily: "var(--heading-font-family, inherit)" }}>
@@ -110,7 +109,6 @@ export const UpdateApp = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground">{t("updateApp.description")}</p>
       <div className="space-y-4">
         <div className="space-y-0.5">
           <label className="text-sm font-medium leading-none" style={{ fontFamily: "var(--heading-font-family, inherit)" }}>
@@ -139,11 +137,11 @@ export const UpdateApp = () => {
           </div>
         ) : (
           <>
-            <div className="space-y-0.5">
+            <div className="space-y-2">
               <label className="text-sm font-medium leading-none" style={{ fontFamily: "var(--heading-font-family, inherit)" }}>
                 {t("updateApp.status")}
               </label>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm mt-2">
                 {updateAvailable ? (
                   <span className="text-blue-600 dark:text-blue-400">
                     ● {t("updateApp.statusUpdateAvailable")}
@@ -180,7 +178,7 @@ export const UpdateApp = () => {
                   </>
                 ) : checkError ? (
                   <span className="inline-flex items-center gap-2 text-red-600 dark:text-red-400">
-                    {t("updateApp.checkError")} — {t("updateApp.tryAgain")}
+                    {t("updateApp.checkError")}
                   </span>
                 ) : showUpToDateInButton && !updateAvailable ? (
                   <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400">

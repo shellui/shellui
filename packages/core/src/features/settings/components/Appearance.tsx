@@ -158,13 +158,16 @@ export const Appearance = () => {
     <div className="space-y-6">
       {/* Theme Mode Selection (Light/Dark/System) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-          {t('appearance.mode')}
-        </label>
-        <p className="text-sm text-muted-foreground">
-          {t('appearance.modeDescription')}
-        </p>
-        <ButtonGroup>
+        <div className="space-y-0.5">
+          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+            {t('appearance.mode')}
+          </label>
+          <p className="text-sm text-muted-foreground">
+            {t('appearance.modeDescription')}
+          </p>
+        </div>
+        <div className="mt-2">
+          <ButtonGroup>
           {modeThemes.map((theme) => {
             const Icon = theme.icon
             const isSelected = currentTheme === theme.value
@@ -193,18 +196,21 @@ export const Appearance = () => {
               </Button>
             )
           })}
-        </ButtonGroup>
+          </ButtonGroup>
+        </div>
       </div>
 
       {/* Theme Selection (Color Scheme) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-          {t('appearance.colorTheme')}
-        </label>
-        <p className="text-sm text-muted-foreground">
-          {t('appearance.colorThemeDescription')}
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="space-y-0.5">
+          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+            {t('appearance.colorTheme')}
+          </label>
+          <p className="text-sm text-muted-foreground">
+            {t('appearance.colorThemeDescription')}
+          </p>
+        </div>
+        <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4">
           {availableThemes.map((theme) => {
             const isSelected = currentThemeName === theme.name
             return (

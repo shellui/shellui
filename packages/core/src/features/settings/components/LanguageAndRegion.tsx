@@ -197,10 +197,8 @@ export const LanguageAndRegion = () => {
         <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
           {t('languageAndRegion.language')}
         </label>
-        <p className="text-sm text-muted-foreground">
-          {t('languageAndRegion.languageDescription')}
-        </p>
-        <ButtonGroup>
+        <div className="mt-2">
+          <ButtonGroup>
           {supportedLanguages.map((lang) => {
             const isSelected = currentLanguage === lang.code;
             return (
@@ -229,10 +227,11 @@ export const LanguageAndRegion = () => {
               </Button>
             );
           })}
-        </ButtonGroup>
+          </ButtonGroup>
+        </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
             {t('languageAndRegion.region')}
@@ -248,10 +247,8 @@ export const LanguageAndRegion = () => {
             </Button>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">
-          {t('languageAndRegion.regionDescription')}
-        </p>
-        <Select
+        <div className="mt-2 space-y-3">
+          <Select
           value={currentTimezone}
           onChange={(e) => {
             updateSetting('region', { timezone: e.target.value });
@@ -271,23 +268,24 @@ export const LanguageAndRegion = () => {
             </optgroup>
           ))}
         </Select>
-        <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/60 border border-border/50">
-          <ClockIcon />
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold tabular-nums">
-              {currentDateTime.time}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {currentDateTime.date}
-            </span>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/60 border border-border/50">
+            <ClockIcon />
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-semibold tabular-nums">
+                {currentDateTime.time}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {currentDateTime.date}
+              </span>
+            </div>
           </div>
-        </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1">
-          <span>{t('languageAndRegion.timezoneLabel')}:</span>
-          <span className="font-medium">{getTimezoneDisplayName(currentTimezone, currentLanguage)}</span>
-          {isUsingBrowserTimezone && (
-            <span className="ml-1">({t('languageAndRegion.defaultBrowser')})</span>
-          )}
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <span>{t('languageAndRegion.timezoneLabel')}:</span>
+            <span className="font-medium">{getTimezoneDisplayName(currentTimezone, currentLanguage)}</span>
+            {isUsingBrowserTimezone && (
+              <span className="ml-1">({t('languageAndRegion.defaultBrowser')})</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

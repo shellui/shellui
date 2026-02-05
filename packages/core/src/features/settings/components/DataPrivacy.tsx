@@ -35,8 +35,6 @@ export const DataPrivacy = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground">{t('dataPrivacy.description')}</p>
-
       {!hasCookieConsent ? (
         <div className="rounded-lg border bg-card p-4 space-y-3">
           <div className="space-y-1">
@@ -55,11 +53,11 @@ export const DataPrivacy = () => {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-              {t('dataPrivacy.cookieConsent.title')}
-            </label>
+        <div className="space-y-2">
+          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+            {t('dataPrivacy.cookieConsent.title')}
+          </label>
+          <div className="mt-2 space-y-3">
             <p className="text-sm text-muted-foreground">
               {!hasConsented
                 ? t('dataPrivacy.cookieConsent.descriptionNotConsented')
@@ -69,8 +67,7 @@ export const DataPrivacy = () => {
                     ? t('dataPrivacy.cookieConsent.statusRejectedAll')
                     : t('dataPrivacy.cookieConsent.statusCustom')}
             </p>
-          </div>
-          <div className="flex items-center gap-2 text-sm flex-wrap">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
             <span className={acceptedAll ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
               {acceptedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
             </span>
@@ -82,23 +79,24 @@ export const DataPrivacy = () => {
             <span className={rejectedAll ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}>
               {rejectedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelRejectedAll')}
             </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => shellui.openDrawer({ url: urls.cookiePreferences, size: '420px' })}
-              className="w-full sm:w-auto"
-            >
-              {t('dataPrivacy.cookieConsent.manageButton')}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleResetCookieConsent}
-              disabled={!hasConsented}
-              className="w-full sm:w-auto"
-            >
-              {t('dataPrivacy.cookieConsent.button')}
-            </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => shellui.openDrawer({ url: urls.cookiePreferences, size: '420px' })}
+                className="w-full sm:w-auto"
+              >
+                {t('dataPrivacy.cookieConsent.manageButton')}
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleResetCookieConsent}
+                disabled={!hasConsented}
+                className="w-full sm:w-auto"
+              >
+                {t('dataPrivacy.cookieConsent.button')}
+              </Button>
+            </div>
           </div>
         </div>
       )}

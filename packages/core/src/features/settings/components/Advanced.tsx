@@ -46,8 +46,6 @@ export const Advanced = () => {
 
   return (
     <div className="space-y-4">
-      <p className="text-muted-foreground">{t('advanced.description')}</p>
-
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
           <span className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>

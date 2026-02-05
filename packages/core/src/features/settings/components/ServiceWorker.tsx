@@ -219,8 +219,6 @@ export const ServiceWorker = () => {
 
   return (
     <div className="space-y-6">
-      <p className="text-muted-foreground">{t('caching.description')}</p>
-
       {isLoading ? (
         <div className="text-sm text-muted-foreground">{t('caching.loading')}</div>
       ) : null}
@@ -249,12 +247,10 @@ export const ServiceWorker = () => {
 
           {/* Status – always visible; shows Disabled when off */}
           <div className="space-y-2">
-            <div className="space-y-0.5">
-              <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
-                {t('caching.status.title')}
-              </label>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
+            <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+              {t('caching.status.title')}
+            </label>
+            <div className="flex items-center gap-2 text-sm mt-2">
               {!serviceWorkerEnabled ? (
                 <span className="text-muted-foreground">
                   ○ {t('caching.status.disabled')}
@@ -308,13 +304,15 @@ export const ServiceWorker = () => {
                       {t('caching.update.description')}
                     </p>
                   </div>
-                  <Button
+                  <div className="mt-2">
+                    <Button
                     variant="outline"
                     onClick={handleUpdateNow}
                     className="w-full sm:w-auto"
                   >
                     {t('caching.update.button')}
                   </Button>
+                  </div>
                 </div>
               )}
 
@@ -328,13 +326,15 @@ export const ServiceWorker = () => {
                     {t('caching.reset.description')}
                   </p>
                 </div>
-                <Button
+                <div className="mt-2">
+                  <Button
                   variant="outline"
                   onClick={handleResetToLatest}
                   className="w-full sm:w-auto"
                 >
                   {t('caching.reset.button')}
                 </Button>
+                </div>
               </div>
             </>
           )}
