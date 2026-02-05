@@ -208,10 +208,10 @@
     background-color: hsl(var(--muted) / 0.8) !important;
   }
   
-  /* Color success toast icon */
+  /* Success toast icon uses text color (no separate icon color) */
   [data-sonner-toast][data-type="success"] [data-icon],
-  [data-sonner-toast][data-type="success"] svg {
-    color: hsl(var(--primary)) !important;
+  [data-sonner-toast][data-type="success"] [data-icon] svg {
+    color: hsl(var(--foreground)) !important;
   }
   
   /* Color error toast icon */

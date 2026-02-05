@@ -71,18 +71,6 @@ export const ToastTestButtons = () => {
         </Button>
         <Button
           onClick={() => {
-            shellui.toast({
-              title: t('develop.testing.toastNotifications.messages.loading.title'),
-              description: t('develop.testing.toastNotifications.messages.loading.description'),
-              type: "loading",
-            });
-          }}
-          variant="outline"
-        >
-          {t('develop.testing.toastNotifications.buttons.loading')}
-        </Button>
-        <Button
-          onClick={() => {
             const toastId = shellui.toast({
               title: t('develop.testing.toastNotifications.messages.processing.title'),
               description: t('develop.testing.toastNotifications.messages.processing.description'),
