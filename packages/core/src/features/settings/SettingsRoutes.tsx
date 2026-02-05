@@ -4,14 +4,14 @@ import {
   SettingsIcon,
   CodeIcon,
   ShieldIcon,
-  HardDriveIcon,
+  PackageIcon,
 } from "./SettingsIcons"
 import { Appearance } from "./components/Appearance"
 import { LanguageAndRegion } from "./components/LanguageAndRegion"
 import { Advanced } from "./components/Advanced"
 import { Develop } from "./components/Develop"
 import { DataPrivacy } from "./components/DataPrivacy"
-import { Caching } from "./components/Caching"
+import { ServiceWorker } from "./components/ServiceWorker"
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
   {
@@ -39,15 +39,15 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     element: <DataPrivacy />
   },
   {
-    name: t("routes.caching"),
-    icon: HardDriveIcon,
-    path: "caching",
-    element: <Caching />
-  },
-  {
     name: t("routes.develop"),
     icon: CodeIcon,
     path: "developpers",
     element: <Develop />
+  },
+  {
+    name: t("routes.serviceWorker"),
+    icon: PackageIcon,
+    path: "service-worker",
+    element: <ServiceWorker />
   }
 ]       

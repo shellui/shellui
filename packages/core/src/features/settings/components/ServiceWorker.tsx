@@ -12,7 +12,7 @@ import {
 import { shellui } from "@shellui/sdk"
 import { useState, useEffect } from "react"
 
-export const Caching = () => {
+export const ServiceWorker = () => {
   const { t } = useTranslation('settings')
   const { settings, updateSetting } = useSettings()
   const [isRegistered, setIsRegistered] = useState(false)

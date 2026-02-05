@@ -10,8 +10,8 @@
     "languageAndRegion": "Langue et région",
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
-    "caching": "Mise en cache",
-    "develop": "Développement"
+    "develop": "Développement",
+    "serviceWorker": "Service Worker"
   },
   "appearance": {
     "title": "Apparence",

@@ -49,27 +49,30 @@ export const SettingsView = () => {
     if (settings.developerFeatures.enabled) {
       return settingsRoutes
     }
-    return settingsRoutes.filter(route => route.path !== "developpers")
+    return settingsRoutes.filter(route =>
+      route.path !== "developpers" && route.path !== "service-worker"
+    )
   }, [settings.developerFeatures.enabled, settingsRoutes])
 
   // Group routes by category
   const groupedRoutes = React.useMemo(() => {
+    const developerOnlyPaths = ["developpers", "service-worker"]
     const groups = [
       {
         title: t("categories.preferences"),
         routes: filteredRoutes.filter(route =>
-          ["appearance", "language-and-region", "data-privacy", "caching"].includes(route.path)
+          ["appearance", "language-and-region", "data-privacy"].includes(route.path)
         )
       },
       {
         title: t("categories.system"),
-        routes: filteredRoutes.filter(route => 
+        routes: filteredRoutes.filter(route =>
           ["advanced"].includes(route.path)
         )
       },
       {
         title: t("categories.developer"),
-        routes: filteredRoutes.filter(route => route.path === "developpers")
+        routes: filteredRoutes.filter(route => developerOnlyPaths.includes(route.path))
       }
     ]
     return groups.filter(group => group.routes.length > 0)
