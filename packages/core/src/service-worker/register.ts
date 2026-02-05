@@ -12,6 +12,12 @@ let isInitialRegistration = false; // Track if this is the first registration (n
 let eventListenersAdded = false; // Track if event listeners have been added to prevent duplicates
 let toastShownForServiceWorkerId: string | null = null; // Track which service worker we've shown toast for (prevents duplicates within same page load)
 let isIntentionalUpdate = false; // Track if we're performing an intentional update (user clicked Install Now)
+// CRITICAL: Track registration state to prevent disabling during registration or immediately after page load
+// Initialize start time to page load time to provide grace period immediately after refresh
+// This prevents race conditions where error handlers fire before registration completes
+let isRegistering = false; // Track if registration is currently in progress
+let registrationStartTime = typeof window !== 'undefined' ? Date.now() : 0; // Track when registration started (initialize to page load time)
+const REGISTRATION_GRACE_PERIOD = 5000; // Don't auto-disable within 5 seconds of page load/registration start
 
 // Store event handler references so we can remove them if needed
 type EventHandler = (event?: any) => void;
@@ -75,8 +81,15 @@ export interface ServiceWorkerRegistrationOptions {
  * This helps prevent hard-to-debug issues
  */
 async function disableCachingAutomatically(reason: string): Promise<void> {
-  // CRITICAL: Log to console in addition to logger so we can see what's happening
-  console.error('[Service Worker] Auto-disabling due to error:', reason);
+  // CRITICAL: Don't disable if registration is in progress or just started
+  // This prevents race conditions where errors fire during registration
+  const timeSinceRegistrationStart = Date.now() - registrationStartTime;
+  if (isRegistering || timeSinceRegistrationStart < REGISTRATION_GRACE_PERIOD) {
+    console.warn(`[Service Worker] NOT disabling - registration in progress or within grace period. Reason: ${reason}, isRegistering: ${isRegistering}, timeSinceStart: ${timeSinceRegistrationStart}ms`);
+    logger.warn(`Not disabling service worker - registration in progress or within grace period: ${reason}`);
+    return;
+  }
+  
   logger.error(`Auto-disabling caching due to error: ${reason}`);
   
   try {
@@ -282,9 +295,48 @@ export async function registerServiceWorker(
   }
 
   registrationPromise = (async () => {
+    // CRITICAL: Mark that registration is starting to prevent auto-disable during registration
+    isRegistering = true;
+    registrationStartTime = Date.now();
+    
     try {
       // Check if service worker is already registered
       const existingRegistration = await navigator.serviceWorker.getRegistration();
+      
+      // CRITICAL: If there's a waiting service worker on page load, automatically activate it
+      // The user refreshed the page, so they want the new version - activate it automatically
+      // This ensures the new version is used without requiring manual "Install Now" click
+      if (existingRegistration?.waiting && !existingRegistration.installing) {
+        // There's a waiting service worker from before the refresh
+        // Since the user refreshed, they want the new version - activate it automatically
+        console.info('[Service Worker] Waiting service worker found on page load - automatically activating');
+        logger.info('Waiting service worker found on page load - automatically activating since user refreshed');
+        
+        // Store reference to waiting service worker
+        const waitingSW = existingRegistration.waiting;
+        waitingServiceWorker = waitingSW;
+        
+        // CRITICAL: Mark that we're auto-activating so the controlling handler knows to reload
+        // Store in sessionStorage so it survives if there's a reload
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('shellui:service-worker:auto-activated', 'true');
+        }
+        
+        // Automatically activate the waiting service worker
+        // This is safe because the user already refreshed, so they want the new version
+        // The controlling event handler will detect the auto-activation and reload the page
+        try {
+          waitingSW.postMessage({ type: 'SKIP_WAITING' });
+          console.info('[Service Worker] Sent SKIP_WAITING to waiting service worker - will reload when it takes control');
+        } catch (error) {
+          logger.error('Failed to activate waiting service worker:', error);
+          // Clear the flag on error
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('shellui:service-worker:auto-activated');
+          }
+        }
+      }
+      
       if (existingRegistration && wb) {
         // Already registered, just update
         isInitialRegistration = false; // This is an update check
@@ -357,6 +409,11 @@ export async function registerServiceWorker(
     
     waitingHandler = async () => {
       try {
+        // CRITICAL: If we're auto-activating (user refreshed), don't show toast
+        // The service worker will activate automatically and page will reload
+        const isAutoActivating = typeof window !== 'undefined' && 
+          sessionStorage.getItem('shellui:service-worker:auto-activated') === 'true';
+        
         // Get the waiting service worker
         const registration = await navigator.serviceWorker.getRegistration();
         if (!registration || !registration.waiting) {
@@ -365,6 +422,15 @@ export async function registerServiceWorker(
         
         const currentWaitingSW = registration.waiting;
         const currentWaitingSWId = currentWaitingSW.scriptURL;
+        
+        // CRITICAL: If auto-activating, update state but skip toast
+        if (isAutoActivating) {
+          console.info('[Service Worker] Waiting event fired during auto-activation - skipping toast');
+          updateAvailable = true;
+          waitingServiceWorker = currentWaitingSW;
+          notifyStatusListeners();
+          return;
+        }
         
         // CRITICAL: Check flag BEFORE updating state to prevent race conditions
         // If we've already shown toast for this service worker in this page load, don't show again
@@ -447,6 +513,7 @@ export async function registerServiceWorker(
 
     // Handle service worker activated
     activatedHandler = (event: any) => {
+      console.info('[Service Worker] Service worker activated:', { isUpdate: event.isUpdate, isInitialRegistration });
       notifyStatusListeners();
       // Reset flags when service worker is activated (update installed or new registration)
       updateAvailable = false;
@@ -466,9 +533,14 @@ export async function registerServiceWorker(
       
       // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
       // Do NOT reload automatically when a new service worker is installed - wait for user action
+      // Exception: If we auto-activated on page load, the new version is already active, no reload needed
       if (event.isUpdate && !isInitialRegistration && shouldReload) {
         // User explicitly clicked "Install Now", so reload to use the new version
+        console.info('[Service Worker] Reloading page after intentional update');
         window.location.reload();
+      } else if (event.isUpdate && !isInitialRegistration && !shouldReload) {
+        // Auto-activated on page load - new version is now active, UI will update via notifyStatusListeners
+        console.info('[Service Worker] Service worker auto-activated on page load - new version is now active');
       }
       // Reset flag after activation
       isInitialRegistration = false;
@@ -478,18 +550,33 @@ export async function registerServiceWorker(
     // Handle service worker controlling
     controllingHandler = () => {
       notifyStatusListeners();
-      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
+      
+      // CRITICAL: Check if this is an auto-activation from page load refresh
+      // If user refreshed and we auto-activated, we need to reload to get the new JavaScript
+      const wasAutoActivated = typeof window !== 'undefined' && 
+        sessionStorage.getItem('shellui:service-worker:auto-activated') === 'true';
+      
+      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now") OR auto-activation
       // The controlling event fires when a service worker takes control
-      // We only want to reload if the user explicitly requested the update
-      // Check both in-memory flag and sessionStorage to ensure we only reload when user explicitly requested it
+      // Check both in-memory flag and sessionStorage to ensure we only reload when appropriate
       const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
         sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
-      const shouldReload = isIntentionalUpdate || isIntentionalUpdatePersisted;
+      const shouldReload = isIntentionalUpdate || isIntentionalUpdatePersisted || wasAutoActivated;
       
-      // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
-      // Do NOT reload automatically when a service worker takes control - wait for user action
-      if (!isInitialRegistration && updateAvailable && shouldReload) {
-        // User explicitly clicked "Install Now", so reload to use the new version
+      // Clear auto-activation flag if it was set
+      if (wasAutoActivated && typeof window !== 'undefined') {
+        sessionStorage.removeItem('shellui:service-worker:auto-activated');
+      }
+      
+      // CRITICAL: Reload if this is an intentional update OR auto-activation from page refresh
+      // After reload, the new version will be active and UI will show correct state
+      if (!isInitialRegistration && shouldReload) {
+        if (wasAutoActivated) {
+          console.info('[Service Worker] Auto-activated service worker took control - reloading to use new version');
+        } else {
+          console.info('[Service Worker] User clicked Install Now - reloading to use new version');
+        }
+        // Reload to ensure new JavaScript is loaded
         window.location.reload();
       }
       // Reset flag after controlling
@@ -573,7 +660,6 @@ export async function registerServiceWorker(
     // Handle external service worker errors
     // Only disable caching on critical errors, not during normal update operations
     serviceWorkerErrorHandler = (event: any) => {
-      console.error('[Service Worker] Error event:', event);
       logger.error('Service worker error event:', event);
       
       // Check if this is an intentional update (check both in-memory flag and sessionStorage)
@@ -598,7 +684,6 @@ export async function registerServiceWorker(
           !errorName.includes('NetworkError');
         
         if (isCriticalError) {
-          console.error('[Service Worker] Critical error detected, disabling:', errorMessage);
           disableCachingAutomatically(`Service worker error: ${errorMessage}`);
         } else {
           console.warn('[Service Worker] Non-critical error, ignoring:', errorMessage);
@@ -636,23 +721,37 @@ export async function registerServiceWorker(
           // Ignore if updateViaCache can't be set (some browsers don't support it)
         }
         
-        // Check if there's already a waiting service worker (from before page refresh)
-        // If so, trigger the waiting handler to show toast
-        // CRITICAL: Only call manually if handler exists and we haven't already shown toast
-        // This prevents duplicate toasts if the event listener already fired
+        // Check if there's a waiting service worker after registration
+        // If we already handled it above (auto-activation on page load), skip showing toast
+        // Otherwise, show toast to let user know an update is available
         if (registration.waiting && waitingHandler) {
           const waitingSWId = registration.waiting.scriptURL;
-          // CRITICAL: Check flag BEFORE calling handler to prevent duplicate toasts
-          // The waiting event might have already fired and shown the toast
-          if (toastShownForServiceWorkerId !== waitingSWId) {
-            // Update state first
-            updateAvailable = true;
-            waitingServiceWorker = registration.waiting;
-            // Trigger the waiting handler to show toast
-            // The handler will check the flag again and show toast if needed
-            waitingHandler();
+          
+          // Check if we already auto-activated this waiting service worker above
+          // If so, don't show toast - it will activate automatically
+          const wasAutoActivated = waitingServiceWorker === registration.waiting && 
+                                   updateAvailable === true;
+          
+          if (!wasAutoActivated) {
+            // This is a new waiting service worker that appeared after registration
+            // Show toast to notify user
+            // CRITICAL: Check flag BEFORE calling handler to prevent duplicate toasts
+            // The waiting event might have already fired and shown the toast
+            if (toastShownForServiceWorkerId !== waitingSWId) {
+              // Update state first
+              updateAvailable = true;
+              waitingServiceWorker = registration.waiting;
+              // Trigger the waiting handler to show toast
+              // The handler will check the flag again and show toast if needed
+              waitingHandler();
+            } else {
+              // Toast already shown, just update state
+              updateAvailable = true;
+              waitingServiceWorker = registration.waiting;
+              notifyStatusListeners();
+            }
           } else {
-            // Toast already shown, just update state
+            // Already auto-activated, just ensure state is correct
             updateAvailable = true;
             waitingServiceWorker = registration.waiting;
             notifyStatusListeners();
@@ -684,13 +783,16 @@ export async function registerServiceWorker(
         document.addEventListener('visibilitychange', visibilityHandler);
       }
       
+      // CRITICAL: Mark registration as complete only after everything is set up
+      // This prevents error handlers from disabling during the registration process
+      isRegistering = false;
+      
       // Store interval and handler for cleanup (though cleanup is best-effort)
       // The interval will continue until page reload, which is acceptable
     } catch (error) {
       // Handle registration errors - be very selective about disabling
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error && 'name' in error ? (error as any).name : '';
-      console.error('[Service Worker] Registration error:', errorMessage, errorName);
       logger.error('Registration failed:', error);
       
       // CRITICAL: Only disable on truly critical errors that indicate the service worker is broken
@@ -703,13 +805,16 @@ export async function registerServiceWorker(
         (error instanceof DOMException && error.name !== 'SecurityError' && error.name !== 'AbortError');
       
       if (isCriticalError) {
-        console.error('[Service Worker] Critical registration error, disabling:', errorMessage);
         await disableCachingAutomatically(`Registration failed: ${errorMessage}`);
       } else {
         console.warn('[Service Worker] Non-critical registration error, NOT disabling:', errorMessage);
         logger.warn('Non-critical registration error, not disabling:', { errorMessage, errorName });
       }
     } finally {
+      // CRITICAL: Reset registration flag in finally block to ensure it's always reset
+      // But keep a grace period to prevent immediate disable after registration completes
+      // The grace period is handled in disableCachingAutomatically
+      isRegistering = false;
       registrationPromise = null;
     }
   })();
