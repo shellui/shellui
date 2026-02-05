@@ -8,6 +8,7 @@ interface ToastOptions {
   description?: string;
   type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
   duration?: number;
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   action?: {
     label: string;
     onClick: () => void;
@@ -40,11 +41,12 @@ interface SonnerProviderProps {
 
 export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   const toast = useCallback((options: ToastOptions) => {
-    const { id, title, description, type = 'default', duration, action, cancel, onDismiss, onAutoClose } = options;
+    const { id, title, description, type = 'default', duration, position, action, cancel, onDismiss, onAutoClose } = options;
 
     const toastOptions: Parameters<typeof sonnerToast>[1] = {
       id,
       duration,
+      position,
       action: action ? {
         label: action.label,
         onClick: action.onClick,

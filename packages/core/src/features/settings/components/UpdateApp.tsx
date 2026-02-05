@@ -7,6 +7,7 @@ import {
   getServiceWorkerStatus,
   addStatusListener,
   checkForServiceWorkerUpdate,
+  updateServiceWorker,
 } from "@/service-worker/register"
 import { shellui } from "@shellui/sdk"
 import { CheckIcon } from "../SettingsIcons"
@@ -31,6 +32,10 @@ export const UpdateApp = () => {
     load()
     const unsubscribe = addStatusListener((status) => {
       setUpdateAvailable(status.updateAvailable)
+      // If an update becomes available, hide the "You are up to date" message
+      if (status.updateAvailable) {
+        setShowUpToDateInButton(false)
+      }
     })
     return unsubscribe
   }, [])
@@ -40,11 +45,31 @@ export const UpdateApp = () => {
     setShowUpToDateInButton(false)
     setChecking(true)
     try {
+      // Check current status before triggering update check
+      const initialStatus = await getServiceWorkerStatus()
+      
+      // If update is already available, don't show "You are up to date"
+      if (initialStatus.updateAvailable) {
+        return
+      }
+      
+      // Trigger update check
       await checkForServiceWorkerUpdate()
-      const status = await getServiceWorkerStatus()
-      if (!status.updateAvailable) {
-        setShowUpToDateInButton(true)
-        window.setTimeout(() => setShowUpToDateInButton(false), 3000)
+      
+      // Wait a bit for the update check to complete and status to update
+      // The status listener will update updateAvailable if an update is found
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Check status again after update check
+      // Use the state value which may have been updated by the status listener
+      // If updateAvailable is true, don't show "You are up to date"
+      if (!updateAvailable) {
+        // Double-check with API to be sure
+        const finalStatus = await getServiceWorkerStatus()
+        if (!finalStatus.updateAvailable) {
+          setShowUpToDateInButton(true)
+          window.setTimeout(() => setShowUpToDateInButton(false), 3000)
+        }
       }
     } finally {
       setChecking(false)
@@ -121,7 +146,18 @@ export const UpdateApp = () => {
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              {updateAvailable && (
+                <Button
+                  variant="default"
+                  onClick={async () => {
+                    await updateServiceWorker();
+                  }}
+                  className="w-full sm:w-auto"
+                >
+                  {t("updateApp.installNow")}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={handleCheckForUpdate}
@@ -133,7 +169,7 @@ export const UpdateApp = () => {
                     <span className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" aria-hidden />
                     {t("updateApp.checking")}
                   </>
-                ) : showUpToDateInButton ? (
+                ) : showUpToDateInButton && !updateAvailable ? (
                   <span className="inline-flex items-center gap-2 text-green-600 dark:text-green-400">
                     <CheckIcon />
                     {t("updateApp.youAreUpToDate")}

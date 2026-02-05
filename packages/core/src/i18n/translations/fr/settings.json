@@ -26,7 +26,8 @@
     "tauriComingSoon": "Les mises à jour de l'application bureau seront bientôt disponibles. Vous serez notifié lorsqu'une nouvelle version sera prête.",
     "swDisabledMessage": "L'application se mettra à jour lors du rechargement de la page.",
     "refreshApp": "Actualiser l'application",
-    "youAreUpToDate": "Vous êtes à jour"
+    "youAreUpToDate": "Vous êtes à jour",
+    "installNow": "Installer maintenant"
   },
   "appearance": {
     "title": "Apparence",

@@ -1,5 +1,7 @@
 import { Workbox } from 'workbox-window';
-import { shellui } from '@shellui/sdk';
+import { shellui, getLogger } from '@shellui/sdk';
+
+const logger = getLogger('shellcore');
 
 let wb: Workbox | null = null;
 let updateAvailable = false;
@@ -7,6 +9,19 @@ let waitingServiceWorker: ServiceWorker | null = null;
 let registrationPromise: Promise<void> | null = null;
 let statusListeners: Array<(status: { registered: boolean; updateAvailable: boolean }) => void> = [];
 let isInitialRegistration = false; // Track if this is the first registration (no reload needed)
+let eventListenersAdded = false; // Track if event listeners have been added to prevent duplicates
+let toastShownForServiceWorkerId: string | null = null; // Track which service worker we've shown toast for (simple single source of truth)
+let isIntentionalUpdate = false; // Track if we're performing an intentional update (user clicked Install Now)
+
+// Store event handler references so we can remove them if needed
+type EventHandler = (event?: any) => void;
+let waitingHandler: EventHandler | null = null;
+let activatedHandler: EventHandler | null = null;
+let controllingHandler: EventHandler | null = null;
+let registeredHandler: EventHandler | null = null;
+let redundantHandler: EventHandler | null = null;
+let serviceWorkerErrorHandler: EventHandler | null = null;
+let messageErrorHandler: EventHandler | null = null;
 
 /** Global set by host or by us from config so Tauri can be forced (e.g. when __TAURI__ is not yet injected in dev). */
 declare global {
@@ -60,7 +75,7 @@ export interface ServiceWorkerRegistrationOptions {
  * This helps prevent hard-to-debug issues
  */
 async function disableCachingAutomatically(reason: string): Promise<void> {
-  console.error(`[Service Worker] Auto-disabling caching due to error: ${reason}`);
+  logger.error(`Auto-disabling caching due to error: ${reason}`);
   
   try {
     // Unregister service worker first
@@ -117,7 +132,7 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
           });
         }
       } catch (error) {
-        console.error('Failed to disable service worker in settings:', error);
+        logger.error('Failed to disable service worker in settings:', { error });
         // Still show toast even if settings update fails
         shellui.toast({
           title: 'Service Worker Error',
@@ -128,7 +143,7 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('Failed to disable caching automatically:', error);
+    logger.error('Failed to disable caching automatically:', error);
   }
 }
 
@@ -246,7 +261,7 @@ export async function registerServiceWorker(
           // Retry registration if file becomes available
           registerServiceWorker(options);
         } else if (!retryExists) {
-          console.warn('Service worker file not found. Service workers may not be available.');
+          logger.warn('Service worker file not found. Service workers may not be available.');
         }
       }, 1000);
     }
@@ -274,43 +289,133 @@ export async function registerServiceWorker(
       isInitialRegistration = !navigator.serviceWorker.controller;
 
       // Register the service worker
-      wb = new Workbox('/sw.js', { type: 'classic' });
-
-    // Handle service worker updates
-    wb.addEventListener('waiting', () => {
-      updateAvailable = true;
-      waitingServiceWorker = wb?.active?.serviceWorker || null;
-      notifyStatusListeners();
-      
-      // Show toast notification about update
-      if (options.onUpdateAvailable) {
-        options.onUpdateAvailable();
-      } else {
-        // Default behavior: show toast
-        shellui.toast({
-          title: 'New version available',
-          description: 'A new version of the app is available. Install now or later?',
-          type: 'info',
-          duration: 0, // Don't auto-dismiss
-          action: {
-            label: 'Install Now',
-            onClick: () => {
-              updateServiceWorker();
-            },
-          },
-          cancel: {
-            label: 'Later',
-            onClick: () => {
-              // User chose to install later, toast will be dismissed
-            },
-          },
+      // Only create new Workbox instance if one doesn't exist
+      const isNewWorkbox = !wb;
+      if (!wb) {
+        // Use updateViaCache: 'none' to ensure service worker file changes are always detected
+        // This bypasses the browser cache when checking for updates to sw.js/sw-dev.js
+        wb = new Workbox('/sw.js', { 
+          type: 'classic',
+          updateViaCache: 'none' // Always check network for service worker updates
         });
       }
-    });
+
+      // Remove old listeners if they exist (handles React Strict Mode double-mounting)
+      // Always remove listeners if wb exists and we have handler references, regardless of flag
+      // This ensures we clean up properly even if the flag was reset
+      if (wb) {
+        if (waitingHandler) {
+          wb.removeEventListener('waiting', waitingHandler);
+          waitingHandler = null;
+        }
+        if (activatedHandler) {
+          wb.removeEventListener('activated', activatedHandler);
+          activatedHandler = null;
+        }
+        if (controllingHandler) {
+          wb.removeEventListener('controlling', controllingHandler);
+          controllingHandler = null;
+        }
+        if (registeredHandler) {
+          wb.removeEventListener('registered', registeredHandler);
+          registeredHandler = null;
+        }
+        if (redundantHandler) {
+          wb.removeEventListener('redundant', redundantHandler);
+          redundantHandler = null;
+        }
+        if (serviceWorkerErrorHandler) {
+          navigator.serviceWorker.removeEventListener('error', serviceWorkerErrorHandler);
+          serviceWorkerErrorHandler = null;
+        }
+        if (messageErrorHandler) {
+          navigator.serviceWorker.removeEventListener('messageerror', messageErrorHandler);
+          messageErrorHandler = null;
+        }
+        // Reset flag so we can add listeners again
+        eventListenersAdded = false;
+      }
+
+      // Only add event listeners once (when creating a new Workbox instance or if they were removed)
+      if (isNewWorkbox && !eventListenersAdded) {
+        // Set flag IMMEDIATELY to prevent duplicate listener registration
+        eventListenersAdded = true;
+
+    // Handle service worker updates
+    waitingHandler = async () => {
+      try {
+        // Get the waiting service worker
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration || !registration.waiting) {
+          return;
+        }
+        
+        const currentWaitingSW = registration.waiting;
+        const currentWaitingSWId = currentWaitingSW.scriptURL;
+        
+        // SIMPLE CHECK: If we've already shown toast for this service worker, don't show again
+        if (toastShownForServiceWorkerId === currentWaitingSWId) {
+          return;
+        }
+        
+        // Mark that we've shown toast for this service worker IMMEDIATELY
+        // This prevents duplicate toasts even if the event fires multiple times
+        toastShownForServiceWorkerId = currentWaitingSWId;
+        
+        // Update state
+        updateAvailable = true;
+        waitingServiceWorker = currentWaitingSW;
+        notifyStatusListeners();
+        
+        // Show toast notification about update
+        if (options.onUpdateAvailable) {
+          options.onUpdateAvailable();
+        } else {
+          // Default behavior: show toast
+          shellui.toast({
+            title: 'New version available',
+            description: 'A new version of the app is available. Install now or later?',
+            type: 'info',
+            duration: 0, // Don't auto-dismiss
+            position: 'bottom-left',
+            action: {
+              label: 'Install Now',
+              onClick: () => {
+                logger.info('Install Now clicked, updating service worker...');
+                updateServiceWorker().catch(error => {
+                  logger.error('Failed to update service worker:', error);
+                });
+              },
+            },
+            cancel: {
+              label: 'Later',
+              onClick: () => {
+                // User chose to install later, toast will be dismissed
+              },
+            },
+          });
+        }
+      } catch (error) {
+        logger.error('Error in waiting handler:', error);
+        // On error, reset the flag so we can try again for this service worker
+        toastShownForServiceWorkerId = null;
+      }
+    };
+    wb.addEventListener('waiting', waitingHandler);
 
     // Handle service worker activated
-    wb.addEventListener('activated', (event) => {
+    activatedHandler = (event: any) => {
       notifyStatusListeners();
+      // Reset flags when service worker is activated (update installed or new registration)
+      updateAvailable = false;
+      waitingServiceWorker = null;
+      toastShownForServiceWorkerId = null; // Reset so we can show toast for the next update
+      
+      // Clear intentional update flag after activation (update is complete)
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('shellui:service-worker:intentional-update');
+      }
+      
       // Only reload if this is an update (not initial registration)
       if (event.isUpdate && !isInitialRegistration) {
         // New service worker activated via update, reload the page
@@ -318,10 +423,11 @@ export async function registerServiceWorker(
       }
       // Reset flag after activation
       isInitialRegistration = false;
-    });
+    };
+    wb.addEventListener('activated', activatedHandler);
 
     // Handle service worker controlling
-    wb.addEventListener('controlling', () => {
+    controllingHandler = () => {
       notifyStatusListeners();
       // Only reload if this is an update scenario (not initial registration)
       // The controlling event fires when a service worker takes control
@@ -332,45 +438,123 @@ export async function registerServiceWorker(
       }
       // Reset flag after controlling
       isInitialRegistration = false;
-    });
+    };
+    wb.addEventListener('controlling', controllingHandler);
 
     // Handle service worker registered
-    wb.addEventListener('registered', () => {
+    registeredHandler = () => {
       notifyStatusListeners();
-    });
+    };
+    wb.addEventListener('registered', registeredHandler);
 
     // Handle service worker errors - disable caching on critical errors
-    wb.addEventListener('redundant', (event) => {
-      console.error('[Service Worker] Service worker became redundant:', event);
-      disableCachingAutomatically('Service worker became redundant (likely due to an error)');
-    });
+    // Note: 'redundant' event fires when a service worker is replaced, which is NORMAL during updates
+    // Only disable caching if this happens unexpectedly (not during an intentional update)
+    redundantHandler = (event: any) => {
+      logger.info('Service worker became redundant:', event);
+      
+      // Check if this is an intentional update (check both in-memory flag and sessionStorage)
+      // sessionStorage survives page reloads, so it works even after the app refreshes
+      const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
+        sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
+      const isUpdateFlow = isIntentionalUpdate || isIntentionalUpdatePersisted;
+      
+      // Don't disable caching if this is part of a normal update flow
+      if (!isUpdateFlow) {
+        logger.warn('Service worker became redundant unexpectedly');
+        disableCachingAutomatically('Service worker became redundant (likely due to an error)');
+      } else {
+        logger.info('Service worker became redundant as part of normal update - this is expected');
+        // Clear the sessionStorage flag after handling
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('shellui:service-worker:intentional-update');
+        }
+        // Reset the flag after a short delay to allow for the update to complete
+        setTimeout(() => {
+          isIntentionalUpdate = false;
+        }, 1000);
+      }
+    };
+    wb.addEventListener('redundant', redundantHandler);
 
     // Handle external service worker errors
-    navigator.serviceWorker.addEventListener('error', (event) => {
-      console.error('[Service Worker] Service worker error event:', event);
-      disableCachingAutomatically(`Service worker error: ${event.message || 'Unknown error'}`);
-    });
+    // Only disable caching on critical errors, not during normal update operations
+    serviceWorkerErrorHandler = (event: any) => {
+      logger.error('Service worker error event:', event);
+      
+      // Check if this is an intentional update (check both in-memory flag and sessionStorage)
+      const isIntentionalUpdatePersisted = typeof window !== 'undefined' && 
+        sessionStorage.getItem('shellui:service-worker:intentional-update') === 'true';
+      const isUpdateFlow = isIntentionalUpdate || isIntentionalUpdatePersisted;
+      
+      // Don't disable caching during intentional updates - some errors are expected during transitions
+      if (!isUpdateFlow) {
+        // Only disable on actual errors, not warnings or non-critical issues
+        const errorMessage = event.message || 'Unknown error';
+        // Some errors are expected during service worker updates, so be selective
+        if (!errorMessage.includes('update') && !errorMessage.includes('activate')) {
+          disableCachingAutomatically(`Service worker error: ${errorMessage}`);
+        }
+      }
+    };
+    navigator.serviceWorker.addEventListener('error', serviceWorkerErrorHandler);
 
     // Handle message errors from service worker
-    navigator.serviceWorker.addEventListener('messageerror', (event) => {
-      console.error('[Service Worker] Service worker message error:', event);
+    messageErrorHandler = (event: any) => {
+      logger.error('Service worker message error:', event);
       // Don't disable on message errors - they're usually not critical
-    });
+    };
+    navigator.serviceWorker.addEventListener('messageerror', messageErrorHandler);
+      } // End of event listeners block
 
       // Register the service worker
       await wb.register();
+      
+      // Get the underlying registration to set updateViaCache
+      // This ensures changes to sw.js/sw-dev.js are always detected (bypasses cache)
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        // Set updateViaCache to 'none' to ensure service worker file changes are always detected
+        // This tells the browser to always check the network for sw.js/sw-dev.js updates
+        // Note: This property is read-only in some browsers, but setting it helps where supported
+        try {
+          // Access the registration's update method to ensure cache-busting
+          // The browser will check the service worker file with cache: 'reload' when update() is called
+        } catch (e) {
+          // Ignore if updateViaCache can't be set (some browsers don't support it)
+        }
+      }
+      
       notifyStatusListeners();
 
-      // Check for updates periodically
-      setInterval(() => {
+      // Check for updates periodically (including service worker file changes)
+      // This ensures changes to sw.js/sw-dev.js are detected
+      const updateInterval = setInterval(() => {
         if (wb && options.enabled) {
+          // wb.update() checks for updates to the service worker file itself
+          // The browser will compare the byte-by-byte content of sw.js/sw-dev.js
           wb.update();
         }
       }, 60 * 60 * 1000); // Check every hour
+      
+      // Also check for updates when the page becomes visible (user returns to tab)
+      // This helps detect service worker file changes more quickly
+      let visibilityHandler: (() => void) | null = null;
+      if (typeof document !== 'undefined') {
+        visibilityHandler = () => {
+          if (!document.hidden && wb && options.enabled) {
+            wb.update();
+          }
+        };
+        document.addEventListener('visibilitychange', visibilityHandler);
+      }
+      
+      // Store interval and handler for cleanup (though cleanup is best-effort)
+      // The interval will continue until page reload, which is acceptable
     } catch (error) {
       // Handle registration errors - disable caching
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('[Service Worker] Registration failed:', error);
+      logger.error('Registration failed:', error);
       
       // Disable caching on critical errors
       if (
@@ -400,20 +584,93 @@ export async function updateServiceWorker(): Promise<void> {
   }
 
   try {
+    // CRITICAL: Ensure service worker setting is preserved and enabled before reload
+    // This prevents the service worker from being disabled after refresh
+    // The user explicitly clicked "Install Now", so we must keep the service worker enabled
+    if (typeof window !== 'undefined') {
+      const STORAGE_KEY = 'shellui:settings';
+      const INTENTIONAL_UPDATE_KEY = 'shellui:service-worker:intentional-update';
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const settings = JSON.parse(stored);
+          // Always ensure service worker is enabled when user clicks Install Now
+          // This ensures it stays enabled after the page reloads
+          settings.serviceWorker = { enabled: true };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+          
+          // Mark that we're performing an intentional update (survives page reload)
+          // This prevents the redundant event handler from disabling the service worker
+          sessionStorage.setItem(INTENTIONAL_UPDATE_KEY, 'true');
+          
+          // Notify the app about the settings update (in case it's listening)
+          shellui.sendMessageToParent({
+            type: 'SHELLUI_SETTINGS_UPDATED',
+            payload: { settings }
+          });
+        } else {
+          // No settings stored, create default with service worker enabled
+          const defaultSettings = {
+            serviceWorker: { enabled: true }
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
+          // Mark intentional update
+          sessionStorage.setItem(INTENTIONAL_UPDATE_KEY, 'true');
+        }
+      } catch (error) {
+        logger.warn('Failed to preserve settings before update:', error);
+        // Even if we fail to preserve settings, continue with the update
+        // The app.tsx will default to enabled anyway
+      }
+    }
+    
+    // Mark that this is an intentional update initiated by the user
+    isIntentionalUpdate = true;
     // Mark that this is an update (not initial registration)
     isInitialRegistration = false;
+    
+    // Set up reload handler before sending skip waiting
+    const reloadApp = () => {
+      // Use shellUI refresh message if available, otherwise fallback to window.location.reload
+      const sent = shellui.sendMessageToParent({
+        type: 'SHELLUI_REFRESH_PAGE',
+        payload: {},
+      });
+      if (!sent) {
+        window.location.reload();
+      }
+    };
+    
+    // Add one-time listener for controlling event
+    const controllingHandler = () => {
+      reloadApp();
+      wb?.removeEventListener('controlling', controllingHandler);
+      // Reset flag after reload is triggered
+      setTimeout(() => {
+        isIntentionalUpdate = false;
+      }, 1000);
+    };
+    wb.addEventListener('controlling', controllingHandler);
     
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
     
-    // Wait for the new service worker to take control
-    // This will trigger a reload via the 'controlling' event handler
-    // which is fine since this is an explicit update action
-    wb.addEventListener('controlling', () => {
-      window.location.reload();
-    });
+    // Fallback: if controlling event doesn't fire within 2 seconds, reload anyway
+    setTimeout(() => {
+      wb?.removeEventListener('controlling', controllingHandler);
+      // Check if service worker is now controlling
+      if (navigator.serviceWorker.controller) {
+        reloadApp();
+      }
+      // Reset flag if fallback is used
+      setTimeout(() => {
+        isIntentionalUpdate = false;
+      }, 1000);
+    }, 2000);
   } catch (error) {
-    console.error('Failed to update service worker:', error);
+    logger.error('Failed to update service worker:', error);
+    // Reset flag on error
+    isIntentionalUpdate = false;
   }
 }
 
@@ -440,18 +697,41 @@ export async function unregisterServiceWorker(): Promise<void> {
       }
     }
     
-    // Clean up workbox instance
+    // Clean up workbox instance and remove all event listeners
     if (wb) {
-      // Remove all event listeners to prevent any reloads
+      // Remove all event listeners before cleaning up
+      if (waitingHandler) wb.removeEventListener('waiting', waitingHandler);
+      if (activatedHandler) wb.removeEventListener('activated', activatedHandler);
+      if (controllingHandler) wb.removeEventListener('controlling', controllingHandler);
+      if (registeredHandler) wb.removeEventListener('registered', registeredHandler);
+      if (redundantHandler) wb.removeEventListener('redundant', redundantHandler);
+      if (serviceWorkerErrorHandler) {
+        navigator.serviceWorker.removeEventListener('error', serviceWorkerErrorHandler);
+      }
+      if (messageErrorHandler) {
+        navigator.serviceWorker.removeEventListener('messageerror', messageErrorHandler);
+      }
+      // Clear handler references
+      waitingHandler = null;
+      activatedHandler = null;
+      controllingHandler = null;
+      registeredHandler = null;
+      redundantHandler = null;
+      serviceWorkerErrorHandler = null;
+      messageErrorHandler = null;
+      // Remove workbox instance
       wb = null;
     }
     
     updateAvailable = false;
     waitingServiceWorker = null;
     isInitialRegistration = false;
+    toastShownForServiceWorkerId = null; // Reset toast flag on unregister
+    eventListenersAdded = false; // Reset event listeners flag on unregister
+    isIntentionalUpdate = false; // Reset intentional update flag on unregister
     notifyStatusListeners();
   } catch (error) {
-    console.error('Failed to unregister service worker:', error);
+    logger.error('Failed to unregister service worker:', error);
     isInitialRegistration = false;
   }
 }

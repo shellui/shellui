@@ -15,6 +15,7 @@ export interface ToastOptions {
   description?: string;
   type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
   duration?: number;
+  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   action?: {
     label: string;
     onClick: () => void;

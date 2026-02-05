@@ -5,6 +5,9 @@ import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
+import { getLogger } from '@shellui/sdk';
+
+const logger = getLogger('shellcore');
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -26,6 +29,19 @@ registerRoute(
       new ExpirationPlugin({
         maxEntries: 60,
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+      }),
+    ],
+  })
+);
+
+// Cache HTML files with NetworkFirst (check for updates first, fallback to cache)
+registerRoute(
+  ({ request }) => request.destination === 'document',
+  new NetworkFirst({
+    cacheName: 'html-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
       }),
     ],
   })
@@ -58,23 +74,6 @@ registerRoute(
       }),
       new ExpirationPlugin({
         maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-      }),
-    ],
-  })
-);
-
-// Cache API responses with NetworkFirst (fallback to cache if offline)
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: 'api-cache',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 5 * 60, // 5 minutes
       }),
     ],
   })

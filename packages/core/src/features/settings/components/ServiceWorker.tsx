@@ -200,9 +200,16 @@ export const ServiceWorker = () => {
         type: 'success',
       })
       
-      // Reload the page to get latest version
+      // Reload the app using shellUI refresh message (refreshes entire app, not just iframe)
       setTimeout(() => {
-        window.location.reload()
+        const sent = shellui.sendMessageToParent({
+          type: 'SHELLUI_REFRESH_PAGE',
+          payload: {},
+        })
+        if (!sent) {
+          // Fallback to window.location.reload if message can't be sent
+          window.location.reload()
+        }
       }, 1000)
     } catch (error) {
       shellui.toast({

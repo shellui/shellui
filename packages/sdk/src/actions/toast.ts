@@ -32,6 +32,7 @@ export function toast(options: ToastOptions = {}): string | void {
       description: options.description,
       type: options.type ?? 'default',
       duration: options.duration,
+      position: options.position,
       action: {
         ...options.action,
         onClick: undefined,

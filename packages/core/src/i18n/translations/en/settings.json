@@ -26,7 +26,8 @@
     "tauriComingSoon": "Updates for the desktop app will be available soon. You will be notified when a new version is ready.",
     "swDisabledMessage": "The app will update when you refresh the page.",
     "refreshApp": "Refresh app",
-    "youAreUpToDate": "You are up to date"
+    "youAreUpToDate": "You are up to date",
+    "installNow": "Install Now"
   },
   "appearance": {
     "title": "Appearance",
