@@ -11,7 +11,7 @@ const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
       <div
         ref={ref}
         className={cn(
-          "inline-flex rounded-md shadow-sm",
+          "inline-flex rounded-md",
           className
         )}
         role="group"
@@ -32,8 +32,6 @@ const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
                 isLast && "rounded-r-md",
                 // Remove left border from all except first, using theme border color
                 !isFirst && "border-l-0 -ml-px",
-                // Remove shadow from all except first to avoid double shadows
-                !isFirst && "shadow-none",
                 child.props.className
               ),
             })

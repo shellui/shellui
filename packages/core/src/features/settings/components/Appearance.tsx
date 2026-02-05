@@ -178,7 +178,6 @@ export const Appearance = () => {
                 className={cn(
                   "h-10 px-4 transition-all flex items-center gap-2 cursor-pointer",
                   isSelected && [
-                    "shadow-md",
                     "font-semibold"
                   ],
                   !isSelected && [
