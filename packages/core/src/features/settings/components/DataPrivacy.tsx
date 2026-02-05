@@ -4,6 +4,7 @@ import { useConfig } from "@/features/config/useConfig"
 import { Button } from "@/components/ui/button"
 import { shellui } from "@shellui/sdk"
 import urls from "@/constants/urls"
+import { cn } from "@/lib/utils"
 
 export const DataPrivacy = () => {
   const { t } = useTranslation('settings')
@@ -67,19 +68,36 @@ export const DataPrivacy = () => {
                     ? t('dataPrivacy.cookieConsent.statusRejectedAll')
                     : t('dataPrivacy.cookieConsent.statusCustom')}
             </p>
-            <div className="flex items-center gap-2 text-sm flex-wrap">
-            <span className={acceptedAll ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
-              {acceptedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
-            </span>
-            <span className="text-muted-foreground/50">|</span>
-            <span className={isCustom ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}>
-              {isCustom ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelCustom')}
-            </span>
-            <span className="text-muted-foreground/50">|</span>
-            <span className={rejectedAll ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}>
-              {rejectedAll ? "●" : "○"} {t('dataPrivacy.cookieConsent.labelRejectedAll')}
-            </span>
-            </div>
+            {hasConsented && (
+              <div className="flex items-center gap-2 text-sm mt-2">
+                <span className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  acceptedAll 
+                    ? "bg-primary/10 text-primary border border-primary/20" 
+                    : "text-muted-foreground"
+                )}>
+                  {t('dataPrivacy.cookieConsent.labelAcceptedAll')}
+                </span>
+                <span className="text-muted-foreground/30">|</span>
+                <span className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  isCustom 
+                    ? "bg-muted text-muted-foreground border border-border" 
+                    : "text-muted-foreground"
+                )}>
+                  {t('dataPrivacy.cookieConsent.labelCustom')}
+                </span>
+                <span className="text-muted-foreground/30">|</span>
+                <span className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium transition-colors",
+                  rejectedAll 
+                    ? "bg-muted text-muted-foreground border border-border" 
+                    : "text-muted-foreground"
+                )}>
+                  {t('dataPrivacy.cookieConsent.labelRejectedAll')}
+                </span>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
