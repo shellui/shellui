@@ -12,6 +12,7 @@ import { Advanced } from "./components/Advanced"
 import { Develop } from "./components/Develop"
 import { DataPrivacy } from "./components/DataPrivacy"
 import { ServiceWorker } from "./components/ServiceWorker"
+import { isTauri } from "../../service-worker/register"
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
   {
@@ -44,10 +45,14 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     path: "developpers",
     element: <Develop />
   },
-  {
-    name: t("routes.serviceWorker"),
-    icon: PackageIcon,
-    path: "service-worker",
-    element: <ServiceWorker />
-  }
+  ...(isTauri()
+    ? []
+    : [
+        {
+          name: t("routes.serviceWorker"),
+          icon: PackageIcon,
+          path: "service-worker",
+          element: <ServiceWorker />
+        }
+      ])
 ]       

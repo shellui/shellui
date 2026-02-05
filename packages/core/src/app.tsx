@@ -13,7 +13,7 @@ import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal'
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
-import { registerServiceWorker, unregisterServiceWorker } from './service-worker/register';
+import { registerServiceWorker, unregisterServiceWorker, isTauri } from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
 
 const AppContent = () => {
@@ -30,6 +30,10 @@ const AppContent = () => {
 
   // Register or unregister service worker based on setting
   useEffect(() => {
+    if (isTauri()) {
+      unregisterServiceWorker();
+      return;
+    }
     const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true; // Default to enabled
     
     // Don't register service worker if navigation is empty or undefined

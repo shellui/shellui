@@ -8,6 +8,33 @@ let registrationPromise: Promise<void> | null = null;
 let statusListeners: Array<(status: { registered: boolean; updateAvailable: boolean }) => void> = [];
 let isInitialRegistration = false; // Track if this is the first registration (no reload needed)
 
+/** Global set by host or by us from config so Tauri can be forced (e.g. when __TAURI__ is not yet injected in dev). */
+declare global {
+  interface Window {
+    __SHELLUI_TAURI__?: boolean;
+  }
+}
+
+function hasTauriOnWindow(w: Window | null): boolean {
+  if (!w) return false;
+  const o = w as Window & { __TAURI__?: unknown; __TAURI_INTERNALS__?: unknown; __SHELLUI_TAURI__?: boolean };
+  if (o.__SHELLUI_TAURI__ === true) return true;
+  return !!(o.__TAURI__ ?? o.__TAURI_INTERNALS__);
+}
+
+/** True when the app is running inside Tauri (desktop). Service worker is disabled there; a different caching system is used. */
+export function isTauri(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (hasTauriOnWindow(window)) return true;
+  try {
+    if (window !== window.top && hasTauriOnWindow(window.top)) return true;
+    if (window.parent && window.parent !== window && hasTauriOnWindow(window.parent)) return true;
+  } catch {
+    // Cross-origin: can't access top/parent
+  }
+  return false;
+}
+
 // Cache for service worker file existence check to avoid duplicate fetches
 let swFileExistsCache: Promise<boolean> | null = null;
 let swFileExistsCacheTime: number = 0;
@@ -191,6 +218,12 @@ export async function registerServiceWorker(
   options: ServiceWorkerRegistrationOptions = { enabled: true }
 ): Promise<void> {
   if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  if (isTauri()) {
+    await unregisterServiceWorker();
+    wb = null;
     return;
   }
 
@@ -428,6 +461,9 @@ export async function unregisterServiceWorker(): Promise<void> {
  */
 export async function isServiceWorkerRegistered(): Promise<boolean> {
   if (!('serviceWorker' in navigator)) {
+    return false;
+  }
+  if (isTauri()) {
     return false;
   }
 

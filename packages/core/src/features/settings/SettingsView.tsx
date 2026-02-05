@@ -23,6 +23,7 @@ import urls from "@/constants/urls"
 import { createSettingsRoutes } from "./SettingsRoutes"
 import { useSettings } from "./hooks/useSettings"
 import { useConfig } from "../config/useConfig"
+import { isTauri } from "@/service-worker/register"
 import { Button } from "@/components/ui/button"
 import { ChevronRightIcon, ChevronLeftIcon } from "./SettingsIcons"
 
@@ -33,6 +34,14 @@ export const SettingsView = () => {
   const { settings } = useSettings()
   const { config } = useConfig()
   const { t } = useTranslation('settings')
+  // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
+  const [isTauriEnv, setIsTauriEnv] = React.useState(() => isTauri())
+
+  React.useEffect(() => {
+    setIsTauriEnv(isTauri())
+    const tid = window.setTimeout(() => setIsTauriEnv(isTauri()), 200)
+    return () => window.clearTimeout(tid)
+  }, [])
 
   React.useEffect(() => {
     if (config?.title) {
@@ -41,18 +50,26 @@ export const SettingsView = () => {
     }
   }, [config?.title, t])
 
-  // Create routes with translations
+  // Create routes with translations (service-worker route is already omitted in Tauri by createSettingsRoutes)
   const settingsRoutes = React.useMemo(() => createSettingsRoutes(t), [t])
+
+  // In Tauri, hide service worker route; use reactive isTauriEnv so we catch late injection (e.g. dev)
+  const routesWithoutTauriSw = React.useMemo(() => {
+    if (isTauriEnv) {
+      return settingsRoutes.filter(route => route.path !== "service-worker")
+    }
+    return settingsRoutes
+  }, [settingsRoutes, isTauriEnv])
 
   // Filter routes based on developer features setting
   const filteredRoutes = React.useMemo(() => {
     if (settings.developerFeatures.enabled) {
-      return settingsRoutes
+      return routesWithoutTauriSw
     }
-    return settingsRoutes.filter(route =>
+    return routesWithoutTauriSw.filter(route =>
       route.path !== "developpers" && route.path !== "service-worker"
     )
-  }, [settings.developerFeatures.enabled, settingsRoutes])
+  }, [settings.developerFeatures.enabled, routesWithoutTauriSw])
 
   // Group routes by category
   const groupedRoutes = React.useMemo(() => {

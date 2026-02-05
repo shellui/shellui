@@ -164,9 +164,14 @@ export interface CookieConsentConfig {
   cookies: CookieDefinition[];
 }
 
+/** When set to 'tauri', disables service worker and hides its settings (Tauri uses a different caching system). */
+export type RuntimeType = 'browser' | 'tauri';
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
+  /** Set to 'tauri' when the app runs inside Tauri so service worker is disabled and hidden. */
+  runtime?: RuntimeType;
   /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */
   favicon?: string;
   /** App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header. */

@@ -44,6 +44,9 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
         try {
           // Parse the JSON string to get the config object
           const parsedConfig: ShellUIConfig = JSON.parse(configValue);
+          if (typeof window !== 'undefined' && parsedConfig.runtime === 'tauri') {
+            (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
+          }
           
           // Log in dev mode to help debug (only once per page load)
           if (process.env.NODE_ENV === 'development' && !configLogged) {
@@ -70,6 +73,9 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
           typeof fallbackValue === 'string'
             ? JSON.parse(fallbackValue)
             : (fallbackValue as ShellUIConfig);
+        if (typeof window !== 'undefined' && parsedConfig.runtime === 'tauri') {
+          (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
+        }
         
         if (process.env.NODE_ENV === 'development') {
           logger.warn('Config loaded from globalThis fallback (define may not have worked)');
