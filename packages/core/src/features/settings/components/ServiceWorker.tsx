@@ -174,7 +174,7 @@ export const ServiceWorker = () => {
       await updateServiceWorker()
       // Don't show toast here - updateServiceWorker() will handle the reload
       // and the update process already provides feedback through the UI
-    } catch (error) {
+    } catch (_error) {
       shellui.toast({
         title: t('caching.updateError.title'),
         description: t('caching.updateError.description'),
@@ -208,7 +208,7 @@ export const ServiceWorker = () => {
           window.location.reload()
         }
       }, 1000)
-    } catch (error) {
+    } catch (_error) {
       shellui.toast({
         title: t('caching.resetError.title'),
         description: t('caching.resetError.description'),

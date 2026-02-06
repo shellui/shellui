@@ -23,7 +23,7 @@ export function AppLayout({ layout = 'sidebar', title, appIcon, logo, navigation
   const { settings } = useSettings();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 
-  let LayoutComponent: React.LazyExoticComponent<React.ComponentType<any>>;
+  let LayoutComponent: React.LazyExoticComponent<React.ComponentType<Record<string, unknown>>>;
   let layoutProps: Record<string, unknown>;
 
   if (effectiveLayout === 'fullscreen') {

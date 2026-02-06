@@ -1,6 +1,5 @@
 import * as React from "react"
-import { getLogger, shellui, ShellUIMessage } from "@shellui/sdk"
-import { Settings, type SettingsNavigationItem } from "@shellui/sdk"
+import { getLogger, shellui, type ShellUIMessage, type Settings, type SettingsNavigationItem } from "@shellui/sdk"
 import { SettingsContext } from "./SettingsContext"
 import { useConfig } from "../config/useConfig"
 import { useTranslation } from "react-i18next"

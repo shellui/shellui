@@ -224,7 +224,7 @@ function AppWindow({
       next.h = newH;
     }
     pendingResizeBoundsRef.current = next;
-    if (resizeRafRef.current == null) {
+    if (resizeRafRef.current === null) {
       resizeRafRef.current = requestAnimationFrame(() => {
         const pending = pendingResizeBoundsRef.current;
         resizeRafRef.current = null;
@@ -483,7 +483,7 @@ function getBrowserTimezone(): string {
   return 'UTC';
 }
 
-export function WindowsLayout({ title, appIcon, logo, navigation }: WindowsLayoutProps) {
+export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
   const { i18n } = useTranslation();
   const { settings } = useSettings();
   const currentLanguage = i18n.language || 'en';
@@ -559,7 +559,7 @@ export function WindowsLayout({ title, appIcon, logo, navigation }: WindowsLayou
       setFrontWindowId(null);
       return;
     }
-    const frontStillExists = frontWindowId != null && windows.some((w) => w.id === frontWindowId);
+    const frontStillExists = frontWindowId !== null && windows.some((w) => w.id === frontWindowId);
     if (!frontStillExists) {
       setFrontWindowId(windows[0].id);
     }

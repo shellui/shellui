@@ -128,8 +128,8 @@ export class MessageListenerRegistry {
       this.listeners.set(messageType, new Set());
     }
 
-    const typeListeners = this.listeners.get(messageType)!;
-    typeListeners.add(listener);
+    const typeListeners = this.listeners.get(messageType);
+    typeListeners?.add(listener);
 
     logger.debug(`Added listener for message type: ${messageType}`);
 

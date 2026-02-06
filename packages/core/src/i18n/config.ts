@@ -40,7 +40,7 @@ const getInitialLanguage = (enabledLanguages: string[]): SupportedLanguage => {
           return languageCode as SupportedLanguage;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore errors, fall back to default
     }
   }

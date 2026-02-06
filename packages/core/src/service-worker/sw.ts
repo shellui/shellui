@@ -7,7 +7,7 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { getLogger } from '@shellui/sdk';
 
-const logger = getLogger('shellcore');
+const _logger = getLogger('shellcore');
 
 declare const self: ServiceWorkerGlobalScope;
 

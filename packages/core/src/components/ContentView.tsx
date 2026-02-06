@@ -1,6 +1,7 @@
-import { NavigationItem } from '@/features/config/types';
-import { addIframe, removeIframe, shellui, ShellUIUrlPayload, ShellUIMessage, getLogger } from '@shellui/sdk';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+/* eslint-disable no-console */
+import type { NavigationItem } from '@/features/config/types';
+import { addIframe, removeIframe, shellui, getLogger, type ShellUIUrlPayload, type ShellUIMessage } from '@shellui/sdk';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingOverlay } from './LoadingOverlay';
 
@@ -188,8 +189,8 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       const originalWarn = console.warn;
-      console.warn = (...args: any[]) => {
-        const message = args[0]?.toString() || '';
+      console.warn = (...args: unknown[]) => {
+        const message = String(args[0] ?? '');
         // Suppress the specific sandbox warning
         if (message.includes('allow-scripts') && message.includes('allow-same-origin') && message.includes('sandbox')) {
           return;

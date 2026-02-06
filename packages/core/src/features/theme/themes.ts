@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Theme color definitions following shadcn/ui CSS variable structure
  * Each theme has light and dark mode variants

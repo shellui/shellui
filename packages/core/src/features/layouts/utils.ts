@@ -5,7 +5,7 @@ export function resolveLocalizedString(
   value: LocalizedString | undefined,
   lang: string
 ): string {
-  if (value == null) return '';
+  if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
 }

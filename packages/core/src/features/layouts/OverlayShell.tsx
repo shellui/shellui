@@ -1,5 +1,4 @@
-import type { ReactNode } from 'react';
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -92,7 +91,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                   url={modalUrl}
                   pathPrefix="settings"
                   ignoreMessages={true}
-                  navItem={navigationItems.find((item) => item.url === modalUrl)!}
+                  navItem={navigationItems.find((item) => item.url === modalUrl) as NavigationItem}
                 />
               </div>
             </>
@@ -123,7 +122,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                 url={drawerUrl}
                 pathPrefix="settings"
                 ignoreMessages={true}
-                navItem={navigationItems.find((item) => item.url === drawerUrl)!}
+                navItem={navigationItems.find((item) => item.url === drawerUrl) as NavigationItem}
               />
             </div>
           ) : (

@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { ConfigContext, ConfigContextValue } from './ConfigProvider';
+import { ConfigContext, type ConfigContextValue } from './ConfigProvider';
 
 /**
  * Hook to access ShellUI configuration from ConfigProvider context.

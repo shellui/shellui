@@ -22,7 +22,7 @@ const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
             const isFirst = index === 0
             const isLast = index === React.Children.count(children) - 1
             
-            return React.cloneElement(child as React.ReactElement<any>, {
+            return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
               className: cn(
                 // Remove rounded corners from all buttons
                 "rounded-none",

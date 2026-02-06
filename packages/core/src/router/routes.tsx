@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
-import type { RouteObject } from 'react-router';
-import { Outlet } from 'react-router';
+import { Outlet, type RouteObject } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
 import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
 import { AppLayout } from '../features/layouts/AppLayout';
@@ -83,7 +82,7 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   if (config.navigation && config.navigation.length > 0) {
     const navigationItems = flattenNavigationItems(config.navigation);
     navigationItems.forEach((item) => {
-      layoutRoute.children!.push({
+      (layoutRoute.children as RouteObject[]).push({
         path: `/${item.path}/*`,
         element: (
           <Suspense fallback={<RouteFallback />}>
@@ -93,7 +92,7 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
       });
     });
   }
-  routes[0].children!.push(layoutRoute);
+  (routes[0].children as RouteObject[]).push(layoutRoute);
 
   return routes;
 };

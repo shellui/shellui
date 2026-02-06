@@ -109,6 +109,7 @@ module.exports = [
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/consistent-type-imports': ['warn', {
         prefer: 'type-imports',
+        fixStyle: 'inline-type-imports',
         disallowTypeAnnotations: false,
       }],
       '@typescript-eslint/no-empty-interface': 'warn',

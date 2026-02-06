@@ -26,7 +26,7 @@ if (isBuild) {
       stdio: ['ignore', 'pipe', 'ignore']
     }).trim();
     version = `${packageJson.version}-${gitHash}`;
-  } catch (error) {
+  } catch (_error) {
     // Fallback: if git is not available, just use version without build ID
     version = packageJson.version;
   }

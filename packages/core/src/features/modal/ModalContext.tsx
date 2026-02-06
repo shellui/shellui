@@ -1,5 +1,5 @@
-import { shellui, ShellUIMessage } from '@shellui/sdk';
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { shellui, type ShellUIMessage } from '@shellui/sdk';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 
 /**
  * Validates and normalizes a URL to ensure it's from the same domain or localhost
@@ -41,6 +41,7 @@ export const validateAndNormalizeUrl = (url: string | undefined | null): string 
     // Reject protocol-relative URLs (//example.com) for security
     return null;
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Invalid URL:', url, error);
     return null;
   }

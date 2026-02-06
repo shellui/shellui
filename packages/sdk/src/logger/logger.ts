@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger utility with namespace support
  * Reads logging configuration from localStorage settings

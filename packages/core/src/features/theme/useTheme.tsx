@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect } from 'react';
+/* eslint-disable no-console */
+import { useLayoutEffect } from 'react';
 import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
 import { getTheme, registerTheme, applyTheme, type ThemeDefinition } from './themes';
@@ -8,7 +9,7 @@ const STORAGE_KEY = 'shellui:settings';
 /**
  * Get initial theme from localStorage to prevent FOUC
  */
-function getInitialTheme(): 'light' | 'dark' | 'system' {
+function _getInitialTheme(): 'light' | 'dark' | 'system' {
   if (typeof window === 'undefined') {
     return 'system';
   }
@@ -19,7 +20,7 @@ function getInitialTheme(): 'light' | 'dark' | 'system' {
       const parsed = JSON.parse(stored);
       return parsed.appearance?.theme || 'system';
     }
-  } catch (error) {
+  } catch (_error) {
     // Ignore errors
   }
 
@@ -29,7 +30,7 @@ function getInitialTheme(): 'light' | 'dark' | 'system' {
 /**
  * Get initial theme name from localStorage to prevent FOUC
  */
-function getInitialThemeName(): string {
+function _getInitialThemeName(): string {
   if (typeof window === 'undefined') {
     return 'default';
   }
@@ -40,7 +41,7 @@ function getInitialThemeName(): string {
       const parsed = JSON.parse(stored);
       return parsed.appearance?.themeName || 'default';
     }
-  } catch (error) {
+  } catch (_error) {
     // Ignore errors
   }
 

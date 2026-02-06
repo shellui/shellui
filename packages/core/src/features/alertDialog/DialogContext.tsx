@@ -1,5 +1,5 @@
-import { shellui, ShellUIMessage, DialogOptions, DialogPosition } from '@shellui/sdk';
-import { createContext, useContext, useCallback, ReactNode, useEffect, useRef, useState } from 'react';
+import { shellui, type ShellUIMessage, type DialogOptions } from '@shellui/sdk';
+import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Z_INDEX } from '@/lib/z-index';
 

@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
-import { shellui } from "@shellui/sdk"
-import type { OpenDrawerOptions } from "@shellui/sdk"
+import { shellui, type OpenDrawerOptions } from "@shellui/sdk"
 import urls from "@/constants/urls"
 
 export const DrawerTestButtons = () => {

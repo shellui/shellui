@@ -117,12 +117,14 @@ export class CallbackRegistry {
   clear(id: string): boolean {
     const existed = this.callbacks.has(id);
     if (existed) {
-      const callbacks = this.callbacks.get(id)!;
+      const callbacks = this.callbacks.get(id);
       this.callbacks.delete(id);
-      logger.debug(`Cleared callbacks for ID ${id}`, {
-        createdAt: callbacks.createdAt,
-        age: Date.now() - callbacks.createdAt.getTime(),
-      });
+      if (callbacks) {
+        logger.debug(`Cleared callbacks for ID ${id}`, {
+          createdAt: callbacks.createdAt,
+          age: Date.now() - callbacks.createdAt.getTime(),
+        });
+      }
     } else {
       logger.warn(`No callbacks found to clear for ID ${id}`);
     }

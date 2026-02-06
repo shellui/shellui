@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { Workbox } from 'workbox-window';
 import { shellui, getLogger } from '@shellui/sdk';
 
@@ -20,7 +21,7 @@ let registrationStartTime = typeof window !== 'undefined' ? Date.now() : 0; // T
 const REGISTRATION_GRACE_PERIOD = 5000; // Don't auto-disable within 5 seconds of page load/registration start
 
 // Store event handler references so we can remove them if needed
-type EventHandler = (event?: any) => void;
+type EventHandler = (event?: unknown) => void;
 let waitingHandler: EventHandler | null = null;
 let activatedHandler: EventHandler | null = null;
 let controllingHandler: EventHandler | null = null;
@@ -58,7 +59,7 @@ export function isTauri(): boolean {
 
 // Cache for service worker file existence check to avoid duplicate fetches
 let swFileExistsCache: Promise<boolean> | null = null;
-let swFileExistsCacheTime: number = 0;
+let swFileExistsCacheTime = 0;
 const SW_FILE_EXISTS_CACHE_TTL = 5000; // Cache for 5 seconds
 
 // Notify all listeners of status changes
@@ -473,9 +474,9 @@ export async function registerServiceWorker(
             } else {
               logger.warn('Install Now clicked but no waiting service worker found');
               // Try to get it from registration as fallback
-              navigator.serviceWorker.getRegistration().then(registration => {
-                if (registration?.waiting) {
-                  waitingServiceWorker = registration.waiting;
+              navigator.serviceWorker.getRegistration().then(swRegistration => {
+                if (swRegistration?.waiting) {
+                  waitingServiceWorker = swRegistration.waiting;
                   updateServiceWorker().catch(error => {
                     logger.error('Failed to update service worker:', error);
                   });
@@ -512,7 +513,7 @@ export async function registerServiceWorker(
     wb.addEventListener('waiting', waitingHandler);
 
     // Handle service worker activated
-    activatedHandler = (event: any) => {
+    activatedHandler = (event: Record<string, unknown>) => {
       console.info('[Service Worker] Service worker activated:', { isUpdate: event.isUpdate, isInitialRegistration });
       notifyStatusListeners();
       // Reset flags when service worker is activated (update installed or new registration)
@@ -596,7 +597,7 @@ export async function registerServiceWorker(
     // During intentional updates (user clicked "Install Now"), this is EXPECTED behavior
     // We MUST check for intentional updates BEFORE disabling, otherwise we'll disable the
     // service worker right after the user explicitly asked to install an update!
-    redundantHandler = (event: any) => {
+    redundantHandler = (event: unknown) => {
       logger.info('Service worker became redundant:', event);
       
       // CRITICAL CHECK: Verify this is an intentional update BEFORE doing anything
@@ -659,7 +660,7 @@ export async function registerServiceWorker(
 
     // Handle external service worker errors
     // Only disable caching on critical errors, not during normal update operations
-    serviceWorkerErrorHandler = (event: any) => {
+    serviceWorkerErrorHandler = (event: unknown) => {
       logger.error('Service worker error event:', event);
       
       // Check if this is an intentional update (check both in-memory flag and sessionStorage)
@@ -697,7 +698,7 @@ export async function registerServiceWorker(
     navigator.serviceWorker.addEventListener('error', serviceWorkerErrorHandler);
 
     // Handle message errors from service worker
-    messageErrorHandler = (event: any) => {
+    messageErrorHandler = (event: unknown) => {
       logger.error('Service worker message error:', event);
       // Don't disable on message errors - they're usually not critical
     };
@@ -717,7 +718,7 @@ export async function registerServiceWorker(
         try {
           // Access the registration's update method to ensure cache-busting
           // The browser will check the service worker file with cache: 'reload' when update() is called
-        } catch (e) {
+        } catch (_e) {
           // Ignore if updateViaCache can't be set (some browsers don't support it)
         }
         
@@ -763,7 +764,7 @@ export async function registerServiceWorker(
 
       // Check for updates periodically (including service worker file changes)
       // This ensures changes to sw.js/sw-dev.js are detected
-      const updateInterval = setInterval(() => {
+      const _updateInterval = setInterval(() => {
         if (wb && options.enabled) {
           // wb.update() checks for updates to the service worker file itself
           // The browser will compare the byte-by-byte content of sw.js/sw-dev.js
@@ -792,7 +793,7 @@ export async function registerServiceWorker(
     } catch (error) {
       // Handle registration errors - be very selective about disabling
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorName = error instanceof Error && 'name' in error ? (error as any).name : '';
+      const errorName = error instanceof Error ? error.name : '';
       logger.error('Registration failed:', error);
       
       // CRITICAL: Only disable on truly critical errors that indicate the service worker is broken
@@ -898,15 +899,15 @@ export async function updateServiceWorker(): Promise<void> {
     };
     
     // Add one-time listener for controlling event
-    const controllingHandler = () => {
+    const updateControllingHandler = () => {
       reloadApp();
-      wb?.removeEventListener('controlling', controllingHandler);
+      wb?.removeEventListener('controlling', updateControllingHandler);
       // Reset flag after reload is triggered
       setTimeout(() => {
         isIntentionalUpdate = false;
       }, 1000);
     };
-    wb.addEventListener('controlling', controllingHandler);
+    wb.addEventListener('controlling', updateControllingHandler);
     
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
@@ -1033,7 +1034,7 @@ export async function isServiceWorkerRegistered(): Promise<boolean> {
     }
     
     return false;
-  } catch (error) {
+  } catch (_error) {
     // Silently return false if there's an error checking registration
     return false;
   }

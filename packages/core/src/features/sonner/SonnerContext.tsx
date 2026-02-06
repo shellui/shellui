@@ -1,5 +1,5 @@
-import { shellui, ShellUIMessage } from '@shellui/sdk';
-import { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
+import { shellui, type ShellUIMessage } from '@shellui/sdk';
+import { createContext, useContext, useCallback, useEffect, type ReactNode } from 'react';
 import { toast as sonnerToast } from 'sonner';
 
 interface ToastOptions {

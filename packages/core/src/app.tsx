@@ -40,6 +40,7 @@ const AppContent = () => {
     // This helps prevent issues in development or misconfigured apps
     if (!config?.navigation || config.navigation.length === 0) {
       if (serviceWorkerEnabled) {
+        // eslint-disable-next-line no-console
         console.warn('[Service Worker] Disabled: No navigation items configured');
         unregisterServiceWorker();
       }
@@ -121,11 +122,12 @@ export default App;
 
 // Store root instance to handle HMR properly
 // Use window to persist across HMR reloads
-const container = document.getElementById('root')!;
-const root = (window as any).__shellui_root__ || ReactDOM.createRoot(container);
+const container = document.getElementById('root')!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
+const windowRecord = window as unknown as Record<string, unknown>;
+const root = (windowRecord.__shellui_root__ as ReturnType<typeof ReactDOM.createRoot>) || ReactDOM.createRoot(container);
 
-if (!(window as any).__shellui_root__) {
-  (window as any).__shellui_root__ = root;
+if (!windowRecord.__shellui_root__) {
+  windowRecord.__shellui_root__ = root;
 }
 
 root.render(

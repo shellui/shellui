@@ -1,5 +1,5 @@
 import { useContext, createContext } from "react"
-import { Settings } from "@shellui/sdk"
+import type { Settings } from "@shellui/sdk"
 
 interface SettingsContextValue {
   settings: Settings

@@ -124,7 +124,7 @@ const getBrowserTimezone = (): string => {
 };
 
 // Get human-readable timezone name
-const getTimezoneDisplayName = (timezone: string, lang: string = 'en'): string => {
+const getTimezoneDisplayName = (timezone: string, lang = 'en'): string => {
   try {
     // Try to get a friendly name from Intl
     const formatter = new Intl.DateTimeFormat(lang, {
