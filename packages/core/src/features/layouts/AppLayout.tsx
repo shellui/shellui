@@ -1,5 +1,4 @@
-import { lazy, Suspense } from 'react';
-import type { LazyExoticComponent, ComponentType } from 'react';
+import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 

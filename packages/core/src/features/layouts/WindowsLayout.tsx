@@ -1,5 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
