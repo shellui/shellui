@@ -1,5 +1,7 @@
 import path from 'path';
-import { resolvePackagePath } from './index.js';
+import tailwindcssPlugin from '@tailwindcss/postcss';
+import autoprefixerPlugin from 'autoprefixer';
+import { resolvePackagePath, resolveSdkEntry } from './index.js';
 
 /**
  * Get the path to the core package source directory
@@ -8,6 +10,41 @@ import { resolvePackagePath } from './index.js';
 export function getCoreSrcPath() {
   const corePackagePath = resolvePackagePath('@shellui/core');
   return path.join(corePackagePath, 'src');
+}
+
+/**
+ * Create Vite resolve.alias configuration.
+ * Always sets '@' to core/src. Sets '@shellui/sdk' to source entry when in
+ * workspace mode; omits the alias when installed from npm so Vite resolves
+ * through the package's exports field (dist/index.js).
+ * @returns {Object} Vite resolve.alias object
+ */
+export function createResolveAlias() {
+  const corePackagePath = resolvePackagePath('@shellui/core');
+  const sdkEntry = resolveSdkEntry();
+
+  const alias = {
+    '@': path.join(corePackagePath, 'src'),
+  };
+
+  if (sdkEntry) {
+    alias['@shellui/sdk'] = sdkEntry;
+  }
+
+  return alias;
+}
+
+/**
+ * Create PostCSS configuration for Vite.
+ * Provides Tailwind CSS v4 and autoprefixer plugins programmatically so the
+ * CLI owns all CSS build dependencies — core doesn't need to ship postcss.config
+ * or have CSS tooling in its own dependencies.
+ * @returns {Object} PostCSS configuration for Vite's css.postcss option
+ */
+export function createPostCSSConfig() {
+  return {
+    plugins: [tailwindcssPlugin(), autoprefixerPlugin()],
+  };
 }
 
 /**

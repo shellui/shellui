@@ -2,30 +2,38 @@
   "name": "@shellui/core",
   "version": "0.0.4",
   "description": "ShellUI Core - Core React application runtime",
-  "main": "src/app.tsx",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/app.tsx"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./types": {
-      "types": "./src/features/config/types.ts",
-      "default": "./src/features/config/types.ts"
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
     },
     "./constants/urls": {
-      "types": "./src/constants/urls.ts",
-      "default": "./src/constants/urls.ts"
-    }
+      "types": "./dist/constants/urls.d.ts",
+      "import": "./dist/constants/urls.js",
+      "default": "./dist/constants/urls.js"
+    },
+    "./style.css": "./dist/style.css"
   },
   "files": [
+    "dist",
     "src",
+    "postcss.config.js",
+    "tailwind.config.js",
     "README.md",
     "package.json"
   ],
   "scripts": {
-    "build": "echo 'Core build complete'",
+    "build": "vite build",
+    "clean": "rm -rf dist",
     "test": "echo \"No tests specified for @shellui/core\""
   },
   "keywords": [
@@ -74,8 +82,12 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.0.0",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.0"
   }
 }

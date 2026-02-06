@@ -28,7 +28,9 @@
   "license": "MIT",
   "dependencies": {
     "@shellui/core": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
     "@vitejs/plugin-react": "^5.1.2",
+    "autoprefixer": "^10.4.23",
     "cac": "^6.7.14",
     "picocolors": "^1.1.1",
     "tsx": "^4.21.0",

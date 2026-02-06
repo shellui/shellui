@@ -6,6 +6,8 @@ import pc from 'picocolors';
 import {
   loadConfig,
   getCoreSrcPath,
+  createResolveAlias,
+  createPostCSSConfig,
   createViteDefine,
   resolvePackagePath,
 } from '../utils/index.js';
@@ -29,7 +31,6 @@ async function startServer(root, cwd, shouldOpen = false) {
 
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
-  const sdkPackagePath = resolvePackagePath('@shellui/sdk');
   const coreSrcPath = getCoreSrcPath();
 
   // Check if static folder exists in project root
@@ -38,13 +39,13 @@ async function startServer(root, cwd, shouldOpen = false) {
 
   const server = await createServer({
     root: coreSrcPath,
-    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackagePath)],
+    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath)],
     define: createViteDefine(config),
     resolve: {
-      alias: {
-        '@': path.join(corePackagePath, 'src'),
-        '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
-      },
+      alias: createResolveAlias(),
+    },
+    css: {
+      postcss: createPostCSSConfig(),
     },
     publicDir: publicDir || false,
     // Disable source maps in dev mode to avoid errors from missing source map files
@@ -56,6 +57,7 @@ async function startServer(root, cwd, shouldOpen = false) {
       port: config.port || 3000,
       open: shouldOpen,
       fs: {
+        // Allow serving files from core package, SDK package, and user's project
         allow: [corePackagePath, cwd],
       },
     },

@@ -1,8 +1,13 @@
 /**
  * ShellUI Core - Main entry point
- * Exports types and utilities for use in config files and other packages
+ * Exports the App component, types, and utilities for use in config files and other packages.
+ *
+ * CSS is imported as a side effect and extracted to dist/style.css during the library build.
+ * Consumers must import '@shellui/core/style.css' (or include it in their build) for styles to apply.
  */
+import './index.css';
 
+export { default as App } from './app.js';
 export type {
   ShellUIConfig,
   NavigationItem,

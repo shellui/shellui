@@ -7,6 +7,8 @@ import { injectManifest } from 'workbox-build';
 import {
   loadConfig,
   getCoreSrcPath,
+  createResolveAlias,
+  createPostCSSConfig,
   createViteDefine,
   resolvePackagePath,
 } from '../utils/index.js';
@@ -73,8 +75,9 @@ export async function buildCommand(root = '.') {
 
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
-  const sdkPackagePath = resolvePackagePath('@shellui/sdk');
   const coreSrcPath = getCoreSrcPath();
+  const resolveAlias = createResolveAlias();
+  const postcssConfig = createPostCSSConfig();
 
   try {
     // Build main app
@@ -83,10 +86,10 @@ export async function buildCommand(root = '.') {
       plugins: [react()],
       define: createViteDefine(config),
       resolve: {
-        alias: {
-          '@': path.join(corePackagePath, 'src'),
-          '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
-        },
+        alias: resolveAlias,
+      },
+      css: {
+        postcss: postcssConfig,
       },
       build: {
         outDir: path.resolve(cwd, 'dist'),
@@ -121,10 +124,7 @@ export async function buildCommand(root = '.') {
       root: coreSrcPath,
       define: createViteDefine(config),
       resolve: {
-        alias: {
-          '@': path.join(corePackagePath, 'src'),
-          '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
-        },
+        alias: resolveAlias,
       },
       build: {
         outDir: distPath,

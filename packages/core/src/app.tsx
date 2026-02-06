@@ -1,5 +1,4 @@
-import { useMemo, useLayoutEffect, useState, useEffect, StrictMode } from 'react';
-import ReactDOM from 'react-dom/client';
+import { useMemo, useLayoutEffect, useState, useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
@@ -118,21 +117,3 @@ const App = () => {
 };
 
 export default App;
-
-// Store root instance to handle HMR properly
-// Use window to persist across HMR reloads
-const container = document.getElementById('root')!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
-const windowRecord = window as unknown as Record<string, unknown>;
-const root =
-  (windowRecord.__shellui_root__ as ReturnType<typeof ReactDOM.createRoot>) ||
-  ReactDOM.createRoot(container);
-
-if (!windowRecord.__shellui_root__) {
-  windowRecord.__shellui_root__ = root;
-}
-
-root.render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);

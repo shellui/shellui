@@ -1,7 +1,7 @@
 import { useContext, createContext } from 'react';
 import type { Settings } from '@shellui/sdk';
 
-interface SettingsContextValue {
+export interface SettingsContextValue {
   settings: Settings;
   updateSettings: (updates: Partial<Settings>) => void;
   updateSetting: <K extends keyof Settings>(key: K, updates: Partial<Settings[K]>) => void;

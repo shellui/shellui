@@ -5,6 +5,11 @@
  * Import from './utils/index.js' to get all utilities.
  */
 
-export { resolvePackagePath } from './package-path.js';
+export { resolvePackagePath, resolveSdkEntry } from './package-path.js';
 export { loadConfig } from './config.js';
-export { getCoreSrcPath, createViteDefine } from './vite.js';
+export {
+  getCoreSrcPath,
+  createResolveAlias,
+  createPostCSSConfig,
+  createViteDefine,
+} from './vite.js';

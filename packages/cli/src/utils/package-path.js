@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 
@@ -6,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 /**
- * Resolve the path to a package in the monorepo
+ * Resolve the path to a package in the monorepo or node_modules
  * @param {string} packageName - The name of the package
  * @returns {string} The absolute path to the package
  */
@@ -21,4 +22,25 @@ export function resolvePackagePath(packageName) {
     const packagesDir = path.resolve(__dirname, '../../../');
     return path.join(packagesDir, packageName.replace('@shellui/', ''));
   }
+}
+
+/**
+ * Resolve the @shellui/sdk entry point for Vite alias.
+ * In workspace/monorepo mode, returns the source path (src/index.ts) so Vite
+ * can process TypeScript directly without a pre-build step.
+ * When installed from npm (no source), returns null so Vite uses normal
+ * node_modules resolution (dist/index.js via package exports).
+ * @returns {string|null} Absolute path to SDK source entry, or null to use normal resolution
+ */
+export function resolveSdkEntry() {
+  const sdkPackagePath = resolvePackagePath('@shellui/sdk');
+  const srcEntry = path.join(sdkPackagePath, 'src', 'index.ts');
+
+  // In workspace mode, source is available — alias to it for a no-build dev flow
+  if (fs.existsSync(srcEntry)) {
+    return srcEntry;
+  }
+
+  // When installed from npm only dist/ exists — let Vite resolve through package exports
+  return null;
 }

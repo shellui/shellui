@@ -2,11 +2,12 @@ import { build } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
+import { createResolveAlias } from './vite.js';
 
 /**
  * Vite plugin to build and serve service worker in dev mode
  */
-export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackagePath) {
+export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath) {
   let swCode = null;
   let isBuilding = false;
   let buildError = null;
@@ -33,10 +34,7 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
         root: coreSrcPath,
         plugins: [react()],
         resolve: {
-          alias: {
-            '@': path.join(corePackagePath, 'src'),
-            '@shellui/sdk': path.join(sdkPackagePath, 'src/index.ts'),
-          },
+          alias: createResolveAlias(),
         },
         build: {
           write: false,
