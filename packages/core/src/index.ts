@@ -2,8 +2,8 @@
  * ShellUI Core - Main entry point
  * Exports the App component, types, and utilities for use in config files and other packages.
  *
- * CSS is imported as a side effect and extracted to dist/style.css during the library build.
- * Consumers must import '@shellui/core/style.css' (or include it in their build) for styles to apply.
+ * CSS is imported as a side effect. When using ShellUI, run 'shellui build' to build your application.
+ * The CLI will handle all CSS processing and bundling.
  */
 import './index.css';
 

@@ -1,6 +1,6 @@
 {
   "name": "shellui-monorepo",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "private": true,
   "description": "ShellUI monorepo - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
@@ -8,9 +8,8 @@
     "build": "node packages/cli/bin/shellui.js build",
     "build:packages": "pnpm -r run build",
     "build:cli": "pnpm --filter @shellui/cli run build",
-    "build:core": "pnpm --filter @shellui/core run build",
     "build:sdk": "pnpm --filter @shellui/sdk run build",
-    "build:all": "pnpm run build:cli && pnpm run build:core && pnpm run build:sdk",
+    "build:all": "pnpm run build:cli && pnpm run build:sdk",
     "serve": "node packages/cli/bin/shellui.js start",
     "start": "node packages/cli/bin/shellui.js start",
     "test": "pnpm -r run test --if-present",
