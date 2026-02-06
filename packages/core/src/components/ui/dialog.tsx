@@ -44,11 +44,7 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
 
     const handlePointerDownOutside = useCallback(
       (
-        event: ComponentProps<typeof DialogPrimitive.Content>['onPointerDownOutside'] extends (
-          e: infer E,
-        ) => void
-          ? E
-          : never,
+        event: Parameters<NonNullable<ComponentProps<typeof DialogPrimitive.Content>['onPointerDownOutside']>>[0],
       ) => {
         const target = event?.target as Element | null;
         if (target?.closest?.('[data-sonner-toaster]')) {

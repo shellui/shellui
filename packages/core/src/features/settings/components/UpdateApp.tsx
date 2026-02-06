@@ -79,7 +79,7 @@ export const UpdateApp = () => {
     } catch (error) {
       // Error occurred during update check - show error message in button
       setCheckError(true);
-      logger.error('Failed to check for service worker update:', error);
+      logger.error('Failed to check for service worker update:', { error });
     } finally {
       setChecking(false);
     }

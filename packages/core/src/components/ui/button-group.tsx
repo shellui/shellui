@@ -37,7 +37,7 @@ const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
                 isLast && 'rounded-r-md',
                 // Remove left border from all except first, using theme border color
                 !isFirst && 'border-l-0 -ml-px',
-                child.props.className,
+                (child as ReactElement<{ className?: string }>).props.className,
               ),
             });
           }

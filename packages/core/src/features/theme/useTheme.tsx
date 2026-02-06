@@ -4,50 +4,6 @@ import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
 import { getTheme, registerTheme, applyTheme, type ThemeDefinition } from './themes';
 
-const STORAGE_KEY = 'shellui:settings';
-
-/**
- * Get initial theme from localStorage to prevent FOUC
- */
-function _getInitialTheme(): 'light' | 'dark' | 'system' {
-  if (typeof window === 'undefined') {
-    return 'system';
-  }
-
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.appearance?.theme || 'system';
-    }
-  } catch (_error) {
-    // Ignore errors
-  }
-
-  return 'system';
-}
-
-/**
- * Get initial theme name from localStorage to prevent FOUC
- */
-function _getInitialThemeName(): string {
-  if (typeof window === 'undefined') {
-    return 'default';
-  }
-
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return parsed.appearance?.themeName || 'default';
-    }
-  } catch (_error) {
-    // Ignore errors
-  }
-
-  return 'default';
-}
-
 /**
  * Apply theme to document element
  */

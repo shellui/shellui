@@ -185,7 +185,7 @@ export const ContentView = ({
         iframeDoc.head.appendChild(script);
       } catch (error) {
         // Cross-origin or other errors - ignore (this is expected for some iframes)
-        logger.debug('Could not inject stylesheet wait script:', error);
+        logger.debug('Could not inject stylesheet wait script:', { error });
       }
     };
 

@@ -170,7 +170,7 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
       }
     }
   } catch (error) {
-    logger.error('Failed to disable caching automatically:', error);
+    logger.error('Failed to disable caching automatically:', { error });
   }
 }
 
@@ -358,7 +358,7 @@ export async function registerServiceWorker(
             '[Service Worker] Sent SKIP_WAITING to waiting service worker - will reload when it takes control',
           );
         } catch (error) {
-          logger.error('Failed to activate waiting service worker:', error);
+          logger.error('Failed to activate waiting service worker:', { error });
           // Clear the flag on error
           if (typeof window !== 'undefined') {
             sessionStorage.removeItem('shellui:service-worker:auto-activated');
@@ -406,7 +406,8 @@ export async function registerServiceWorker(
           controllingHandler = null;
         }
         if (registeredHandler) {
-          wb.removeEventListener('registered', registeredHandler);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (wb as any).removeEventListener('registered', registeredHandler);
           registeredHandler = null;
         }
         if (redundantHandler) {
@@ -500,7 +501,7 @@ export async function registerServiceWorker(
                 // This ensures it works even if the toast was created earlier and then updated
                 if (waitingServiceWorker) {
                   updateServiceWorker().catch((error) => {
-                    logger.error('Failed to update service worker:', error);
+                    logger.error('Failed to update service worker:', { error });
                   });
                 } else {
                   logger.warn('Install Now clicked but no waiting service worker found');
@@ -509,7 +510,7 @@ export async function registerServiceWorker(
                     if (swRegistration?.waiting) {
                       waitingServiceWorker = swRegistration.waiting;
                       updateServiceWorker().catch((error) => {
-                        logger.error('Failed to update service worker:', error);
+                        logger.error('Failed to update service worker:', { error });
                       });
                     }
                   });
@@ -544,9 +545,10 @@ export async function registerServiceWorker(
         wb.addEventListener('waiting', waitingHandler);
 
         // Handle service worker activated
-        activatedHandler = (event: Record<string, unknown>) => {
+        activatedHandler = (event?: unknown) => {
+          const evt = (event ?? {}) as Record<string, unknown>;
           console.info('[Service Worker] Service worker activated:', {
-            isUpdate: event.isUpdate,
+            isUpdate: evt.isUpdate,
             isInitialRegistration,
           });
           notifyStatusListeners();
@@ -570,11 +572,11 @@ export async function registerServiceWorker(
           // CRITICAL: Only reload if this is an intentional update (user clicked "Install Now")
           // Do NOT reload automatically when a new service worker is installed - wait for user action
           // Exception: If we auto-activated on page load, the new version is already active, no reload needed
-          if (event.isUpdate && !isInitialRegistration && shouldReload) {
+          if (evt.isUpdate && !isInitialRegistration && shouldReload) {
             // User explicitly clicked "Install Now", so reload to use the new version
             console.info('[Service Worker] Reloading page after intentional update');
             window.location.reload();
-          } else if (event.isUpdate && !isInitialRegistration && !shouldReload) {
+          } else if (evt.isUpdate && !isInitialRegistration && !shouldReload) {
             // Auto-activated on page load - new version is now active, UI will update via notifyStatusListeners
             console.info(
               '[Service Worker] Service worker auto-activated on page load - new version is now active',
@@ -583,7 +585,7 @@ export async function registerServiceWorker(
           // Reset flag after activation
           isInitialRegistration = false;
         };
-        wb.addEventListener('activated', activatedHandler);
+        wb.addEventListener('activated', activatedHandler as (event: unknown) => void);
 
         // Handle service worker controlling
         controllingHandler = () => {
@@ -633,7 +635,8 @@ export async function registerServiceWorker(
         registeredHandler = () => {
           notifyStatusListeners();
         };
-        wb.addEventListener('registered', registeredHandler);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (wb as any).addEventListener('registered', registeredHandler);
 
         // CRITICAL: Handle service worker 'redundant' event
         // This event fires when a service worker is replaced, which is NORMAL during updates
@@ -641,8 +644,8 @@ export async function registerServiceWorker(
         // During intentional updates (user clicked "Install Now"), this is EXPECTED behavior
         // We MUST check for intentional updates BEFORE disabling, otherwise we'll disable the
         // service worker right after the user explicitly asked to install an update!
-        redundantHandler = (event: unknown) => {
-          logger.info('Service worker became redundant:', event);
+        redundantHandler = (event?: unknown) => {
+          logger.info('Service worker became redundant:', event as Record<string, unknown>);
 
           // CRITICAL CHECK: Verify this is an intentional update BEFORE doing anything
           // Check sessionStorage FIRST (survives page reloads) - this is set BEFORE skip waiting
@@ -729,8 +732,8 @@ export async function registerServiceWorker(
 
         // Handle external service worker errors
         // Only disable caching on critical errors, not during normal update operations
-        serviceWorkerErrorHandler = (event: unknown) => {
-          logger.error('Service worker error event:', event);
+        serviceWorkerErrorHandler = (event?: unknown) => {
+          logger.error('Service worker error event:', event as Record<string, unknown>);
 
           // Check if this is an intentional update (check both in-memory flag and sessionStorage)
           const isIntentionalUpdatePersisted =
@@ -742,8 +745,10 @@ export async function registerServiceWorker(
           // Many service worker errors are non-fatal and don't require disabling
           if (!isUpdateFlow) {
             // Only disable on actual errors, not warnings or non-critical issues
-            const errorMessage = event.message || event.error?.message || 'Unknown error';
-            const errorName = event.error?.name || '';
+            const evt = (event ?? {}) as Record<string, unknown>;
+            const evtError = evt.error as Record<string, unknown> | undefined;
+            const errorMessage = (evt.message as string) || (evtError?.message as string) || 'Unknown error';
+            const errorName = (evtError?.name as string) || '';
 
             // CRITICAL: Only disable on critical errors, ignore common non-fatal errors
             // Many errors during service worker lifecycle are expected and don't require disabling
@@ -771,8 +776,8 @@ export async function registerServiceWorker(
         navigator.serviceWorker.addEventListener('error', serviceWorkerErrorHandler);
 
         // Handle message errors from service worker
-        messageErrorHandler = (event: unknown) => {
-          logger.error('Service worker message error:', event);
+        messageErrorHandler = (event?: unknown) => {
+          logger.error('Service worker message error:', event as Record<string, unknown>);
           // Don't disable on message errors - they're usually not critical
         };
         navigator.serviceWorker.addEventListener('messageerror', messageErrorHandler);
@@ -837,7 +842,7 @@ export async function registerServiceWorker(
 
       // Check for updates periodically (including service worker file changes)
       // This ensures changes to sw.js/sw-dev.js are detected
-      const _updateInterval = setInterval(
+      /* const _updateInterval = */ setInterval(
         () => {
           if (wb && options.enabled) {
             // wb.update() checks for updates to the service worker file itself
@@ -870,7 +875,7 @@ export async function registerServiceWorker(
       // Handle registration errors - be very selective about disabling
       const errorMessage = error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error ? error.name : '';
-      logger.error('Registration failed:', error);
+      logger.error('Registration failed:', { error });
 
       // CRITICAL: Only disable on truly critical errors that indicate the service worker is broken
       // Many registration errors are transient or non-fatal
@@ -958,7 +963,7 @@ export async function updateServiceWorker(): Promise<void> {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultSettings));
         }
       } catch (error) {
-        logger.warn('Failed to preserve settings before update:', error);
+        logger.warn('Failed to preserve settings before update:', { error });
         // CRITICAL: Even if settings update fails, the intentional update flag is already set
         // This prevents the redundant handler from disabling the service worker
         // The app.tsx will default to enabled anyway, so continue with the update
@@ -996,7 +1001,7 @@ export async function updateServiceWorker(): Promise<void> {
 
     // Fallback: if controlling event doesn't fire within 2 seconds, reload anyway
     setTimeout(() => {
-      wb?.removeEventListener('controlling', controllingHandler);
+      if (controllingHandler) wb?.removeEventListener('controlling', controllingHandler);
       // Check if service worker is now controlling
       if (navigator.serviceWorker.controller) {
         reloadApp();
@@ -1007,7 +1012,7 @@ export async function updateServiceWorker(): Promise<void> {
       }, 1000);
     }, 2000);
   } catch (error) {
-    logger.error('Failed to update service worker:', error);
+    logger.error('Failed to update service worker:', { error });
     // Reset flag on error
     isIntentionalUpdate = false;
   }
@@ -1042,7 +1047,8 @@ export async function unregisterServiceWorker(): Promise<void> {
       if (waitingHandler) wb.removeEventListener('waiting', waitingHandler);
       if (activatedHandler) wb.removeEventListener('activated', activatedHandler);
       if (controllingHandler) wb.removeEventListener('controlling', controllingHandler);
-      if (registeredHandler) wb.removeEventListener('registered', registeredHandler);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (registeredHandler) (wb as any).removeEventListener('registered', registeredHandler);
       if (redundantHandler) wb.removeEventListener('redundant', redundantHandler);
       if (serviceWorkerErrorHandler) {
         navigator.serviceWorker.removeEventListener('error', serviceWorkerErrorHandler);
@@ -1070,7 +1076,7 @@ export async function unregisterServiceWorker(): Promise<void> {
     isIntentionalUpdate = false; // Reset intentional update flag on unregister
     notifyStatusListeners();
   } catch (error) {
-    logger.error('Failed to unregister service worker:', error);
+    logger.error('Failed to unregister service worker:', { error });
     isInitialRegistration = false;
   }
 }
@@ -1151,7 +1157,7 @@ export async function getServiceWorkerStatus(): Promise<{
         waitingServiceWorker = null;
       }
     } catch (error) {
-      logger.error('Failed to check service worker registration:', error);
+      logger.error('Failed to check service worker registration:', { error });
       // Fall back to in-memory flag if check fails
       actuallyUpdateAvailable = updateAvailable;
     }

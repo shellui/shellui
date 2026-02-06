@@ -40,7 +40,8 @@ export function AppLayout({
   const { settings } = useSettings();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 
-  let LayoutComponent: LazyExoticComponent<ComponentType<Record<string, unknown>>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let LayoutComponent: LazyExoticComponent<ComponentType<any>>;
   let layoutProps: Record<string, unknown>;
 
   if (effectiveLayout === 'fullscreen') {

@@ -36,7 +36,7 @@ const DrawerTrigger = VaulDrawer.Trigger;
 DrawerTrigger.displayName = 'DrawerTrigger';
 
 const DrawerPortal = VaulDrawer.Portal;
-DrawerPortal.displayName = 'DrawerPortal';
+(DrawerPortal as unknown as { displayName: string }).displayName = 'DrawerPortal';
 
 const DrawerOverlay = forwardRef<
   ComponentRef<typeof VaulDrawer.Overlay>,
