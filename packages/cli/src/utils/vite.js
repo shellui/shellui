@@ -12,24 +12,24 @@ import { resolvePackagePath, resolveSdkEntry } from './index.js';
 export function getCoreSrcPath() {
   const corePackagePath = resolvePackagePath('@shellui/core');
   const srcPath = path.join(corePackagePath, 'src');
-  
+
   // Verify src directory exists (should always exist since it's in package.json files)
   if (!fs.existsSync(srcPath)) {
     throw new Error(
       `Core package src directory not found at ${srcPath}. ` +
-      `Make sure @shellui/core is properly installed and includes the src directory.`
+        `Make sure @shellui/core is properly installed and includes the src directory.`,
     );
   }
-  
+
   // Verify index.html exists (required for dev server)
   const indexHtmlPath = path.join(srcPath, 'index.html');
   if (!fs.existsSync(indexHtmlPath)) {
     throw new Error(
       `Core package index.html not found at ${indexHtmlPath}. ` +
-      `Make sure @shellui/core is properly installed.`
+        `Make sure @shellui/core is properly installed.`,
     );
   }
-  
+
   return srcPath;
 }
 

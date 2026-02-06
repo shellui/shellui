@@ -16,11 +16,16 @@ export function useConfig(): ConfigContextValue {
     // 3. Vite's define configuration is working correctly (check __SHELLUI_CONFIG__)
     const error = new Error(
       'useConfig must be used within a ConfigProvider. ' +
-      'Make sure your app is wrapped with <ConfigProvider> and that Vite define is configured correctly.'
+        'Make sure your app is wrapped with <ConfigProvider> and that Vite define is configured correctly.',
     );
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
       console.error('[ShellUI] ConfigProvider error:', error);
-      console.error('[ShellUI] Check that __SHELLUI_CONFIG__ is defined:', typeof (window as any).__SHELLUI_CONFIG__);
+      // eslint-disable-next-line no-console
+      console.error(
+        '[ShellUI] Check that __SHELLUI_CONFIG__ is defined:',
+        typeof (window as unknown as { __SHELLUI_CONFIG__?: unknown }).__SHELLUI_CONFIG__,
+      );
     }
     throw error;
   }

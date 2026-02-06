@@ -32,7 +32,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       // Access it directly (no typeof check) so Vite can statically analyze and replace it
       // @ts-expect-error - __SHELLUI_CONFIG__ is injected by Vite at build time
       let configValue: unknown = __SHELLUI_CONFIG__;
-      
+
       // In development, if __SHELLUI_CONFIG__ is undefined, it might not have been replaced by Vite
       // This can happen if the Vite define configuration isn't working properly
       if (configValue === undefined && typeof window !== 'undefined') {

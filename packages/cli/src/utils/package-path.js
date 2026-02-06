@@ -18,7 +18,7 @@ export function resolvePackagePath(packageName) {
     // This works for both workspace packages (via pnpm workspace) and npm-installed packages
     const packageJsonPath = require.resolve(`${packageName}/package.json`);
     const resolved = path.dirname(packageJsonPath);
-    
+
     // Resolve symlinks to get the canonical path — pnpm uses symlinks that
     // point to different .pnpm/ directories; Vite resolves real paths so we
     // need to be consistent to avoid mismatched root vs input paths.
@@ -32,7 +32,7 @@ export function resolvePackagePath(packageName) {
     // Go up from cli/src/utils/package-path.js -> cli/src/utils -> cli/src -> cli -> packages -> packageName
     const packagesDir = path.resolve(__dirname, '../../../');
     const resolved = path.join(packagesDir, packageName.replace('@shellui/', ''));
-    
+
     // Only use this fallback if the path exists (workspace mode)
     if (fs.existsSync(resolved)) {
       try {
@@ -41,12 +41,12 @@ export function resolvePackagePath(packageName) {
         return resolved;
       }
     }
-    
+
     // If we get here, the package wasn't found
     throw new Error(
       `Package "${packageName}" not found. ` +
-      `Make sure it's installed (npm/pnpm install) or available in the workspace. ` +
-      `Original error: ${e.message}`
+        `Make sure it's installed (npm/pnpm install) or available in the workspace. ` +
+        `Original error: ${e.message}`,
     );
   }
 }

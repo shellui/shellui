@@ -747,7 +747,8 @@ export async function registerServiceWorker(
             // Only disable on actual errors, not warnings or non-critical issues
             const evt = (event ?? {}) as Record<string, unknown>;
             const evtError = evt.error as Record<string, unknown> | undefined;
-            const errorMessage = (evt.message as string) || (evtError?.message as string) || 'Unknown error';
+            const errorMessage =
+              (evt.message as string) || (evtError?.message as string) || 'Unknown error';
             const errorName = (evtError?.name as string) || '';
 
             // CRITICAL: Only disable on critical errors, ignore common non-fatal errors

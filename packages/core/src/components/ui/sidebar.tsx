@@ -77,7 +77,13 @@ const PanelLeftOpenIcon = () => (
     className="h-5 w-5 transition-transform duration-300"
     aria-hidden
   >
-    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <rect
+      width="18"
+      height="18"
+      x="3"
+      y="3"
+      rx="2"
+    />
     <path d="M9 3v18" />
     <path d="m14 9 3 3-3 3" />
   </svg>
@@ -98,7 +104,13 @@ const PanelLeftCloseIcon = () => (
     className="h-5 w-5 transition-transform duration-300"
     aria-hidden
   >
-    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <rect
+      width="18"
+      height="18"
+      x="3"
+      y="3"
+      rx="2"
+    />
     <path d="M9 3v18" />
     <path d="m16 15-3-3 3-3" />
   </svg>
