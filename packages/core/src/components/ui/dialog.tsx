@@ -1,4 +1,12 @@
-import * as React from "react"
+import {
+  forwardRef,
+  useCallback,
+  Children,
+  type ElementRef,
+  type ComponentPropsWithoutRef,
+  type ComponentProps,
+  type HTMLAttributes,
+} from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { cn } from "@/lib/utils"
 import { Z_INDEX } from "@/lib/z-index"
@@ -11,9 +19,9 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
-const DialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
+const DialogOverlay = forwardRef<
+  ElementRef<typeof DialogPrimitive.Overlay>,
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
@@ -29,19 +37,19 @@ const DialogOverlay = React.forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
 interface DialogContentProps
-  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   /** When true, the default close (X) button is not rendered. Escape and overlay still close. */
   hideCloseButton?: boolean
 }
 
-const DialogContent = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Content>,
+const DialogContent = forwardRef<
+  ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
 >(({ className, children, onPointerDownOutside, hideCloseButton, ...props }, ref) => {
-  const hasContent = React.Children.count(children) > 2
+  const hasContent = Children.count(children) > 2
 
-  const handlePointerDownOutside = React.useCallback(
-    (event: React.ComponentProps<typeof DialogPrimitive.Content>['onPointerDownOutside'] extends (e: infer E) => void ? E : never) => {
+  const handlePointerDownOutside = useCallback(
+    (event: ComponentProps<typeof DialogPrimitive.Content>['onPointerDownOutside'] extends (e: infer E) => void ? E : never) => {
       const target = event?.target as Element | null
       if (target?.closest?.('[data-sonner-toaster]')) {
         event.preventDefault()
@@ -97,7 +105,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 const DialogHeader = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: HTMLAttributes<HTMLDivElement>) => (
   <div
     data-dialog-header
     className={cn(
@@ -112,7 +120,7 @@ DialogHeader.displayName = "DialogHeader"
 const DialogFooter = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
       "-mx-6 mt-4 flex flex-col-reverse gap-2 rounded-b-lg border-t border-border bg-sidebar-background px-6 py-2 text-sidebar-foreground sm:flex-row sm:justify-end sm:space-x-2 [&_button]:h-8 [&_button]:px-3 [&_button]:text-xs",
@@ -123,9 +131,9 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
-const DialogTitle = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Title>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
+const DialogTitle = forwardRef<
+  ElementRef<typeof DialogPrimitive.Title>,
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
@@ -138,9 +146,9 @@ const DialogTitle = React.forwardRef<
 ))
 DialogTitle.displayName = DialogPrimitive.Title.displayName
 
-const DialogDescription = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Description>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
+const DialogDescription = forwardRef<
+  ElementRef<typeof DialogPrimitive.Description>,
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}

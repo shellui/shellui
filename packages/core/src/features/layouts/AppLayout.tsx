@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import type { LazyExoticComponent, ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 
@@ -23,7 +24,7 @@ export function AppLayout({ layout = 'sidebar', title, appIcon, logo, navigation
   const { settings } = useSettings();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 
-  let LayoutComponent: React.LazyExoticComponent<React.ComponentType<Record<string, unknown>>>;
+  let LayoutComponent: LazyExoticComponent<ComponentType<Record<string, unknown>>>;
   let layoutProps: Record<string, unknown>;
 
   if (effectiveLayout === 'fullscreen') {

@@ -1,6 +1,14 @@
 'use client';
 
-import * as React from 'react';
+import {
+  forwardRef,
+  type ComponentProps,
+  type ComponentPropsWithoutRef,
+  type ComponentRef,
+  type ReactNode,
+  type CSSProperties,
+  type HTMLAttributes,
+} from 'react';
 import { Drawer as VaulDrawer } from 'vaul';
 import { cn } from '@/lib/utils';
 import { Z_INDEX } from '@/lib/z-index';
@@ -12,7 +20,7 @@ const Drawer = ({
   onOpenChange,
   direction = 'right',
   ...props
-}: React.ComponentProps<typeof VaulDrawer.Root> & {
+}: ComponentProps<typeof VaulDrawer.Root> & {
   direction?: DrawerDirection;
 }) => (
   <VaulDrawer.Root
@@ -30,9 +38,9 @@ DrawerTrigger.displayName = 'DrawerTrigger';
 const DrawerPortal = VaulDrawer.Portal;
 DrawerPortal.displayName = 'DrawerPortal';
 
-const DrawerOverlay = React.forwardRef<
-  React.ComponentRef<typeof VaulDrawer.Overlay>,
-  React.ComponentPropsWithoutRef<typeof VaulDrawer.Overlay>
+const DrawerOverlay = forwardRef<
+  ComponentRef<typeof VaulDrawer.Overlay>,
+  ComponentPropsWithoutRef<typeof VaulDrawer.Overlay>
 >(({ className, ...props }, ref) => (
   <VaulDrawer.Overlay
     ref={ref}
@@ -63,17 +71,17 @@ const drawerContentByDirection: Record<
 };
 
 interface DrawerContentProps
-  extends Omit<React.ComponentPropsWithoutRef<typeof VaulDrawer.Content>, 'direction'> {
+  extends Omit<ComponentPropsWithoutRef<typeof VaulDrawer.Content>, 'direction'> {
   direction?: DrawerDirection;
   /** CSS length: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
   size?: string | null;
   className?: string;
-  children?: React.ReactNode;
-  style?: React.CSSProperties;
+  children?: ReactNode;
+  style?: CSSProperties;
 }
 
-const DrawerContent = React.forwardRef<
-  React.ComponentRef<typeof VaulDrawer.Content>,
+const DrawerContent = forwardRef<
+  ComponentRef<typeof VaulDrawer.Content>,
   DrawerContentProps
 >(({ className, direction = 'right', size, children, style, ...props }, ref) => {
   const pos: DrawerDirection = direction;
@@ -136,7 +144,7 @@ DrawerClose.displayName = 'DrawerClose';
 const DrawerHeader = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: HTMLAttributes<HTMLDivElement>) => (
   <div
     data-drawer-header
     className={cn(
@@ -151,7 +159,7 @@ DrawerHeader.displayName = 'DrawerHeader';
 const DrawerFooter = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
       'mt-auto flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end',
@@ -162,9 +170,9 @@ const DrawerFooter = ({
 );
 DrawerFooter.displayName = 'DrawerFooter';
 
-const DrawerTitle = React.forwardRef<
-  React.ComponentRef<typeof VaulDrawer.Title>,
-  React.ComponentPropsWithoutRef<typeof VaulDrawer.Title>
+const DrawerTitle = forwardRef<
+  ComponentRef<typeof VaulDrawer.Title>,
+  ComponentPropsWithoutRef<typeof VaulDrawer.Title>
 >(({ className, ...props }, ref) => (
   <VaulDrawer.Title
     ref={ref}
@@ -177,9 +185,9 @@ const DrawerTitle = React.forwardRef<
 ));
 DrawerTitle.displayName = VaulDrawer.Title.displayName;
 
-const DrawerDescription = React.forwardRef<
-  React.ComponentRef<typeof VaulDrawer.Description>,
-  React.ComponentPropsWithoutRef<typeof VaulDrawer.Description>
+const DrawerDescription = forwardRef<
+  ComponentRef<typeof VaulDrawer.Description>,
+  ComponentPropsWithoutRef<typeof VaulDrawer.Description>
 >(({ className, ...props }, ref) => (
   <VaulDrawer.Description
     ref={ref}
@@ -192,7 +200,7 @@ DrawerDescription.displayName = VaulDrawer.Description.displayName;
 const DrawerHandle = ({
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+}: HTMLAttributes<HTMLDivElement>) => (
   <div
     data-drawer-handle
     className={cn('mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted', className)}

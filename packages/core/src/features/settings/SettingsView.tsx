@@ -1,4 +1,9 @@
-import * as React from "react"
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -35,15 +40,15 @@ export const SettingsView = () => {
   const { config } = useConfig()
   const { t } = useTranslation('settings')
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
-  const [isTauriEnv, setIsTauriEnv] = React.useState(() => isTauri())
+  const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri())
 
-  React.useEffect(() => {
+  useEffect(() => {
     setIsTauriEnv(isTauri())
     const tid = window.setTimeout(() => setIsTauriEnv(isTauri()), 200)
     return () => window.clearTimeout(tid)
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (config?.title) {
       const settingsLabel = t('settings', { ns: 'common' })
       document.title = `${settingsLabel} | ${config.title}`
@@ -51,10 +56,10 @@ export const SettingsView = () => {
   }, [config?.title, t])
 
   // Create routes with translations (service-worker route is already omitted in Tauri by createSettingsRoutes)
-  const settingsRoutes = React.useMemo(() => createSettingsRoutes(t), [t])
+  const settingsRoutes = useMemo(() => createSettingsRoutes(t), [t])
 
   // In Tauri, hide service worker route; use reactive isTauriEnv so we catch late injection (e.g. dev)
-  const routesWithoutTauriSw = React.useMemo(() => {
+  const routesWithoutTauriSw = useMemo(() => {
     if (isTauriEnv) {
       return settingsRoutes.filter(route => route.path !== "service-worker")
     }
@@ -62,7 +67,7 @@ export const SettingsView = () => {
   }, [settingsRoutes, isTauriEnv])
 
   // Filter routes based on developer features setting
-  const filteredRoutes = React.useMemo(() => {
+  const filteredRoutes = useMemo(() => {
     if (settings.developerFeatures.enabled) {
       return routesWithoutTauriSw
     }
@@ -72,7 +77,7 @@ export const SettingsView = () => {
   }, [settings.developerFeatures.enabled, routesWithoutTauriSw])
 
   // Group routes by category
-  const groupedRoutes = React.useMemo(() => {
+  const groupedRoutes = useMemo(() => {
     const developerOnlyPaths = ["developpers", "service-worker"]
     const groups = [
       {
@@ -96,7 +101,7 @@ export const SettingsView = () => {
   }, [filteredRoutes, t])
 
   // Find matching nav item by checking if URL contains or ends with the item path
-  const getSelectedItemFromUrl = React.useCallback(() => {
+  const getSelectedItemFromUrl = useCallback(() => {
     const pathname = location.pathname
 
     // Find matching nav item by checking if pathname contains the item path
@@ -115,10 +120,10 @@ export const SettingsView = () => {
     return matchedItem
   }, [location.pathname, filteredRoutes])
 
-  const selectedItem = React.useMemo(() => getSelectedItemFromUrl(), [getSelectedItemFromUrl])
+  const selectedItem = useMemo(() => getSelectedItemFromUrl(), [getSelectedItemFromUrl])
 
   // Check if we're at the settings root (no specific route selected)
-  const isSettingsRoot = React.useMemo(() => {
+  const isSettingsRoot = useMemo(() => {
     const pathname = location.pathname
     // Normalize the settings URL (remove leading/trailing slashes)
     const normalizedSettingsPath = urls.settings.replace(/^\/+|\/+$/g, '')
@@ -143,7 +148,7 @@ export const SettingsView = () => {
   }, [location.pathname, filteredRoutes])
 
   // Navigate back to settings root
-  const handleBackToSettings = React.useCallback(() => {
+  const handleBackToSettings = useCallback(() => {
     // Navigate to settings root, replacing current history entry
     navigate(urls.settings, { replace: true })
   }, [navigate])

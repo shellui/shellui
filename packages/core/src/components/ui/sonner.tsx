@@ -1,9 +1,9 @@
-import React from "react"
+import type { ComponentProps } from "react"
 import { useSettings } from "@/features/settings/hooks/useSettings"
 import { Toaster as Sonner } from "sonner"
 import { Z_INDEX } from "@/lib/z-index"
 
-type ToasterProps = React.ComponentProps<typeof Sonner>
+type ToasterProps = ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { settings } = useSettings()

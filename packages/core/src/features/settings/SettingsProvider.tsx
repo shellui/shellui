@@ -1,4 +1,11 @@
-import * as React from "react"
+import {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react"
 import { getLogger, shellui, type ShellUIMessage, type Settings, type SettingsNavigationItem } from "@shellui/sdk"
 import { SettingsContext } from "./SettingsContext"
 import { useConfig } from "../config/useConfig"
@@ -79,12 +86,12 @@ const defaultSettings: Settings = {
     }
   }
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
+export function SettingsProvider({ children }: { children: ReactNode }) {
     const { config } = useConfig()
     const { i18n } = useTranslation()
     // Use a ref to always have current settings for message listeners (avoids closure issues)
-    const settingsRef = React.useRef<Settings | null>(null)
-    const [settings, setSettings] = React.useState<Settings>(() => {
+    const settingsRef = useRef<Settings | null>(null)
+    const [settings, setSettings] = useState<Settings>(() => {
       let initialSettings: Settings
 
       if (shellui.initialSettings) {
@@ -144,12 +151,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Keep ref in sync with state for message listeners
-    React.useEffect(() => {
+    useEffect(() => {
       settingsRef.current = settings
     }, [settings])
-  
+
     // Listen for settings updates from parent/other nodes
-    React.useEffect(() => {
+    useEffect(() => {
       if (typeof window === 'undefined') {
         return
       }
@@ -213,7 +220,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   
   
     // ACTIONS
-    const updateSettings = React.useCallback((updates: Partial<Settings>) => {
+    const updateSettings = useCallback((updates: Partial<Settings>) => {
       const newSettings = { ...settings, ...updates }
       
       // Update localStorage and propagate to children if we're in the root window
@@ -243,7 +250,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       })
     }, [settings, config?.navigation, i18n.language])
   
-    const updateSetting = React.useCallback(<K extends keyof Settings>(
+    const updateSetting = useCallback(<K extends keyof Settings>(
       key: K,
       updates: Partial<Settings[K]>
     ) => {
@@ -255,7 +262,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       updateSettings({ [key]: mergedValue } as Partial<Settings>)
     }, [settings, updateSettings])
   
-    const resetAllData = React.useCallback(() => {
+    const resetAllData = useCallback(() => {
       // Clear all localStorage data
       if (typeof window !== 'undefined') {
         try {
@@ -303,7 +310,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
     }, [config?.navigation, i18n.language])
   
-    const value = React.useMemo(
+    const value = useMemo(
       () => ({
         settings,
         updateSettings,

@@ -1,11 +1,19 @@
-import * as React from "react"
+import {
+  forwardRef,
+  Children,
+  isValidElement,
+  cloneElement,
+  type HTMLAttributes,
+  type ReactNode,
+  type ReactElement,
+} from "react"
 import { cn } from "@/lib/utils"
 
-export interface ButtonGroupProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
+export interface ButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode
 }
 
-const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
+const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
   ({ className, children, ...props }, ref) => {
     return (
       <div
@@ -17,12 +25,12 @@ const ButtonGroup = React.forwardRef<HTMLDivElement, ButtonGroupProps>(
         role="group"
         {...props}
       >
-        {React.Children.map(children, (child, index) => {
-          if (React.isValidElement(child)) {
+        {Children.map(children, (child, index) => {
+          if (isValidElement(child)) {
             const isFirst = index === 0
-            const isLast = index === React.Children.count(children) - 1
-            
-            return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            const isLast = index === Children.count(children) - 1
+
+            return cloneElement(child as ReactElement<Record<string, unknown>>, {
               className: cn(
                 // Remove rounded corners from all buttons
                 "rounded-none",

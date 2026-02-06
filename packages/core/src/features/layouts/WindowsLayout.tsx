@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -171,7 +172,7 @@ function AppWindow({
   );
 
   const handleTitlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
+    (e: ReactPointerEvent) => {
       if (e.button !== 0 || isMaximized) return;
       // Don't start drag when clicking a button (close, maximize) so their click handlers run
       if ((e.target as Element).closest('button')) return;
@@ -248,7 +249,7 @@ function AppWindow({
   );
 
   const handleResizePointerDown = useCallback(
-    (e: React.PointerEvent, edge: string) => {
+    (e: ReactPointerEvent, edge: string) => {
       if (e.button !== 0) return;
       e.preventDefault();
       e.stopPropagation();

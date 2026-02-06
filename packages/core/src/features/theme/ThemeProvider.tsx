@@ -1,8 +1,8 @@
-import * as React from 'react';
+import type { ReactNode } from 'react';
 import { useTheme } from './useTheme';
 
 export interface ThemeProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 /**

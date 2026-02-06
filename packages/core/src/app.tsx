@@ -1,4 +1,4 @@
-import React, { useMemo, useLayoutEffect, useState, useEffect } from 'react';
+import { useMemo, useLayoutEffect, useState, useEffect, StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
@@ -131,7 +131,7 @@ if (!windowRecord.__shellui_root__) {
 }
 
 root.render(
-  <React.StrictMode>
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>
 );
