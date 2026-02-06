@@ -180,21 +180,21 @@ const config: ShellUIConfig = {
       label: 'Documentation',
       path: 'docs',
       url: 'https://docs.example.com/',
-      icon: 'BookOpen'
+      icon: 'BookOpen',
     },
     {
       label: 'Dashboard',
       path: 'dashboard',
       url: 'http://localhost:4000/',
-      icon: 'Layout'
+      icon: 'Layout',
     },
     {
       label: 'Settings',
       path: 'settings',
       url: 'https://app.example.com/settings',
-      icon: 'Settings'
-    }
-  ]
+      icon: 'Settings',
+    },
+  ],
 };
 
 export default config;
@@ -249,6 +249,7 @@ npx shellui start
 ### Configuration Not Found
 
 Ensure your configuration file is named correctly:
+
 - `shellui.config.json` (for JSON)
 - `shellui.config.ts` (for TypeScript)
 
@@ -271,5 +272,3 @@ Ensure TypeScript is installed if using `shellui.config.ts`:
 ```bash
 npm install -D typescript
 ```
-
-

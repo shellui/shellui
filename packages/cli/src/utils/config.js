@@ -67,4 +67,3 @@ export async function loadConfig(root = '.') {
 
   return mergeSentryFromEnv(config);
 }
-

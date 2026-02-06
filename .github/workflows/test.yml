@@ -1,54 +1,54 @@
 name: Run Tests
 
 on:
-    push:
-        branches:
-            - main
-            - master
-        paths:
-            - "packages/**"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "pnpm-workspace.yaml"
-            - "eslint.config.js"
-            - ".github/workflows/test.yml"
-    pull_request:
-        branches:
-            - main
-            - master
-        paths:
-            - "packages/**"
-            - "package.json"
-            - "pnpm-lock.yaml"
-            - "pnpm-workspace.yaml"
-            - "eslint.config.js"
-            - ".github/workflows/test.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'eslint.config.js'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'eslint.config.js'
+      - '.github/workflows/test.yml'
 
 jobs:
-    test:
-        name: Run Tests
-        runs-on: ubuntu-latest
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-              with:
-                  fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-            - name: Setup pnpm
-              uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v4
-              with:
-                  node-version: "25"
-                  cache: "pnpm"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
 
-            - name: Install dependencies
-              run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-            - name: Lint
-              run: pnpm run lint
+      - name: Lint
+        run: pnpm run lint
 
-            - name: Run tests
-              run: pnpm test
+      - name: Run tests
+        run: pnpm test

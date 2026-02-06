@@ -24,6 +24,7 @@ shellui build [path/to/project]
 ### Commands
 
 - **start** - Start the ShellUI development server
+
   ```bash
   shellui start
   shellui start ./my-project
@@ -70,9 +71,7 @@ export async function newCommandCommand(args) {
 ```javascript
 import { newCommandCommand } from './commands/index.js';
 
-cli
-  .command('new-command [args]', 'Description')
-  .action(newCommandCommand);
+cli.command('new-command [args]', 'Description').action(newCommandCommand);
 ```
 
 4. Export it from `src/commands/index.js`:

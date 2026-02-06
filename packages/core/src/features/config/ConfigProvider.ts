@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useState,
-  createElement,
-  type ReactNode,
-} from 'react';
+import { createContext, useState, createElement, type ReactNode } from 'react';
 import { getLogger } from '@shellui/sdk';
 import type { ShellUIConfig } from './types';
 
@@ -37,7 +32,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       // Access it directly (no typeof check) so Vite can statically analyze and replace it
       // @ts-expect-error - __SHELLUI_CONFIG__ is injected by Vite at build time
       const configValue: unknown = __SHELLUI_CONFIG__;
-      
+
       // After Vite replacement, configValue will be a JSON string
       // Example: "{\"title\":\"shellui\"}" -> parse -> {title: "shellui"}
       if (configValue !== undefined && configValue !== null && typeof configValue === 'string') {
@@ -47,7 +42,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
           if (typeof window !== 'undefined' && parsedConfig.runtime === 'tauri') {
             (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
           }
-          
+
           // Log in dev mode to help debug (only once per page load)
           if (process.env.NODE_ENV === 'development' && !configLogged) {
             configLogged = true;
@@ -56,7 +51,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
               navigationItems: parsedConfig.navigation?.length || 0,
             });
           }
-          
+
           return parsedConfig;
         } catch (parseError) {
           logger.error('Failed to parse config JSON:', { error: parseError });
@@ -64,7 +59,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
           // Fall through to return empty config
         }
       }
-      
+
       // Fallback: try to read from globalThis (for edge cases or if define didn't work)
       const g = globalThis as unknown as { __SHELLUI_CONFIG__?: unknown };
       if (typeof g.__SHELLUI_CONFIG__ !== 'undefined') {
@@ -76,16 +71,18 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
         if (typeof window !== 'undefined' && parsedConfig.runtime === 'tauri') {
           (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
         }
-        
+
         if (process.env.NODE_ENV === 'development') {
           logger.warn('Config loaded from globalThis fallback (define may not have worked)');
         }
-        
+
         return parsedConfig;
       }
-      
+
       // Return empty config if __SHELLUI_CONFIG__ is undefined (fallback for edge cases)
-      logger.warn('Config not found. Using empty config. Make sure shellui.config.ts is properly loaded during build.');
+      logger.warn(
+        'Config not found. Using empty config. Make sure shellui.config.ts is properly loaded during build.',
+      );
       return {} as ShellUIConfig;
     } catch (err) {
       logger.error('Failed to load ShellUI config:', { error: err });

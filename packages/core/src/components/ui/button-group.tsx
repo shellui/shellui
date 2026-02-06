@@ -6,11 +6,11 @@ import {
   type HTMLAttributes,
   type ReactNode,
   type ReactElement,
-} from "react"
-import { cn } from "@/lib/utils"
+} from 'react';
+import { cn } from '@/lib/utils';
 
 export interface ButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode
+  children: ReactNode;
 }
 
 const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
@@ -18,38 +18,35 @@ const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(
     return (
       <div
         ref={ref}
-        className={cn(
-          "inline-flex rounded-md",
-          className
-        )}
+        className={cn('inline-flex rounded-md', className)}
         role="group"
         {...props}
       >
         {Children.map(children, (child, index) => {
           if (isValidElement(child)) {
-            const isFirst = index === 0
-            const isLast = index === Children.count(children) - 1
+            const isFirst = index === 0;
+            const isLast = index === Children.count(children) - 1;
 
             return cloneElement(child as ReactElement<Record<string, unknown>>, {
               className: cn(
                 // Remove rounded corners from all buttons
-                "rounded-none",
+                'rounded-none',
                 // First button: rounded left only (uses theme radius)
-                isFirst && "rounded-l-md",
+                isFirst && 'rounded-l-md',
                 // Last button: rounded right only (uses theme radius)
-                isLast && "rounded-r-md",
+                isLast && 'rounded-r-md',
                 // Remove left border from all except first, using theme border color
-                !isFirst && "border-l-0 -ml-px",
-                child.props.className
+                !isFirst && 'border-l-0 -ml-px',
+                child.props.className,
               ),
-            })
+            });
           }
-          return child
+          return child;
         })}
       </div>
-    )
-  }
-)
-ButtonGroup.displayName = "ButtonGroup"
+    );
+  },
+);
+ButtonGroup.displayName = 'ButtonGroup';
 
-export { ButtonGroup }
+export { ButtonGroup };

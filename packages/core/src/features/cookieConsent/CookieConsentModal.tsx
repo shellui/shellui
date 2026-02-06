@@ -107,7 +107,16 @@ export function CookieConsentModal() {
       onOk: handleAccept,
       onCancel: handleReject,
     });
-  }, [shouldShow, title, description, t, handleAccept, handleReject, handleSetPreferences, showDialog]);
+  }, [
+    shouldShow,
+    title,
+    description,
+    t,
+    handleAccept,
+    handleReject,
+    handleSetPreferences,
+    showDialog,
+  ]);
 
   return null;
 }

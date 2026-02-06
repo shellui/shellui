@@ -35,7 +35,7 @@ const AppContent = () => {
       return;
     }
     const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true; // Default to enabled
-    
+
     // Don't register service worker if navigation is empty or undefined
     // This helps prevent issues in development or misconfigured apps
     if (!config?.navigation || config.navigation.length === 0) {
@@ -46,7 +46,7 @@ const AppContent = () => {
       }
       return;
     }
-    
+
     if (serviceWorkerEnabled) {
       registerServiceWorker({
         enabled: true,
@@ -90,7 +90,6 @@ const AppContent = () => {
 };
 
 const App = () => {
-
   const [isLoading, setIsLoading] = useState(true);
   // Initialize ShellUI SDK to support recursive nesting
   useLayoutEffect(() => {
@@ -124,7 +123,9 @@ export default App;
 // Use window to persist across HMR reloads
 const container = document.getElementById('root')!; // eslint-disable-line @typescript-eslint/no-non-null-assertion
 const windowRecord = window as unknown as Record<string, unknown>;
-const root = (windowRecord.__shellui_root__ as ReturnType<typeof ReactDOM.createRoot>) || ReactDOM.createRoot(container);
+const root =
+  (windowRecord.__shellui_root__ as ReturnType<typeof ReactDOM.createRoot>) ||
+  ReactDOM.createRoot(container);
 
 if (!windowRecord.__shellui_root__) {
   windowRecord.__shellui_root__ = root;
@@ -133,5 +134,5 @@ if (!windowRecord.__shellui_root__) {
 root.render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );

@@ -9,10 +9,7 @@ import type { FrameRegistry } from './frameRegistry.js';
 
 const logger = getLogger('shellsdk');
 
-export type MessageListener = (
-  messageData: ShellUIMessage,
-  originalEvent: MessageEvent
-) => void;
+export type MessageListener = (messageData: ShellUIMessage, originalEvent: MessageEvent) => void;
 
 export class MessageListenerRegistry {
   private listeners = new Map<string, Set<MessageListener>>();
@@ -40,9 +37,7 @@ export class MessageListenerRegistry {
         return;
       }
 
-      const fromUuid = this.frameRegistry?.getUuidByIframe(
-        event.source as Window
-      );
+      const fromUuid = this.frameRegistry?.getUuidByIframe(event.source as Window);
 
       const typeListeners = this.listeners.get(messageType) ?? [];
 
@@ -50,19 +45,16 @@ export class MessageListenerRegistry {
         try {
           if (
             window.parent === window ||
-            (event.data.to &&
-              (event.data.to.length === 0 || event.data.to.includes('*'))) ||
+            (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) ||
             messageType === 'SHELLUI_URL_CHANGED' ||
             messageType === 'SHELLUI_INITIALIZED'
           ) {
             listener(
               {
                 ...event.data,
-                from: [fromUuid, ...(event.data.from || [])].filter(
-                  Boolean
-                ) as string[],
+                from: [fromUuid, ...(event.data.from || [])].filter(Boolean) as string[],
               },
-              event
+              event,
             );
           }
         } catch (error) {
@@ -112,10 +104,7 @@ export class MessageListenerRegistry {
     logger.debug('Global message listener torn down');
   }
 
-  addMessageListener(
-    messageType: string,
-    listener: MessageListener
-  ): () => void {
+  addMessageListener(messageType: string, listener: MessageListener): () => void {
     if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
@@ -138,10 +127,7 @@ export class MessageListenerRegistry {
     };
   }
 
-  removeMessageListener(
-    messageType: string,
-    listener: MessageListener
-  ): boolean {
+  removeMessageListener(messageType: string, listener: MessageListener): boolean {
     if (typeof messageType !== 'string' || !messageType.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
@@ -186,14 +172,9 @@ export class MessageListenerRegistry {
   }
 
   removeAllListenersForAllTypes(): void {
-    const totalCount = Array.from(this.listeners.values()).reduce(
-      (sum, set) => sum + set.size,
-      0
-    );
+    const totalCount = Array.from(this.listeners.values()).reduce((sum, set) => sum + set.size, 0);
     this.listeners.clear();
-    logger.debug(
-      `Removed all ${totalCount} listeners for all message types`
-    );
+    logger.debug(`Removed all ${totalCount} listeners for all message types`);
   }
 
   sendMessage(message: ShellUIMessage): number {
@@ -207,10 +188,7 @@ export class MessageListenerRegistry {
       return 0;
     }
 
-    if (
-      typeof message.type !== 'string' ||
-      !message.type.startsWith('SHELLUI_')
-    ) {
+    if (typeof message.type !== 'string' || !message.type.startsWith('SHELLUI_')) {
       throw new Error('messageType must be a string starting with "SHELLUI_"');
     }
 
@@ -234,7 +212,7 @@ export class MessageListenerRegistry {
                 payload: message.payload,
                 to: (message.to || []).filter((t) => t !== uuid),
               },
-              '*'
+              '*',
             );
             sentCount++;
             logger.debug(`Sent message ${message.type} to iframe ${uuid}`);

@@ -69,15 +69,18 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
   const [size, setSize] = useState<string | null>(null);
 
-  const openDrawer = useCallback((options?: OpenDrawerOptions) => {
-    closeModal();
-    const url = options?.url;
-    const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
-    setDrawerUrl(validatedUrl);
-    setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
-    setSize(options?.size ?? null);
-    setIsOpen(true);
-  }, [closeModal]);
+  const openDrawer = useCallback(
+    (options?: OpenDrawerOptions) => {
+      closeModal();
+      const url = options?.url;
+      const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
+      setDrawerUrl(validatedUrl);
+      setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
+      setSize(options?.size ?? null);
+      setIsOpen(true);
+    },
+    [closeModal],
+  );
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
@@ -87,10 +90,13 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   }, []);
 
   useEffect(() => {
-    const cleanupOpen = shellui.addMessageListener('SHELLUI_OPEN_DRAWER', (data: ShellUIMessage) => {
-      const payload = data.payload as { url?: string; position?: DrawerDirection; size?: string };
-      openDrawer({ url: payload.url, position: payload.position, size: payload.size });
-    });
+    const cleanupOpen = shellui.addMessageListener(
+      'SHELLUI_OPEN_DRAWER',
+      (data: ShellUIMessage) => {
+        const payload = data.payload as { url?: string; position?: DrawerDirection; size?: string };
+        openDrawer({ url: payload.url, position: payload.position, size: payload.size });
+      },
+    );
 
     const cleanupClose = shellui.addMessageListener('SHELLUI_CLOSE_DRAWER', () => {
       closeDrawer();
@@ -103,9 +109,7 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   }, [openDrawer, closeDrawer]);
 
   return (
-    <DrawerContext.Provider
-      value={{ isOpen, drawerUrl, position, size, openDrawer, closeDrawer }}
-    >
+    <DrawerContext.Provider value={{ isOpen, drawerUrl, position, size, openDrawer, closeDrawer }}>
       {children}
     </DrawerContext.Provider>
   );

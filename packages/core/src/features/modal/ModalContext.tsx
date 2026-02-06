@@ -84,13 +84,15 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
     setTimeout(() => setModalUrl(null), 200);
   }, []);
 
-
   // Listen for postMessage events from nested iframes
   useEffect(() => {
-    const cleanupOpenModal = shellui.addMessageListener('SHELLUI_OPEN_MODAL', (data: ShellUIMessage) => {
-      const payload = data.payload as { url?: string };
-      openModal(payload.url);
-    });
+    const cleanupOpenModal = shellui.addMessageListener(
+      'SHELLUI_OPEN_MODAL',
+      (data: ShellUIMessage) => {
+        const payload = data.payload as { url?: string };
+        openModal(payload.url);
+      },
+    );
 
     const cleanupCloseModal = shellui.addMessageListener('SHELLUI_CLOSE_MODAL', () => {
       closeModal();
@@ -99,7 +101,7 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
     return () => {
       cleanupOpenModal();
       cleanupCloseModal();
-    }
+    };
   }, [openModal, closeModal]);
 
   return (

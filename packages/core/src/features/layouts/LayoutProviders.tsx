@@ -7,15 +7,13 @@ interface LayoutProvidersProps {
   children: ReactNode;
 }
 
-/** Wraps layout content with Modal, Drawer and Sonner providers. 
+/** Wraps layout content with Modal, Drawer and Sonner providers.
  * Note: DialogProvider is now at the app level in app.tsx */
 export function LayoutProviders({ children }: LayoutProvidersProps) {
   return (
     <ModalProvider>
       <DrawerProvider>
-        <SonnerProvider>
-          {children}
-        </SonnerProvider>
+        <SonnerProvider>{children}</SonnerProvider>
       </DrawerProvider>
     </ModalProvider>
   );

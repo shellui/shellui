@@ -4,7 +4,12 @@ import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
 import { injectManifest } from 'workbox-build';
-import { loadConfig, getCoreSrcPath, createViteDefine, resolvePackagePath } from '../utils/index.js';
+import {
+  loadConfig,
+  getCoreSrcPath,
+  createViteDefine,
+  resolvePackagePath,
+} from '../utils/index.js';
 
 /**
  * Recursively copy a directory
@@ -50,13 +55,13 @@ export async function buildCommand(root = '.') {
 
   // Load configuration
   const config = await loadConfig(root);
-  
+
   // Log config summary for debugging
   console.log(pc.blue(`Config loaded:`));
   console.log(pc.gray(`  - Title: ${config.title || '(not set)'}`));
   console.log(pc.gray(`  - Navigation items: ${config.navigation?.length || 0}`));
   console.log(pc.gray(`  - Layout: ${config.layout || 'sidebar'}`));
-  
+
   // Verify config is serializable
   try {
     const testSerialize = JSON.parse(JSON.stringify(config));
@@ -102,7 +107,7 @@ export async function buildCommand(root = '.') {
             assetFileNames: 'assets/[name]-[hash].[ext]',
           },
         },
-      }
+      },
     });
 
     // Build service worker with Vite first
@@ -110,7 +115,7 @@ export async function buildCommand(root = '.') {
     const swInputPath = path.join(corePackagePath, 'src', 'service-worker', 'sw.ts');
     const distPath = path.resolve(cwd, 'dist');
     const swTempPath = path.join(distPath, 'sw-temp.js');
-    
+
     // Build service worker TypeScript to JavaScript
     await build({
       root: coreSrcPath,
@@ -142,9 +147,7 @@ export async function buildCommand(root = '.') {
       swSrc: swTempPath,
       swDest: path.join(distPath, 'sw.js'),
       globDirectory: distPath,
-      globPatterns: [
-        '**/*.{js,css,html,svg,png,jpg,jpeg,gif,webp,woff,woff2,ttf,eot,ico}',
-      ],
+      globPatterns: ['**/*.{js,css,html,svg,png,jpg,jpeg,gif,webp,woff,woff2,ttf,eot,ico}'],
       // Don't precache the service worker itself or source maps
       globIgnores: ['sw.js', 'sw-temp.js', '**/*.map', '**/node_modules/**'],
       // Maximum file size to precache (5MB)
@@ -157,10 +160,14 @@ export async function buildCommand(root = '.') {
     }
 
     if (warnings.length > 0) {
-      warnings.forEach(warning => console.warn(pc.yellow(`Warning: ${warning}`)));
+      warnings.forEach((warning) => console.warn(pc.yellow(`Warning: ${warning}`)));
     }
 
-    console.log(pc.green(`Service worker generated: ${count} files precached (${(size / 1024).toFixed(2)} KB)`));
+    console.log(
+      pc.green(
+        `Service worker generated: ${count} files precached (${(size / 1024).toFixed(2)} KB)`,
+      ),
+    );
 
     // Copy static folder contents to dist if it exists
     // This ensures icons are served from the same path in dev and prod
@@ -178,7 +185,7 @@ export async function buildCommand(root = '.') {
     // This allows hosting providers (like Netlify, Vercel) to serve index.html for all routes
     const indexPath = path.join(distPath, 'index.html');
     const notFoundPath = path.join(distPath, '404.html');
-    
+
     if (fs.existsSync(indexPath)) {
       console.log(pc.blue('Creating 404.html for SPA routing...'));
       fs.copyFileSync(indexPath, notFoundPath);
@@ -191,4 +198,3 @@ export async function buildCommand(root = '.') {
     process.exit(1);
   }
 }
-

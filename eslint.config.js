@@ -1,5 +1,6 @@
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const eslintConfigPrettier = require('eslint-config-prettier');
 
 module.exports = [
   {
@@ -91,34 +92,44 @@ module.exports = [
       'no-var': 'error',
       'prefer-const': 'warn',
       'prefer-template': 'warn',
-      'eqeqeq': ['error', 'always'],
-      'curly': ['warn', 'multi-line'],
+      eqeqeq: ['error', 'always'],
+      curly: ['warn', 'multi-line'],
       'no-throw-literal': 'error',
       'no-unused-expressions': 'off', // handled by TS rule below
-      'no-shadow': 'off',             // handled by TS rule below
+      'no-shadow': 'off', // handled by TS rule below
 
       // ── @typescript-eslint recommended ──
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-unused-expressions': 'warn',
       '@typescript-eslint/no-shadow': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/consistent-type-imports': ['warn', {
-        prefer: 'type-imports',
-        fixStyle: 'inline-type-imports',
-        disallowTypeAnnotations: false,
-      }],
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+          disallowTypeAnnotations: false,
+        },
+      ],
       '@typescript-eslint/no-empty-interface': 'warn',
       '@typescript-eslint/no-inferrable-types': 'warn',
-      '@typescript-eslint/ban-ts-comment': ['warn', {
-        'ts-ignore': 'allow-with-description',
-        'ts-expect-error': 'allow-with-description',
-        'ts-nocheck': true,
-      }],
+      '@typescript-eslint/ban-ts-comment': [
+        'warn',
+        {
+          'ts-ignore': 'allow-with-description',
+          'ts-expect-error': 'allow-with-description',
+          'ts-nocheck': true,
+        },
+      ],
     },
   },
+  eslintConfigPrettier,
 ];

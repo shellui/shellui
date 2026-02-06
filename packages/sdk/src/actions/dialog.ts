@@ -36,10 +36,12 @@ export function dialog(options?: DialogOptions): string | void {
       cancelLabel: options.cancelLabel,
       size: options.size,
       position: options.position,
-      secondaryButton: options.secondaryButton ? {
-        label: options.secondaryButton.label,
-        onClick: undefined,
-      } : undefined,
+      secondaryButton: options.secondaryButton
+        ? {
+            label: options.secondaryButton.label,
+            onClick: undefined,
+          }
+        : undefined,
       icon: options.icon,
       onOk: undefined,
       onCancel: undefined,

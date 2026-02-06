@@ -1,18 +1,23 @@
-import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { shellui, type OpenDrawerOptions } from "@shellui/sdk"
-import urls from "@/constants/urls"
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { shellui, type OpenDrawerOptions } from '@shellui/sdk';
+import urls from '@/constants/urls';
 
 export const DrawerTestButtons = () => {
-  const { t } = useTranslation('settings')
+  const { t } = useTranslation('settings');
 
   const openDrawer = (options: OpenDrawerOptions) => {
-    shellui.openDrawer({ url: urls.settings, ...options })
-  }
+    shellui.openDrawer({ url: urls.settings, ...options });
+  };
 
   return (
     <div>
-      <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.drawerTesting.title')}</h4>
+      <h4
+        className="text-sm font-medium mb-2"
+        style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+      >
+        {t('develop.testing.drawerTesting.title')}
+      </h4>
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() => openDrawer({ position: 'right' })}
@@ -58,5 +63,5 @@ export const DrawerTestButtons = () => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

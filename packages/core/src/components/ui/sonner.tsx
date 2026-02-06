@@ -1,17 +1,17 @@
-import type { ComponentProps } from "react"
-import { useSettings } from "@/features/settings/hooks/useSettings"
-import { Toaster as Sonner } from "sonner"
-import { Z_INDEX } from "@/lib/z-index"
+import type { ComponentProps } from 'react';
+import { useSettings } from '@/features/settings/hooks/useSettings';
+import { Toaster as Sonner } from 'sonner';
+import { Z_INDEX } from '@/lib/z-index';
 
-type ToasterProps = ComponentProps<typeof Sonner>
+type ToasterProps = ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { settings } = useSettings()
+  const { settings } = useSettings();
 
   return (
     <Sonner
       position="top-center"
-      theme={settings.appearance.theme as "light" | "dark" | "system"}
+      theme={settings.appearance.theme as 'light' | 'dark' | 'system'}
       className="toaster group"
       style={{
         zIndex: Z_INDEX.TOAST,
@@ -22,17 +22,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+          description: 'group-[.toast]:text-muted-foreground',
+          actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+          cancelButton: 'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
         },
       }}
       {...props}
     />
-  )
-}
+  );
+};
 
-export { Toaster }
+export { Toaster };

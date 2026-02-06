@@ -1,4 +1,11 @@
-import { useMemo, useState, useCallback, useRef, useEffect, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
@@ -64,8 +71,7 @@ function getMaximizedBounds(): WindowState['bounds'] {
 
 function buildFinalUrl(baseUrl: string, path: string, pathname: string): string {
   const pathPrefix = `/${path}`;
-  const subPath =
-    pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
+  const subPath = pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
   if (!subPath) return baseUrl;
   const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
   return `${base}${subPath}`;
@@ -167,7 +173,7 @@ function AppWindow({
         dragRef.current = null;
       }
     },
-    [onPointerMove]
+    [onPointerMove],
   );
 
   const handleTitlePointerDown = useCallback(
@@ -191,7 +197,7 @@ function AppWindow({
         el.addEventListener('pointerup', onPointerUp as (e: Event) => void);
       }
     },
-    [bounds, isMaximized, onFocus, onPointerMove, onPointerUp]
+    [bounds, isMaximized, onFocus, onPointerMove, onPointerUp],
   );
 
   const handleMaximizeToggle = useCallback(() => {
@@ -244,7 +250,7 @@ function AppWindow({
       }
       resizeRef.current = null;
     },
-    [onResizePointerMove]
+    [onResizePointerMove],
   );
 
   const handleResizePointerDown = useCallback(
@@ -268,12 +274,12 @@ function AppWindow({
         el.addEventListener('pointerup', onResizePointerUp as (e: Event) => void);
       }
     },
-    [bounds, onFocus, onResizePointerMove, onResizePointerUp]
+    [bounds, onFocus, onResizePointerMove, onResizePointerUp],
   );
 
   const finalUrl = useMemo(
     () => buildFinalUrl(win.baseUrl, win.path, win.pathname),
-    [win.baseUrl, win.path, win.pathname]
+    [win.baseUrl, win.path, win.pathname],
   );
 
   const z = isFocused ? maxZIndex : zIndex;
@@ -303,7 +309,7 @@ function AppWindow({
             alt=""
             className={cn(
               'h-4 w-4 shrink-0 rounded-sm object-cover',
-              isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert'
+              isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
             )}
           />
         )}
@@ -317,11 +323,7 @@ function AppWindow({
           className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label={isMaximized ? 'Restore' : 'Maximize'}
         >
-          {isMaximized ? (
-            <RestoreIcon className="h-4 w-4" />
-          ) : (
-            <MaximizeIcon className="h-4 w-4" />
-          )}
+          {isMaximized ? <RestoreIcon className="h-4 w-4" /> : <MaximizeIcon className="h-4 w-4" />}
         </button>
         <button
           type="button"
@@ -359,37 +361,37 @@ function AppWindow({
       {/* Resize handles (hidden when maximized) */}
       {!isMaximized &&
         (['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((edge) => (
-        <div
-          key={edge}
-          className={cn(
-            'absolute bg-transparent',
-            edge.includes('n') && 'top-0 h-2 cursor-n-resize',
-            edge.includes('s') && 'bottom-0 h-2 cursor-s-resize',
-            edge.includes('e') && 'right-0 w-2 cursor-e-resize',
-            edge.includes('w') && 'left-0 w-2 cursor-w-resize',
-            edge === 'n' && 'left-2 right-2',
-            edge === 's' && 'left-2 right-2',
-            edge === 'e' && 'top-2 bottom-2',
-            edge === 'w' && 'top-2 bottom-2',
-            edge === 'ne' && 'top-0 right-0 w-2 h-2 cursor-ne-resize',
-            edge === 'nw' && 'top-0 left-0 w-2 h-2 cursor-nw-resize',
-            edge === 'se' && 'bottom-0 right-0 w-2 h-2 cursor-se-resize',
-            edge === 'sw' && 'bottom-0 left-0 w-2 h-2 cursor-sw-resize'
-          )}
-          style={
-            edge === 'n'
-              ? { left: 8, right: 8 }
-              : edge === 's'
+          <div
+            key={edge}
+            className={cn(
+              'absolute bg-transparent',
+              edge.includes('n') && 'top-0 h-2 cursor-n-resize',
+              edge.includes('s') && 'bottom-0 h-2 cursor-s-resize',
+              edge.includes('e') && 'right-0 w-2 cursor-e-resize',
+              edge.includes('w') && 'left-0 w-2 cursor-w-resize',
+              edge === 'n' && 'left-2 right-2',
+              edge === 's' && 'left-2 right-2',
+              edge === 'e' && 'top-2 bottom-2',
+              edge === 'w' && 'top-2 bottom-2',
+              edge === 'ne' && 'top-0 right-0 w-2 h-2 cursor-ne-resize',
+              edge === 'nw' && 'top-0 left-0 w-2 h-2 cursor-nw-resize',
+              edge === 'se' && 'bottom-0 right-0 w-2 h-2 cursor-se-resize',
+              edge === 'sw' && 'bottom-0 left-0 w-2 h-2 cursor-sw-resize',
+            )}
+            style={
+              edge === 'n'
                 ? { left: 8, right: 8 }
-                : edge === 'e'
-                  ? { top: 8, bottom: 8 }
-                  : edge === 'w'
+                : edge === 's'
+                  ? { left: 8, right: 8 }
+                  : edge === 'e'
                     ? { top: 8, bottom: 8 }
-                    : undefined
-          }
-          onPointerDown={(e) => handleResizePointerDown(e, edge)}
-        />
-      ))}
+                    : edge === 'w'
+                      ? { top: 8, bottom: 8 }
+                      : undefined
+            }
+            onPointerDown={(e) => handleResizePointerDown(e, edge)}
+          />
+        ))}
     </div>
   );
 }
@@ -432,8 +434,20 @@ function RestoreIcon({ className }: { className?: string }) {
       className={className}
       aria-hidden
     >
-      <rect x="3" y="3" width="10" height="10" rx="1" />
-      <rect x="11" y="11" width="10" height="10" rx="1" />
+      <rect
+        x="3"
+        y="3"
+        width="10"
+        height="10"
+        rx="1"
+      />
+      <rect
+        x="11"
+        y="11"
+        width="10"
+        height="10"
+        rx="1"
+      />
     </svg>
   );
 }
@@ -483,7 +497,12 @@ function getBrowserTimezone(): string {
   return 'UTC';
 }
 
-export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
+export function WindowsLayout({
+  title,
+  appIcon: _appIcon,
+  logo: _logo,
+  navigation,
+}: WindowsLayoutProps) {
   const { i18n } = useTranslation();
   const { settings } = useSettings();
   const currentLanguage = i18n.language || 'en';
@@ -513,7 +532,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
   /** Highest z-index: front window always gets this so it stays on top. */
   const maxZIndex = useMemo(
     () => Z_INDEX.WINDOWS_WINDOW_BASE + Math.max(windows.length, 1),
-    [windows.length]
+    [windows.length],
   );
 
   const openWindow = useCallback(
@@ -545,7 +564,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
       setFrontWindowId(id);
       setStartMenuOpen(false);
     },
-    [currentLanguage, windows.length]
+    [currentLanguage, windows.length],
   );
 
   const closeWindow = useCallback((id: string) => {
@@ -578,10 +597,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
   useEffect(() => {
     if (!startMenuOpen) return;
     const onDocClick = (e: MouseEvent) => {
-      if (
-        startPanelRef.current &&
-        !startPanelRef.current.contains(e.target as Node)
-      ) {
+      if (startPanelRef.current && !startPanelRef.current.contains(e.target as Node)) {
         setStartMenuOpen(false);
       }
     };
@@ -608,13 +624,16 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
       }
       openWindow(item);
     },
-    [openWindow]
+    [openWindow],
   );
 
   return (
     <LayoutProviders>
       <OverlayShell navigationItems={navigationItems}>
-        <div className="fixed inset-0 bg-muted/30" style={{ paddingBottom: TASKBAR_HEIGHT }}>
+        <div
+          className="fixed inset-0 bg-muted/30"
+          style={{ paddingBottom: TASKBAR_HEIGHT }}
+        >
           {/* Desktop area: windows */}
           {windows.map((win, index) => {
             const navItem = navigationItems.find((n) => n.path === win.path);
@@ -648,7 +667,10 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
           }}
         >
           {/* Start button */}
-          <div className="relative shrink-0" ref={startPanelRef}>
+          <div
+            className="relative shrink-0"
+            ref={startPanelRef}
+          >
             <button
               type="button"
               onClick={() => setStartMenuOpen((o) => !o)}
@@ -656,7 +678,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                 'flex items-center gap-2 h-9 px-3 rounded cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                 startMenuOpen
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
               )}
               aria-expanded={startMenuOpen}
               aria-haspopup="true"
@@ -700,7 +722,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                               alt=""
                               className={cn(
                                 'h-5 w-5 shrink-0 rounded-sm object-cover',
-                                isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert'
+                                isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
                               )}
                             />
                           ) : (
@@ -736,7 +758,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                     'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     isFocused
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
                   )}
                   title={windowLabel}
                 >
@@ -746,7 +768,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                       alt=""
                       className={cn(
                         'h-4 w-4 shrink-0 rounded-sm object-cover',
-                        isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert'
+                        isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
                       )}
                     />
                   ) : (
@@ -783,7 +805,7 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                         alt=""
                         className={cn(
                           'h-4 w-4 shrink-0 rounded-sm object-cover',
-                          isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert'
+                          isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
                         )}
                       />
                     ) : (
@@ -808,7 +830,10 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
               timeStyle: 'medium',
             }).format(now)}
           >
-            <time dateTime={now.toISOString()} className="text-xs leading-tight tabular-nums whitespace-nowrap">
+            <time
+              dateTime={now.toISOString()}
+              className="text-xs leading-tight tabular-nums whitespace-nowrap"
+            >
               {new Intl.DateTimeFormat(currentLanguage, {
                 timeZone,
                 hour: '2-digit',
@@ -816,7 +841,10 @@ export function WindowsLayout({ title, appIcon: _appIcon, logo: _logo, navigatio
                 second: '2-digit',
               }).format(now)}
             </time>
-            <time dateTime={now.toISOString()} className="text-[10px] leading-tight whitespace-nowrap text-sidebar-foreground/90">
+            <time
+              dateTime={now.toISOString()}
+              className="text-[10px] leading-tight whitespace-nowrap text-sidebar-foreground/90"
+            >
               {new Intl.DateTimeFormat(currentLanguage, {
                 timeZone,
                 weekday: 'short',

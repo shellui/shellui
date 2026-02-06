@@ -13,12 +13,12 @@ ShellUI can report runtime errors to [Sentry](https://sentry.io) in production s
 
 Sentry is **merged on load** by the CLI: when you run `shellui build` or `shellui start`, the loaded config is augmented with `sentry` from env. No Sentry code in `shellui.config.ts` is required.
 
-| Environment variable   | Required | Description |
-|------------------------|----------|-------------|
-| `SENTRY_DSN`           | Yes (to enable) | Your Sentry project DSN (Data Source Name). Find it in Sentry: Project → Settings → Client Keys (DSN). When set, Sentry is enabled (unless disabled via `SENTRY_ENABLED`). |
-| `SENTRY_ENABLED`       | No       | Set to `false` or `0` to disable Sentry even when `SENTRY_DSN` is set. Omit or set to any other value to allow Sentry when DSN is set. |
-| `SENTRY_ENVIRONMENT`   | No       | Environment name (e.g. `production`, `staging`). Defaults to `production` if not set. |
-| `SENTRY_RELEASE`       | No       | Release identifier (e.g. git SHA or app version). Useful for release-based grouping in Sentry. |
+| Environment variable | Required        | Description                                                                                                                                                                |
+| -------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SENTRY_DSN`         | Yes (to enable) | Your Sentry project DSN (Data Source Name). Find it in Sentry: Project → Settings → Client Keys (DSN). When set, Sentry is enabled (unless disabled via `SENTRY_ENABLED`). |
+| `SENTRY_ENABLED`     | No              | Set to `false` or `0` to disable Sentry even when `SENTRY_DSN` is set. Omit or set to any other value to allow Sentry when DSN is set.                                     |
+| `SENTRY_ENVIRONMENT` | No              | Environment name (e.g. `production`, `staging`). Defaults to `production` if not set.                                                                                      |
+| `SENTRY_RELEASE`     | No              | Release identifier (e.g. git SHA or app version). Useful for release-based grouping in Sentry.                                                                             |
 
 At build time the CLI injects these as three separate globals (one string each), not as part of the stringified app config: `__SHELLUI_SENTRY_DSN__`, `__SHELLUI_SENTRY_ENVIRONMENT__`, and `__SHELLUI_SENTRY_RELEASE__`. The core reads them individually when initializing Sentry.
 
@@ -68,11 +68,11 @@ At build time the CLI injects these as three separate globals (one string each),
 
 ## Summary
 
-| Context        | Sentry initialized? | Notes |
-|----------------|---------------------|--------|
-| `shellui start` (dev) | No  | Ignored so you don’t get dev noise. |
-| Production build, `SENTRY_DSN` set | Yes | Errors reported to your Sentry project. |
-| Production build, `SENTRY_DSN` not set | No | No reporting. |
-| Production build, `SENTRY_ENABLED=false` or `0` | No | Disabled even if DSN is set. |
+| Context                                         | Sentry initialized? | Notes                                   |
+| ----------------------------------------------- | ------------------- | --------------------------------------- |
+| `shellui start` (dev)                           | No                  | Ignored so you don’t get dev noise.     |
+| Production build, `SENTRY_DSN` set              | Yes                 | Errors reported to your Sentry project. |
+| Production build, `SENTRY_DSN` not set          | No                  | No reporting.                           |
+| Production build, `SENTRY_ENABLED=false` or `0` | No                  | Disabled even if DSN is set.            |
 
 Sentry is configured only via env: set `SENTRY_DSN` (and optionally `SENTRY_ENABLED`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`) in deployment or `.env`. Nothing is required in `shellui.config.ts`.

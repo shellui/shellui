@@ -13,11 +13,12 @@ npm install @shellui/sdk
 ```javascript
 import { init, getVersion } from '@shellui/sdk';
 
-const sdk = init({ /* config */ });
+const sdk = init({
+  /* config */
+});
 console.log(getVersion());
 ```
 
 ## License
 
 MIT
-

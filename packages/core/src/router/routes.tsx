@@ -7,14 +7,31 @@ import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
 
 // Lazy load route components
-const HomeView = lazy(() => import('../components/HomeView').then((m) => ({ default: m.HomeView })));
-const SettingsView = lazy(() => import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })));
-const CookiePreferencesView = lazy(() => import('../features/cookieConsent/CookiePreferencesView').then((m) => ({ default: m.CookiePreferencesView })));
-const ViewRoute = lazy(() => import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })));
-const NotFoundView = lazy(() => import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })));
+const HomeView = lazy(() =>
+  import('../components/HomeView').then((m) => ({ default: m.HomeView })),
+);
+const SettingsView = lazy(() =>
+  import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })),
+);
+const CookiePreferencesView = lazy(() =>
+  import('../features/cookieConsent/CookiePreferencesView').then((m) => ({
+    default: m.CookiePreferencesView,
+  })),
+);
+const ViewRoute = lazy(() =>
+  import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })),
+);
+const NotFoundView = lazy(() =>
+  import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })),
+);
 
 function RouteFallback() {
-  return <div className="min-h-screen bg-background" aria-hidden />;
+  return (
+    <div
+      className="min-h-screen bg-background"
+      aria-hidden
+    />
+  );
 }
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {

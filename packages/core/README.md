@@ -15,4 +15,3 @@ This package contains the core React application for ShellUI. It's typically use
 ## License
 
 MIT
-

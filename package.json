@@ -26,7 +26,9 @@
     "tauri:install": "pnpm --filter @shellui/tauri run install:deps",
     "tauri:dev": "pnpm --filter @shellui/tauri run dev",
     "tauri:build": "pnpm --filter @shellui/tauri run build",
-    "lint": "pnpm exec eslint ."
+    "format": "pnpm exec prettier --write .",
+    "format:check": "pnpm exec prettier --check .",
+    "lint": "pnpm exec eslint . && pnpm run format:check"
   },
   "keywords": [
     "monorepo",
@@ -43,6 +45,8 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "typescript": "^5.0.0"
   }
 }

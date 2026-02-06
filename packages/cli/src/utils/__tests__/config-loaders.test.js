@@ -28,7 +28,7 @@ describe('Config Loaders', () => {
     // Restore console first
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
-    
+
     // Clean up test directory
     if (fs.existsSync(testDir)) {
       const files = fs.readdirSync(testDir);
@@ -59,20 +59,20 @@ describe('Config Loaders', () => {
       const expectedConfig = {
         name: 'test-app',
         version: '1.0.0',
-        routes: ['/home', '/about']
+        routes: ['/home', '/about'],
       };
-      
+
       fs.writeFileSync(configPath, JSON.stringify(expectedConfig, null, 2));
-      
+
       const config = loadJsonConfig(configPath);
-      
+
       expect(config).toStrictEqual(expectedConfig);
     });
 
     test('should throw error for invalid JSON', () => {
       const configPath = path.join(testDir, 'invalid-config.json');
       fs.writeFileSync(configPath, '{ invalid json }');
-      
+
       expect(() => {
         loadJsonConfig(configPath);
       }).toThrow(/JSON/);
@@ -80,7 +80,7 @@ describe('Config Loaders', () => {
 
     test('should throw error for missing file', () => {
       const configPath = path.join(testDir, 'non-existent.json');
-      
+
       expect(() => {
         loadJsonConfig(configPath);
       }).toThrow(/ENOENT/);
@@ -89,9 +89,9 @@ describe('Config Loaders', () => {
     test('should handle empty JSON object', () => {
       const configPath = path.join(testDir, 'empty-config.json');
       fs.writeFileSync(configPath, '{}');
-      
+
       const config = loadJsonConfig(configPath);
-      
+
       expect(config).toStrictEqual({});
     });
 
@@ -102,16 +102,16 @@ describe('Config Loaders', () => {
           name: 'test',
           settings: {
             theme: 'dark',
-            language: 'en'
-          }
+            language: 'en',
+          },
         },
-        features: ['feature1', 'feature2']
+        features: ['feature1', 'feature2'],
       };
-      
+
       fs.writeFileSync(configPath, JSON.stringify(expectedConfig, null, 2));
-      
+
       const config = loadJsonConfig(configPath);
-      
+
       expect(config).toStrictEqual(expectedConfig);
     });
   });
@@ -121,14 +121,14 @@ describe('Config Loaders', () => {
       const configPath = path.join(testDir, 'test-config.ts');
       const expectedConfig = {
         name: 'test-app',
-        version: '2.0.0'
+        version: '2.0.0',
       };
-      
+
       const tsConfigContent = `export default ${JSON.stringify(expectedConfig)};`;
       fs.writeFileSync(configPath, tsConfigContent);
-      
+
       const config = await loadTypeScriptConfig(configPath, testDir);
-      
+
       expect(config).toStrictEqual(expectedConfig);
     });
 
@@ -136,14 +136,14 @@ describe('Config Loaders', () => {
       const configPath = path.join(testDir, 'test-config-named.ts');
       const expectedConfig = {
         name: 'test-app',
-        routes: ['/home']
+        routes: ['/home'],
       };
-      
+
       const tsConfigContent = `export const config = ${JSON.stringify(expectedConfig)};`;
       fs.writeFileSync(configPath, tsConfigContent);
-      
+
       const loadedConfig = await loadTypeScriptConfig(configPath, testDir);
-      
+
       expect(loadedConfig).toStrictEqual(expectedConfig);
     });
 
@@ -151,41 +151,41 @@ describe('Config Loaders', () => {
       const configPath = path.join(testDir, 'test-config-both.ts');
       const defaultConfig = { name: 'default' };
       const namedConfig = { name: 'named' };
-      
+
       const tsConfigContent = `export default ${JSON.stringify(defaultConfig)};\nexport const config = ${JSON.stringify(namedConfig)};`;
       fs.writeFileSync(configPath, tsConfigContent);
-      
+
       const loadedConfig = await loadTypeScriptConfig(configPath, testDir);
-      
+
       expect(loadedConfig).toStrictEqual(defaultConfig);
     });
 
     test('should throw error for invalid TypeScript file', async () => {
       const configPath = path.join(testDir, 'invalid-config.ts');
       fs.writeFileSync(configPath, 'export const invalid = syntax error;');
-      
-      await expect(
-        loadTypeScriptConfig(configPath, testDir)
-      ).rejects.toThrow(/Failed to load TypeScript config/);
+
+      await expect(loadTypeScriptConfig(configPath, testDir)).rejects.toThrow(
+        /Failed to load TypeScript config/,
+      );
     });
 
     test('should throw error for missing TypeScript file', async () => {
       const configPath = path.join(testDir, 'non-existent.ts');
-      
-      await expect(
-        loadTypeScriptConfig(configPath, testDir)
-      ).rejects.toThrow(/Failed to load TypeScript config/);
+
+      await expect(loadTypeScriptConfig(configPath, testDir)).rejects.toThrow(
+        /Failed to load TypeScript config/,
+      );
     });
 
     test('should clean up temporary loader script', async () => {
       const configPath = path.join(testDir, 'cleanup-test.ts');
       const expectedConfig = { name: 'cleanup-test' };
-      
+
       const tsConfigContent = `export default ${JSON.stringify(expectedConfig)};`;
       fs.writeFileSync(configPath, tsConfigContent);
-      
+
       await loadTypeScriptConfig(configPath, testDir);
-      
+
       const tempScriptPath = path.join(testDir, '.shellui-config-loader.mjs');
       expect(fs.existsSync(tempScriptPath)).toBe(false);
     });
@@ -196,15 +196,15 @@ describe('Config Loaders', () => {
         name: 'complex-app',
         settings: {
           port: 3000,
-          host: 'localhost'
-        }
+          host: 'localhost',
+        },
       };
-      
+
       const tsConfigContent = `interface Config { name: string; settings: { port: number; host: string; }; }\nconst config: Config = ${JSON.stringify(expectedConfig)};\nexport default config;`;
       fs.writeFileSync(configPath, tsConfigContent);
-      
+
       const loadedConfig = await loadTypeScriptConfig(configPath, testDir);
-      
+
       expect(loadedConfig).toStrictEqual(expectedConfig);
     });
   });

@@ -12,7 +12,7 @@ export const allSupportedLanguages = [
   { code: 'fr', name: 'French', nativeName: 'Français' },
 ] as const;
 
-export type SupportedLanguage = typeof allSupportedLanguages[number]['code'];
+export type SupportedLanguage = (typeof allSupportedLanguages)[number]['code'];
 
 const resources = {
   en: {
@@ -53,35 +53,35 @@ let isInitialized = false;
 
 export const initializeI18n = (enabledLanguages?: string | string[]) => {
   // Normalize to array
-  const enabledLangs = enabledLanguages 
-    ? (Array.isArray(enabledLanguages) ? enabledLanguages : [enabledLanguages])
-    : allSupportedLanguages.map(lang => lang.code);
-  
+  const enabledLangs = enabledLanguages
+    ? Array.isArray(enabledLanguages)
+      ? enabledLanguages
+      : [enabledLanguages]
+    : allSupportedLanguages.map((lang) => lang.code);
+
   // Filter to only include languages we have translations for
-  const validLangs = enabledLangs.filter(lang => 
-    allSupportedLanguages.some(supported => supported.code === lang)
+  const validLangs = enabledLangs.filter((lang) =>
+    allSupportedLanguages.some((supported) => supported.code === lang),
   );
-  
+
   // Ensure at least 'en' is available
   const finalLangs = validLangs.length > 0 ? validLangs : ['en'];
   const initialLang = getInitialLanguage(finalLangs);
 
   if (!isInitialized) {
-    i18n
-      .use(initReactI18next)
-      .init({
-        resources,
-        defaultNS: 'common',
-        lng: initialLang,
-        fallbackLng: 'en',
-        supportedLngs: finalLangs,
-        interpolation: {
-          escapeValue: false, // React already escapes values
-        },
-        react: {
-          useSuspense: false, // Disable suspense for better PWA compatibility
-        },
-      });
+    i18n.use(initReactI18next).init({
+      resources,
+      defaultNS: 'common',
+      lng: initialLang,
+      fallbackLng: 'en',
+      supportedLngs: finalLangs,
+      interpolation: {
+        escapeValue: false, // React already escapes values
+      },
+      react: {
+        useSuspense: false, // Disable suspense for better PWA compatibility
+      },
+    });
     isInitialized = true;
   } else {
     // Update supported languages if config changes
@@ -95,11 +95,13 @@ export const initializeI18n = (enabledLanguages?: string | string[]) => {
 initializeI18n();
 
 export const getSupportedLanguages = (enabledLanguages?: string | string[]) => {
-  const enabledLangs = enabledLanguages 
-    ? (Array.isArray(enabledLanguages) ? enabledLanguages : [enabledLanguages])
-    : allSupportedLanguages.map(lang => lang.code);
-  
-  return allSupportedLanguages.filter(lang => enabledLangs.includes(lang.code));
+  const enabledLangs = enabledLanguages
+    ? Array.isArray(enabledLanguages)
+      ? enabledLanguages
+      : [enabledLanguages]
+    : allSupportedLanguages.map((lang) => lang.code);
+
+  return allSupportedLanguages.filter((lang) => enabledLangs.includes(lang.code));
 };
 
 export default i18n;

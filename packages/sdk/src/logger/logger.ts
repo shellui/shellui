@@ -57,10 +57,7 @@ function isNamespaceEnabled(namespace: string): boolean {
   return settings.logging?.namespaces?.[namespace] === true;
 }
 
-const NAMESPACE_COLORS: Record<
-  string,
-  { bg: string; text: string; name: string }
-> = {
+const NAMESPACE_COLORS: Record<string, { bg: string; text: string; name: string }> = {
   shellsdk: {
     bg: '#3b82f6',
     text: '#ffffff',
@@ -74,12 +71,11 @@ const NAMESPACE_COLORS: Record<
 };
 
 function getNamespaceStyles(namespace: string): Record<string, string> {
-  const colors =
-    NAMESPACE_COLORS[namespace] ?? {
-      bg: '#6b7280',
-      text: '#ffffff',
-      name: namespace,
-    };
+  const colors = NAMESPACE_COLORS[namespace] ?? {
+    bg: '#6b7280',
+    text: '#ffffff',
+    name: namespace,
+  };
   return {
     background: colors.bg,
     color: colors.text,
@@ -94,10 +90,7 @@ function getNamespaceStyles(namespace: string): Record<string, string> {
 
 function formatStyles(styles: Record<string, string>): string {
   return Object.entries(styles)
-    .map(
-      ([key, value]) =>
-        `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`
-    )
+    .map(([key, value]) => `${key.replace(/([A-Z])/g, '-$1').toLowerCase()}: ${value}`)
     .join('; ');
 }
 
@@ -129,24 +122,19 @@ function setupRoarrWriter(): void {
         return;
       }
 
-      const logLevel =
-        logData.context?.logLevel ?? logData.logLevel ?? 0;
-      const logMethod =
-        logLevel >= 50 ? 'error' : logLevel >= 40 ? 'warn' : 'log';
+      const logLevel = logData.context?.logLevel ?? logData.logLevel ?? 0;
+      const logMethod = logLevel >= 50 ? 'error' : logLevel >= 40 ? 'warn' : 'log';
       const messageText = String(logData.context?.message ?? '');
 
       const contextWithoutNamespace = { ...logData.context };
       delete contextWithoutNamespace.namespace;
       delete contextWithoutNamespace.logLevel;
       delete contextWithoutNamespace.message;
-      const hasAdditionalContext =
-        Object.keys(contextWithoutNamespace).length > 0;
+      const hasAdditionalContext = Object.keys(contextWithoutNamespace).length > 0;
 
       if (namespace) {
         const styles = getNamespaceStyles(namespace as string);
-        const namespaceBadge = `[${
-          NAMESPACE_COLORS[namespace as string]?.name ?? namespace
-        }]`;
+        const namespaceBadge = `[${NAMESPACE_COLORS[namespace as string]?.name ?? namespace}]`;
         const styleString = formatStyles(styles);
 
         if (hasAdditionalContext) {
@@ -154,14 +142,10 @@ function setupRoarrWriter(): void {
             `%c${namespaceBadge}%c ${messageText}`,
             styleString,
             '',
-            contextWithoutNamespace
+            contextWithoutNamespace,
           );
         } else {
-          console[logMethod](
-            `%c${namespaceBadge}%c ${messageText}`,
-            styleString,
-            ''
-          );
+          console[logMethod](`%c${namespaceBadge}%c ${messageText}`, styleString, '');
         }
       } else {
         if (hasAdditionalContext) {
@@ -174,7 +158,7 @@ function setupRoarrWriter(): void {
       console.log(message);
     }
   };
-  
+
   writerInitialized = true;
 }
 
@@ -191,22 +175,38 @@ export function getLogger(namespace: string): LoggerInstance {
     },
     info: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 30 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({
+          ...context,
+          message,
+          logLevel: 30,
+        });
       }
     },
     warn: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 40 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({
+          ...context,
+          message,
+          logLevel: 40,
+        });
       }
     },
     error: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 50 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({
+          ...context,
+          message,
+          logLevel: 50,
+        });
       }
     },
     debug: (message: string, context: Record<string, unknown> = {}) => {
       if (isNamespaceEnabled(namespace)) {
-        (logger as unknown as (context: Record<string, unknown>) => void)({ ...context, message, logLevel: 20 });
+        (logger as unknown as (context: Record<string, unknown>) => void)({
+          ...context,
+          message,
+          logLevel: 20,
+        });
       }
     },
   };

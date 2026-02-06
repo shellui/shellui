@@ -3,7 +3,9 @@ import { shellui } from '@shellui/sdk';
 import { useConfig } from '@/features/config/useConfig';
 import type { NavigationItem, NavigationGroup } from '@/features/config/types';
 
-const flattenNavigationItems = (navigation: (NavigationItem | NavigationGroup)[]): NavigationItem[] => {
+const flattenNavigationItems = (
+  navigation: (NavigationItem | NavigationGroup)[],
+): NavigationItem[] => {
   if (navigation.length === 0) return [];
   return navigation.flatMap((item) => {
     if ('title' in item && 'items' in item) {
@@ -20,7 +22,7 @@ export const NotFoundView = () => {
 
   const resolveLocalizedString = (
     value: string | { en: string; fr: string; [key: string]: string },
-    lang: string
+    lang: string,
   ): string => {
     if (typeof value === 'string') return value;
     return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
@@ -40,16 +42,31 @@ export const NotFoundView = () => {
   return (
     <div className="flex flex-col min-h-full">
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-muted-foreground">
-        <span className="text-6xl font-light tracking-tighter text-foreground/80 select-none">404</span>
+        <span className="text-6xl font-light tracking-tighter text-foreground/80 select-none">
+          404
+        </span>
         <p className="mt-3 text-lg text-muted-foreground">Page not found</p>
       </div>
 
       {navItems.length > 0 && (
         <footer className="border-t border-border py-4 px-6 mt-auto bg-muted/30">
-          <nav className="flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm text-muted-foreground" aria-label="Available pages">
+          <nav
+            className="flex flex-row flex-wrap justify-center items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"
+            aria-label="Available pages"
+          >
             {navItems.map((item, index) => (
-              <span key={item.path} className="inline-flex items-center gap-x-2">
-                {index > 0 && <span className="text-border select-none" aria-hidden>·</span>}
+              <span
+                key={item.path}
+                className="inline-flex items-center gap-x-2"
+              >
+                {index > 0 && (
+                  <span
+                    className="text-border select-none"
+                    aria-hidden
+                  >
+                    ·
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleNavigate(`/${item.path}`)}

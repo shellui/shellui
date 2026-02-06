@@ -6,12 +6,12 @@ on:
       - main
       - master
     paths:
-      - "docs/**"
-      - "tools/docusaurus/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - ".github/workflows/deploy-docs.yml"
+      - 'docs/**'
+      - 'tools/docusaurus/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
 jobs:
@@ -31,8 +31,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "25"
-          cache: "pnpm"
+          node-version: '25'
+          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

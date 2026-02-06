@@ -22,7 +22,7 @@ export function setupKeyListener(): () => void {
           key: event.key,
           keyCode: event.keyCode,
           code: event.code,
-        }
+        },
       );
 
       if (window.parent !== window) {

@@ -14,7 +14,7 @@ function hexToHsl(hexString: string): string {
   if (!hexString || typeof hexString !== 'string') {
     return hexString;
   }
-  
+
   // Check if it's a hex color
   if (!hexString.match(/^#?[0-9A-Fa-f]{6}$/)) {
     // If it's not a hex color, return as-is (might be radius or other value)
@@ -23,18 +23,18 @@ function hexToHsl(hexString: string): string {
 
   // Remove # if present
   const hex = hexString.replace('#', '');
-  
+
   // Parse RGB values
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
-  
+
   // Validate parsed values
   if (isNaN(r) || isNaN(g) || isNaN(b)) {
     console.warn(`[Theme] Invalid hex color: ${hexString}`);
     return hexString;
   }
-  
+
   // Normalize RGB values to 0-1
   const rNorm = r / 255;
   const gNorm = g / 255;
@@ -49,7 +49,7 @@ function hexToHsl(hexString: string): string {
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    
+
     switch (max) {
       case rNorm:
         h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
@@ -69,13 +69,13 @@ function hexToHsl(hexString: string): string {
   const lPercent = Math.round(l * 100 * 10) / 10;
 
   const result = `${hDeg} ${sPercent}% ${lPercent}%`;
-  
+
   // Validate result
   if (!result.match(/^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/)) {
     console.warn(`[Theme] Invalid HSL conversion result for ${hexString}: ${result}`);
     return hexString;
   }
-  
+
   return result;
 }
 
@@ -417,7 +417,7 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
 
   // Convert hex to HSL for all colors
   const primaryHsl = hexToHsl(colors.primary);
-  
+
   // Apply CSS variables directly on :root element
   // Inline styles have the highest specificity and will override CSS defaults
   // Format: HSL values without hsl() wrapper (e.g., "142 71% 45%")
@@ -449,13 +449,13 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   root.style.setProperty('--sidebar-accent-foreground', hexToHsl(colors.sidebarAccentForeground));
   root.style.setProperty('--sidebar-border', hexToHsl(colors.sidebarBorder));
   root.style.setProperty('--sidebar-ring', hexToHsl(colors.sidebarRing));
-  
+
   // Load custom font files if provided
   // Always clean up existing theme fonts first (for theme switching)
   const head = document.head || document.getElementsByTagName('head')[0];
   const existingFontLinks = head.querySelectorAll('link[data-theme-font], style[data-theme-font]');
-  existingFontLinks.forEach(link => link.remove());
-  
+  existingFontLinks.forEach((link) => link.remove());
+
   if (theme.fontFiles && theme.fontFiles.length > 0) {
     theme.fontFiles.forEach((fontFile, index) => {
       // Check if it's a Google Fonts link or a regular stylesheet
@@ -481,12 +481,12 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
       }
     });
   }
-  
+
   // Apply custom font families
   // Priority: headingFontFamily/bodyFontFamily > fontFamily (backward compatible)
   const bodyFont = theme.bodyFontFamily || theme.fontFamily;
   const headingFont = theme.headingFontFamily || theme.fontFamily || bodyFont;
-  
+
   if (bodyFont) {
     root.style.setProperty('--body-font-family', bodyFont);
     root.style.setProperty('--font-family', bodyFont); // Backward compatibility
@@ -496,14 +496,14 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
     root.style.removeProperty('--font-family');
     document.body.style.fontFamily = '';
   }
-  
+
   if (headingFont) {
     root.style.setProperty('--heading-font-family', headingFont);
     // Apply to headings via CSS variable (will be used in CSS)
   } else {
     root.style.removeProperty('--heading-font-family');
   }
-  
+
   // Apply optional font styling properties generically
   if (theme.letterSpacing) {
     root.style.setProperty('--letter-spacing', theme.letterSpacing);
@@ -512,7 +512,7 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
     root.style.removeProperty('--letter-spacing');
     root.style.letterSpacing = '';
   }
-  
+
   if (theme.textShadow) {
     root.style.setProperty('--text-shadow', theme.textShadow);
     // Apply slightly lighter shadow to body for better readability
@@ -530,7 +530,7 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
     root.style.removeProperty('--text-shadow');
     document.body.style.textShadow = '';
   }
-  
+
   if (theme.lineHeight) {
     root.style.setProperty('--line-height', theme.lineHeight);
     document.body.style.lineHeight = theme.lineHeight;
@@ -538,19 +538,23 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
     root.style.removeProperty('--line-height');
     document.body.style.lineHeight = '';
   }
-  
+
   // Verify primary color is set (for debugging)
   const actualPrimary = root.style.getPropertyValue('--primary');
-  
+
   // Validate HSL format (should be "H S% L%" like "142 71% 45%")
   const hslFormat = /^\d+(\.\d+)?\s+\d+(\.\d+)?%\s+\d+(\.\d+)?%$/;
-  
+
   if (!actualPrimary || actualPrimary.trim() === '') {
-    console.error(`[Theme] Failed to set --primary CSS variable. Expected HSL from ${colors.primary}, got: "${actualPrimary}"`);
+    console.error(
+      `[Theme] Failed to set --primary CSS variable. Expected HSL from ${colors.primary}, got: "${actualPrimary}"`,
+    );
   } else if (!hslFormat.test(actualPrimary.trim())) {
-    console.error(`[Theme] Invalid HSL format for --primary: "${actualPrimary}". Expected format: "H S% L%"`);
+    console.error(
+      `[Theme] Invalid HSL format for --primary: "${actualPrimary}". Expected format: "H S% L%"`,
+    );
   }
-  
+
   // Force a reflow to ensure Tailwind picks up the changes
   // This is sometimes needed for Tailwind v4 to recognize CSS variable changes
   void root.offsetHeight;

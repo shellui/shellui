@@ -80,15 +80,15 @@ const config: ShellUIConfig = {
       label: 'Home',
       path: 'home',
       url: 'http://localhost:4000/',
-      icon: 'Home'
+      icon: 'Home',
     },
     {
       label: 'About',
       path: 'about',
       url: 'https://example.com/about',
-      icon: 'Info'
-    }
-  ]
+      icon: 'Info',
+    },
+  ],
 };
 
 export default config;
@@ -119,6 +119,7 @@ npx shellui start
 ```
 
 The server will:
+
 - Start on the configured port (default: 3000)
 - Automatically open your browser
 - Watch for configuration file changes and restart automatically
@@ -146,6 +147,7 @@ shellui build
 ```
 
 This will:
+
 - Build your ShellUI application
 - Output the production files to the `dist/` directory
 - Optimize assets for production
@@ -194,5 +196,3 @@ If the default port is already in use, change it in your configuration:
 - Ensure all dependencies are installed: `npm install`
 - Check that your configuration file is valid
 - Review error messages in the terminal for specific issues
-
-

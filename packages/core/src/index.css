@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -78,33 +78,71 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: var(--body-font-family, var(--font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif));
+    font-family: var(
+      --body-font-family,
+      var(
+        --font-family,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        Roboto,
+        'Helvetica Neue',
+        Arial,
+        sans-serif
+      )
+    );
     letter-spacing: var(--letter-spacing, normal);
     text-shadow: var(--text-shadow, none);
     line-height: var(--line-height, 1.5);
   }
-  
+
   /* Apply heading font family if specified, otherwise use body font */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--heading-font-family, var(--body-font-family, var(--font-family, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif)));
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(
+      --heading-font-family,
+      var(
+        --body-font-family,
+        var(
+          --font-family,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          'Helvetica Neue',
+          Arial,
+          sans-serif
+        )
+      )
+    );
     letter-spacing: var(--letter-spacing, normal);
     text-shadow: var(--text-shadow, none);
   }
-  
+
   /* Add playful styling to buttons for Comic Sans theme */
-  button, [role="button"] {
+  button,
+  [role='button'] {
     letter-spacing: var(--letter-spacing, normal);
   }
-  
-  button:hover, [role="button"]:hover {
+
+  button:hover,
+  [role='button']:hover {
     filter: brightness(0.95);
   }
-  
+
   /* Playful input styling */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     letter-spacing: var(--letter-spacing, normal);
   }
-  
+
   /* Select field - custom caret with proper spacing */
   select.select-field {
     appearance: none;
@@ -116,7 +154,7 @@
     background-size: 1rem 1rem;
     padding-right: 2.5rem;
   }
-  
+
   /* Dark mode caret color */
   .dark select.select-field {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -180,7 +218,7 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
-  
+
   /* Border radius tokens */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -191,87 +229,87 @@
   * {
     outline-color: hsl(var(--ring) / 0.5);
   }
-  
+
   /* Ensure Sonner toasts use theme variables - override Sonner defaults */
   [data-sonner-toast] {
     background-color: hsl(var(--background)) !important;
     color: hsl(var(--foreground)) !important;
     border-color: hsl(var(--border)) !important;
   }
-  
+
   [data-sonner-toast] [data-description] {
     color: hsl(var(--muted-foreground)) !important;
   }
-  
+
   [data-sonner-toast] [data-button],
   [data-sonner-toast] button[data-button] {
     background-color: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;
   }
-  
+
   [data-sonner-toast] [data-button]:hover,
   [data-sonner-toast] button[data-button]:hover {
     background-color: hsl(var(--primary) / 0.9) !important;
   }
-  
+
   [data-sonner-toast] [data-cancel],
   [data-sonner-toast] button[data-cancel] {
     background-color: hsl(var(--muted)) !important;
     color: hsl(var(--muted-foreground)) !important;
   }
-  
+
   [data-sonner-toast] [data-cancel]:hover,
   [data-sonner-toast] button[data-cancel]:hover {
     background-color: hsl(var(--muted) / 0.8) !important;
   }
-  
+
   /* Success toast icon uses text color (no separate icon color) */
-  [data-sonner-toast][data-type="success"] [data-icon],
-  [data-sonner-toast][data-type="success"] [data-icon] svg {
+  [data-sonner-toast][data-type='success'] [data-icon],
+  [data-sonner-toast][data-type='success'] [data-icon] svg {
     color: hsl(var(--foreground)) !important;
   }
-  
+
   /* Color error toast icon */
-  [data-sonner-toast][data-type="error"] [data-icon],
-  [data-sonner-toast][data-type="error"] svg {
+  [data-sonner-toast][data-type='error'] [data-icon],
+  [data-sonner-toast][data-type='error'] svg {
     color: hsl(var(--destructive)) !important;
   }
-  
+
   /* Invert sidebar icons in dark mode - target all icons in sidebar context */
   /* Exclude app icon and logo which have their own rules */
-  .dark [data-sidebar="sidebar"] img[src*="/icons/"]:not(.sidebar-app-icon):not(.sidebar-logo),
-  .dark [data-sidebar="sidebar"] img[src*="icons/"]:not(.sidebar-app-icon):not(.sidebar-logo),
-  .dark [data-sidebar="sidebar"] img[src$=".svg"]:not(.sidebar-app-icon):not(.sidebar-logo) {
+  .dark [data-sidebar='sidebar'] img[src*='/icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
+  .dark [data-sidebar='sidebar'] img[src*='icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
+  .dark [data-sidebar='sidebar'] img[src$='.svg']:not(.sidebar-app-icon):not(.sidebar-logo) {
     filter: invert(1) brightness(1.2);
   }
-  
+
   /* Sidebar trigger button icon should adapt to theme */
-  .dark button[aria-label*="sidebar"] img {
+  .dark button[aria-label*='sidebar'] img {
     filter: invert(1);
   }
-  
+
   /* Sidebar app icon - match text color for visibility */
   /* In light mode: make icon dark to match dark text */
-  [data-sidebar="sidebar"] img.sidebar-app-icon {
+  [data-sidebar='sidebar'] img.sidebar-app-icon {
     filter: brightness(0) saturate(100%);
     opacity: 0.9;
   }
-  
+
   /* In dark mode: invert to make icon light to match light text */
-  .dark [data-sidebar="sidebar"] img.sidebar-app-icon {
+  .dark [data-sidebar='sidebar'] img.sidebar-app-icon {
     filter: brightness(0) invert(1) saturate(100%);
     opacity: 0.9;
   }
-  
+
   /* Sidebar logo - dark in light mode, white in dark mode */
   /* In light mode: make logo dark */
-  [data-sidebar="sidebar"] img.sidebar-logo {
+  [data-sidebar='sidebar'] img.sidebar-logo {
     filter: brightness(0) saturate(100%);
     opacity: 0.9;
   }
-  
+
   /* In dark mode: invert to make logo white */
-  .dark [data-sidebar="sidebar"] img.sidebar-logo {
+  .dark [data-sidebar='sidebar'] img.sidebar-logo {
     filter: brightness(0) invert(1) saturate(100%);
     opacity: 0.9;
   }
@@ -284,12 +322,20 @@
 }
 
 @keyframes dialog-overlay-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 @keyframes dialog-overlay-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 @keyframes dialog-content-in {
   from {
@@ -312,17 +358,17 @@
   }
 }
 
-[data-dialog-overlay][data-state="open"] {
+[data-dialog-overlay][data-state='open'] {
   animation: dialog-overlay-fade-in 0.1s ease-out;
 }
-[data-dialog-overlay][data-state="closed"] {
+[data-dialog-overlay][data-state='closed'] {
   animation: dialog-overlay-fade-out 0.1s ease-in;
 }
 
-[data-dialog-content][data-state="open"] {
+[data-dialog-content][data-state='open'] {
   animation: dialog-content-in 0.1s ease-out 0.05s both;
 }
-[data-dialog-content][data-state="closed"] {
+[data-dialog-content][data-state='closed'] {
   animation: dialog-content-out 0.1s ease-in both;
 }
 
@@ -348,15 +394,19 @@
   }
 }
 
-[data-cookie-consent][data-state="open"] {
+[data-cookie-consent][data-state='open'] {
   animation: cookie-dialog-content-in 0.15s ease-out 0.05s both;
 }
-[data-cookie-consent][data-state="closed"] {
+[data-cookie-consent][data-state='closed'] {
   animation: cookie-dialog-content-out 0.15s ease-in both;
 }
 
 /* Loading overlay top bar animation – grows from left to right */
 @keyframes loading-bar-slide {
-  from { width: 0%; }
-  to { width: 100%; }
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
 }

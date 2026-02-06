@@ -20,10 +20,10 @@ if (isBuild) {
   // Generate build ID: just the git commit hash
   try {
     // Get short git commit hash
-    const gitHash = execSync('git rev-parse --short HEAD', { 
-      cwd: __dirname, 
+    const gitHash = execSync('git rev-parse --short HEAD', {
+      cwd: __dirname,
       encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore']
+      stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
     version = `${packageJson.version}-${gitHash}`;
   } catch (_error) {
@@ -77,7 +77,8 @@ const config: ShellUIConfig = {
       ],
       // Serif for headings, sans-serif for body
       headingFontFamily: '"Source Serif Pro", Georgia, serif',
-      bodyFontFamily: '"Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      bodyFontFamily:
+        '"Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       lineHeight: '1.6',
       letterSpacing: '0.01em',
       colors: {
@@ -150,25 +151,25 @@ const config: ShellUIConfig = {
       label: 'Playground',
       path: 'playground',
       url: '/',
-      icon: "/icons/play.svg"
+      icon: '/icons/play.svg',
     },
     {
       // Language-specific label (new feature)
       label: {
         en: 'Docs',
-        fr: 'Documentation'
+        fr: 'Documentation',
       },
       path: 'docs',
       url: 'http://localhost:3000',
-      icon: '/icons/book-open.svg'
+      icon: '/icons/book-open.svg',
     },
     {
       label: 'ShellUI',
       path: 'shellui',
       url: 'https://shellui.com/',
-      icon: "/icons/user.svg",
+      icon: '/icons/user.svg',
       openIn: 'drawer',
-      drawerPosition: 'right'
+      drawerPosition: 'right',
     },
     {
       label: 'Sebastienbarbier',
@@ -176,48 +177,48 @@ const config: ShellUIConfig = {
       url: 'https://sebastienbarbier.com/',
       openIn: 'external',
       position: 'end',
-      hiddenOnMobile: true
+      hiddenOnMobile: true,
     },
     {
       // Group title can also be localized
       title: {
         en: 'System',
-        fr: 'Système'
+        fr: 'Système',
       },
       items: [
         {
           label: {
             en: 'Page not found',
-            fr: 'Page non trouvée'
+            fr: 'Page non trouvée',
           },
           path: '404',
           url: '/thisisnotfound',
-          hidden: true
+          hidden: true,
         },
         {
           label: {
             en: 'Settings',
-            fr: 'Paramètres'
+            fr: 'Paramètres',
           },
           path: 'settings',
-            url: urls.settings,
-            icon: '/icons/settings.svg'
-          }
-        ]
-      },
+          url: urls.settings,
+          icon: '/icons/settings.svg',
+        },
+      ],
+    },
     {
       label: {
         en: 'Settings',
-        fr: 'Paramètres'
+        fr: 'Paramètres',
       },
       path: 'settings',
       url: urls.settings,
       icon: '/icons/settings.svg',
       openIn: 'modal',
       position: 'end',
-      hiddenOnMobile: true
-    }
-  ]
+      hiddenOnMobile: true,
+    },
+  ],
 };
 
 export default config;

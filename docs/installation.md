@@ -78,5 +78,3 @@ The CLI automatically handles the core dependencies. If you need to integrate Sh
 - `@shellui/sdk` - JavaScript SDK for ShellUI integration
 
 These are typically not needed for basic usage, as the CLI manages them automatically.
-
-

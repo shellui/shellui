@@ -2,9 +2,15 @@ import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 're
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 
-const DefaultLayout = lazy(() => import('./DefaultLayout').then((m) => ({ default: m.DefaultLayout })));
-const FullscreenLayout = lazy(() => import('./FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })));
-const WindowsLayout = lazy(() => import('./WindowsLayout').then((m) => ({ default: m.WindowsLayout })));
+const DefaultLayout = lazy(() =>
+  import('./DefaultLayout').then((m) => ({ default: m.DefaultLayout })),
+);
+const FullscreenLayout = lazy(() =>
+  import('./FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })),
+);
+const WindowsLayout = lazy(() =>
+  import('./WindowsLayout').then((m) => ({ default: m.WindowsLayout })),
+);
 
 interface AppLayoutProps {
   layout?: LayoutType;
@@ -15,11 +21,22 @@ interface AppLayoutProps {
 }
 
 function LayoutFallback() {
-  return <div className="min-h-screen bg-background" aria-hidden />;
+  return (
+    <div
+      className="min-h-screen bg-background"
+      aria-hidden
+    />
+  );
 }
 
 /** Renders the layout based on settings.layout (override) or config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
-export function AppLayout({ layout = 'sidebar', title, appIcon, logo, navigation }: AppLayoutProps) {
+export function AppLayout({
+  layout = 'sidebar',
+  title,
+  appIcon,
+  logo,
+  navigation,
+}: AppLayoutProps) {
   const { settings } = useSettings();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 

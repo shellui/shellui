@@ -1,16 +1,11 @@
-import {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react"
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+} from '@/components/ui/breadcrumb';
 import {
   Sidebar,
   SidebarContent,
@@ -21,137 +16,136 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-} from "@/components/ui/sidebar"
-import { Route, Routes, useLocation, useNavigate, Navigate } from "react-router"
-import { useTranslation } from "react-i18next"
-import urls from "@/constants/urls"
-import { createSettingsRoutes } from "./SettingsRoutes"
-import { useSettings } from "./hooks/useSettings"
-import { useConfig } from "../config/useConfig"
-import { isTauri } from "@/service-worker/register"
-import { Button } from "@/components/ui/button"
-import { ChevronRightIcon, ChevronLeftIcon } from "./SettingsIcons"
-
+} from '@/components/ui/sidebar';
+import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import urls from '@/constants/urls';
+import { createSettingsRoutes } from './SettingsRoutes';
+import { useSettings } from './hooks/useSettings';
+import { useConfig } from '../config/useConfig';
+import { isTauri } from '@/service-worker/register';
+import { Button } from '@/components/ui/button';
+import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
 
 export const SettingsView = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { settings } = useSettings()
-  const { config } = useConfig()
-  const { t } = useTranslation('settings')
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { settings } = useSettings();
+  const { config } = useConfig();
+  const { t } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
-  const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri())
+  const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
 
   useEffect(() => {
-    setIsTauriEnv(isTauri())
-    const tid = window.setTimeout(() => setIsTauriEnv(isTauri()), 200)
-    return () => window.clearTimeout(tid)
-  }, [])
+    setIsTauriEnv(isTauri());
+    const tid = window.setTimeout(() => setIsTauriEnv(isTauri()), 200);
+    return () => window.clearTimeout(tid);
+  }, []);
 
   useEffect(() => {
     if (config?.title) {
-      const settingsLabel = t('settings', { ns: 'common' })
-      document.title = `${settingsLabel} | ${config.title}`
+      const settingsLabel = t('settings', { ns: 'common' });
+      document.title = `${settingsLabel} | ${config.title}`;
     }
-  }, [config?.title, t])
+  }, [config?.title, t]);
 
   // Create routes with translations (service-worker route is already omitted in Tauri by createSettingsRoutes)
-  const settingsRoutes = useMemo(() => createSettingsRoutes(t), [t])
+  const settingsRoutes = useMemo(() => createSettingsRoutes(t), [t]);
 
   // In Tauri, hide service worker route; use reactive isTauriEnv so we catch late injection (e.g. dev)
   const routesWithoutTauriSw = useMemo(() => {
     if (isTauriEnv) {
-      return settingsRoutes.filter(route => route.path !== "service-worker")
+      return settingsRoutes.filter((route) => route.path !== 'service-worker');
     }
-    return settingsRoutes
-  }, [settingsRoutes, isTauriEnv])
+    return settingsRoutes;
+  }, [settingsRoutes, isTauriEnv]);
 
   // Filter routes based on developer features setting
   const filteredRoutes = useMemo(() => {
     if (settings.developerFeatures.enabled) {
-      return routesWithoutTauriSw
+      return routesWithoutTauriSw;
     }
-    return routesWithoutTauriSw.filter(route =>
-      route.path !== "developpers" && route.path !== "service-worker"
-    )
-  }, [settings.developerFeatures.enabled, routesWithoutTauriSw])
+    return routesWithoutTauriSw.filter(
+      (route) => route.path !== 'developpers' && route.path !== 'service-worker',
+    );
+  }, [settings.developerFeatures.enabled, routesWithoutTauriSw]);
 
   // Group routes by category
   const groupedRoutes = useMemo(() => {
-    const developerOnlyPaths = ["developpers", "service-worker"]
+    const developerOnlyPaths = ['developpers', 'service-worker'];
     const groups = [
       {
-        title: t("categories.preferences"),
-        routes: filteredRoutes.filter(route =>
-          ["appearance", "language-and-region", "data-privacy"].includes(route.path)
-        )
+        title: t('categories.preferences'),
+        routes: filteredRoutes.filter((route) =>
+          ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
+        ),
       },
       {
-        title: t("categories.system"),
-        routes: filteredRoutes.filter(route =>
-          ["update-app", "advanced"].includes(route.path)
-        )
+        title: t('categories.system'),
+        routes: filteredRoutes.filter((route) => ['update-app', 'advanced'].includes(route.path)),
       },
       {
-        title: t("categories.developer"),
-        routes: filteredRoutes.filter(route => developerOnlyPaths.includes(route.path))
-      }
-    ]
-    return groups.filter(group => group.routes.length > 0)
-  }, [filteredRoutes, t])
+        title: t('categories.developer'),
+        routes: filteredRoutes.filter((route) => developerOnlyPaths.includes(route.path)),
+      },
+    ];
+    return groups.filter((group) => group.routes.length > 0);
+  }, [filteredRoutes, t]);
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = useCallback(() => {
-    const pathname = location.pathname
+    const pathname = location.pathname;
 
     // Find matching nav item by checking if pathname contains the item path
     // This works regardless of the URL structure/prefix
-    const matchedItem = filteredRoutes.find(item => {
+    const matchedItem = filteredRoutes.find((item) => {
       // Normalize paths for comparison (remove leading/trailing slashes)
-      const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
-      const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '')
+      const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '');
+      const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '');
 
       // Check if pathname ends with the item path, or contains it as a path segment
-      return normalizedPathname === normalizedItemPath ||
+      return (
+        normalizedPathname === normalizedItemPath ||
         normalizedPathname.endsWith(`/${normalizedItemPath}`) ||
         normalizedPathname.includes(`/${normalizedItemPath}/`)
-    })
+      );
+    });
 
-    return matchedItem
-  }, [location.pathname, filteredRoutes])
+    return matchedItem;
+  }, [location.pathname, filteredRoutes]);
 
-  const selectedItem = useMemo(() => getSelectedItemFromUrl(), [getSelectedItemFromUrl])
+  const selectedItem = useMemo(() => getSelectedItemFromUrl(), [getSelectedItemFromUrl]);
 
   // Check if we're at the settings root (no specific route selected)
   const isSettingsRoot = useMemo(() => {
-    const pathname = location.pathname
+    const pathname = location.pathname;
     // Normalize the settings URL (remove leading/trailing slashes)
-    const normalizedSettingsPath = urls.settings.replace(/^\/+|\/+$/g, '')
+    const normalizedSettingsPath = urls.settings.replace(/^\/+|\/+$/g, '');
     // Normalize the current pathname (remove leading/trailing slashes)
-    const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '')
-    
+    const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '');
+
     // Check if we're exactly at the settings root
     // This handles both "/__settings" and "/__settings/" cases
     if (normalizedPathname === normalizedSettingsPath) {
-      return true
+      return true;
     }
-    
+
     // If pathname starts with settings path followed by a slash, we're at a subpage
     // e.g., "__settings/appearance" means we're NOT at root
-    const settingsPathWithSlash = `${normalizedSettingsPath}/`
+    const settingsPathWithSlash = `${normalizedSettingsPath}/`;
     if (normalizedPathname.startsWith(settingsPathWithSlash)) {
-      return false
+      return false;
     }
-    
+
     // Pathname doesn't match settings path structure - not in settings
-    return false
-  }, [location.pathname, filteredRoutes])
+    return false;
+  }, [location.pathname, filteredRoutes]);
 
   // Navigate back to settings root
   const handleBackToSettings = useCallback(() => {
     // Navigate to settings root, replacing current history entry
-    navigate(urls.settings, { replace: true })
-  }, [navigate])
+    navigate(urls.settings, { replace: true });
+  }, [navigate]);
 
   return (
     <SidebarProvider>
@@ -170,7 +164,10 @@ export const SettingsView = () => {
                           asChild
                           isActive={item.name === selectedItem?.name}
                         >
-                          <button onClick={() => navigate(`${urls.settings}/${item.path}`)} className="cursor-pointer">
+                          <button
+                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                            className="cursor-pointer"
+                          >
                             <item.icon />
                             <span>{item.name}</span>
                           </button>
@@ -190,20 +187,29 @@ export const SettingsView = () => {
             // Show list of settings pages
             <div className="flex flex-1 flex-col overflow-y-auto bg-background">
               <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
-                <h1 className="text-lg font-semibold">{t("title")}</h1>
+                <h1 className="text-lg font-semibold">{t('title')}</h1>
               </header>
               <div className="flex flex-1 flex-col p-4 gap-6">
                 {groupedRoutes.map((group) => (
-                  <div key={group.title} className="flex flex-col gap-2">
-                    <h2 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+                  <div
+                    key={group.title}
+                    className="flex flex-col gap-2"
+                  >
+                    <h2
+                      className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2"
+                      style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                    >
                       {group.title}
                     </h2>
                     <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
                       {group.routes.map((item, itemIndex) => {
-                        const Icon = item.icon
-                        const isLast = itemIndex === group.routes.length - 1
+                        const Icon = item.icon;
+                        const isLast = itemIndex === group.routes.length - 1;
                         return (
-                          <div key={item.name} className="relative">
+                          <div
+                            key={item.name}
+                            className="relative"
+                          >
                             {!isLast && (
                               <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
                             )}
@@ -215,14 +221,16 @@ export const SettingsView = () => {
                                 <div className="flex-shrink-0 text-foreground/70">
                                   <Icon />
                                 </div>
-                                <span className="text-sm font-normal text-foreground">{item.name}</span>
+                                <span className="text-sm font-normal text-foreground">
+                                  {item.name}
+                                </span>
                               </div>
                               <div className="flex-shrink-0 ml-2 text-foreground/40">
                                 <ChevronRightIcon />
                               </div>
                             </button>
                           </div>
-                        )
+                        );
                       })}
                     </div>
                   </div>
@@ -245,9 +253,23 @@ export const SettingsView = () => {
               </header>
               <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
                 <Routes>
-                  <Route index element={filteredRoutes.length > 0 ? <Navigate to={`${urls.settings}/${filteredRoutes[0].path}`} replace /> : null} />
+                  <Route
+                    index
+                    element={
+                      filteredRoutes.length > 0 ? (
+                        <Navigate
+                          to={`${urls.settings}/${filteredRoutes[0].path}`}
+                          replace
+                        />
+                      ) : null
+                    }
+                  />
                   {filteredRoutes.map((item) => (
-                    <Route key={item.path} path={item.path} element={item.element} />
+                    <Route
+                      key={item.path}
+                      path={item.path}
+                      element={item.element}
+                    />
                   ))}
                 </Routes>
               </div>
@@ -262,9 +284,7 @@ export const SettingsView = () => {
               <div className="flex items-center gap-2 px-4">
                 <Breadcrumb>
                   <BreadcrumbList>
-                    <BreadcrumbItem>
-                      {t("title")}
-                    </BreadcrumbItem>
+                    <BreadcrumbItem>{t('title')}</BreadcrumbItem>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
                       <BreadcrumbPage>{selectedItem.name}</BreadcrumbPage>
@@ -276,26 +296,32 @@ export const SettingsView = () => {
           )}
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
             <Routes>
-              <Route 
-                index 
+              <Route
+                index
                 element={
                   <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
                     <div className="max-w-md">
-                      <h2 className="text-lg font-semibold mb-2">{t("title")}</h2>
+                      <h2 className="text-lg font-semibold mb-2">{t('title')}</h2>
                       <p className="text-sm text-muted-foreground">
-                        {t("selectCategory", { defaultValue: "Select a category from the sidebar to get started." })}
+                        {t('selectCategory', {
+                          defaultValue: 'Select a category from the sidebar to get started.',
+                        })}
                       </p>
                     </div>
                   </div>
-                } 
+                }
               />
               {filteredRoutes.map((item) => (
-                <Route key={item.path} path={item.path} element={item.element} />
+                <Route
+                  key={item.path}
+                  path={item.path}
+                  element={item.element}
+                />
               ))}
             </Routes>
           </div>
         </main>
       </div>
     </SidebarProvider>
-  )
-}
+  );
+};

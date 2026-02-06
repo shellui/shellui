@@ -1,9 +1,11 @@
 // Language-specific label/title
-export type LocalizedString = string | {
-  en: string;
-  fr: string;
-  [key: string]: string; // Allow other language codes
-};
+export type LocalizedString =
+  | string
+  | {
+      en: string;
+      fr: string;
+      [key: string]: string; // Allow other language codes
+    };
 
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';

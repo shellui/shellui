@@ -32,7 +32,7 @@ registerRoute(
         maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
       }),
     ],
-  })
+  }),
 );
 
 // Cache HTML files with NetworkFirst (check for updates first, fallback to cache)
@@ -45,7 +45,7 @@ registerRoute(
         statuses: [0, 200],
       }),
     ],
-  })
+  }),
 );
 
 // Cache CSS and JS files with StaleWhileRevalidate
@@ -61,7 +61,7 @@ registerRoute(
         statuses: [0, 200],
       }),
     ],
-  })
+  }),
 );
 
 // Cache fonts with CacheFirst
@@ -77,7 +77,7 @@ registerRoute(
         maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
       }),
     ],
-  })
+  }),
 );
 
 // Cache API responses with NetworkFirst (fallback to cache if offline)
@@ -94,7 +94,7 @@ registerRoute(
         maxAgeSeconds: 5 * 60, // 5 minutes
       }),
     ],
-  })
+  }),
 );
 
 // Skip waiting and claim clients immediately when a new service worker is installed

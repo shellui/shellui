@@ -79,7 +79,7 @@ export function useTheme() {
   useLayoutEffect(() => {
     // Get the effective theme name (from settings or config)
     // Use themeName from settings first, then config defaultTheme, then 'default'
-    const effectiveThemeName = themeName || (config?.defaultTheme) || 'default';
+    const effectiveThemeName = themeName || config?.defaultTheme || 'default';
 
     if (config?.themes) {
       config.themes.forEach((themeDef: ThemeDefinition) => {
@@ -105,10 +105,11 @@ export function useTheme() {
       // Fallback: at least set primary color from default theme
       const defaultTheme = getTheme('default');
       if (defaultTheme) {
-        const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        const isDark =
+          theme === 'dark' ||
+          (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         applyTheme(defaultTheme, isDark);
       }
     }
   }, [theme, themeName, config]); // Run when theme, themeName, or config changes
-
 }

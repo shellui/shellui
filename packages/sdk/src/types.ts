@@ -15,7 +15,13 @@ export interface ToastOptions {
   description?: string;
   type?: 'default' | 'success' | 'error' | 'warning' | 'info' | 'loading';
   duration?: number;
-  position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+  position?:
+    | 'top-left'
+    | 'top-center'
+    | 'top-right'
+    | 'bottom-left'
+    | 'bottom-center'
+    | 'bottom-right';
   action?: {
     label: string;
     onClick: () => void;
@@ -50,38 +56,37 @@ export interface DialogOptions {
   onCancel?: () => void;
 }
 
-
 /** Navigation item exposed to sub-apps (root-level nav config) */
 export interface SettingsNavigationItem {
-  path: string
-  url: string
-  label?: string
+  path: string;
+  url: string;
+  label?: string;
 }
 
 export interface Settings {
   developerFeatures: {
-    enabled: boolean
-  }
+    enabled: boolean;
+  };
   /** User toggle for sending error reports (only relevant when app has reporting configured). */
   errorReporting: {
-    enabled: boolean
-  }
+    enabled: boolean;
+  };
   logging: {
     namespaces: {
-      shellsdk: boolean
-      shellcore: boolean
-    }
-  }
+      shellsdk: boolean;
+      shellcore: boolean;
+    };
+  };
   appearance: {
-    theme: 'light' | 'dark' | 'system'
-    themeName: string
-  }
+    theme: 'light' | 'dark' | 'system';
+    themeName: string;
+  };
   language: {
-    code: 'en' | 'fr'
-  }
+    code: 'en' | 'fr';
+  };
   region: {
-    timezone: string
-  }
+    timezone: string;
+  };
   /**
    * Cookie consent: hosts the user has accepted. Only enable a feature when its cookie host is in acceptedHosts.
    * consentedCookieHosts = list of hosts that were in config when user last gave consent; if config has a host
@@ -89,25 +94,24 @@ export interface Settings {
    */
   cookieConsent?: {
     /** Hosts the user has accepted (e.g. ["sentry.io", ".example.com"]). */
-    acceptedHosts: string[]
+    acceptedHosts: string[];
     /** Hosts that were in config when user last consented; used to detect new cookies and re-collect consent. */
-    consentedCookieHosts: string[]
-  }
+    consentedCookieHosts: string[];
+  };
   /** Service worker settings (caching, offline) */
   serviceWorker?: {
     /** Whether the service worker is enabled */
-    enabled: boolean
-  }
+    enabled: boolean;
+  };
   /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows'. When set, overrides config.layout (e.g. from Develop settings). */
-  layout?: 'sidebar' | 'fullscreen' | 'windows'
+  layout?: 'sidebar' | 'fullscreen' | 'windows';
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
-    items: SettingsNavigationItem[]
-  }
+    items: SettingsNavigationItem[];
+  };
   // Add more settings here as needed
   // notifications: { ... }
 }
-
 
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 

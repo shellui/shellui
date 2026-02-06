@@ -47,15 +47,19 @@ const getExternalFaviconUrl = (url: string): string | null => {
   }
 };
 
-const NavigationContent = ({ navigation }: { navigation: (NavigationItem | NavigationGroup)[] }) => {
+const NavigationContent = ({
+  navigation,
+}: {
+  navigation: (NavigationItem | NavigationGroup)[];
+}) => {
   const location = useLocation();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
-  
+
   // Helper function to resolve localized strings
   const resolveLocalizedString = (
     value: string | { en: string; fr: string; [key: string]: string },
-    lang: string
+    lang: string,
   ): string => {
     if (typeof value === 'string') {
       return value;
@@ -66,10 +70,10 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
 
   // Check if at least one navigation item has an icon
   const hasAnyIcons = useMemo(() => {
-    return navigation.some(item => {
+    return navigation.some((item) => {
       if ('title' in item && 'items' in item) {
         // It's a group
-        return (item as NavigationGroup).items.some(navItem => !!navItem.icon);
+        return (item as NavigationGroup).items.some((navItem) => !!navItem.icon);
       }
       // It's a standalone item
       return !!(item as NavigationItem).icon;
@@ -86,17 +90,29 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
     const pathPrefix = `/${navItem.path}`;
     const isOverlay = navItem.openIn === 'modal' || navItem.openIn === 'drawer';
     const isExternal = navItem.openIn === 'external';
-    const isActive = !isOverlay && !isExternal && (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    const isActive =
+      !isOverlay &&
+      !isExternal &&
+      (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
     const iconEl = iconSrc ? (
-      <img src={iconSrc} alt="" className={cn('h-4 w-4', 'shrink-0')} />
+      <img
+        src={iconSrc}
+        alt=""
+        className={cn('h-4 w-4', 'shrink-0')}
+      />
     ) : hasAnyIcons ? (
       <span className="h-4 w-4 shrink-0" />
     ) : null;
     const externalIcon = isExternal ? (
-      <img src="/icons/external-link.svg" alt="" className="ml-auto h-4 w-4 shrink-0 opacity-70" aria-hidden />
+      <img
+        src="/icons/external-link.svg"
+        alt=""
+        className="ml-auto h-4 w-4 shrink-0 opacity-70"
+        aria-hidden
+      />
     ) : null;
     const content = (
       <>
@@ -107,7 +123,11 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
     );
     const linkOrTrigger =
       navItem.openIn === 'modal' ? (
-        <button type="button" onClick={() => shellui.openModal(navItem.url)} className="flex items-center gap-2 w-full cursor-pointer text-left">
+        <button
+          type="button"
+          onClick={() => shellui.openModal(navItem.url)}
+          className="flex items-center gap-2 w-full cursor-pointer text-left"
+        >
           {content}
         </button>
       ) : navItem.openIn === 'drawer' ? (
@@ -119,11 +139,19 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
           {content}
         </button>
       ) : navItem.openIn === 'external' ? (
-        <a href={navItem.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 w-full">
+        <a
+          href={navItem.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 w-full"
+        >
           {content}
         </a>
       ) : (
-        <Link to={`/${navItem.path}`} className="flex items-center gap-2 w-full">
+        <Link
+          to={`/${navItem.path}`}
+          className="flex items-center gap-2 w-full"
+        >
           {content}
         </Link>
       );
@@ -131,10 +159,7 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
       <SidebarMenuButton
         asChild
         isActive={isActive}
-        className={cn(
-          "w-full",
-          isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-        )}
+        className={cn('w-full', isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')}
       >
         {linkOrTrigger}
       </SidebarMenuButton>
@@ -149,14 +174,15 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
           // Render as a group
           const groupTitle = resolveLocalizedString(item.title, currentLanguage);
           return (
-            <SidebarGroup key={groupTitle} className="mt-0">
+            <SidebarGroup
+              key={groupTitle}
+              className="mt-0"
+            >
               <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {item.items.map((navItem) => (
-                    <SidebarMenuItem key={navItem.path}>
-                      {renderNavItem(navItem)}
-                    </SidebarMenuItem>
+                    <SidebarMenuItem key={navItem.path}>{renderNavItem(navItem)}</SidebarMenuItem>
                   ))}
                 </SidebarMenu>
               </SidebarGroupContent>
@@ -165,10 +191,11 @@ const NavigationContent = ({ navigation }: { navigation: (NavigationItem | Navig
         } else {
           // Render as a standalone item
           return (
-            <SidebarMenu key={item.path} className="gap-0.5">
-              <SidebarMenuItem>
-                {renderNavItem(item)}
-              </SidebarMenuItem>
+            <SidebarMenu
+              key={item.path}
+              className="gap-0.5"
+            >
+              <SidebarMenuItem>{renderNavItem(item)}</SidebarMenuItem>
             </SidebarMenu>
           );
         }
@@ -192,9 +219,16 @@ const SidebarInner = ({
   <>
     <SidebarHeader className="border-b border-sidebar-border pb-4">
       {(title || logo) && (
-        <Link to="/" className="flex items-center pl-1 pr-3 py-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors">
+        <Link
+          to="/"
+          className="flex items-center pl-1 pr-3 py-2 text-lg font-semibold text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors"
+        >
           {logo && logo.trim() ? (
-            <img src={logo} alt={title || 'Logo'} className="h-5 w-auto shrink-0 object-contain sidebar-logo" />
+            <img
+              src={logo}
+              alt={title || 'Logo'}
+              className="h-5 w-auto shrink-0 object-contain sidebar-logo"
+            />
           ) : title ? (
             <span className="leading-none">{title}</span>
           ) : null}
@@ -214,7 +248,7 @@ const SidebarInner = ({
 
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
-  lang: string
+  lang: string,
 ): string {
   if (typeof value === 'string') return value;
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
@@ -253,24 +287,30 @@ const BottomNavItem = ({
           alt=""
           className={cn(
             'size-4 shrink-0 rounded-sm object-cover',
-            applyIconTheme && 'opacity-90 dark:opacity-100 dark:invert'
+            applyIconTheme && 'opacity-90 dark:opacity-100 dark:invert',
           )}
         />
       ) : (
         <span className="size-4 shrink-0 rounded-sm bg-muted" />
       )}
-      <span className="text-[11px] leading-tight truncate w-full min-w-0 text-center block">{label}</span>
+      <span className="text-[11px] leading-tight truncate w-full min-w-0 text-center block">
+        {label}
+      </span>
     </span>
   );
   const baseClass = cn(
     'flex flex-col items-center justify-center rounded-md py-1.5 px-2 min-w-0 max-w-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-accent text-accent-foreground [&_span]:text-accent-foreground'
-      : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground [&_span]:inherit'
+      : 'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground [&_span]:inherit',
   );
   if (item.openIn === 'modal') {
     return (
-      <button type="button" onClick={() => shellui.openModal(item.url)} className={baseClass}>
+      <button
+        type="button"
+        onClick={() => shellui.openModal(item.url)}
+        className={baseClass}
+      >
         {content}
       </button>
     );
@@ -288,13 +328,21 @@ const BottomNavItem = ({
   }
   if (item.openIn === 'external') {
     return (
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className={baseClass}>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={baseClass}
+      >
         {content}
       </a>
     );
   }
   return (
-    <Link to={pathPrefix} className={baseClass}>
+    <Link
+      to={pathPrefix}
+      className={baseClass}
+    >
       {content}
     </Link>
   );
@@ -387,7 +435,8 @@ const MobileBottomNav = ({
     const list = items.slice();
     const contentWidth = Math.max(0, rowWidth - BOTTOM_NAV_PX * 2);
     const slotTotal = BOTTOM_NAV_SLOT_WIDTH + BOTTOM_NAV_GAP;
-    const computedSlots = rowWidth > 0 ? Math.floor((contentWidth + BOTTOM_NAV_GAP) / slotTotal) : 5;
+    const computedSlots =
+      rowWidth > 0 ? Math.floor((contentWidth + BOTTOM_NAV_GAP) / slotTotal) : 5;
     const totalSlots = Math.min(Math.max(0, computedSlots), BOTTOM_NAV_MAX_SLOTS);
     const slotsForNav = totalSlots - 1;
     const allFit = list.length <= slotsForNav;
@@ -408,10 +457,14 @@ const MobileBottomNav = ({
 
   const renderItem = (item: NavigationItem, index: number) => {
     const pathPrefix = `/${item.path}`;
-    const isOverlayOrExternal = item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external';
-    const isActive = !isOverlayOrExternal && (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    const isOverlayOrExternal =
+      item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external';
+    const isActive =
+      !isOverlayOrExternal &&
+      (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
     const label = resolveNavLabel(item.label, currentLanguage);
-    const faviconUrl = item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
+    const faviconUrl =
+      item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
     const iconSrc = item.icon ?? faviconUrl ?? null;
     const applyIconTheme = iconSrc ? isAppIcon(iconSrc) : false;
     return (
@@ -443,7 +496,7 @@ const MobileBottomNav = ({
             'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             location.pathname === '/' || location.pathname === ''
               ? 'bg-sidebar-accent text-sidebar-accent-foreground [&_span]:text-sidebar-accent-foreground'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit'
+              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit',
           )}
           aria-label="Home"
         >
@@ -459,7 +512,7 @@ const MobileBottomNav = ({
             onClick={() => setExpanded((e) => !e)}
             className={cn(
               'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer',
-              'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+              'text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
             )}
             aria-expanded={expanded}
             aria-label={expanded ? 'Show less' : 'Show more'}
@@ -476,7 +529,7 @@ const MobileBottomNav = ({
       <div
         className={cn(
           'grid transition-[grid-template-rows] duration-300 ease-out',
-          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+          expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         )}
       >
         <div className="min-h-0 overflow-hidden">
@@ -534,7 +587,12 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
           <div className="flex h-screen overflow-hidden">
             {/* Desktop sidebar: visible from md up */}
             <Sidebar className={cn('hidden md:flex shrink-0')}>
-              <SidebarInner title={title} logo={logo} startNav={startNav} endItems={endItems} />
+              <SidebarInner
+                title={title}
+                logo={logo}
+                startNav={startNav}
+                endItems={endItems}
+              />
             </Sidebar>
 
             <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
@@ -545,7 +603,10 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
           </div>
 
           {/* Mobile bottom nav: visible only below md */}
-          <MobileBottomNav items={mobileNavItems} currentLanguage={currentLanguage} />
+          <MobileBottomNav
+            items={mobileNavItems}
+            currentLanguage={currentLanguage}
+          />
         </OverlayShell>
       </SidebarProvider>
     </LayoutProviders>
@@ -553,5 +614,12 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
 };
 
 export const DefaultLayout = ({ title, appIcon, logo, navigation }: DefaultLayoutProps) => {
-  return <DefaultLayoutContent title={title} appIcon={appIcon} logo={logo} navigation={navigation} />;
+  return (
+    <DefaultLayoutContent
+      title={title}
+      appIcon={appIcon}
+      logo={logo}
+      navigation={navigation}
+    />
+  );
 };

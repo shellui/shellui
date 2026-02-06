@@ -1,24 +1,29 @@
-import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { shellui } from "@shellui/sdk"
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { shellui } from '@shellui/sdk';
 
 export const DialogTestButtons = () => {
-  const { t } = useTranslation('settings')
+  const { t } = useTranslation('settings');
 
   return (
     <div>
-      <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.dialogTesting.title')}</h4>
+      <h4
+        className="text-sm font-medium mb-2"
+        style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+      >
+        {t('develop.testing.dialogTesting.title')}
+      </h4>
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() => {
             shellui.dialog({
               title: t('develop.testing.dialogTesting.dialogs.ok.title'),
               description: t('develop.testing.dialogTesting.dialogs.ok.description'),
-              mode: "ok",
+              mode: 'ok',
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.okClicked'),
-                  type: "success",
+                  type: 'success',
                 });
               },
             });
@@ -32,18 +37,18 @@ export const DialogTestButtons = () => {
             shellui.dialog({
               title: t('develop.testing.dialogTesting.dialogs.okCancel.title'),
               description: t('develop.testing.dialogTesting.dialogs.okCancel.description'),
-              mode: "okCancel",
-              size: "sm",
+              mode: 'okCancel',
+              size: 'sm',
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.okClicked'),
-                  type: "success",
+                  type: 'success',
                 });
               },
               onCancel: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.cancelClicked'),
-                  type: "info",
+                  type: 'info',
                 });
               },
             });
@@ -57,20 +62,20 @@ export const DialogTestButtons = () => {
             shellui.dialog({
               title: t('develop.testing.dialogTesting.dialogs.delete.title'),
               description: t('develop.testing.dialogTesting.dialogs.delete.description'),
-              mode: "delete",
+              mode: 'delete',
               okLabel: t('develop.testing.dialogTesting.dialogs.delete.okLabel'),
               cancelLabel: t('develop.testing.dialogTesting.dialogs.delete.cancelLabel'),
-              size: "sm",
+              size: 'sm',
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.itemDeleted'),
-                  type: "success",
+                  type: 'success',
                 });
               },
               onCancel: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.deletionCancelled'),
-                  type: "info",
+                  type: 'info',
                 });
               },
             });
@@ -84,20 +89,20 @@ export const DialogTestButtons = () => {
             shellui.dialog({
               title: t('develop.testing.dialogTesting.dialogs.confirm.title'),
               description: t('develop.testing.dialogTesting.dialogs.confirm.description'),
-              mode: "confirm",
+              mode: 'confirm',
               okLabel: t('develop.testing.dialogTesting.dialogs.confirm.okLabel'),
               cancelLabel: t('develop.testing.dialogTesting.dialogs.confirm.cancelLabel'),
-              size: "sm",
+              size: 'sm',
               onOk: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.actionConfirmed'),
-                  type: "success",
+                  type: 'success',
                 });
               },
               onCancel: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.actionCancelled'),
-                  type: "info",
+                  type: 'info',
                 });
               },
             });
@@ -111,13 +116,13 @@ export const DialogTestButtons = () => {
             shellui.dialog({
               title: t('develop.testing.dialogTesting.dialogs.onlyCancel.title'),
               description: t('develop.testing.dialogTesting.dialogs.onlyCancel.description'),
-              mode: "onlyCancel",
+              mode: 'onlyCancel',
               cancelLabel: t('develop.testing.dialogTesting.dialogs.onlyCancel.cancelLabel'),
-              size: "sm",
+              size: 'sm',
               onCancel: () => {
                 shellui.toast({
                   title: t('develop.testing.dialogTesting.toasts.dialogClosed'),
-                  type: "info",
+                  type: 'info',
                 });
               },
             });
@@ -128,5 +133,5 @@ export const DialogTestButtons = () => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

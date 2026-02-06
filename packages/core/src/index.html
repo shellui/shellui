@@ -1,14 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <title></title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="icon"
+      href="/favicon.svg"
+      type="image/svg+xml"
+    />
     <script>
       // Initialize theme immediately to prevent FOUC
       // This sets both the dark class AND CSS variables before React loads
-      (function() {
+      (function () {
         try {
           const stored = localStorage.getItem('shellui:settings');
           let theme = 'system';
@@ -18,7 +25,7 @@
             theme = parsed.appearance?.theme || 'system';
             themeName = parsed.appearance?.themeName || 'default';
           }
-          
+
           // Determine if dark mode
           let isDark = false;
           if (theme === 'system') {
@@ -27,17 +34,17 @@
           } else {
             isDark = theme === 'dark';
           }
-          
+
           // Apply dark class
           if (isDark) {
             document.documentElement.classList.add('dark');
           }
-          
+
           // Set default theme CSS variables immediately
           // This ensures bg-primary works from the start
           // These HSL values match the default theme in themes.ts
           const root = document.documentElement;
-          
+
           if (isDark) {
             // Dark mode default theme colors
             root.style.setProperty('--primary', '142 71% 55%');
@@ -45,13 +52,13 @@
             root.style.setProperty('--background', '222.2 84% 4.9%');
             root.style.setProperty('--foreground', '210 40% 98%');
           } else {
-            // Light mode default theme colors  
+            // Light mode default theme colors
             root.style.setProperty('--primary', '142 71% 45%');
             root.style.setProperty('--primary-foreground', '0 0% 100%');
             root.style.setProperty('--background', '0 0% 100%');
             root.style.setProperty('--foreground', '222.2 84% 4.9%');
           }
-          
+
           // Set other essential variables with defaults
           root.style.setProperty('--card', isDark ? '222.2 84% 4.9%' : '0 0% 100%');
           root.style.setProperty('--card-foreground', isDark ? '210 40% 98%' : '222.2 84% 4.9%');
@@ -71,7 +78,8 @@
       * {
         box-sizing: border-box;
       }
-      html, body {
+      html,
+      body {
         margin: 0;
         padding: 0;
         height: 100%;
@@ -84,7 +92,9 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/app.tsx"></script>
+    <script
+      type="module"
+      src="/app.tsx"
+    ></script>
   </body>
 </html>
-

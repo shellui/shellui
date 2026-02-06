@@ -25,9 +25,7 @@ export async function newCommandCommand(args) {
 ```javascript
 import { newCommandCommand } from './commands/index.js';
 
-cli
-  .command('new-command [args]', 'Description of the command')
-  .action(newCommandCommand);
+cli.command('new-command [args]', 'Description of the command').action(newCommandCommand);
 ```
 
 4. Export it from `commands/index.js`:
@@ -40,4 +38,3 @@ export { newCommandCommand } from './new-command.js';
 
 - **start** - Starts the development server
 - **build** - Builds the application for production
-

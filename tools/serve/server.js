@@ -61,7 +61,7 @@ function getMimeType(filePath) {
 
 function serveFile(filePath, res) {
   const stat = fs.statSync(filePath);
-  
+
   if (!stat.isFile()) {
     return false;
   }
@@ -73,8 +73,8 @@ function serveFile(filePath, res) {
     'Content-Type': mimeType,
     'Content-Length': stat.size,
     'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
+    Pragma: 'no-cache',
+    Expires: '0',
   });
   res.end(content);
   return true;
@@ -90,7 +90,7 @@ const server = http.createServer((req, res) => {
 
   // Normalize the path to prevent directory traversal
   filePath = path.normalize(filePath);
-  
+
   // Ensure the resolved path is within distDir
   if (!filePath.startsWith(distDir)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });

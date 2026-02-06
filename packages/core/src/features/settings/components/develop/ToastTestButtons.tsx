@@ -1,20 +1,25 @@
-import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { shellui } from "@shellui/sdk"
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { shellui } from '@shellui/sdk';
 
 export const ToastTestButtons = () => {
-  const { t } = useTranslation('settings')
+  const { t } = useTranslation('settings');
 
   return (
     <div>
-      <h4 className="text-sm font-medium mb-2" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>{t('develop.testing.toastNotifications.title')}</h4>
+      <h4
+        className="text-sm font-medium mb-2"
+        style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+      >
+        {t('develop.testing.toastNotifications.title')}
+      </h4>
       <div className="flex flex-wrap gap-2">
         <Button
           onClick={() => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.success.title'),
               description: t('develop.testing.toastNotifications.messages.success.description'),
-              type: "success",
+              type: 'success',
             });
           }}
           variant="outline"
@@ -26,7 +31,7 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.error.title'),
               description: t('develop.testing.toastNotifications.messages.error.description'),
-              type: "error",
+              type: 'error',
             });
           }}
           variant="outline"
@@ -38,7 +43,7 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.warning.title'),
               description: t('develop.testing.toastNotifications.messages.warning.description'),
-              type: "warning",
+              type: 'warning',
             });
           }}
           variant="outline"
@@ -50,7 +55,7 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.info.title'),
               description: t('develop.testing.toastNotifications.messages.info.description'),
-              type: "info",
+              type: 'info',
             });
           }}
           variant="outline"
@@ -62,7 +67,7 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.default.title'),
               description: t('develop.testing.toastNotifications.messages.default.description'),
-              type: "default",
+              type: 'default',
             });
           }}
           variant="outline"
@@ -74,7 +79,7 @@ export const ToastTestButtons = () => {
             const toastId = shellui.toast({
               title: t('develop.testing.toastNotifications.messages.processing.title'),
               description: t('develop.testing.toastNotifications.messages.processing.description'),
-              type: "loading",
+              type: 'loading',
             });
 
             // Simulate async operation and update toast
@@ -82,9 +87,11 @@ export const ToastTestButtons = () => {
               setTimeout(() => {
                 shellui.toast({
                   id: toastId,
-                  type: "success",
+                  type: 'success',
                   title: t('develop.testing.toastNotifications.messages.uploadComplete.title'),
-                  description: t('develop.testing.toastNotifications.messages.uploadComplete.description'),
+                  description: t(
+                    'develop.testing.toastNotifications.messages.uploadComplete.description',
+                  ),
                 });
               }, 2000);
             }
@@ -98,14 +105,16 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.withAction.title'),
               description: t('develop.testing.toastNotifications.messages.withAction.description'),
-              type: "success",
+              type: 'success',
               action: {
                 label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
                 onClick: () => {
                   shellui.toast({
                     title: t('develop.testing.toastNotifications.messages.undone.title'),
-                    description: t('develop.testing.toastNotifications.messages.undone.description'),
-                    type: "info",
+                    description: t(
+                      'develop.testing.toastNotifications.messages.undone.description',
+                    ),
+                    type: 'info',
                   });
                 },
               },
@@ -120,14 +129,16 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.withAction.title'),
               description: t('develop.testing.toastNotifications.messages.withAction.description'),
-              type: "success",
+              type: 'success',
               action: {
                 label: t('develop.testing.toastNotifications.messages.actionLabels.undo'),
                 onClick: () => {
                   shellui.toast({
                     title: t('develop.testing.toastNotifications.messages.undone.title'),
-                    description: t('develop.testing.toastNotifications.messages.undone.description'),
-                    type: "info",
+                    description: t(
+                      'develop.testing.toastNotifications.messages.undone.description',
+                    ),
+                    type: 'info',
                   });
                 },
               },
@@ -136,8 +147,10 @@ export const ToastTestButtons = () => {
                 onClick: () => {
                   shellui.toast({
                     title: t('develop.testing.toastNotifications.messages.cancelled.title'),
-                    description: t('develop.testing.toastNotifications.messages.cancelled.description'),
-                    type: "info",
+                    description: t(
+                      'develop.testing.toastNotifications.messages.cancelled.description',
+                    ),
+                    type: 'info',
                   });
                 },
               },
@@ -152,7 +165,7 @@ export const ToastTestButtons = () => {
             shellui.toast({
               title: t('develop.testing.toastNotifications.messages.persistent.title'),
               description: t('develop.testing.toastNotifications.messages.persistent.description'),
-              type: "info",
+              type: 'info',
               duration: 10000,
             });
           }}
@@ -162,5 +175,5 @@ export const ToastTestButtons = () => {
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};

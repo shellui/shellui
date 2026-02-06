@@ -21,7 +21,11 @@ export class CallbackRegistry {
 
   register(
     id: string,
-    { action, cancel, secondary }: { action?: () => void; cancel?: () => void; secondary?: () => void } = {}
+    {
+      action,
+      cancel,
+      secondary,
+    }: { action?: () => void; cancel?: () => void; secondary?: () => void } = {},
   ): void {
     if (!id) {
       logger.warn('Cannot register callback without ID');

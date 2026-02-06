@@ -1,9 +1,10 @@
 # Change Log
+
 All notable changes to this project will be documented in this file.
- 
+
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
- 
+
 <!---
 ## [Unreleased] - yyyy-mm-dd
 
@@ -23,6 +24,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ## [0.1.0] - 2026-02-05
 
 ### ✨ Feature
+
 - Multiple **layout modes**: **sidebar navigation**, **fullscreen** content view, and **windows desktop mode** with taskbar
 - Flexible **navigation menu** with icons, grouped items, and customizable organization
 - Open links in different ways: main content area, **modal popups**, **side drawers**, or external browser

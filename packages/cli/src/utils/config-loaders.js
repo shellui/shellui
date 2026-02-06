@@ -25,23 +25,23 @@ export async function loadTypeScriptConfig(configPath, configDir) {
     }
     console.log(JSON.stringify(result));
   `;
-  
+
   // Write temporary script to load the config
   const tempScriptPath = path.join(configDir, '.shellui-config-loader.mjs');
   fs.writeFileSync(tempScriptPath, loaderScript);
-  
+
   try {
     // Find tsx - try to resolve it from node_modules
     const { createRequire } = await import('module');
     const require = createRequire(import.meta.url);
-    
+
     let tsxPath;
     try {
       // Try to resolve tsx package
       const tsxPackagePath = require.resolve('tsx/package.json');
       const tsxPackageDir = path.dirname(tsxPackagePath);
       tsxPath = path.join(tsxPackageDir, 'dist/cli.mjs');
-      
+
       if (!fs.existsSync(tsxPath)) {
         throw new Error('tsx CLI not found');
       }
@@ -49,15 +49,13 @@ export async function loadTypeScriptConfig(configPath, configDir) {
       // Fallback to npx if tsx not found
       tsxPath = null;
     }
-    
+
     // Execute tsx to run the loader script
     const result = await new Promise((resolve, reject) => {
       const useNpx = !tsxPath;
       const command = useNpx ? 'npx' : 'node';
-      const args = useNpx 
-        ? ['-y', 'tsx', tempScriptPath]
-        : [tsxPath, tempScriptPath];
-      
+      const args = useNpx ? ['-y', 'tsx', tempScriptPath] : [tsxPath, tempScriptPath];
+
       // Pass environment variables to child process, including build detection vars
       const childEnv = {
         ...process.env,
@@ -65,27 +63,31 @@ export async function loadTypeScriptConfig(configPath, configDir) {
         NODE_ENV: process.env.NODE_ENV || 'development',
         SHELLUI_BUILD: process.env.SHELLUI_BUILD || 'false',
       };
-      
+
       const child = spawn(command, args, {
         cwd: configDir,
         stdio: ['ignore', 'pipe', 'pipe'],
-        env: childEnv
+        env: childEnv,
       });
-      
+
       let stdout = '';
       let stderr = '';
-      
+
       child.stdout.on('data', (data) => {
         stdout += data.toString();
       });
-      
+
       child.stderr.on('data', (data) => {
         stderr += data.toString();
       });
-      
+
       child.on('close', (code) => {
         if (code !== 0) {
-          reject(new Error(`Failed to load TypeScript config: ${stderr || `Process exited with code ${code}`}`));
+          reject(
+            new Error(
+              `Failed to load TypeScript config: ${stderr || `Process exited with code ${code}`}`,
+            ),
+          );
         } else {
           try {
             const parsed = JSON.parse(stdout.trim());
@@ -93,21 +95,25 @@ export async function loadTypeScriptConfig(configPath, configDir) {
             const config = parsed.default || parsed.config || parsed;
             resolve(config);
           } catch (parseError) {
-            reject(new Error(`Failed to parse config output: ${parseError.message}\nOutput: ${stdout}\nStderr: ${stderr}`));
+            reject(
+              new Error(
+                `Failed to parse config output: ${parseError.message}\nOutput: ${stdout}\nStderr: ${stderr}`,
+              ),
+            );
           }
         }
       });
-      
+
       child.on('error', (error) => {
         reject(new Error(`Failed to execute tsx: ${error.message}`));
       });
     });
-    
+
     // Clean up temp script
     if (fs.existsSync(tempScriptPath)) {
       fs.unlinkSync(tempScriptPath);
     }
-    
+
     console.log(pc.green(`Loaded TypeScript config from ${configPath}`));
     return result;
   } catch (execError) {

@@ -80,7 +80,5 @@ export function getCookieConsentNewHosts(): string[] {
   if (!config?.cookieConsent?.cookies?.length) return [];
   const { consentedCookieHosts } = getStoredCookieConsent();
   const consentedSet = new Set(consentedCookieHosts);
-  return config.cookieConsent.cookies
-    .map((c) => c.host)
-    .filter((host) => !consentedSet.has(host));
+  return config.cookieConsent.cookies.map((c) => c.host).filter((host) => !consentedSet.has(host));
 }

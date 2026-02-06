@@ -93,4 +93,3 @@ npm install @shellui/sdk
 - `@shellui/sdk` depends on `@shellui/core`
 
 These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` and `sdk` during development.
-

@@ -9,16 +9,49 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 const GlobeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="2" x2="22" y1="12" y2="12" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+    />
+    <line
+      x1="2"
+      x2="22"
+      y1="12"
+      y2="12"
+    />
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </svg>
 );
 
 const ClockIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+    />
     <polyline points="12 6 12 12 16 14" />
   </svg>
 );
@@ -27,9 +60,7 @@ const ClockIcon = () => (
 const TIMEZONE_GROUPS = [
   {
     label: 'UTC',
-    timezones: [
-      { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
-    ],
+    timezones: [{ value: 'UTC', label: 'UTC (Coordinated Universal Time)' }],
   },
   {
     label: 'North America',
@@ -132,12 +163,12 @@ const getTimezoneDisplayName = (timezone: string, lang = 'en'): string => {
       timeZoneName: 'long',
     });
     const parts = formatter.formatToParts(new Date());
-    const timeZoneName = parts.find(part => part.type === 'timeZoneName')?.value;
-    
+    const timeZoneName = parts.find((part) => part.type === 'timeZoneName')?.value;
+
     if (timeZoneName) {
       return timeZoneName;
     }
-    
+
     // Fallback: try to get city name from timezone string
     const cityName = timezone.split('/').pop()?.replace(/_/g, ' ') || timezone;
     return cityName;
@@ -155,7 +186,7 @@ export const LanguageAndRegion = () => {
   const browserTimezone = getBrowserTimezone();
   const currentTimezone = settings.region?.timezone || browserTimezone;
   const isUsingBrowserTimezone = currentTimezone === browserTimezone;
-  
+
   // Get supported languages based on config
   const supportedLanguages = getSupportedLanguages(config?.language);
 
@@ -194,46 +225,46 @@ export const LanguageAndRegion = () => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+        <label
+          className="text-sm font-medium leading-none"
+          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+        >
           {t('languageAndRegion.language')}
         </label>
         <div className="mt-2">
           <ButtonGroup>
-          {supportedLanguages.map((lang) => {
-            const isSelected = currentLanguage === lang.code;
-            return (
-              <Button
-                key={lang.code}
-                variant={isSelected ? "default" : "outline"}
-                onClick={() => {
-                  updateSetting('language', { code: lang.code });
-                }}
-                className={cn(
-                  "h-10 px-4 transition-all flex items-center gap-2",
-                  isSelected && [
-                    "shadow-md",
-                    "font-semibold"
-                  ],
-                  !isSelected && [
-                    "bg-background hover:bg-accent/50",
-                    "text-muted-foreground"
-                  ]
-                )}
-                aria-label={lang.nativeName}
-                title={lang.nativeName}
-              >
-                <GlobeIcon />
-                <span className="text-sm font-medium">{lang.nativeName}</span>
-              </Button>
-            );
-          })}
+            {supportedLanguages.map((lang) => {
+              const isSelected = currentLanguage === lang.code;
+              return (
+                <Button
+                  key={lang.code}
+                  variant={isSelected ? 'default' : 'outline'}
+                  onClick={() => {
+                    updateSetting('language', { code: lang.code });
+                  }}
+                  className={cn(
+                    'h-10 px-4 transition-all flex items-center gap-2',
+                    isSelected && ['shadow-md', 'font-semibold'],
+                    !isSelected && ['bg-background hover:bg-accent/50', 'text-muted-foreground'],
+                  )}
+                  aria-label={lang.nativeName}
+                  title={lang.nativeName}
+                >
+                  <GlobeIcon />
+                  <span className="text-sm font-medium">{lang.nativeName}</span>
+                </Button>
+              );
+            })}
           </ButtonGroup>
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-sm font-medium leading-none" style={{ fontFamily: 'var(--heading-font-family, inherit)' }}>
+          <label
+            className="text-sm font-medium leading-none"
+            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+          >
             {t('languageAndRegion.region')}
           </label>
           {!isUsingBrowserTimezone && (
@@ -249,39 +280,44 @@ export const LanguageAndRegion = () => {
         </div>
         <div className="mt-2 space-y-3">
           <Select
-          value={currentTimezone}
-          onChange={(e) => {
-            updateSetting('region', { timezone: e.target.value });
-          }}
-          className="w-full"
-        >
-          {TIMEZONE_GROUPS.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.timezones.map((tz) => {
-                const isBrowserTimezone = tz.value === browserTimezone;
-                return (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}{isBrowserTimezone ? ` (${t('languageAndRegion.defaultBrowser')})` : ''}
-                  </option>
-                );
-              })}
-            </optgroup>
-          ))}
-        </Select>
+            value={currentTimezone}
+            onChange={(e) => {
+              updateSetting('region', { timezone: e.target.value });
+            }}
+            className="w-full"
+          >
+            {TIMEZONE_GROUPS.map((group) => (
+              <optgroup
+                key={group.label}
+                label={group.label}
+              >
+                {group.timezones.map((tz) => {
+                  const isBrowserTimezone = tz.value === browserTimezone;
+                  return (
+                    <option
+                      key={tz.value}
+                      value={tz.value}
+                    >
+                      {tz.label}
+                      {isBrowserTimezone ? ` (${t('languageAndRegion.defaultBrowser')})` : ''}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            ))}
+          </Select>
           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-muted/60 border border-border/50">
             <ClockIcon />
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-semibold tabular-nums">
-                {currentDateTime.time}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {currentDateTime.date}
-              </span>
+              <span className="text-lg font-semibold tabular-nums">{currentDateTime.time}</span>
+              <span className="text-xs text-muted-foreground">{currentDateTime.date}</span>
             </div>
           </div>
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <span>{t('languageAndRegion.timezoneLabel')}:</span>
-            <span className="font-medium">{getTimezoneDisplayName(currentTimezone, currentLanguage)}</span>
+            <span className="font-medium">
+              {getTimezoneDisplayName(currentTimezone, currentLanguage)}
+            </span>
             {isUsingBrowserTimezone && (
               <span className="ml-1">({t('languageAndRegion.defaultBrowser')})</span>
             )}
@@ -290,4 +326,4 @@ export const LanguageAndRegion = () => {
       </div>
     </div>
   );
-}
+};

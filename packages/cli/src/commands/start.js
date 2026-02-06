@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
-import { loadConfig, getCoreSrcPath, createViteDefine, resolvePackagePath } from '../utils/index.js';
+import {
+  loadConfig,
+  getCoreSrcPath,
+  createViteDefine,
+  resolvePackagePath,
+} from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 
 let currentServer = null;
@@ -33,10 +38,7 @@ async function startServer(root, cwd, shouldOpen = false) {
 
   const server = await createServer({
     root: coreSrcPath,
-    plugins: [
-      react(),
-      serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackagePath),
-    ],
+    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackagePath)],
     define: createViteDefine(config),
     resolve: {
       alias: {
@@ -54,8 +56,8 @@ async function startServer(root, cwd, shouldOpen = false) {
       port: config.port || 3000,
       open: shouldOpen,
       fs: {
-        allow: [corePackagePath, cwd]
-      }
+        allow: [corePackagePath, cwd],
+      },
     },
   });
 
@@ -111,7 +113,9 @@ function watchConfig(root, cwd) {
 
   // Only watch if config file exists
   if (!configPath) {
-    console.log(pc.yellow(`No shellui.config.ts or shellui.config.json found, config watching disabled.`));
+    console.log(
+      pc.yellow(`No shellui.config.ts or shellui.config.json found, config watching disabled.`),
+    );
     return;
   }
 
@@ -172,4 +176,3 @@ export async function startCommand(root = '.') {
     process.exit(1);
   }
 }
-

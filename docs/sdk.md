@@ -37,9 +37,9 @@ const sdk = init({
     {
       label: 'Home',
       path: 'home',
-      url: 'http://localhost:4000/'
-    }
-  ]
+      url: 'http://localhost:4000/',
+    },
+  ],
 });
 
 // Get SDK version
@@ -72,9 +72,9 @@ const sdk = init({
       label: 'Dashboard',
       path: 'dashboard',
       url: 'http://localhost:4000/',
-      icon: 'Layout'
-    }
-  ]
+      icon: 'Layout',
+    },
+  ],
 });
 ```
 
@@ -103,7 +103,7 @@ const config = {
   title: process.env.APP_TITLE || 'ShellUI App',
   navigation: [
     // ... navigation items
-  ]
+  ],
 };
 
 const sdk = init(config);
@@ -126,15 +126,15 @@ const sdk = await loadConfig();
 ## CLI vs SDK
 
 **Use the CLI when:**
+
 - Building standard ShellUI applications
 - You want the simplest setup
 - You need development server and build tools
 
 **Use the SDK when:**
+
 - Building custom integrations
 - You need programmatic control
 - You're building tooling around ShellUI
 
 For most users, the CLI is the recommended approach.
-
-

@@ -26,7 +26,20 @@ import packageJson from '../package.json';
 
 const logger = getLogger('shellsdk');
 
-export type { ShellUIMessage, ShellUIUrlPayload, ToastOptions, DialogOptions, DialogMode, AlertDialogSize, DialogPosition, DrawerPosition, OpenDrawerOptions, LoggerInstance, Settings, SettingsNavigationItem } from './types.js';
+export type {
+  ShellUIMessage,
+  ShellUIUrlPayload,
+  ToastOptions,
+  DialogOptions,
+  DialogMode,
+  AlertDialogSize,
+  DialogPosition,
+  DrawerPosition,
+  OpenDrawerOptions,
+  LoggerInstance,
+  Settings,
+  SettingsNavigationItem,
+} from './types.js';
 
 export class ShellUISDK {
   initialized = false;
@@ -57,13 +70,13 @@ export class ShellUISDK {
     await setupKeyListener();
     await this._setupCallbackListeners();
     await this._setupInitialSettings();
-    
+
     this.initialized = true;
     logger.info(`ShellUI SDK ${this.version} initialized`);
 
     this.sendMessageToParent({
       type: 'SHELLUI_INITIALIZED',
-      payload: {}
+      payload: {},
     });
     return Promise.resolve(this);
   }
@@ -81,7 +94,7 @@ export class ShellUISDK {
       });
       this.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_REQUESTED',
-        payload: {}
+        payload: {},
       });
     });
   }
@@ -198,22 +211,16 @@ export class ShellUISDK {
 
   addMessageListener(
     messageType: string,
-    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void,
   ): () => void {
-    return this.messageListenerRegistry.addMessageListener(
-      messageType,
-      listener
-    );
+    return this.messageListenerRegistry.addMessageListener(messageType, listener);
   }
 
   removeMessageListener(
     messageType: string,
-    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+    listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void,
   ): boolean {
-    return this.messageListenerRegistry.removeMessageListener(
-      messageType,
-      listener
-    );
+    return this.messageListenerRegistry.removeMessageListener(messageType, listener);
   }
 
   sendMessage(message: ShellUIMessage): number {
@@ -234,31 +241,24 @@ const sdk = new ShellUISDK();
 export const init = async (): Promise<ShellUISDK> => await sdk.init();
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (url?: string): void => openModalAction(url);
-export const openDrawer = (options?: OpenDrawerOptions): void =>
-  openDrawerAction(options);
+export const openDrawer = (options?: OpenDrawerOptions): void => openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
 export const navigate = (url: string): void => sdk.navigate(url);
-export const toast = (options?: ToastOptions): string | void =>
-  toastAction(options);
-export const dialog = (options?: DialogOptions): string | void =>
-  dialogAction(options);
-export const addIframe = (iframe: HTMLIFrameElement): string =>
-  sdk.addIframe(iframe);
-export const removeIframe = (
-  identifier: string | HTMLIFrameElement
-): boolean => sdk.removeIframe(identifier);
+export const toast = (options?: ToastOptions): string | void => toastAction(options);
+export const dialog = (options?: DialogOptions): string | void => dialogAction(options);
+export const addIframe = (iframe: HTMLIFrameElement): string => sdk.addIframe(iframe);
+export const removeIframe = (identifier: string | HTMLIFrameElement): boolean =>
+  sdk.removeIframe(identifier);
 export const addMessageListener = (
   messageType: string,
-  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void,
 ): (() => void) => sdk.addMessageListener(messageType, listener);
 export const removeMessageListener = (
   messageType: string,
-  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void
+  listener: (messageData: ShellUIMessage, originalEvent: MessageEvent) => void,
 ): boolean => sdk.removeMessageListener(messageType, listener);
-export const sendMessage = (message: ShellUIMessage): number =>
-  sdk.sendMessage(message);
-export const propagateMessage = (message: ShellUIMessage): number =>
-  sdk.propagateMessage(message);
+export const sendMessage = (message: ShellUIMessage): number => sdk.sendMessage(message);
+export const propagateMessage = (message: ShellUIMessage): number => sdk.propagateMessage(message);
 export const sendMessageToParent = (message: ShellUIMessage): boolean =>
   sdk.sendMessageToParent(message);
 export const callbackRegistry = sdk.callbackRegistry;

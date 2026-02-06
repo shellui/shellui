@@ -78,5 +78,3 @@ If you're contributing to ShellUI or need to build the core package:
 cd packages/core
 npm run build
 ```
-
-

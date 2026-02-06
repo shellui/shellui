@@ -1,6 +1,13 @@
 /* eslint-disable no-console */
 import type { NavigationItem } from '@/features/config/types';
-import { addIframe, removeIframe, shellui, getLogger, type ShellUIUrlPayload, type ShellUIMessage } from '@shellui/sdk';
+import {
+  addIframe,
+  removeIframe,
+  shellui,
+  getLogger,
+  type ShellUIUrlPayload,
+  type ShellUIMessage,
+} from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingOverlay } from './LoadingOverlay';
@@ -14,7 +21,12 @@ interface ContentViewProps {
   navItem: NavigationItem;
 }
 
-export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }: ContentViewProps) => {
+export const ContentView = ({
+  url,
+  pathPrefix,
+  ignoreMessages = false,
+  navItem,
+}: ContentViewProps) => {
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInternalNavigation = useRef(false);
@@ -33,57 +45,59 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
 
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
+    const cleanup = shellui.addMessageListener(
+      'SHELLUI_URL_CHANGED',
+      (data: ShellUIMessage, event: MessageEvent) => {
+        if (ignoreMessages) {
+          return;
+        }
 
-    const cleanup = shellui.addMessageListener('SHELLUI_URL_CHANGED', (data: ShellUIMessage, event: MessageEvent) => {
+        // Ignore URL CHANGE from other than ContentView iframe
+        if (event.source !== iframeRef.current?.contentWindow) {
+          return;
+        }
 
-      
-      if (ignoreMessages) {
-        return;
-      }
+        const { pathname, search, hash } = data.payload as ShellUIUrlPayload;
+        // Remove leading slash and trailing slashes from iframe pathname
+        let cleanPathname = pathname.startsWith(navItem.url)
+          ? pathname.slice(navItem.url.length)
+          : pathname;
+        cleanPathname = cleanPathname.startsWith('/') ? cleanPathname.slice(1) : cleanPathname;
+        cleanPathname = cleanPathname.replace(/\/+$/, ''); // Remove trailing slashes
+        // Construct the new path without trailing slashes
+        let newShellPath = cleanPathname
+          ? `/${pathPrefix}/${cleanPathname}${search}${hash}`
+          : `/${pathPrefix}${search}${hash}`;
 
-      // Ignore URL CHANGE from other than ContentView iframe
-      if (event.source !== iframeRef.current?.contentWindow) {
-        return;
-      }
+        // Normalize: remove trailing slashes from pathname part only (preserve query/hash)
+        const urlParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
+        if (urlParts) {
+          const pathnamePart = urlParts[1].replace(/\/+$/, '') || '/';
+          const queryHashPart = urlParts[2] || '';
+          newShellPath = pathnamePart + queryHashPart;
+        }
 
-      const { pathname, search, hash } = data.payload as ShellUIUrlPayload;
-      // Remove leading slash and trailing slashes from iframe pathname
-      let cleanPathname = pathname.startsWith(navItem.url) ? pathname.slice(navItem.url.length) : pathname;
-      cleanPathname = cleanPathname.startsWith('/') ? cleanPathname.slice(1) : cleanPathname;
-      cleanPathname = cleanPathname.replace(/\/+$/, ''); // Remove trailing slashes
-      // Construct the new path without trailing slashes
-      let newShellPath = cleanPathname
-        ? `/${pathPrefix}/${cleanPathname}${search}${hash}`
-        : `/${pathPrefix}${search}${hash}`;
+        // Normalize current path for comparison (remove trailing slashes from pathname)
+        const currentPathname = window.location.pathname.replace(/\/+$/, '') || '/';
+        const currentPath = currentPathname + window.location.search + window.location.hash;
 
-      // Normalize: remove trailing slashes from pathname part only (preserve query/hash)
-      const urlParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
-      if (urlParts) {
-        const pathnamePart = urlParts[1].replace(/\/+$/, '') || '/';
-        const queryHashPart = urlParts[2] || '';
-        newShellPath = pathnamePart + queryHashPart;
-      }
+        // Normalize new path for comparison
+        const newPathParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
+        const normalizedNewPathname = newPathParts?.[1]?.replace(/\/+$/, '') || '/';
+        const normalizedNewPath = normalizedNewPathname + (newPathParts?.[2] || '');
 
-      // Normalize current path for comparison (remove trailing slashes from pathname)
-      const currentPathname = window.location.pathname.replace(/\/+$/, '') || '/';
-      const currentPath = currentPathname + window.location.search + window.location.hash;
+        if (currentPath !== normalizedNewPath) {
+          // Mark this navigation as internal so we don't try to "push" it back to the iframe
+          isInternalNavigation.current = true;
+          navigate(newShellPath, { replace: true });
 
-      // Normalize new path for comparison
-      const newPathParts = newShellPath.match(/^([^?#]*)([?#].*)?$/);
-      const normalizedNewPathname = newPathParts?.[1]?.replace(/\/+$/, '') || '/';
-      const normalizedNewPath = normalizedNewPathname + (newPathParts?.[2] || '');
-
-      if (currentPath !== normalizedNewPath) {
-        // Mark this navigation as internal so we don't try to "push" it back to the iframe
-        isInternalNavigation.current = true;
-        navigate(newShellPath, { replace: true });
-
-        // Reset the flag after a short delay to allow the render cycle to complete
-        setTimeout(() => {
-          isInternalNavigation.current = false;
-        }, 100);
-      }
-    });
+          // Reset the flag after a short delay to allow the render cycle to complete
+          setTimeout(() => {
+            isInternalNavigation.current = false;
+          }, 100);
+        }
+      },
+    );
 
     return () => {
       cleanup();
@@ -92,11 +106,14 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
 
   // Hide loading overlay when iframe sends SHELLUI_INITIALIZED
   useEffect(() => {
-    const cleanup = shellui.addMessageListener('SHELLUI_INITIALIZED', (_data: ShellUIMessage, event: MessageEvent) => {
-      if (event.source === iframeRef.current?.contentWindow) {
-        setIsLoading(false);
-      }
-    });
+    const cleanup = shellui.addMessageListener(
+      'SHELLUI_INITIALIZED',
+      (_data: ShellUIMessage, event: MessageEvent) => {
+        if (event.source === iframeRef.current?.contentWindow) {
+          setIsLoading(false);
+        }
+      },
+    );
     return () => cleanup();
   }, []);
 
@@ -105,7 +122,7 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
     if (!isLoading) return;
     const timeoutId = setTimeout(() => {
       logger.info('ContentView: Timeout expired, hiding loading overlay');
-      setIsLoading(false)
+      setIsLoading(false);
     }, 400);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
@@ -174,12 +191,12 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
 
     // Wait for iframe to load before injecting script
     iframe.addEventListener('load', handleLoad);
-    
+
     // Also try immediately if already loaded
     if (iframe.contentDocument?.readyState === 'complete') {
       handleLoad();
     }
-    
+
     return () => {
       iframe.removeEventListener('load', handleLoad);
     };
@@ -192,13 +209,20 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
       console.warn = (...args: unknown[]) => {
         const message = String(args[0] ?? '');
         // Suppress the specific sandbox warning
-        if (message.includes('allow-scripts') && message.includes('allow-same-origin') && message.includes('sandbox')) {
+        if (
+          message.includes('allow-scripts') &&
+          message.includes('allow-same-origin') &&
+          message.includes('sandbox')
+        ) {
           return;
         }
         // Suppress "Layout was forced" warning from iframe content
         // This is a performance warning that occurs when iframe content calculates layout before stylesheets load
         // It's harmless and common in iframe scenarios, especially with React apps
-        if (message.includes('Layout was forced') && message.includes('before the page was fully loaded')) {
+        if (
+          message.includes('Layout was forced') &&
+          message.includes('before the page was fully loaded')
+        ) {
           return;
         }
         originalWarn.apply(console, args);
@@ -222,7 +246,7 @@ export const ContentView = ({ url, pathPrefix, ignoreMessages = false, navItem }
           width: '100%',
           height: '100%',
           border: 'none',
-          display: 'block'
+          display: 'block',
         }}
         title="Content Frame"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"

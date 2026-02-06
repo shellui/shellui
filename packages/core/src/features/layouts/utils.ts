@@ -1,10 +1,7 @@
 import type { NavigationItem, NavigationGroup, LocalizedString } from '../config/types';
 
 /** Resolve a localized string to a single string for the given language. */
-export function resolveLocalizedString(
-  value: LocalizedString | undefined,
-  lang: string
-): string {
+export function resolveLocalizedString(value: LocalizedString | undefined, lang: string): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
@@ -12,7 +9,7 @@ export function resolveLocalizedString(
 
 /** Flatten navigation items from groups or flat array. */
 export function flattenNavigationItems(
-  navigation: (NavigationItem | NavigationGroup)[]
+  navigation: (NavigationItem | NavigationGroup)[],
 ): NavigationItem[] {
   if (navigation.length === 0) {
     return [];
@@ -30,7 +27,7 @@ export type Viewport = 'mobile' | 'desktop';
 /** Filter navigation by viewport: remove hidden and viewport-specific hidden items (and empty groups). */
 export function filterNavigationByViewport(
   navigation: (NavigationItem | NavigationGroup)[],
-  viewport: Viewport
+  viewport: Viewport,
 ): (NavigationItem | NavigationGroup)[] {
   if (navigation.length === 0) return [];
   const hideOnMobile = viewport === 'mobile';
@@ -59,7 +56,7 @@ export function filterNavigationByViewport(
 
 /** Filter navigation for sidebar: remove hidden items and groups that become empty. */
 export function filterNavigationForSidebar(
-  navigation: (NavigationItem | NavigationGroup)[]
+  navigation: (NavigationItem | NavigationGroup)[],
 ): (NavigationItem | NavigationGroup)[] {
   if (navigation.length === 0) return [];
   return navigation
@@ -78,9 +75,10 @@ export function filterNavigationForSidebar(
 }
 
 /** Split navigation by position: start (main content) and end (footer). */
-export function splitNavigationByPosition(
-  navigation: (NavigationItem | NavigationGroup)[]
-): { start: (NavigationItem | NavigationGroup)[]; end: NavigationItem[] } {
+export function splitNavigationByPosition(navigation: (NavigationItem | NavigationGroup)[]): {
+  start: (NavigationItem | NavigationGroup)[];
+  end: NavigationItem[];
+} {
   const start: (NavigationItem | NavigationGroup)[] = [];
   const end: NavigationItem[] = [];
   for (const item of navigation) {

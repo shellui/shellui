@@ -104,6 +104,7 @@ pnpm run publish:sdk
 ## Workspace Scripts
 
 ### Build Scripts
+
 - `pnpm run build` - Build all packages
 - `pnpm run build:packages` - Build all workspace packages
 - `pnpm run build:cli` - Build CLI package
@@ -111,22 +112,26 @@ pnpm run publish:sdk
 - `pnpm run build:sdk` - Build SDK package
 
 ### Development Scripts
+
 - `pnpm start` / `pnpm run serve` - Start development server
 - `pnpm test` - Run tests across all packages
 
 ### Publishing Scripts
+
 - `pnpm run publish:all` - Publish all packages
 - `pnpm run publish:cli` - Publish CLI package
 - `pnpm run publish:core` - Publish Core package
 - `pnpm run publish:sdk` - Publish SDK package
 
 ### Documentation Scripts
+
 - `pnpm run docs:install` - Install documentation dependencies
 - `pnpm run docs:start` - Start documentation development server
 - `pnpm run docs:build` - Build documentation site
 - `pnpm run docs:serve` - Serve built documentation
 
 ### Utility Scripts
+
 - `pnpm run clean` - Clean all node_modules
 
 ## License

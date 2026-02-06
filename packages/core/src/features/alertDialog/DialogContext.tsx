@@ -1,5 +1,13 @@
 import { shellui, type ShellUIMessage, type DialogOptions } from '@shellui/sdk';
-import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import { Z_INDEX } from '@/lib/z-index';
 
@@ -37,8 +45,18 @@ const TrashIcon = () => (
     <path d="M3 6h18" />
     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    <line x1="10" x2="10" y1="11" y2="17" />
-    <line x1="14" x2="14" y1="11" y2="17" />
+    <line
+      x1="10"
+      x2="10"
+      y1="11"
+      y2="17"
+    />
+    <line
+      x1="14"
+      x2="14"
+      y1="11"
+      y2="17"
+    />
   </svg>
 );
 
@@ -92,26 +110,29 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     }, DIALOG_EXIT_ANIMATION_MS);
   }, []);
 
-  const handleOpenChange = useCallback((open: boolean) => {
-    setIsOpen(open);
-    if (!open && dialogState) {
-      // If dialog was closed without clicking a button (X button or outside click),
-      // trigger cancel callback if it exists
-      if (dialogState.from && dialogState.from.length > 0) {
-        shellui.sendMessage({
-          type: 'SHELLUI_DIALOG_CANCEL',
-          payload: { id: dialogState.id },
-          to: dialogState.from,
-        });
-      } else if (dialogState.id) {
-        // Dialog opened from root window - trigger callback directly
-        shellui.callbackRegistry.triggerCancel(dialogState.id);
-        shellui.callbackRegistry.clear(dialogState.id);
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setIsOpen(open);
+      if (!open && dialogState) {
+        // If dialog was closed without clicking a button (X button or outside click),
+        // trigger cancel callback if it exists
+        if (dialogState.from && dialogState.from.length > 0) {
+          shellui.sendMessage({
+            type: 'SHELLUI_DIALOG_CANCEL',
+            payload: { id: dialogState.id },
+            to: dialogState.from,
+          });
+        } else if (dialogState.id) {
+          // Dialog opened from root window - trigger callback directly
+          shellui.callbackRegistry.triggerCancel(dialogState.id);
+          shellui.callbackRegistry.clear(dialogState.id);
+        }
+        // Unmount after exit animation finishes
+        scheduleUnmount();
       }
-      // Unmount after exit animation finishes
-      scheduleUnmount();
-    }
-  }, [dialogState, scheduleUnmount]);
+    },
+    [dialogState, scheduleUnmount],
+  );
 
   const handleOk = useCallback(() => {
     if (dialogState?.from && dialogState.from.length > 0) {
@@ -226,27 +247,30 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       setIsOpen(true);
     });
 
-    const cleanupDialogUpdate = shellui.addMessageListener('SHELLUI_DIALOG_UPDATE', (data: ShellUIMessage) => {
-      if (unmountTimeoutRef.current) {
-        clearTimeout(unmountTimeoutRef.current);
-        unmountTimeoutRef.current = null;
-      }
-      const payload = data.payload as DialogOptions & { id: string };
-      setDialogState({
-        id: payload.id,
-        title: payload.title,
-        description: payload.description,
-        mode: payload.mode || 'ok',
-        okLabel: payload.okLabel,
-        cancelLabel: payload.cancelLabel,
-        size: payload.size,
-        position: payload.position,
-        secondaryButton: payload.secondaryButton,
-        iconType: payload.icon === 'cookie' ? 'cookie' : undefined,
-        from: data.from,
-      });
-      setIsOpen(true);
-    });
+    const cleanupDialogUpdate = shellui.addMessageListener(
+      'SHELLUI_DIALOG_UPDATE',
+      (data: ShellUIMessage) => {
+        if (unmountTimeoutRef.current) {
+          clearTimeout(unmountTimeoutRef.current);
+          unmountTimeoutRef.current = null;
+        }
+        const payload = data.payload as DialogOptions & { id: string };
+        setDialogState({
+          id: payload.id,
+          title: payload.title,
+          description: payload.description,
+          mode: payload.mode || 'ok',
+          okLabel: payload.okLabel,
+          cancelLabel: payload.cancelLabel,
+          size: payload.size,
+          position: payload.position,
+          secondaryButton: payload.secondaryButton,
+          iconType: payload.icon === 'cookie' ? 'cookie' : undefined,
+          from: data.from,
+        });
+        setIsOpen(true);
+      },
+    );
 
     return () => {
       cleanupDialog();
@@ -264,16 +288,27 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     if (secondaryButton && dialogState.position === 'bottom-left') {
       return (
         <>
-          <Button size="sm" variant="ghost" onClick={handleSecondary}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleSecondary}
+          >
             {secondaryButton.label}
           </Button>
           <div className="flex gap-2">
             {mode === 'okCancel' && (
-              <Button size="sm" variant="ghost" onClick={handleCancel}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleCancel}
+              >
                 {cancelLabel || 'Cancel'}
               </Button>
             )}
-            <Button size="sm" onClick={handleOk}>
+            <Button
+              size="sm"
+              onClick={handleOk}
+            >
               {okLabel || 'OK'}
             </Button>
           </div>
@@ -283,31 +318,34 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
 
     switch (mode) {
       case 'ok':
-        return (
-          <AlertDialogAction onClick={handleOk}>
-            {okLabel || 'OK'}
-          </AlertDialogAction>
-        );
+        return <AlertDialogAction onClick={handleOk}>{okLabel || 'OK'}</AlertDialogAction>;
 
       case 'okCancel':
         return (
           <>
-            <AlertDialogCancel variant="outline" onClick={handleCancel}>
+            <AlertDialogCancel
+              variant="outline"
+              onClick={handleCancel}
+            >
               {cancelLabel || 'Cancel'}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleOk}>
-              {okLabel || 'OK'}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleOk}>{okLabel || 'OK'}</AlertDialogAction>
           </>
         );
 
       case 'delete':
         return (
           <>
-            <AlertDialogCancel variant="outline" onClick={handleCancel}>
+            <AlertDialogCancel
+              variant="outline"
+              onClick={handleCancel}
+            >
               {cancelLabel || 'Cancel'}
             </AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={handleOk}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleOk}
+            >
               {okLabel || 'Delete'}
             </AlertDialogAction>
           </>
@@ -316,28 +354,28 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       case 'confirm':
         return (
           <>
-            <AlertDialogCancel variant="outline" onClick={handleCancel}>
+            <AlertDialogCancel
+              variant="outline"
+              onClick={handleCancel}
+            >
               {cancelLabel || 'Cancel'}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleOk}>
-              {okLabel || 'Confirm'}
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleOk}>{okLabel || 'Confirm'}</AlertDialogAction>
           </>
         );
 
       case 'onlyCancel':
         return (
-          <AlertDialogCancel variant="outline" onClick={handleCancel}>
+          <AlertDialogCancel
+            variant="outline"
+            onClick={handleCancel}
+          >
             {cancelLabel || 'Cancel'}
           </AlertDialogCancel>
         );
 
       default:
-        return (
-          <AlertDialogAction onClick={handleOk}>
-            {okLabel || 'OK'}
-          </AlertDialogAction>
-        );
+        return <AlertDialogAction onClick={handleOk}>{okLabel || 'OK'}</AlertDialogAction>;
     }
   };
 
@@ -346,7 +384,10 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
     if (!dialogState || dialogState.position !== 'bottom-left') return null;
 
     return (
-      <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+      <AlertDialog
+        open={isOpen}
+        onOpenChange={handleOpenChange}
+      >
         <AlertDialogPortal>
           <AlertDialogOverlay style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }} />
           <AlertDialogPrimitive.Content
@@ -400,7 +441,10 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
           {dialogState.position === 'bottom-left' ? (
             renderCookieConsentDialog()
           ) : (
-            <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+            <AlertDialog
+              open={isOpen}
+              onOpenChange={handleOpenChange}
+            >
               <AlertDialogContent size={dialogState.size ?? 'default'}>
                 <AlertDialogHeader>
                   {dialogState.mode === 'delete' && (
@@ -413,9 +457,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
                     <AlertDialogDescription>{dialogState.description}</AlertDialogDescription>
                   )}
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  {renderButtons()}
-                </AlertDialogFooter>
+                <AlertDialogFooter>{renderButtons()}</AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}

@@ -20,7 +20,13 @@ interface OverlayShellProps {
 export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
   const navigate = useNavigate();
   const { isOpen, modalUrl, closeModal } = useModal();
-  const { isOpen: isDrawerOpen, drawerUrl, position: drawerPosition, size: drawerSize, closeDrawer } = useDrawer();
+  const {
+    isOpen: isDrawerOpen,
+    drawerUrl,
+    position: drawerPosition,
+    size: drawerSize,
+    closeDrawer,
+  } = useDrawer();
   const { t, i18n } = useTranslation('common');
   const currentLanguage = i18n.language || 'en';
 
@@ -55,7 +61,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
       const isAllowed =
         isHomepage ||
         navigationItems.some(
-          (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`)
+          (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`),
         );
       if (isAllowed) {
         navigate(pathname || '/');
@@ -63,7 +69,8 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
         shellui.toast({
           type: 'error',
           title: t('navigationError') ?? 'Navigation error',
-          description: t('navigationNotAllowed') ?? 'This URL is not configured in the app navigation.',
+          description:
+            t('navigationNotAllowed') ?? 'This URL is not configured in the app navigation.',
         });
       }
     });
@@ -73,20 +80,26 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
   return (
     <>
       {children}
-      <Dialog open={isOpen} onOpenChange={closeModal}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={closeModal}
+      >
         <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[680px] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
             <>
               <DialogTitle className="sr-only">
                 {resolveLocalizedString(
                   navigationItems.find((item) => item.url === modalUrl)?.label,
-                  currentLanguage
+                  currentLanguage,
                 )}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 {t('modalContent') ?? 'Modal content'}
               </DialogDescription>
-              <div className="flex-1" style={{ minHeight: 0 }}>
+              <div
+                className="flex-1"
+                style={{ minHeight: 0 }}
+              >
                 <ContentView
                   url={modalUrl}
                   pathPrefix="settings"
@@ -103,10 +116,13 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
               </DialogDescription>
               <div className="flex-1 p-4">
                 <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                  <h3 className="font-semibold text-destructive mb-2">Error: Modal URL is undefined</h3>
+                  <h3 className="font-semibold text-destructive mb-2">
+                    Error: Modal URL is undefined
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code> function was called
-                    without a valid URL parameter. Please ensure you provide a URL when opening the modal.
+                    The <code className="text-xs bg-background px-1 py-0.5 rounded">openModal</code>{' '}
+                    function was called without a valid URL parameter. Please ensure you provide a
+                    URL when opening the modal.
                   </p>
                 </div>
               </div>
@@ -114,8 +130,16 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
           )}
         </DialogContent>
       </Dialog>
-      <Drawer open={isDrawerOpen} onOpenChange={(open) => !open && closeDrawer()} direction={drawerPosition}>
-        <DrawerContent direction={drawerPosition} size={drawerSize} className="p-0 overflow-hidden flex flex-col">
+      <Drawer
+        open={isDrawerOpen}
+        onOpenChange={(open) => !open && closeDrawer()}
+        direction={drawerPosition}
+      >
+        <DrawerContent
+          direction={drawerPosition}
+          size={drawerSize}
+          className="p-0 overflow-hidden flex flex-col"
+        >
           {drawerUrl ? (
             <div className="flex-1 min-h-0 flex flex-col">
               <ContentView
@@ -128,10 +152,13 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
           ) : (
             <div className="flex-1 p-4">
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-                <h3 className="font-semibold text-destructive mb-2">Error: Drawer URL is undefined</h3>
+                <h3 className="font-semibold text-destructive mb-2">
+                  Error: Drawer URL is undefined
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openDrawer</code> function was called
-                  without a valid URL parameter. Please ensure you provide a URL when opening the drawer.
+                  The <code className="text-xs bg-background px-1 py-0.5 rounded">openDrawer</code>{' '}
+                  function was called without a valid URL parameter. Please ensure you provide a URL
+                  when opening the drawer.
                 </p>
               </div>
             </div>

@@ -1,17 +1,16 @@
-import { forwardRef, type InputHTMLAttributes, type ChangeEvent } from "react"
-import { cn } from "@/lib/utils"
+import { forwardRef, type InputHTMLAttributes, type ChangeEvent } from 'react';
+import { cn } from '@/lib/utils';
 
-export interface SwitchProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
+export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 }
 
 const Switch = forwardRef<HTMLInputElement, SwitchProps>(
   ({ className, checked, onCheckedChange, ...props }, ref) => {
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-      onCheckedChange?.(e.target.checked)
-    }
+      onCheckedChange?.(e.target.checked);
+    };
 
     return (
       <label className="inline-flex items-center cursor-pointer">
@@ -25,22 +24,22 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
         />
         <div
           className={cn(
-            "relative w-11 h-6 rounded-full border border-border transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring",
-            checked ? "bg-primary" : "bg-muted",
-            className
+            'relative w-11 h-6 rounded-full border border-border transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring',
+            checked ? 'bg-primary' : 'bg-muted',
+            className,
           )}
         >
           <div
             className={cn(
-              "absolute top-[1px] left-[1px] h-5 w-5 bg-background border border-border rounded-full transition-transform",
-              checked ? "translate-x-5" : "translate-x-0"
+              'absolute top-[1px] left-[1px] h-5 w-5 bg-background border border-border rounded-full transition-transform',
+              checked ? 'translate-x-5' : 'translate-x-0',
             )}
           />
         </div>
       </label>
-    )
-  }
-)
-Switch.displayName = "Switch"
+    );
+  },
+);
+Switch.displayName = 'Switch';
 
-export { Switch }
+export { Switch };

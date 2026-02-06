@@ -33,12 +33,13 @@ export function createViteDefine(config) {
   // If we pass '"{\"title\":\"shellui\"}"', Vite inserts it as: const x = "{\"title\":\"shellui\"}"; (valid - string literal)
   // So we need to double-stringify to ensure it's inserted as a string
   const configString = JSON.stringify(JSON.stringify(serializableConfig));
-  
+
   return {
-    '__SHELLUI_CONFIG__': configString,
-    '__SHELLUI_SENTRY_DSN__': sentry?.dsn ? JSON.stringify(sentry.dsn) : 'undefined',
-    '__SHELLUI_SENTRY_ENVIRONMENT__': sentry?.environment ? JSON.stringify(sentry.environment) : 'undefined',
-    '__SHELLUI_SENTRY_RELEASE__': sentry?.release ? JSON.stringify(sentry.release) : 'undefined',
+    __SHELLUI_CONFIG__: configString,
+    __SHELLUI_SENTRY_DSN__: sentry?.dsn ? JSON.stringify(sentry.dsn) : 'undefined',
+    __SHELLUI_SENTRY_ENVIRONMENT__: sentry?.environment
+      ? JSON.stringify(sentry.environment)
+      : 'undefined',
+    __SHELLUI_SENTRY_RELEASE__: sentry?.release ? JSON.stringify(sentry.release) : 'undefined',
   };
 }
-

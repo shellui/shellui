@@ -50,25 +50,25 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
           },
         },
       });
-      
+
       // Extract the built code from the output
       // Vite build with write: false returns a RollupOutput object with output array
       let outputChunk = null;
-      
+
       if (result && Array.isArray(result) && result.length > 0) {
         // Handle array format (multiple outputs)
         const buildOutput = result[0];
         if (buildOutput && buildOutput.output && Array.isArray(buildOutput.output)) {
-          outputChunk = buildOutput.output.find(o => o.type === 'chunk');
+          outputChunk = buildOutput.output.find((o) => o.type === 'chunk');
         }
       } else if (result && result.output && Array.isArray(result.output)) {
         // Handle single output format
-        outputChunk = result.output.find(o => o.type === 'chunk');
+        outputChunk = result.output.find((o) => o.type === 'chunk');
       } else if (result && result.code) {
         // Handle direct code format (unlikely but possible)
         outputChunk = { code: result.code };
       }
-      
+
       if (outputChunk && outputChunk.code) {
         // Strip any source map references from the code
         // This prevents browser devtools from trying to load non-existent source maps
@@ -103,7 +103,7 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
           await buildServiceWorker();
         }
       });
-      
+
       // Handle source map requests first - return empty source map instead of 404
       // This prevents browser devtools from showing errors when source maps don't exist
       // (e.g., from React DevTools or other browser extensions)
@@ -113,18 +113,20 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
           // This prevents errors while still disabling source maps in dev mode
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({
-            version: 3,
-            sources: [],
-            names: [],
-            mappings: '',
-            file: req.url.replace('.map', '')
-          }));
+          res.end(
+            JSON.stringify({
+              version: 3,
+              sources: [],
+              names: [],
+              mappings: '',
+              file: req.url.replace('.map', ''),
+            }),
+          );
           return;
         }
         next();
       });
-      
+
       // Serve the service worker at /sw.js
       server.middlewares.use(async (req, res, next) => {
         if (req.url === '/sw.js' || req.url.startsWith('/sw.js?')) {
@@ -132,7 +134,7 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, sdkPackageP
           if (!swCode && !buildError) {
             await buildServiceWorker();
           }
-          
+
           if (swCode) {
             res.setHeader('Content-Type', 'application/javascript');
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');

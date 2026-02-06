@@ -18,11 +18,16 @@ const CATEGORY_ORDER: CookieConsentCategory[] = [
 ];
 
 /** Format duration in human-readable format */
-function formatDuration(seconds: number, t: (key: string, options?: Record<string, unknown>) => string): string {
+function formatDuration(
+  seconds: number,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   if (seconds < 60) return t('preferences.duration.seconds', { count: seconds });
   if (seconds < 3600) return t('preferences.duration.minutes', { count: Math.floor(seconds / 60) });
-  if (seconds < 86400) return t('preferences.duration.hours', { count: Math.floor(seconds / 3600) });
-  if (seconds < 31536000) return t('preferences.duration.days', { count: Math.floor(seconds / 86400) });
+  if (seconds < 86400)
+    return t('preferences.duration.hours', { count: Math.floor(seconds / 3600) });
+  if (seconds < 31536000)
+    return t('preferences.duration.days', { count: Math.floor(seconds / 86400) });
   return t('preferences.duration.years', { count: Math.floor(seconds / 31536000) });
 }
 
@@ -41,15 +46,15 @@ export function CookiePreferencesView() {
   // Strictly necessary hosts are always enabled
   const strictNecessaryHosts = useMemo(
     () => cookies.filter((c) => c.category === 'strict_necessary').map((c) => c.host),
-    [cookies]
+    [cookies],
   );
 
   const currentAcceptedHosts = settings?.cookieConsent?.acceptedHosts ?? [];
 
   // Local state for unsaved changes (always include strict necessary)
-  const [localAcceptedHosts, setLocalAcceptedHosts] = useState<string[]>(() =>
-    [...new Set([...currentAcceptedHosts, ...strictNecessaryHosts])]
-  );
+  const [localAcceptedHosts, setLocalAcceptedHosts] = useState<string[]>(() => [
+    ...new Set([...currentAcceptedHosts, ...strictNecessaryHosts]),
+  ]);
 
   // Track if save/accept/reject was clicked to avoid rejecting on intentional close
   const actionClickedRef = useRef(false);
@@ -110,9 +115,7 @@ export function CookiePreferencesView() {
 
   // Toggle individual cookie
   const toggleCookie = useCallback((host: string, enabled: boolean) => {
-    setLocalAcceptedHosts((prev) =>
-      enabled ? [...prev, host] : prev.filter((h) => h !== host)
-    );
+    setLocalAcceptedHosts((prev) => (enabled ? [...prev, host] : prev.filter((h) => h !== host)));
   }, []);
 
   // Toggle entire category
@@ -128,7 +131,7 @@ export function CookiePreferencesView() {
         }
       });
     },
-    [cookiesByCategory]
+    [cookiesByCategory],
   );
 
   // Check if category is fully or partially enabled
@@ -141,7 +144,7 @@ export function CookiePreferencesView() {
       if (enabledCount > 0) return 'some';
       return 'none';
     },
-    [cookiesByCategory, localAcceptedHosts]
+    [cookiesByCategory, localAcceptedHosts],
   );
 
   // Accept all
@@ -214,7 +217,10 @@ export function CookiePreferencesView() {
           const isStrictNecessary = category === 'strict_necessary';
 
           return (
-            <div key={category} className="mb-6 last:mb-0">
+            <div
+              key={category}
+              className="mb-6 last:mb-0"
+            >
               {/* Category header with toggle */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex-1 min-w-0">
@@ -259,9 +265,7 @@ export function CookiePreferencesView() {
                         className="flex items-start justify-between gap-3 py-2 px-3 rounded-md bg-muted/30"
                       >
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium truncate">
-                            {cookie.name}
-                          </span>
+                          <span className="text-sm font-medium truncate">{cookie.name}</span>
                           {cookie.description && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                               {resolveLocalizedString(cookie.description, currentLanguage)}
@@ -272,9 +276,7 @@ export function CookiePreferencesView() {
                             <span>•</span>
                             <span>{formatDuration(cookie.durationSeconds, t)}</span>
                             <span>•</span>
-                            <span className="capitalize">
-                              {cookie.type.replace('_', ' ')}
-                            </span>
+                            <span className="capitalize">{cookie.type.replace('_', ' ')}</span>
                           </div>
                         </div>
                         <Switch

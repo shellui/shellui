@@ -5,6 +5,7 @@ This guide explains how to publish the ShellUI packages to npm.
 ## Prerequisites
 
 1. Ensure you're logged into npm:
+
    ```bash
    npm login
    ```
@@ -25,6 +26,7 @@ npm run publish:cli
 ```
 
 Or manually:
+
 ```bash
 cd packages/cli
 npm publish
@@ -37,6 +39,7 @@ npm run publish:core
 ```
 
 Or manually:
+
 ```bash
 cd packages/core
 npm publish
@@ -49,6 +52,7 @@ npm run publish:sdk
 ```
 
 Or manually:
+
 ```bash
 cd packages/sdk
 npm publish
@@ -67,11 +71,13 @@ npm run publish:all
 ## Version Management
 
 To update versions across all packages, you can use tools like:
+
 - `npm version` (manual)
 - `lerna` (for more advanced versioning)
 - `changesets` (for changelog management)
 
 Example with npm:
+
 ```bash
 cd packages/cli && npm version patch
 cd ../core && npm version patch
@@ -81,6 +87,7 @@ cd ../sdk && npm version patch
 ## Testing Before Publishing
 
 1. Test locally by linking packages:
+
    ```bash
    npm run build
    cd packages/cli
@@ -88,6 +95,7 @@ cd ../sdk && npm version patch
    ```
 
 2. In another project:
+
    ```bash
    npm link @shellui/cli
    ```
@@ -103,5 +111,3 @@ cd ../sdk && npm version patch
 - **"Package already exists"**: The version number already exists on npm. Bump the version.
 - **"Access denied"**: Make sure you're logged in and have access to publish to the `@shellui` scope.
 - **"Missing files"**: Check the `files` field in each `package.json` to ensure all necessary files are included.
-
-
