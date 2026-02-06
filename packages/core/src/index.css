@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Explicitly tell Tailwind to scan this directory for utility classes.
+ * Without this, Tailwind v4 skips source files inside node_modules,
+ * which breaks consumers that use @shellui/cli with the core's src/. */
+@source ".";
+
 @custom-variant dark (&:is(.dark *));
 
 /* 

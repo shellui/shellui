@@ -62,6 +62,48 @@ const Sidebar = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
 );
 Sidebar.displayName = 'Sidebar';
 
+/** Inline SVG: panel-left-open (expand sidebar) */
+const PanelLeftOpenIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5 transition-transform duration-300"
+    aria-hidden
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m14 9 3 3-3 3" />
+  </svg>
+);
+
+/** Inline SVG: panel-left-close (collapse sidebar) */
+const PanelLeftCloseIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-5 w-5 transition-transform duration-300"
+    aria-hidden
+  >
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M9 3v18" />
+    <path d="m16 15-3-3 3-3" />
+  </svg>
+);
+
 const SidebarTrigger = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
   ({ className, ...props }, ref) => {
     const { toggle, isCollapsed } = useSidebar();
@@ -78,11 +120,7 @@ const SidebarTrigger = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLBu
         style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}
         {...props}
       >
-        <img
-          src={isCollapsed ? '/icons/panel-left.svg' : '/icons/panel-left-closed.svg'}
-          alt=""
-          className="h-5 w-5 transition-transform duration-300"
-        />
+        {isCollapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
       </button>
     );
   },

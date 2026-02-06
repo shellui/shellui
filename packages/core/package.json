@@ -1,6 +1,6 @@
 {
   "name": "@shellui/core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "ShellUI Core - Core React application runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,7 +21,8 @@
       "import": "./dist/constants/urls.js",
       "default": "./dist/constants/urls.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",

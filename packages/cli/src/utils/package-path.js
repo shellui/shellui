@@ -17,10 +17,18 @@ export function resolvePackagePath(packageName) {
     const packageJsonPath = require.resolve(`${packageName}/package.json`);
     return path.dirname(packageJsonPath);
   } catch (e) {
-    // Fallback: assume workspace structure
+    // Fallback: assume workspace structure or pnpm symlinked node_modules
     // Go up from cli/src/utils/package-path.js -> cli/src/utils -> cli/src -> cli -> packages -> packageName
     const packagesDir = path.resolve(__dirname, '../../../');
-    return path.join(packagesDir, packageName.replace('@shellui/', ''));
+    const resolved = path.join(packagesDir, packageName.replace('@shellui/', ''));
+    // Resolve symlinks to get the canonical path — pnpm uses symlinks that
+    // point to different .pnpm/ directories; Vite resolves real paths so we
+    // need to be consistent to avoid mismatched root vs input paths.
+    try {
+      return fs.realpathSync(resolved);
+    } catch {
+      return resolved;
+    }
   }
 }
 
