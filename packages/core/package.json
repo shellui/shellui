@@ -1,6 +1,6 @@
 {
   "name": "@shellui/core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "ShellUI Core - Core React application runtime",
   "main": "src/app.tsx",
   "types": "src/index.ts",
