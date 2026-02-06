@@ -31,7 +31,17 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       // Vite's define inserts the string value directly, so we only need to parse once
       // Access it directly (no typeof check) so Vite can statically analyze and replace it
       // @ts-expect-error - __SHELLUI_CONFIG__ is injected by Vite at build time
-      const configValue: unknown = __SHELLUI_CONFIG__;
+      let configValue: unknown = __SHELLUI_CONFIG__;
+      
+      // In development, if __SHELLUI_CONFIG__ is undefined, it might not have been replaced by Vite
+      // This can happen if the Vite define configuration isn't working properly
+      if (configValue === undefined && typeof window !== 'undefined') {
+        // Try to get it from window (fallback for dev mode issues)
+        const g = window as unknown as { __SHELLUI_CONFIG__?: unknown };
+        if (g.__SHELLUI_CONFIG__ !== undefined) {
+          configValue = g.__SHELLUI_CONFIG__;
+        }
+      }
 
       // After Vite replacement, configValue will be a JSON string
       // Example: "{\"title\":\"shellui\"}" -> parse -> {title: "shellui"}
@@ -61,8 +71,9 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       }
 
       // Fallback: try to read from globalThis (for edge cases or if define didn't work)
+      // This handles cases where Vite's define didn't work or config needs to be injected at runtime
       const g = globalThis as unknown as { __SHELLUI_CONFIG__?: unknown };
-      if (typeof g.__SHELLUI_CONFIG__ !== 'undefined') {
+      if (typeof g.__SHELLUI_CONFIG__ !== 'undefined' && configValue === undefined) {
         const fallbackValue = g.__SHELLUI_CONFIG__;
         const parsedConfig: ShellUIConfig =
           typeof fallbackValue === 'string'
@@ -80,9 +91,12 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       }
 
       // Return empty config if __SHELLUI_CONFIG__ is undefined (fallback for edge cases)
-      logger.warn(
-        'Config not found. Using empty config. Make sure shellui.config.ts is properly loaded during build.',
-      );
+      // This ensures the provider always provides a value, preventing "useConfig must be used within ConfigProvider" errors
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn(
+          'Config not found. Using empty config. Make sure shellui.config.ts is properly loaded and Vite define is configured correctly.',
+        );
+      }
       return {} as ShellUIConfig;
     } catch (err) {
       logger.error('Failed to load ShellUI config:', { error: err });
@@ -91,6 +105,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
     }
   });
 
+  // Always provide a value - never null - to prevent "useConfig must be used within ConfigProvider" errors
   const value: ConfigContextValue = { config };
   return createElement(ConfigContext.Provider, { value }, props.children);
 }
