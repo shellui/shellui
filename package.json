@@ -25,7 +25,8 @@
     "serve:dist": "node tools/serve/server.js",
     "tauri:install": "pnpm --filter @shellui/tauri run install:deps",
     "tauri:dev": "pnpm --filter @shellui/tauri run dev",
-    "tauri:build": "pnpm --filter @shellui/tauri run build"
+    "tauri:build": "pnpm --filter @shellui/tauri run build",
+    "lint": "pnpm exec eslint ."
   },
   "keywords": [
     "monorepo",
@@ -38,6 +39,10 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "@shellui/core": "workspace:*"
+    "@shellui/core": "workspace:*",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "typescript": "^5.0.0"
   }
 }

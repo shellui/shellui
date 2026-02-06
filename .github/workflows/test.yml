@@ -10,6 +10,7 @@ on:
             - "package.json"
             - "pnpm-lock.yaml"
             - "pnpm-workspace.yaml"
+            - "eslint.config.js"
             - ".github/workflows/test.yml"
     pull_request:
         branches:
@@ -20,6 +21,7 @@ on:
             - "package.json"
             - "pnpm-lock.yaml"
             - "pnpm-workspace.yaml"
+            - "eslint.config.js"
             - ".github/workflows/test.yml"
 
 jobs:
@@ -44,6 +46,9 @@ jobs:
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
+
+            - name: Lint (tlint)
+              run: pnpm run tlint
 
             - name: Run tests
               run: pnpm test
