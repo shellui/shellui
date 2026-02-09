@@ -12,6 +12,7 @@ import {
   resolvePackagePath,
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
+import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
 
 let currentServer = null;
 let configWatcher = null;
@@ -50,7 +51,11 @@ async function startServer(root, cwd, shouldOpen = false) {
     // Force cacheDir to project root - this prevents Vite from creating cache
     // relative to root (which would be inside @shellui/core)
     cacheDir: viteCacheDir,
-    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath)],
+    plugins: [
+      react(),
+      serviceWorkerDevPlugin(corePackagePath, coreSrcPath),
+      sentryTunnelPlugin(),
+    ],
     define: createViteDefine(config),
     resolve: {
       alias: {

@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { cac } from 'cac';
 import { startCommand, buildCommand } from './commands/index.js';
 import pkg from '../package.json' with { type: 'json' };

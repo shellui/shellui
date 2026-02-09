@@ -5,14 +5,34 @@ import { closeSentry, initSentry } from '../../sentry/initSentry';
 import { useSettings } from '../hooks/useSettings';
 import { Button } from '../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
+import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
+
+type SentryGlobals = {
+  __SHELLUI_SENTRY_DSN__?: string;
+  __SHELLUI_SENTRY_ENVIRONMENT__?: string;
+  __SHELLUI_SENTRY_RELEASE__?: string;
+};
 
 export const Advanced = () => {
   const { t } = useTranslation('settings');
   const { config } = useConfig();
   const { settings, updateSetting, resetAllData } = useSettings();
-  const errorReportingConfigured = Boolean(config?.sentry?.dsn);
+  // Check Sentry globals directly since sentry is not included in the main config
+  const g = globalThis as unknown as SentryGlobals;
+  const errorReportingConfigured = Boolean(g.__SHELLUI_SENTRY_DSN__);
+  // Check if Sentry cookie consent has been approved
+  const { isAccepted: sentryConsentAccepted } = useCookieConsent('sentry.io');
 
   const handleErrorReportingChange = (checked: boolean) => {
+    // Don't allow enabling if cookie consent hasn't been approved
+    if (checked && !sentryConsentAccepted) {
+      shellui.toast({
+        title: 'Cookie consent required',
+        description: 'Please approve Sentry cookie consent in Data Privacy settings to enable error reporting.',
+        type: 'error',
+      });
+      return;
+    }
     updateSetting('errorReporting', { enabled: checked });
     if (checked) {
       initSentry();
@@ -56,15 +76,18 @@ export const Advanced = () => {
           </span>
           <p className="text-sm text-muted-foreground">
             {errorReportingConfigured
-              ? t('advanced.errorReporting.statusConfigured')
+              ? sentryConsentAccepted
+                ? t('advanced.errorReporting.statusConfigured')
+                : 'Cookie consent required to enable error reporting'
               : t('advanced.errorReporting.statusNotConfigured')}
           </p>
         </div>
         {errorReportingConfigured && (
           <Switch
             id="error-reporting"
-            checked={settings.errorReporting.enabled}
+            checked={sentryConsentAccepted && settings.errorReporting.enabled}
             onCheckedChange={handleErrorReportingChange}
+            disabled={!sentryConsentAccepted}
           />
         )}
       </div>

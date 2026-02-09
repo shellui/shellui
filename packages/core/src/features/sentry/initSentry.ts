@@ -1,3 +1,4 @@
+import { shellui } from 'node_modules/@shellui/sdk/src';
 import { getCookieConsentAccepted } from '../cookieConsent/cookieConsent';
 
 const SETTINGS_KEY = 'shellui:settings';
@@ -46,10 +47,26 @@ export function initSentry(): void {
     return;
   }
   void import('@sentry/react').then((Sentry) => {
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]');
+
+    // For localhost, use tunnel through the dev server to avoid CORS issues
+    // The tunnel endpoint proxies requests to Sentry, bypassing browser CORS restrictions
+    const tunnel =
+      isLocalhost && typeof window !== 'undefined'
+        ? `${window.location.origin}/api/sentry-tunnel`
+        : undefined;
+
     Sentry.init({
       dsn,
       environment: g.__SHELLUI_SENTRY_ENVIRONMENT__ ?? 'production',
       release: g.__SHELLUI_SENTRY_RELEASE__,
+      sendDefaultPii: true,
+      // Use tunnel for localhost to avoid CORS issues
+      ...(tunnel && { tunnel }),
     });
     sentryLoaded = true;
   });
@@ -67,6 +84,66 @@ export function closeSentry(): void {
     Sentry.close();
     sentryLoaded = false;
   });
+}
+
+/**
+ * Ensure Sentry is initialized and ready, then capture an exception.
+ * Useful for manually triggering error reports (e.g., test button).
+ * This function will initialize Sentry even in dev mode if needed for testing.
+ * @param error - The error to capture
+ * @returns Promise that resolves when the error has been sent (or rejected if Sentry is unavailable)
+ */
+export async function captureException(error: Error): Promise<void> {
+  const g = globalThis as unknown as SentryGlobals;
+  const dsn = g.__SHELLUI_SENTRY_DSN__;
+
+  if (!dsn || typeof dsn !== 'string') {
+    throw new Error('Sentry DSN not configured');
+  }
+
+  // If Sentry is not loaded, initialize it (even in dev mode for testing)
+  if (!sentryLoaded) {
+    // Check if error reporting is enabled
+    if (!isErrorReportingEnabled()) {
+      throw new Error('Error reporting is disabled in settings');
+    }
+
+    // Import and initialize Sentry (bypass dev mode check for manual testing)
+    const Sentry = await import('@sentry/react');
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.hostname === '[::1]');
+
+    // For localhost, use tunnel through the dev server to avoid CORS issues
+    // The tunnel endpoint proxies requests to Sentry, bypassing browser CORS restrictions
+    const tunnel =
+      isLocalhost && typeof window !== 'undefined'
+        ? `${window.location.origin}/api/sentry-tunnel`
+        : undefined;
+
+    Sentry.init({
+      dsn,
+      environment: g.__SHELLUI_SENTRY_ENVIRONMENT__ ?? 'production',
+      release: g.__SHELLUI_SENTRY_RELEASE__,
+      sendDefaultPii: true,
+      // Use tunnel for localhost to avoid CORS issues
+      ...(tunnel && { tunnel }),
+    });
+    sentryLoaded = true;
+
+    // Wait a bit for Sentry to fully initialize
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  // Capture the exception
+  const Sentry = await import('@sentry/react');
+  if (Sentry.captureException) {
+    Sentry.captureException(error);
+  } else {
+    throw new Error('Sentry captureException not available');
+  }
 }
 
 initSentry();
