@@ -5,7 +5,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb';
+} from '../../components/ui/breadcrumb';
 import {
   Sidebar,
   SidebarContent,
@@ -16,15 +16,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-} from '@/components/ui/sidebar';
+} from '../../components/ui/sidebar';
 import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import urls from '@/constants/urls';
+import urls from '../../constants/urls';
 import { createSettingsRoutes } from './SettingsRoutes';
 import { useSettings } from './hooks/useSettings';
 import { useConfig } from '../config/useConfig';
-import { isTauri } from '@/service-worker/register';
-import { Button } from '@/components/ui/button';
+import { isTauri } from '../../service-worker/register';
+import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
 
 export const SettingsView = () => {

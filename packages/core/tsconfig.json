@@ -17,7 +17,6 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
       "@shellui/sdk": ["../sdk/src/index.ts"]
     }
   },

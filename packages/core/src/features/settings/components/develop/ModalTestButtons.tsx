@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
-import urls from '@/constants/urls';
+import urls from '../../../../constants/urls';
 
 export const ModalTestButtons = () => {
   const { t } = useTranslation('settings');

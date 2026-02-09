@@ -4,7 +4,7 @@ import { shellui } from '@shellui/sdk';
 import { useDialog } from '../alertDialog/DialogContext';
 import { useConfig } from '../config/useConfig';
 import { useSettings } from '../settings/hooks/useSettings';
-import urls from '@/constants/urls';
+import urls from '../../constants/urls';
 
 /**
  * Shows a friendly cookie consent modal on first visit (when user has not yet consented).

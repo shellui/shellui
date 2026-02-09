@@ -8,8 +8,8 @@ import {
   type HTMLAttributes,
 } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
 
 const Dialog = DialogPrimitive.Root;
 

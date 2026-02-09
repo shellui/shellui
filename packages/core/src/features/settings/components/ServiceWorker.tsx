@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../hooks/useSettings';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '../../../components/ui/button';
+import { Switch } from '../../../components/ui/switch';
 import {
   isServiceWorkerRegistered,
   updateServiceWorker,
   getServiceWorkerStatus,
   addStatusListener,
   serviceWorkerFileExists,
-} from '@/service-worker/register';
+} from '../../../service-worker/register';
 import { shellui } from '@shellui/sdk';
 import { useState, useEffect } from 'react';
 

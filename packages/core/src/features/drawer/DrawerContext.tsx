@@ -1,6 +1,6 @@
 import { shellui, type ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { DrawerDirection } from '@/components/ui/drawer';
+import type { DrawerDirection } from '../../components/ui/drawer';
 import { useModal } from '../modal/ModalContext';
 
 /**

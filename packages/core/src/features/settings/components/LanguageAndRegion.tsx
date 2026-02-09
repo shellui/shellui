@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../hooks/useSettings';
-import { useConfig } from '@/features/config/useConfig';
-import { getSupportedLanguages } from '@/i18n/config';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { Select } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { useConfig } from '../../config/useConfig';
+import { getSupportedLanguages } from '../../../i18n/config';
+import { Button } from '../../../components/ui/button';
+import { ButtonGroup } from '../../../components/ui/button-group';
+import { Select } from '../../../components/ui/select';
+import { cn } from '../../../lib/utils';
 import { useState, useEffect } from 'react';
 
 const GlobeIcon = () => (

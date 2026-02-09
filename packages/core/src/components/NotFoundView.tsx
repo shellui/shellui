@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import { useConfig } from '@/features/config/useConfig';
-import type { NavigationItem, NavigationGroup } from '@/features/config/types';
+import { useConfig } from '../features/config/useConfig';
+import type { NavigationItem, NavigationGroup } from '../features/config/types';
 
 const flattenNavigationItems = (
   navigation: (NavigationItem | NavigationGroup)[],

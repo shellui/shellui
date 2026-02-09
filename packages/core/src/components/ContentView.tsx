@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import type { NavigationItem } from '@/features/config/types';
+import type { NavigationItem } from '../features/config/types';
 import {
   addIframe,
   removeIframe,

@@ -1,5 +1,5 @@
 import { forwardRef, type InputHTMLAttributes, type ChangeEvent } from 'react';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 
 export interface SwitchProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   checked?: boolean;

@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../hooks/useSettings';
-import { useConfig } from '@/features/config/useConfig';
-import { Button } from '@/components/ui/button';
+import { useConfig } from '../../config/useConfig';
+import { Button } from '../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
-import urls from '@/constants/urls';
-import { cn } from '@/lib/utils';
+import urls from '../../../constants/urls';
+import { cn } from '../../../lib/utils';
 
 export const DataPrivacy = () => {
   const { t } = useTranslation('settings');

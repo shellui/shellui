@@ -15,9 +15,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
+} from '../../components/ui/sidebar';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
 import {
   filterNavigationByViewport,
   filterNavigationForSidebar,

@@ -11,8 +11,8 @@ import {
 } from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
 
 type SidebarContextValue = {
   isCollapsed: boolean;

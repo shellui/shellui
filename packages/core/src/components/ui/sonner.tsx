@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
-import { useSettings } from '@/features/settings/hooks/useSettings';
+import { useSettings } from '../../features/settings/hooks/useSettings';
 import { Toaster as Sonner } from 'sonner';
-import { Z_INDEX } from '@/lib/z-index';
+import { Z_INDEX } from '../../lib/z-index';
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 

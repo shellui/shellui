@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Switch } from '@/components/ui/switch';
-import { useConfig } from '@/features/config/useConfig';
-import { closeSentry, initSentry } from '@/features/sentry/initSentry';
+import { Switch } from '../../../components/ui/switch';
+import { useConfig } from '../../config/useConfig';
+import { closeSentry, initSentry } from '../../sentry/initSentry';
 import { useSettings } from '../hooks/useSettings';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
 
 export const Advanced = () => {

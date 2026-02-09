@@ -41,12 +41,9 @@ export function getCoreSrcPath() {
  * @returns {Object} Vite resolve.alias object
  */
 export function createResolveAlias() {
-  const corePackagePath = resolvePackagePath('@shellui/core');
   const sdkEntry = resolveSdkEntry();
 
-  const alias = {
-    '@': path.join(corePackagePath, 'src'),
-  };
+  const alias = {};
 
   if (sdkEntry) {
     alias['@shellui/sdk'] = sdkEntry;

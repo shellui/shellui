@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
 
 export const DialogTestButtons = () => {

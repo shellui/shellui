@@ -8,8 +8,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Button } from '@/components/ui/button';
-import { Z_INDEX } from '@/lib/z-index';
+import { Button } from '../../components/ui/button';
+import { Z_INDEX } from '../../lib/z-index';
 
 /** Match exit animation duration in index.css (overlay + content ~0.1s + buffer) */
 const DIALOG_EXIT_ANIMATION_MS = 200;
@@ -25,7 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogOverlay,
   AlertDialogPortal,
-} from '@/components/ui/alert-dialog';
+} from '../../components/ui/alert-dialog';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 
 /** Trash icon (matches lucide trash-2) */

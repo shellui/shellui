@@ -10,8 +10,8 @@ import {
   type HTMLAttributes,
 } from 'react';
 import { Drawer as VaulDrawer } from 'vaul';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
 
 export type DrawerDirection = 'top' | 'bottom' | 'left' | 'right';
 

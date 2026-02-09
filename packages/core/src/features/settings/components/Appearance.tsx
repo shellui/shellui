@@ -1,11 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useSettings } from '../hooks/useSettings';
-import { useConfig } from '@/features/config/useConfig';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { cn } from '@/lib/utils';
+import { useConfig } from '../../config/useConfig';
+import { Button } from '../../../components/ui/button';
+import { ButtonGroup } from '../../../components/ui/button-group';
+import { cn } from '../../../lib/utils';
 import { useEffect, useState } from 'react';
-import { getAllThemes, registerTheme, type ThemeDefinition } from '@/features/theme/themes';
+import { getAllThemes, registerTheme, type ThemeDefinition } from '../../theme/themes';
 
 const SunIcon = () => (
   <svg

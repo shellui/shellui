@@ -1,14 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { useConfig } from '@/features/config/useConfig';
+import { useConfig } from '../../config/useConfig';
 import { useSettings } from '../hooks/useSettings';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../components/ui/button';
 import {
   isTauri,
   getServiceWorkerStatus,
   addStatusListener,
   checkForServiceWorkerUpdate,
   updateServiceWorker,
-} from '@/service-worker/register';
+} from '../../../service-worker/register';
 import { shellui, getLogger } from '@shellui/sdk';
 import { CheckIcon } from '../SettingsIcons';
 import { useState, useEffect } from 'react';

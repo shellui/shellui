@@ -1,7 +1,7 @@
 import { useRouteError, isRouteErrorResponse } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
 
 function isChunkLoadError(error: unknown): boolean {
   if (error instanceof Error) {

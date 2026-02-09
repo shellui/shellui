@@ -17,9 +17,9 @@ import {
 import { useSettings } from '../settings/hooks/useSettings';
 import { LayoutProviders } from './LayoutProviders';
 import { OverlayShell } from './OverlayShell';
-import { ContentView } from '@/components/ContentView';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
+import { ContentView } from '../../components/ContentView';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
 
 interface WindowsLayoutProps {
   title?: string;

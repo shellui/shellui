@@ -6,9 +6,9 @@ import {
 } from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/lib/utils';
-import { Z_INDEX } from '@/lib/z-index';
-import { Button, type ButtonProps } from '@/components/ui/button';
+import { cn } from '../../lib/utils';
+import { Z_INDEX } from '../../lib/z-index';
+import { Button, type ButtonProps } from './button';
 
 const AlertDialog = AlertDialogPrimitive.Root;
 
