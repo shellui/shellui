@@ -114,7 +114,7 @@ Application title displayed in the UI.
 
 #### `navigation` (array, optional)
 
-Array of navigation items for the sidebar.
+Array of navigation items for the sidebar. See the [Navigation Guide](/features/navigation) for complete documentation.
 
 ```json
 {
@@ -123,18 +123,20 @@ Array of navigation items for the sidebar.
       "label": "Home",
       "path": "home",
       "url": "http://localhost:4000/",
-      "icon": "Home"
+      "icon": "/icons/home.svg"
     }
   ]
 }
 ```
 
-**Navigation Item Properties:**
+**Basic Navigation Item Properties:**
 
-- `label` (string, required): Display text for the navigation item
+- `label` (string | LocalizedString, required): Display text for the navigation item
 - `path` (string, required): Unique path identifier
 - `url` (string, required): URL to navigate to when clicked
-- `icon` (string, optional): Icon name (e.g., "Home", "BookOpen", "User")
+- `icon` (string, optional): Path to SVG icon file (e.g., "/icons/home.svg")
+
+For advanced navigation features like groups, localization, visibility control, and opening modes, see the [Navigation Guide](/features/navigation).
 
 ### Example Configuration
 
@@ -221,6 +223,16 @@ my-project/
 ├── dist/                  # Production build output
 └── node_modules/
 ```
+
+## Configuration Reference
+
+For detailed configuration options, see:
+
+- **[Navigation](/features/navigation)** - Navigation menus, groups, icons, and display modes
+- **[Layouts](/features/layouts)** - Sidebar, fullscreen, and windows layouts
+- **[Themes](/features/themes)** - Custom themes, fonts, and colors
+- **[Internationalization](/features/internationalization)** - Multi-language support
+- **[Cookie Consent](/features/cookie-consent)** - Privacy and cookie management
 
 ## Tips
 

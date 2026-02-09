@@ -10,21 +10,37 @@ New to ShellUI? Follow these steps to get up and running:
 
 1. **[Installation](/installation)** - Install ShellUI CLI and dependencies
 2. **[Quick Start](/quickstart)** - Create your first ShellUI app in minutes
-3. **[Configuration](/cli#configuration)** - Configure your ShellUI application
 
-## User Guides
+## Core Features
 
-- [Installation Guide](/installation) - Install ShellUI CLI
-- [Quick Start Guide](/quickstart) - Build your first app
-- [CLI Usage](/cli) - Command-line tool reference
-- [Configuration](/cli#configuration) - Configure your ShellUI app
+### Navigation & Layout
 
-## Packages
+- **[Navigation](/features/navigation)** - Build flexible navigation menus with icons, groups, and multiple display modes
+- **[Layouts](/features/layouts)** - Choose from sidebar, fullscreen, or windows desktop layouts
+- **[Modals & Drawers](/features/modals-drawers)** - Open content in modal overlays or side drawer panels
 
-- [@shellui/cli](/cli) - Command-line tool for ShellUI
-- [@shellui/core](/core) - Core React application runtime
-- [@shellui/sdk](/sdk) - JavaScript SDK for ShellUI integration
-- [@shellui/tauri](/tauri) - Tauri desktop app (native build from shellui.config.ts)
+### Customization
+
+- **[Themes](/features/themes)** - Create custom themes with light/dark modes, custom fonts, and colors
+- **[Internationalization](/features/internationalization)** - Multi-language support with localized navigation and UI
+
+### User Interface
+
+- **[Toast Notifications](/features/toasts)** - Show toast notifications with multiple styles and actions
+- **[Alert Dialogs](/features/dialogs)** - Display alert dialogs with different button configurations
+
+### Advanced Features
+
+- **[Cookie Consent](/features/cookie-consent)** - Privacy-friendly cookie consent management
+- **[Service Worker](/features/service-worker)** - Offline support and automatic app updates
+- **[SDK Integration](/sdk)** - Programmatically integrate ShellUI features in your apps
+
+## Reference
+
+- **[CLI Reference](/cli)** - Command-line tool commands and options
+- **[Core Package](/core)** - Core React application runtime
+- **[SDK Reference](/sdk)** - JavaScript SDK API documentation
+- **[Tauri Integration](/tauri)** - Build desktop apps with Tauri
 
 ## Developer Resources
 

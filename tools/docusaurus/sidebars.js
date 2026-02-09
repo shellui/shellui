@@ -30,6 +30,45 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Features',
+      items: [
+        {
+          type: 'category',
+          label: 'Navigation & Layout',
+          items: [
+            'features/navigation',
+            'features/layouts',
+            'features/modals-drawers',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Customization',
+          items: [
+            'features/themes',
+            'features/internationalization',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'User Interface',
+          items: [
+            'features/toasts',
+            'features/dialogs',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Advanced',
+          items: [
+            'features/cookie-consent',
+            'features/service-worker',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Packages',
       items: [
         'cli',
@@ -50,5 +89,3 @@ const sidebars = {
 };
 
 module.exports = sidebars;
-
-

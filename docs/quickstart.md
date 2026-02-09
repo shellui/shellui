@@ -168,10 +168,9 @@ my-shellui-app/
 
 ## Next Steps
 
+- **[Navigation Guide](/features/navigation)** - Learn how to configure navigation menus
 - **[CLI Reference](/cli)** - Learn about all available commands
-- **[Configuration Guide](/cli#configuration)** - Detailed configuration options
-- **[Core Package](/core)** - Learn about the core runtime
-- **[SDK](/sdk)** - Integrate ShellUI programmatically
+- **[Feature Guides](/)** - Explore all ShellUI features
 
 ## Troubleshooting
 
