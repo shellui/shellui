@@ -11,6 +11,8 @@ import {
   createViteDefine,
   createViteResolveConfig,
   createViteOptimizeDepsConfig,
+  getDedupeList,
+  getShelluiExcludePackages,
   resolvePackagePath,
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
@@ -19,6 +21,74 @@ let currentServer = null;
 let configWatcher = null;
 let restartTimeout = null;
 let isFirstStart = true;
+
+/**
+ * Plugin to prevent Vite from creating cache files inside @shellui/core
+ * This ensures all cache is created only in the project root's node_modules/.vite
+ */
+function preventNestedCachePlugin(viteCacheDir) {
+  return {
+    name: 'prevent-nested-cache',
+    configResolved(config) {
+      if (config.cacheDir && !path.isAbsolute(config.cacheDir)) {
+        throw new Error(
+          `cacheDir must be absolute path, got: ${config.cacheDir}. This prevents cache creation inside @shellui/core`,
+        );
+      }
+    },
+    buildStart() {
+      // Check if any .vite directories exist inside @shellui/core and warn/remove them
+      const corePackagePath = resolvePackagePath('@shellui/core');
+      const nestedViteCache = path.join(corePackagePath, 'node_modules', '.vite');
+      if (fs.existsSync(nestedViteCache)) {
+        console.warn(
+          pc.yellow(
+            `⚠️  Found nested .vite cache at ${nestedViteCache}. This should not exist. Removing...`,
+          ),
+        );
+        try {
+          fs.rmSync(nestedViteCache, { recursive: true, force: true });
+          console.log(pc.green(`✅ Removed nested cache directory`));
+        } catch (e) {
+          console.error(pc.red(`❌ Failed to remove nested cache: ${e.message}`));
+        }
+      }
+
+      // Also remove any optimized @shellui/core files from .vite/deps
+      const viteDepsDir = path.join(viteCacheDir, 'deps');
+      if (fs.existsSync(viteDepsDir)) {
+        try {
+          const files = fs.readdirSync(viteDepsDir);
+          const shelluiFiles = files.filter(
+            (f) => f.startsWith('@shellui') || f.startsWith('@_features'),
+          );
+          if (shelluiFiles.length > 0) {
+            console.warn(
+              pc.yellow(
+                `⚠️  Found optimized @shellui/core files in .vite/deps. Removing ${shelluiFiles.length} files...`,
+              ),
+            );
+            shelluiFiles.forEach((file) => {
+              const filePath = path.join(viteDepsDir, file);
+              try {
+                fs.unlinkSync(filePath);
+                const mapPath = filePath + '.map';
+                if (fs.existsSync(mapPath)) {
+                  fs.unlinkSync(mapPath);
+                }
+              } catch (e) {
+                // Ignore errors
+              }
+            });
+            console.log(pc.green(`✅ Removed optimized @shellui/core files`));
+          }
+        } catch (e) {
+          // Ignore errors reading directory
+        }
+      }
+    },
+  };
+}
 
 /**
  * Start the Vite server with current configuration
@@ -35,6 +105,12 @@ async function startServer(root, cwd, shouldOpen = false) {
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
 
+  // Get project root node_modules path to ensure all modules resolve from root
+  const projectRootNodeModules = path.resolve(cwd, root, 'node_modules');
+  // CRITICAL: Set cacheDir to absolute path in project root to prevent Vite from creating
+  // cache inside @shellui/core/node_modules/.vite/deps
+  const viteCacheDir = path.resolve(cwd, root, 'node_modules', '.vite');
+
   // Check if static folder exists in project root
   const staticPath = path.resolve(cwd, root, 'static');
   const publicDir = fs.existsSync(staticPath) ? staticPath : false;
@@ -44,13 +120,100 @@ async function startServer(root, cwd, shouldOpen = false) {
 
   const server = await createServer({
     root: coreSrcPath,
-    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath)],
+    // Force cacheDir to project root - this prevents Vite from creating cache
+    // relative to root (which would be inside @shellui/core)
+    cacheDir: viteCacheDir,
+    plugins: [
+      react(),
+      serviceWorkerDevPlugin(corePackagePath, coreSrcPath),
+      preventNestedCachePlugin(viteCacheDir),
+      {
+        name: 'prevent-shellui-optimization',
+        enforce: 'pre',
+        config(config) {
+          if (!config.optimizeDeps) {
+            config.optimizeDeps = {};
+          }
+          const originalExclude = config.optimizeDeps.exclude || [];
+          const excludeArray = Array.isArray(originalExclude)
+            ? [...originalExclude]
+            : [originalExclude].filter(Boolean);
+
+          // Dynamically get all @shellui/* packages that should be excluded
+          const shelluiExcludePackages = getShelluiExcludePackages();
+          shelluiExcludePackages.forEach((pkg) => {
+            if (!excludeArray.includes(pkg)) {
+              excludeArray.push(pkg);
+            }
+          });
+
+          config.optimizeDeps.exclude = excludeArray;
+        },
+        resolveId(id, importer) {
+          if (id && typeof id === 'string') {
+            if (id.includes('@_features') || id.includes('@shellui/core/src/')) {
+              return null;
+            }
+          }
+          return null;
+        },
+        load(id) {
+          if (id && typeof id === 'string' && id.includes('@_features')) {
+            return null;
+          }
+          return null;
+        },
+        transform(code, id) {
+          if (
+            id &&
+            typeof id === 'string' &&
+            (id.includes('@shellui/core/src/') || id.includes('@_features'))
+          ) {
+            return null;
+          }
+          return null;
+        },
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (
+              req.url &&
+              (req.url.includes('@_features') || req.url.includes('/.vite/deps/@shellui'))
+            ) {
+              res.writeHead(404, { 'Content-Type': 'text/plain' });
+              res.end(
+                'Optimized @shellui/core files are disabled. Loading from source instead.',
+              );
+              return;
+            }
+            next();
+          });
+        },
+      },
+    ],
     define: createViteDefine(config),
     resolve: {
       ...resolveConfig,
-      alias: resolveAlias,
+      // Dynamically dedupe React, ReactDOM, @shellui packages, and all @shellui/core dependencies
+      // This ensures all modules resolve from project root to prevent duplicate instances
+      dedupe: getDedupeList(),
+      preserveSymlinks: false,
+      alias: {
+        ...resolveAlias,
+        // Force @shellui/core to always resolve from project root to prevent duplicates
+        '@shellui/core': corePackagePath,
+      },
+      conditions: ['import', 'module', 'browser', 'default'],
+      mainFields: ['browser', 'module', 'jsnext:main', 'jsnext', 'main'],
     },
-    optimizeDeps: createViteOptimizeDepsConfig(),
+    optimizeDeps: {
+      // Dynamically exclude @shellui packages and include all @shellui/core dependencies
+      // This ensures dependencies are optimized from project root, preventing nested resolution
+      ...createViteOptimizeDepsConfig(),
+      force: false,
+      esbuildOptions: {
+        absWorkingDir: path.resolve(cwd, root),
+      },
+    },
     css: {
       postcss: createPostCSSConfig(),
     },

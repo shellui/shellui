@@ -14,4 +14,6 @@ export {
   createViteDefine,
   createViteResolveConfig,
   createViteOptimizeDepsConfig,
+  getDedupeList,
+  getShelluiExcludePackages,
 } from './vite.js';
