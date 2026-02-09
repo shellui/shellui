@@ -79,9 +79,10 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
     const isVertical = pos === 'top' || pos === 'bottom';
     // Set dimension via inline style; use both width/height and max so Vaul/defaults don't override.
     const effectiveSize = size?.trim() || (isVertical ? '80vh' : '80vw');
+    // Use min() to ensure drawer doesn't exceed viewport on mobile devices
     const sizeStyle = isVertical
-      ? { height: effectiveSize, maxHeight: effectiveSize }
-      : { width: effectiveSize, maxWidth: effectiveSize };
+      ? { height: effectiveSize, maxHeight: `min(${effectiveSize}, 100vh)` }
+      : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
     return (
       <DrawerPortal>
         <DrawerOverlay />
