@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.2.0] - TBD
+
+### 🛠 Improvements
+
+- Improved Sentry error reporting integration
+
+### 🐛 Bug Fixes
+
+- Fixed drawer component responsiveness on mobile devices - drawer now respects max-width of 100% on small screens instead of fixed 400px width
+
 ## [0.1.0] - 2026-02-09
 
 ### ✨ Feature
