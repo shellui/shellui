@@ -59,14 +59,6 @@ async function startServer(root, cwd, shouldOpen = false) {
         '@shellui/core': corePackagePath,
       },
     },
-    optimizeDeps: {
-      // Exclude @shellui packages from pre-bundling
-      exclude: ['@shellui/core', '@shellui/sdk'],
-      force: false,
-      esbuildOptions: {
-        absWorkingDir: path.resolve(cwd, root),
-      },
-    },
     css: {
       postcss: createPostCSSConfig(),
     },
