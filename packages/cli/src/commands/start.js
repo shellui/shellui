@@ -9,6 +9,8 @@ import {
   createResolveAlias,
   createPostCSSConfig,
   createViteDefine,
+  createViteResolveConfig,
+  createViteOptimizeDepsConfig,
   resolvePackagePath,
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
@@ -37,13 +39,18 @@ async function startServer(root, cwd, shouldOpen = false) {
   const staticPath = path.resolve(cwd, root, 'static');
   const publicDir = fs.existsSync(staticPath) ? staticPath : false;
 
+  const resolveConfig = createViteResolveConfig();
+  const resolveAlias = createResolveAlias();
+
   const server = await createServer({
     root: coreSrcPath,
     plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath)],
     define: createViteDefine(config),
     resolve: {
-      alias: createResolveAlias(),
+      ...resolveConfig,
+      alias: resolveAlias,
     },
+    optimizeDeps: createViteOptimizeDepsConfig(),
     css: {
       postcss: createPostCSSConfig(),
     },

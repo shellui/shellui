@@ -10,6 +10,7 @@ import {
   createResolveAlias,
   createPostCSSConfig,
   createViteDefine,
+  createViteResolveConfig,
   resolvePackagePath,
 } from '../utils/index.js';
 
@@ -76,6 +77,7 @@ export async function buildCommand(root = '.') {
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
+  const resolveConfig = createViteResolveConfig();
   const resolveAlias = createResolveAlias();
   const postcssConfig = createPostCSSConfig();
 
@@ -86,6 +88,7 @@ export async function buildCommand(root = '.') {
       plugins: [react()],
       define: createViteDefine(config),
       resolve: {
+        ...resolveConfig,
         alias: resolveAlias,
       },
       css: {
@@ -124,6 +127,7 @@ export async function buildCommand(root = '.') {
       root: coreSrcPath,
       define: createViteDefine(config),
       resolve: {
+        ...resolveConfig,
         alias: resolveAlias,
       },
       build: {

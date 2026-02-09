@@ -1,6 +1,6 @@
 {
   "name": "@shellui/sdk",
-  "version": "0.0.15",
+  "version": "0.0.19",
   "description": "ShellUI SDK - TypeScript/JavaScript SDK for ShellUI integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,6 +1,6 @@
 {
   "name": "shellui-monorepo",
-  "version": "0.0.15",
+  "version": "0.0.19",
   "private": true,
   "description": "ShellUI monorepo - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",

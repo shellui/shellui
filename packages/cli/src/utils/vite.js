@@ -101,3 +101,30 @@ export function createViteDefine(config) {
     __SHELLUI_SENTRY_RELEASE__: sentry?.release ? JSON.stringify(sentry.release) : 'undefined',
   };
 }
+
+/**
+ * Create Vite resolve configuration with deduplication.
+ * Prevents duplicate React instances and @shellui/core modules when running
+ * from node_modules, which can cause context provider issues in microfrontends.
+ * @returns {Object} Vite resolve configuration with dedupe
+ */
+export function createViteResolveConfig() {
+  return {
+    dedupe: ['react', 'react-dom', '@shellui/core'],
+  };
+}
+
+/**
+ * Create Vite optimizeDeps configuration to exclude @shellui/core from pre-bundling.
+ * This prevents Vite from creating duplicate module instances during dependency optimization,
+ * which is critical for React Context to work correctly in microfrontend iframe scenarios.
+ * 
+ * Note: We do NOT exclude React/ReactDOM here because Vite needs to optimize them.
+ * The resolve.dedupe configuration handles ensuring only one React instance is used.
+ * @returns {Object} Vite optimizeDeps configuration
+ */
+export function createViteOptimizeDepsConfig() {
+  return {
+    exclude: ['@shellui/core'],
+  };
+}

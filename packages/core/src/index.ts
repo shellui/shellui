@@ -22,6 +22,8 @@ export type {
   CookieConsentConfig,
 } from './features/config/types.js';
 export { useConfig } from './features/config/useConfig.js';
+export { ConfigProvider } from './features/config/ConfigProvider.js';
+export type { ConfigContextValue, ConfigProviderProps } from './features/config/ConfigProvider.js';
 export { default as urls } from './constants/urls.js';
 export {
   getCookieConsentAccepted,

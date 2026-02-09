@@ -12,4 +12,6 @@ export {
   createResolveAlias,
   createPostCSSConfig,
   createViteDefine,
+  createViteResolveConfig,
+  createViteOptimizeDepsConfig,
 } from './vite.js';
