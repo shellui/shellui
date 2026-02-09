@@ -5,28 +5,251 @@
  */
 
 /* You can override the default Infima variables here. */
+/* Colors based on website theme - sebastienbarbier theme (light mode) */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-color-primary: #A37200;
+  --ifm-color-primary-dark: #926600;
+  --ifm-color-primary-darker: #8a5f00;
+  --ifm-color-primary-darkest: #714e00;
+  --ifm-color-primary-light: #b47e0d;
+  --ifm-color-primary-lighter: #bc8519;
+  --ifm-color-primary-lightest: #d49a33;
+  --ifm-background-color: #F8F5F2;
+  --ifm-background-surface-color: #F2EDEA;
+  --ifm-color-content: #202124;
+  --ifm-color-content-secondary: #5F5959;
+  --ifm-border-color: #D7D5D5;
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(163, 114, 0, 0.1);
+  
+  /* Secondary/accent colors */
+  --ifm-color-secondary: #A37200;
+  --ifm-color-secondary-dark: #926600;
+  --ifm-color-secondary-darker: #8a5f00;
+  --ifm-color-secondary-darkest: #714e00;
+  --ifm-color-secondary-light: #b47e0d;
+  --ifm-color-secondary-lighter: #bc8519;
+  --ifm-color-secondary-lightest: #d49a33;
+  
+  /* Accent color */
+  --ifm-color-accent: #DBB778;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* Dark mode colors based on website theme */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #DBB778;
+  --ifm-color-primary-dark: #c5a866;
+  --ifm-color-primary-darker: #bea15c;
+  --ifm-color-primary-darkest: #9d8449;
+  --ifm-color-primary-light: #e0c088;
+  --ifm-color-primary-lighter: #e2c490;
+  --ifm-color-primary-lightest: #e9d1a8;
+  --ifm-background-color: #1F1D1D;
+  --ifm-background-surface-color: #2A2828;
+  --ifm-color-content: #E8EAED;
+  --ifm-color-content-secondary: #9C9696;
+  --ifm-border-color: #3F3B3B;
+  --docusaurus-highlighted-code-line-bg: rgba(219, 183, 120, 0.2);
+  
+  /* Secondary/accent colors */
+  --ifm-color-secondary: #A37200;
+  --ifm-color-secondary-dark: #926600;
+  --ifm-color-secondary-darker: #8a5f00;
+  --ifm-color-secondary-darkest: #714e00;
+  --ifm-color-secondary-light: #b47e0d;
+  --ifm-color-secondary-lighter: #bc8519;
+  --ifm-color-secondary-lightest: #d49a33;
+  
+  /* Accent color */
+  --ifm-color-accent: #A37200;
+}
+
+/* Background shapes and grid pattern - matching website theme */
+#__docusaurus {
+  position: relative;
+}
+
+/* Grid pattern overlay */
+#__docusaurus::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(31, 29, 29, 0.03) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(31, 29, 29, 0.03) 1px,
+      transparent 1px
+    );
+  background-size: 40px 40px;
+}
+
+[data-theme='dark'] #__docusaurus::before {
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(232, 234, 237, 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(232, 234, 237, 0.05) 1px,
+      transparent 1px
+    );
+}
+
+/* Floating background shapes */
+#__docusaurus::after {
+  content: '';
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, #a37200 0%, transparent 70%);
+  border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+  top: 10%;
+  left: 5%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  animation: float 20s ease-in-out infinite;
+}
+
+[data-theme='dark'] #__docusaurus::after {
+  background: radial-gradient(circle, #dbb778 0%, transparent 70%);
+}
+
+/* Additional shapes using body pseudo-elements */
+body {
+  position: relative;
+}
+
+/* Shape 2 */
+body::before {
+  content: '';
+  position: fixed;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, #dbb778 0%, transparent 70%);
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  top: 60%;
+  right: 10%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  animation: float 20s ease-in-out infinite 5s;
+}
+
+[data-theme='dark'] body::before {
+  background: radial-gradient(circle, #a37200 0%, transparent 70%);
+}
+
+/* Shape 3 */
+body::after {
+  content: '';
+  position: fixed;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, #1f1d1d 0%, transparent 70%);
+  border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%;
+  bottom: 10%;
+  left: 20%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  animation: float 20s ease-in-out infinite 10s;
+}
+
+[data-theme='dark'] body::after {
+  background: radial-gradient(circle, #dbb778 0%, transparent 70%);
+}
+
+/* Shape 4 - using main wrapper or navbar as anchor */
+.navbar::before {
+  content: '';
+  position: fixed;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, #a37200 0%, transparent 70%);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  top: 30%;
+  right: 30%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  animation: float 20s ease-in-out infinite 15s;
+}
+
+[data-theme='dark'] .navbar::before {
+  background: radial-gradient(circle, #dbb778 0%, transparent 70%);
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(-5px);
+  }
+  75% {
+    transform: translateY(-15px) translateX(5px);
+  }
+}
+
+/* Ensure content is above background */
+.navbar,
+.main-wrapper,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure proper stacking context for main content */
+.main-wrapper > *,
+[class*="mainContainer"] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer styling to match website theme */
+.footer {
+  background-color: var(--ifm-background-color);
+  border-top: 1px solid var(--ifm-border-color);
+}
+
+.footer__title {
+  color: var(--ifm-color-content);
+  font-weight: 600;
+}
+
+.footer__link-item {
+  color: var(--ifm-color-content-secondary);
+  transition: color 0.2s ease;
+}
+
+.footer__link-item:hover {
+  color: var(--ifm-color-content);
+}
+
+[data-theme='dark'] .footer__link-item:hover {
+  color: var(--ifm-color-primary);
+}
+
+.footer__copyright {
+  color: var(--ifm-color-content-secondary);
+  border-top: 1px solid var(--ifm-border-color);
+  padding-top: 2rem;
+  margin-top: 2rem;
 }
 
 
