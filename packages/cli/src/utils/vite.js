@@ -35,9 +35,8 @@ export function getCoreSrcPath() {
 
 /**
  * Create Vite resolve.alias configuration.
- * Always sets '@' to core/src. Sets '@shellui/sdk' to source entry when in
- * workspace mode; omits the alias when installed from npm so Vite resolves
- * through the package's exports field (dist/index.js).
+ * Sets '@shellui/sdk' to source entry when in workspace mode; omits the alias
+ * when installed from npm so Vite resolves through the package's exports field (dist/index.js).
  * @returns {Object} Vite resolve.alias object
  */
 export function createResolveAlias() {
@@ -100,125 +99,9 @@ export function createViteDefine(config) {
 }
 
 /**
- * Create Vite resolve configuration with deduplication.
- * Prevents duplicate React instances and @shellui/core modules when running
- * from node_modules, which can cause context provider issues in microfrontends.
- * 
- * Dynamically includes all @shellui/core dependencies to ensure they resolve
- * from project root, preventing nested node_modules resolution issues.
- * @returns {Object} Vite resolve configuration with dedupe
+ * Create Vite resolve configuration.
+ * @returns {Object} Vite resolve configuration
  */
 export function createViteResolveConfig() {
-  return {
-    dedupe: getDedupeList(),
-  };
-}
-
-/**
- * Get dependencies from @shellui/core package.json
- * Reads the package.json and extracts all dependencies (excluding @shellui/* packages)
- * @returns {string[]} Array of dependency package names
- */
-function getCoreDependencies() {
-  try {
-    const corePackagePath = resolvePackagePath('@shellui/core');
-    const packageJsonPath = path.join(corePackagePath, 'package.json');
-    
-    if (!fs.existsSync(packageJsonPath)) {
-      console.warn(`Warning: Could not find @shellui/core package.json at ${packageJsonPath}`);
-      return [];
-    }
-
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    const dependencies = packageJson.dependencies || {};
-    
-    // Extract all dependency names, excluding @shellui/* packages
-    return Object.keys(dependencies).filter(
-      (dep) => !dep.startsWith('@shellui/'),
-    );
-  } catch (e) {
-    console.warn(`Warning: Failed to read @shellui/core dependencies: ${e.message}`);
-    return [];
-  }
-}
-
-/**
- * Get packages that should be excluded from optimization
- * These are @shellui/* packages that should always load from source
- * @returns {string[]} Array of package names to exclude
- */
-export function getShelluiExcludePackages() {
-  try {
-    const corePackagePath = resolvePackagePath('@shellui/core');
-    const packageJsonPath = path.join(corePackagePath, 'package.json');
-    
-    if (!fs.existsSync(packageJsonPath)) {
-      return ['@shellui/core', '@shellui/sdk'];
-    }
-
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-    const dependencies = packageJson.dependencies || {};
-    
-    // Extract @shellui/* packages that should be excluded
-    const shelluiPackages = Object.keys(dependencies).filter(
-      (dep) => dep.startsWith('@shellui/'),
-    );
-    
-    // Always include @shellui/core and @shellui/sdk
-    const exclude = ['@shellui/core', '@shellui/sdk'];
-    shelluiPackages.forEach((pkg) => {
-      if (!exclude.includes(pkg)) {
-        exclude.push(pkg);
-      }
-    });
-    
-    return exclude;
-  } catch (e) {
-    console.warn(`Warning: Failed to read @shellui/* packages: ${e.message}`);
-    return ['@shellui/core', '@shellui/sdk'];
-  }
-}
-
-/**
- * Create Vite optimizeDeps configuration to exclude @shellui/core from pre-bundling.
- * This prevents Vite from creating duplicate module instances during dependency optimization,
- * which is critical for React Context to work correctly in microfrontend iframe scenarios.
- * 
- * Dynamically reads dependencies from @shellui/core to ensure all new dependencies
- * are automatically included in optimization.
- * 
- * Note: We do NOT exclude React/ReactDOM here because Vite needs to optimize them.
- * The resolve.dedupe configuration handles ensuring only one React instance is used.
- * @returns {Object} Vite optimizeDeps configuration
- */
-export function createViteOptimizeDepsConfig() {
-  const coreDependencies = getCoreDependencies();
-  const excludePackages = getShelluiExcludePackages();
-  
-  return {
-    exclude: excludePackages,
-    include: coreDependencies,
-  };
-}
-
-/**
- * Get deduplication list for Vite resolve configuration
- * Includes React, ReactDOM, @shellui packages, and all @shellui/core dependencies
- * @returns {string[]} Array of package names to dedupe
- */
-export function getDedupeList() {
-  const coreDependencies = getCoreDependencies();
-  const shelluiPackages = getShelluiExcludePackages();
-  
-  // Base dedupe list: React, ReactDOM, and @shellui packages
-  const dedupe = ['react', 'react-dom', ...shelluiPackages];
-  
-  // Add all core dependencies to ensure they resolve from project root
-  coreDependencies.forEach((dep) => {
-    if (!dedupe.includes(dep)) {
-      dedupe.push(dep);
-    }
-  });
-  
-  return dedupe;
+  return {};
 }
