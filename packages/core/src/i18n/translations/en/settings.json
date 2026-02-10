@@ -199,7 +199,7 @@
       "title": "Layout",
       "description": "Switch between sidebar layout and windows (taskbar) layout. This overrides the app config for this session.",
       "sidebar": "Sidebar",
-      "windows": "Windows",
+      "windows": "Windows (experimental)",
       "app-bar": "App bar"
     },
     "logging": {

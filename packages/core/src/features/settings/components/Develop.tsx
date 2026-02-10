@@ -158,7 +158,7 @@ export const Develop = () => {
           {t('develop.layout.title')}
         </h3>
         <div className="flex flex-wrap gap-2">
-          {(['sidebar', 'windows', 'app-bar'] as const).map((layoutMode) => (
+          {(['sidebar', 'app-bar', 'windows'] as const).map((layoutMode) => (
             <Button
               key={layoutMode}
               variant={effectiveLayout === layoutMode ? 'default' : 'outline'}

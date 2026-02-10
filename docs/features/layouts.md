@@ -1,6 +1,6 @@
 # Layouts
 
-ShellUI supports four layout modes: sidebar (default), fullscreen, windows desktop, and app bar. Choose the layout that best fits your application's needs.
+ShellUI supports four layout modes: sidebar (default), fullscreen, windows desktop (experimental), and app bar. Choose the layout that best fits your application's needs.
 
 ## Sidebar Layout (Default)
 
@@ -54,9 +54,11 @@ const config: ShellUIConfig = {
 
 **Note:** Even though there's no visible navigation, the routes defined in your navigation configuration are still accessible via direct URLs.
 
-## Windows Desktop Layout
+## Windows Desktop Layout (Experimental)
 
 The windows layout provides a desktop-like experience with a taskbar, start menu, and multi-window support. Each navigation item opens in its own draggable, resizable window.
+
+> **Experimental:** The windows layout was implemented as a proof of concept to test the desktop-like experience. It works and can be tested (e.g. via Settings > Develop > Layout), but it is **not recommended for production use** at this time.
 
 ```typescript
 const config: ShellUIConfig = {
@@ -186,6 +188,7 @@ function MyComponent() {
 
 ### Windows Layout
 
+- **Experimental**: Proof of concept; suitable for testing but not recommended for production.
 - **Window State**: Window positions and sizes are remembered per session
 - **Performance**: Each window loads its content independently
 - **Navigation**: Start menu provides access to all navigation items
@@ -230,7 +233,7 @@ export default config;
 1. **Choose the right layout**:
    - Use `sidebar` for most web applications
    - Use `fullscreen` for embedded or kiosk applications
-   - Use `windows` for desktop-like experiences or multi-tasking scenarios
+   - Use `windows` only for testing or proof-of-concept (experimental; not recommended for production)
    - Use `app-bar` for a compact top bar with select menu and icon-only end links
 
 2. **Navigation items**: All layouts support the same navigation features, but visibility varies:

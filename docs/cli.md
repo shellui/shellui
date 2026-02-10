@@ -267,7 +267,7 @@ my-project/
 For detailed configuration options, see:
 
 - **[Navigation](/features/navigation)** - Navigation menus, groups, icons, and display modes
-- **[Layouts](/features/layouts)** - Sidebar, fullscreen, and windows layouts
+- **[Layouts](/features/layouts)** - Sidebar, fullscreen, windows (experimental), and app bar layouts
 - **[Themes](/features/themes)** - Custom themes, fonts, and colors
 - **[Internationalization](/features/internationalization)** - Multi-language support
 - **[Cookie Consent](/features/cookie-consent)** - Privacy and cookie management

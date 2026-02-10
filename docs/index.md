@@ -16,7 +16,7 @@ New to ShellUI? Follow these steps to get up and running:
 ### Navigation & Layout
 
 - **[Navigation](/features/navigation)** - Build flexible navigation menus with icons, groups, and multiple display modes
-- **[Layouts](/features/layouts)** - Choose from sidebar, fullscreen, or windows desktop layouts
+- **[Layouts](/features/layouts)** - Choose from sidebar, fullscreen, windows desktop (experimental), or app bar layouts
 - **[Modals & Drawers](/features/modals-drawers)** - Open content in modal overlays or side drawer panels
 
 ### Customization
