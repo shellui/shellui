@@ -71,12 +71,10 @@ const config: ShellUIConfig = {
     {
       name: 'sebastienbarbier',
       displayName: 'sebastienbarbier.com',
-      // Load Google Fonts for Open Sans and Source Serif
-      fontFiles: [
-        'https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap',
-      ],
+      // Local fonts from static/fonts/ (Open Sans, Source Serif 4)
+      fontFiles: ['/fonts/fonts.css'],
       // Serif for headings, sans-serif for body
-      headingFontFamily: '"Source Serif Pro", Georgia, serif',
+      headingFontFamily: '"Source Serif 4", Georgia, serif',
       bodyFontFamily:
         '"Open Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       lineHeight: '1.6',
