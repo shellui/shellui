@@ -206,8 +206,7 @@ body::after {
   }
 }
 
-/* Ensure content is above background */
-.navbar,
+/* Ensure content is above background (navbar keeps Infima's z-index for mobile sidebar overlay) */
 .main-wrapper,
 .footer {
   position: relative;
