@@ -82,7 +82,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
       {children}
       <Dialog
         open={isOpen}
-        onOpenChange={closeModal}
+        onOpenChange={(open) => !open && closeModal()}
       >
         <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[680px] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (
