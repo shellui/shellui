@@ -1,6 +1,6 @@
 # Layouts
 
-ShellUI supports three layout modes: sidebar (default), fullscreen, and windows desktop. Choose the layout that best fits your application's needs.
+ShellUI supports four layout modes: sidebar (default), fullscreen, windows desktop, and app bar. Choose the layout that best fits your application's needs.
 
 ## Sidebar Layout (Default)
 
@@ -103,6 +103,43 @@ const config: ShellUIConfig = {
 - System clock displays current time
 - Start button opens the navigation menu
 
+## App Bar Layout
+
+The app bar layout uses a compact top bar (max height 42px) for navigation. Start links are shown in a select menu; end links are shown as icon-only buttons (or a first-letter badge when no icon is set), with a tooltip on hover showing the full name.
+
+```typescript
+const config: ShellUIConfig = {
+  layout: 'app-bar',
+  navigation: [
+    {
+      label: 'Dashboard',
+      path: 'dashboard',
+      url: '/',
+      icon: '/icons/dashboard.svg',
+    },
+    {
+      label: 'Settings',
+      path: 'settings',
+      url: '/settings',
+      position: 'end',
+    },
+  ],
+};
+```
+
+**Features:**
+
+- **Top bar**: Compact bar (max 42px) with logo/title on the left
+- **Start links**: Displayed in a select dropdown for space-efficient navigation
+- **End links**: Icon-only (or first letter) with tooltip on hover for full name
+- **Responsive**: Single row layout suitable for app-style UIs
+
+**Use cases:**
+
+- Apps that prefer a top bar over a sidebar
+- Dense UIs where vertical space is limited
+- When you want main nav in a dropdown and utility links (e.g. Settings) as icons on the right
+
 ## Changing Layouts
 
 ### Configuration-Based
@@ -111,7 +148,7 @@ Set the layout in your configuration file:
 
 ```typescript
 const config: ShellUIConfig = {
-  layout: 'windows', // 'sidebar' | 'fullscreen' | 'windows'
+  layout: 'windows', // 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
   // ... rest of config
 };
 ```
@@ -127,7 +164,7 @@ import { useSettings } from '@shellui/core';
 function MyComponent() {
   const { settings } = useSettings();
   const effectiveLayout = settings.layout ?? config.layout;
-  // effectiveLayout will be 'sidebar' | 'fullscreen' | 'windows'
+  // effectiveLayout will be 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
 }
 ```
 
@@ -154,13 +191,20 @@ function MyComponent() {
 - **Navigation**: Start menu provides access to all navigation items
 - **Window Limits**: No hard limit on number of open windows, but performance may degrade with many windows
 
+### App Bar Layout
+
+- **Top bar**: Fixed max height of 42px; logo/title and select stay compact
+- **Start vs end**: Use `position: 'end'` on navigation items to show them as icon-only buttons on the right
+- **Tooltips**: End links show full name on hover via native tooltip
+- **Icons**: Set `icon` on items for end bar; omit for first-letter fallback
+
 ## Complete Example
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
-  layout: 'sidebar', // or 'fullscreen' or 'windows'
+  layout: 'sidebar', // or 'fullscreen', 'windows', or 'app-bar'
   title: 'My App',
   navigation: [
     {
@@ -187,11 +231,13 @@ export default config;
    - Use `sidebar` for most web applications
    - Use `fullscreen` for embedded or kiosk applications
    - Use `windows` for desktop-like experiences or multi-tasking scenarios
+   - Use `app-bar` for a compact top bar with select menu and icon-only end links
 
 2. **Navigation items**: All layouts support the same navigation features, but visibility varies:
    - Sidebar: All items visible in sidebar
    - Fullscreen: No visible navigation, but routes work
    - Windows: Items accessible via start menu
+   - App bar: Start items in a select; end items as icons with tooltips
 
 3. **Mobile considerations**: Sidebar layout automatically adapts to mobile with bottom navigation
 

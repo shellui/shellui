@@ -58,8 +58,8 @@ const config: ShellUIConfig = {
       },
     ],
   },
-  // Layout: 'sidebar' (default), 'fullscreen' (content only), or 'windows' (taskbar + multi-window)
-  layout: 'sidebar',
+  // Layout: 'sidebar' (default), 'fullscreen' (content only), 'windows' (taskbar + multi-window), or 'app-bar' (top bar)
+  layout: 'app-bar',
   // Enable specific languages: single language string or array of language codes
   // Examples:
   // language: 'en',           // Only English

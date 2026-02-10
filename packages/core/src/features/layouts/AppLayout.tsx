@@ -11,6 +11,9 @@ const FullscreenLayout = lazy(() =>
 const WindowsLayout = lazy(() =>
   import('./WindowsLayout').then((m) => ({ default: m.WindowsLayout })),
 );
+const AppBarLayout = lazy(() =>
+  import('./AppBarLayout').then((m) => ({ default: m.AppBarLayout })),
+);
 
 interface AppLayoutProps {
   layout?: LayoutType;
@@ -49,6 +52,9 @@ export function AppLayout({
     layoutProps = { title, navigation };
   } else if (effectiveLayout === 'windows') {
     LayoutComponent = WindowsLayout;
+    layoutProps = { title, appIcon, logo, navigation };
+  } else if (effectiveLayout === 'app-bar') {
+    LayoutComponent = AppBarLayout;
     layoutProps = { title, appIcon, logo, navigation };
   } else {
     LayoutComponent = DefaultLayout;

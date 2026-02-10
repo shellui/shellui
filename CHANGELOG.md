@@ -25,6 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
+- **Layout:** new **app-bar** layout with compact top bar, select menu for start links, and icon-only end links with tooltips
 - **CLI:** `shellui init [root]` command to create a `shellui.config.ts` boilerplate (use `--force` to overwrite)
 
 ### 🛠 Improvements

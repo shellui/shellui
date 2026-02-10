@@ -199,7 +199,8 @@
       "title": "Disposition",
       "description": "Basculer entre la disposition avec barre latérale et la disposition fenêtres (barre des tâches). Remplace la config de l'app pour cette session.",
       "sidebar": "Barre latérale",
-      "windows": "Fenêtres"
+      "windows": "Fenêtres",
+      "app-bar": "Barre d'app"
     },
     "logging": {
       "title": "Journalisation",

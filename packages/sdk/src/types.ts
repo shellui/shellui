@@ -103,8 +103,8 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
-  /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows'. When set, overrides config.layout (e.g. from Develop settings). */
-  layout?: 'sidebar' | 'fullscreen' | 'windows';
+  /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'. When set, overrides config.layout (e.g. from Develop settings). */
+  layout?: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
     items: SettingsNavigationItem[];

@@ -9,6 +9,8 @@ export const Z_INDEX = {
   /** Modal overlay and content (settings panel, etc.) */
   MODAL_OVERLAY: 10000,
   MODAL_CONTENT: 10001,
+  /** Tooltip content (above modals so tooltips show over dialogs if needed) */
+  TOOLTIP: 10002,
   /** Drawer overlay and content (slide-out panels; same level as modal) */
   DRAWER_OVERLAY: 10000,
   DRAWER_CONTENT: 10001,
