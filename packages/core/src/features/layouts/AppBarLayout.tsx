@@ -8,6 +8,7 @@ import {
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
+  withHomepageWhenNoRoot,
 } from './utils';
 import { filterNavigationByViewport } from './utils';
 import { LayoutProviders } from './LayoutProviders';
@@ -146,13 +147,15 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const navigate = useNavigate();
   const currentLanguage = i18n.language || 'en';
 
-  const { startNavItems, endNavItems, navigationItems } = useMemo(() => {
+  const { startNavItems, endNavItems, navigationItems, displayStartItems } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(navigation, 'desktop');
     const { start, end } = splitNavigationByPosition(desktopNav);
+    const startItems = flattenNavigationItems(start).filter((i) => !i.hidden);
     return {
-      startNavItems: flattenNavigationItems(start).filter((i) => !i.hidden),
+      startNavItems: startItems,
       endNavItems: flattenNavigationItems(end).filter((i) => !i.hidden),
       navigationItems: flattenNavigationItems(navigation),
+      displayStartItems: withHomepageWhenNoRoot(startItems),
     };
   }, [navigation]);
 
@@ -205,8 +208,8 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
               ) : null}
             </Link>
 
-            {/* Start links: select menu */}
-            {startNavItems.length > 0 && (
+            {/* Start links: select menu (includes synthetic Homepage when nav has no "/" path) */}
+            {displayStartItems.length > 0 && (
               <Select
                 className="h-8 max-w-[200px] text-sm leading-tight py-1.5 border-sidebar-border bg-sidebar-background"
                 value={currentPathPrefix}
@@ -217,7 +220,7 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
                   }
                 }}
               >
-                {startNavItems.map((item) => (
+                {displayStartItems.map((item) => (
                   <option key={item.path || 'root'} value={getNavPathPrefix(item)}>
                     {resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
                   </option>

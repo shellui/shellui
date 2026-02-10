@@ -79,6 +79,20 @@ export function filterNavigationForSidebar(
     .filter((item): item is NavigationItem | NavigationGroup => item !== null);
 }
 
+/** Synthetic homepage nav item: used when there is no root (path '' or '/') in the list, so users can navigate to "/". Reused by app-bar and sidebar mobile. */
+export const HOMEPAGE_NAV_ITEM: NavigationItem = {
+  path: '/',
+  label: { en: 'Home', fr: 'Accueil' },
+  url: '/',
+};
+
+/** If there is no root item (path '' or '/') in the list, prepend a synthetic Homepage item. Use in app-bar and anywhere that needs a "Home" entry when nav has no "/" path. */
+export function withHomepageWhenNoRoot(items: NavigationItem[]): NavigationItem[] {
+  const hasRoot = items.some((i) => i.path === '' || i.path === '/');
+  if (hasRoot) return items;
+  return [HOMEPAGE_NAV_ITEM, ...items];
+}
+
 /** Split navigation by position: start (main content) and end (footer). */
 export function splitNavigationByPosition(navigation: (NavigationItem | NavigationGroup)[]): {
   start: (NavigationItem | NavigationGroup)[];
