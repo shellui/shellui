@@ -38,11 +38,23 @@ npm install -g @shellui/cli
 
 ## Step 3: Create Configuration File
 
-Create a configuration file in your project root. ShellUI supports both JSON and TypeScript configuration files.
+Create a configuration file in your project root. You can generate one with the CLI or create it manually.
 
-### Option A: JSON Configuration
+### Option A: Generate with shellui init (recommended)
 
-Create `shellui.config.json`:
+From your project directory, run:
+
+```bash
+shellui init
+```
+
+This creates a `shellui.config.ts` with sensible defaults (port, title, layout, and sample navigation including Home and Settings). To overwrite an existing config, use `shellui init --force`.
+
+Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/icons/home.svg`, `static/icons/settings.svg`) to customize assets, then skip to [Step 4: Start the Development Server](#step-4-start-the-development-server).
+
+### Option B: JSON Configuration
+
+Create `shellui.config.json` manually:
 
 ```json
 {
@@ -65,9 +77,9 @@ Create `shellui.config.json`:
 }
 ```
 
-### Option B: TypeScript Configuration
+### Option C: TypeScript Configuration
 
-Create `shellui.config.ts`:
+Create `shellui.config.ts` manually:
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';

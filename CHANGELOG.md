@@ -23,6 +23,10 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ## [0.2.0] - TBD
 
+### ✨ Feature
+
+- **CLI:** `shellui init [root]` command to create a `shellui.config.ts` boilerplate (use `--force` to overwrite)
+
 ### 🛠 Improvements
 
 - Improved Sentry error reporting integration

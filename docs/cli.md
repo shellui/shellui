@@ -8,6 +8,44 @@ See the [Installation Guide](/installation) for detailed installation instructio
 
 ## Commands
 
+### `shellui init [root]`
+
+Create a `shellui.config.ts` boilerplate to get started quickly.
+
+**Usage:**
+
+```bash
+shellui init
+shellui init ./my-project
+shellui init --force
+```
+
+**Description:**
+
+- Creates a minimal `shellui.config.ts` in the project root (or the given directory)
+- Includes port, title, layout, language, and sample navigation (Home + Settings)
+- Does not overwrite an existing config unless `--force` is used
+
+**Options:**
+
+- `root` (optional): Directory where to create the config (default: current directory)
+- `--force`: Overwrite existing `shellui.config.ts` or `shellui.config.json`
+
+**Example:**
+
+```bash
+# Create config in current directory
+shellui init
+
+# Create config in a subdirectory
+shellui init ./my-app
+
+# Overwrite existing config
+shellui init --force
+```
+
+After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.svg`, and `icons/` (e.g. `home.svg`, `settings.svg`) to customize assets, then run `shellui start` to begin development.
+
 ### `shellui start [root]`
 
 Start the ShellUI development server.
