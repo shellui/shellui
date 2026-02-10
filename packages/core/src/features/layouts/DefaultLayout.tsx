@@ -23,6 +23,7 @@ import {
   filterNavigationForSidebar,
   flattenNavigationItems,
   getNavPathPrefix,
+  HOMEPAGE_NAV_ITEM,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
 } from './utils';
@@ -428,7 +429,7 @@ const HomeIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-/** Mobile bottom nav: Home + nav items; More only when not all fit. Dynamic from width. */
+/** Mobile bottom nav: Home + nav items; More only when not all fit. Dynamic from width. Reuses HOMEPAGE_NAV_ITEM for label. */
 const MobileBottomNav = ({
   items,
   currentLanguage,
@@ -520,12 +521,14 @@ const MobileBottomNav = ({
               ? 'bg-sidebar-accent text-sidebar-accent-foreground [&_span]:text-sidebar-accent-foreground'
               : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit',
           )}
-          aria-label="Home"
+          aria-label={resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
         >
           <span className="size-4 shrink-0 flex items-center justify-center [&_svg]:text-current">
             <HomeIcon className="size-4" />
           </span>
-          <span className="text-[11px] leading-tight">Home</span>
+          <span className="text-[11px] leading-tight">
+            {resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
+          </span>
         </Link>
         {rowItems.map((item, i) => renderItem(item, i))}
         {hasMore && (
