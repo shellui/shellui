@@ -5,6 +5,7 @@ ShellUI includes a service worker that provides offline support, automatic app u
 ## Overview
 
 The service worker:
+
 - **Caches assets** for offline access
 - **Detects updates** automatically
 - **Notifies users** when updates are available
@@ -14,6 +15,7 @@ The service worker:
 ## Automatic Registration
 
 The service worker is automatically registered when:
+
 - Running in production build
 - Navigation items are configured
 - Not running in Tauri (desktop apps use different caching)
@@ -37,6 +39,7 @@ Users see toast notifications when updates are available:
 - **Update Installed**: "Update installed. Refresh to activate."
 
 Users can:
+
 - Click "Refresh" to update immediately
 - Dismiss and update later (updates automatically on next page load)
 
@@ -74,6 +77,7 @@ ShellUI uses intelligent caching strategies:
 ## Offline Support
 
 When offline, ShellUI:
+
 - Serves cached assets
 - Shows cached pages
 - Displays offline indicators (if configured)
@@ -114,6 +118,7 @@ Tauri uses its own caching system, so the service worker is not needed.
 ### Automatic Updates
 
 On page refresh, ShellUI automatically:
+
 1. Checks for waiting service worker
 2. Activates the new version
 3. Reloads the page with the new version
@@ -123,6 +128,7 @@ This ensures users always get the latest version after refreshing.
 ### Manual Updates
 
 Users can manually update:
+
 1. Go to Settings > Advanced > Service Worker
 2. Click "Check for Updates"
 3. If an update is available, click "Refresh" when prompted
@@ -149,6 +155,7 @@ Users can manually update:
 ### Service Worker Not Registering
 
 **Check:**
+
 - Are you running a production build? (Service worker is disabled in development)
 - Do you have navigation items configured?
 - Are you running in Tauri? (Service worker is disabled)
@@ -156,6 +163,7 @@ Users can manually update:
 ### Updates Not Detecting
 
 **Check:**
+
 - Is the service worker file (`sw.js`) being generated?
 - Are you deploying new builds correctly?
 - Is the browser cache cleared?
@@ -163,6 +171,7 @@ Users can manually update:
 ### Service Worker Stuck
 
 **Solution:**
+
 1. Go to Settings > Advanced > Service Worker
 2. Click "Unregister"
 3. Refresh the page

@@ -199,7 +199,7 @@ const config: ShellUIConfig = {
         category: 'strict_necessary',
         description: {
           en: 'Required for user authentication and session management.',
-          fr: 'Nécessaire pour l\'authentification et la gestion de session.',
+          fr: "Nécessaire pour l'authentification et la gestion de session.",
         },
       },
       {
@@ -221,7 +221,7 @@ const config: ShellUIConfig = {
         category: 'targeting',
         description: {
           en: 'Used for analytics and advertising.',
-          fr: 'Utilisé pour l\'analyse et la publicité.',
+          fr: "Utilisé pour l'analyse et la publicité.",
         },
       },
     ],
@@ -238,6 +238,7 @@ Users can manage their cookie preferences:
 3. **From Consent Modal**: Click "Set Preferences" button
 
 The preferences view allows users to:
+
 - See all cookies by category
 - Toggle individual cookies on/off
 - Accept or reject all cookies
@@ -290,11 +291,13 @@ function App() {
 ## Privacy Compliance
 
 ShellUI's cookie consent system helps you comply with:
+
 - **GDPR** (General Data Protection Regulation)
 - **CCPA** (California Consumer Privacy Act)
 - **ePrivacy Directive**
 
 Key features:
+
 - ✅ User consent before setting cookies
 - ✅ Granular control per cookie
 - ✅ Clear descriptions and categories

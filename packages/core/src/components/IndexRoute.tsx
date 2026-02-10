@@ -16,15 +16,18 @@ export const IndexRoute = () => {
   const startUrl = config?.start_url?.trim();
   if (startUrl) {
     const to = startUrl.startsWith('/') ? startUrl : `/${startUrl}`;
-    return <Navigate to={to} replace />;
+    return (
+      <Navigate
+        to={to}
+        replace
+      />
+    );
   }
 
   const navigation = config?.navigation;
   if (navigation?.length) {
     const navigationItems = flattenNavigationItems(navigation);
-    const rootNavItem = navigationItems.find(
-      (item) => item.path === '' || item.path === '/',
-    );
+    const rootNavItem = navigationItems.find((item) => item.path === '' || item.path === '/');
     if (rootNavItem) {
       return <ViewRoute navigation={navigationItems} />;
     }

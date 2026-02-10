@@ -18,6 +18,7 @@ const config: ShellUIConfig = {
 ```
 
 **Supported Languages:**
+
 - `'en'` - English
 - `'fr'` - French
 
@@ -146,6 +147,7 @@ If `language` is not specified, ShellUI defaults to English (`'en'`).
 Users can change their language preference in Settings > Language. The selection is stored in user settings and persists across sessions.
 
 The language preference affects:
+
 - Navigation labels (if localized)
 - UI text (buttons, labels, etc.)
 - Settings interface
@@ -166,6 +168,7 @@ type LocalizedString =
 ```
 
 **Supported Properties:**
+
 - Navigation item `label`
 - Navigation group `title`
 - Cookie consent descriptions (see [Cookie Consent](/features/cookie-consent))
@@ -248,6 +251,7 @@ Users can switch languages through:
 ## Language Codes
 
 Use standard ISO 639-1 language codes:
+
 - `'en'` - English
 - `'fr'` - French
 - Additional languages can be added by extending the language object

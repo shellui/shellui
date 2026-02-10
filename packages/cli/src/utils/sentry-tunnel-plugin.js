@@ -1,7 +1,7 @@
 /**
  * Vite plugin to handle Sentry tunnel endpoint for localhost CORS bypass.
  * This middleware proxies Sentry requests through the dev server to avoid CORS issues.
- * 
+ *
  * Sentry tunnel works by:
  * 1. Client sends envelope to /api/sentry-tunnel
  * 2. Server extracts DSN from envelope header
@@ -32,7 +32,7 @@ export function sentryTunnelPlugin() {
             try {
               const body = Buffer.concat(chunks);
               const bodyString = body.toString('utf-8');
-              
+
               // Sentry envelope format: header (JSON) + newline + payload
               // Header contains the DSN
               const lines = bodyString.split('\n');
@@ -104,7 +104,7 @@ async function proxyToSentry(dsn, body, res) {
     }
 
     const [, , host, projectId] = dsnMatch;
-    
+
     // Sentry ingest endpoint for envelopes
     const sentryUrl = `https://${host}/api/${projectId}/envelope/`;
 
@@ -123,7 +123,9 @@ async function proxyToSentry(dsn, body, res) {
     fetchResponse.headers.forEach((value, key) => {
       // Don't forward certain headers that shouldn't be proxied
       const lowerKey = key.toLowerCase();
-      if (!['content-encoding', 'transfer-encoding', 'connection', 'keep-alive'].includes(lowerKey)) {
+      if (
+        !['content-encoding', 'transfer-encoding', 'connection', 'keep-alive'].includes(lowerKey)
+      ) {
         res.setHeader(key, value);
       }
     });

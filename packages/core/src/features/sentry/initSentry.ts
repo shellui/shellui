@@ -1,4 +1,3 @@
-import { shellui } from 'node_modules/@shellui/sdk/src';
 import { getCookieConsentAccepted } from '../cookieConsent/cookieConsent';
 
 const SETTINGS_KEY = 'shellui:settings';

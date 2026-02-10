@@ -201,6 +201,7 @@ Opens the URL in a side drawer panel:
 ```
 
 **Drawer Positions:**
+
 - `'top'` - Slides down from top
 - `'bottom'` - Slides up from bottom
 - `'left'` - Slides in from left
@@ -343,7 +344,7 @@ export default config;
 1. **Use icons**: Add SVG icons to make navigation more visual and easier to scan
 2. **Group related items**: Use navigation groups to organize related functionality
 3. **Localize labels**: Use localized strings when building multi-language apps
-4. **Use appropriate open modes**: 
+4. **Use appropriate open modes**:
    - Use `modal` for settings or quick actions
    - Use `drawer` for secondary content or sidebars
    - Use `external` for links to other sites

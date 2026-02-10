@@ -7,9 +7,6 @@ import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
 
 // Lazy load route components
-const HomeView = lazy(() =>
-  import('../components/HomeView').then((m) => ({ default: m.HomeView })),
-);
 const SettingsView = lazy(() =>
   import('../features/settings/SettingsView').then((m) => ({ default: m.SettingsView })),
 );

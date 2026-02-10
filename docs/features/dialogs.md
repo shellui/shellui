@@ -288,7 +288,7 @@ function handleNavigation() {
 ```javascript
 function validateAndSubmit(formData) {
   const errors = validateForm(formData);
-  
+
   if (errors.length > 0) {
     shellui.dialog({
       title: 'Validation Error',
@@ -302,7 +302,7 @@ function validateAndSubmit(formData) {
     });
     return;
   }
-  
+
   submitForm(formData);
 }
 ```
@@ -313,7 +313,7 @@ function validateAndSubmit(formData) {
 function showInfo() {
   shellui.dialog({
     title: 'New Features Available',
-    description: 'We\'ve added new features! Check out the changelog for details.',
+    description: "We've added new features! Check out the changelog for details.",
     mode: 'ok',
     okLabel: 'Got it',
     onOk: () => {
@@ -349,6 +349,7 @@ function showInfo() {
 Shows an alert dialog.
 
 **Parameters:**
+
 - `options` (DialogOptions, optional):
   - `id` (string, optional): Dialog ID for updating existing dialogs
   - `title` (string, required): Dialog title
@@ -366,6 +367,7 @@ Shows an alert dialog.
   - `onCancel` (function, optional): Cancel button click handler
 
 **Returns:**
+
 - `string`: Dialog ID when creating a new dialog
 - `void`: When updating an existing dialog (with `id`)
 

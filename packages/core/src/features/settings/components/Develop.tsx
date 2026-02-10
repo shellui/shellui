@@ -2,7 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { useSettings } from '../hooks/useSettings';
 import { useConfig } from '../../config/useConfig';
-import { flattenNavigationItems, getNavPathPrefix, resolveLocalizedString } from '../../layouts/utils';
+import {
+  flattenNavigationItems,
+  getNavPathPrefix,
+  resolveLocalizedString,
+} from '../../layouts/utils';
 import { Switch } from '../../../components/ui/switch';
 import { Select } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
@@ -198,18 +202,19 @@ export const Develop = () => {
                   if (!sentryConsentAccepted) {
                     shellui.toast({
                       title: 'Cookie consent required',
-                      description: 'Please approve Sentry cookie consent in Data Privacy settings to test error reporting.',
+                      description:
+                        'Please approve Sentry cookie consent in Data Privacy settings to test error reporting.',
                       type: 'error',
                     });
                     return;
                   }
-                  
+
                   const testError = new Error('This is your first error!');
-                  
+
                   try {
                     // Ensure Sentry is initialized and capture the error
                     await captureException(testError);
-                    
+
                     // Show success toast
                     shellui.toast({
                       title: 'Test error triggered',
@@ -220,7 +225,10 @@ export const Develop = () => {
                     // If Sentry capture failed, show error toast
                     shellui.toast({
                       title: 'Failed to send error to Sentry',
-                      description: err instanceof Error ? err.message : 'Sentry is not configured or not available.',
+                      description:
+                        err instanceof Error
+                          ? err.message
+                          : 'Sentry is not configured or not available.',
                       type: 'error',
                     });
                   }

@@ -51,11 +51,7 @@ async function startServer(root, cwd, shouldOpen = false) {
     // Force cacheDir to project root - this prevents Vite from creating cache
     // relative to root (which would be inside @shellui/core)
     cacheDir: viteCacheDir,
-    plugins: [
-      react(),
-      serviceWorkerDevPlugin(corePackagePath, coreSrcPath),
-      sentryTunnelPlugin(),
-    ],
+    plugins: [react(), serviceWorkerDevPlugin(corePackagePath, coreSrcPath), sentryTunnelPlugin()],
     define: createViteDefine(config),
     resolve: {
       alias: {

@@ -590,9 +590,7 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
     const pathname = location.pathname.replace(/^\/+|\/+$/g, '') || '';
     const segment = pathname.split('/')[0];
     if (!segment) {
-      const rootNavItem = navigationItems.find(
-        (item) => item.path === '' || item.path === '/',
-      );
+      const rootNavItem = navigationItems.find((item) => item.path === '' || item.path === '/');
       document.title = rootNavItem
         ? `${resolveLocalizedLabel(rootNavItem.label, currentLanguage)} | ${title}`
         : title;

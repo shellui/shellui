@@ -22,6 +22,7 @@ const config: ShellUIConfig = {
 ```
 
 **Features:**
+
 - Persistent sidebar navigation
 - Responsive design (collapses to bottom navigation on mobile)
 - Supports icons, groups, and positioning
@@ -45,6 +46,7 @@ const config: ShellUIConfig = {
 ```
 
 **Features:**
+
 - No sidebar or navigation UI
 - Maximum content area
 - Navigation items still work (routes are valid)
@@ -75,10 +77,11 @@ const config: ShellUIConfig = {
 ```
 
 **Features:**
+
 - **Taskbar**: Bottom taskbar with app buttons and system clock
 - **Start Menu**: Click the start button to see all navigation items
 - **Multi-Window**: Each navigation item opens in its own window
-- **Window Management**: 
+- **Window Management**:
   - Drag windows to reposition
   - Resize windows by dragging edges
   - Minimize, maximize, and close windows
@@ -86,6 +89,7 @@ const config: ShellUIConfig = {
 - **Desktop Background**: Customizable desktop area
 
 **Window Controls:**
+
 - Click and drag the title bar to move windows
 - Drag window edges to resize
 - Click the minimize button to minimize
@@ -93,6 +97,7 @@ const config: ShellUIConfig = {
 - Click the close button to close the window
 
 **Taskbar:**
+
 - Shows buttons for all open windows
 - Click a button to focus that window
 - System clock displays current time

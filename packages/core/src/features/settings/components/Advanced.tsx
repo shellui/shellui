@@ -15,7 +15,7 @@ type SentryGlobals = {
 
 export const Advanced = () => {
   const { t } = useTranslation('settings');
-  const { config } = useConfig();
+  const { config: _config } = useConfig();
   const { settings, updateSetting, resetAllData } = useSettings();
   // Check Sentry globals directly since sentry is not included in the main config
   const g = globalThis as unknown as SentryGlobals;
@@ -28,7 +28,8 @@ export const Advanced = () => {
     if (checked && !sentryConsentAccepted) {
       shellui.toast({
         title: 'Cookie consent required',
-        description: 'Please approve Sentry cookie consent in Data Privacy settings to enable error reporting.',
+        description:
+          'Please approve Sentry cookie consent in Data Privacy settings to enable error reporting.',
         type: 'error',
       });
       return;

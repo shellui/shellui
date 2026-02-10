@@ -15,9 +15,7 @@ export const HomeView = () => {
       </h1>
       <p className="mt-4 text-lg text-muted-foreground">{t('getStarted')}</p>
       <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border text-left">
-        <p className="text-sm font-medium text-foreground mb-2">
-          {t('homeConfig.intro')}
-        </p>
+        <p className="text-sm font-medium text-foreground mb-2">{t('homeConfig.intro')}</p>
         <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
           <li>{t('homeConfig.startUrl')}</li>
           <li>{t('homeConfig.rootNav')}</li>

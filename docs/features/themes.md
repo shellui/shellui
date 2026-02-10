@@ -116,7 +116,7 @@ themes: [
       // ... colors
     },
   },
-]
+];
 ```
 
 ### Local Fonts
@@ -128,15 +128,13 @@ themes: [
   {
     name: 'local-fonts',
     displayName: 'Local Fonts Theme',
-    fontFiles: [
-      '/fonts/custom-font.woff2',
-    ],
+    fontFiles: ['/fonts/custom-font.woff2'],
     fontFamily: '"Custom Font", sans-serif',
     colors: {
       // ... colors
     },
   },
-]
+];
 ```
 
 ### Typography Settings
@@ -157,7 +155,7 @@ themes: [
       // ... colors
     },
   },
-]
+];
 ```
 
 ## Complete Theme Example

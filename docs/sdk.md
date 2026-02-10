@@ -195,6 +195,7 @@ shellui.sendMessage({
 ### Message Types
 
 Common ShellUI message types:
+
 - `SHELLUI_URL_CHANGED` - URL changed in shell
 - `SHELLUI_SETTINGS_UPDATED` - Settings were updated
 - `SHELLUI_OPEN_MODAL` - Modal opened
@@ -216,7 +217,7 @@ Access user settings:
 shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
   const { settings } = data.payload;
   console.log('Current settings:', settings);
-  
+
   // Access specific settings
   const theme = settings.appearance?.theme;
   const language = settings.language?.code;
@@ -258,6 +259,7 @@ logger.debug('Debug information', { data });
 ```
 
 Logger namespaces:
+
 - `'shellsdk'` - SDK logging
 - `'shellcore'` - Core logging
 - Custom namespaces for your app

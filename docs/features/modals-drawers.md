@@ -45,6 +45,7 @@ shellui.openModal('https://example.com/form');
 ### Closing Modals
 
 Modals can be closed by:
+
 - Clicking outside the modal (on the backdrop)
 - Pressing the Escape key
 - Programmatically (automatically handled by ShellUI)
@@ -172,12 +173,14 @@ shellui.openDrawer({
 ```
 
 **Size Guidelines:**
+
 - **Top/Bottom drawers**: Use height values (`vh`, `px` for height)
 - **Left/Right drawers**: Use width values (`vw`, `px` for width)
 
 ### Closing Drawers
 
 Drawers can be closed by:
+
 - Clicking outside the drawer (on the backdrop)
 - Pressing the Escape key
 - Programmatically:
@@ -191,12 +194,14 @@ shellui.closeDrawer();
 ### Modals
 
 Use modals for:
+
 - **Settings panels**: Quick access to settings without leaving the page
 - **Forms**: Focused form interactions
 - **Confirmations**: Important actions requiring attention
 - **Details**: Viewing item details without navigation
 
 **Example:**
+
 ```typescript
 {
   label: 'Quick Settings',
@@ -209,12 +214,14 @@ Use modals for:
 ### Drawers
 
 Use drawers for:
+
 - **Sidebars**: Additional navigation or filters
 - **Panels**: Secondary content that doesn't need full focus
 - **Menus**: Slide-out menus
 - **Details**: Item details or information panels
 
 **Example:**
+
 ```typescript
 {
   label: 'Filters',
@@ -317,6 +324,7 @@ function editItem(itemId) {
 ### Navigation Configuration
 
 Use navigation configuration when:
+
 - The modal/drawer is part of your main navigation
 - You want it accessible via sidebar/menu
 - It's a persistent feature of your app
@@ -324,6 +332,7 @@ Use navigation configuration when:
 ### Programmatic Opening
 
 Use programmatic opening when:
+
 - The modal/drawer is triggered by user actions
 - It's contextual (e.g., "View Details" button)
 - You need dynamic URLs or sizes

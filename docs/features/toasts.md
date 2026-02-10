@@ -97,7 +97,7 @@ shellui.toast({
 
 ```javascript
 shellui.toast({
-  title: 'Toast Title',        // Required: Main message
+  title: 'Toast Title', // Required: Main message
   description: 'Optional description text', // Optional: Additional details
 });
 ```
@@ -339,6 +339,7 @@ async function fetchData() {
 Shows or updates a toast notification.
 
 **Parameters:**
+
 - `options` (ToastOptions, optional):
   - `id` (string, optional): Toast ID for updating existing toasts
   - `title` (string, optional): Toast title/message
@@ -354,6 +355,7 @@ Shows or updates a toast notification.
     - `onClick` (function): Click handler
 
 **Returns:**
+
 - `string`: Toast ID when creating a new toast
 - `void`: When updating an existing toast (with `id`)
 
