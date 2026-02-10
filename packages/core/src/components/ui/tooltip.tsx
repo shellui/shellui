@@ -1,6 +1,10 @@
+import {
+  type ComponentPropsWithoutRef,
+  type ElementRef,
+  forwardRef,
+  type ReactNode,
+} from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import type { ElementRef, ComponentPropsWithoutRef, ReactNode } from 'react';
-import { forwardRef } from 'react';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
 
@@ -10,40 +14,41 @@ const Tooltip = TooltipPrimitive.Root;
 
 const TooltipTrigger = TooltipPrimitive.Trigger;
 
-/** Radix Slottable expects a single React element child; wrap strings/fragments so Slot can clone. */
-function ensureSingleElement(children: ReactNode): ReactNode {
-  if (children == null) return null;
-  if (typeof children === 'string' || typeof children === 'number') return <span>{children}</span>;
-  if (Array.isArray(children)) return <span>{children}</span>;
-  return children;
-}
-
 const TooltipContent = forwardRef<
   ElementRef<typeof TooltipPrimitive.Content>,
   ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 8, children, ...props }, ref) => (
+>(({ className, sideOffset = 6, ...props }, ref) => (
   <TooltipPrimitive.Portal>
     <TooltipPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
-      data-tooltip-content
       className={cn(
-        'overflow-visible rounded-md border border-border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md',
+        'overflow-hidden rounded-md border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md',
+        'animate-none',
         className,
       )}
       style={{ zIndex: Z_INDEX.TOOLTIP }}
       {...props}
-    >
-      {ensureSingleElement(children)}
-    </TooltipPrimitive.Content>
-    {/* Arrow must be a sibling of Content (not inside), else Radix renders null */}
-    <TooltipPrimitive.Arrow
-      className="fill-popover stroke-border [stroke-width:1px]"
-      width={10}
-      height={5}
     />
   </TooltipPrimitive.Portal>
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export interface AppBarTooltipProps {
+  label: string;
+  children: ReactNode;
+}
+
+/** Themed tooltip for app-bar end buttons: no arrow, no animation. */
+function AppBarTooltip({ label, children }: AppBarTooltipProps) {
+  return (
+    <Tooltip delayDuration={200}>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="bottom" align="center">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, AppBarTooltip };

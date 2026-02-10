@@ -330,36 +330,6 @@
   }
 }
 
-/* Tooltip (app-bar end bar, etc.) – enter/exit animations */
-@keyframes tooltip-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes tooltip-exit {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-
-/* fill-mode: both = backwards (apply "from" before start) + forwards (keep "to" at end) so enter is visible */
-[data-tooltip-content][data-state='open'] {
-  animation: tooltip-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-[data-tooltip-content][data-state='closed'] {
-  animation: tooltip-exit 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /* Dialog / modal overlay and content animations */
 [data-dialog-content] {
   left: 50%;

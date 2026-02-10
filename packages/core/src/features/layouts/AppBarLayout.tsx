@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, type ReactNode } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -13,6 +13,7 @@ import { filterNavigationByViewport } from './utils';
 import { LayoutProviders } from './LayoutProviders';
 import { OverlayShell } from './OverlayShell';
 import { Select } from '../../components/ui/select';
+import { AppBarTooltip, TooltipProvider } from '../../components/ui/tooltip';
 import { cn } from '../../lib/utils';
 
 const TOP_BAR_MAX_HEIGHT = 42;
@@ -45,7 +46,7 @@ function resolveLocalizedLabel(
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
 }
 
-/** End link: icon-only or first-letter badge with native tooltip. */
+/** End link: icon-only or first-letter badge with themed tooltip. */
 function TopBarEndItem({
   item,
   label,
@@ -91,55 +92,51 @@ function TopBarEndItem({
       : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
   );
 
+  const wrap = (node: ReactNode) => (
+    <AppBarTooltip label={label}>{node}</AppBarTooltip>
+  );
+
   if (item.openIn === 'modal') {
-    return (
+    return wrap(
       <button
         type="button"
         onClick={() => shellui.openModal(item.url)}
         className={buttonClass}
-        title={label}
         aria-label={label}
       >
         {iconEl}
-      </button>
+      </button>,
     );
   }
   if (item.openIn === 'drawer') {
-    return (
+    return wrap(
       <button
         type="button"
         onClick={() => shellui.openDrawer({ url: item.url, position: item.drawerPosition })}
         className={buttonClass}
-        title={label}
         aria-label={label}
       >
         {iconEl}
-      </button>
+      </button>,
     );
   }
   if (item.openIn === 'external') {
-    return (
+    return wrap(
       <a
         href={item.url}
         target="_blank"
         rel="noopener noreferrer"
         className={buttonClass}
-        title={label}
         aria-label={label}
       >
         {iconEl}
-      </a>
+      </a>,
     );
   }
-  return (
-    <Link
-      to={pathPrefix}
-      className={buttonClass}
-      title={label}
-      aria-label={label}
-    >
+  return wrap(
+    <Link to={pathPrefix} className={buttonClass} aria-label={label}>
       {iconEl}
-    </Link>
+    </Link>,
   );
 }
 
@@ -232,15 +229,17 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
 
             {/* End links: icon-only or first letter + tooltip */}
             {endNavItems.length > 0 && (
-              <div className="flex items-center gap-0.5 shrink-0">
-                {endNavItems.map((item) => (
-                  <TopBarEndItem
-                    key={item.path}
-                    item={item}
-                    label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
-                  />
-                ))}
-              </div>
+              <TooltipProvider delayDuration={200} skipDelayDuration={0}>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  {endNavItems.map((item) => (
+                    <TopBarEndItem
+                      key={item.path}
+                      item={item}
+                      label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                    />
+                  ))}
+                </div>
+              </TooltipProvider>
             )}
           </header>
 
