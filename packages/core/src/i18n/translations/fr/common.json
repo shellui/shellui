@@ -2,6 +2,11 @@
   "settings": "Paramètres",
   "welcome": "Bienvenue sur {{title}}",
   "getStarted": "Sélectionnez un élément de navigation pour commencer.",
+  "homeConfig": {
+    "intro": "Pour afficher du contenu personnalisé sur la page d'accueil :",
+    "startUrl": "Définissez start_url dans shellui.config pour rediriger \"/\" vers un autre chemin (ex. start_url: '/playground').",
+    "rootNav": "Ou ajoutez un élément de navigation avec path \"\" ou \"/\" pour l'afficher à \"/\"."
+  },
   "navigationError": "Erreur de navigation",
   "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application.",
   "errorBoundary": {

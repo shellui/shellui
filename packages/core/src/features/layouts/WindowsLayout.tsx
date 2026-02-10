@@ -11,6 +11,7 @@ import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   flattenNavigationItems,
+  getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
 } from './utils';
@@ -70,7 +71,7 @@ function getMaximizedBounds(): WindowState['bounds'] {
 }
 
 function buildFinalUrl(baseUrl: string, path: string, pathname: string): string {
-  const pathPrefix = `/${path}`;
+  const pathPrefix = getNavPathPrefix({ path } as NavigationItem);
   const subPath = pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
   if (!subPath) return baseUrl;
   const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
@@ -554,7 +555,7 @@ export function WindowsLayout({
         {
           id,
           path: item.path,
-          pathname: `/${item.path}`,
+          pathname: getNavPathPrefix(item),
           baseUrl: item.url,
           label,
           icon,

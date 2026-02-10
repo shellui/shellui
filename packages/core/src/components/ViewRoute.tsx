@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { getNavPathPrefix } from '../features/layouts/utils';
 import { ContentView } from './ContentView';
 import type { NavigationItem } from '../features/config/types';
 
@@ -13,7 +14,7 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
 
   const navItem = useMemo(() => {
     return navigation.find((item) => {
-      const pathPrefix = `/${item.path}`;
+      const pathPrefix = getNavPathPrefix(item);
       return pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`);
     });
   }, [navigation, pathname]);
@@ -28,7 +29,7 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
   }
   // Calculate the relative path from the navItem.path
   // e.g. if item.path is "docs" and pathname is "/docs/intro", subPath is "intro"
-  const pathPrefix = `/${navItem.path}`;
+  const pathPrefix = getNavPathPrefix(navItem);
   const subPath = pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
 
   // Construct the final URL for the iframe

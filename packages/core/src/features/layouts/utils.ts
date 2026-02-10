@@ -1,5 +1,10 @@
 import type { NavigationItem, NavigationGroup, LocalizedString } from '../config/types';
 
+/** Path prefix for a nav item: "/" for root (path '' or '/'), otherwise "/{path}". */
+export function getNavPathPrefix(item: NavigationItem): string {
+  return item.path === '/' || item.path === '' ? '/' : `/${item.path}`;
+}
+
 /** Resolve a localized string to a single string for the given language. */
 export function resolveLocalizedString(value: LocalizedString | undefined, lang: string): string {
   if (value === null || value === undefined) return '';

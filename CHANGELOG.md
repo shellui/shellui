@@ -29,6 +29,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🛠 Improvements
 
+- **Navigation:** support `start_url` to redirect "/" and navigation items with path `""` or `"/"` as the start page
 - Improved Sentry error reporting integration
 
 ## [0.1.0] - 2026-02-09

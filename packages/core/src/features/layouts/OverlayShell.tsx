@@ -9,7 +9,7 @@ import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
-import { resolveLocalizedString } from './utils';
+import { getNavPathPrefix, resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
   navigationItems: NavigationItem[];
@@ -60,9 +60,10 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
       const isHomepage = pathname === '/' || pathname === '';
       const isAllowed =
         isHomepage ||
-        navigationItems.some(
-          (item) => pathname === `/${item.path}` || pathname.startsWith(`/${item.path}/`),
-        );
+        navigationItems.some((item) => {
+          const pathPrefix = getNavPathPrefix(item);
+          return pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`);
+        });
       if (isAllowed) {
         navigate(pathname || '/');
       } else {

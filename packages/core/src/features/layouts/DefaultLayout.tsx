@@ -22,6 +22,7 @@ import {
   filterNavigationByViewport,
   filterNavigationForSidebar,
   flattenNavigationItems,
+  getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
 } from './utils';
@@ -87,7 +88,7 @@ const NavigationContent = ({
 
   // Render a single nav item link or modal/drawer trigger
   const renderNavItem = (navItem: NavigationItem) => {
-    const pathPrefix = `/${navItem.path}`;
+    const pathPrefix = getNavPathPrefix(navItem);
     const isOverlay = navItem.openIn === 'modal' || navItem.openIn === 'drawer';
     const isExternal = navItem.openIn === 'external';
     const isActive =
@@ -144,7 +145,7 @@ const NavigationContent = ({
         </a>
       ) : (
         <Link
-          to={`/${navItem.path}`}
+          to={pathPrefix}
           className="flex items-center gap-2 w-full"
         >
           {content}
@@ -273,7 +274,7 @@ const BottomNavItem = ({
   iconSrc: string | null;
   applyIconTheme: boolean;
 }) => {
-  const pathPrefix = `/${item.path}`;
+  const pathPrefix = getNavPathPrefix(item);
   const content = (
     <span className="flex flex-col items-center justify-center gap-1 w-full min-w-0 max-w-full overflow-hidden">
       {iconSrc ? (
@@ -477,7 +478,7 @@ const MobileBottomNav = ({
   }, [location.pathname]);
 
   const renderItem = (item: NavigationItem, index: number) => {
-    const pathPrefix = `/${item.path}`;
+    const pathPrefix = getNavPathPrefix(item);
     const isOverlayOrExternal =
       item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external';
     const isActive =
@@ -589,7 +590,12 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
     const pathname = location.pathname.replace(/^\/+|\/+$/g, '') || '';
     const segment = pathname.split('/')[0];
     if (!segment) {
-      document.title = title;
+      const rootNavItem = navigationItems.find(
+        (item) => item.path === '' || item.path === '/',
+      );
+      document.title = rootNavItem
+        ? `${resolveLocalizedLabel(rootNavItem.label, currentLanguage)} | ${title}`
+        : title;
       return;
     }
     const navItem = navigationItems.find((item) => item.path === segment);

@@ -21,6 +21,9 @@ const CookiePreferencesView = lazy(() =>
 const ViewRoute = lazy(() =>
   import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })),
 );
+const IndexRoute = lazy(() =>
+  import('../components/IndexRoute').then((m) => ({ default: m.IndexRoute })),
+);
 const NotFoundView = lazy(() =>
   import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })),
 );
@@ -88,17 +91,18 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         path: '/',
         element: (
           <Suspense fallback={<RouteFallback />}>
-            <HomeView />
+            <IndexRoute />
           </Suspense>
         ),
       },
     ],
   };
 
-  // Add navigation routes
+  // Add navigation routes (skip items with path '' or '/' — they are shown at "/" via IndexRoute)
   if (config.navigation && config.navigation.length > 0) {
     const navigationItems = flattenNavigationItems(config.navigation);
     navigationItems.forEach((item) => {
+      if (item.path === '' || item.path === '/') return;
       (layoutRoute.children as RouteObject[]).push({
         path: `/${item.path}/*`,
         element: (

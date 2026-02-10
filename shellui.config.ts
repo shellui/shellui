@@ -168,8 +168,6 @@ const config: ShellUIConfig = {
       path: 'shellui',
       url: 'https://shellui.com/',
       icon: '/icons/user.svg',
-      openIn: 'drawer',
-      drawerPosition: 'right',
     },
     {
       label: 'Sebastienbarbier',

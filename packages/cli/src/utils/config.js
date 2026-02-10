@@ -65,5 +65,31 @@ export async function loadConfig(root = '.') {
     console.log(pc.yellow(`No shellui.config.ts or shellui.config.json found, using defaults.`));
   }
 
-  return mergeSentryFromEnv(config);
+  const merged = mergeSentryFromEnv(config);
+  warnStartUrlAndRootNav(merged);
+  return merged;
+}
+
+/**
+ * If both start_url and a root nav item (path '' or '/') are set, warn that start_url wins.
+ * @param {Object} config - Loaded config object
+ */
+function warnStartUrlAndRootNav(config) {
+  const startUrl = config?.start_url?.trim();
+  if (!startUrl) return;
+  const nav = config?.navigation;
+  if (!nav?.length) return;
+  const hasRootNav = nav.some((item) => {
+    if (item.title != null && item.items) {
+      return item.items.some((i) => i.path === '' || i.path === '/');
+    }
+    return item.path === '' || item.path === '/';
+  });
+  if (hasRootNav) {
+    console.warn(
+      pc.yellow(
+        '⚠ start_url is set and a navigation item has path "/" or "". Visiting "/" will redirect to start_url; the root nav item will not be shown at "/".',
+      ),
+    );
+  }
 }

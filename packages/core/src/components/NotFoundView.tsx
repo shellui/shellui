@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from '../features/config/useConfig';
+import { getNavPathPrefix } from '../features/layouts/utils';
 import type { NavigationItem, NavigationGroup } from '../features/config/types';
 
 const flattenNavigationItems = (
@@ -56,7 +57,7 @@ export const NotFoundView = () => {
           >
             {navItems.map((item, index) => (
               <span
-                key={item.path}
+                key={item.path || 'root'}
                 className="inline-flex items-center gap-x-2"
               >
                 {index > 0 && (
@@ -69,7 +70,7 @@ export const NotFoundView = () => {
                 )}
                 <button
                   type="button"
-                  onClick={() => handleNavigate(`/${item.path}`)}
+                  onClick={() => handleNavigate(getNavPathPrefix(item))}
                   className="text-muted-foreground hover:text-foreground hover:underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0 font-normal"
                 >
                   {resolveLocalizedString(item.label, currentLanguage)}

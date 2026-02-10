@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { useSettings } from '../hooks/useSettings';
 import { useConfig } from '../../config/useConfig';
-import { flattenNavigationItems, resolveLocalizedString } from '../../layouts/utils';
+import { flattenNavigationItems, getNavPathPrefix, resolveLocalizedString } from '../../layouts/utils';
 import { Switch } from '../../../components/ui/switch';
 import { Select } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
@@ -132,8 +132,8 @@ export const Develop = () => {
                 <option value="">{t('develop.navigation.placeholder')}</option>
                 {navItems.map((item) => (
                   <option
-                    key={item.path}
-                    value={`/${item.path}`}
+                    key={item.path || 'root'}
+                    value={getNavPathPrefix(item)}
                   >
                     {resolveLocalizedString(item.label, currentLanguage) || item.path}
                   </option>

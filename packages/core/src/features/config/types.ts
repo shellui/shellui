@@ -185,6 +185,8 @@ export interface ShellUIConfig {
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
   layout?: LayoutType;
+  /** When set, opening the app at "/" redirects to this path (e.g. "/playground"). */
+  start_url?: string;
   navigation?: (NavigationItem | NavigationGroup)[];
   themes?: ThemeDefinition[]; // Custom themes to register
   defaultTheme?: string; // Default theme name to use
