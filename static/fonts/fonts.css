@@ -33,3 +33,8 @@
   font-style: italic;
   font-display: swap;
 }
+
+/* Bolder default for Source Serif 4 when used as title/heading font (sebastienbarbier theme) */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+}
