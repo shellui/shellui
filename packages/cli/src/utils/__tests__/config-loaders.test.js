@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { loadJsonConfig, loadTypeScriptConfig } from '../config-loaders.js';
+import { loadTypeScriptConfig } from '../config-loaders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,69 +51,6 @@ describe('Config Loaders', () => {
         // Ignore cleanup errors
       }
     }
-  });
-
-  describe('loadJsonConfig', () => {
-    test('should load valid JSON config file', () => {
-      const configPath = path.join(testDir, 'test-config.json');
-      const expectedConfig = {
-        name: 'test-app',
-        version: '1.0.0',
-        routes: ['/home', '/about'],
-      };
-
-      fs.writeFileSync(configPath, JSON.stringify(expectedConfig, null, 2));
-
-      const config = loadJsonConfig(configPath);
-
-      expect(config).toStrictEqual(expectedConfig);
-    });
-
-    test('should throw error for invalid JSON', () => {
-      const configPath = path.join(testDir, 'invalid-config.json');
-      fs.writeFileSync(configPath, '{ invalid json }');
-
-      expect(() => {
-        loadJsonConfig(configPath);
-      }).toThrow(/JSON/);
-    });
-
-    test('should throw error for missing file', () => {
-      const configPath = path.join(testDir, 'non-existent.json');
-
-      expect(() => {
-        loadJsonConfig(configPath);
-      }).toThrow(/ENOENT/);
-    });
-
-    test('should handle empty JSON object', () => {
-      const configPath = path.join(testDir, 'empty-config.json');
-      fs.writeFileSync(configPath, '{}');
-
-      const config = loadJsonConfig(configPath);
-
-      expect(config).toStrictEqual({});
-    });
-
-    test('should handle complex nested JSON', () => {
-      const configPath = path.join(testDir, 'complex-config.json');
-      const expectedConfig = {
-        app: {
-          name: 'test',
-          settings: {
-            theme: 'dark',
-            language: 'en',
-          },
-        },
-        features: ['feature1', 'feature2'],
-      };
-
-      fs.writeFileSync(configPath, JSON.stringify(expectedConfig, null, 2));
-
-      const config = loadJsonConfig(configPath);
-
-      expect(config).toStrictEqual(expectedConfig);
-    });
   });
 
   describe('loadTypeScriptConfig', () => {

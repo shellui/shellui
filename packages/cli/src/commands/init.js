@@ -40,15 +40,10 @@ export async function initCommand(root = '.', options = {}) {
   const cwd = process.cwd();
   const configDir = path.resolve(cwd, root);
   const configPath = path.join(configDir, 'shellui.config.ts');
-  const jsonPath = path.join(configDir, 'shellui.config.json');
 
-  const tsExists = fs.existsSync(configPath);
-  const jsonExists = fs.existsSync(jsonPath);
-
-  if ((tsExists || jsonExists) && !options.force) {
-    const existing = tsExists ? configPath : jsonPath;
+  if (fs.existsSync(configPath) && !options.force) {
     console.log(
-      pc.yellow(`Config already exists at ${existing}. Use ${pc.bold('--force')} to overwrite.`),
+      pc.yellow(`Config already exists at ${configPath}. Use ${pc.bold('--force')} to overwrite.`),
     );
     return;
   }

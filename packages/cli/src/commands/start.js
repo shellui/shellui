@@ -125,21 +125,9 @@ async function restartServer(root, cwd) {
 function watchConfig(root, cwd) {
   const configDir = path.resolve(cwd, root);
   const tsConfigPath = path.join(configDir, 'shellui.config.ts');
-  const jsonConfigPath = path.join(configDir, 'shellui.config.json');
 
-  // Determine which config file exists (prefer TypeScript)
-  let configPath = null;
-  if (fs.existsSync(tsConfigPath)) {
-    configPath = tsConfigPath;
-  } else if (fs.existsSync(jsonConfigPath)) {
-    configPath = jsonConfigPath;
-  }
-
-  // Only watch if config file exists
-  if (!configPath) {
-    console.log(
-      pc.yellow(`No shellui.config.ts or shellui.config.json found, config watching disabled.`),
-    );
+  if (!fs.existsSync(tsConfigPath)) {
+    console.log(pc.yellow(`No shellui.config.ts found, config watching disabled.`));
     return;
   }
 
@@ -148,13 +136,13 @@ function watchConfig(root, cwd) {
     configWatcher.close();
   }
 
-  configWatcher = fs.watch(configPath, { persistent: true }, async (eventType) => {
+  configWatcher = fs.watch(tsConfigPath, { persistent: true }, async (eventType) => {
     if (eventType === 'change') {
       await restartServer(root, cwd);
     }
   });
 
-  console.log(pc.green(`👀 Watching config file: ${configPath}`));
+  console.log(pc.green(`👀 Watching config file: ${tsConfigPath}`));
 }
 
 /**

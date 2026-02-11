@@ -29,7 +29,7 @@ shellui init --force
 **Options:**
 
 - `root` (optional): Directory where to create the config (default: current directory)
-- `--force`: Overwrite existing `shellui.config.ts` or `shellui.config.json`
+- `--force`: Overwrite existing `shellui.config.ts`
 
 **Example:**
 
@@ -112,12 +112,7 @@ shellui build ./my-app
 
 ## Configuration
 
-ShellUI uses a configuration file to customize your application. The CLI looks for configuration files in your project root:
-
-- `shellui.config.json` (JSON format)
-- `shellui.config.ts` (TypeScript format)
-
-TypeScript configuration files are preferred if you want type checking and IntelliSense support.
+ShellUI uses a TypeScript configuration file to customize your application. The CLI looks for `shellui.config.ts` in your project root.
 
 ### Configuration File Location
 
@@ -178,35 +173,6 @@ For advanced navigation features like groups, localization, visibility control, 
 
 ### Example Configuration
 
-**JSON (`shellui.config.json`):**
-
-```json
-{
-  "port": 4000,
-  "title": "My ShellUI App",
-  "navigation": [
-    {
-      "label": "Documentation",
-      "path": "docs",
-      "url": "https://docs.example.com/",
-      "icon": "BookOpen"
-    },
-    {
-      "label": "Dashboard",
-      "path": "dashboard",
-      "url": "http://localhost:4000/",
-      "icon": "Layout"
-    },
-    {
-      "label": "Settings",
-      "path": "settings",
-      "url": "https://app.example.com/settings",
-      "icon": "Settings"
-    }
-  ]
-}
-```
-
 **TypeScript (`shellui.config.ts`):**
 
 ```typescript
@@ -256,7 +222,7 @@ When using the CLI, your project structure should look like:
 
 ```
 my-project/
-├── shellui.config.json    # or shellui.config.ts
+├── shellui.config.ts
 ├── package.json
 ├── dist/                  # Production build output
 └── node_modules/
@@ -274,7 +240,7 @@ For detailed configuration options, see:
 
 ## Tips
 
-- Use TypeScript configuration files for better IDE support and type checking
+- TypeScript configuration gives you IDE support and type checking
 - The CLI automatically handles hot reloading during development
 - Configuration changes trigger automatic server restarts
 - Production builds are optimized and ready for deployment
@@ -298,12 +264,7 @@ npx shellui start
 
 ### Configuration Not Found
 
-Ensure your configuration file is named correctly:
-
-- `shellui.config.json` (for JSON)
-- `shellui.config.ts` (for TypeScript)
-
-And that it's in the project root directory.
+Ensure `shellui.config.ts` exists in your project root directory.
 
 ### Port Already in Use
 

@@ -52,34 +52,7 @@ This creates a `shellui.config.ts` with sensible defaults (port, title, layout, 
 
 Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/icons/home.svg`, `static/icons/settings.svg`) to customize assets, then skip to [Step 4: Start the Development Server](#step-4-start-the-development-server).
 
-### Option B: JSON Configuration
-
-Create `shellui.config.json` manually:
-
-```json
-{
-  "port": 4000,
-  "title": "My ShellUI App",
-  "navigation": [
-    {
-      "label": "Home",
-      "path": "home",
-      "url": "http://localhost:4000/",
-      "icon": "Home"
-    },
-    {
-      "label": "About",
-      "path": "about",
-      "url": "https://example.com/about",
-      "icon": "Info"
-    }
-  ]
-}
-```
-
-### Option C: TypeScript Configuration
-
-Create `shellui.config.ts` manually:
+### Option B: Create shellui.config.ts manually
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -141,8 +114,8 @@ You should see output like:
 
 ```
 Starting ShellUI...
-Loaded JSON config from /path/to/shellui.config.json
-👀 Watching config file: /path/to/shellui.config.json
+Loaded TypeScript config from /path/to/shellui.config.ts
+👀 Watching config file: /path/to/shellui.config.ts
 
   VITE v7.x.x  ready in xxx ms
 
@@ -172,7 +145,7 @@ A typical ShellUI project structure looks like:
 
 ```
 my-shellui-app/
-├── shellui.config.json    # or shellui.config.ts
+├── shellui.config.ts
 ├── package.json
 ├── dist/                  # Production build (generated)
 └── node_modules/
@@ -198,9 +171,8 @@ If the default port is already in use, change it in your configuration:
 
 ### Configuration Not Loading
 
-- Ensure `shellui.config.json` or `shellui.config.ts` is in your project root
-- Check that the JSON is valid (if using JSON format)
-- For TypeScript config, ensure TypeScript is installed: `npm install -D typescript`
+- Ensure `shellui.config.ts` is in your project root
+- Ensure TypeScript is installed: `npm install -D typescript`
 
 ### Build Errors
 

@@ -57,29 +57,17 @@ describe('loadConfig', () => {
     }
   });
 
-  test('should prefer TypeScript config over JSON config', async () => {
+  test('should load TypeScript config when present', async () => {
     const tsConfig = { name: 'ts-config', version: '1.0.0' };
-    const jsonConfig = { name: 'json-config', version: '2.0.0' };
 
     fs.writeFileSync('shellui.config.ts', `export default ${JSON.stringify(tsConfig)};`);
-    fs.writeFileSync('shellui.config.json', JSON.stringify(jsonConfig, null, 2));
 
     const config = await loadConfig('.');
 
     expect(config).toStrictEqual(tsConfig);
   });
 
-  test('should load JSON config when TypeScript config does not exist', async () => {
-    const jsonConfig = { name: 'json-only', version: '1.0.0' };
-
-    fs.writeFileSync('shellui.config.json', JSON.stringify(jsonConfig, null, 2));
-
-    const config = await loadConfig('.');
-
-    expect(config).toStrictEqual(jsonConfig);
-  });
-
-  test('should return empty object when no config files exist', async () => {
+  test('should return empty object when no config file exists', async () => {
     const config = await loadConfig('.');
 
     expect(config).toStrictEqual({});
@@ -89,12 +77,15 @@ describe('loadConfig', () => {
     const subDir = path.join(testDir, 'subdir');
     fs.mkdirSync(subDir, { recursive: true });
 
-    const jsonConfig = { name: 'subdir-config', version: '1.0.0' };
-    fs.writeFileSync(path.join(subDir, 'shellui.config.json'), JSON.stringify(jsonConfig, null, 2));
+    const tsConfig = { name: 'subdir-config', version: '1.0.0' };
+    fs.writeFileSync(
+      path.join(subDir, 'shellui.config.ts'),
+      `export default ${JSON.stringify(tsConfig)};`,
+    );
 
     const config = await loadConfig(subDir);
 
-    expect(config).toStrictEqual(jsonConfig);
+    expect(config).toStrictEqual(tsConfig);
   });
 
   test('should handle TypeScript config in custom root', async () => {
@@ -113,16 +104,6 @@ describe('loadConfig', () => {
   });
 
   test('should handle errors gracefully and return empty object', async () => {
-    const invalidJsonPath = path.join(testDir, 'shellui.config.json');
-    fs.writeFileSync(invalidJsonPath, '{ invalid json }');
-
-    const config = await loadConfig('.');
-
-    // Should return empty object on error
-    expect(config).toStrictEqual({});
-  });
-
-  test('should handle invalid TypeScript config gracefully', async () => {
     const invalidTsPath = path.join(testDir, 'shellui.config.ts');
     fs.writeFileSync(invalidTsPath, 'export const invalid = syntax error;');
 
@@ -132,15 +113,25 @@ describe('loadConfig', () => {
     expect(config).toStrictEqual({});
   });
 
+  test('should handle invalid TypeScript config gracefully', async () => {
+    const invalidTsPath = path.join(testDir, 'shellui.config.ts');
+    fs.writeFileSync(invalidTsPath, 'export const broken = ;');
+
+    const config = await loadConfig('.');
+
+    // Should return empty object on error
+    expect(config).toStrictEqual({});
+  });
+
   test('should work with relative path', async () => {
-    const jsonConfig = { name: 'relative-config', version: '1.0.0' };
-    fs.writeFileSync('shellui.config.json', JSON.stringify(jsonConfig, null, 2));
+    const tsConfig = { name: 'relative-config', version: '1.0.0' };
+    fs.writeFileSync('shellui.config.ts', `export default ${JSON.stringify(tsConfig)};`);
 
     // Change to parent directory
     process.chdir(path.dirname(testDir));
 
     const config = await loadConfig(path.basename(testDir));
 
-    expect(config).toStrictEqual(jsonConfig);
+    expect(config).toStrictEqual(tsConfig);
   });
 });

@@ -107,7 +107,6 @@ export function createPostCSSConfig() {
   };
 }
 
-
 /**
  * Create Vite resolve configuration.
  * @returns {Object} Vite resolve configuration

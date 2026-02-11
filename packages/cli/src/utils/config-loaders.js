@@ -128,15 +128,3 @@ export async function loadTypeScriptConfig(configPath, configDir) {
     throw execError;
   }
 }
-
-/**
- * Load JSON configuration file
- * @param {string} configPath - Path to the JSON config file
- * @returns {Object} Configuration object
- */
-export function loadJsonConfig(configPath) {
-  const configFile = fs.readFileSync(configPath, 'utf-8');
-  const config = JSON.parse(configFile);
-  console.log(pc.green(`Loaded JSON config from ${configPath}`));
-  return config;
-}
