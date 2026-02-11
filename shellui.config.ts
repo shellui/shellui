@@ -1,44 +1,11 @@
 import { type ShellUIConfig } from '@shellui/core';
 import urls from '@shellui/core/constants/urls';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const packageJsonPath = path.join(__dirname, 'package.json');
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-
-// Determine if this is a build or dev mode
-// Check NODE_ENV or if we're being built (build command sets NODE_ENV=production)
-const isBuild = process.env.NODE_ENV === 'production' || process.env.SHELLUI_BUILD === 'true';
-
-// Generate version with build ID or dev suffix
-let version = packageJson.version;
-if (isBuild) {
-  // Generate build ID: just the git commit hash
-  try {
-    // Get short git commit hash
-    const gitHash = execSync('git rev-parse --short HEAD', {
-      cwd: __dirname,
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim();
-    version = `${packageJson.version}-${gitHash}`;
-  } catch (_error) {
-    // Fallback: if git is not available, just use version without build ID
-    version = packageJson.version;
-  }
-} else {
-  // Dev mode: append -dev suffix
-  version = `${packageJson.version}-dev`;
-}
+import { getVersion } from './scripts/get-version.js';
 
 const config: ShellUIConfig = {
   port: 4000,
   title: 'shellui',
-  version: version,
+  version: getVersion(),
   favicon: '/favicon.svg',
   logo: '/logo.svg',
   // Cookie consent: register cookies by host; accepted hosts stored in settings. Use host to gate features (e.g. getCookieConsentAccepted('sentry.io')).
