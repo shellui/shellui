@@ -1,5 +1,3 @@
-import type { ComponentType } from 'react';
-
 // Language-specific label/title
 export type LocalizedString =
   | string
@@ -18,12 +16,7 @@ export type LayoutType = 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
 export interface NavigationItem {
   label: string | LocalizedString;
   path: string;
-  /** URL to load in the content area (iframe). Omit when using component; then the app-path URL is used. */
-  url?: string;
-  /** React component to render for this item. When set, a URL under the app-path is generated so the content can be loaded in an iframe like URL-based items. The CLI infers the component module path from your config file imports so you don't need to set componentPath. */
-  component?: ComponentType;
-  /** @internal Set by the CLI when loading config (inferred from component + config file imports). Only needed if you bypass the CLI. */
-  componentPath?: string;
+  url: string;
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
   /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
   hidden?: boolean;

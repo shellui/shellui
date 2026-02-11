@@ -82,13 +82,11 @@ export async function buildCommand(root = '.') {
   const resolveAlias = createResolveAlias();
   const postcssConfig = createPostCSSConfig();
 
-  const projectRoot = path.resolve(cwd, root);
-
   try {
     // Build main app
     await build({
       root: coreSrcPath,
-      plugins: [react(), createShelluiConfigPlugin(config, { projectRoot })],
+      plugins: [react(), createShelluiConfigPlugin(config)],
       resolve: {
         ...resolveConfig,
         alias: { ...resolveAlias, ...getShelluiConfigAlias() },
@@ -127,7 +125,7 @@ export async function buildCommand(root = '.') {
     // Build service worker TypeScript to JavaScript
     await build({
       root: coreSrcPath,
-      plugins: [createShelluiConfigPlugin(config, { projectRoot })],
+      plugins: [createShelluiConfigPlugin(config)],
       resolve: {
         ...resolveConfig,
         alias: { ...resolveAlias, ...getShelluiConfigAlias() },

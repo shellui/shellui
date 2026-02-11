@@ -10,7 +10,6 @@ import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup } from '../config/types';
-import { getEffectiveUrl } from '../layouts/utils';
 
 const logger = getLogger('shellcore');
 
@@ -40,7 +39,7 @@ function buildSettingsWithNavigation(
   if (!navigation?.length) return settings;
   const items: SettingsNavigationItem[] = flattenNavigationItems(navigation).map((item) => ({
     path: item.path,
-    url: getEffectiveUrl(item),
+    url: item.url,
     label: resolveLabel(item.label, lang),
   }));
   return { ...settings, navigation: { items } };

@@ -11,7 +11,6 @@ import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   flattenNavigationItems,
-  getEffectiveUrl,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
@@ -542,7 +541,7 @@ export function WindowsLayout({
       const label =
         typeof item.label === 'string' ? item.label : resolveNavLabel(item.label, currentLanguage);
       const faviconUrl =
-        item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(getEffectiveUrl(item)) : null;
+        item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
       const icon = item.icon ?? faviconUrl ?? null;
       const id = genId();
       const bounds = {
@@ -557,7 +556,7 @@ export function WindowsLayout({
           id,
           path: item.path,
           pathname: getNavPathPrefix(item),
-          baseUrl: getEffectiveUrl(item),
+          baseUrl: item.url,
           label,
           icon,
           bounds,
@@ -610,17 +609,17 @@ export function WindowsLayout({
   const handleNavClick = useCallback(
     (item: NavigationItem) => {
       if (item.openIn === 'modal') {
-        shellui.openModal(getEffectiveUrl(item));
+        shellui.openModal(item.url);
         setStartMenuOpen(false);
         return;
       }
       if (item.openIn === 'drawer') {
-        shellui.openDrawer({ url: getEffectiveUrl(item), position: item.drawerPosition });
+        shellui.openDrawer({ url: item.url, position: item.drawerPosition });
         setStartMenuOpen(false);
         return;
       }
       if (item.openIn === 'external') {
-        window.open(getEffectiveUrl(item), '_blank', 'noopener,noreferrer');
+        window.open(item.url, '_blank', 'noopener,noreferrer');
         setStartMenuOpen(false);
         return;
       }
@@ -710,7 +709,7 @@ export function WindowsLayout({
                           : resolveNavLabel(item.label, currentLanguage);
                       const icon =
                         item.icon ??
-                        (item.openIn === 'external' ? getExternalFaviconUrl(getEffectiveUrl(item)) : null);
+                        (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
                       return (
                         <button
                           key={item.path}
@@ -792,7 +791,7 @@ export function WindowsLayout({
                     : resolveNavLabel(item.label, currentLanguage);
                 const icon =
                   item.icon ??
-                  (item.openIn === 'external' ? getExternalFaviconUrl(getEffectiveUrl(item)) : null);
+                  (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
                 return (
                   <button
                     key={item.path}

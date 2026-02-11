@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router';
-import { getNavPathPrefix, getEffectiveUrl } from '../features/layouts/utils';
+import { getNavPathPrefix } from '../features/layouts/utils';
 import { ContentView } from './ContentView';
 import type { NavigationItem } from '../features/config/types';
 
@@ -32,18 +32,15 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
   const pathPrefix = getNavPathPrefix(navItem);
   const subPath = pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
 
-  // Effective URL: url string or app-path URL when item uses a component
-  const baseUrl = getEffectiveUrl(navItem);
-  let finalUrl = baseUrl;
-  if (!navItem.component && subPath && navItem.url) {
-    const base = navItem.url.endsWith('/') ? navItem.url : `${navItem.url}/`;
-    finalUrl = `${base}${subPath}`;
+  // Construct the final URL for the iframe
+  let finalUrl = navItem.url;
+  if (subPath) {
+    const baseUrl = navItem.url.endsWith('/') ? navItem.url : `${navItem.url}/`;
+    finalUrl = `${baseUrl}${subPath}`;
   }
-
   return (
     <ContentView
       url={finalUrl}
-      baseUrl={baseUrl}
       pathPrefix={navItem.path}
       navItem={navItem}
     />

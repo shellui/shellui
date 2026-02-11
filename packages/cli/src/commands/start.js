@@ -46,7 +46,6 @@ async function startServer(root, cwd, shouldOpen = false) {
   const publicDir = fs.existsSync(staticPath) ? staticPath : false;
 
   const resolveAlias = createResolveAlias();
-  const projectRoot = path.resolve(cwd, root);
 
   const server = await createServer({
     root: coreSrcPath,
@@ -55,7 +54,7 @@ async function startServer(root, cwd, shouldOpen = false) {
     cacheDir: viteCacheDir,
     plugins: [
       react(),
-      createShelluiConfigPlugin(config, { projectRoot }),
+      createShelluiConfigPlugin(config),
       serviceWorkerDevPlugin(corePackagePath, coreSrcPath),
       sentryTunnelPlugin(),
     ],

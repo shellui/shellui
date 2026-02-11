@@ -24,9 +24,6 @@ const IndexRoute = lazy(() =>
 const NotFoundView = lazy(() =>
   import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })),
 );
-const AppPathView = lazy(() =>
-  import('../components/AppPathView').then((m) => ({ default: m.AppPathView })),
-);
 
 function RouteFallback() {
   return (
@@ -59,15 +56,6 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <CookiePreferencesView />
-            </Suspense>
-          ),
-        },
-        {
-          // App-path route: renders component-based nav items so they can be loaded in an iframe
-          path: `${urls.appPath.replace(/^\//, '')}/:path/*`,
-          element: (
-            <Suspense fallback={<RouteFallback />}>
-              <AppPathView />
             </Suspense>
           ),
         },

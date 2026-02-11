@@ -9,7 +9,7 @@ import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
-import { getEffectiveUrl, getNavPathPrefix, normalizeUrlToPathname, resolveLocalizedString } from './utils';
+import { getNavPathPrefix, resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
   navigationItems: NavigationItem[];
@@ -90,9 +90,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
             <>
               <DialogTitle className="sr-only">
                 {resolveLocalizedString(
-                  navigationItems.find(
-                    (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(modalUrl),
-                  )?.label,
+                  navigationItems.find((item) => item.url === modalUrl)?.label,
                   currentLanguage,
                 )}
               </DialogTitle>
@@ -107,11 +105,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                   url={modalUrl}
                   pathPrefix="settings"
                   ignoreMessages={true}
-                  navItem={
-                    navigationItems.find(
-                      (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(modalUrl),
-                    ) ?? undefined
-                  }
+                  navItem={navigationItems.find((item) => item.url === modalUrl) as NavigationItem}
                 />
               </div>
             </>
@@ -153,11 +147,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                 url={drawerUrl}
                 pathPrefix="settings"
                 ignoreMessages={true}
-                navItem={
-                  navigationItems.find(
-                    (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(drawerUrl),
-                  ) ?? undefined
-                }
+                navItem={navigationItems.find((item) => item.url === drawerUrl) as NavigationItem}
               />
             </div>
           ) : (
