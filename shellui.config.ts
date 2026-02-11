@@ -150,7 +150,6 @@ const config: ShellUIConfig = {
       path: 'playground',
       url: '/',
       icon: '/icons/play.svg',
-      settings: '/__settings',
     },
     {
       // Language-specific label (new feature)

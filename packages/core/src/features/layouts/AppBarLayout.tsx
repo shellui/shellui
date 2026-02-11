@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
+  filterNavigationByViewport,
   flattenNavigationItems,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
   withHomepageWhenNoRoot,
 } from './utils';
-import { filterNavigationByViewport } from './utils';
 import { LayoutProviders } from './LayoutProviders';
 import { OverlayShell } from './OverlayShell';
 import { Select } from '../../components/ui/select';
@@ -48,13 +48,7 @@ function resolveLocalizedLabel(
 }
 
 /** End link: icon-only or first-letter badge with themed tooltip. */
-function TopBarEndItem({
-  item,
-  label,
-}: {
-  item: NavigationItem;
-  label: string;
-}) {
+function TopBarEndItem({ item, label }: { item: NavigationItem; label: string }) {
   const pathPrefix = getNavPathPrefix(item);
   const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
   const isExternal = item.openIn === 'external';
@@ -93,9 +87,7 @@ function TopBarEndItem({
       : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
   );
 
-  const wrap = (node: ReactNode) => (
-    <AppBarTooltip label={label}>{node}</AppBarTooltip>
-  );
+  const wrap = (node: ReactNode) => <AppBarTooltip label={label}>{node}</AppBarTooltip>;
 
   if (item.openIn === 'modal') {
     return wrap(
@@ -135,7 +127,11 @@ function TopBarEndItem({
     );
   }
   return wrap(
-    <Link to={pathPrefix} className={buttonClass} aria-label={label}>
+    <Link
+      to={pathPrefix}
+      className={buttonClass}
+      aria-label={label}
+    >
       {iconEl}
     </Link>,
   );
@@ -147,12 +143,11 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const navigate = useNavigate();
   const currentLanguage = i18n.language || 'en';
 
-  const { startNavItems, endNavItems, navigationItems, displayStartItems } = useMemo(() => {
+  const { endNavItems, navigationItems, displayStartItems } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(navigation, 'desktop');
     const { start, end } = splitNavigationByPosition(desktopNav);
     const startItems = flattenNavigationItems(start).filter((i) => !i.hidden);
     return {
-      startNavItems: startItems,
       endNavItems: flattenNavigationItems(end).filter((i) => !i.hidden),
       navigationItems: flattenNavigationItems(navigation),
       displayStartItems: withHomepageWhenNoRoot(startItems),
@@ -180,7 +175,9 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
   const currentPathPrefix =
-    location.pathname === '/' ? '/' : `/${location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]}`;
+    location.pathname === '/'
+      ? '/'
+      : `/${location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]}`;
 
   return (
     <LayoutProviders>
@@ -221,7 +218,10 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
                 }}
               >
                 {displayStartItems.map((item) => (
-                  <option key={item.path || 'root'} value={getNavPathPrefix(item)}>
+                  <option
+                    key={item.path || 'root'}
+                    value={getNavPathPrefix(item)}
+                  >
                     {resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
                   </option>
                 ))}
@@ -232,7 +232,10 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
 
             {/* End links: icon-only or first letter + tooltip */}
             {endNavItems.length > 0 && (
-              <TooltipProvider delayDuration={200} skipDelayDuration={0}>
+              <TooltipProvider
+                delayDuration={200}
+                skipDelayDuration={0}
+              >
                 <div className="flex items-center gap-0.5 shrink-0">
                   {endNavItems.map((item) => (
                     <TopBarEndItem

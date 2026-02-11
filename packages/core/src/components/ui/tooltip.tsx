@@ -1,9 +1,4 @@
-import {
-  type ComponentPropsWithoutRef,
-  type ElementRef,
-  forwardRef,
-  type ReactNode,
-} from 'react';
+import { type ComponentPropsWithoutRef, type ElementRef, forwardRef, type ReactNode } from 'react';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
@@ -44,7 +39,10 @@ function AppBarTooltip({ label, children }: AppBarTooltipProps) {
   return (
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="bottom" align="center">
+      <TooltipContent
+        side="bottom"
+        align="center"
+      >
         {label}
       </TooltipContent>
     </Tooltip>

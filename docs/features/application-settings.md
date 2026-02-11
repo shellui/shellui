@@ -74,7 +74,11 @@ const STORAGE_KEY = 'myapp-settings';
 
 function loadSettings() {
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : { /* defaults */ };
+  return stored
+    ? JSON.parse(stored)
+    : {
+        /* defaults */
+      };
 }
 
 function saveSettings(settings) {

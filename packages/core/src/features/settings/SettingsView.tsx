@@ -79,12 +79,12 @@ export const SettingsView = () => {
     const lang = i18n.language || 'en';
     const flat = config?.navigation ? flattenNavigationItems(config.navigation) : [];
     return flat
-      .filter((item) => item.settings)
+      .filter((item): item is NavigationItem & { settings: string } => Boolean(item.settings))
       .map((item) => {
         const pathPrefix = `${urls.settings.replace(/^\/+/, '')}/app-${item.path}`;
         const navItem: NavigationItem = {
           ...item,
-          url: item.settings!,
+          url: item.settings,
         };
         return {
           name: resolveLocalizedString(item.label, lang),
@@ -92,7 +92,7 @@ export const SettingsView = () => {
           path: `app-${item.path}`,
           element: (
             <ApplicationSettingsPanel
-              url={item.settings!}
+              url={item.settings}
               pathPrefix={pathPrefix}
               navItem={navItem}
             />
