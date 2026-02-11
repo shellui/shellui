@@ -26,13 +26,17 @@ import { useConfig } from '../config/useConfig';
 import { isTauri } from '../../service-worker/register';
 import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
+import { flattenNavigationItems, resolveLocalizedString } from '../layouts/utils';
+import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel';
+import type { NavigationItem } from '../config/types';
+import { cn } from '../../lib/utils';
 
 export const SettingsView = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { config } = useConfig();
-  const { t } = useTranslation('settings');
+  const { t, i18n } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
 
@@ -70,10 +74,46 @@ export const SettingsView = () => {
     );
   }, [settings.developerFeatures.enabled, routesWithoutTauriSw]);
 
+  // Application settings from navigation items with settings URL
+  const applicationRoutes = useMemo(() => {
+    const lang = i18n.language || 'en';
+    const flat = config?.navigation ? flattenNavigationItems(config.navigation) : [];
+    return flat
+      .filter((item) => item.settings)
+      .map((item) => {
+        const pathPrefix = `${urls.settings.replace(/^\/+/, '')}/app-${item.path}`;
+        const navItem: NavigationItem = {
+          ...item,
+          url: item.settings!,
+        };
+        return {
+          name: resolveLocalizedString(item.label, lang),
+          iconSrc: item.icon ?? undefined,
+          path: `app-${item.path}`,
+          element: (
+            <ApplicationSettingsPanel
+              url={item.settings!}
+              pathPrefix={pathPrefix}
+              navItem={navItem}
+            />
+          ),
+        };
+      });
+  }, [config?.navigation, i18n.language]);
+
+  // All routes (core + applications) for selection and routing
+  const allRoutes = useMemo(
+    () => [...filteredRoutes, ...applicationRoutes],
+    [filteredRoutes, applicationRoutes],
+  );
+
   // Group routes by category
   const groupedRoutes = useMemo(() => {
     const developerOnlyPaths = ['developpers', 'service-worker'];
     const groups = [
+      ...(applicationRoutes.length > 0
+        ? [{ title: t('categories.applications'), routes: applicationRoutes }]
+        : []),
       {
         title: t('categories.preferences'),
         routes: filteredRoutes.filter((route) =>
@@ -90,7 +130,7 @@ export const SettingsView = () => {
       },
     ];
     return groups.filter((group) => group.routes.length > 0);
-  }, [filteredRoutes, t]);
+  }, [filteredRoutes, applicationRoutes, t]);
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = useCallback(() => {
@@ -98,7 +138,7 @@ export const SettingsView = () => {
 
     // Find matching nav item by checking if pathname contains the item path
     // This works regardless of the URL structure/prefix
-    const matchedItem = filteredRoutes.find((item) => {
+    const matchedItem = allRoutes.find((item) => {
       // Normalize paths for comparison (remove leading/trailing slashes)
       const normalizedPathname = pathname.replace(/^\/+|\/+$/g, '');
       const normalizedItemPath = item.path.replace(/^\/+|\/+$/g, '');
@@ -112,7 +152,7 @@ export const SettingsView = () => {
     });
 
     return matchedItem;
-  }, [location.pathname, filteredRoutes]);
+  }, [location.pathname, allRoutes]);
 
   const selectedItem = useMemo(() => getSelectedItemFromUrl(), [getSelectedItemFromUrl]);
 
@@ -139,7 +179,7 @@ export const SettingsView = () => {
 
     // Pathname doesn't match settings path structure - not in settings
     return false;
-  }, [location.pathname, filteredRoutes]);
+  }, [location.pathname]);
 
   // Navigate back to settings root
   const handleBackToSettings = useCallback(() => {
@@ -168,7 +208,17 @@ export const SettingsView = () => {
                             onClick={() => navigate(`${urls.settings}/${item.path}`)}
                             className="cursor-pointer"
                           >
-                            <item.icon />
+                            {'icon' in item && item.icon ? (
+                              <item.icon />
+                            ) : 'iconSrc' in item && item.iconSrc ? (
+                              <img
+                                src={item.iconSrc}
+                                alt=""
+                                className="h-4 w-4 shrink-0"
+                              />
+                            ) : (
+                              <span className="h-4 w-4 shrink-0" />
+                            )}
                             <span>{item.name}</span>
                           </button>
                         </SidebarMenuButton>
@@ -203,8 +253,19 @@ export const SettingsView = () => {
                     </h2>
                     <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
                       {group.routes.map((item, itemIndex) => {
-                        const Icon = item.icon;
                         const isLast = itemIndex === group.routes.length - 1;
+                        const iconEl =
+                          'icon' in item && item.icon ? (
+                            <item.icon />
+                          ) : 'iconSrc' in item && item.iconSrc ? (
+                            <img
+                              src={item.iconSrc}
+                              alt=""
+                              className="h-4 w-4 shrink-0"
+                            />
+                          ) : (
+                            <span className="h-4 w-4 shrink-0" />
+                          );
                         return (
                           <div
                             key={item.name}
@@ -218,9 +279,7 @@ export const SettingsView = () => {
                               className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
                             >
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className="flex-shrink-0 text-foreground/70">
-                                  <Icon />
-                                </div>
+                                <div className="flex-shrink-0 text-foreground/70">{iconEl}</div>
                                 <span className="text-sm font-normal text-foreground">
                                   {item.name}
                                 </span>
@@ -256,15 +315,15 @@ export const SettingsView = () => {
                   <Route
                     index
                     element={
-                      filteredRoutes.length > 0 ? (
+                      allRoutes.length > 0 ? (
                         <Navigate
-                          to={`${urls.settings}/${filteredRoutes[0].path}`}
+                          to={`${urls.settings}/${allRoutes[0].path}`}
                           replace
                         />
                       ) : null
                     }
                   />
-                  {filteredRoutes.map((item) => (
+                  {allRoutes.map((item) => (
                     <Route
                       key={item.path}
                       path={item.path}
@@ -294,7 +353,12 @@ export const SettingsView = () => {
               </div>
             </header>
           )}
-          <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-0">
+          <div
+            className={cn(
+              'flex flex-1 flex-col gap-4 overflow-y-auto',
+              !selectedItem?.path?.startsWith('app-') && 'p-4 pt-0',
+            )}
+          >
             <Routes>
               <Route
                 index
@@ -311,7 +375,7 @@ export const SettingsView = () => {
                   </div>
                 }
               />
-              {filteredRoutes.map((item) => (
+              {allRoutes.map((item) => (
                 <Route
                   key={item.path}
                   path={item.path}

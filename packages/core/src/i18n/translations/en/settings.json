@@ -2,6 +2,7 @@
   "title": "Settings",
   "categories": {
     "preferences": "Preferences",
+    "applications": "Applications",
     "system": "System",
     "developer": "Developer"
   },

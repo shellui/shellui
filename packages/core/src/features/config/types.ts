@@ -30,6 +30,8 @@ export interface NavigationItem {
   drawerPosition?: DrawerPosition;
   /** Sidebar position: 'start' (default) or 'end'. End items are rendered in the sidebar footer. */
   position?: 'start' | 'end';
+  /** URL to display as a settings panel in Settings > Applications. When set, the nav item appears in the Applications group. */
+  settings?: string;
 }
 
 export interface NavigationGroup {

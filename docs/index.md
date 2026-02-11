@@ -31,6 +31,7 @@ New to ShellUI? Follow these steps to get up and running:
 
 ### Advanced Features
 
+- **[Application Settings](/features/application-settings)** - Expose per-application settings panels in Settings
 - **[Cookie Consent](/features/cookie-consent)** - Privacy-friendly cookie consent management
 - **[Service Worker](/features/service-worker)** - Offline support and automatic app updates
 - **[SDK Integration](/sdk)** - Programmatically integrate ShellUI features in your apps

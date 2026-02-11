@@ -34,6 +34,7 @@ Each navigation item supports the following properties:
 - **`path`** (string, required): Unique path identifier used in the URL (e.g., `/home`)
 - **`url`** (string, required): URL to load when the navigation item is clicked
 - **`icon`** (string, optional): Path to an SVG icon file (e.g., `/icons/home.svg`)
+- **`settings`** (string, optional): URL of a settings panel to display in **Settings > Applications**. See [Application Settings](/features/application-settings) for details.
 
 ## Navigation Groups
 
