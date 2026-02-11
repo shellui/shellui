@@ -2,9 +2,9 @@
 /**
  * Syncs the root version to all packages, builds, then publishes SDK, Core,
  * and CLI in order. The npm dist-tag is chosen from the root package.json version:
- * - version contains "alpha" → --tag alpha
- * - version contains "beta"  → --tag beta
- * - otherwise                → --tag latest
+ * - Prerelease versions (e.g. 1.0.0-alpha.0, 0.2.0-beta.1, 1.0.0-rc.0): tag is
+ *   derived from the prerelease identifier (alpha, beta, rc, next, or first segment).
+ * - Stable versions: --tag latest
  *
  * Run from repo root: node scripts/publish-with-tag.js
  * Or: pnpm run publish
@@ -25,9 +25,12 @@ if (!version) {
 }
 
 function tagFromVersion(v) {
-  if (v.includes('alpha')) return 'alpha';
-  if (v.includes('beta')) return 'beta';
-  return 'latest';
+  const prereleaseMatch = v.match(/^\d+\.\d+\.\d+-(.+)/);
+  if (!prereleaseMatch) return 'latest';
+  const pre = prereleaseMatch[1];
+  const identifier = pre.split(/[.\-]/)[0].toLowerCase();
+  const known = ['alpha', 'beta', 'rc', 'next'];
+  return known.includes(identifier) ? identifier : identifier || 'pre';
 }
 
 const tag = tagFromVersion(version);
