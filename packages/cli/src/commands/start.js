@@ -76,6 +76,9 @@ async function startServer(root, cwd, shouldOpen = false) {
     esbuild: {
       sourcemap: false,
     },
+    optimizeDeps: {
+      exclude: ['@shellui/core'],
+    },
     server: {
       port: config.port || 3000,
       open: shouldOpen,
