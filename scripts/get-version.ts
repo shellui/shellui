@@ -12,8 +12,7 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
  * Determine if this is a build or dev mode.
  * Build: NODE_ENV=production or SHELLUI_BUILD=true.
  */
-const isBuild =
-  process.env.NODE_ENV === 'production' || process.env.SHELLUI_BUILD === 'true';
+const isBuild = process.env.NODE_ENV === 'production' || process.env.SHELLUI_BUILD === 'true';
 
 /**
  * Generate version string: base version, with -dev in dev or -<gitHash> in build.
