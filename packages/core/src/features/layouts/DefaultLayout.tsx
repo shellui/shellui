@@ -22,6 +22,7 @@ import {
   filterNavigationByViewport,
   filterNavigationForSidebar,
   flattenNavigationItems,
+  getEffectiveUrl,
   getNavPathPrefix,
   HOMEPAGE_NAV_ITEM,
   resolveLocalizedString as resolveNavLabel,
@@ -97,7 +98,7 @@ const NavigationContent = ({
       !isExternal &&
       (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
-    const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
+    const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(getEffectiveUrl(navItem)) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
     const iconEl = iconSrc ? (
       <img
@@ -122,7 +123,7 @@ const NavigationContent = ({
       navItem.openIn === 'modal' ? (
         <button
           type="button"
-          onClick={() => shellui.openModal(navItem.url)}
+          onClick={() => shellui.openModal(getEffectiveUrl(navItem))}
           className="flex items-center gap-2 w-full cursor-pointer text-left"
         >
           {content}
@@ -130,14 +131,14 @@ const NavigationContent = ({
       ) : navItem.openIn === 'drawer' ? (
         <button
           type="button"
-          onClick={() => shellui.openDrawer({ url: navItem.url, position: navItem.drawerPosition })}
+          onClick={() => shellui.openDrawer({ url: getEffectiveUrl(navItem), position: navItem.drawerPosition })}
           className="flex items-center gap-2 w-full cursor-pointer text-left"
         >
           {content}
         </button>
       ) : navItem.openIn === 'external' ? (
         <a
-          href={navItem.url}
+          href={getEffectiveUrl(navItem)}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 w-full"
@@ -305,7 +306,7 @@ const BottomNavItem = ({
     return (
       <button
         type="button"
-        onClick={() => shellui.openModal(item.url)}
+        onClick={() => shellui.openModal(getEffectiveUrl(item))}
         className={baseClass}
       >
         {content}
@@ -316,7 +317,7 @@ const BottomNavItem = ({
     return (
       <button
         type="button"
-        onClick={() => shellui.openDrawer({ url: item.url, position: item.drawerPosition })}
+        onClick={() => shellui.openDrawer({ url: getEffectiveUrl(item), position: item.drawerPosition })}
         className={baseClass}
       >
         {content}
@@ -326,7 +327,7 @@ const BottomNavItem = ({
   if (item.openIn === 'external') {
     return (
       <a
-        href={item.url}
+        href={getEffectiveUrl(item)}
         target="_blank"
         rel="noopener noreferrer"
         className={baseClass}
@@ -487,12 +488,12 @@ const MobileBottomNav = ({
       (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
     const label = resolveNavLabel(item.label, currentLanguage);
     const faviconUrl =
-      item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
+      item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(getEffectiveUrl(item)) : null;
     const iconSrc = item.icon ?? faviconUrl ?? null;
     const applyIconTheme = iconSrc ? isAppIcon(iconSrc) : false;
     return (
       <BottomNavItem
-        key={`${item.path}-${item.url}-${index}`}
+        key={`${item.path}-${getEffectiveUrl(item)}-${index}`}
         item={item}
         label={label}
         isActive={isActive}

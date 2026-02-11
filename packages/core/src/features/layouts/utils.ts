@@ -1,8 +1,33 @@
 import type { NavigationItem, NavigationGroup, LocalizedString } from '../config/types';
+import urls from '../../constants/urls';
 
 /** Path prefix for a nav item: "/" for root (path '' or '/'), otherwise "/{path}". */
 export function getNavPathPrefix(item: NavigationItem): string {
   return item.path === '/' || item.path === '' ? '/' : `/${item.path}`;
+}
+
+/** Effective URL for a nav item: url if set, otherwise app-path URL for component-based items. */
+export function getEffectiveUrl(item: NavigationItem): string {
+  if (item.url != null && item.url !== '') {
+    return item.url;
+  }
+  const base = typeof window !== 'undefined' ? window.location.origin : '';
+  const path = item.path === '/' || item.path === '' ? 'home' : item.path;
+  return `${base}${urls.appPath}/${path}`;
+}
+
+/** Normalize a URL to pathname for comparison (handles full URLs and path-only). */
+export function normalizeUrlToPathname(url: string): string {
+  if (!url || typeof url !== 'string') return '';
+  const s = url.trim();
+  if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('//')) {
+    try {
+      return new URL(s, 'http://localhost').pathname.replace(/\/+$/, '') || '/';
+    } catch {
+      return s.startsWith('/') ? s.replace(/\/+$/, '') || '/' : `/${s}`.replace(/\/+$/, '') || '/';
+    }
+  }
+  return (s.startsWith('/') ? s : `/${s}`).replace(/\/+$/, '') || '/';
 }
 
 /** Resolve a localized string to a single string for the given language. */

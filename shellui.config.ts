@@ -1,6 +1,7 @@
 import { type ShellUIConfig } from '@shellui/core';
 import urls from '@shellui/core/constants/urls';
 import { getVersion } from './scripts/get-version.js';
+import { CustomHomeView } from './src/components/CustomHomeView';
 
 const config: ShellUIConfig = {
   port: 4000,
@@ -111,6 +112,13 @@ const config: ShellUIConfig = {
     },
   ],
   navigation: [
+    {
+      // Simple string label (backward compatible)
+      label: 'home',
+      path: '',
+      component: CustomHomeView,
+      icon: '/icons/home.svg',
+    },
     {
       // Simple string label (backward compatible)
       label: 'Playground',

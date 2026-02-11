@@ -36,16 +36,49 @@ export function getCoreSrcPath() {
 const SHELLUI_CONFIG_VIRTUAL_ID = 'virtual:shellui-config';
 const SHELLUI_CONFIG_ALIAS_ID = '\0' + SHELLUI_CONFIG_VIRTUAL_ID;
 
+function flattenNav(nav) {
+  if (!nav?.length) return [];
+  return nav.flatMap((item) => (item.items ? item.items : [item]));
+}
+
 /**
  * Create Vite plugin that provides the ShellUI config as a virtual module.
- * The app and any code can import from '@shellui/config' (via alias) and get the config object as TypeScript.
+ * When projectRoot is set and nav items have componentPath, those components are imported and exported as shelluiComponents for /__app/:path routes.
  * @param {Object} config - Loaded shellui config (will be serialized for the virtual module)
+ * @param {{ projectRoot?: string }} options - Optional. projectRoot: absolute path to the project (for resolving componentPath).
  * @returns {import('vite').Plugin}
  */
-export function createShelluiConfigPlugin(config) {
+export function createShelluiConfigPlugin(config, options = {}) {
   const serializableConfig = JSON.parse(JSON.stringify(config));
-  const moduleContent = `export const shelluiConfig = ${JSON.stringify(serializableConfig)};
-export default shelluiConfig;
+  const projectRoot = options.projectRoot;
+  const items = flattenNav(serializableConfig.navigation);
+  const importLines = [];
+  const componentEntries = [];
+  items.forEach((item, index) => {
+    const cp = item.componentPath;
+    if (!cp || typeof cp !== 'string') return;
+    const key = item.path === '' || item.path === '/' ? 'home' : item.path;
+    const absPath = path.isAbsolute(cp) ? cp : (projectRoot ? path.join(projectRoot, cp) : null);
+    if (!absPath) return;
+    const importPath = absPath.replace(/\\/g, '/');
+    const varName = `__ShellUIComponent_${index}`;
+    const exportName = item.componentExportName;
+    if (exportName) {
+      importLines.push(`import { ${exportName} as ${varName} } from ${JSON.stringify(importPath)};`);
+    } else {
+      importLines.push(`import ${varName} from ${JSON.stringify(importPath)};`);
+    }
+    componentEntries.push(`${JSON.stringify(key)}: ${varName}`);
+  });
+
+  const componentsBlock =
+    componentEntries.length > 0
+      ? `\nexport const shelluiComponents = { ${componentEntries.join(', ')} };\n`
+      : '\nexport const shelluiComponents = {};\n';
+
+  const moduleContent =
+    (importLines.length > 0 ? importLines.join('\n') + '\n' : '') +
+    `export const shelluiConfig = ${JSON.stringify(serializableConfig)};${componentsBlock}export default shelluiConfig;
 `;
 
   return {

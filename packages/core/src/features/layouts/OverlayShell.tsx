@@ -9,7 +9,7 @@ import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
-import { getNavPathPrefix, resolveLocalizedString } from './utils';
+import { getEffectiveUrl, getNavPathPrefix, normalizeUrlToPathname, resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
   navigationItems: NavigationItem[];
@@ -90,7 +90,9 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
             <>
               <DialogTitle className="sr-only">
                 {resolveLocalizedString(
-                  navigationItems.find((item) => item.url === modalUrl)?.label,
+                  navigationItems.find(
+                    (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(modalUrl),
+                  )?.label,
                   currentLanguage,
                 )}
               </DialogTitle>
@@ -105,7 +107,11 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                   url={modalUrl}
                   pathPrefix="settings"
                   ignoreMessages={true}
-                  navItem={navigationItems.find((item) => item.url === modalUrl) as NavigationItem}
+                  navItem={
+                    navigationItems.find(
+                      (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(modalUrl),
+                    ) ?? undefined
+                  }
                 />
               </div>
             </>
@@ -147,7 +153,11 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
                 url={drawerUrl}
                 pathPrefix="settings"
                 ignoreMessages={true}
-                navItem={navigationItems.find((item) => item.url === drawerUrl) as NavigationItem}
+                navItem={
+                  navigationItems.find(
+                    (item) => normalizeUrlToPathname(getEffectiveUrl(item)) === normalizeUrlToPathname(drawerUrl),
+                  ) ?? undefined
+                }
               />
             </div>
           ) : (

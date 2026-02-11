@@ -6,6 +6,7 @@ import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   filterNavigationByViewport,
   flattenNavigationItems,
+  getEffectiveUrl,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
@@ -58,7 +59,7 @@ function TopBarEndItem({ item, label }: { item: NavigationItem; label: string })
     !isExternal &&
     (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
 
-  const faviconUrl = isExternal && !item.icon ? getExternalFaviconUrl(item.url) : null;
+  const faviconUrl = isExternal && !item.icon ? getExternalFaviconUrl(getEffectiveUrl(item)) : null;
   const iconSrc = item.icon ?? faviconUrl ?? null;
   const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
 
@@ -93,7 +94,7 @@ function TopBarEndItem({ item, label }: { item: NavigationItem; label: string })
     return wrap(
       <button
         type="button"
-        onClick={() => shellui.openModal(item.url)}
+        onClick={() => shellui.openModal(getEffectiveUrl(item))}
         className={buttonClass}
         aria-label={label}
       >
@@ -105,7 +106,7 @@ function TopBarEndItem({ item, label }: { item: NavigationItem; label: string })
     return wrap(
       <button
         type="button"
-        onClick={() => shellui.openDrawer({ url: item.url, position: item.drawerPosition })}
+        onClick={() => shellui.openDrawer({ url: getEffectiveUrl(item), position: item.drawerPosition })}
         className={buttonClass}
         aria-label={label}
       >
@@ -116,7 +117,7 @@ function TopBarEndItem({ item, label }: { item: NavigationItem; label: string })
   if (item.openIn === 'external') {
     return wrap(
       <a
-        href={item.url}
+        href={getEffectiveUrl(item)}
         target="_blank"
         rel="noopener noreferrer"
         className={buttonClass}

@@ -16,17 +16,22 @@ const logger = getLogger('shellcore');
 
 interface ContentViewProps {
   url: string;
+  /** Base URL for this content (effective nav item URL). Used for URL sync; when omitted, falls back to navItem.url or url. */
+  baseUrl?: string;
   pathPrefix: string;
   ignoreMessages?: boolean;
-  navItem: NavigationItem;
+  /** Nav item for this content; may be undefined when opening by URL (e.g. settings modal) if no matching item found. */
+  navItem?: NavigationItem | null;
 }
 
 export const ContentView = ({
   url,
+  baseUrl: baseUrlProp,
   pathPrefix,
   ignoreMessages = false,
   navItem,
 }: ContentViewProps) => {
+  const baseUrl = baseUrlProp ?? navItem?.url ?? url;
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInternalNavigation = useRef(false);
@@ -58,9 +63,13 @@ export const ContentView = ({
         }
 
         const { pathname, search, hash } = data.payload as ShellUIUrlPayload;
-        // Remove leading slash and trailing slashes from iframe pathname
-        let cleanPathname = pathname.startsWith(navItem.url)
-          ? pathname.slice(navItem.url.length)
+        // Use pathname part of baseUrl for comparison (iframe pathname is always path-only)
+        const basePathname =
+          baseUrl.startsWith('http') || baseUrl.startsWith('//')
+            ? new URL(baseUrl, window.location.origin).pathname
+            : baseUrl;
+        let cleanPathname = pathname.startsWith(basePathname)
+          ? pathname.slice(basePathname.length)
           : pathname;
         cleanPathname = cleanPathname.startsWith('/') ? cleanPathname.slice(1) : cleanPathname;
         cleanPathname = cleanPathname.replace(/\/+$/, ''); // Remove trailing slashes
@@ -102,7 +111,7 @@ export const ContentView = ({
     return () => {
       cleanup();
     };
-  }, [pathPrefix, navigate]);
+  }, [pathPrefix, navigate, baseUrl]);
 
   // Hide loading overlay when iframe sends SHELLUI_INITIALIZED
   useEffect(() => {

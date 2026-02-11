@@ -1,12 +1,15 @@
 import { createContext, useState, createElement, type ReactNode } from 'react';
+import type { ComponentType } from 'react';
 import { getLogger } from '@shellui/sdk';
 import type { ShellUIConfig } from './types';
-import shelluiConfig from '@shellui/config';
+import shelluiConfig, { shelluiComponents } from '@shellui/config';
 
 const logger = getLogger('shellcore');
 
 export interface ConfigContextValue {
   config: ShellUIConfig;
+  /** Map of nav path -> component for /__app/:path (injected when componentPath is set in config). */
+  shelluiComponents: Record<string, ComponentType>;
 }
 
 export const ConfigContext = createContext<ConfigContextValue | null>(null);
@@ -44,7 +47,9 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
     }
   });
 
-  // Always provide a value - never null - to prevent "useConfig must be used within ConfigProvider" errors
-  const value: ConfigContextValue = { config };
+  const value: ConfigContextValue = {
+    config,
+    shelluiComponents: typeof shelluiComponents !== 'undefined' ? shelluiComponents : {},
+  };
   return createElement(ConfigContext.Provider, { value }, props.children);
 }
