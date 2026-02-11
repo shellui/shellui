@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Syncs the root version to all packages, then publishes SDK, Core, and CLI
- * in order. The npm dist-tag is chosen from the root package.json version:
+ * Syncs the root version to all packages, builds, then publishes SDK, Core,
+ * and CLI in order. The npm dist-tag is chosen from the root package.json version:
  * - version contains "alpha" → --tag alpha
  * - version contains "beta"  → --tag beta
  * - otherwise                → --tag latest
@@ -42,7 +42,18 @@ if (syncResult.status !== 0) {
   process.exit(syncResult.status);
 }
 
-console.log(`Version: ${version} → publishing with --tag ${tag}\n`);
+// Build so we publish built artifacts
+console.log('\nBuilding all packages...');
+const buildResult = spawnSync('pnpm', ['run', 'build:all'], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  shell: true,
+});
+if (buildResult.status !== 0) {
+  process.exit(buildResult.status);
+}
+
+console.log(`\nVersion: ${version} → publishing with --tag ${tag}\n`);
 
 const filters = ['@shellui/sdk', '@shellui/core', '@shellui/cli'];
 
