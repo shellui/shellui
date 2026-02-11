@@ -20,7 +20,7 @@ Sentry is **merged on load** by the CLI: when you run `shellui build` or `shellu
 | `SENTRY_ENVIRONMENT` | No              | Environment name (e.g. `production`, `staging`). Defaults to `production` if not set.                                                                                      |
 | `SENTRY_RELEASE`     | No              | Release identifier (e.g. git SHA or app version). Useful for release-based grouping in Sentry.                                                                             |
 
-At build time the CLI injects these as three separate globals (one string each), not as part of the stringified app config: `__SHELLUI_SENTRY_DSN__`, `__SHELLUI_SENTRY_ENVIRONMENT__`, and `__SHELLUI_SENTRY_RELEASE__`. The core reads them individually when initializing Sentry.
+At build time the CLI injects the full config (including `sentry`) via the virtual module `@shellui/config`. The core imports from that module when initializing Sentry.
 
 ### 2. Set environment variables
 
@@ -62,7 +62,7 @@ At build time the CLI injects these as three separate globals (one string each),
 
 ## How it is used
 
-- **When Sentry runs**: Only in production builds. The app checks `import.meta.env.DEV`; when it is `false` and the Sentry DSN is set, the ShellUI core initializes `@sentry/react`. At build time the CLI injects three separate globals (one string each): `__SHELLUI_SENTRY_DSN__`, `__SHELLUI_SENTRY_ENVIRONMENT__`, and `__SHELLUI_SENTRY_RELEASE__`. The core reads these individually and does not use the main stringified config for Sentry.
+- **When Sentry runs**: Only in production builds. The app checks `import.meta.env.DEV`; when it is `false` and the Sentry DSN is set, the ShellUI core initializes `@sentry/react`. The core reads Sentry options from the build-time config provided via `@shellui/config`.
 - **What gets reported**: Uncaught JavaScript errors and unhandled promise rejections are sent to Sentry automatically.
 - **When Sentry is disabled**: In dev mode, when `SENTRY_DSN` is not set, or when `SENTRY_ENABLED` is `false` or `0`, Sentry is not initialized and no data is sent.
 

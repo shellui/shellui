@@ -33,6 +33,49 @@ export function getCoreSrcPath() {
   return srcPath;
 }
 
+const SHELLUI_CONFIG_VIRTUAL_ID = 'virtual:shellui-config';
+const SHELLUI_CONFIG_ALIAS_ID = '\0' + SHELLUI_CONFIG_VIRTUAL_ID;
+
+/**
+ * Create Vite plugin that provides the ShellUI config as a virtual module.
+ * The app and any code can import from '@shellui/config' (via alias) and get the config object as TypeScript.
+ * @param {Object} config - Loaded shellui config (will be serialized for the virtual module)
+ * @returns {import('vite').Plugin}
+ */
+export function createShelluiConfigPlugin(config) {
+  const serializableConfig = JSON.parse(JSON.stringify(config));
+  const moduleContent = `export const shelluiConfig = ${JSON.stringify(serializableConfig)};
+export default shelluiConfig;
+`;
+
+  return {
+    name: 'shellui-config',
+    resolveId(id) {
+      if (id === SHELLUI_CONFIG_VIRTUAL_ID) {
+        return SHELLUI_CONFIG_ALIAS_ID;
+      }
+      return null;
+    },
+    load(id) {
+      if (id === SHELLUI_CONFIG_ALIAS_ID) {
+        return moduleContent;
+      }
+      return null;
+    },
+  };
+}
+
+/**
+ * Resolve alias for ShellUI config. Use together with createShelluiConfigPlugin so that
+ * imports like "import shelluiConfig from '@shellui/config'" resolve to the virtual module.
+ * @returns {Object} Vite resolve.alias entry for @shellui/config
+ */
+export function getShelluiConfigAlias() {
+  return {
+    '@shellui/config': SHELLUI_CONFIG_VIRTUAL_ID,
+  };
+}
+
 /**
  * Create Vite resolve.alias configuration.
  * Sets '@shellui/sdk' to source entry when in workspace mode; omits the alias
@@ -64,39 +107,6 @@ export function createPostCSSConfig() {
   };
 }
 
-/**
- * Create Vite define configuration for ShellUI config injection
- * App config is in __SHELLUI_CONFIG__; Sentry is in three separate globals
- * (__SHELLUI_SENTRY_DSN__, __SHELLUI_SENTRY_ENVIRONMENT__, __SHELLUI_SENTRY_RELEASE__).
- * @param {Object} config - Configuration object
- * @returns {Object} Vite define configuration
- */
-export function createViteDefine(config) {
-  // Ensure config is serializable; omit sentry so it is only in the three Sentry globals
-  const serializableConfig = JSON.parse(JSON.stringify(config));
-  delete serializableConfig.sentry;
-
-  // Verify navigation is preserved after serialization
-  if (config.navigation && !serializableConfig.navigation) {
-    console.warn('Warning: Navigation was lost during serialization. This should not happen.');
-  }
-
-  const sentry = config?.sentry;
-  // Double-stringify: Vite's define inserts the value as-is into the code
-  // If we pass '{"title":"shellui"}', Vite inserts it as: const x = {"title":"shellui"}; (invalid - object literal)
-  // If we pass '"{\"title\":\"shellui\"}"', Vite inserts it as: const x = "{\"title\":\"shellui\"}"; (valid - string literal)
-  // So we need to double-stringify to ensure it's inserted as a string
-  const configString = JSON.stringify(JSON.stringify(serializableConfig));
-
-  return {
-    __SHELLUI_CONFIG__: configString,
-    __SHELLUI_SENTRY_DSN__: sentry?.dsn ? JSON.stringify(sentry.dsn) : 'undefined',
-    __SHELLUI_SENTRY_ENVIRONMENT__: sentry?.environment
-      ? JSON.stringify(sentry.environment)
-      : 'undefined',
-    __SHELLUI_SENTRY_RELEASE__: sentry?.release ? JSON.stringify(sentry.release) : 'undefined',
-  };
-}
 
 /**
  * Create Vite resolve configuration.

@@ -1,4 +1,5 @@
 import { getCookieConsentAccepted } from '../cookieConsent/cookieConsent';
+import shelluiConfig from '@shellui/config';
 
 const SETTINGS_KEY = 'shellui:settings';
 
@@ -19,17 +20,10 @@ function isErrorReportingEnabled(): boolean {
   }
 }
 
-type SentryGlobals = {
-  __SHELLUI_SENTRY_DSN__?: string;
-  __SHELLUI_SENTRY_ENVIRONMENT__?: string;
-  __SHELLUI_SENTRY_RELEASE__?: string;
-};
-
 /**
  * Initialize error reporting only in production when configured and user has not disabled it.
  * Lazy-loads @sentry/react only when needed so the bundle is not loaded when Sentry is unused.
- * Reads DSN, environment, and release from __SHELLUI_SENTRY_DSN__, __SHELLUI_SENTRY_ENVIRONMENT__,
- * and __SHELLUI_SENTRY_RELEASE__ (injected at build time) and user preference from settings.
+ * Reads Sentry config from @shellui/config (injected at build time) and user preference from settings.
  * Exported so the settings UI can re-initialize when the user re-enables reporting.
  */
 export function initSentry(): void {
@@ -40,8 +34,8 @@ export function initSentry(): void {
   if (!isErrorReportingEnabled()) {
     return;
   }
-  const g = globalThis as unknown as SentryGlobals;
-  const dsn = g.__SHELLUI_SENTRY_DSN__;
+  const sentry = shelluiConfig?.sentry;
+  const dsn = sentry?.dsn;
   if (!dsn || typeof dsn !== 'string') {
     return;
   }
@@ -61,8 +55,8 @@ export function initSentry(): void {
 
     Sentry.init({
       dsn,
-      environment: g.__SHELLUI_SENTRY_ENVIRONMENT__ ?? 'production',
-      release: g.__SHELLUI_SENTRY_RELEASE__,
+      environment: sentry.environment ?? 'production',
+      release: sentry.release,
       sendDefaultPii: true,
       // Use tunnel for localhost to avoid CORS issues
       ...(tunnel && { tunnel }),
@@ -93,8 +87,8 @@ export function closeSentry(): void {
  * @returns Promise that resolves when the error has been sent (or rejected if Sentry is unavailable)
  */
 export async function captureException(error: Error): Promise<void> {
-  const g = globalThis as unknown as SentryGlobals;
-  const dsn = g.__SHELLUI_SENTRY_DSN__;
+  const sentry = shelluiConfig?.sentry;
+  const dsn = sentry?.dsn;
 
   if (!dsn || typeof dsn !== 'string') {
     throw new Error('Sentry DSN not configured');
@@ -124,8 +118,8 @@ export async function captureException(error: Error): Promise<void> {
 
     Sentry.init({
       dsn,
-      environment: g.__SHELLUI_SENTRY_ENVIRONMENT__ ?? 'production',
-      release: g.__SHELLUI_SENTRY_RELEASE__,
+      environment: sentry.environment ?? 'production',
+      release: sentry.release,
       sendDefaultPii: true,
       // Use tunnel for localhost to avoid CORS issues
       ...(tunnel && { tunnel }),

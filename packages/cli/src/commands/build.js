@@ -9,7 +9,8 @@ import {
   getCoreSrcPath,
   createResolveAlias,
   createPostCSSConfig,
-  createViteDefine,
+  createShelluiConfigPlugin,
+  getShelluiConfigAlias,
   createViteResolveConfig,
   resolvePackagePath,
 } from '../utils/index.js';
@@ -85,11 +86,10 @@ export async function buildCommand(root = '.') {
     // Build main app
     await build({
       root: coreSrcPath,
-      plugins: [react()],
-      define: createViteDefine(config),
+      plugins: [react(), createShelluiConfigPlugin(config)],
       resolve: {
         ...resolveConfig,
-        alias: resolveAlias,
+        alias: { ...resolveAlias, ...getShelluiConfigAlias() },
       },
       css: {
         postcss: postcssConfig,
@@ -125,10 +125,10 @@ export async function buildCommand(root = '.') {
     // Build service worker TypeScript to JavaScript
     await build({
       root: coreSrcPath,
-      define: createViteDefine(config),
+      plugins: [createShelluiConfigPlugin(config)],
       resolve: {
         ...resolveConfig,
-        alias: resolveAlias,
+        alias: { ...resolveAlias, ...getShelluiConfigAlias() },
       },
       build: {
         outDir: distPath,

@@ -18,12 +18,6 @@ import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
 import type { LayoutType } from '../../config/types';
 
-type SentryGlobals = {
-  __SHELLUI_SENTRY_DSN__?: string;
-  __SHELLUI_SENTRY_ENVIRONMENT__?: string;
-  __SHELLUI_SENTRY_RELEASE__?: string;
-};
-
 export const Develop = () => {
   const { t } = useTranslation('settings');
   const { settings, updateSetting } = useSettings();
@@ -35,9 +29,7 @@ export const Develop = () => {
         (item, index, self) => index === self.findIndex((i) => i.path === item.path),
       )
     : [];
-  // Check Sentry globals and cookie consent for error reporting test
-  const g = globalThis as unknown as SentryGlobals;
-  const errorReportingConfigured = Boolean(g.__SHELLUI_SENTRY_DSN__);
+  const errorReportingConfigured = Boolean(config?.sentry?.dsn);
   const { isAccepted: sentryConsentAccepted } = useCookieConsent('sentry.io');
 
   return (

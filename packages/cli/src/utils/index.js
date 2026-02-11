@@ -11,6 +11,7 @@ export {
   getCoreSrcPath,
   createResolveAlias,
   createPostCSSConfig,
-  createViteDefine,
+  createShelluiConfigPlugin,
+  getShelluiConfigAlias,
   createViteResolveConfig,
 } from './vite.js';

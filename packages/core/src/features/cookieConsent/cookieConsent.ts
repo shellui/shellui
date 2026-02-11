@@ -1,13 +1,11 @@
 import type { ShellUIConfig } from '../config/types';
+import shelluiConfig from '@shellui/config';
 
 const STORAGE_KEY = 'shellui:settings';
 
 function getConfig(): ShellUIConfig | undefined {
   if (typeof globalThis === 'undefined') return undefined;
-  const g = globalThis as unknown as { __SHELLUI_CONFIG__?: string | ShellUIConfig };
-  const raw = g.__SHELLUI_CONFIG__;
-  if (raw === null || raw === undefined) return undefined;
-  return typeof raw === 'string' ? (JSON.parse(raw) as ShellUIConfig) : raw;
+  return shelluiConfig ?? undefined;
 }
 
 function getStoredCookieConsent(): {

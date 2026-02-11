@@ -7,20 +7,11 @@ import { Button } from '../../../components/ui/button';
 import { shellui } from '@shellui/sdk';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
 
-type SentryGlobals = {
-  __SHELLUI_SENTRY_DSN__?: string;
-  __SHELLUI_SENTRY_ENVIRONMENT__?: string;
-  __SHELLUI_SENTRY_RELEASE__?: string;
-};
-
 export const Advanced = () => {
   const { t } = useTranslation('settings');
-  const { config: _config } = useConfig();
+  const { config } = useConfig();
   const { settings, updateSetting, resetAllData } = useSettings();
-  // Check Sentry globals directly since sentry is not included in the main config
-  const g = globalThis as unknown as SentryGlobals;
-  const errorReportingConfigured = Boolean(g.__SHELLUI_SENTRY_DSN__);
-  // Check if Sentry cookie consent has been approved
+  const errorReportingConfigured = Boolean(config?.sentry?.dsn);
   const { isAccepted: sentryConsentAccepted } = useCookieConsent('sentry.io');
 
   const handleErrorReportingChange = (checked: boolean) => {
