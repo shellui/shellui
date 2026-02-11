@@ -87,19 +87,19 @@ The server automatically serves `index.html` for all routes, enabling client-sid
 
 ## Publishing
 
-### Publish all packages
+Publish all packages (SDK, Core, CLI) in the correct order with one command:
 
 ```bash
-pnpm run publish:all
+pnpm run publish
 ```
 
-### Publish individual packages
+The npm dist-tag is chosen automatically from the root **version** in `package.json`:
 
-```bash
-pnpm run publish:cli
-pnpm run publish:core
-pnpm run publish:sdk
-```
+- Version contains **`alpha`** (e.g. `0.2.0-alpha.0`) → published with tag `alpha`
+- Version contains **`beta`** (e.g. `0.2.0-beta.1`) → published with tag `beta`
+- Otherwise → published with tag `latest`
+
+Keep versions in sync across packages with `pnpm run version:sync` before publishing. See [Publishing Guide](docs/publishing.md) for the full workflow.
 
 ## Workspace Scripts
 
@@ -118,10 +118,8 @@ pnpm run publish:sdk
 
 ### Publishing Scripts
 
-- `pnpm run publish:all` - Publish all packages
-- `pnpm run publish:cli` - Publish CLI package
-- `pnpm run publish:core` - Publish Core package
-- `pnpm run publish:sdk` - Publish SDK package
+- `pnpm run publish` - Publish all packages (SDK → Core → CLI) with tag from version (alpha/beta/latest)
+- `pnpm run version:sync` - Sync root version to all packages
 
 ### Documentation Scripts
 
