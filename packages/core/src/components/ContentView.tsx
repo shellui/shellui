@@ -248,7 +248,6 @@ export const ContentView = ({
           border: 'none',
           display: 'block',
         }}
-        title="Content Frame"
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="no-referrer-when-downgrade"
       />
