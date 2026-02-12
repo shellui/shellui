@@ -40,6 +40,20 @@ function resolveColorMode(colorScheme: 'light' | 'dark' | 'system'): 'light' | '
   return colorScheme === 'dark' ? 'dark' : 'light';
 }
 
+/** Convert font file URLs to absolute so iframes/modals on other ports or domains can load them. */
+function toAbsoluteFontUrls(urls: string[]): string[] {
+  if (typeof window === 'undefined') return urls;
+  const origin = window.location.origin;
+  return urls.map((url) => {
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+    const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+    return `${origin}${path}`;
+  });
+}
+
 /**
  * Build the full appearance object for settings propagation so apps receive all theme
  * variable values and can style without knowing the theme name.
@@ -75,7 +89,9 @@ function getResolvedAppearanceForSettings(
     ...(themeDef.textShadow !== undefined && { textShadow: themeDef.textShadow }),
     ...(themeDef.lineHeight !== undefined && { lineHeight: themeDef.lineHeight }),
     ...(themeDef.fontFiles !== undefined &&
-      themeDef.fontFiles.length > 0 && { fontFiles: themeDef.fontFiles }),
+      themeDef.fontFiles.length > 0 && {
+        fontFiles: toAbsoluteFontUrls(themeDef.fontFiles),
+      }),
   };
 }
 
