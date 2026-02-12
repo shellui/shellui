@@ -44,7 +44,6 @@ export type {
   SettingsTheme,
   Appearance,
 } from './types.js';
-export { DEFAULT_APPEARANCE } from './types.js';
 
 export class ShellUISDK {
   initialized = false;
