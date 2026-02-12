@@ -27,8 +27,8 @@ function applyThemeToDocument(isDark: boolean) {
 export function useTheme() {
   const { settings } = useSettings();
   const { config } = useConfig();
-  const theme = settings.appearance?.theme || 'system';
-  const themeName = settings.appearance?.themeName || 'default';
+  const colorScheme = settings.appearance?.colorScheme ?? 'system';
+  const themeName = settings.appearance?.name ?? 'default';
 
   // Apply theme immediately on mount (synchronously) to prevent empty colors
   // This ensures CSS variables are set before first render
@@ -47,11 +47,11 @@ export function useTheme() {
 
     if (themeDefinition) {
       const determineIsDark = () => {
-        if (theme === 'system') {
+        if (colorScheme === 'system') {
           const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
           return mediaQuery.matches;
         }
-        return theme === 'dark';
+        return colorScheme === 'dark';
       };
       const isDark = determineIsDark();
       applyThemeToDocument(isDark);
@@ -62,10 +62,10 @@ export function useTheme() {
       const defaultTheme = getTheme('default');
       if (defaultTheme) {
         const isDark =
-          theme === 'dark' ||
-          (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          colorScheme === 'dark' ||
+          (colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         applyTheme(defaultTheme, isDark);
       }
     }
-  }, [theme, themeName, config]); // Run when theme, themeName, or config changes
+  }, [colorScheme, themeName, config]); // Run when colorScheme, themeName, or config changes
 }

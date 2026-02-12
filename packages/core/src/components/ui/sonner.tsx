@@ -11,7 +11,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       position="top-center"
-      theme={settings.appearance.theme as 'light' | 'dark' | 'system'}
+      theme={settings.appearance.colorScheme as 'light' | 'dark' | 'system'}
       className="toaster group"
       style={{
         zIndex: Z_INDEX.TOAST,

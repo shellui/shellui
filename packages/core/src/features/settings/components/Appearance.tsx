@@ -166,8 +166,8 @@ export const Appearance = () => {
   const { t } = useTranslation('settings');
   const { settings, updateSetting } = useSettings();
   const { config } = useConfig();
-  const currentTheme = settings.appearance?.theme || 'system';
-  const currentThemeName = settings.appearance?.themeName || 'default';
+  const currentTheme = settings.appearance?.colorScheme ?? 'system';
+  const currentThemeName = settings.appearance?.name ?? 'default';
 
   const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
 
@@ -246,7 +246,7 @@ export const Appearance = () => {
                   key={theme.value}
                   variant={isSelected ? 'default' : 'outline'}
                   onClick={() => {
-                    updateSetting('appearance', { theme: theme.value });
+                    updateSetting('appearance', { colorScheme: theme.value });
                   }}
                   className={cn(
                     'h-10 px-4 transition-all flex items-center gap-2 cursor-pointer',
@@ -283,7 +283,7 @@ export const Appearance = () => {
               <button
                 key={theme.name}
                 onClick={() => {
-                  updateSetting('appearance', { themeName: theme.name });
+                  updateSetting('appearance', { name: theme.name });
                 }}
                 className={cn(
                   'text-left transition-all cursor-pointer',

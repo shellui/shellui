@@ -2,14 +2,17 @@ import { useRef, useState, useEffect, useCallback, useMemo, type ReactNode } fro
 import {
   getLogger,
   shellui,
+  DEFAULT_APPEARANCE,
   type ShellUIMessage,
   type Settings,
   type SettingsNavigationItem,
+  type Appearance,
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
-import type { NavigationItem, NavigationGroup } from '../config/types';
+import type { NavigationItem, NavigationGroup, ShellUIConfig } from '../config/types';
+import { getTheme, registerTheme } from '../theme/themes';
 
 const logger = getLogger('shellcore');
 
@@ -31,18 +34,77 @@ function resolveLabel(
   return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
 }
 
-function buildSettingsWithNavigation(
+function resolveColorMode(colorScheme: 'light' | 'dark' | 'system'): 'light' | 'dark' {
+  if (colorScheme === 'system' && typeof window !== 'undefined') {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return colorScheme === 'dark' ? 'dark' : 'light';
+}
+
+/**
+ * Build the full appearance object for settings propagation so apps receive all theme
+ * variable values and can style without knowing the theme name.
+ */
+function getResolvedAppearanceForSettings(
   settings: Settings,
-  navigation: (NavigationItem | NavigationGroup)[] | undefined,
+  config: ShellUIConfig | undefined,
+): Appearance | undefined {
+  if (typeof window === 'undefined') return undefined;
+  config?.themes?.forEach(registerTheme);
+  const themeName =
+    settings.appearance?.name || config?.defaultTheme || 'default';
+  const themeDef = getTheme(themeName) || getTheme('default');
+  if (!themeDef) return undefined;
+  const colorScheme = settings.appearance?.colorScheme ?? 'system';
+  const mode = resolveColorMode(colorScheme);
+  return {
+    name: themeDef.name,
+    displayName: themeDef.displayName,
+    mode,
+    colorScheme,
+    colors: themeDef.colors,
+    ...(themeDef.fontFamily !== undefined && { fontFamily: themeDef.fontFamily }),
+    ...(themeDef.bodyFontFamily !== undefined && {
+      bodyFontFamily: themeDef.bodyFontFamily,
+    }),
+    ...(themeDef.headingFontFamily !== undefined && {
+      headingFontFamily: themeDef.headingFontFamily,
+    }),
+    ...(themeDef.letterSpacing !== undefined && {
+      letterSpacing: themeDef.letterSpacing,
+    }),
+    ...(themeDef.textShadow !== undefined && { textShadow: themeDef.textShadow }),
+    ...(themeDef.lineHeight !== undefined && { lineHeight: themeDef.lineHeight }),
+    ...(themeDef.fontFiles !== undefined &&
+      themeDef.fontFiles.length > 0 && { fontFiles: themeDef.fontFiles }),
+  };
+}
+
+/**
+ * Build settings for propagation to iframes: inject navigation and full theme object
+ * so apps receive all theme variable values.
+ */
+function buildSettingsForPropagation(
+  settings: Settings,
+  config: ShellUIConfig | undefined,
   lang: string,
 ): Settings {
-  if (!navigation?.length) return settings;
-  const items: SettingsNavigationItem[] = flattenNavigationItems(navigation).map((item) => ({
-    path: item.path,
-    url: item.url,
-    label: resolveLabel(item.label, lang),
-  }));
-  return { ...settings, navigation: { items } };
+  const appearance = getResolvedAppearanceForSettings(settings, config);
+  let result: Settings = {
+    ...settings,
+    appearance: appearance ?? settings.appearance,
+  };
+  if (config?.navigation?.length) {
+    const items: SettingsNavigationItem[] = flattenNavigationItems(
+      config.navigation,
+    ).map((item) => ({
+      path: item.path,
+      url: item.url,
+      label: resolveLabel(item.label, lang),
+    }));
+    result = { ...result, navigation: { items } };
+  }
+  return result;
 }
 
 const STORAGE_KEY = 'shellui:settings';
@@ -68,10 +130,7 @@ const defaultSettings: Settings = {
       shellcore: false,
     },
   },
-  appearance: {
-    theme: 'system',
-    themeName: 'default',
-  },
+  appearance: DEFAULT_APPEARANCE,
   language: {
     code: 'en',
   },
@@ -121,8 +180,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               },
             },
             appearance: {
-              theme: parsed.appearance?.theme || defaultSettings.appearance.theme,
-              themeName: parsed.appearance?.themeName || defaultSettings.appearance.themeName,
+              ...DEFAULT_APPEARANCE,
+              ...parsed.appearance,
+              // Migrate from legacy theme/themeName
+              name: parsed.appearance?.name ?? parsed.appearance?.themeName ?? DEFAULT_APPEARANCE.name,
+              colorScheme:
+                parsed.appearance?.colorScheme ?? parsed.appearance?.theme ?? DEFAULT_APPEARANCE.colorScheme,
+              colors: parsed.appearance?.colors ?? DEFAULT_APPEARANCE.colors,
             },
             language: {
               code: parsed.language?.code || defaultSettings.language.code,
@@ -178,9 +242,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
               // Confirm: root updated localStorage; re-inject navigation when propagating
-              const settingsToPropagate = buildSettingsWithNavigation(
+              const settingsToPropagate = buildSettingsForPropagation(
                 newSettings,
-                config?.navigation,
+                config,
                 i18n.language || 'en',
               );
               logger.info('Root Parent received settings update', { message });
@@ -201,9 +265,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       () => {
         // Use ref to always get current settings (avoids stale closure)
         const currentSettings = settingsRef.current ?? defaultSettings;
-        const settingsWithNav = buildSettingsWithNavigation(
+        const settingsWithNav = buildSettingsForPropagation(
           currentSettings,
-          config?.navigation,
+          config,
           i18n.language || 'en',
         );
         shellui.propagateMessage({
@@ -243,9 +307,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
           setSettings(newSettings);
           // Propagate to child iframes (sendMessageToParent does nothing in root)
-          const settingsWithNav = buildSettingsWithNavigation(
+          const settingsWithNav = buildSettingsForPropagation(
             newSettings,
-            config?.navigation,
+            config,
             i18n.language || 'en',
           );
           shellui.propagateMessage({
@@ -303,9 +367,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         // If we're in the root window, update localStorage with defaults
         if (window.parent === window) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-          const settingsToPropagate = buildSettingsWithNavigation(
+          const settingsToPropagate = buildSettingsForPropagation(
             newSettings,
-            config?.navigation,
+            config,
             i18n.language || 'en',
           );
           shellui.propagateMessage({

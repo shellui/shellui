@@ -218,8 +218,9 @@ shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
   const { settings } = data.payload;
   console.log('Current settings:', settings);
 
-  // Access specific settings
-  const theme = settings.appearance?.theme;
+  // Access specific settings (appearance has full theme values: name, colorScheme, mode, colors, etc.)
+  const colorScheme = settings.appearance?.colorScheme;
+  const themeValues = settings.appearance;
   const language = settings.language?.code;
 });
 ```
@@ -292,7 +293,7 @@ async function initializeApp() {
   // Listen for settings updates
   shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
     const { settings } = data.payload;
-    applyTheme(settings.appearance?.theme);
+    applyTheme(settings.appearance?.colorScheme);
     applyLanguage(settings.language?.code);
   });
 

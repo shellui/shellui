@@ -63,6 +63,141 @@ export interface SettingsNavigationItem {
   label?: string;
 }
 
+/** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
+export interface ThemeColorsMode {
+  background: string;
+  foreground: string;
+  card: string;
+  cardForeground: string;
+  popover: string;
+  popoverForeground: string;
+  primary: string;
+  primaryForeground: string;
+  secondary: string;
+  secondaryForeground: string;
+  muted: string;
+  mutedForeground: string;
+  accent: string;
+  accentForeground: string;
+  destructive: string;
+  destructiveForeground: string;
+  border: string;
+  input: string;
+  ring: string;
+  radius: string;
+  sidebarBackground: string;
+  sidebarForeground: string;
+  sidebarPrimary: string;
+  sidebarPrimaryForeground: string;
+  sidebarAccent: string;
+  sidebarAccentForeground: string;
+  sidebarBorder: string;
+  sidebarRing: string;
+}
+
+/** Theme colors for both light and dark modes. */
+export interface ThemeColors {
+  light: ThemeColorsMode;
+  dark: ThemeColorsMode;
+}
+
+/**
+ * Full theme object with all variable values so applications can style without knowing the theme name.
+ */
+export interface SettingsTheme {
+  name: string;
+  displayName: string;
+  /** Resolved color mode currently in use (from colorScheme + system preference). */
+  mode: 'light' | 'dark';
+  colors: ThemeColors;
+  fontFamily?: string;
+  bodyFontFamily?: string;
+  headingFontFamily?: string;
+  letterSpacing?: string;
+  textShadow?: string;
+  lineHeight?: string;
+  fontFiles?: string[];
+}
+
+/**
+ * Appearance settings: full theme values plus user color scheme preference.
+ * This is the default structure for settings.appearance.
+ */
+export interface Appearance extends SettingsTheme {
+  /** User preference: light, dark, or follow system. */
+  colorScheme: 'light' | 'dark' | 'system';
+}
+
+/** Default appearance used for settings.appearance when no value is set. */
+export const DEFAULT_APPEARANCE: Appearance = {
+  name: 'default',
+  displayName: 'Default',
+  mode: 'light',
+  colorScheme: 'system',
+  colors: {
+    light: {
+      background: '#ffffff',
+      foreground: '#09090b',
+      card: '#ffffff',
+      cardForeground: '#09090b',
+      popover: '#ffffff',
+      popoverForeground: '#09090b',
+      primary: '#18181b',
+      primaryForeground: '#fafafa',
+      secondary: '#f4f4f5',
+      secondaryForeground: '#18181b',
+      muted: '#f4f4f5',
+      mutedForeground: '#71717a',
+      accent: '#f4f4f5',
+      accentForeground: '#18181b',
+      destructive: '#ef4444',
+      destructiveForeground: '#fafafa',
+      border: '#e4e4e7',
+      input: '#e4e4e7',
+      ring: '#18181b',
+      radius: '0.5rem',
+      sidebarBackground: '#fafafa',
+      sidebarForeground: '#09090b',
+      sidebarPrimary: '#18181b',
+      sidebarPrimaryForeground: '#fafafa',
+      sidebarAccent: '#e4e4e7',
+      sidebarAccentForeground: '#18181b',
+      sidebarBorder: '#e4e4e7',
+      sidebarRing: '#18181b',
+    },
+    dark: {
+      background: '#09090b',
+      foreground: '#fafafa',
+      card: '#09090b',
+      cardForeground: '#fafafa',
+      popover: '#09090b',
+      popoverForeground: '#fafafa',
+      primary: '#fafafa',
+      primaryForeground: '#18181b',
+      secondary: '#27272a',
+      secondaryForeground: '#fafafa',
+      muted: '#27272a',
+      mutedForeground: '#a1a1aa',
+      accent: '#27272a',
+      accentForeground: '#fafafa',
+      destructive: '#7f1d1d',
+      destructiveForeground: '#fafafa',
+      border: '#27272a',
+      input: '#27272a',
+      ring: '#d4d4d8',
+      radius: '0.5rem',
+      sidebarBackground: '#09090b',
+      sidebarForeground: '#fafafa',
+      sidebarPrimary: '#fafafa',
+      sidebarPrimaryForeground: '#18181b',
+      sidebarAccent: '#27272a',
+      sidebarAccentForeground: '#fafafa',
+      sidebarBorder: '#27272a',
+      sidebarRing: '#d4d4d8',
+    },
+  },
+};
+
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
@@ -77,10 +212,7 @@ export interface Settings {
       shellcore: boolean;
     };
   };
-  appearance: {
-    theme: 'light' | 'dark' | 'system';
-    themeName: string;
-  };
+  appearance: Appearance;
   language: {
     code: 'en' | 'fr';
   };
