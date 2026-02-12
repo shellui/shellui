@@ -6,6 +6,7 @@ import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   filterNavigationByViewport,
   flattenNavigationItems,
+  getActivePathPrefix,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
@@ -48,15 +49,20 @@ function resolveLocalizedLabel(
 }
 
 /** End link: icon-only or first-letter badge with themed tooltip. */
-function TopBarEndItem({ item, label }: { item: NavigationItem; label: string }) {
+function TopBarEndItem({
+  item,
+  label,
+  activePathPrefix,
+}: {
+  item: NavigationItem;
+  label: string;
+  activePathPrefix: string | null;
+}) {
   const pathPrefix = getNavPathPrefix(item);
   const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
   const isExternal = item.openIn === 'external';
-  const location = useLocation();
   const isActive =
-    !isOverlay &&
-    !isExternal &&
-    (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    !isOverlay && !isExternal && pathPrefix === activePathPrefix;
 
   const faviconUrl = isExternal && !item.icon ? getExternalFaviconUrl(item.url) : null;
   const iconSrc = item.icon ?? faviconUrl ?? null;
@@ -143,16 +149,18 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const navigate = useNavigate();
   const currentLanguage = i18n.language || 'en';
 
-  const { endNavItems, navigationItems, displayStartItems } = useMemo(() => {
+  const { endNavItems, navigationItems, displayStartItems, activePathPrefix } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(navigation, 'desktop');
     const { start, end } = splitNavigationByPosition(desktopNav);
     const startItems = flattenNavigationItems(start).filter((i) => !i.hidden);
+    const flat = flattenNavigationItems(navigation);
     return {
       endNavItems: flattenNavigationItems(end).filter((i) => !i.hidden),
-      navigationItems: flattenNavigationItems(navigation),
+      navigationItems: flat,
       displayStartItems: withHomepageWhenNoRoot(startItems),
+      activePathPrefix: getActivePathPrefix(location.pathname, flat),
     };
-  }, [navigation]);
+  }, [navigation, location.pathname]);
 
   useEffect(() => {
     if (!title) return;
@@ -242,6 +250,7 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
                       key={item.path}
                       item={item}
                       label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                      activePathPrefix={activePathPrefix}
                     />
                   ))}
                 </div>

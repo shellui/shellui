@@ -22,6 +22,7 @@ import {
   filterNavigationByViewport,
   filterNavigationForSidebar,
   flattenNavigationItems,
+  getActivePathPrefix,
   getNavPathPrefix,
   HOMEPAGE_NAV_ITEM,
   resolveLocalizedString as resolveNavLabel,
@@ -82,6 +83,12 @@ const NavigationContent = ({
     });
   }, [navigation]);
 
+  const flatItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
+  const activePathPrefix = useMemo(
+    () => getActivePathPrefix(location.pathname, flatItems),
+    [location.pathname, flatItems],
+  );
+
   // Helper to check if an item is a group
   const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup => {
     return 'title' in item && 'items' in item;
@@ -93,9 +100,7 @@ const NavigationContent = ({
     const isOverlay = navItem.openIn === 'modal' || navItem.openIn === 'drawer';
     const isExternal = navItem.openIn === 'external';
     const isActive =
-      !isOverlay &&
-      !isExternal &&
-      (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+      !isOverlay && !isExternal && pathPrefix === activePathPrefix;
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
@@ -442,6 +447,11 @@ const MobileBottomNav = ({
   const navRef = useRef<HTMLElement>(null);
   const [rowWidth, setRowWidth] = useState(0);
 
+  const activePathPrefix = useMemo(
+    () => getActivePathPrefix(location.pathname, items),
+    [location.pathname, items],
+  );
+
   useLayoutEffect(() => {
     const el = navRef.current;
     if (!el) return;
@@ -482,9 +492,7 @@ const MobileBottomNav = ({
     const pathPrefix = getNavPathPrefix(item);
     const isOverlayOrExternal =
       item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external';
-    const isActive =
-      !isOverlayOrExternal &&
-      (location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`));
+    const isActive = !isOverlayOrExternal && pathPrefix === activePathPrefix;
     const label = resolveNavLabel(item.label, currentLanguage);
     const faviconUrl =
       item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
