@@ -77,6 +77,7 @@ async function startServer(root, cwd, shouldOpen = false) {
     },
     server: {
       port: config.port || 3000,
+      strictPort: true,
       open: shouldOpen,
       fs: {
         // Allow serving files from core package, SDK package, and user's project
