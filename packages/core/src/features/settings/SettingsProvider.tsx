@@ -6,12 +6,13 @@ import {
   type Settings,
   type SettingsNavigationItem,
   type Appearance,
+  type SettingsAvailableTheme,
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup, ShellUIConfig } from '../config/types';
-import { getTheme, registerTheme } from '../theme/themes';
+import { getTheme, getAllThemes, registerTheme } from '../theme/themes';
 
 const logger = getLogger('shellcore');
 
@@ -96,8 +97,22 @@ function getResolvedAppearanceForSettings(
 }
 
 /**
- * Build settings for propagation to iframes: inject navigation and full theme object
- * so apps receive all theme variable values.
+ * Map registered themes to the slim shape sent to sub-apps (name, displayName, colors, optional typography for preview).
+ */
+function getAvailableThemesForSettings(): SettingsAvailableTheme[] {
+  return getAllThemes().map((theme) => ({
+    name: theme.name,
+    displayName: theme.displayName,
+    colors: theme.colors,
+    ...(theme.fontFamily !== undefined && { fontFamily: theme.fontFamily }),
+    ...(theme.letterSpacing !== undefined && { letterSpacing: theme.letterSpacing }),
+    ...(theme.textShadow !== undefined && { textShadow: theme.textShadow }),
+  }));
+}
+
+/**
+ * Build settings for propagation to iframes: inject navigation, full theme object,
+ * and list of available themes so apps can render theme pickers.
  */
 function buildSettingsForPropagation(
   settings: Settings,
@@ -109,6 +124,16 @@ function buildSettingsForPropagation(
     ...settings,
     appearance: appearance ?? settings.appearance,
   };
+  // Inject available themes when we have a resolved appearance (themes are already registered above)
+  if (result.appearance && typeof window !== 'undefined') {
+    result = {
+      ...result,
+      appearance: {
+        ...result.appearance,
+        availableThemes: getAvailableThemesForSettings(),
+      },
+    };
+  }
   if (config?.navigation?.length) {
     const items: SettingsNavigationItem[] = flattenNavigationItems(
       config.navigation,

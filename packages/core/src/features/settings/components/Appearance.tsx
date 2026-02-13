@@ -4,8 +4,9 @@ import { useConfig } from '../../config/useConfig';
 import { Button } from '../../../components/ui/button';
 import { ButtonGroup } from '../../../components/ui/button-group';
 import { cn } from '../../../lib/utils';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getAllThemes, registerTheme, type ThemeDefinition } from '../../theme/themes';
+import type { SettingsAvailableTheme } from '@shellui/sdk';
 
 const SunIcon = () => (
   <svg
@@ -85,13 +86,19 @@ const MonitorIcon = () => (
   </svg>
 );
 
+/** Theme-like shape used for preview (ThemeDefinition or SettingsAvailableTheme). */
+type ThemePreviewItem = Pick<
+  ThemeDefinition | SettingsAvailableTheme,
+  'name' | 'displayName' | 'colors' | 'fontFamily' | 'letterSpacing' | 'textShadow'
+>;
+
 // Theme color preview component
 const ThemePreview = ({
   theme,
   isSelected,
   isDark,
 }: {
-  theme: ThemeDefinition;
+  theme: ThemePreviewItem;
   isSelected: boolean;
   isDark: boolean;
 }) => {
@@ -169,17 +176,24 @@ export const Appearance = () => {
   const currentTheme = settings.appearance?.colorScheme ?? 'system';
   const currentThemeName = settings.appearance?.name ?? 'default';
 
-  const [availableThemes, setAvailableThemes] = useState<ThemeDefinition[]>([]);
+  const [localThemes, setLocalThemes] = useState<ThemeDefinition[]>([]);
 
-  // Register custom themes from config and get all themes
+  // Register custom themes from config and get all themes (for shell context)
   useEffect(() => {
     if (config?.themes) {
       config.themes.forEach((themeDef: ThemeDefinition) => {
         registerTheme(themeDef);
       });
     }
-    setAvailableThemes(getAllThemes());
+    setLocalThemes(getAllThemes());
   }, [config]);
+
+  // Use availableThemes from settings when provided (e.g. from shell when in sub-app), else local registry
+  const availableThemes = useMemo((): ThemePreviewItem[] => {
+    const fromSettings = settings.appearance?.availableThemes;
+    if (fromSettings?.length) return fromSettings;
+    return localThemes;
+  }, [settings.appearance?.availableThemes, localThemes]);
 
   // Determine if we're in dark mode for preview
   const [isDarkForPreview, setIsDarkForPreview] = useState(() => {

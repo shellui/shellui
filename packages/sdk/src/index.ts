@@ -42,6 +42,7 @@ export type {
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,
+  SettingsAvailableTheme,
   Appearance,
 } from './types.js';
 

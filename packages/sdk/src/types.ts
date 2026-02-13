@@ -120,12 +120,31 @@ export interface SettingsTheme {
 }
 
 /**
+ * Slim theme descriptor for the list of available themes (e.g. theme picker).
+ * Injected by shell when sending settings to sub-apps; includes name, displayName,
+ * light/dark ThemeColorsMode, and optional typography used for preview.
+ */
+export interface SettingsAvailableTheme {
+  name: string;
+  displayName: string;
+  colors: ThemeColors;
+  fontFamily?: string;
+  letterSpacing?: string;
+  textShadow?: string;
+}
+
+/**
  * Appearance settings: full theme values plus user color scheme preference.
  * This is the default structure for settings.appearance.
  */
 export interface Appearance extends SettingsTheme {
   /** User preference: light, dark, or follow system. */
   colorScheme: 'light' | 'dark' | 'system';
+  /**
+   * List of available themes (name, displayName, light/dark colors, optional typography).
+   * Set by shell when propagating settings to sub-apps so they can render a theme picker.
+   */
+  availableThemes?: SettingsAvailableTheme[];
 }
 
 export interface Settings {
