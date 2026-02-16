@@ -2,7 +2,7 @@ import { Link, useLocation, Outlet } from 'react-router';
 import { useMemo, useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup } from '../config/types';
+import type { NavigationItem, NavigationGroup } from '../../config/types';
 import {
   Sidebar,
   SidebarProvider,
@@ -15,9 +15,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-} from '../../components/ui/sidebar';
-import { cn } from '../../lib/utils';
-import { Z_INDEX } from '../../lib/z-index';
+} from '../../../components/ui/sidebar';
+import { cn } from '../../../lib/utils';
+import { Z_INDEX } from '../../../lib/z-index';
 import {
   filterNavigationByViewport,
   filterNavigationForSidebar,
@@ -27,11 +27,10 @@ import {
   HOMEPAGE_NAV_ITEM,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
-} from './utils';
-import { LayoutProviders } from './LayoutProviders';
-import { OverlayShell } from './OverlayShell';
+} from '../utils';
+import { OverlayShell } from '../OverlayShell';
 
-interface DefaultLayoutProps {
+interface SidebarLayoutProps {
   title?: string;
   appIcon?: string;
   logo?: string;
@@ -583,7 +582,7 @@ const MobileBottomNav = ({
   );
 };
 
-const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) => {
+const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
   const location = useLocation();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
@@ -625,42 +624,40 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
   return (
-    <LayoutProviders>
-      <SidebarProvider>
-        <OverlayShell navigationItems={navigationItems}>
-          <div className="flex h-screen overflow-hidden">
-            {/* Desktop sidebar: visible from md up */}
-            <Sidebar className={cn('hidden md:flex shrink-0')}>
-              <SidebarInner
-                title={title}
-                logo={logo}
-                startNav={startNav}
-                endItems={endItems}
-              />
-            </Sidebar>
+    <SidebarProvider>
+      <OverlayShell navigationItems={navigationItems}>
+        <div className="flex h-screen overflow-hidden">
+          {/* Desktop sidebar: visible from md up */}
+          <Sidebar className={cn('hidden md:flex shrink-0')}>
+            <SidebarInner
+              title={title}
+              logo={logo}
+              startNav={startNav}
+              endItems={endItems}
+            />
+          </Sidebar>
 
-            <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
-              <div className="flex-1 flex flex-col overflow-auto pb-16 md:pb-0">
-                <Outlet />
-              </div>
-            </main>
-          </div>
+          <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
+            <div className="flex-1 flex flex-col overflow-auto pb-16 md:pb-0">
+              <Outlet />
+            </div>
+          </main>
+        </div>
 
-          {/* Mobile bottom nav: visible only below md; Home button only when no view for / */}
-          <MobileBottomNav
-            items={mobileNavItems}
-            currentLanguage={currentLanguage}
-            showHomeButton={!hasRootNavItem}
-          />
-        </OverlayShell>
-      </SidebarProvider>
-    </LayoutProviders>
+        {/* Mobile bottom nav: visible only below md; Home button only when no view for / */}
+        <MobileBottomNav
+          items={mobileNavItems}
+          currentLanguage={currentLanguage}
+          showHomeButton={!hasRootNavItem}
+        />
+      </OverlayShell>
+    </SidebarProvider>
   );
 };
 
-export const DefaultLayout = ({ title, appIcon, logo, navigation }: DefaultLayoutProps) => {
+export const SidebarLayout = ({ title, appIcon, logo, navigation }: SidebarLayoutProps) => {
   return (
-    <DefaultLayoutContent
+    <SidebarLayoutContent
       title={title}
       appIcon={appIcon}
       logo={logo}

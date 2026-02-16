@@ -1,18 +1,23 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
+import { SonnerProvider } from '../sonner/SonnerContext';
+import { ModalProvider } from '../modal/ModalContext';
+import { DrawerProvider } from '../drawer/DrawerContext';
+import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
+import { OverlayShell } from './OverlayShell';
 
-const DefaultLayout = lazy(() =>
-  import('./DefaultLayout').then((m) => ({ default: m.DefaultLayout })),
+const SidebarLayout = lazy(() =>
+  import('./sidebar/SidebarLayout').then((m) => ({ default: m.SidebarLayout })),
 );
 const FullscreenLayout = lazy(() =>
-  import('./FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })),
+  import('./fullscreen/FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })),
 );
 const WindowsLayout = lazy(() =>
-  import('./WindowsLayout').then((m) => ({ default: m.WindowsLayout })),
+  import('./windows/WindowsLayout').then((m) => ({ default: m.WindowsLayout })),
 );
 const AppBarLayout = lazy(() =>
-  import('./AppBarLayout').then((m) => ({ default: m.AppBarLayout })),
+  import('./appbar/AppBarLayout').then((m) => ({ default: m.AppBarLayout })),
 );
 
 interface AppLayoutProps {
@@ -41,6 +46,7 @@ export function AppLayout({
   navigation,
 }: AppLayoutProps) {
   const { settings } = useSettings();
+  const { navigationItems } = useNavigationItems();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,13 +63,21 @@ export function AppLayout({
     LayoutComponent = AppBarLayout;
     layoutProps = { title, appIcon, logo, navigation };
   } else {
-    LayoutComponent = DefaultLayout;
+    LayoutComponent = SidebarLayout;
     layoutProps = { title, appIcon, logo, navigation };
   }
 
   return (
-    <Suspense fallback={<LayoutFallback />}>
-      <LayoutComponent {...layoutProps} />
-    </Suspense>
+    <ModalProvider>
+      <DrawerProvider>
+        <SonnerProvider>
+          <OverlayShell navigationItems={navigationItems}>
+            <Suspense fallback={<LayoutFallback />}>
+              <LayoutComponent {...layoutProps} />
+            </Suspense>
+          </OverlayShell>
+        </SonnerProvider>
+      </DrawerProvider>
+    </ModalProvider>
   );
 }

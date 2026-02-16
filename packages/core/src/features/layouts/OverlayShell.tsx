@@ -9,12 +9,7 @@ import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
-import {
-  getNavPathPrefix,
-  getBaseUrlWithoutHash,
-  isHashRouterNavItem,
-  resolveLocalizedString,
-} from './utils';
+import { getNavPathPrefix, resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
   navigationItems: NavigationItem[];

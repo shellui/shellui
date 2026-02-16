@@ -1,10 +1,8 @@
 import { useMemo, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import type { NavigationItem, NavigationGroup } from '../config/types';
-import { flattenNavigationItems } from './utils';
-import { LayoutProviders } from './LayoutProviders';
-import { OverlayShell } from './OverlayShell';
+import type { NavigationItem, NavigationGroup } from '../../config/types';
+import { flattenNavigationItems } from '../utils';
 
 interface FullscreenLayoutProps {
   title?: string;
@@ -44,12 +42,8 @@ export function FullscreenLayout({ title, navigation }: FullscreenLayoutProps) {
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
   return (
-    <LayoutProviders>
-      <OverlayShell navigationItems={navigationItems}>
-        <main className="flex flex-col w-full h-screen overflow-hidden bg-background">
-          <Outlet />
-        </main>
-      </OverlayShell>
-    </LayoutProviders>
+    <main className="flex flex-col w-full h-screen overflow-hidden bg-background">
+      <Outlet />
+    </main>
   );
 }

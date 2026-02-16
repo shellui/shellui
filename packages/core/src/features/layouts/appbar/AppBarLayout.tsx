@@ -2,7 +2,7 @@ import { useMemo, useEffect, type ReactNode } from 'react';
 import { Link, useLocation, Outlet, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup } from '../config/types';
+import type { NavigationItem, NavigationGroup } from '../../config/types';
 import {
   filterNavigationByViewport,
   flattenNavigationItems,
@@ -11,12 +11,10 @@ import {
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
   withHomepageWhenNoRoot,
-} from './utils';
-import { LayoutProviders } from './LayoutProviders';
-import { OverlayShell } from './OverlayShell';
-import { Select } from '../../components/ui/select';
-import { AppBarTooltip, TooltipProvider } from '../../components/ui/tooltip';
-import { cn } from '../../lib/utils';
+} from '../utils';
+import { Select } from '../../../components/ui/select';
+import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
+import { cn } from '../../../lib/utils';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -187,81 +185,77 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
       : `/${location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0]}`;
 
   return (
-    <LayoutProviders>
-      <OverlayShell navigationItems={navigationItems}>
-        <div className="flex flex-col h-screen overflow-hidden bg-background">
-          {/* Top bar: max 42px */}
-          <header
-            className="flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
-            style={{ minHeight: 32, maxHeight: TOP_BAR_MAX_HEIGHT }}
-            data-layout="app-bar"
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Top bar: max 42px */}
+      <header
+        className="flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
+        style={{ minHeight: 32, maxHeight: TOP_BAR_MAX_HEIGHT }}
+        data-layout="app-bar"
+      >
+        {/* Logo / title (home link) */}
+        <Link
+          to="/"
+          className="flex items-center gap-2 shrink-0 min-w-0 py-1.5 pr-2 text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors"
+        >
+          {logo && logo.trim() ? (
+            <img
+              src={logo}
+              alt={title || 'Logo'}
+              className="h-5 w-auto max-h-6 object-contain app-bar-logo m-1.5"
+            />
+          ) : title ? (
+            <span className="text-sm font-semibold truncate">{title}</span>
+          ) : null}
+        </Link>
+
+        {/* Start links: select menu (includes synthetic Homepage when nav has no "/" path) */}
+        {displayStartItems.length > 0 && (
+          <Select
+            className="h-8 max-w-[200px] text-sm leading-tight py-1.5 border-sidebar-border bg-sidebar-background"
+            value={currentPathPrefix}
+            onChange={(e) => {
+              const path = e.target.value;
+              if (path) {
+                navigate(path.startsWith('/') ? path : `/${path}`);
+              }
+            }}
           >
-            {/* Logo / title (home link) */}
-            <Link
-              to="/"
-              className="flex items-center gap-2 shrink-0 min-w-0 py-1.5 pr-2 text-sidebar-foreground hover:text-sidebar-foreground/80 transition-colors"
-            >
-              {logo && logo.trim() ? (
-                <img
-                  src={logo}
-                  alt={title || 'Logo'}
-                  className="h-5 w-auto max-h-6 object-contain app-bar-logo m-1.5"
+            {displayStartItems.map((item) => (
+              <option
+                key={item.path || 'root'}
+                value={getNavPathPrefix(item)}
+              >
+                {resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
+              </option>
+            ))}
+          </Select>
+        )}
+
+        <div className="flex-1 min-w-0" />
+
+        {/* End links: icon-only or first letter + tooltip */}
+        {endNavItems.length > 0 && (
+          <TooltipProvider
+            delayDuration={200}
+            skipDelayDuration={0}
+          >
+            <div className="flex items-center gap-0.5 shrink-0">
+              {endNavItems.map((item) => (
+                <TopBarEndItem
+                  key={item.path}
+                  item={item}
+                  label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                  activePathPrefix={activePathPrefix}
                 />
-              ) : title ? (
-                <span className="text-sm font-semibold truncate">{title}</span>
-              ) : null}
-            </Link>
+              ))}
+            </div>
+          </TooltipProvider>
+        )}
+      </header>
 
-            {/* Start links: select menu (includes synthetic Homepage when nav has no "/" path) */}
-            {displayStartItems.length > 0 && (
-              <Select
-                className="h-8 max-w-[200px] text-sm leading-tight py-1.5 border-sidebar-border bg-sidebar-background"
-                value={currentPathPrefix}
-                onChange={(e) => {
-                  const path = e.target.value;
-                  if (path) {
-                    navigate(path.startsWith('/') ? path : `/${path}`);
-                  }
-                }}
-              >
-                {displayStartItems.map((item) => (
-                  <option
-                    key={item.path || 'root'}
-                    value={getNavPathPrefix(item)}
-                  >
-                    {resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
-                  </option>
-                ))}
-              </Select>
-            )}
-
-            <div className="flex-1 min-w-0" />
-
-            {/* End links: icon-only or first letter + tooltip */}
-            {endNavItems.length > 0 && (
-              <TooltipProvider
-                delayDuration={200}
-                skipDelayDuration={0}
-              >
-                <div className="flex items-center gap-0.5 shrink-0">
-                  {endNavItems.map((item) => (
-                    <TopBarEndItem
-                      key={item.path}
-                      item={item}
-                      label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
-                      activePathPrefix={activePathPrefix}
-                    />
-                  ))}
-                </div>
-              </TooltipProvider>
-            )}
-          </header>
-
-          <main className="flex-1 flex flex-col overflow-auto min-h-0">
-            <Outlet />
-          </main>
-        </div>
-      </OverlayShell>
-    </LayoutProviders>
+      <main className="flex-1 flex flex-col overflow-auto min-h-0">
+        <Outlet />
+      </main>
+    </div>
   );
 }

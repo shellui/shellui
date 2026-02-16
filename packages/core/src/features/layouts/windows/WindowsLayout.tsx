@@ -9,20 +9,18 @@ import {
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup } from '../config/types';
+import type { NavigationItem, NavigationGroup } from '../../config/types';
 import {
   flattenNavigationItems,
   getActivePathPrefix,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
-} from './utils';
-import { useSettings } from '../settings/hooks/useSettings';
-import { LayoutProviders } from './LayoutProviders';
-import { OverlayShell } from './OverlayShell';
-import { ContentView } from '../../components/ContentView';
-import { cn } from '../../lib/utils';
-import { Z_INDEX } from '../../lib/z-index';
+} from '../utils';
+import { useSettings } from '../../settings/SettingsContext';
+import { ContentView } from '../../../components/ContentView';
+import { cn } from '../../../lib/utils';
+import { Z_INDEX } from '../../../lib/z-index';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -650,233 +648,230 @@ export function WindowsLayout({
   );
 
   return (
-    <LayoutProviders>
-      <OverlayShell navigationItems={navigationItems}>
+    <>
+      <div
+        className="fixed inset-0 bg-muted/30"
+        style={{ paddingBottom: TASKBAR_HEIGHT }}
+      >
+        {/* Desktop area: windows */}
+        {windows.map((win, index) => {
+          const navItem = navigationItems.find((n) => n.path === win.path);
+          if (!navItem) return null;
+          const isFocused = win.id === frontWindowId;
+          const zIndex = Z_INDEX.WINDOWS_WINDOW_BASE + index;
+          return (
+            <AppWindow
+              key={win.id}
+              win={win}
+              navItem={navItem}
+              currentLanguage={currentLanguage}
+              isFocused={isFocused}
+              onFocus={() => focusWindow(win.id)}
+              onClose={() => closeWindow(win.id)}
+              onBoundsChange={(bounds) => updateWindowBounds(win.id, bounds)}
+              maxZIndex={maxZIndex}
+              zIndex={zIndex}
+            />
+          );
+        })}
+      </div>
+
+      {/* Taskbar */}
+      <div
+        className="fixed left-0 right-0 bottom-0 flex items-center gap-1 px-2 border-t border-border bg-sidebar-background"
+        style={{
+          height: TASKBAR_HEIGHT,
+          zIndex: Z_INDEX.WINDOWS_TASKBAR,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        {/* Start button */}
         <div
-          className="fixed inset-0 bg-muted/30"
-          style={{ paddingBottom: TASKBAR_HEIGHT }}
+          className="relative shrink-0"
+          ref={startPanelRef}
         >
-          {/* Desktop area: windows */}
-          {windows.map((win, index) => {
+          <button
+            type="button"
+            onClick={() => setStartMenuOpen((o) => !o)}
+            className={cn(
+              'flex items-center gap-2 h-9 px-3 rounded cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              startMenuOpen
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+            )}
+            aria-expanded={startMenuOpen}
+            aria-haspopup="true"
+            aria-label="Start"
+          >
+            <StartIcon className="h-5 w-5" />
+            <span className="font-semibold text-sm hidden sm:inline">{title || 'Start'}</span>
+          </button>
+          {/* Start menu panel */}
+          {startMenuOpen && (
+            <div
+              className="absolute bottom-full left-0 mb-1 w-64 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-popover shadow-lg py-2 z-[10001]"
+              style={{ zIndex: Z_INDEX.MODAL_CONTENT }}
+            >
+              <div className="px-2 pb-2 border-b border-border mb-2">
+                <span className="text-sm font-semibold text-popover-foreground">
+                  {title || 'Applications'}
+                </span>
+              </div>
+              <div className="grid gap-0.5">
+                {startNavItems
+                  .filter((item) => !item.hidden)
+                  .map((item) => {
+                    const label =
+                      typeof item.label === 'string'
+                        ? item.label
+                        : resolveNavLabel(item.label, currentLanguage);
+                    const icon =
+                      item.icon ??
+                      (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
+                    return (
+                      <button
+                        key={item.path}
+                        type="button"
+                        onClick={() => handleNavClick(item)}
+                        className="flex items-center gap-3 w-full px-3 py-2 text-left text-sm cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      >
+                        {icon ? (
+                          <img
+                            src={icon}
+                            alt=""
+                            className={cn(
+                              'h-5 w-5 shrink-0 rounded-sm object-cover',
+                              isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
+                            )}
+                          />
+                        ) : (
+                          <span className="h-5 w-5 shrink-0 rounded-sm bg-muted" />
+                        )}
+                        <span className="truncate">{label}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Window list */}
+        <div className="flex-1 flex items-center gap-1 min-w-0 overflow-x-auto">
+          {windows.map((win) => {
             const navItem = navigationItems.find((n) => n.path === win.path);
-            if (!navItem) return null;
+            const windowLabel = navItem
+              ? resolveNavLabel(navItem.label, currentLanguage)
+              : win.label;
             const isFocused = win.id === frontWindowId;
-            const zIndex = Z_INDEX.WINDOWS_WINDOW_BASE + index;
             return (
-              <AppWindow
+              <button
                 key={win.id}
-                win={win}
-                navItem={navItem}
-                currentLanguage={currentLanguage}
-                isFocused={isFocused}
-                onFocus={() => focusWindow(win.id)}
-                onClose={() => closeWindow(win.id)}
-                onBoundsChange={(bounds) => updateWindowBounds(win.id, bounds)}
-                maxZIndex={maxZIndex}
-                zIndex={zIndex}
-              />
+                type="button"
+                onClick={() => focusWindow(win.id)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  closeWindow(win.id);
+                }}
+                className={cn(
+                  'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                  isFocused
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                )}
+                title={windowLabel}
+              >
+                {win.icon ? (
+                  <img
+                    src={win.icon}
+                    alt=""
+                    className={cn(
+                      'h-4 w-4 shrink-0 rounded-sm object-cover',
+                      isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
+                    )}
+                  />
+                ) : (
+                  <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
+                )}
+                <span className="text-xs truncate">{windowLabel}</span>
+              </button>
             );
           })}
         </div>
 
-        {/* Taskbar */}
-        <div
-          className="fixed left-0 right-0 bottom-0 flex items-center gap-1 px-2 border-t border-border bg-sidebar-background"
-          style={{
-            height: TASKBAR_HEIGHT,
-            zIndex: Z_INDEX.WINDOWS_TASKBAR,
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
-        >
-          {/* Start button */}
-          <div
-            className="relative shrink-0"
-            ref={startPanelRef}
-          >
-            <button
-              type="button"
-              onClick={() => setStartMenuOpen((o) => !o)}
-              className={cn(
-                'flex items-center gap-2 h-9 px-3 rounded cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                startMenuOpen
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-              )}
-              aria-expanded={startMenuOpen}
-              aria-haspopup="true"
-              aria-label="Start"
-            >
-              <StartIcon className="h-5 w-5" />
-              <span className="font-semibold text-sm hidden sm:inline">{title || 'Start'}</span>
-            </button>
-            {/* Start menu panel */}
-            {startMenuOpen && (
-              <div
-                className="absolute bottom-full left-0 mb-1 w-64 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-popover shadow-lg py-2 z-[10001]"
-                style={{ zIndex: Z_INDEX.MODAL_CONTENT }}
-              >
-                <div className="px-2 pb-2 border-b border-border mb-2">
-                  <span className="text-sm font-semibold text-popover-foreground">
-                    {title || 'Applications'}
-                  </span>
-                </div>
-                <div className="grid gap-0.5">
-                  {startNavItems
-                    .filter((item) => !item.hidden)
-                    .map((item) => {
-                      const label =
-                        typeof item.label === 'string'
-                          ? item.label
-                          : resolveNavLabel(item.label, currentLanguage);
-                      const icon =
-                        item.icon ??
-                        (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
-                      return (
-                        <button
-                          key={item.path}
-                          type="button"
-                          onClick={() => handleNavClick(item)}
-                          className="flex items-center gap-3 w-full px-3 py-2 text-left text-sm cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          {icon ? (
-                            <img
-                              src={icon}
-                              alt=""
-                              className={cn(
-                                'h-5 w-5 shrink-0 rounded-sm object-cover',
-                                isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                              )}
-                            />
-                          ) : (
-                            <span className="h-5 w-5 shrink-0 rounded-sm bg-muted" />
-                          )}
-                          <span className="truncate">{label}</span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Window list */}
-          <div className="flex-1 flex items-center gap-1 min-w-0 overflow-x-auto">
-            {windows.map((win) => {
-              const navItem = navigationItems.find((n) => n.path === win.path);
-              const windowLabel = navItem
-                ? resolveNavLabel(navItem.label, currentLanguage)
-                : win.label;
-              const isFocused = win.id === frontWindowId;
+        {/* End navigation items (right side of taskbar) */}
+        {endNavItems.length > 0 && (
+          <div className="flex items-center gap-0.5 shrink-0 border-l border-sidebar-border pl-2 ml-1">
+            {endNavItems.map((item) => {
+              const label =
+                typeof item.label === 'string'
+                  ? item.label
+                  : resolveNavLabel(item.label, currentLanguage);
+              const icon =
+                item.icon ?? (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
               return (
                 <button
-                  key={win.id}
+                  key={item.path}
                   type="button"
-                  onClick={() => focusWindow(win.id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    closeWindow(win.id);
-                  }}
-                  className={cn(
-                    'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    isFocused
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                  )}
-                  title={windowLabel}
+                  onClick={() => handleNavClick(item)}
+                  className="flex items-center gap-2 h-8 px-2 rounded cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  title={label}
                 >
-                  {win.icon ? (
+                  {icon ? (
                     <img
-                      src={win.icon}
+                      src={icon}
                       alt=""
                       className={cn(
                         'h-4 w-4 shrink-0 rounded-sm object-cover',
-                        isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
+                        isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
                       )}
                     />
                   ) : (
                     <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
                   )}
-                  <span className="text-xs truncate">{windowLabel}</span>
+                  <span className="text-xs truncate max-w-[100px]">{label}</span>
                 </button>
               );
             })}
           </div>
+        )}
 
-          {/* End navigation items (right side of taskbar) */}
-          {endNavItems.length > 0 && (
-            <div className="flex items-center gap-0.5 shrink-0 border-l border-sidebar-border pl-2 ml-1">
-              {endNavItems.map((item) => {
-                const label =
-                  typeof item.label === 'string'
-                    ? item.label
-                    : resolveNavLabel(item.label, currentLanguage);
-                const icon =
-                  item.icon ??
-                  (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => handleNavClick(item)}
-                    className="flex items-center gap-2 h-8 px-2 rounded cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    title={label}
-                  >
-                    {icon ? (
-                      <img
-                        src={icon}
-                        alt=""
-                        className={cn(
-                          'h-4 w-4 shrink-0 rounded-sm object-cover',
-                          isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                        )}
-                      />
-                    ) : (
-                      <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
-                    )}
-                    <span className="text-xs truncate max-w-[100px]">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Date and time (extreme bottom right, OS-style); uses region timezone from settings */}
-          <div
-            className="flex flex-col items-end justify-center shrink-0 px-3 py-1 text-sidebar-foreground border-l border-sidebar-border ml-1 min-w-0"
-            style={{ paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}
-            role="timer"
-            aria-live="off"
-            aria-label={new Intl.DateTimeFormat(currentLanguage, {
-              timeZone,
-              dateStyle: 'full',
-              timeStyle: 'medium',
-            }).format(now)}
+        {/* Date and time (extreme bottom right, OS-style); uses region timezone from settings */}
+        <div
+          className="flex flex-col items-end justify-center shrink-0 px-3 py-1 text-sidebar-foreground border-l border-sidebar-border ml-1 min-w-0"
+          style={{ paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}
+          role="timer"
+          aria-live="off"
+          aria-label={new Intl.DateTimeFormat(currentLanguage, {
+            timeZone,
+            dateStyle: 'full',
+            timeStyle: 'medium',
+          }).format(now)}
+        >
+          <time
+            dateTime={now.toISOString()}
+            className="text-xs leading-tight tabular-nums whitespace-nowrap"
           >
-            <time
-              dateTime={now.toISOString()}
-              className="text-xs leading-tight tabular-nums whitespace-nowrap"
-            >
-              {new Intl.DateTimeFormat(currentLanguage, {
-                timeZone,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              }).format(now)}
-            </time>
-            <time
-              dateTime={now.toISOString()}
-              className="text-[10px] leading-tight whitespace-nowrap text-sidebar-foreground/90"
-            >
-              {new Intl.DateTimeFormat(currentLanguage, {
-                timeZone,
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-              }).format(now)}
-            </time>
-          </div>
+            {new Intl.DateTimeFormat(currentLanguage, {
+              timeZone,
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            }).format(now)}
+          </time>
+          <time
+            dateTime={now.toISOString()}
+            className="text-[10px] leading-tight whitespace-nowrap text-sidebar-foreground/90"
+          >
+            {new Intl.DateTimeFormat(currentLanguage, {
+              timeZone,
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+            }).format(now)}
+          </time>
         </div>
-      </OverlayShell>
-    </LayoutProviders>
+      </div>
+    </>
   );
 }
