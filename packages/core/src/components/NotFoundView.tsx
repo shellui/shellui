@@ -37,7 +37,12 @@ export const NotFoundView = () => {
       : [];
 
   const handleNavigate = (path: string) => {
-    shellui.navigate(path.startsWith('/') ? path : `/${path}`);
+    const targetPath = path.startsWith('/') ? path : `/${path}`;
+    if (window.self !== window.top) {
+      shellui.navigate(targetPath);
+    } else {
+      window.location.href = targetPath;
+    }
   };
 
   return (
