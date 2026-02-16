@@ -4,7 +4,6 @@ import { useSettings } from '../settings/SettingsContext';
 import { SonnerProvider } from '../sonner/SonnerContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
-import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
 import { OverlayShell } from './OverlayShell';
 import { LayoutFallback } from './LayoutFallback';
 
