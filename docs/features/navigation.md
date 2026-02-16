@@ -56,12 +56,12 @@ const config: ShellUIConfig = {
     {
       label: 'Themes',
       path: 'themes',
-      url: 'http://localhost:5173/#/themes',  // Contains /#/ → hash routing
+      url: 'http://localhost:5173/#/themes', // Contains /#/ → hash routing
     },
     {
       label: 'Home',
       path: 'home',
-      url: 'http://localhost:5173/#/',        // Root of hash app
+      url: 'http://localhost:5173/#/', // Root of hash app
     },
   ],
 };

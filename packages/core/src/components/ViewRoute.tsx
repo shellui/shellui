@@ -47,7 +47,6 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
       />
     );
   }
-  const pathPrefix = getNavPathPrefix(actualNavItem);
   const subPath = actualSubPath;
 
   // Construct the final URL for the iframe (non-hash: base + path; hash app: preserve nav url hash path + subPath)
@@ -56,7 +55,7 @@ export const ViewRoute = ({ navigation }: ViewRouteProps) => {
     const base = getBaseUrlWithoutHash(actualNavItem.url).replace(/\/$/, '');
     const navHashPath = getHashPathFromUrl(actualNavItem.url).replace(/^\/+|\/+$/g, '');
     const segments = [navHashPath, subPath].filter(Boolean);
-    const fullHashPath = '/' + segments.join('/');
+    const fullHashPath = `/${segments.join('/')}`;
     finalUrl = `${base}#${fullHashPath}`;
   } else {
     finalUrl = actualNavItem.url;
