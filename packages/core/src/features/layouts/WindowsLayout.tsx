@@ -123,13 +123,16 @@ function AppWindow({
   const resizeRafRef = useRef<number | null>(null);
   const pendingResizeBoundsRef = useRef<WindowState['bounds'] | null>(null);
 
-  useEffect(() => {
-    setBounds(win.bounds);
-  }, [win.bounds]);
+  // Use a ref for onBoundsChange to avoid it in effect deps (prevents infinite render loop).
+  // The parent creates a new callback reference on every render (inline arrow), so including
+  // it in a dependency array would re-fire the effect every render, triggering a state update
+  // in the parent, which re-renders, which re-fires the effect → React error #185.
+  const onBoundsChangeRef = useRef(onBoundsChange);
+  onBoundsChangeRef.current = onBoundsChange;
 
   useEffect(() => {
-    onBoundsChange(bounds);
-  }, [bounds, onBoundsChange]);
+    onBoundsChangeRef.current(bounds);
+  }, [bounds]);
 
   // When maximized, keep filling the viewport on window resize
   useEffect(() => {
