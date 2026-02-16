@@ -72,7 +72,7 @@ export function useNavigationItems() {
       }
     }
     return finalUrl;
-  }, [navigationItem, rootItem]);
+  }, [navigationItem, rootItem, location.pathname]);
 
   return {
     url: url,
