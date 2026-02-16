@@ -181,69 +181,6 @@ export const ContentView = ({
     }
   }, [url]);
 
-  // Inject script to prevent "Layout was forced" warning by deferring layout until stylesheets load
-  useEffect(() => {
-    const iframe = iframeRef.current;
-    if (!iframe) return;
-
-    const handleLoad = () => {
-      try {
-        const iframeWindow = iframe.contentWindow;
-        const iframeDoc = iframe.contentDocument || iframeWindow?.document;
-        if (!iframeDoc || !iframeWindow) return;
-
-        // Inject a script that waits for stylesheets before allowing layout calculations
-        const script = iframeDoc.createElement('script');
-        script.textContent = `
-          (function() {
-            // Wait for all stylesheets to load
-            function waitForStylesheets() {
-              const styleSheets = Array.from(document.styleSheets);
-              const pendingSheets = styleSheets.filter(function(sheet) {
-                try {
-                  return sheet.cssRules === null;
-                } catch (e) {
-                  return false; // Cross-origin stylesheets, assume loaded
-                }
-              });
-              
-              if (pendingSheets.length === 0) {
-                // All stylesheets loaded
-                return;
-              }
-              
-              // Check again after a short delay
-              setTimeout(waitForStylesheets, 10);
-            }
-            
-            // Start checking after DOM is ready
-            if (document.readyState === 'complete') {
-              waitForStylesheets();
-            } else {
-              window.addEventListener('load', waitForStylesheets);
-            }
-          })();
-        `;
-        iframeDoc.head.appendChild(script);
-      } catch (error) {
-        // Cross-origin or other errors - ignore (this is expected for some iframes)
-        logger.debug('Could not inject stylesheet wait script:', { error });
-      }
-    };
-
-    // Wait for iframe to load before injecting script
-    iframe.addEventListener('load', handleLoad);
-
-    // Also try immediately if already loaded
-    if (iframe.contentDocument?.readyState === 'complete') {
-      handleLoad();
-    }
-
-    return () => {
-      iframe.removeEventListener('load', handleLoad);
-    };
-  }, [initialUrl]);
-
   // Suppress browser warnings that are expected and acceptable
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
