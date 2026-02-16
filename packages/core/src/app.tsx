@@ -33,7 +33,7 @@ const AppContent = () => {
       unregisterServiceWorker();
       return;
     }
-    const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true; // Default to enabled
+    const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? false; // Default to enabled
 
     // Don't register service worker if navigation is empty or undefined
     // This helps prevent issues in development or misconfigured apps

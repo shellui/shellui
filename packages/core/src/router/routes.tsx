@@ -109,8 +109,18 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         ),
       });
     });
+    // Catch-all: no nav match (e.g. /layout) → ViewRoute can use root item with pathname as hash subpath to avoid 404
+    (layoutRoute.children as RouteObject[]).push({
+      path: '*',
+      element: (
+        <Suspense fallback={<RouteFallback />}>
+          <ViewRoute navigation={navigationItems} />
+        </Suspense>
+      ),
+    });
   }
-  (routes[0].children as RouteObject[]).push(layoutRoute);
+  // Layout must be before the catch-all (*) so paths like /layout are handled by layout → ViewRoute (root fallback), not 404
+  (routes[0].children as RouteObject[]).unshift(layoutRoute);
 
   return routes;
 };

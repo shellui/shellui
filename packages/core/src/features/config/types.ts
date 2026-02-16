@@ -26,6 +26,8 @@ export interface NavigationItem {
   hiddenOnDesktop?: boolean;
   /** How to open this link: 'default' (navigate in main area), 'modal', 'drawer', or 'external' (target="_blank"). */
   openIn?: 'default' | 'modal' | 'drawer' | 'external';
+  /** When true, the app uses hash-based routing (e.g. /#/path). If omitted, inferred from url containing /#/. */
+  useHashRouter?: boolean;
   /** Optional drawer position when openIn === 'drawer'. Default is 'right' if omitted. */
   drawerPosition?: DrawerPosition;
   /** Sidebar position: 'start' (default) or 'end'. End items are rendered in the sidebar footer. */

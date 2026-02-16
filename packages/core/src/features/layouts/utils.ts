@@ -5,6 +5,34 @@ export function getNavPathPrefix(item: NavigationItem): string {
   return item.path === '/' || item.path === '' ? '/' : `/${item.path}`;
 }
 
+/** Whether a URL string uses hash-based routing (e.g. contains /#/). */
+export function isHashRouterUrl(url: string): boolean {
+  return url.includes('/#/');
+}
+
+/** Whether a nav item uses hash-based routing (explicit flag or inferred from url). */
+export function isHashRouterNavItem(item: NavigationItem): boolean {
+  if (item.useHashRouter === true) return true;
+  if (item.useHashRouter === false) return false;
+  return isHashRouterUrl(item.url);
+}
+
+/** Base URL without hash (origin + pathname before #). Used to match and build iframe URLs for hash apps. */
+export function getBaseUrlWithoutHash(url: string): string {
+  const hashIndex = url.indexOf('#');
+  if (hashIndex === -1) return url;
+  const base = url.slice(0, hashIndex);
+  return base.endsWith('/') ? base : `${base}/`;
+}
+
+/** Hash path from a URL (part after #), e.g. "/themes" from "http://localhost:5173/#/themes". Returns "" if no hash. */
+export function getHashPathFromUrl(url: string): string {
+  const hashIndex = url.indexOf('#');
+  if (hashIndex === -1) return '';
+  const hash = url.slice(hashIndex + 1);
+  return hash.startsWith('/') ? hash : `/${hash}`;
+}
+
 /** Among items that match the current pathname, return the longest path prefix. Used so only one nav item is active when URLs nest (e.g. /foo and /foo/bar). */
 export function getActivePathPrefix(pathname: string, items: NavigationItem[]): string | null {
   const linkItems = items.filter(

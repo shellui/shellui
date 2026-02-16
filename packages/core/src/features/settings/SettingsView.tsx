@@ -184,7 +184,7 @@ export const SettingsView = () => {
   // Navigate back to settings root
   const handleBackToSettings = useCallback(() => {
     // Navigate to settings root, replacing current history entry
-    navigate(urls.settings, { replace: true });
+    navigate(urls.settings);
   }, [navigate]);
 
   return (

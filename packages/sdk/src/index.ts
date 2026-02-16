@@ -243,7 +243,13 @@ export class ShellUISDK {
 
 const sdk = new ShellUISDK();
 
-export const init = async (): Promise<ShellUISDK> => await sdk.init();
+export interface ShellUIInitOptions {
+  /** When false, the iframe does not sync its URL to the parent (no SHELLUI_URL_CHANGED). Default true. Set to false so browser back only sees shell-level navigations. */
+  syncUrlWithParent?: boolean;
+}
+
+export const init = async (options?: ShellUIInitOptions): Promise<ShellUISDK> =>
+  await sdk.init(options);
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (url?: string): void => openModalAction(url);
 export const openDrawer = (options?: OpenDrawerOptions): void => openDrawerAction(options);
