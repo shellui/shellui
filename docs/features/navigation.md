@@ -35,6 +35,39 @@ Each navigation item supports the following properties:
 - **`url`** (string, required): URL to load when the navigation item is clicked
 - **`icon`** (string, optional): Path to an SVG icon file (e.g., `/icons/home.svg`)
 - **`settings`** (string, optional): URL of a settings panel to display in **Settings > Applications**. See [Application Settings](/features/application-settings) for details.
+- **`useHashRouter`** (boolean, optional): When `true`, the app uses hash-based routing. If omitted, ShellUI infers this from the `url` containing `/#/` (see [Hash URL navigation](#hash-url-navigation) below).
+
+## Hash URL navigation
+
+ShellUI supports applications that use **hash-based routing** (e.g. React Router HashRouter, Vue Router in hash mode). For this to work, both the navigation configuration and any URLs opened in the shell must use the **`/#/`** segment in the URL.
+
+### How ShellUI detects hash routing
+
+- **In configuration:** A navigation item is treated as a hash-router app if its `url` **contains the literal sequence `/#/`** (slash–hash–slash). For example: `http://localhost:5173/#/` or `http://localhost:5173/#/themes`. You can also set `useHashRouter: true` explicitly.
+- **When opening a link:** When the user opens a URL (e.g. from the address bar or a link), ShellUI only applies hash-based navigation logic if the URL **contains `/#/`**. For example, `http://localhost:5173/#/themes/foo` will be parsed: the part after `/#/` becomes the path used inside the shell, and the shell matches the base URL (before `#`) to a navigation item that is configured for hash routing.
+
+If the URL does not contain `/#/`, ShellUI treats it as normal path-based routing (pathname + search only).
+
+### Example
+
+```typescript
+const config: ShellUIConfig = {
+  navigation: [
+    {
+      label: 'Themes',
+      path: 'themes',
+      url: 'http://localhost:5173/#/themes',  // Contains /#/ → hash routing
+    },
+    {
+      label: 'Home',
+      path: 'home',
+      url: 'http://localhost:5173/#/',        // Root of hash app
+    },
+  ],
+};
+```
+
+With this setup, opening `http://localhost:5173/#/themes/foo` in the shell will navigate to the "Themes" app and pass the subpath `foo` to the iframe. The shell’s own URL remains path-based (no hash), so navigation stays consistent whether the embedded app uses hash or path routing.
 
 ## Navigation Groups
 

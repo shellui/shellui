@@ -33,6 +33,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - **Themes:** default theme now uses local fonts from `static/fonts/` (Open Sans, Source Serif 4) instead of Google Fonts; theme docs updated for local font setup
 - **Navigation:** support `start_url` to redirect "/" and navigation items with path `""` or `"/"` as the start page
+- **Navigation:** handling navigation for applications using hash navigation
 - Improved **Sentry** error reporting integration
 
 ## [0.1.0] - 2026-02-09
