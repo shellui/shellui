@@ -6,6 +6,7 @@ import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
 import { OverlayShell } from './OverlayShell';
+import { LayoutFallback } from './LayoutFallback';
 
 const SidebarLayout = lazy(() =>
   import('./sidebar/SidebarLayout').then((m) => ({ default: m.SidebarLayout })),
@@ -28,15 +29,6 @@ interface AppLayoutProps {
   navigation: (NavigationItem | NavigationGroup)[];
 }
 
-function LayoutFallback() {
-  return (
-    <div
-      className="min-h-screen bg-background"
-      aria-hidden
-    />
-  );
-}
-
 /** Renders the layout based on settings.layout (override) or config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
 export function AppLayout({
   layout = 'sidebar',
@@ -46,7 +38,6 @@ export function AppLayout({
   navigation,
 }: AppLayoutProps) {
   const { settings } = useSettings();
-  const { navigationItems } = useNavigationItems();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +62,7 @@ export function AppLayout({
     <ModalProvider>
       <DrawerProvider>
         <SonnerProvider>
-          <OverlayShell navigationItems={navigationItems}>
+          <OverlayShell>
             <Suspense fallback={<LayoutFallback />}>
               <LayoutComponent {...layoutProps} />
             </Suspense>

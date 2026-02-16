@@ -9,16 +9,17 @@ import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
+import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
 import { getNavPathPrefix, resolveLocalizedString } from './utils';
 
 interface OverlayShellProps {
-  navigationItems: NavigationItem[];
   children: ReactNode;
 }
 
 /** Renders modal, drawer and toaster overlays and handles SHELLUI_OPEN_MODAL / SHELLUI_NAVIGATE. */
-export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
+export function OverlayShell({ children }: OverlayShellProps) {
   const navigate = useNavigate();
+  const { navigationItems } = useNavigationItems();
   const { isOpen, modalUrl, closeModal } = useModal();
   const {
     isOpen: isDrawerOpen,
