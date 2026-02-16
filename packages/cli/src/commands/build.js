@@ -16,6 +16,33 @@ import {
 } from '../utils/index.js';
 
 /**
+ * Collect all unique path values from navigation config (items and nested groups).
+ * Returns paths normalized (no leading/trailing slashes, no empty).
+ * @param {Array<{ path?: string; items?: Array<{ path?: string }> }>} navigation - Config navigation array
+ * @returns {string[]} Unique path segments safe for dist subfolders
+ */
+function getNavigationPaths(navigation) {
+  if (!Array.isArray(navigation)) return [];
+  const paths = new Set();
+  for (const item of navigation) {
+    if (!item || typeof item !== 'object') continue;
+    if ('path' in item && typeof item.path === 'string') {
+      const normalized = item.path.replace(/^\/+|\/+$/g, '').trim();
+      if (normalized && !normalized.includes('..')) paths.add(normalized);
+    }
+    if (Array.isArray(item.items)) {
+      for (const sub of item.items) {
+        if (sub && typeof sub.path === 'string') {
+          const normalized = sub.path.replace(/^\/+|\/+$/g, '').trim();
+          if (normalized && !normalized.includes('..')) paths.add(normalized);
+        }
+      }
+    }
+  }
+  return [...paths];
+}
+
+/**
  * Recursively copy a directory
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
@@ -194,6 +221,21 @@ export async function buildCommand(root = '.') {
       console.log(pc.blue('Creating 404.html for SPA routing...'));
       fs.copyFileSync(indexPath, notFoundPath);
       console.log(pc.green('404.html created!'));
+
+      // Create dist/<path>/index.html for each navigation path so those URLs return 200
+      const routePaths = getNavigationPaths(config.navigation);
+      if (routePaths.length > 0) {
+        console.log(pc.blue(`Creating route folders for ${routePaths.length} path(s)...`));
+        for (const routePath of routePaths) {
+          const routeDir = path.join(distPath, routePath);
+          const routeIndexPath = path.join(routeDir, 'index.html');
+          if (!fs.existsSync(routeDir)) {
+            fs.mkdirSync(routeDir, { recursive: true });
+          }
+          fs.copyFileSync(indexPath, routeIndexPath);
+        }
+        console.log(pc.green(`Route folders created: ${routePaths.join(', ')}`));
+      }
     }
 
     console.log(pc.green('Build complete!'));
