@@ -99,8 +99,7 @@ const NavigationContent = ({
     const pathPrefix = getNavPathPrefix(navItem);
     const isOverlay = navItem.openIn === 'modal' || navItem.openIn === 'drawer';
     const isExternal = navItem.openIn === 'external';
-    const isActive =
-      !isOverlay && !isExternal && pathPrefix === activePathPrefix;
+    const isActive = !isOverlay && !isExternal && pathPrefix === activePathPrefix;
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;

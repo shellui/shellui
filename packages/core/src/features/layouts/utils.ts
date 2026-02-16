@@ -6,18 +6,13 @@ export function getNavPathPrefix(item: NavigationItem): string {
 }
 
 /** Among items that match the current pathname, return the longest path prefix. Used so only one nav item is active when URLs nest (e.g. /foo and /foo/bar). */
-export function getActivePathPrefix(
-  pathname: string,
-  items: NavigationItem[],
-): string | null {
+export function getActivePathPrefix(pathname: string, items: NavigationItem[]): string | null {
   const linkItems = items.filter(
     (i) => i.openIn !== 'modal' && i.openIn !== 'drawer' && i.openIn !== 'external',
   );
   const matching = linkItems
     .map((i) => getNavPathPrefix(i))
-    .filter(
-      (p) => pathname === p || pathname.startsWith(p === '/' ? '/' : p + '/'),
-    );
+    .filter((p) => pathname === p || pathname.startsWith(p === '/' ? '/' : `${p}/`));
   if (matching.length === 0) return null;
   return matching.reduce((a, b) => (a.length >= b.length ? a : b));
 }

@@ -65,8 +65,7 @@ function getResolvedAppearanceForSettings(
 ): Appearance | undefined {
   if (typeof window === 'undefined') return undefined;
   config?.themes?.forEach(registerTheme);
-  const themeName =
-    settings.appearance?.name || config?.defaultTheme || 'default';
+  const themeName = settings.appearance?.name || config?.defaultTheme || 'default';
   const themeDef = getTheme(themeName) || getTheme('default');
   if (!themeDef) return undefined;
   const colorScheme = settings.appearance?.colorScheme ?? 'system';
@@ -135,13 +134,13 @@ function buildSettingsForPropagation(
     };
   }
   if (config?.navigation?.length) {
-    const items: SettingsNavigationItem[] = flattenNavigationItems(
-      config.navigation,
-    ).map((item) => ({
-      path: item.path,
-      url: item.url,
-      label: resolveLabel(item.label, lang),
-    }));
+    const items: SettingsNavigationItem[] = flattenNavigationItems(config.navigation).map(
+      (item) => ({
+        path: item.path,
+        url: item.url,
+        label: resolveLabel(item.label, lang),
+      }),
+    );
     result = { ...result, navigation: { items } };
   }
   return result;
@@ -292,9 +291,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               ...defaultAppearance,
               ...parsed.appearance,
               // Migrate from legacy theme/themeName
-              name: parsed.appearance?.name ?? parsed.appearance?.themeName ?? defaultAppearance.name,
+              name:
+                parsed.appearance?.name ?? parsed.appearance?.themeName ?? defaultAppearance.name,
               colorScheme:
-                parsed.appearance?.colorScheme ?? parsed.appearance?.theme ?? defaultAppearance.colorScheme,
+                parsed.appearance?.colorScheme ??
+                parsed.appearance?.theme ??
+                defaultAppearance.colorScheme,
               colors: parsed.appearance?.colors ?? defaultAppearance.colors,
             },
             language: {

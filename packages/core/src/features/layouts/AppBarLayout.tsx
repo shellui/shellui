@@ -61,8 +61,7 @@ function TopBarEndItem({
   const pathPrefix = getNavPathPrefix(item);
   const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
   const isExternal = item.openIn === 'external';
-  const isActive =
-    !isOverlay && !isExternal && pathPrefix === activePathPrefix;
+  const isActive = !isOverlay && !isExternal && pathPrefix === activePathPrefix;
 
   const faviconUrl = isExternal && !item.icon ? getExternalFaviconUrl(item.url) : null;
   const iconSrc = item.icon ?? faviconUrl ?? null;
