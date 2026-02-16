@@ -30,8 +30,12 @@ export const ContentView = ({
   const navigate = useNavigate();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const isInternalNavigation = useRef(false);
+  const cancelRevealRef = useRef<(() => void) | null>(null);
+  const mountTimeRef = useRef(Date.now());
   const [initialUrl] = useState(url);
   const [isLoading, setIsLoading] = useState(true);
+
+  const MIN_LOADING_MS = 80; // Don't reveal before this, reduces blink from theme/layout paint
 
   useEffect(() => {
     if (!iframeRef.current) {
@@ -104,25 +108,63 @@ export const ContentView = ({
     };
   }, [pathPrefix, navigate]);
 
-  // Hide loading overlay when iframe sends SHELLUI_INITIALIZED
+  const scheduleReveal = (reveal: () => void) => {
+    const doReveal = () => {
+      const elapsed = Date.now() - mountTimeRef.current;
+      if (elapsed < MIN_LOADING_MS) {
+        const timer = setTimeout(doReveal, MIN_LOADING_MS - elapsed);
+        cancelRevealRef.current = () => {
+          clearTimeout(timer);
+          cancelRevealRef.current = null;
+        };
+        return;
+      }
+      reveal();
+    };
+    requestAnimationFrame(() => requestAnimationFrame(doReveal));
+  };
+
+  // Hide loading overlay when iframe sends SHELLUI_INITIALIZED.
+  // Defer reveal (double rAF + min time) so the iframe has time to apply theme and paint.
   useEffect(() => {
     const cleanup = shellui.addMessageListener(
       'SHELLUI_INITIALIZED',
       (_data: ShellUIMessage, event: MessageEvent) => {
-        if (event.source === iframeRef.current?.contentWindow) {
-          setIsLoading(false);
-        }
+        if (event.source !== iframeRef.current?.contentWindow) return;
+        cancelRevealRef.current?.();
+        let cancelled = false;
+        cancelRevealRef.current = () => {
+          cancelled = true;
+          cancelRevealRef.current = null;
+        };
+        scheduleReveal(() => {
+          if (!cancelled) setIsLoading(false);
+          cancelRevealRef.current = null;
+        });
       },
     );
-    return () => cleanup();
+    return () => {
+      cancelRevealRef.current?.();
+      cancelRevealRef.current = null;
+      cleanup();
+    };
   }, []);
 
-  // Fallback: hide overlay after 400ms if SHELLUI_INITIALIZED was not received
+  // Fallback: hide overlay after 400ms if SHELLUI_INITIALIZED was not received.
   useEffect(() => {
     if (!isLoading) return;
     const timeoutId = setTimeout(() => {
       logger.info('ContentView: Timeout expired, hiding loading overlay');
-      setIsLoading(false);
+      cancelRevealRef.current?.();
+      let cancelled = false;
+      cancelRevealRef.current = () => {
+        cancelled = true;
+        cancelRevealRef.current = null;
+      };
+      scheduleReveal(() => {
+        if (!cancelled) setIsLoading(false);
+        cancelRevealRef.current = null;
+      });
     }, 400);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
@@ -130,11 +172,10 @@ export const ContentView = ({
   // Handle external URL changes (e.g. from Sidebar)
   useEffect(() => {
     if (iframeRef.current && !isInternalNavigation.current) {
-      // Only update iframe src if it's actually different from its current src
-      // to avoid unnecessary reloads
       if (iframeRef.current.src !== url) {
         iframeRef.current.src = url;
         setIsLoading(true);
+        mountTimeRef.current = Date.now(); // apply min delay for this load too
       }
     }
   }, [url]);
@@ -234,19 +275,28 @@ export const ContentView = ({
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}>
+    <div
+      style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}
+      className="bg-background"
+    >
       {/* Note: allow-same-origin is required for same-origin iframe content (e.g., Vite dev server, cookies, localStorage).
           While this allows the iframe to remove its own sandboxing, it's acceptable here because the iframe content
           is trusted microfrontend content from the same application origin.
           Browser security warnings about this combination cannot be suppressed programmatically. */}
+      {/* Strategy to prevent browser deprioritizing iframe rendering:
+          - loading="eager" explicitly requests immediate loading (not deferred)
+          - opacity:0 hides the iframe during loading while keeping it in the rendering pipeline
+          - Reveal is instant (no transition) after deferred double-rAF to avoid blink */}
       <iframe
         ref={iframeRef}
         src={initialUrl}
+        loading="eager"
         style={{
           width: '100%',
           height: '100%',
           border: 'none',
           display: 'block',
+          opacity: isLoading ? 0 : 1,
         }}
         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="no-referrer-when-downgrade"
