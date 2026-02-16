@@ -6,11 +6,13 @@ import {
   useEffect,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
+import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../config/types';
 import {
   flattenNavigationItems,
+  getActivePathPrefix,
   getNavPathPrefix,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
@@ -504,6 +506,7 @@ export function WindowsLayout({
   logo: _logo,
   navigation,
 }: WindowsLayoutProps) {
+  const location = useLocation();
   const { i18n } = useTranslation();
   const { settings } = useSettings();
   const currentLanguage = i18n.language || 'en';
@@ -523,6 +526,7 @@ export function WindowsLayout({
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const startPanelRef = useRef<HTMLDivElement>(null);
+  const initialOpenFromUrlDoneRef = useRef(false);
 
   // Update date/time every second for taskbar clock
   useEffect(() => {
@@ -567,6 +571,20 @@ export function WindowsLayout({
     },
     [currentLanguage, windows.length],
   );
+
+  // On first load only: open a window for the current URL if it matches a nav item (no reaction to later URL changes)
+  useEffect(() => {
+    if (initialOpenFromUrlDoneRef.current) return;
+    initialOpenFromUrlDoneRef.current = true;
+    const pathname = location.pathname;
+    const windowableItems = navigationItems.filter(
+      (i) => i.openIn !== 'modal' && i.openIn !== 'drawer' && i.openIn !== 'external',
+    );
+    const pathPrefix = getActivePathPrefix(pathname, windowableItems);
+    if (!pathPrefix) return;
+    const item = windowableItems.find((i) => getNavPathPrefix(i) === pathPrefix);
+    if (item) openWindow(item);
+  }, [location.pathname, navigationItems, openWindow]);
 
   const closeWindow = useCallback((id: string) => {
     setWindows((prev) => prev.filter((w) => w.id !== id));
