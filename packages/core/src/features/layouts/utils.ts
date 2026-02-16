@@ -2,7 +2,7 @@ import type { NavigationItem, NavigationGroup, LocalizedString } from '../config
 
 /** Path prefix for a nav item: "/" for root (path '' or '/'), otherwise "/{path}". */
 export function getNavPathPrefix(item: NavigationItem): string {
-  return item.path === '/' || item.path === '' ? '/' : `/${item.path}`;
+  return item.path === '' ? '/' : `/${item.path}`;
 }
 
 /** Whether a URL string uses hash-based routing (e.g. contains /#/). */

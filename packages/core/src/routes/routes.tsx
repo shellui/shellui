@@ -16,8 +16,8 @@ const CookiePreferencesView = lazy(() =>
     default: m.CookiePreferencesView,
   })),
 );
-const ViewRoute = lazy(() =>
-  import('./components/ViewRoute').then((m) => ({ default: m.ViewRoute })),
+const NavigationItemRoute = lazy(() =>
+  import('./components/NavigationItemRoute').then((m) => ({ default: m.NavigationItemRoute })),
 );
 const IndexRoute = lazy(() =>
   import('./components/IndexRoute').then((m) => ({ default: m.IndexRoute })),
@@ -96,22 +96,22 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         path: `/${item.path}/*`,
         element: (
           <Suspense fallback={<RouteFallback />}>
-            <ViewRoute navigation={navigationItems} />
+            <NavigationItemRoute />
           </Suspense>
         ),
       });
     });
-    // Catch-all: no nav match (e.g. /layout) → ViewRoute can use root item with pathname as hash subpath to avoid 404
+    // Catch-all: no nav match (e.g. /layout) → NavigationItemRoute can use root item with pathname as hash subpath to avoid 404
     (layoutRoute.children as RouteObject[]).push({
       path: '*',
       element: (
         <Suspense fallback={<RouteFallback />}>
-          <ViewRoute navigation={navigationItems} />
+          <NavigationItemRoute />
         </Suspense>
       ),
     });
   }
-  // Layout must be before the catch-all (*) so paths like /layout are handled by layout → ViewRoute (root fallback), not 404
+  // Layout must be before the catch-all (*) so paths like /layout are handled by layout → NavigationItemRoute (root fallback), not 404
   (routes[0].children as RouteObject[]).unshift(layoutRoute);
 
   return routes;

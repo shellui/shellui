@@ -53,34 +53,7 @@ export function OverlayShell({ navigationItems, children }: OverlayShellProps) {
 
       let pathname: string;
 
-      // Hash-based URL (e.g. http://localhost:5173/#/themes/foo): show non-hash path in shell, match by nav item base URL
-      if (rawUrl.includes('/#/')) {
-        try {
-          const parsed = new URL(rawUrl);
-          const hashPart = parsed.hash.slice(1); // strip leading #
-          const hashPath = hashPart.startsWith('/') ? hashPart : `/${hashPart}`;
-          const baseUrl = getBaseUrlWithoutHash(rawUrl);
-          const navItem = navigationItems.find(
-            (item) => isHashRouterNavItem(item) && getBaseUrlWithoutHash(item.url) === baseUrl,
-          );
-          if (!navItem) {
-            shellui.toast({
-              type: 'error',
-              title: t('navigationError') ?? 'Navigation error',
-              description:
-                t('navigationNotAllowed') ?? 'This URL is not configured in the app navigation.',
-            });
-            return;
-          }
-          const pathPrefix = getNavPathPrefix(navItem);
-          pathname =
-            hashPath === '/' || hashPath === ''
-              ? pathPrefix
-              : `${pathPrefix.replace(/\/$/, '')}${hashPath}`;
-        } catch {
-          pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-        }
-      } else if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
         try {
           pathname = new URL(rawUrl).pathname;
         } catch {

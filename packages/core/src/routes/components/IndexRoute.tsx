@@ -2,7 +2,7 @@ import { Navigate } from 'react-router';
 import { useConfig } from '../../features/config/useConfig';
 import { flattenNavigationItems } from '../../features/layouts/utils';
 import { HomeView } from './HomeView';
-import { ViewRoute } from './ViewRoute';
+import { NavigationItemRoute } from './NavigationItemRoute';
 
 /**
  * Renders the root path "/":
@@ -29,7 +29,7 @@ export const IndexRoute = () => {
     const navigationItems = flattenNavigationItems(navigation);
     const rootNavItem = navigationItems.find((item) => item.path === '' || item.path === '/');
     if (rootNavItem) {
-      return <ViewRoute navigation={navigationItems} />;
+      return <NavigationItemRoute />;
     }
   }
 

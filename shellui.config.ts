@@ -26,7 +26,7 @@ const config: ShellUIConfig = {
     ],
   },
   // Layout: 'sidebar' (default), 'fullscreen' (content only), 'windows' (taskbar + multi-window), or 'app-bar' (top bar)
-  layout: 'app-bar',
+  layout: 'sidebar',
   // Enable specific languages: single language string or array of language codes
   // Examples:
   // language: 'en',           // Only English
@@ -117,6 +117,34 @@ const config: ShellUIConfig = {
       path: 'playground',
       url: '/',
       icon: '/icons/play.svg',
+      position: 'end',
+    },
+    {
+      label: 'Home',
+      path: '',
+      // url: 'http://localhost:5173/#/',
+      url: 'https://docs.shellui.com',
+    },
+    {
+      title: 'Playground',
+      items: [
+        {
+          label: 'Home',
+          path: 'home',
+          url: 'http://localhost:5173/#/',
+        },
+        {
+          label: 'Themes',
+          path: 'themes',
+          url: 'http://localhost:5173/#/themes',
+          settings: 'http://localhost:5173/#/themes',
+        },
+        {
+          label: 'Home with Subpath',
+          path: 'root',
+          url: 'http://localhost:5173/#/',
+        },
+      ],
     },
     {
       // Language-specific label (new feature)
@@ -125,7 +153,7 @@ const config: ShellUIConfig = {
         fr: 'Documentation',
       },
       path: 'docs',
-      url: 'http://localhost:3000',
+      url: 'https://docs.shellui.com',
       icon: '/icons/book-open.svg',
     },
     {
@@ -133,14 +161,6 @@ const config: ShellUIConfig = {
       path: 'shellui',
       url: 'https://shellui.com/',
       icon: '/icons/user.svg',
-    },
-    {
-      label: 'Sebastienbarbier',
-      path: 'sebastienbarbier',
-      url: 'https://sebastienbarbier.com/',
-      openIn: 'external',
-      position: 'end',
-      hiddenOnMobile: true,
     },
     {
       // Group title can also be localized
