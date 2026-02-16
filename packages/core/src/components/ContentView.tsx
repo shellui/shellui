@@ -10,6 +10,7 @@ import {
 } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { LOADING_OVERLAY_DURATION_MS } from '../constants';
 import { LoadingOverlay } from './LoadingOverlay';
 
 const logger = getLogger('shellcore');
@@ -150,7 +151,7 @@ export const ContentView = ({
     };
   }, []);
 
-  // Fallback: hide overlay after 400ms if SHELLUI_INITIALIZED was not received.
+  // Fallback: hide overlay after LOADING_OVERLAY_DURATION_MS if SHELLUI_INITIALIZED was not received.
   useEffect(() => {
     if (!isLoading) return;
     const timeoutId = setTimeout(() => {
@@ -165,7 +166,7 @@ export const ContentView = ({
         if (!cancelled) setIsLoading(false);
         cancelRevealRef.current = null;
       });
-    }, 400);
+    }, LOADING_OVERLAY_DURATION_MS);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
 
