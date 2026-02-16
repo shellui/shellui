@@ -433,13 +433,16 @@ const HomeIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-/** Mobile bottom nav: Home + nav items; More only when not all fit. Dynamic from width. Reuses HOMEPAGE_NAV_ITEM for label. */
+/** Mobile bottom nav: optional Home + nav items; More only when not all fit. Dynamic from width. Reuses HOMEPAGE_NAV_ITEM for label. Home is shown only when no nav item is defined for "/". */
 const MobileBottomNav = ({
   items,
   currentLanguage,
+  showHomeButton,
 }: {
   items: NavigationItem[];
   currentLanguage: string;
+  /** When false, do not show the Home button (e.g. when a nav item for "/" exists). */
+  showHomeButton: boolean;
 }) => {
   const location = useLocation();
   const [expanded, setExpanded] = useState(false);
@@ -470,9 +473,11 @@ const MobileBottomNav = ({
     const computedSlots =
       rowWidth > 0 ? Math.floor((contentWidth + BOTTOM_NAV_GAP) / slotTotal) : 5;
     const totalSlots = Math.min(Math.max(0, computedSlots), BOTTOM_NAV_MAX_SLOTS);
-    const slotsForNav = totalSlots - 1;
+    const slotsForNav = showHomeButton ? totalSlots - 1 : totalSlots;
     const allFit = list.length <= slotsForNav;
-    const maxInRow = allFit ? list.length : Math.max(0, totalSlots - 2);
+    const maxInRow = allFit
+      ? list.length
+      : Math.max(0, showHomeButton ? totalSlots - 2 : totalSlots - 1);
     const row = list.slice(0, maxInRow);
     const rowPaths = new Set(row.map((i) => i.path));
     const overflow = list.filter((item) => !rowPaths.has(item.path));
@@ -481,7 +486,7 @@ const MobileBottomNav = ({
       overflowItems: overflow,
       hasMore: overflow.length > 0,
     };
-  }, [items, rowWidth]);
+  }, [items, rowWidth, showHomeButton]);
 
   useEffect(() => {
     setExpanded(false);
@@ -518,25 +523,27 @@ const MobileBottomNav = ({
         paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))',
       }}
     >
-      {/* Top row: Home + nav items + More/Less — single row, no wrap */}
+      {/* Top row: optional Home + nav items + More/Less — single row, no wrap */}
       <div className="flex flex-row flex-nowrap items-center justify-center gap-1 px-3 overflow-x-hidden">
-        <Link
-          to="/"
-          className={cn(
-            'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-            location.pathname === '/' || location.pathname === ''
-              ? 'bg-sidebar-accent text-sidebar-accent-foreground [&_span]:text-sidebar-accent-foreground'
-              : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit',
-          )}
-          aria-label={resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
-        >
-          <span className="size-4 shrink-0 flex items-center justify-center [&_svg]:text-current">
-            <HomeIcon className="size-4" />
-          </span>
-          <span className="text-[11px] leading-tight">
-            {resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
-          </span>
-        </Link>
+        {showHomeButton && (
+          <Link
+            to="/"
+            className={cn(
+              'flex flex-col items-center justify-center gap-1 rounded-md py-1.5 px-2 min-w-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+              location.pathname === '/' || location.pathname === ''
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground [&_span]:text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&_span]:inherit',
+            )}
+            aria-label={resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
+          >
+            <span className="size-4 shrink-0 flex items-center justify-center [&_svg]:text-current">
+              <HomeIcon className="size-4" />
+            </span>
+            <span className="text-[11px] leading-tight">
+              {resolveNavLabel(HOMEPAGE_NAV_ITEM.label, currentLanguage) || 'Home'}
+            </span>
+          </Link>
+        )}
         {rowItems.map((item, i) => renderItem(item, i))}
         {hasMore && (
           <button
@@ -581,17 +588,19 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
 
-  const { startNav, endItems, navigationItems, mobileNavItems } = useMemo(() => {
+  const { startNav, endItems, navigationItems, mobileNavItems, hasRootNavItem } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(navigation, 'desktop');
     const mobileNav = filterNavigationByViewport(navigation, 'mobile');
     const { start, end } = splitNavigationByPosition(desktopNav);
     const flat = flattenNavigationItems(desktopNav);
     const mobileFlat = flattenNavigationItems(mobileNav);
+    const hasRoot = flat.some((item) => item.path === '' || item.path === '/');
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
       navigationItems: flat,
       mobileNavItems: mobileFlat,
+      hasRootNavItem: hasRoot,
     };
   }, [navigation]);
 
@@ -637,10 +646,11 @@ const DefaultLayoutContent = ({ title, logo, navigation }: DefaultLayoutProps) =
             </main>
           </div>
 
-          {/* Mobile bottom nav: visible only below md */}
+          {/* Mobile bottom nav: visible only below md; Home button only when no view for / */}
           <MobileBottomNav
             items={mobileNavItems}
             currentLanguage={currentLanguage}
+            showHomeButton={!hasRootNavItem}
           />
         </OverlayShell>
       </SidebarProvider>
