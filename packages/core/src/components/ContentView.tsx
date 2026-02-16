@@ -11,7 +11,7 @@ import {
 } from '@shellui/sdk';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { LOADING_OVERLAY_DURATION_MS } from '../constants';
+import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
 
 const logger = getLogger('shellcore');

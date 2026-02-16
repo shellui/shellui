@@ -5,9 +5,9 @@ import {
   isHashRouterNavItem,
   getBaseUrlWithoutHash,
   getHashPathFromUrl,
-} from '../features/layouts/utils';
-import { ContentView } from './ContentView';
-import type { NavigationItem } from '../features/config/types';
+} from '../../features/layouts/utils';
+import { ContentView } from '../../components/ContentView';
+import type { NavigationItem } from '../../features/config/types';
 
 interface ViewRouteProps {
   navigation: NavigationItem[];

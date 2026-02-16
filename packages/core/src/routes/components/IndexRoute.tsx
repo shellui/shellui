@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router';
-import { useConfig } from '../features/config/useConfig';
-import { flattenNavigationItems } from '../features/layouts/utils';
+import { useConfig } from '../../features/config/useConfig';
+import { flattenNavigationItems } from '../../features/layouts/utils';
 import { HomeView } from './HomeView';
 import { ViewRoute } from './ViewRoute';
 

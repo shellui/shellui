@@ -1,4 +1,4 @@
-import { LOADING_OVERLAY_DURATION_MS } from '../constants';
+import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 
 export function LoadingOverlay() {
   return (

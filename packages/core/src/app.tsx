@@ -3,7 +3,7 @@ import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { ConfigProvider } from './features/config/ConfigProvider';
-import { createAppRouter } from './router/router';
+import { createAppRouter } from './routes/router';
 import { SettingsProvider } from './features/settings/SettingsProvider';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';

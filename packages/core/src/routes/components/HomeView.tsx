@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useConfig } from '../features/config/useConfig';
+import { useConfig } from '../../features/config/useConfig';
 
 export const HomeView = () => {
   const { t } = useTranslation('common');

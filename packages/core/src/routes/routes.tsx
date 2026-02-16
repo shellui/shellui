@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Outlet, type RouteObject } from 'react-router';
 import type { ShellUIConfig } from '../features/config/types';
-import { RouteErrorBoundary } from '../components/RouteErrorBoundary';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { AppLayout } from '../features/layouts/AppLayout';
 import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
+import { RouteFallback } from './components/RouteFallback';
 
 // Lazy load route components
 const SettingsView = lazy(() =>
@@ -16,23 +17,14 @@ const CookiePreferencesView = lazy(() =>
   })),
 );
 const ViewRoute = lazy(() =>
-  import('../components/ViewRoute').then((m) => ({ default: m.ViewRoute })),
+  import('./components/ViewRoute').then((m) => ({ default: m.ViewRoute })),
 );
 const IndexRoute = lazy(() =>
-  import('../components/IndexRoute').then((m) => ({ default: m.IndexRoute })),
+  import('./components/IndexRoute').then((m) => ({ default: m.IndexRoute })),
 );
 const NotFoundView = lazy(() =>
-  import('../components/NotFoundView').then((m) => ({ default: m.NotFoundView })),
+  import('./components/NotFoundView').then((m) => ({ default: m.NotFoundView })),
 );
-
-function RouteFallback() {
-  return (
-    <div
-      className="min-h-screen bg-background"
-      aria-hidden
-    />
-  );
-}
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
   const routes: RouteObject[] = [
