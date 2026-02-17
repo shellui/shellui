@@ -17,7 +17,7 @@ interface OverlayShellProps {
 }
 
 /** Renders modal, drawer and toaster overlays and handles SHELLUI_OPEN_MODAL / SHELLUI_NAVIGATE. */
-export function OverlayShell({ children }: OverlayShellProps) {
+export const OverlayShell = ({ children }: OverlayShellProps) => {
   const navigate = useNavigate();
   const { navigationItems } = useNavigationItems();
   const { isOpen, modalUrl, closeModal } = useModal();
@@ -30,7 +30,6 @@ export function OverlayShell({ children }: OverlayShellProps) {
   } = useDrawer();
   const { t, i18n } = useTranslation('common');
   const currentLanguage = i18n.language || 'en';
-
   useEffect(() => {
     const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
       closeDrawer();
@@ -79,7 +78,6 @@ export function OverlayShell({ children }: OverlayShellProps) {
     });
     return () => cleanup();
   }, [navigate, closeModal, closeDrawer, navigationItems, t]);
-
   return (
     <>
       {children}
@@ -171,4 +169,5 @@ export function OverlayShell({ children }: OverlayShellProps) {
       <Toaster />
     </>
   );
-}
+};
+export default OverlayShell;

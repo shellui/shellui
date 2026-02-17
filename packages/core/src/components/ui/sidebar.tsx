@@ -1,10 +1,5 @@
 import {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
   forwardRef,
-  type ReactNode,
   type HTMLAttributes,
   type ButtonHTMLAttributes,
   type AnchorHTMLAttributes,
@@ -12,47 +7,16 @@ import {
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
-import { Z_INDEX } from '../../lib/z-index';
-
-type SidebarContextValue = {
-  isCollapsed: boolean;
-  toggle: () => void;
-};
-
-const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
-
-const useSidebar = () => {
-  const context = useContext(SidebarContext);
-  if (!context) {
-    throw new Error('useSidebar must be used within a SidebarProvider');
-  }
-  return context;
-};
-
-const SidebarProvider = ({ children }: { children: ReactNode }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
-  const toggle = useCallback(() => {
-    setIsCollapsed((prev) => !prev);
-  }, []);
-
-  return (
-    <SidebarContext.Provider value={{ isCollapsed, toggle }}>{children}</SidebarContext.Provider>
-  );
-};
 
 const Sidebar = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
-    const { isCollapsed } = useSidebar();
-
     return (
       <div
         ref={ref}
         data-sidebar="sidebar"
-        data-collapsed={isCollapsed}
         className={cn(
           'flex h-full flex-col gap-2 border-r bg-sidebar-background p-2 text-sidebar-foreground transition-all duration-300 ease-in-out overflow-hidden',
-          isCollapsed ? 'w-0 border-r-0 p-0' : 'w-64',
+          'w-64',
           className,
         )}
         {...props}
@@ -61,83 +25,6 @@ const Sidebar = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   },
 );
 Sidebar.displayName = 'Sidebar';
-
-/** Inline SVG: panel-left-open (expand sidebar) */
-const PanelLeftOpenIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-5 w-5 transition-transform duration-300"
-    aria-hidden
-  >
-    <rect
-      width="18"
-      height="18"
-      x="3"
-      y="3"
-      rx="2"
-    />
-    <path d="M9 3v18" />
-    <path d="m14 9 3 3-3 3" />
-  </svg>
-);
-
-/** Inline SVG: panel-left-close (collapse sidebar) */
-const PanelLeftCloseIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-5 w-5 transition-transform duration-300"
-    aria-hidden
-  >
-    <rect
-      width="18"
-      height="18"
-      x="3"
-      y="3"
-      rx="2"
-    />
-    <path d="M9 3v18" />
-    <path d="m16 15-3-3 3-3" />
-  </svg>
-);
-
-const SidebarTrigger = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(
-  ({ className, ...props }, ref) => {
-    const { toggle, isCollapsed } = useSidebar();
-
-    return (
-      <button
-        ref={ref}
-        onClick={toggle}
-        className={cn(
-          'relative flex items-center justify-center rounded-md p-2 text-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-lg backdrop-blur-md cursor-pointer bg-background/95 border border-border',
-          className,
-        )}
-        aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        style={{ zIndex: Z_INDEX.SIDEBAR_TRIGGER }}
-        {...props}
-      >
-        {isCollapsed ? <PanelLeftOpenIcon /> : <PanelLeftCloseIcon />}
-      </button>
-    );
-  },
-);
-SidebarTrigger.displayName = 'SidebarTrigger';
 
 const SidebarHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => {
@@ -271,19 +158,13 @@ const SidebarMenuButton = forwardRef<
       isActive?: boolean;
     }
 >(({ className, variant, size, asChild = false, isActive, children, ...props }, ref) => {
-  const { isCollapsed } = useSidebar();
   const Comp = asChild ? Slot : 'button';
 
   return (
     <Comp
       ref={ref}
       data-active={isActive}
-      data-collapsed={isCollapsed}
-      className={cn(
-        sidebarMenuButtonVariants({ variant, size }),
-        isCollapsed && 'justify-center',
-        className,
-      )}
+      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
       {...props}
     >
       {children}
@@ -434,8 +315,6 @@ SidebarMenuSubItem.displayName = 'SidebarMenuSubItem';
 
 export {
   Sidebar,
-  SidebarProvider,
-  SidebarTrigger,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
@@ -452,5 +331,4 @@ export {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-  useSidebar,
 };

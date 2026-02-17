@@ -15,7 +15,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarProvider,
 } from '../../components/ui/sidebar';
 import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -188,74 +187,26 @@ export const SettingsView = () => {
   }, [navigate]);
 
   return (
-    <SidebarProvider>
-      <div className="flex h-full w-full overflow-hidden items-start">
-        {/* Desktop Sidebar */}
-        <Sidebar className="hidden md:flex">
-          <SidebarContent>
-            {groupedRoutes.map((group) => (
-              <SidebarGroup key={group.title}>
-                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {group.routes.map((item) => (
-                      <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={item.name === selectedItem?.name}
+    <div className="flex h-full w-full overflow-hidden items-start">
+      {/* Desktop Sidebar */}
+      <Sidebar className="hidden md:flex">
+        <SidebarContent>
+          {groupedRoutes.map((group) => (
+            <SidebarGroup key={group.title}>
+              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.routes.map((item) => (
+                    <SidebarMenuItem key={item.name}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={item.name === selectedItem?.name}
+                      >
+                        <button
+                          onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                          className="cursor-pointer"
                         >
-                          <button
-                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
-                            className="cursor-pointer"
-                          >
-                            {'icon' in item && item.icon ? (
-                              <item.icon />
-                            ) : 'iconSrc' in item && item.iconSrc ? (
-                              <img
-                                src={item.iconSrc}
-                                alt=""
-                                className="h-4 w-4 shrink-0"
-                              />
-                            ) : (
-                              <span className="h-4 w-4 shrink-0" />
-                            )}
-                            <span>{item.name}</span>
-                          </button>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            ))}
-          </SidebarContent>
-        </Sidebar>
-
-        {/* Mobile List View */}
-        <div className="md:hidden flex h-full w-full flex-col overflow-hidden">
-          {isSettingsRoot ? (
-            // Show list of settings pages
-            <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-              <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
-                <h1 className="text-lg font-semibold">{t('title')}</h1>
-              </header>
-              <div className="flex flex-1 flex-col p-4 gap-6">
-                {groupedRoutes.map((group) => (
-                  <div
-                    key={group.title}
-                    className="flex flex-col gap-2"
-                  >
-                    <h2
-                      className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2"
-                      style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-                    >
-                      {group.title}
-                    </h2>
-                    <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
-                      {group.routes.map((item, itemIndex) => {
-                        const isLast = itemIndex === group.routes.length - 1;
-                        const iconEl =
-                          'icon' in item && item.icon ? (
+                          {'icon' in item && item.icon ? (
                             <item.icon />
                           ) : 'iconSrc' in item && item.iconSrc ? (
                             <img
@@ -265,127 +216,173 @@ export const SettingsView = () => {
                             />
                           ) : (
                             <span className="h-4 w-4 shrink-0" />
-                          );
-                        return (
-                          <div
-                            key={item.name}
-                            className="relative"
-                          >
-                            {!isLast && (
-                              <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
-                            )}
-                            <button
-                              onClick={() => navigate(`${urls.settings}/${item.path}`)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
-                            >
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className="flex-shrink-0 text-foreground/70">{iconEl}</div>
-                                <span className="text-sm font-normal text-foreground">
-                                  {item.name}
-                                </span>
-                              </div>
-                              <div className="flex-shrink-0 ml-2 text-foreground/40">
-                                <ChevronRightIcon />
-                              </div>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            // Show selected settings page with back button
-            <div className="flex h-full flex-1 flex-col overflow-hidden">
-              <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleBackToSettings}
-                  className="mr-2"
-                >
-                  <ChevronLeftIcon />
-                </Button>
-                <h1 className="text-lg font-semibold">{selectedItem?.name}</h1>
-              </header>
-              <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
-                <Routes>
-                  <Route
-                    index
-                    element={
-                      allRoutes.length > 0 ? (
-                        <Navigate
-                          to={`${urls.settings}/${allRoutes[0].path}`}
-                          replace
-                        />
-                      ) : null
-                    }
-                  />
-                  {allRoutes.map((item) => (
-                    <Route
-                      key={item.path}
-                      path={item.path}
-                      element={item.element}
-                    />
+                          )}
+                          <span>{item.name}</span>
+                        </button>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   ))}
-                </Routes>
-              </div>
-            </div>
-          )}
-        </div>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
+      </Sidebar>
 
-        {/* Desktop Main Content */}
-        <main className="hidden md:flex h-full flex-1 flex-col overflow-hidden">
-          {selectedItem && (
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
-              <div className="flex items-center gap-2 px-4">
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem>{t('title')}</BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>{selectedItem.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
+      {/* Mobile List View */}
+      <div className="md:hidden flex h-full w-full flex-col overflow-hidden">
+        {isSettingsRoot ? (
+          // Show list of settings pages
+          <div className="flex flex-1 flex-col overflow-y-auto bg-background">
+            <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
+              <h1 className="text-lg font-semibold">{t('title')}</h1>
             </header>
-          )}
-          <div
-            className={cn(
-              'flex flex-1 flex-col gap-4 overflow-y-auto',
-              !selectedItem?.path?.startsWith('app-') && 'p-4 pt-0',
-            )}
-          >
-            <Routes>
-              <Route
-                index
-                element={
-                  <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-                    <div className="max-w-md">
-                      <h2 className="text-lg font-semibold mb-2">{t('title')}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {t('selectCategory', {
-                          defaultValue: 'Select a category from the sidebar to get started.',
-                        })}
-                      </p>
-                    </div>
+            <div className="flex flex-1 flex-col p-4 gap-6">
+              {groupedRoutes.map((group) => (
+                <div
+                  key={group.title}
+                  className="flex flex-col gap-2"
+                >
+                  <h2
+                    className="text-xs font-semibold text-foreground/60 uppercase tracking-wider px-2"
+                    style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                  >
+                    {group.title}
+                  </h2>
+                  <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
+                    {group.routes.map((item, itemIndex) => {
+                      const isLast = itemIndex === group.routes.length - 1;
+                      const iconEl =
+                        'icon' in item && item.icon ? (
+                          <item.icon />
+                        ) : 'iconSrc' in item && item.iconSrc ? (
+                          <img
+                            src={item.iconSrc}
+                            alt=""
+                            className="h-4 w-4 shrink-0"
+                          />
+                        ) : (
+                          <span className="h-4 w-4 shrink-0" />
+                        );
+                      return (
+                        <div
+                          key={item.name}
+                          className="relative"
+                        >
+                          {!isLast && (
+                            <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
+                          )}
+                          <button
+                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
+                          >
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <div className="flex-shrink-0 text-foreground/70">{iconEl}</div>
+                              <span className="text-sm font-normal text-foreground">
+                                {item.name}
+                              </span>
+                            </div>
+                            <div className="flex-shrink-0 ml-2 text-foreground/40">
+                              <ChevronRightIcon />
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                }
-              />
-              {allRoutes.map((item) => (
-                <Route
-                  key={item.path}
-                  path={item.path}
-                  element={item.element}
-                />
+                </div>
               ))}
-            </Routes>
+            </div>
           </div>
-        </main>
+        ) : (
+          // Show selected settings page with back button
+          <div className="flex h-full flex-1 flex-col overflow-hidden">
+            <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBackToSettings}
+                className="mr-2"
+              >
+                <ChevronLeftIcon />
+              </Button>
+              <h1 className="text-lg font-semibold">{selectedItem?.name}</h1>
+            </header>
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
+              <Routes>
+                <Route
+                  index
+                  element={
+                    allRoutes.length > 0 ? (
+                      <Navigate
+                        to={`${urls.settings}/${allRoutes[0].path}`}
+                        replace
+                      />
+                    ) : null
+                  }
+                />
+                {allRoutes.map((item) => (
+                  <Route
+                    key={item.path}
+                    path={item.path}
+                    element={item.element}
+                  />
+                ))}
+              </Routes>
+            </div>
+          </div>
+        )}
       </div>
-    </SidebarProvider>
+
+      {/* Desktop Main Content */}
+      <main className="hidden md:flex h-full flex-1 flex-col overflow-hidden">
+        {selectedItem && (
+          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+            <div className="flex items-center gap-2 px-4">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>{t('title')}</BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{selectedItem.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          </header>
+        )}
+        <div
+          className={cn(
+            'flex flex-1 flex-col gap-4 overflow-y-auto',
+            !selectedItem?.path?.startsWith('app-') && 'p-4 pt-0',
+          )}
+        >
+          <Routes>
+            <Route
+              index
+              element={
+                <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
+                  <div className="max-w-md">
+                    <h2 className="text-lg font-semibold mb-2">{t('title')}</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {t('selectCategory', {
+                        defaultValue: 'Select a category from the sidebar to get started.',
+                      })}
+                    </p>
+                  </div>
+                </div>
+              }
+            />
+            {allRoutes.map((item) => (
+              <Route
+                key={item.path}
+                path={item.path}
+                element={item.element}
+              />
+            ))}
+          </Routes>
+        </div>
+      </main>
+    </div>
   );
 };

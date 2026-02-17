@@ -1,7 +1,7 @@
-import { Outlet, useLocation } from 'react-router';
+import { Outlet } from 'react-router';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sidebar, SidebarProvider } from '../../../components/ui/sidebar';
+import { Sidebar } from '../../../components/ui/sidebar';
 import { cn } from '../../../lib/utils';
 import {
   filterNavigationByViewport,
@@ -13,50 +13,41 @@ import {
 import { SidebarInner } from './SidebarInner';
 import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
+import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 
-function SidebarLayoutContent({ title, logo, navigation }: SidebarLayoutProps) {
-  const location = useLocation();
+const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
-  const currentLanguage = i18n.language || 'en';
+  const { navigationItem, rootItem } = useNavigationItems();
 
-  const { startNav, endItems, navigationItems, mobileNavItems, hasRootNavItem } = useMemo(() => {
+  const currentLanguage = useMemo(() => {
+    return i18n.language || 'en';
+  }, [i18n]);
+
+  const { startNav, endItems, mobileNavItems } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(navigation, 'desktop');
     const mobileNav = filterNavigationByViewport(navigation, 'mobile');
     const { start, end } = splitNavigationByPosition(desktopNav);
-    const flat = flattenNavigationItems(desktopNav);
     const mobileFlat = flattenNavigationItems(mobileNav);
-    const hasRoot = flat.some((item) => item.path === '' || item.path === '/');
+
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
-      navigationItems: flat,
       mobileNavItems: mobileFlat,
-      hasRootNavItem: hasRoot,
     };
   }, [navigation]);
 
   useEffect(() => {
     if (!title) return;
-    const pathname = location.pathname.replace(/^\/+|\/+$/g, '') || '';
-    const segment = pathname.split('/')[0];
-    if (!segment) {
-      const rootNavItem = navigationItems.find((item) => item.path === '' || item.path === '/');
-      document.title = rootNavItem
-        ? `${resolveLocalizedLabel(rootNavItem.label, currentLanguage)} | ${title}`
-        : title;
-      return;
-    }
-    const navItem = navigationItems.find((item) => item.path === segment);
-    if (navItem) {
-      const label = resolveLocalizedLabel(navItem.label, currentLanguage);
+    if (navigationItem) {
+      const label = resolveLocalizedLabel(navigationItem.label, currentLanguage);
       document.title = `${label} | ${title}`;
     } else {
       document.title = title;
     }
-  }, [location.pathname, title, navigationItems, currentLanguage]);
+  }, [navigationItem, title, currentLanguage]);
 
   return (
-    <SidebarProvider>
+    <div>
       <div className="flex h-screen overflow-hidden">
         <Sidebar className={cn('hidden md:flex shrink-0')}>
           <SidebarInner
@@ -77,11 +68,11 @@ function SidebarLayoutContent({ title, logo, navigation }: SidebarLayoutProps) {
       <MobileBottomNav
         items={mobileNavItems}
         currentLanguage={currentLanguage}
-        showHomeButton={!hasRootNavItem}
+        showHomeButton={!rootItem}
       />
-    </SidebarProvider>
+    </div>
   );
-}
+};
 
 export function SidebarLayout({ title, appIcon, logo, navigation }: SidebarLayoutProps) {
   return (

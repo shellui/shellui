@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import type { NavigationItem } from '../features/config/types';
 import { isHashRouterNavItem, getHashPathFromUrl } from '../features/layouts/utils';
 import {
@@ -9,15 +8,12 @@ import {
   type ShellUIUrlPayload,
   type ShellUIMessage,
 } from '@shellui/sdk';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
 
 const logger = getLogger('shellcore');
-
-/** URL of the last main-content iframe that sent SHELLUI_INITIALIZED. Used to skip the loading overlay when navigating between nav items that point to the same app URL. */
-let lastLoadedIframeUrl: string | null = null;
 
 interface ContentViewProps {
   url: string;
@@ -36,14 +32,16 @@ export const ContentView = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const mountTimeRef = useRef(Date.now());
-  const urlRef = useRef(url);
-  urlRef.current = url;
-  const [initialUrl] = useState(url);
+
   const [isLoading, setIsLoading] = useState(() => {
     // Skip overlay when same app URL was just loaded (e.g. switching App ↔ Root with same url)
-    if (!ignoreMessages && url === lastLoadedIframeUrl) return false;
+    if (!ignoreMessages) return false;
     return true;
   });
+
+  const initialUrl = useMemo(() => {
+    return url;
+  }, [navItem]);
 
   const MIN_LOADING_MS = 80; // Don't reveal before this, reduces blink from theme/layout paint
 
@@ -56,6 +54,14 @@ export const ContentView = ({
       removeIframe(iframeId);
     };
   }, []);
+
+  useEffect(() => {
+    if (ignoreMessages) return;
+    if (iframeRef.current && iframeRef.current.src !== url) {
+      iframeRef.current.src = url;
+      setIsLoading(true);
+    }
+  }, [navItem]);
 
   // Sync parent URL when iframe notifies us of a change
   useEffect(() => {
@@ -156,7 +162,6 @@ export const ContentView = ({
       'SHELLUI_INITIALIZED',
       (_data: ShellUIMessage, event: MessageEvent) => {
         if (event.source !== iframeRef.current?.contentWindow) return;
-        if (!ignoreMessages) lastLoadedIframeUrl = urlRef.current;
         cancelRevealRef.current?.();
         let cancelled = false;
         cancelRevealRef.current = () => {
@@ -194,52 +199,6 @@ export const ContentView = ({
     }, LOADING_OVERLAY_DURATION_MS);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
-
-  // Handle external URL changes (e.g. from Sidebar)
-  useEffect(() => {
-    if (iframeRef.current) {
-      if (iframeRef.current.src !== url) {
-        iframeRef.current.src = url;
-        // Skip overlay when switching to the same app URL (e.g. App ↔ Root); different app still shows overlay
-        const sameAppAlreadyLoaded = !ignoreMessages;
-        if (!sameAppAlreadyLoaded) {
-          setIsLoading(true);
-          mountTimeRef.current = Date.now(); // apply min delay for this load too
-        }
-      }
-    }
-  }, [url, ignoreMessages]);
-
-  // Suppress browser warnings that are expected and acceptable
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      const originalWarn = console.warn;
-      console.warn = (...args: unknown[]) => {
-        const message = String(args[0] ?? '');
-        // Suppress the specific sandbox warning
-        if (
-          message.includes('allow-scripts') &&
-          message.includes('allow-same-origin') &&
-          message.includes('sandbox')
-        ) {
-          return;
-        }
-        // Suppress "Layout was forced" warning from iframe content
-        // This is a performance warning that occurs when iframe content calculates layout before stylesheets load
-        // It's harmless and common in iframe scenarios, especially with React apps
-        if (
-          message.includes('Layout was forced') &&
-          message.includes('before the page was fully loaded')
-        ) {
-          return;
-        }
-        originalWarn.apply(console, args);
-      };
-      return () => {
-        console.warn = originalWarn;
-      };
-    }
-  }, []);
 
   return (
     <div

@@ -56,7 +56,6 @@ export function AppLayout({
     LayoutComponent = SidebarLayout;
     layoutProps = { title, appIcon, logo, navigation };
   }
-
   return (
     <ModalProvider>
       <DrawerProvider>
