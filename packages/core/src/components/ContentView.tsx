@@ -39,9 +39,7 @@ export const ContentView = ({
     return true;
   });
 
-  const initialUrl = useMemo(() => {
-    return url;
-  }, [navItem]);
+  const [iframeUrl, setIframeUrl] = useState(url);
 
   const MIN_LOADING_MS = 80; // Don't reveal before this, reduces blink from theme/layout paint
 
@@ -57,9 +55,13 @@ export const ContentView = ({
 
   useEffect(() => {
     if (ignoreMessages) return;
+    if (isLoading) return;
     if (iframeRef.current && iframeRef.current.src !== url) {
-      iframeRef.current.src = url;
       setIsLoading(true);
+      setIframeUrl('about:blank');
+      setTimeout(() => {
+        setIframeUrl(url);
+      }, 100);
     }
   }, [navItem]);
 
@@ -71,6 +73,8 @@ export const ContentView = ({
         if (ignoreMessages) {
           return;
         }
+
+        if (isLoading) return;
 
         // Ignore URL CHANGE from other than ContentView iframe
         if (event.source !== iframeRef.current?.contentWindow) {
@@ -128,7 +132,7 @@ export const ContentView = ({
         const normalizedNewPath = normalizedNewPathname + (newPathParts?.[2] || '');
 
         if (currentPath !== normalizedNewPath) {
-          navigate(newShellPath);
+          navigate(newShellPath, { replace: true });
         }
       },
     );
@@ -215,7 +219,7 @@ export const ContentView = ({
           - Reveal is instant (no transition) after deferred double-rAF to avoid blink */}
       <iframe
         ref={iframeRef}
-        src={initialUrl}
+        src={iframeUrl}
         loading="eager"
         style={{
           width: '100%',
