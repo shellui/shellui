@@ -32,6 +32,11 @@ export const ContentView = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const mountTimeRef = useRef(Date.now());
+  /** Real history methods; stored once so we never restore our no-ops after a second effect run. */
+  const historyOriginalsRef = useRef<{
+    pushState: History['pushState'];
+    replaceState: History['replaceState'];
+  } | null>(null);
 
   const [isLoading, setIsLoading] = useState(() => {
     // Skip overlay when same app URL was just loaded (e.g. switching App ↔ Root with same url)
@@ -61,7 +66,7 @@ export const ContentView = ({
       setIframeUrl('about:blank');
       setTimeout(() => {
         setIframeUrl(url);
-      }, 100);
+      }, 60);
     }
   }, [navItem]);
 
