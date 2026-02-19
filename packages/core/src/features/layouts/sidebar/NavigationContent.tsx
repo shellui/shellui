@@ -61,7 +61,11 @@ export function NavigationContent({
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
     const iconEl = iconSrc ? (
-      <img src={iconSrc} alt="" className={cn('h-4 w-4', 'shrink-0')} />
+      <img
+        src={iconSrc}
+        alt=""
+        className={cn('h-4 w-4', 'shrink-0')}
+      />
     ) : hasAnyIcons ? (
       <span className="h-4 w-4 shrink-0" />
     ) : null;
@@ -102,7 +106,10 @@ export function NavigationContent({
           {content}
         </a>
       ) : (
-        <Link to={pathPrefix} className="flex items-center gap-2 w-full">
+        <Link
+          to={pathPrefix}
+          className="flex items-center gap-2 w-full"
+        >
           {content}
         </Link>
       );
@@ -123,7 +130,10 @@ export function NavigationContent({
         if (isGroup(item)) {
           const groupTitle = resolveLocalizedString(item.title, currentLanguage);
           return (
-            <SidebarGroup key={groupTitle} className="mt-0">
+            <SidebarGroup
+              key={groupTitle}
+              className="mt-0"
+            >
               <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
@@ -136,7 +146,10 @@ export function NavigationContent({
           );
         }
         return (
-          <SidebarMenu key={item.path} className="gap-0.5">
+          <SidebarMenu
+            key={item.path}
+            className="gap-0.5"
+          >
             <SidebarMenuItem>{renderNavItem(item)}</SidebarMenuItem>
           </SidebarMenu>
         );

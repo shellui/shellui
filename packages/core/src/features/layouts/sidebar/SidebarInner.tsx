@@ -1,10 +1,6 @@
 import { Link } from 'react-router';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
-import {
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-} from '../../../components/ui/sidebar';
+import { SidebarHeader, SidebarContent, SidebarFooter } from '../../../components/ui/sidebar';
 import { NavigationContent } from './NavigationContent';
 
 /** Reusable sidebar inner: header, main nav, footer. Used in desktop Sidebar and mobile Drawer. */

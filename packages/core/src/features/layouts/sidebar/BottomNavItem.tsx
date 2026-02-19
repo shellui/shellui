@@ -45,7 +45,11 @@ export function BottomNavItem({
   );
   if (item.openIn === 'modal') {
     return (
-      <button type="button" onClick={() => shellui.openModal(item.url)} className={baseClass}>
+      <button
+        type="button"
+        onClick={() => shellui.openModal(item.url)}
+        className={baseClass}
+      >
         {content}
       </button>
     );
@@ -63,13 +67,21 @@ export function BottomNavItem({
   }
   if (item.openIn === 'external') {
     return (
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className={baseClass}>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={baseClass}
+      >
         {content}
       </a>
     );
   }
   return (
-    <Link to={pathPrefix} className={baseClass}>
+    <Link
+      to={pathPrefix}
+      className={baseClass}
+    >
       {content}
     </Link>
   );
