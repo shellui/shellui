@@ -8,7 +8,7 @@ import {
   type ShellUIUrlPayload,
   type ShellUIMessage,
 } from '@shellui/sdk';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
@@ -32,11 +32,6 @@ export const ContentView = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const mountTimeRef = useRef(Date.now());
-  /** Real history methods; stored once so we never restore our no-ops after a second effect run. */
-  const historyOriginalsRef = useRef<{
-    pushState: History['pushState'];
-    replaceState: History['replaceState'];
-  } | null>(null);
 
   const [isLoading, setIsLoading] = useState(() => {
     // Skip overlay when same app URL was just loaded (e.g. switching App ↔ Root with same url)
@@ -48,7 +43,7 @@ export const ContentView = ({
 
   const MIN_LOADING_MS = 80; // Don't reveal before this, reduces blink from theme/layout paint
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!iframeRef.current) {
       return;
     }
@@ -56,17 +51,14 @@ export const ContentView = ({
     return () => {
       removeIframe(iframeId);
     };
-  }, []);
+  }, [iframeUrl, navItem.path]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (ignoreMessages) return;
     if (isLoading) return;
     if (iframeRef.current) {
       setIsLoading(true);
-      setIframeUrl('about:blank');
-      setTimeout(() => {
-        setIframeUrl(url);
-      }, 60);
+      setIframeUrl(url);
     }
   }, [navItem]);
 
@@ -225,6 +217,7 @@ export const ContentView = ({
       <iframe
         ref={iframeRef}
         src={iframeUrl}
+        key={iframeUrl + navItem.path}
         loading="eager"
         style={{
           width: '100%',
