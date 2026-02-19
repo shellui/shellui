@@ -51,7 +51,7 @@ export const ContentView = ({
     return () => {
       removeIframe(iframeId);
     };
-  }, [iframeUrl, navItem.path]);
+  }, [iframeUrl, navItem?.path ?? '']);
 
   useLayoutEffect(() => {
     if (ignoreMessages) return;
@@ -217,7 +217,7 @@ export const ContentView = ({
       <iframe
         ref={iframeRef}
         src={iframeUrl}
-        key={iframeUrl + navItem.path}
+        key={iframeUrl + (navItem?.path ?? '')}
         loading="eager"
         style={{
           width: '100%',
