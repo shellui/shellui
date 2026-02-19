@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, type ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
@@ -18,6 +18,7 @@ interface OverlayShellProps {
 
 /** Renders modal, drawer and toaster overlays and handles SHELLUI_OPEN_MODAL / SHELLUI_NAVIGATE. */
 export const OverlayShell = ({ children }: OverlayShellProps) => {
+  const location = useLocation();
   const navigate = useNavigate();
   const { navigationItems } = useNavigationItems();
   const { isOpen, modalUrl, closeModal } = useModal();
@@ -30,6 +31,18 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   } = useDrawer();
   const { t, i18n } = useTranslation('common');
   const currentLanguage = i18n.language || 'en';
+
+  // Close modal and drawer when app URL changes (navigation, back button) so overlay content stays url-specific
+  const locationKeyRef = useRef(location.pathname + location.search + location.hash);
+  useEffect(() => {
+    const currentKey = location.pathname + location.search + location.hash;
+    if (locationKeyRef.current !== currentKey) {
+      closeModal();
+      closeDrawer();
+      locationKeyRef.current = currentKey;
+    }
+  }, [location.pathname, location.search, location.hash, closeModal, closeDrawer]);
+
   useEffect(() => {
     const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
       closeDrawer();
