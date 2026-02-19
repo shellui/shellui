@@ -56,7 +56,7 @@ export const ContentView = ({
   useEffect(() => {
     if (ignoreMessages) return;
     if (isLoading) return;
-    if (iframeRef.current && iframeRef.current.src !== url) {
+    if (iframeRef.current) {
       setIsLoading(true);
       setIframeUrl('about:blank');
       setTimeout(() => {
