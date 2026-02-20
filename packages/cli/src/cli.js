@@ -6,7 +6,10 @@ import pkg from '../package.json' with { type: 'json' };
 const cli = cac('shellui');
 
 // Register commands
-cli.command('start [root]', 'Start the shellui server').action(startCommand);
+cli
+  .command('start [root]', 'Start the shellui server')
+  .option('--host', 'Listen on 0.0.0.0 to allow access from network')
+  .action((root, options) => startCommand(root, options));
 
 cli.command('build [root]', 'Build the shellui application').action(buildCommand);
 

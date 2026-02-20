@@ -23,6 +23,7 @@ After installation, you can use the `shellui` command from any directory:
 
 ```bash
 shellui start
+shellui start --host   # listen on 0.0.0.0 to access from other devices
 shellui build
 ```
 

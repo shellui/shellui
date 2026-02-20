@@ -55,6 +55,7 @@ Start the ShellUI development server.
 ```bash
 shellui start
 shellui start ./my-project
+shellui start --host
 ```
 
 **Description:**
@@ -67,6 +68,7 @@ shellui start ./my-project
 **Options:**
 
 - `root` (optional): Project root directory (default: current directory)
+- `--host`: Listen on `0.0.0.0` so the app can be accessed from other devices on your network (e.g. via your machine’s LAN IP)
 
 **Example:**
 
@@ -76,6 +78,9 @@ shellui start
 
 # Start server in specific directory
 shellui start ./my-app
+
+# Allow access from network (e.g. from phone or another machine)
+shellui start --host
 ```
 
 ### `shellui build [root]`

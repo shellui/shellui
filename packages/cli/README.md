@@ -17,7 +17,7 @@ npm install --save-dev @shellui/cli
 ## Usage
 
 ```bash
-shellui start [path/to/project]
+shellui start [path/to/project] [--host]
 shellui build [path/to/project]
 ```
 
@@ -28,6 +28,7 @@ shellui build [path/to/project]
   ```bash
   shellui start
   shellui start ./my-project
+  shellui start --host   # listen on 0.0.0.0 for network access
   ```
 
 - **build** - Build the ShellUI application for production

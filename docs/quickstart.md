@@ -110,6 +110,8 @@ The server will:
 - Watch for configuration file changes and restart automatically
 - Display the server URL in the terminal
 
+Use `shellui start --host` to listen on `0.0.0.0` and access the app from other devices on your network.
+
 You should see output like:
 
 ```

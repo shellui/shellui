@@ -25,9 +25,10 @@ let isFirstStart = true;
  * @param {string} root - Root directory
  * @param {string} cwd - Current working directory
  * @param {boolean} shouldOpen - Whether to open the browser (only on first start)
+ * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
  * @returns {Promise<import('vite').ViteDevServer>}
  */
-async function startServer(root, cwd, shouldOpen = false) {
+async function startServer(root, cwd, shouldOpen = false, host = false) {
   // Load configuration
   const config = await loadConfig(root);
 
@@ -79,6 +80,7 @@ async function startServer(root, cwd, shouldOpen = false) {
       port: config.port || 3000,
       strictPort: true,
       open: shouldOpen,
+      host: host ? true : undefined,
       fs: {
         // Allow serving files from core package, SDK package, and user's project
         allow: [corePackagePath, cwd],
@@ -94,8 +96,9 @@ async function startServer(root, cwd, shouldOpen = false) {
  * Restart the server when config changes
  * @param {string} root - Root directory
  * @param {string} cwd - Current working directory
+ * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
  */
-async function restartServer(root, cwd) {
+async function restartServer(root, cwd, host = false) {
   if (restartTimeout) {
     clearTimeout(restartTimeout);
   }
@@ -110,7 +113,7 @@ async function restartServer(root, cwd) {
       }
 
       // Start new server with updated config (don't open browser on restart)
-      currentServer = await startServer(root, cwd, false);
+      currentServer = await startServer(root, cwd, false, host);
       currentServer.printUrls();
     } catch (e) {
       console.error(pc.red(`Error restarting server: ${e.message}`));
@@ -122,8 +125,9 @@ async function restartServer(root, cwd) {
  * Watch config file for changes
  * @param {string} root - Root directory
  * @param {string} cwd - Current working directory
+ * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
  */
-function watchConfig(root, cwd) {
+function watchConfig(root, cwd, host = false) {
   const configDir = path.resolve(cwd, root);
   const tsConfigPath = path.join(configDir, 'shellui.config.ts');
 
@@ -139,7 +143,7 @@ function watchConfig(root, cwd) {
 
   configWatcher = fs.watch(tsConfigPath, { persistent: true }, async (eventType) => {
     if (eventType === 'change') {
-      await restartServer(root, cwd);
+      await restartServer(root, cwd, host);
     }
   });
 
@@ -149,20 +153,22 @@ function watchConfig(root, cwd) {
 /**
  * Start command - Starts the ShellUI development server
  * @param {string} root - Root directory (default: '.')
+ * @param {{ host?: boolean }} options - Command options (e.g. { host: true } for network access)
  */
-export async function startCommand(root = '.') {
+export async function startCommand(root = '.', options = {}) {
   const cwd = process.cwd();
+  const host = !!options?.host;
 
   console.log(pc.blue(`Starting ShellUI...`));
 
   try {
     // Start initial server (open browser only on first start)
-    currentServer = await startServer(root, cwd, isFirstStart);
+    currentServer = await startServer(root, cwd, isFirstStart, host);
     isFirstStart = false;
     currentServer.printUrls();
 
     // Watch config file for changes
-    watchConfig(root, cwd);
+    watchConfig(root, cwd, host);
 
     // Handle graceful shutdown
     process.on('SIGTERM', async () => {
