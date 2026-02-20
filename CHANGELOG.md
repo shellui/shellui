@@ -35,6 +35,15 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 - **Navigation:** support `start_url` to redirect "/" and navigation items with path `""` or `"/"` as the start page
 - **Navigation:** handling navigation for applications using hash navigation
 - Improved **Sentry** error reporting integration
+- **CLI:** `shellui start --host` to expose the dev server to the network
+
+### 🐛 Bug Fixes
+
+- **iPad/Radix:** fixed modal/dialog buttons when using Apple Pencil or touch
+
+### 🔒 Security
+
+- **Dependencies:** updated to address security issues
 
 ## [0.1.0] - 2026-02-09
 
