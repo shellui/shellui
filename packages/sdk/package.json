@@ -31,10 +31,10 @@
   "author": "ShellUI",
   "license": "MIT",
   "dependencies": {
-    "roarr": "^7.21.2"
+    "roarr": "^7.21.4"
   },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.9.3"
   },
   "publishConfig": {
     "access": "public"

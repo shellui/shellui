@@ -11,10 +11,10 @@
     "build": "pnpm run sync-config && tauri build"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2"
+    "@tauri-apps/api": "^2.10.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
-    "tsx": "^4"
+    "@tauri-apps/cli": "^2.10.0",
+    "tsx": "^4.21.0"
   }
 }
