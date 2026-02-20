@@ -142,6 +142,7 @@ const AlertDialogAction = forwardRef<
       variant={variant}
       size={size}
       className={className}
+      onPointerDown={(e) => e.currentTarget.click()}
       {...props}
     />
   </AlertDialogPrimitive.Action>
@@ -159,6 +160,7 @@ const AlertDialogCancel = forwardRef<
       variant={variant}
       size={size}
       className={className}
+      onPointerDown={(e) => e.currentTarget.click()}
       {...props}
     />
   </AlertDialogPrimitive.Cancel>

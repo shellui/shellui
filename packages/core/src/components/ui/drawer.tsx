@@ -102,6 +102,7 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
           <VaulDrawer.Close
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"
             aria-label="Close"
+            onPointerDown={(e) => e.currentTarget.click()}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
