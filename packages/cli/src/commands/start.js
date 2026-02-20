@@ -14,6 +14,7 @@ import {
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
+import { initCommand } from './init.js';
 
 let currentServer = null;
 let configWatcher = null;
@@ -158,6 +159,13 @@ function watchConfig(root, cwd, host = false) {
 export async function startCommand(root = '.', options = {}) {
   const cwd = process.cwd();
   const host = !!options?.host;
+
+  const configDir = path.resolve(cwd, root);
+  const configPath = path.join(configDir, 'shellui.config.ts');
+  if (!fs.existsSync(configPath)) {
+    console.log(pc.yellow(`No shellui.config.ts found. Running init...`));
+    await initCommand(root);
+  }
 
   console.log(pc.blue(`Starting ShellUI...`));
 
