@@ -1,4 +1,4 @@
-# @shellui/core
+# ShellUI Core
 
 ShellUI Core - Core React application runtime
 
