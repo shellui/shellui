@@ -235,6 +235,12 @@
     outline-color: hsl(var(--ring) / 0.5);
   }
 
+  /* Toaster must receive pointer events when a modal has body pointer-events: none (e.g. Radix).
+   * Without this, pointerdown never fires on iPad when a modal is open. */
+  [data-sonner-toaster] {
+    pointer-events: auto !important;
+  }
+
   /* Ensure Sonner toasts use theme variables - override Sonner defaults */
   [data-sonner-toast] {
     background-color: hsl(var(--background)) !important;

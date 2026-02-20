@@ -14,38 +14,37 @@ const TOAST_BUTTON_SELECTOR = '[data-close-button], [data-cancel], [data-action]
  */
 function useToastButtonPointerFix() {
   useEffect(() => {
-    const onPointerDown: (e: Event) => void = (e) => {
+    const onPointerDown = (e: Event) => {
       const ev = e as PointerEvent;
-      const target = ev.target as HTMLElement;
-      const button = target.closest?.(TOAST_BUTTON_SELECTOR);
-      if (!button || button.getAttribute('data-disabled') === 'true') return;
-      // Only programmatically click for touch/pen to avoid double-firing on mouse
-      if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
-        (button as HTMLButtonElement).click();
-      }
+      // Only trigger programmatic click for touch/pen (iPad etc.); mouse gets native click.
+      if (ev.pointerType !== 'touch' && ev.pointerType !== 'pen') return;
+      // When a modal is open (e.g. Radix), body has pointer-events: none so the toaster
+      // may never receive the event on iPad. Use document capture + elementFromPoint so we
+      // still detect touches over the toaster and trigger the button.
+      const toaster = document.querySelector('[data-sonner-toaster]');
+      if (!toaster) return;
+      const elementUnderPoint = document.elementFromPoint(ev.clientX, ev.clientY);
+      if (!elementUnderPoint?.isConnected) return;
+      const button = (elementUnderPoint as HTMLElement).closest?.(TOAST_BUTTON_SELECTOR);
+      if (!button || !toaster.contains(button) || button.getAttribute('data-disabled') === 'true')
+        return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      const clickEvent = new MouseEvent('click', {
+        bubbles: true,
+        cancelable: true,
+        view: ev.view ?? window,
+        detail: 1,
+        clientX: ev.clientX,
+        clientY: ev.clientY,
+        screenX: ev.screenX,
+        screenY: ev.screenY,
+      });
+      button.dispatchEvent(clickEvent);
     };
 
-    function attach(toaster: Element) {
-      toaster.addEventListener('pointerdown', onPointerDown, true);
-      return () => toaster.removeEventListener('pointerdown', onPointerDown, true);
-    }
-
-    let toaster = document.querySelector('[data-sonner-toaster]');
-    if (!toaster) {
-      let cancelled = false;
-      let cleanup: (() => void) | undefined;
-      const id = requestAnimationFrame(() => {
-        if (cancelled) return;
-        toaster = document.querySelector('[data-sonner-toaster]');
-        if (toaster) cleanup = attach(toaster);
-      });
-      return () => {
-        cancelled = true;
-        cancelAnimationFrame(id);
-        cleanup?.();
-      };
-    }
-    return attach(toaster);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => document.removeEventListener('pointerdown', onPointerDown, true);
   }, []);
 }
 
