@@ -1,13 +1,11 @@
-import type { ComponentProps } from 'react';
-import { useEffect } from 'react';
+import { useEffect, type ComponentProps } from 'react';
 import { useSettings } from '../../features/settings/hooks/useSettings';
 import { Toaster as Sonner } from 'sonner';
 import { Z_INDEX } from '../../lib/z-index';
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 
-const TOAST_BUTTON_SELECTOR =
-  '[data-close-button], [data-cancel], [data-action]';
+const TOAST_BUTTON_SELECTOR = '[data-close-button], [data-cancel], [data-action]';
 
 /**
  * Ensures toast action, cancel, and close buttons respond to pointer/touch on iPad
@@ -16,7 +14,7 @@ const TOAST_BUTTON_SELECTOR =
  */
 function useToastButtonPointerFix() {
   useEffect(() => {
-    const onPointerDown = (e: Event) => {
+    const onPointerDown: (e: Event) => void = (e) => {
       const ev = e as PointerEvent;
       const target = ev.target as HTMLElement;
       const button = target.closest?.(TOAST_BUTTON_SELECTOR);
@@ -28,9 +26,8 @@ function useToastButtonPointerFix() {
     };
 
     function attach(toaster: Element) {
-      toaster.addEventListener('pointerdown', onPointerDown as EventListener, true);
-      return () =>
-        toaster.removeEventListener('pointerdown', onPointerDown as EventListener, true);
+      toaster.addEventListener('pointerdown', onPointerDown, true);
+      return () => toaster.removeEventListener('pointerdown', onPointerDown, true);
     }
 
     let toaster = document.querySelector('[data-sonner-toaster]');
