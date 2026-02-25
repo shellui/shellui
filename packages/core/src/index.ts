@@ -17,6 +17,8 @@ export type {
   ThemeColors,
   DrawerPosition,
   LayoutType,
+  BackendType,
+  BackendConfig,
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,

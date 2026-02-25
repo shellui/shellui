@@ -173,6 +173,17 @@ export interface CookieConsentConfig {
 /** When set to 'tauri', disables service worker and hides its settings (Tauri uses a different caching system). */
 export type RuntimeType = 'browser' | 'tauri';
 
+/** Supported backend providers for auth/API communication. */
+export type BackendType = 'shellui' | 'supabase';
+
+/** Backend API configuration. */
+export interface BackendConfig {
+  /** Backend provider type. */
+  type: BackendType;
+  /** Base URL used to access backend APIs. */
+  url: string;
+}
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -196,6 +207,8 @@ export interface ShellUIConfig {
   defaultTheme?: string; // Default theme name to use
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
   sentry?: SentryConfig;
+  /** Backend communication config. Defaults to undefined (no backend integration). */
+  backend?: BackendConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;
 }

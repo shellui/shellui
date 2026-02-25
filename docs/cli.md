@@ -150,6 +150,26 @@ Application title displayed in the UI.
 }
 ```
 
+#### `backend` (object, optional)
+
+Backend communication settings used for auth/API integration.
+
+```json
+{
+  "backend": {
+    "type": "supabase",
+    "url": "http://localhost:54321"
+  }
+}
+```
+
+**Default:** `undefined`
+
+**Properties:**
+
+- `type` (`"shellui" | "supabase"`, required when `backend` is set): Backend provider.
+- `url` (`string`, required when `backend` is set): Base API URL.
+
 #### `navigation` (array, optional)
 
 Array of navigation items for the sidebar. See the [Navigation Guide](/features/navigation) for complete documentation.
@@ -186,6 +206,10 @@ import type { ShellUIConfig } from '@shellui/core';
 const config: ShellUIConfig = {
   port: 4000,
   title: 'My ShellUI App',
+  backend: {
+    type: 'supabase',
+    url: 'http://localhost:54321',
+  },
   navigation: [
     {
       label: 'Documentation',

@@ -60,6 +60,10 @@ import type { ShellUIConfig } from '@shellui/core';
 const config: ShellUIConfig = {
   port: 4000,
   title: 'My ShellUI App',
+  backend: {
+    type: 'supabase',
+    url: 'http://localhost:54321',
+  },
   navigation: [
     {
       label: 'Home',
@@ -83,6 +87,9 @@ export default config;
 
 - **port** (number, optional): Port number for the development server (default: 3000)
 - **title** (string, optional): Application title displayed in the UI
+- **backend** (object, optional): Backend config for auth/API communication (default: undefined)
+  - **type** (`"shellui"` | `"supabase"`): Backend provider
+  - **url** (string): Base API URL
 - **navigation** (array, optional): Array of navigation items with:
   - **label** (string): Display text for the navigation item
   - **path** (string): Unique path identifier
