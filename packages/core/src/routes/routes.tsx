@@ -16,6 +16,9 @@ const CookiePreferencesView = lazy(() =>
     default: m.CookiePreferencesView,
   })),
 );
+const LoginView = lazy(() =>
+  import('../features/auth/LoginView').then((m) => ({ default: m.LoginView })),
+);
 const NavigationItemRoute = lazy(() =>
   import('./components/NavigationItemRoute').then((m) => ({ default: m.NavigationItemRoute })),
 );
@@ -48,6 +51,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <CookiePreferencesView />
+            </Suspense>
+          ),
+        },
+        {
+          // Login route
+          path: urls.login.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LoginView />
             </Suspense>
           ),
         },
