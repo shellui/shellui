@@ -27,14 +27,17 @@ import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
 import { flattenNavigationItems, resolveLocalizedString } from '../layouts/utils';
 import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel';
+import { createUserSettingsRoute } from './components/createUserSettingsRoute';
 import type { NavigationItem } from '../config/types';
 import { cn } from '../../lib/utils';
+import { useAuth } from '../auth/useAuth';
 
 export const SettingsView = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { config } = useConfig();
+  const { user, logout } = useAuth();
   const { t, i18n } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
@@ -100,10 +103,12 @@ export const SettingsView = () => {
       });
   }, [config?.navigation, i18n.language]);
 
+  const userRoute = useMemo(() => createUserSettingsRoute(user, logout, t), [user, logout, t]);
+
   // All routes (core + applications) for selection and routing
   const allRoutes = useMemo(
-    () => [...filteredRoutes, ...applicationRoutes],
-    [filteredRoutes, applicationRoutes],
+    () => [...userRoute, ...filteredRoutes, ...applicationRoutes],
+    [userRoute, filteredRoutes, applicationRoutes],
   );
 
   // Group routes by category
@@ -112,6 +117,9 @@ export const SettingsView = () => {
     const groups = [
       ...(applicationRoutes.length > 0
         ? [{ title: t('categories.applications'), routes: applicationRoutes }]
+        : []),
+      ...(userRoute.length > 0
+        ? [{ title: t('categories.account', { defaultValue: 'Account' }), routes: userRoute }]
         : []),
       {
         title: t('categories.preferences'),
@@ -129,7 +137,7 @@ export const SettingsView = () => {
       },
     ];
     return groups.filter((group) => group.routes.length > 0);
-  }, [filteredRoutes, applicationRoutes, t]);
+  }, [filteredRoutes, applicationRoutes, userRoute, t]);
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = useCallback(() => {

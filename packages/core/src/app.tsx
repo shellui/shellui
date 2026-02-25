@@ -9,6 +9,7 @@ import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
 import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
+import { AuthProvider } from './features/auth/useAuth';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
@@ -103,15 +104,17 @@ const App = () => {
 
   return (
     <ConfigProvider>
-      <SettingsProvider>
-        <ThemeProvider>
-          <I18nProvider>
-            <DialogProvider>
-              <AppContent />
-            </DialogProvider>
-          </I18nProvider>
-        </ThemeProvider>
-      </SettingsProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <ThemeProvider>
+            <I18nProvider>
+              <DialogProvider>
+                <AppContent />
+              </DialogProvider>
+            </I18nProvider>
+          </ThemeProvider>
+        </SettingsProvider>
+      </AuthProvider>
     </ConfigProvider>
   );
 };

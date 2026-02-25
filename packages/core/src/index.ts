@@ -24,8 +24,10 @@ export type {
   CookieConsentConfig,
 } from './features/config/types.js';
 export { useConfig } from './features/config/useConfig.js';
+export { useAuth, AuthProvider } from './features/auth/useAuth.js';
 export { ConfigProvider } from './features/config/ConfigProvider.js';
 export type { ConfigContextValue, ConfigProviderProps } from './features/config/ConfigProvider.js';
+export type { AuthSession } from './features/auth/useAuth.js';
 export { default as urls } from './constants/urls.js';
 export {
   getCookieConsentAccepted,

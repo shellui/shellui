@@ -182,6 +182,8 @@ export interface BackendConfig {
   type: BackendType;
   /** Base URL used to access backend APIs. */
   url: string;
+  /** Optional Supabase publishable key (public key). */
+  publishableKey?: string;
 }
 
 export interface ShellUIConfig {
