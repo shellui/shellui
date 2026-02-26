@@ -73,10 +73,7 @@ const DropdownMenuSeparator = forwardRef<
 ));
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
-const DropdownMenuShortcut = ({
-  className,
-  ...props
-}: ComponentPropsWithoutRef<'span'>) => (
+const DropdownMenuShortcut = ({ className, ...props }: ComponentPropsWithoutRef<'span'>) => (
   <span
     className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
     {...props}

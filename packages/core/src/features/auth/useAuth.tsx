@@ -262,7 +262,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const payload = (await response.json()) as Record<string, unknown>;
         const refreshParams = new URLSearchParams();
-        if (typeof payload.access_token === 'string') refreshParams.set('access_token', payload.access_token);
+        if (typeof payload.access_token === 'string')
+          refreshParams.set('access_token', payload.access_token);
         if (typeof payload.refresh_token === 'string') {
           refreshParams.set('refresh_token', payload.refresh_token);
         }
@@ -272,7 +273,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (typeof payload.expires_in === 'number' || typeof payload.expires_in === 'string') {
           refreshParams.set('expires_in', String(payload.expires_in));
         }
-        if (typeof payload.token_type === 'string') refreshParams.set('token_type', payload.token_type);
+        if (typeof payload.token_type === 'string')
+          refreshParams.set('token_type', payload.token_type);
 
         const refreshed = buildSessionFromParams(refreshParams, now);
         if (!refreshed) {
@@ -314,9 +316,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       syncSessionFromSettings(message);
     });
 
-    const cleanupSettingsUpdated = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (message) => {
-      syncSessionFromSettings(message);
-    });
+    const cleanupSettingsUpdated = shellui.addMessageListener(
+      'SHELLUI_SETTINGS_UPDATED',
+      (message) => {
+        syncSessionFromSettings(message);
+      },
+    );
 
     return () => {
       cleanupSettings();

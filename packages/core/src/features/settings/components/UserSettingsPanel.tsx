@@ -49,7 +49,9 @@ export const UserSettingsPanel = ({
           </div>
         )}
         <div className="min-w-0">
-          <p className="truncate text-base font-medium text-foreground">{user.name || 'Unknown user'}</p>
+          <p className="truncate text-base font-medium text-foreground">
+            {user.name || 'Unknown user'}
+          </p>
           <p className="truncate text-sm text-muted-foreground">{user.email || 'No email'}</p>
         </div>
       </div>

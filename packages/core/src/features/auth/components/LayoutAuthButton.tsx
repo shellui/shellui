@@ -194,7 +194,10 @@ export const LayoutAuthButton = ({
           {showCaret && (
             <span
               aria-hidden
-              className={cn('ml-auto shrink-0 text-[10px]', isMenuOpen ? 'text-foreground' : 'text-muted-foreground')}
+              className={cn(
+                'ml-auto shrink-0 text-[10px]',
+                isMenuOpen ? 'text-foreground' : 'text-muted-foreground',
+              )}
             >
               <SidebarCaretIcon
                 isOpen={isMenuOpen}
@@ -216,7 +219,9 @@ export const LayoutAuthButton = ({
       >
         <DropdownMenuLabel className="space-y-0.5">
           <p className="truncate text-sm font-semibold text-popover-foreground">{displayName}</p>
-          <p className="truncate text-xs font-normal text-muted-foreground">{user.email || 'No email'}</p>
+          <p className="truncate text-xs font-normal text-muted-foreground">
+            {user.email || 'No email'}
+          </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={openProfileSettingsModal}>

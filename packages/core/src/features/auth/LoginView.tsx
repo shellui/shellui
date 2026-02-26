@@ -28,9 +28,7 @@ const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   }
 
   const obj = record as Record<string, unknown>;
-  const methodsFromArray = Array.isArray(obj.methods)
-    ? obj.methods.filter(isLoginMethod)
-    : [];
+  const methodsFromArray = Array.isArray(obj.methods) ? obj.methods.filter(isLoginMethod) : [];
   const methods = new Set<LoginMethod>(methodsFromArray);
   const oauthProvidersSet = new Set<string>();
 
@@ -60,7 +58,8 @@ const normalizeAuthSettings = (payload: unknown): AuthSettings => {
       .filter((provider): provider is string => typeof provider === 'string')
       .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
   }
-  if (typeof obj.oauth_provider === 'string') oauthProvidersSet.add(obj.oauth_provider.toLowerCase());
+  if (typeof obj.oauth_provider === 'string')
+    oauthProvidersSet.add(obj.oauth_provider.toLowerCase());
 
   return {
     methods: Array.from(methods),
@@ -211,9 +210,11 @@ export const LoginView = () => {
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { msg?: string; message?: string; error_description?: string }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          msg?: string;
+          message?: string;
+          error_description?: string;
+        } | null;
         throw new Error(
           payload?.msg ??
             payload?.message ??
@@ -255,7 +256,12 @@ export const LoginView = () => {
                 {session.userEmail ? ` (${session.userEmail})` : ''}.
               </p>
             </div>
-            <Button type="button" variant="secondary" className="w-full" onClick={() => void logout()}>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              onClick={() => void logout()}
+            >
               Logout
             </Button>
           </div>
@@ -310,7 +316,10 @@ export const LoginView = () => {
             )}
 
             {supportsMagicLink && (
-              <form className="space-y-2" onSubmit={(event) => void handleMagicLinkLogin(event)}>
+              <form
+                className="space-y-2"
+                onSubmit={(event) => void handleMagicLinkLogin(event)}
+              >
                 <input
                   type="email"
                   value={magicLinkEmail}
@@ -319,10 +328,17 @@ export const LoginView = () => {
                   autoComplete="email"
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
-                <Button type="submit" variant="secondary" className="w-full" disabled={magicLinkLoading}>
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={magicLinkLoading}
+                >
                   {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
                 </Button>
-                {magicLinkMessage && <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>}
+                {magicLinkMessage && (
+                  <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
+                )}
               </form>
             )}
 

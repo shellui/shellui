@@ -379,7 +379,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
-      const settingsWithNav = buildSettingsForPropagation(nextSettings, config, i18n.language || 'en');
+      const settingsWithNav = buildSettingsForPropagation(
+        nextSettings,
+        config,
+        i18n.language || 'en',
+      );
       shellui.propagateMessage({
         type: 'SHELLUI_SETTINGS',
         payload: { settings: settingsWithNav },
