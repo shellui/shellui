@@ -209,6 +209,8 @@ export const LayoutAuthButton = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         ref={contentRef}
+        forceMount
+        data-auth-menu-content
         side={menuSideMap[variant]}
         align={menuAlignMap[variant]}
         collisionPadding={8}
