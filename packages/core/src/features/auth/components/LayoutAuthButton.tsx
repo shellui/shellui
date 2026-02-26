@@ -1,10 +1,12 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useAuth } from '../useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
+import { UserSettingsPanel } from '../../settings/components/UserSettingsPanel';
+import { Dialog, DialogContent, DialogTrigger } from '../../../components/ui/dialog';
 
 type LayoutAuthButtonVariant = 'sidebar' | 'appbar' | 'windows';
 
@@ -32,7 +34,7 @@ export const LayoutAuthButton = ({
 }) => {
   const { config } = useConfig();
   const { isAuthenticated, user, logout } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const displayName = useMemo(() => {
     const name = user?.name?.trim();
@@ -41,16 +43,6 @@ export const LayoutAuthButton = ({
   }, [user?.email, user?.name]);
 
   const fallbackInitial = displayName.charAt(0).toUpperCase();
-
-  const handleLogout = useCallback(async () => {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsLoggingOut(false);
-    }
-  }, [isLoggingOut, logout]);
 
   const baseButtonClasses = cn(
     'inline-flex items-center gap-2 min-w-0 shrink-0 transition-colors cursor-pointer',
@@ -81,34 +73,52 @@ export const LayoutAuthButton = ({
     );
   }
 
+  if (!user) {
+    return null;
+  }
+
   return (
-    <button
-      type="button"
-      className={baseButtonClasses}
-      onClick={() => void handleLogout()}
-      disabled={isLoggingOut}
-      title={displayName}
-      aria-label={isLoggingOut ? 'Logging out' : `Logout ${displayName}`}
+    <Dialog
+      open={isSettingsOpen}
+      onOpenChange={setIsSettingsOpen}
     >
-      {user?.profilePicture ? (
-        <img
-          src={user.profilePicture}
-          alt={displayName}
-          className={cn('shrink-0 rounded-full border border-sidebar-border object-cover', avatarClassMap[variant])}
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <span
-          className={cn(
-            'shrink-0 rounded-full border border-sidebar-border bg-muted flex items-center justify-center text-[10px] font-semibold',
-            avatarClassMap[variant],
-          )}
-          aria-hidden
+      <DialogTrigger asChild>
+        <button
+          type="button"
+          className={baseButtonClasses}
+          title={displayName}
+          aria-label={`Open user settings for ${displayName}`}
         >
-          {fallbackInitial}
-        </span>
-      )}
-      <span className="truncate">{displayName}</span>
-    </button>
+          {user.profilePicture ? (
+            <img
+              src={user.profilePicture}
+              alt={displayName}
+              className={cn(
+                'shrink-0 rounded-full border border-sidebar-border object-cover',
+                avatarClassMap[variant],
+              )}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span
+              className={cn(
+                'shrink-0 rounded-full border border-sidebar-border bg-muted flex items-center justify-center text-[10px] font-semibold',
+                avatarClassMap[variant],
+              )}
+              aria-hidden
+            >
+              {fallbackInitial}
+            </span>
+          )}
+          <span className="truncate">{displayName}</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl p-0">
+        <UserSettingsPanel
+          user={user}
+          onLogout={logout}
+        />
+      </DialogContent>
+    </Dialog>
   );
 };
