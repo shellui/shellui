@@ -147,6 +147,14 @@ export interface Appearance extends SettingsTheme {
   availableThemes?: SettingsAvailableTheme[];
 }
 
+export interface SettingsUser {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  profilePicture: string | null;
+  authProvider: string | null;
+}
+
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
@@ -190,6 +198,8 @@ export interface Settings {
   navigation?: {
     items: SettingsNavigationItem[];
   };
+  /** Authenticated user snapshot injected by shell for sub-apps. */
+  user?: SettingsUser | null;
   // Add more settings here as needed
   // notifications: { ... }
 }
@@ -225,7 +235,8 @@ export type ShellUIMessageType =
   | 'SHELLUI_DIALOG_CANCEL'
   | 'SHELLUI_DIALOG_SECONDARY'
   | 'SHELLUI_INITIALIZED'
-  | 'SHELLUI_REFRESH_PAGE';
+  | 'SHELLUI_REFRESH_PAGE'
+  | 'SHELLUI_LOGOUT';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

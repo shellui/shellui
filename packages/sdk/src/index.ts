@@ -38,6 +38,7 @@ export type {
   OpenDrawerOptions,
   LoggerInstance,
   Settings,
+  SettingsUser,
   SettingsNavigationItem,
   ThemeColorsMode,
   ThemeColors,

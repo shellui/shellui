@@ -13,8 +13,32 @@ import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup, ShellUIConfig } from '../config/types';
 import { getTheme, getAllThemes, registerTheme } from '../theme/themes';
+import { useAuth, type AuthUser } from '../auth/useAuth';
 
 const logger = getLogger('shellcore');
+
+function toSettingsUser(user: AuthUser | null) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    profilePicture: user.profilePicture,
+    authProvider: user.authProvider,
+  };
+}
+
+function isSameUser(a: Settings['user'], b: Settings['user']) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return (
+    a.id === b.id &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.profilePicture === b.profilePicture &&
+    a.authProvider === b.authProvider
+  );
+}
 
 function flattenNavigationItems(
   navigation: (NavigationItem | NavigationGroup)[],
@@ -252,11 +276,13 @@ const defaultSettings: Settings = {
   serviceWorker: {
     enabled: true,
   },
+  user: null,
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
   const { i18n } = useTranslation();
+  const { user: authUser } = useAuth();
   // Use a ref to always have current settings for message listeners (avoids closure issues)
   const settingsRef = useRef<Settings | null>(null);
   const [settings, setSettings] = useState<Settings>(() => {
@@ -318,6 +344,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               // Migrate from legacy "caching" key if present
               enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? true,
             },
+            user: parsed.user ?? null,
           };
           settingsRef.current = initialSettings;
           return initialSettings;
@@ -334,6 +361,33 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const currentSettings = settingsRef.current ?? defaultSettings;
+    const nextUser = toSettingsUser(authUser);
+    if (isSameUser(currentSettings.user, nextUser)) {
+      return;
+    }
+
+    const nextSettings = { ...currentSettings, user: nextUser };
+    settingsRef.current = nextSettings;
+    setSettings(nextSettings);
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
+      const settingsWithNav = buildSettingsForPropagation(nextSettings, config, i18n.language || 'en');
+      shellui.propagateMessage({
+        type: 'SHELLUI_SETTINGS',
+        payload: { settings: settingsWithNav },
+      });
+    } catch (error) {
+      logger.error('Failed to sync auth user into settings:', { error });
+    }
+  }, [authUser, config, i18n.language]);
 
   // Listen for settings updates from parent/other nodes
   useEffect(() => {

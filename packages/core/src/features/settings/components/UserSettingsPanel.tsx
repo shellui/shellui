@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { shellui } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/useAuth';
 import { Button } from '../../../components/ui/button';
 
@@ -22,6 +23,10 @@ export const UserSettingsPanel = ({
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
+      shellui.sendMessageToParent({
+        type: 'SHELLUI_LOGOUT',
+        payload: {},
+      });
       await onLogout();
     } finally {
       setIsLoggingOut(false);

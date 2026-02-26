@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { shellui, type Settings, type SettingsUser } from '@shellui/sdk';
 import { useConfig } from '../config/useConfig';
 import urls from '../../constants/urls';
 
@@ -142,6 +143,24 @@ const clearStoredSession = () => {
 
 const isExpired = (session: AuthSession) => session.expiresAt <= Math.floor(Date.now() / 1000) + 30;
 
+const toAuthSessionFromSettingsUser = (settingsUser: SettingsUser): AuthSession => ({
+  accessToken: '',
+  refreshToken: '',
+  tokenType: 'bearer',
+  // Long-lived synthetic expiry; parent shell controls real auth.
+  expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
+  provider: settingsUser.authProvider,
+  userId: settingsUser.id,
+  userEmail: settingsUser.email,
+  userName: settingsUser.name,
+  userAvatarUrl: settingsUser.profilePicture,
+});
+
+const getUserFromSdkSettings = (): SettingsUser | null => {
+  const initialSettings = shellui.initialSettings as Settings | null;
+  return initialSettings?.user ?? null;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
   const backendType = config.backend?.type;
@@ -165,6 +184,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      const isIframe = window.parent !== window;
       const now = Math.floor(Date.now() / 1000);
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const sessionFromHash = buildSessionFromParams(hashParams, now);
@@ -180,6 +200,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               window.location.pathname + window.location.search,
             );
           }
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      if (isIframe) {
+        const sdkUser = getUserFromSdkSettings();
+        if (!cancelled) {
+          setSession(sdkUser ? toAuthSessionFromSettingsUser(sdkUser) : null);
           setIsLoading(false);
         }
         return;
@@ -270,6 +299,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [backendType, backendUrl, publishableKey]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent === window) {
+      return;
+    }
+
+    const syncSessionFromSettings = (message: { payload: unknown }) => {
+      const payload = message.payload as { settings?: Settings };
+      const settingsUser = payload.settings?.user ?? null;
+      setSession(settingsUser ? toAuthSessionFromSettingsUser(settingsUser) : null);
+    };
+
+    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (message) => {
+      syncSessionFromSettings(message);
+    });
+
+    const cleanupSettingsUpdated = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (message) => {
+      syncSessionFromSettings(message);
+    });
+
+    return () => {
+      cleanupSettings();
+      cleanupSettingsUpdated();
+    };
+  }, []);
+
   const startSupabaseOAuth = useCallback(
     (provider: string, redirectPath = urls.login) => {
       if (backendType !== 'supabase' || !backendUrl || !publishableKey) {
@@ -311,6 +365,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthEvent(null);
     setError(null);
   }, [backendType, backendUrl, publishableKey, session?.accessToken]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_LOGOUT', () => {
+      void logout();
+    });
+
+    return () => cleanup();
+  }, [logout]);
 
   const clearAuthEvent = useCallback(() => setAuthEvent(null), []);
   const user = useMemo<AuthUser | null>(
