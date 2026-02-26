@@ -18,7 +18,7 @@ export const createUserSettingsRoute = (
   user
     ? [
         {
-          name: t('routes.user', { defaultValue: 'User' }),
+          name: t('routes.userAccount', { defaultValue: 'user account' }),
           icon: UserIcon,
           path: 'user',
           element: (

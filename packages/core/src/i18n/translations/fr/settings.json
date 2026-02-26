@@ -7,6 +7,7 @@
     "developer": "Développeur"
   },
   "routes": {
+    "userAccount": "Compte utilisateur",
     "appearance": "Apparence",
     "languageAndRegion": "Langue et région",
     "updateApp": "Mise à jour logicielle",

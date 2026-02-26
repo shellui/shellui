@@ -118,14 +118,14 @@ export const SettingsView = () => {
       ...(applicationRoutes.length > 0
         ? [{ title: t('categories.applications'), routes: applicationRoutes }]
         : []),
-      ...(userRoute.length > 0
-        ? [{ title: t('categories.account', { defaultValue: 'Account' }), routes: userRoute }]
-        : []),
       {
         title: t('categories.preferences'),
-        routes: filteredRoutes.filter((route) =>
-          ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
-        ),
+        routes: [
+          ...filteredRoutes.filter((route) =>
+            ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
+          ),
+          ...userRoute,
+        ],
       },
       {
         title: t('categories.system'),
