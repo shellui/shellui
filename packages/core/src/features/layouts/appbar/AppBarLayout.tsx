@@ -4,10 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import {
+  filterNavigationForAuthState,
   filterNavigationByViewport,
   flattenNavigationItems,
   getActivePathPrefix,
   getNavPathPrefix,
+  hasLoginNavigationItem,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
   withHomepageWhenNoRoot,
@@ -15,6 +17,8 @@ import {
 import { Select } from '../../../components/ui/select';
 import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
 import { cn } from '../../../lib/utils';
+import { LayoutAuthButton } from '../../auth/components/LayoutAuthButton';
+import { useAuth } from '../../auth/useAuth';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -142,22 +146,28 @@ function TopBarEndItem({
 
 export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const { i18n } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const currentLanguage = i18n.language || 'en';
+  const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  const authAwareNavigation = useMemo(
+    () => filterNavigationForAuthState(navigation, isAuthenticated),
+    [navigation, isAuthenticated],
+  );
 
   const { endNavItems, navigationItems, displayStartItems, activePathPrefix } = useMemo(() => {
-    const desktopNav = filterNavigationByViewport(navigation, 'desktop');
+    const desktopNav = filterNavigationByViewport(authAwareNavigation, 'desktop');
     const { start, end } = splitNavigationByPosition(desktopNav);
     const startItems = flattenNavigationItems(start).filter((i) => !i.hidden);
-    const flat = flattenNavigationItems(navigation);
+    const flat = flattenNavigationItems(authAwareNavigation);
     return {
       endNavItems: flattenNavigationItems(end).filter((i) => !i.hidden),
       navigationItems: flat,
       displayStartItems: withHomepageWhenNoRoot(startItems),
       activePathPrefix: getActivePathPrefix(location.pathname, flat),
     };
-  }, [navigation, location.pathname]);
+  }, [authAwareNavigation, location.pathname]);
 
   useEffect(() => {
     if (!title) return;
@@ -233,24 +243,30 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
 
         <div className="flex-1 min-w-0" />
 
-        {/* End links: icon-only or first letter + tooltip */}
-        {endNavItems.length > 0 && (
-          <TooltipProvider
-            delayDuration={200}
-            skipDelayDuration={0}
-          >
-            <div className="flex items-center gap-0.5 shrink-0">
-              {endNavItems.map((item) => (
-                <TopBarEndItem
-                  key={item.path}
-                  item={item}
-                  label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
-                  activePathPrefix={activePathPrefix}
-                />
-              ))}
-            </div>
-          </TooltipProvider>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* End links: icon-only or first letter + tooltip */}
+          {endNavItems.length > 0 && (
+            <TooltipProvider
+              delayDuration={200}
+              skipDelayDuration={0}
+            >
+              <div className="flex items-center gap-0.5">
+                {endNavItems.map((item) => (
+                  <TopBarEndItem
+                    key={item.path}
+                    item={item}
+                    label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                    activePathPrefix={activePathPrefix}
+                  />
+                ))}
+              </div>
+            </TooltipProvider>
+          )}
+          <LayoutAuthButton
+            variant="appbar"
+            hideWhenLoggedOut={hasCustomLoginNav}
+          />
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col overflow-auto min-h-0">

@@ -1,4 +1,5 @@
 import type { NavigationItem, NavigationGroup, LocalizedString } from '../config/types';
+import urls from '../../constants/urls';
 
 /** Path prefix for a nav item: "/" for root (path '' or '/'), otherwise "/{path}". */
 export function getNavPathPrefix(item: NavigationItem): string {
@@ -131,6 +132,50 @@ export function withHomepageWhenNoRoot(items: NavigationItem[]): NavigationItem[
   const hasRoot = items.some((i) => i.path === '' || i.path === '/');
   if (hasRoot) return items;
   return [HOMEPAGE_NAV_ITEM, ...items];
+}
+
+const normalizePathForComparison = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    const parsed = new URL(trimmed, 'http://localhost');
+    return parsed.pathname.replace(/\/+$/, '') || '/';
+  } catch {
+    return trimmed.replace(/\/+$/, '') || '/';
+  }
+};
+
+/** True when a nav item URL points to the built-in login route. */
+export function isLoginNavigationUrl(url: string): boolean {
+  return normalizePathForComparison(url) === urls.login;
+}
+
+/** Whether the config defines at least one navigation item targeting the login route. */
+export function hasLoginNavigationItem(navigation: (NavigationItem | NavigationGroup)[]): boolean {
+  return flattenNavigationItems(navigation).some((item) => isLoginNavigationUrl(item.url));
+}
+
+/**
+ * Hide login navigation entries only when authenticated, so custom login entries
+ * can still be used while signed out (e.g. open login in modal/drawer).
+ */
+export function filterNavigationForAuthState(
+  navigation: (NavigationItem | NavigationGroup)[],
+  isAuthenticated: boolean,
+): (NavigationItem | NavigationGroup)[] {
+  if (!isAuthenticated || navigation.length === 0) return navigation;
+  return navigation
+    .map((item) => {
+      if ('title' in item && 'items' in item) {
+        const group = item as NavigationGroup;
+        const visibleItems = group.items.filter((navItem) => !isLoginNavigationUrl(navItem.url));
+        if (visibleItems.length === 0) return null;
+        return { ...group, items: visibleItems };
+      }
+      const navItem = item as NavigationItem;
+      return isLoginNavigationUrl(navItem.url) ? null : item;
+    })
+    .filter((item): item is NavigationItem | NavigationGroup => item !== null);
 }
 
 /** Split navigation by position: start (main content) and end (footer). */

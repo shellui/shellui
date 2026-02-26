@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { Sidebar } from '../../../components/ui/sidebar';
 import { cn } from '../../../lib/utils';
 import {
+  filterNavigationForAuthState,
   filterNavigationByViewport,
   filterNavigationForSidebar,
   flattenNavigationItems,
+  hasLoginNavigationItem,
   resolveLocalizedString as resolveLocalizedLabel,
   splitNavigationByPosition,
 } from '../utils';
@@ -14,18 +16,25 @@ import { SidebarInner } from './SidebarInner';
 import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
 import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
+import { useAuth } from '../../auth/useAuth';
 
 const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const { navigationItem, rootItem } = useNavigationItems();
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
   }, [i18n]);
 
+  const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  const authAwareNavigation = useMemo(
+    () => filterNavigationForAuthState(navigation, isAuthenticated),
+    [navigation, isAuthenticated],
+  );
   const { startNav, endItems, mobileNavItems } = useMemo(() => {
-    const desktopNav = filterNavigationByViewport(navigation, 'desktop');
-    const mobileNav = filterNavigationByViewport(navigation, 'mobile');
+    const desktopNav = filterNavigationByViewport(authAwareNavigation, 'desktop');
+    const mobileNav = filterNavigationByViewport(authAwareNavigation, 'mobile');
     const { start, end } = splitNavigationByPosition(desktopNav);
     const mobileFlat = flattenNavigationItems(mobileNav);
 
@@ -34,7 +43,7 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
       endItems: end,
       mobileNavItems: mobileFlat,
     };
-  }, [navigation]);
+  }, [authAwareNavigation]);
 
   useEffect(() => {
     if (!title) return;
@@ -55,6 +64,7 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
             logo={logo}
             startNav={startNav}
             endItems={endItems}
+            showAuthButton={!hasCustomLoginNav || isAuthenticated}
           />
         </Sidebar>
 

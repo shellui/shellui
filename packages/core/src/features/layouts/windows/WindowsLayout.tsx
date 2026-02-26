@@ -11,9 +11,11 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import {
+  filterNavigationForAuthState,
   flattenNavigationItems,
   getActivePathPrefix,
   getNavPathPrefix,
+  hasLoginNavigationItem,
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
 } from '../utils';
@@ -21,6 +23,8 @@ import { useSettings } from '../../settings/SettingsContext';
 import { ContentView } from '../../../components/ContentView';
 import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
+import { LayoutAuthButton } from '../../auth/components/LayoutAuthButton';
+import { useAuth } from '../../auth/useAuth';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -509,17 +513,23 @@ export function WindowsLayout({
 }: WindowsLayoutProps) {
   const location = useLocation();
   const { i18n } = useTranslation();
+  const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
   const currentLanguage = i18n.language || 'en';
+  const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  const authAwareNavigation = useMemo(
+    () => filterNavigationForAuthState(navigation, isAuthenticated),
+    [navigation, isAuthenticated],
+  );
   const timeZone = settings.region?.timezone ?? getBrowserTimezone();
   const { startNavItems, endNavItems, navigationItems } = useMemo(() => {
-    const { start, end } = splitNavigationByPosition(navigation);
+    const { start, end } = splitNavigationByPosition(authAwareNavigation);
     return {
       startNavItems: flattenNavigationItems(start),
       endNavItems: end,
-      navigationItems: flattenNavigationItems(navigation),
+      navigationItems: flattenNavigationItems(authAwareNavigation),
     };
-  }, [navigation]);
+  }, [authAwareNavigation]);
 
   const [windows, setWindows] = useState<WindowState[]>([]);
   /** Id of the window that is on top (first plan). Clicking a window or its taskbar button sets this. */
@@ -835,6 +845,13 @@ export function WindowsLayout({
             })}
           </div>
         )}
+
+        <div className="flex items-center shrink-0 border-l border-sidebar-border pl-2 ml-1">
+          <LayoutAuthButton
+            variant="windows"
+            hideWhenLoggedOut={hasCustomLoginNav}
+          />
+        </div>
 
         {/* Date and time (extreme bottom right, OS-style); uses region timezone from settings */}
         <div

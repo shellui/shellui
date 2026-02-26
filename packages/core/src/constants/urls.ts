@@ -1,5 +1,5 @@
 export default {
   settings: '/__settings',
   cookiePreferences: '/__cookie-preferences',
-  login: '/__login',
+  login: '/login',
 };
