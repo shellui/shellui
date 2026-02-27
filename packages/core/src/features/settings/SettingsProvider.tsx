@@ -16,6 +16,15 @@ import { getTheme, getAllThemes, registerTheme } from '../theme/themes';
 import { useAuth, type AuthUser } from '../auth/useAuth';
 
 const logger = getLogger('shellcore');
+const USER_METADATA_ENDPOINT = '/auth/v1/user';
+const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
+
+type AppPreferences = {
+  themeName?: string;
+  language?: string;
+  region?: string;
+  colorScheme?: 'light' | 'dark' | 'system';
+};
 
 function toSettingsUser(user: AuthUser | null) {
   if (!user) return null;
@@ -279,10 +288,58 @@ const defaultSettings: Settings = {
   user: null,
 };
 
+function getPreferenceSnapshot(settings: Settings): AppPreferences {
+  return {
+    themeName: settings.appearance?.name || defaultAppearance.name,
+    language: settings.language?.code || defaultSettings.language.code,
+    region: settings.region?.timezone || getBrowserTimezone(),
+    colorScheme: settings.appearance?.colorScheme || defaultAppearance.colorScheme,
+  };
+}
+
+function mergePreferencesIntoSettings(
+  currentSettings: Settings,
+  preferences: AppPreferences,
+): Settings {
+  const hasThemeName = typeof preferences.themeName === 'string' && preferences.themeName.trim() !== '';
+  const hasLanguage = typeof preferences.language === 'string' && preferences.language.trim() !== '';
+  const hasRegion = typeof preferences.region === 'string' && preferences.region.trim() !== '';
+  const hasColorScheme =
+    preferences.colorScheme === 'light' ||
+    preferences.colorScheme === 'dark' ||
+    preferences.colorScheme === 'system';
+  const normalizedColorScheme: 'light' | 'dark' | 'system' = hasColorScheme
+    ? (preferences.colorScheme as 'light' | 'dark' | 'system')
+    : currentSettings.appearance.colorScheme;
+  const normalizedLanguage =
+    preferences.language === 'fr' || preferences.language === 'en'
+      ? preferences.language
+      : currentSettings.language.code;
+
+  return {
+    ...currentSettings,
+    appearance: {
+      ...currentSettings.appearance,
+      ...(hasThemeName ? { name: preferences.themeName?.trim() } : {}),
+      colorScheme: normalizedColorScheme,
+    },
+    language: {
+      ...currentSettings.language,
+      ...(hasLanguage ? { code: normalizedLanguage } : {}),
+    },
+    region: {
+      ...currentSettings.region,
+      ...(hasRegion ? { timezone: preferences.region?.trim() } : {}),
+    },
+  };
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
   const { i18n } = useTranslation();
-  const { user: authUser } = useAuth();
+  const { user: authUser, session } = useAuth();
+  const lastSyncedPreferencesRef = useRef<string | null>(null);
+  const loadingPreferencesRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
   const settingsRef = useRef<Settings | null>(null);
   const [settings, setSettings] = useState<Settings>(() => {
@@ -361,6 +418,120 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      window.parent !== window ||
+      config?.backend?.type !== 'supabase' ||
+      !config?.backend?.url ||
+      !config?.backend?.publishableKey ||
+      !session?.accessToken
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+    loadingPreferencesRef.current = true;
+    const backendUrl = config.backend.url.replace(/\/+$/, '');
+    const publishableKey = config.backend.publishableKey;
+
+    const loadPreferencesFromSupabase = async () => {
+      try {
+        const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
+        userUrl.searchParams.set('apikey', publishableKey);
+
+        const response = await fetch(userUrl.toString(), {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            apikey: publishableKey,
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = (await response.json()) as {
+          user_metadata?: Record<string, unknown>;
+        };
+        const preferences = payload.user_metadata?.[APP_PREFERENCES_METADATA_KEY] as
+          | AppPreferences
+          | undefined;
+
+        if (cancelled) return;
+
+        if (!preferences || typeof preferences !== 'object') {
+          const currentSettings = settingsRef.current ?? defaultSettings;
+          const fallbackSettings = mergePreferencesIntoSettings(currentSettings, {
+            themeName: defaultAppearance.name,
+            language: defaultSettings.language.code,
+            region: getBrowserTimezone(),
+            colorScheme: defaultAppearance.colorScheme,
+          });
+          const signature = JSON.stringify(getPreferenceSnapshot(fallbackSettings));
+          lastSyncedPreferencesRef.current = signature;
+          settingsRef.current = fallbackSettings;
+          setSettings(fallbackSettings);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSettings));
+
+          const settingsToPropagate = buildSettingsForPropagation(
+            fallbackSettings,
+            config,
+            i18n.language || 'en',
+          );
+          shellui.propagateMessage({
+            type: 'SHELLUI_SETTINGS',
+            payload: { settings: settingsToPropagate },
+          });
+
+          logger.info('No Supabase preferences found; using app defaults');
+          return;
+        }
+
+        const currentSettings = settingsRef.current ?? defaultSettings;
+        const mergedSettings = mergePreferencesIntoSettings(currentSettings, preferences);
+        const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
+        lastSyncedPreferencesRef.current = signature;
+        settingsRef.current = mergedSettings;
+        setSettings(mergedSettings);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
+
+        const settingsToPropagate = buildSettingsForPropagation(
+          mergedSettings,
+          config,
+          i18n.language || 'en',
+        );
+        shellui.propagateMessage({
+          type: 'SHELLUI_SETTINGS',
+          payload: { settings: settingsToPropagate },
+        });
+
+        logger.info('Loaded app preferences from Supabase metadata', {
+          preferences: getPreferenceSnapshot(mergedSettings),
+        });
+      } catch (error) {
+        logger.error('Failed to load app preferences from Supabase metadata', { error });
+      } finally {
+        loadingPreferencesRef.current = false;
+      }
+    };
+
+    void loadPreferencesFromSupabase();
+    return () => {
+      cancelled = true;
+      loadingPreferencesRef.current = false;
+    };
+  }, [
+    config?.backend?.publishableKey,
+    config?.backend?.type,
+    config?.backend?.url,
+    i18n.language,
+    session?.accessToken,
+    session?.userId,
+  ]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
@@ -464,6 +635,74 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettingsRequested();
     };
   }, [settings, config?.navigation, i18n.language]);
+
+  useEffect(() => {
+    if (
+      typeof window === 'undefined' ||
+      window.parent !== window ||
+      config?.backend?.type !== 'supabase' ||
+      !config?.backend?.url ||
+      !config?.backend?.publishableKey ||
+      !session?.accessToken ||
+      loadingPreferencesRef.current
+    ) {
+      return;
+    }
+
+    const preferences = getPreferenceSnapshot(settings);
+    const signature = JSON.stringify(preferences);
+    if (signature === lastSyncedPreferencesRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    const backendUrl = config.backend.url.replace(/\/+$/, '');
+    const publishableKey = config.backend.publishableKey;
+
+    const syncPreferencesToSupabase = async () => {
+      try {
+        const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
+        userUrl.searchParams.set('apikey', publishableKey);
+
+        const response = await fetch(userUrl.toString(), {
+          method: 'PUT',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            apikey: publishableKey,
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+          body: JSON.stringify({
+            data: {
+              [APP_PREFERENCES_METADATA_KEY]: preferences,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        if (cancelled) return;
+
+        lastSyncedPreferencesRef.current = signature;
+        logger.info('Synced app preferences to Supabase metadata', { preferences });
+      } catch (error) {
+        logger.error('Failed to sync app preferences to Supabase metadata', { error });
+      }
+    };
+
+    void syncPreferencesToSupabase();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    config?.backend?.publishableKey,
+    config?.backend?.type,
+    config?.backend?.url,
+    session?.accessToken,
+    settings,
+  ]);
 
   // ACTIONS
   const updateSettings = useCallback(
