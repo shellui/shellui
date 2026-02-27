@@ -301,8 +301,10 @@ function mergePreferencesIntoSettings(
   currentSettings: Settings,
   preferences: AppPreferences,
 ): Settings {
-  const hasThemeName = typeof preferences.themeName === 'string' && preferences.themeName.trim() !== '';
-  const hasLanguage = typeof preferences.language === 'string' && preferences.language.trim() !== '';
+  const hasThemeName =
+    typeof preferences.themeName === 'string' && preferences.themeName.trim() !== '';
+  const hasLanguage =
+    typeof preferences.language === 'string' && preferences.language.trim() !== '';
   const hasRegion = typeof preferences.region === 'string' && preferences.region.trim() !== '';
   const hasColorScheme =
     preferences.colorScheme === 'light' ||
