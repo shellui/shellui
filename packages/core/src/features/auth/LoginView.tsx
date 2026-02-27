@@ -254,6 +254,10 @@ export const LoginView = () => {
     }
   };
 
+  if (isAuthenticated) {
+    return null;
+  }
+
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center p-6">
       <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
