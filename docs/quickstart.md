@@ -95,6 +95,8 @@ export default config;
   - **path** (string): Unique path identifier
   - **url** (string): URL to navigate to
   - **icon** (string, optional): Icon name for the navigation item
+  - **hideWhenLoggedOut** (boolean, optional): Hide item from navigation while signed out
+  - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
 
 ## Step 4: Start the Development Server
 

@@ -163,17 +163,23 @@ export function filterNavigationForAuthState(
   navigation: (NavigationItem | NavigationGroup)[],
   isAuthenticated: boolean,
 ): (NavigationItem | NavigationGroup)[] {
-  if (!isAuthenticated || navigation.length === 0) return navigation;
+  if (navigation.length === 0) return navigation;
   return navigation
     .map((item) => {
       if ('title' in item && 'items' in item) {
         const group = item as NavigationGroup;
-        const visibleItems = group.items.filter((navItem) => !isLoginNavigationUrl(navItem.url));
+        const visibleItems = group.items.filter((navItem) => {
+          if (navItem.hideWhenLoggedOut && !isAuthenticated) return false;
+          if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return false;
+          return true;
+        });
         if (visibleItems.length === 0) return null;
         return { ...group, items: visibleItems };
       }
       const navItem = item as NavigationItem;
-      return isLoginNavigationUrl(navItem.url) ? null : item;
+      if (navItem.hideWhenLoggedOut && !isAuthenticated) return null;
+      if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return null;
+      return item;
     })
     .filter((item): item is NavigationItem | NavigationGroup => item !== null);
 }

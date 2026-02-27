@@ -20,6 +20,10 @@ export interface NavigationItem {
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
   /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
   hidden?: boolean;
+  /** When true, hide this item from navigation when the user is not authenticated. */
+  hideWhenLoggedOut?: boolean;
+  /** When true, navigating to this route requires authentication and redirects to login with a next URL. */
+  requiresAuth?: boolean;
   /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
   hiddenOnMobile?: boolean;
   /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */

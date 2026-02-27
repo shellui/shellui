@@ -1,11 +1,12 @@
 import { shellui } from '@shellui/sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useAuth } from '../useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
+import { flattenNavigationItems, getNavPathPrefix } from '../../layouts/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +69,8 @@ export const LayoutAuthButton = ({
 }) => {
   const { config } = useConfig();
   const { isAuthenticated, user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -88,6 +91,19 @@ export const LayoutAuthButton = ({
     'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
     isAuthenticated ? authenticatedVariantClassMap[variant] : loggedOutVariantClassMap[variant],
   );
+  const isOnRequiredAuthRoute = useMemo(() => {
+    const nav = config.navigation;
+    if (!nav || nav.length === 0) return false;
+    const requiredItems = flattenNavigationItems(nav).filter((item) => item.requiresAuth);
+    if (requiredItems.length === 0) return false;
+    return requiredItems.some((item) => {
+      const pathPrefix = getNavPathPrefix(item);
+      return (
+        location.pathname === pathPrefix ||
+        location.pathname.startsWith(`${pathPrefix === '/' ? '' : pathPrefix}/`)
+      );
+    });
+  }, [config.navigation, location.pathname]);
 
   const openProfileSettingsModal = useCallback(() => {
     setIsMenuOpen(false);
@@ -96,12 +112,15 @@ export const LayoutAuthButton = ({
 
   const handleLogout = useCallback(async () => {
     setIsMenuOpen(false);
+    if (isOnRequiredAuthRoute) {
+      navigate('/', { replace: true });
+    }
     shellui.sendMessageToParent({
       type: 'SHELLUI_LOGOUT',
       payload: {},
     });
     await logout();
-  }, [logout]);
+  }, [isOnRequiredAuthRoute, logout, navigate]);
 
   useEffect(() => {
     if (!isMenuOpen) {

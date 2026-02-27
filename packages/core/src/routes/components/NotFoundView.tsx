@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from '../../features/config/useConfig';
-import { getNavPathPrefix } from '../../features/layouts/utils';
+import { filterNavigationForAuthState, getNavPathPrefix } from '../../features/layouts/utils';
 import type { NavigationItem, NavigationGroup } from '../../features/config/types';
+import { useAuth } from '../../features/auth/useAuth';
 
 const flattenNavigationItems = (
   navigation: (NavigationItem | NavigationGroup)[],
@@ -18,6 +19,7 @@ const flattenNavigationItems = (
 
 export const NotFoundView = () => {
   const { config } = useConfig();
+  const { isAuthenticated } = useAuth();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
 
@@ -31,7 +33,7 @@ export const NotFoundView = () => {
 
   const navItems =
     config?.navigation && config.navigation.length > 0
-      ? flattenNavigationItems(config.navigation)
+      ? flattenNavigationItems(filterNavigationForAuthState(config.navigation, isAuthenticated))
           .filter((item) => !item.hidden)
           .filter((item, index, self) => index === self.findIndex((i) => i.path === item.path))
       : [];

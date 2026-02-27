@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../components/ui/button';
 import urls from '../../constants/urls';
@@ -69,8 +69,17 @@ const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   };
 };
 
+const normalizeNextPath = (value: string | null): string | null => {
+  if (!value) return null;
+  if (!value.startsWith('/')) return null;
+  if (value.startsWith('//')) return null;
+  if (value === urls.login || value.startsWith(`${urls.login}?`)) return null;
+  return value;
+};
+
 export const LoginView = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { config } = useConfig();
   const {
     session,
@@ -91,6 +100,13 @@ export const LoginView = () => {
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
+  const nextPath = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return normalizeNextPath(params.get('next')) ?? '/';
+  }, [location.search]);
+  const loginPathWithNext = useMemo(() => {
+    return `${urls.login}?next=${encodeURIComponent(nextPath)}`;
+  }, [nextPath]);
 
   const backendUrl = config.backend?.url?.replace(/\/+$/, '') ?? null;
   const publishableKey = config.backend?.publishableKey;
@@ -109,9 +125,15 @@ export const LoginView = () => {
   useEffect(() => {
     if (authEvent === 'oauth_callback' && isAuthenticated) {
       clearAuthEvent();
-      navigate('/', { replace: true });
+      navigate(nextPath, { replace: true });
     }
-  }, [authEvent, clearAuthEvent, isAuthenticated, navigate]);
+  }, [authEvent, clearAuthEvent, isAuthenticated, navigate, nextPath]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate(nextPath, { replace: true });
+    }
+  }, [authLoading, isAuthenticated, navigate, nextPath]);
 
   useEffect(() => {
     if (!endpoint || isAuthenticated) {
@@ -187,11 +209,11 @@ export const LoginView = () => {
       shellui.login({
         method: 'oauth',
         provider,
-        redirectPath: urls.login,
+        redirectPath: loginPathWithNext,
       });
       return;
     }
-    startSupabaseOAuth(provider);
+    startSupabaseOAuth(provider, loginPathWithNext);
   };
 
   const handleMagicLinkLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -215,7 +237,7 @@ export const LoginView = () => {
     try {
       const otpUrl = new URL(`${backendUrl}/auth/v1/otp`);
       otpUrl.searchParams.set('apikey', publishableKey);
-      const emailRedirectTo = `${window.location.origin}/login`;
+      const emailRedirectTo = `${window.location.origin}${loginPathWithNext}`;
 
       const response = await fetch(otpUrl.toString(), {
         method: 'POST',

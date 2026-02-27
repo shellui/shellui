@@ -34,6 +34,14 @@ Each navigation item supports the following properties:
 - **`path`** (string, required): Unique path identifier used in the URL (e.g., `/home`)
 - **`url`** (string, required): URL to load when the navigation item is clicked
 - **`icon`** (string, optional): Path to an SVG icon file (e.g., `/icons/home.svg`)
+- **`hidden`** (boolean, optional): Hide item from sidebar and 404 links (route still exists)
+- **`hideWhenLoggedOut`** (boolean, optional): Hide item from navigation while signed out
+- **`requiresAuth`** (boolean, optional): Protect route access and redirect signed-out users to login
+- **`hiddenOnMobile`** (boolean, optional): Hide item on mobile bottom navigation
+- **`hiddenOnDesktop`** (boolean, optional): Hide item on desktop sidebar
+- **`openIn`** (`'default' | 'modal' | 'drawer' | 'external'`, optional): How to open the item
+- **`drawerPosition`** (`'top' | 'bottom' | 'left' | 'right'`, optional): Drawer side when `openIn: 'drawer'`
+- **`position`** (`'start' | 'end'`, optional): Place item in main nav or footer area
 - **`settings`** (string, optional): URL of a settings panel to display in **Settings > Applications**. See [Application Settings](/features/application-settings) for details.
 - **`useHashRouter`** (boolean, optional): When `true`, the app uses hash-based routing. If omitted, ShellUI infers this from the `url` containing `/#/` (see [Hash URL navigation](#hash-url-navigation) below).
 
@@ -188,6 +196,52 @@ Hide items on specific screen sizes:
 
 **Note:** `hiddenOnMobile` and `hiddenOnDesktop` have no effect if `hidden` is `true`.
 
+### Auth-Aware Visibility
+
+Hide items only for signed-out users:
+
+```typescript
+{
+  label: 'Admin',
+  path: 'admin',
+  url: 'https://app.example.com/admin',
+  hideWhenLoggedOut: true,
+}
+```
+
+Use this when the route should stay available, but you only want logged-in users to see the navigation entry.
+
+## Route Protection With Login Redirect
+
+Protect route access while preserving deep links:
+
+```typescript
+{
+  label: 'Billing',
+  path: 'billing',
+  url: 'https://app.example.com/billing',
+  requiresAuth: true,
+}
+```
+
+If a signed-out user opens `/billing`, ShellUI redirects to `/login?next=%2Fbilling`. After login succeeds, the app navigates back to `next`.
+
+### Combine Visibility + Protection
+
+```typescript
+{
+  label: 'Settings',
+  path: 'settings',
+  url: '/__settings',
+  hideWhenLoggedOut: true,
+  requiresAuth: true,
+}
+```
+
+### Logout on Protected Routes
+
+When the user logs out from a `requiresAuth` route, ShellUI first navigates to `/` so they are not immediately redirected back to login.
+
 ## Opening Modes
 
 Control how navigation items open when clicked:
@@ -317,6 +371,7 @@ const config: ShellUIConfig = {
       path: 'docs',
       url: 'https://docs.example.com',
       icon: '/icons/book.svg',
+      requiresAuth: true, // visible in nav but route is protected
     },
     {
       label: 'External Link',
@@ -330,6 +385,8 @@ const config: ShellUIConfig = {
       url: '/settings',
       openIn: 'modal',
       position: 'end',
+      hideWhenLoggedOut: true, // hidden while signed out
+      requiresAuth: true, // route protection on direct URL access
     },
     {
       label: 'Side Panel',
