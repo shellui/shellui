@@ -214,6 +214,19 @@ export interface OpenDrawerOptions {
   size?: string;
 }
 
+/**
+ * Minimal login payload used when a nested iframe requests the root shell
+ * to perform authentication (e.g. OAuth redirect from top-level window).
+ */
+export interface LoginOptions {
+  /** Login strategy currently requested. */
+  method: 'oauth';
+  /** OAuth provider id (e.g. "github", "google"). */
+  provider: string;
+  /** Optional route that should receive the auth callback. */
+  redirectPath?: string;
+}
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -236,7 +249,8 @@ export type ShellUIMessageType =
   | 'SHELLUI_DIALOG_SECONDARY'
   | 'SHELLUI_INITIALIZED'
   | 'SHELLUI_REFRESH_PAGE'
-  | 'SHELLUI_LOGOUT';
+  | 'SHELLUI_LOGOUT'
+  | 'SHELLUI_LOGIN';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

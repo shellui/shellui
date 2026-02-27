@@ -32,6 +32,11 @@ export interface AuthUser {
 }
 
 type AuthEvent = 'oauth_callback' | null;
+type LoginMessagePayload = {
+  method?: 'oauth';
+  provider?: string;
+  redirectPath?: string;
+};
 
 interface AuthContextValue {
   session: AuthSession | null;
@@ -382,6 +387,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => cleanup();
   }, [logout]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_LOGIN', (message) => {
+      const payload = (message.payload ?? {}) as LoginMessagePayload;
+      if (payload.method !== 'oauth' || typeof payload.provider !== 'string') {
+        return;
+      }
+
+      const provider = payload.provider.trim();
+      if (!provider) {
+        return;
+      }
+
+      startSupabaseOAuth(provider, payload.redirectPath || urls.login);
+    });
+
+    return () => cleanup();
+  }, [startSupabaseOAuth]);
 
   const clearAuthEvent = useCallback(() => setAuthEvent(null), []);
   const user = useMemo<AuthUser | null>(

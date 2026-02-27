@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
+import { shellui } from '@shellui/sdk';
 import { Button } from '../../components/ui/button';
+import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { useAuth } from './useAuth';
 
@@ -164,10 +166,31 @@ export const LoginView = () => {
 
   const supportsOAuth = settings.methods.includes('oauth');
   const supportsMagicLink = settings.methods.includes('magic_link');
-  const pageError = authError ?? settingsError ?? magicLinkError;
+  const settingsLoadError = authError ?? settingsError;
+  const isActionPending = Boolean(oauthLoadingProvider) || magicLinkLoading;
+  const signInDescription = useMemo(() => {
+    if (supportsOAuth && supportsMagicLink) {
+      return 'Continue with your identity provider or request a secure sign-in link by email.';
+    }
+    if (supportsOAuth) {
+      return 'Continue with your configured identity provider.';
+    }
+    if (supportsMagicLink) {
+      return 'Enter your email to receive a secure sign-in link.';
+    }
+    return 'No sign-in method is currently available.';
+  }, [supportsMagicLink, supportsOAuth]);
 
   const handleOAuthLogin = (provider: string) => {
     setOauthLoadingProvider(provider);
+    if (typeof window !== 'undefined' && window.parent !== window) {
+      shellui.login({
+        method: 'oauth',
+        provider,
+        redirectPath: urls.login,
+      });
+      return;
+    }
     startSupabaseOAuth(provider);
   };
 
@@ -233,10 +256,8 @@ export const LoginView = () => {
 
   return (
     <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center p-6">
-      <h1 className="text-2xl font-semibold text-foreground">Login</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Sign in using OAuth or a magic link sent to your email.
-      </p>
+      <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{signInDescription}</p>
 
       <div className="mt-6 rounded-lg border border-border bg-card p-4">
         {isAuthenticated && session && (
@@ -262,7 +283,7 @@ export const LoginView = () => {
               className="w-full"
               onClick={() => void logout()}
             >
-              Logout
+              Sign out
             </Button>
           </div>
         )}
@@ -271,14 +292,13 @@ export const LoginView = () => {
           <p className="text-sm text-muted-foreground">Loading auth settings...</p>
         )}
 
-        {!authLoading && !settingsLoading && pageError && (
+        {!authLoading && !settingsLoading && settingsLoadError && (
           <p className="text-sm text-destructive">
-            Could not load auth settings: {pageError}
-            {endpoint ? ` (${endpoint})` : ''}
+            Unable to load sign-in settings. Please try again in a moment.
           </p>
         )}
 
-        {!authLoading && !settingsLoading && !pageError && !isAuthenticated && (
+        {!authLoading && !settingsLoading && !settingsLoadError && !isAuthenticated && (
           <div className="space-y-3">
             {supportsOAuth && (
               <div className="space-y-2">
@@ -288,7 +308,7 @@ export const LoginView = () => {
                     type="button"
                     className="w-full"
                     onClick={() => handleOAuthLogin(provider)}
-                    disabled={oauthLoadingProvider === provider}
+                    disabled={isActionPending}
                   >
                     {oauthLoadingProvider === provider
                       ? `Redirecting to ${formatProviderLabel(provider)}...`
@@ -300,7 +320,7 @@ export const LoginView = () => {
                     type="button"
                     className="w-full"
                     onClick={() => handleOAuthLogin('github')}
-                    disabled={oauthLoadingProvider === 'github'}
+                    disabled={isActionPending}
                   >
                     {oauthLoadingProvider === 'github'
                       ? 'Redirecting to GitHub...'
@@ -320,25 +340,31 @@ export const LoginView = () => {
                 className="space-y-2"
                 onSubmit={(event) => void handleMagicLinkLogin(event)}
               >
+                <label htmlFor="magic-link-email" className="text-sm font-medium text-foreground">
+                  Email address
+                </label>
                 <input
+                  id="magic-link-email"
                   type="email"
                   value={magicLinkEmail}
                   onChange={(event) => setMagicLinkEmail(event.target.value)}
-                  placeholder="Email"
+                  placeholder="name@company.com"
                   autoComplete="email"
+                  required
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
                 <Button
                   type="submit"
                   variant="secondary"
                   className="w-full"
-                  disabled={magicLinkLoading}
+                  disabled={isActionPending}
                 >
                   {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
                 </Button>
                 {magicLinkMessage && (
                   <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
                 )}
+                {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
               </form>
             )}
 

@@ -8,6 +8,7 @@ import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
 import { openDrawer as openDrawerAction } from './actions/openDrawer.js';
 import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
+import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
 import { getLogger } from './logger/logger.js';
@@ -20,6 +21,7 @@ import type {
   DialogOptions,
   Settings,
   OpenDrawerOptions,
+  LoginOptions,
 } from './types.js';
 
 import packageJson from '../package.json';
@@ -36,6 +38,7 @@ export type {
   DialogPosition,
   DrawerPosition,
   OpenDrawerOptions,
+  LoginOptions,
   LoggerInstance,
   Settings,
   SettingsUser,
@@ -191,6 +194,10 @@ export class ShellUISDK {
     });
   }
 
+  login(options: LoginOptions): void {
+    loginAction(options);
+  }
+
   toast(options?: ToastOptions): string | void {
     return toastAction(options);
   }
@@ -250,6 +257,7 @@ export const openModal = (url?: string): void => openModalAction(url);
 export const openDrawer = (options?: OpenDrawerOptions): void => openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
 export const navigate = (url: string): void => sdk.navigate(url);
+export const login = (options: LoginOptions): void => sdk.login(options);
 export const toast = (options?: ToastOptions): string | void => toastAction(options);
 export const dialog = (options?: DialogOptions): string | void => dialogAction(options);
 export const addIframe = (iframe: HTMLIFrameElement): string => sdk.addIframe(iframe);

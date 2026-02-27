@@ -151,6 +151,18 @@ shellui.navigate('https://example.com/page');
 
 **Note:** Navigation only works for URLs configured in your navigation configuration.
 
+### Login (iframe-safe OAuth)
+
+Request login from the shell (root window). This is useful when your page runs in an iframe and OAuth redirects must happen from the top-level frame.
+
+```javascript
+shellui.login({
+  method: 'oauth',
+  provider: 'github',
+  redirectPath: '/login', // optional, defaults to shell login route
+});
+```
+
 ## Message Passing
 
 ShellUI uses a message passing system for communication between the shell and sub-apps (iframes).
@@ -203,6 +215,7 @@ Common ShellUI message types:
 - `SHELLUI_OPEN_DRAWER` - Drawer opened
 - `SHELLUI_CLOSE_DRAWER` - Drawer closed
 - `SHELLUI_NAVIGATE` - Navigation requested
+- `SHELLUI_LOGIN` - Login requested from iframe (minimal payload: method, provider, optional redirectPath)
 - `SHELLUI_INITIALIZED` - SDK initialized
 
 ## Settings Access
@@ -394,6 +407,7 @@ shellui.dialog(dialogOptions);
 - `shellui.openDrawer(options)` - Open drawer
 - `shellui.closeDrawer()` - Close drawer
 - `shellui.navigate(url)` - Navigate programmatically
+- `shellui.login(options)` - Request root-shell login
 
 ### Message Functions
 
