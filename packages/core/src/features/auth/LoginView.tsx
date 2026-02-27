@@ -340,7 +340,10 @@ export const LoginView = () => {
                 className="space-y-2"
                 onSubmit={(event) => void handleMagicLinkLogin(event)}
               >
-                <label htmlFor="magic-link-email" className="text-sm font-medium text-foreground">
+                <label
+                  htmlFor="magic-link-email"
+                  className="text-sm font-medium text-foreground"
+                >
                   Email address
                 </label>
                 <input
