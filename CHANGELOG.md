@@ -23,6 +23,15 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ## [0.3.0] - 2026-MM-DD
 
+### ✨ Feature
+
+- **Auth:** added route-aware login flow with `next` redirect support for smoother sign-in transitions.
+- **Auth:** added support for Supabase authentication mechanisms (OAuth and magic link flows).
+
+### 🛠 Improvements
+
+- **Navigation:** improved auth-aware navigation with protected routes and visibility rules for logged-out users.
+
 ## [0.2.0] - 2026-02-20
 
 ### ✨ Feature
