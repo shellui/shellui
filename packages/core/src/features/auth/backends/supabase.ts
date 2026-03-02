@@ -163,7 +163,8 @@ export const createSupabaseAuthBackend = ({
 
     const payload = (await response.json()) as Record<string, unknown>;
     const refreshParams = new URLSearchParams();
-    if (typeof payload.access_token === 'string') refreshParams.set('access_token', payload.access_token);
+    if (typeof payload.access_token === 'string')
+      refreshParams.set('access_token', payload.access_token);
     if (typeof payload.refresh_token === 'string') {
       refreshParams.set('refresh_token', payload.refresh_token);
     }
