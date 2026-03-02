@@ -10,28 +10,10 @@ import {
 import { shellui, type Settings, type SettingsUser } from '@shellui/sdk';
 import { useConfig } from '../config/useConfig';
 import urls from '../../constants/urls';
+import { createAuthBackend } from './backends';
+import type { AuthEvent, AuthSession, AuthSettings, AuthUser } from './types';
 
-export interface AuthSession {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresAt: number;
-  provider: string | null;
-  userId: string | null;
-  userEmail: string | null;
-  userName: string | null;
-  userAvatarUrl: string | null;
-}
-
-export interface AuthUser {
-  id: string | null;
-  email: string | null;
-  name: string | null;
-  profilePicture: string | null;
-  authProvider: string | null;
-}
-
-type AuthEvent = 'oauth_callback' | null;
+export type { AuthSession, AuthUser } from './types';
 type LoginMessagePayload = {
   method?: 'oauth';
   provider?: string;
@@ -46,79 +28,14 @@ interface AuthContextValue {
   error: string | null;
   authEvent: AuthEvent;
   clearAuthEvent: () => void;
-  startSupabaseOAuth: (provider: string, redirectPath?: string) => void;
+  startOAuth: (provider: string, redirectPath?: string) => boolean;
+  getAuthSettings: () => Promise<AuthSettings>;
+  sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const payloadPart = token.split('.')[1];
-    if (!payloadPart) return null;
-    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
-    const binary = atob(padded);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    const json = new TextDecoder('utf-8').decode(bytes);
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-};
-
-const buildSessionFromParams = (
-  params: URLSearchParams,
-  nowSeconds: number,
-): AuthSession | null => {
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (!accessToken || !refreshToken) return null;
-
-  const expiresAtFromParam = Number(params.get('expires_at'));
-  const expiresInFromParam = Number(params.get('expires_in'));
-  const expiresAt =
-    Number.isFinite(expiresAtFromParam) && expiresAtFromParam > 0
-      ? expiresAtFromParam
-      : Number.isFinite(expiresInFromParam) && expiresInFromParam > 0
-        ? nowSeconds + expiresInFromParam
-        : nowSeconds + 3600;
-
-  const tokenType = params.get('token_type') ?? 'bearer';
-  const payload = decodeJwtPayload(accessToken);
-  const appMetadata =
-    payload?.app_metadata && typeof payload.app_metadata === 'object'
-      ? (payload.app_metadata as Record<string, unknown>)
-      : null;
-  const userMetadata =
-    payload?.user_metadata && typeof payload.user_metadata === 'object'
-      ? (payload.user_metadata as Record<string, unknown>)
-      : null;
-  const userId =
-    typeof payload?.sub === 'string'
-      ? payload.sub
-      : typeof payload?.user_id === 'string'
-        ? payload.user_id
-        : null;
-
-  return {
-    accessToken,
-    refreshToken,
-    tokenType,
-    expiresAt,
-    provider: typeof appMetadata?.provider === 'string' ? appMetadata.provider : null,
-    userId,
-    userEmail: typeof payload?.email === 'string' ? payload.email : null,
-    userName:
-      typeof userMetadata?.full_name === 'string'
-        ? userMetadata.full_name
-        : typeof userMetadata?.name === 'string'
-          ? userMetadata.name
-          : null,
-    userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
-  };
-};
 
 const persistSession = (session: AuthSession) => {
   try {
@@ -168,9 +85,10 @@ const getUserFromSdkSettings = (): SettingsUser | null => {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
-  const backendType = config.backend?.type;
-  const backendUrl = config.backend?.url?.replace(/\/+$/, '') ?? null;
-  const publishableKey = config.backend?.publishableKey;
+  const backend = useMemo(
+    () => createAuthBackend(config.backend),
+    [config.backend?.publishableKey, config.backend?.type, config.backend?.url],
+  );
 
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -191,8 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const isIframe = window.parent !== window;
       const now = Math.floor(Date.now() / 1000);
-      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      const sessionFromHash = buildSessionFromParams(hashParams, now);
+      const sessionFromHash = backend.readSessionFromCallback(window.location.hash, now);
       if (sessionFromHash) {
         if (!cancelled) {
           persistSession(sessionFromHash);
@@ -236,59 +153,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (backendType !== 'supabase' || !backendUrl || !publishableKey || !stored.refreshToken) {
-        clearStoredSession();
-        if (!cancelled) {
-          setSession(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
       try {
-        const refreshUrl = new URL(`${backendUrl}/auth/v1/token`);
-        refreshUrl.searchParams.set('grant_type', 'refresh_token');
-        refreshUrl.searchParams.set('apikey', publishableKey);
-
-        const response = await fetch(refreshUrl.toString(), {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            apikey: publishableKey,
-            Authorization: `Bearer ${publishableKey}`,
-          },
-          body: JSON.stringify({ refresh_token: stored.refreshToken }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as Record<string, unknown>;
-        const refreshParams = new URLSearchParams();
-        if (typeof payload.access_token === 'string')
-          refreshParams.set('access_token', payload.access_token);
-        if (typeof payload.refresh_token === 'string') {
-          refreshParams.set('refresh_token', payload.refresh_token);
-        }
-        if (typeof payload.expires_at === 'number' || typeof payload.expires_at === 'string') {
-          refreshParams.set('expires_at', String(payload.expires_at));
-        }
-        if (typeof payload.expires_in === 'number' || typeof payload.expires_in === 'string') {
-          refreshParams.set('expires_in', String(payload.expires_in));
-        }
-        if (typeof payload.token_type === 'string')
-          refreshParams.set('token_type', payload.token_type);
-
-        const refreshed = buildSessionFromParams(refreshParams, now);
-        if (!refreshed) {
-          throw new Error('Invalid refresh response');
+        const restored = await backend.restoreSession(stored, now);
+        if (!restored) {
+          clearStoredSession();
+          if (!cancelled) {
+            setSession(null);
+            setIsLoading(false);
+          }
+          return;
         }
 
         if (!cancelled) {
-          persistSession(refreshed);
-          setSession(refreshed);
+          persistSession(restored);
+          setSession(restored);
           setIsLoading(false);
         }
       } catch {
@@ -304,7 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [backendType, backendUrl, publishableKey]);
+  }, [backend]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) {
@@ -334,47 +212,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const startSupabaseOAuth = useCallback(
+  const startOAuth = useCallback(
     (provider: string, redirectPath = urls.login) => {
-      if (backendType !== 'supabase' || !backendUrl || !publishableKey) {
-        setError('Missing Supabase backend URL or publishableKey.');
-        return;
+      try {
+        setError(null);
+        backend.startOAuth(provider, redirectPath);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
+        return false;
       }
-
-      const normalizedPath = redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
-      const redirectTo = `${window.location.origin}${normalizedPath}`;
-      const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
-      authorizeUrl.searchParams.set('provider', provider);
-      authorizeUrl.searchParams.set('redirect_to', redirectTo);
-      authorizeUrl.searchParams.set('apikey', publishableKey);
-      window.location.assign(authorizeUrl.toString());
     },
-    [backendType, backendUrl, publishableKey],
+    [backend],
+  );
+
+  const getAuthSettings = useCallback(() => backend.getAuthSettings(), [backend]);
+
+  const sendMagicLink = useCallback(
+    async (email: string, redirectPath = urls.login) => {
+      try {
+        await backend.sendMagicLink(email, redirectPath);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Could not send magic link.';
+        throw new Error(message);
+      }
+    },
+    [backend],
   );
 
   const logout = useCallback(async () => {
-    if (backendType === 'supabase' && backendUrl && publishableKey && session?.accessToken) {
-      try {
-        const signOutUrl = new URL(`${backendUrl}/auth/v1/logout`);
-        signOutUrl.searchParams.set('apikey', publishableKey);
-        await fetch(signOutUrl.toString(), {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            apikey: publishableKey,
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-      } catch {
-        // Even if API sign-out fails, still clear local session.
-      }
+    try {
+      await backend.logout(session);
+    } catch {
+      // Even if API sign-out fails, still clear local session.
     }
 
     clearStoredSession();
     setSession(null);
     setAuthEvent(null);
     setError(null);
-  }, [backendType, backendUrl, publishableKey, session?.accessToken]);
+  }, [backend, session]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
@@ -404,11 +281,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      startSupabaseOAuth(provider, payload.redirectPath || urls.login);
+      startOAuth(provider, payload.redirectPath || urls.login);
     });
 
     return () => cleanup();
-  }, [startSupabaseOAuth]);
+  }, [startOAuth]);
 
   const clearAuthEvent = useCallback(() => setAuthEvent(null), []);
   const user = useMemo<AuthUser | null>(
@@ -434,10 +311,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       error,
       authEvent,
       clearAuthEvent,
-      startSupabaseOAuth,
+      startOAuth,
+      getAuthSettings,
+      sendMagicLink,
       logout,
     }),
-    [session, user, isLoading, error, authEvent, clearAuthEvent, startSupabaseOAuth, logout],
+    [
+      session,
+      user,
+      isLoading,
+      error,
+      authEvent,
+      clearAuthEvent,
+      startOAuth,
+      getAuthSettings,
+      sendMagicLink,
+      logout,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

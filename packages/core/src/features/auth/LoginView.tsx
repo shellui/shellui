@@ -3,70 +3,12 @@ import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../components/ui/button';
 import urls from '../../constants/urls';
-import { useConfig } from '../config/useConfig';
 import { useAuth } from './useAuth';
-
-type LoginMethod = 'password' | 'oauth' | 'magic_link';
-
-interface AuthSettings {
-  methods: LoginMethod[];
-  oauthProviders: string[];
-}
-
-const NON_OAUTH_EXTERNAL_PROVIDERS = new Set(['email', 'phone', 'sms']);
-
-const isLoginMethod = (value: unknown): value is LoginMethod =>
-  value === 'password' || value === 'oauth' || value === 'magic_link';
+import type { AuthSettings } from './types';
 
 const formatProviderLabel = (provider: string) => {
   if (provider.toLowerCase() === 'github') return 'GitHub';
   return provider.charAt(0).toUpperCase() + provider.slice(1);
-};
-
-const normalizeAuthSettings = (payload: unknown): AuthSettings => {
-  const record = Array.isArray(payload) ? payload[0] : payload;
-  if (!record || typeof record !== 'object') {
-    return { methods: [], oauthProviders: [] };
-  }
-
-  const obj = record as Record<string, unknown>;
-  const methodsFromArray = Array.isArray(obj.methods) ? obj.methods.filter(isLoginMethod) : [];
-  const methods = new Set<LoginMethod>(methodsFromArray);
-  const oauthProvidersSet = new Set<string>();
-
-  if (isLoginMethod(obj.loginMethod)) methods.add(obj.loginMethod);
-  if (obj.loginMethod === 'both') {
-    methods.add('password');
-    methods.add('oauth');
-  }
-  if (obj.enable_password === true) methods.add('password');
-  if (obj.enable_oauth === true) methods.add('oauth');
-  if (obj.enable_magic_link === true) methods.add('magic_link');
-
-  if (obj.external && typeof obj.external === 'object') {
-    const external = obj.external as Record<string, unknown>;
-    const enabledProviders = Object.entries(external)
-      .filter(([, enabled]) => enabled === true)
-      .map(([provider]) => provider);
-    if (enabledProviders.length > 0) methods.add('oauth');
-    enabledProviders
-      .filter((provider) => !NON_OAUTH_EXTERNAL_PROVIDERS.has(provider.toLowerCase()))
-      .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
-    if (external.email === true || obj.disable_signup === false) methods.add('magic_link');
-  }
-
-  if (Array.isArray(obj.oauthProviders)) {
-    obj.oauthProviders
-      .filter((provider): provider is string => typeof provider === 'string')
-      .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
-  }
-  if (typeof obj.oauth_provider === 'string')
-    oauthProvidersSet.add(obj.oauth_provider.toLowerCase());
-
-  return {
-    methods: Array.from(methods),
-    oauthProviders: Array.from(oauthProvidersSet),
-  };
 };
 
 const normalizeNextPath = (value: string | null): string | null => {
@@ -80,7 +22,6 @@ const normalizeNextPath = (value: string | null): string | null => {
 export const LoginView = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { config } = useConfig();
   const {
     session,
     isAuthenticated,
@@ -88,7 +29,9 @@ export const LoginView = () => {
     error: authError,
     authEvent,
     clearAuthEvent,
-    startSupabaseOAuth,
+    startOAuth,
+    getAuthSettings,
+    sendMagicLink,
     logout,
   } = useAuth();
 
@@ -108,20 +51,6 @@ export const LoginView = () => {
     return `${urls.login}?next=${encodeURIComponent(nextPath)}`;
   }, [nextPath]);
 
-  const backendUrl = config.backend?.url?.replace(/\/+$/, '') ?? null;
-  const publishableKey = config.backend?.publishableKey;
-  const endpoint = useMemo(() => {
-    if (!backendUrl) return null;
-    if (config.backend?.type === 'supabase') {
-      const url = new URL(`${backendUrl}/auth/v1/settings`);
-      if (publishableKey) {
-        url.searchParams.set('apikey', publishableKey);
-      }
-      return url.toString();
-    }
-    return `${backendUrl}/auth/settings`;
-  }, [backendUrl, config.backend?.type, publishableKey]);
-
   useEffect(() => {
     if (authEvent === 'oauth_callback' && isAuthenticated) {
       clearAuthEvent();
@@ -136,7 +65,7 @@ export const LoginView = () => {
   }, [authLoading, isAuthenticated, navigate, nextPath]);
 
   useEffect(() => {
-    if (!endpoint || isAuthenticated) {
+    if (isAuthenticated) {
       setSettingsLoading(false);
       return;
     }
@@ -148,24 +77,11 @@ export const LoginView = () => {
       try {
         setSettingsLoading(true);
         setSettingsError(null);
-
-        const headers: HeadersInit = { Accept: 'application/json' };
-        if (publishableKey) {
-          headers.apikey = publishableKey;
-          headers.Authorization = `Bearer ${publishableKey}`;
-        }
-
-        const response = await fetch(endpoint, {
-          method: 'GET',
-          headers,
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        const payload = (await response.json()) as unknown;
         if (!cancelled) {
-          setSettings(normalizeAuthSettings(payload));
+          const nextSettings = await getAuthSettings();
+          if (!controller.signal.aborted) {
+            setSettings(nextSettings);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -184,7 +100,7 @@ export const LoginView = () => {
       cancelled = true;
       controller.abort();
     };
-  }, [endpoint, isAuthenticated, publishableKey]);
+  }, [getAuthSettings, isAuthenticated]);
 
   const supportsOAuth = settings.methods.includes('oauth');
   const supportsMagicLink = settings.methods.includes('magic_link');
@@ -213,7 +129,10 @@ export const LoginView = () => {
       });
       return;
     }
-    startSupabaseOAuth(provider, loginPathWithNext);
+    const started = startOAuth(provider, loginPathWithNext);
+    if (!started) {
+      setOauthLoadingProvider(null);
+    }
   };
 
   const handleMagicLinkLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -224,50 +143,12 @@ export const LoginView = () => {
       setMagicLinkMessage(null);
       return;
     }
-    if (!backendUrl || config.backend?.type !== 'supabase' || !publishableKey) {
-      setMagicLinkError('Missing Supabase backend URL or publishableKey.');
-      setMagicLinkMessage(null);
-      return;
-    }
-
     setMagicLinkLoading(true);
     setMagicLinkError(null);
     setMagicLinkMessage(null);
 
     try {
-      const otpUrl = new URL(`${backendUrl}/auth/v1/otp`);
-      otpUrl.searchParams.set('apikey', publishableKey);
-      const emailRedirectTo = `${window.location.origin}${loginPathWithNext}`;
-
-      const response = await fetch(otpUrl.toString(), {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          apikey: publishableKey,
-          Authorization: `Bearer ${publishableKey}`,
-        },
-        body: JSON.stringify({
-          email,
-          create_user: true,
-          email_redirect_to: emailRedirectTo,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          msg?: string;
-          message?: string;
-          error_description?: string;
-        } | null;
-        throw new Error(
-          payload?.msg ??
-            payload?.message ??
-            payload?.error_description ??
-            `Could not send magic link (HTTP ${response.status}).`,
-        );
-      }
-
+      await sendMagicLink(email, loginPathWithNext);
       setMagicLinkMessage('Check your inbox for a magic login link.');
     } catch (err) {
       setMagicLinkError(err instanceof Error ? err.message : 'Could not send magic link.');
@@ -352,11 +233,6 @@ export const LoginView = () => {
                       ? 'Redirecting to GitHub...'
                       : 'Continue with GitHub'}
                   </Button>
-                )}
-                {!publishableKey && (
-                  <p className="text-sm text-destructive">
-                    Add `backend.publishableKey` in config to enable OAuth redirect.
-                  </p>
                 )}
               </div>
             )}
