@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import { SidebarHeader, SidebarContent, SidebarFooter } from '../../../components/ui/sidebar';
 import { NavigationContent } from './NavigationContent';
-import { LayoutAuthButton } from '../../auth/components/LayoutAuthButton';
+import { LoginButton } from '../../auth/components/LoginButton';
 
 /** Reusable sidebar inner: header, main nav, footer. Used in desktop Sidebar and mobile Drawer. */
 export function SidebarInner({
@@ -43,7 +43,7 @@ export function SidebarInner({
       </SidebarContent>
       <SidebarFooter>
         {endItems.length > 0 && <NavigationContent navigation={endItems} />}
-        {showAuthButton && <LayoutAuthButton variant="sidebar" />}
+        {showAuthButton && <LoginButton variant="sidebar" />}
       </SidebarFooter>
     </>
   );

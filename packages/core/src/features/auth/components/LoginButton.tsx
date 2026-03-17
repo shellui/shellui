@@ -7,6 +7,7 @@ import { useAuth } from '../useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
 import { flattenNavigationItems, getNavPathPrefix } from '../../layouts/utils';
+import { LogoutIcon, SidebarCaretIcon } from './LoginButtonIcons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,57 +17,64 @@ import {
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
 
-type LayoutAuthButtonVariant = 'sidebar' | 'appbar' | 'windows';
+type LoginButtonVariant = 'sidebar' | 'appbar' | 'windows';
 
-const authenticatedVariantClassMap: Record<LayoutAuthButtonVariant, string> = {
-  sidebar:
-    'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-  appbar:
-    'h-8 w-8 rounded-md p-0 justify-center text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-  windows:
-    'h-8 w-8 rounded-md p-0 justify-center text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+const variantConfig: Record<
+  LoginButtonVariant,
+  {
+    button: { authenticated: string; loggedOut: string };
+    avatar: string;
+    menu: { width: string; side: 'top' | 'right' | 'bottom'; align: 'start' | 'end' };
+    showDisplayName: boolean;
+    showCaret: boolean;
+  }
+> = {
+  sidebar: {
+    button: {
+      authenticated:
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      loggedOut:
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+    },
+    avatar: 'h-5 w-5',
+    menu: { width: 'w-64', side: 'right', align: 'start' },
+    showDisplayName: true,
+    showCaret: true,
+  },
+  appbar: {
+    button: {
+      authenticated:
+        'h-8 w-8 rounded-md p-0 justify-center text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      loggedOut:
+        'h-8 max-w-[220px] rounded-md px-2 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+    },
+    avatar: 'h-5 w-5',
+    menu: { width: 'w-64', side: 'bottom', align: 'end' },
+    showDisplayName: false,
+    showCaret: false,
+  },
+  windows: {
+    button: {
+      authenticated:
+        'h-8 w-8 rounded-md p-0 justify-center text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      loggedOut:
+        'h-8 max-w-[180px] rounded-md px-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+    },
+    avatar: 'h-4 w-4',
+    menu: { width: 'w-60', side: 'top', align: 'end' },
+    showDisplayName: false,
+    showCaret: false,
+  },
 };
 
-const loggedOutVariantClassMap: Record<LayoutAuthButtonVariant, string> = {
-  sidebar:
-    'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-  appbar:
-    'h-8 max-w-[220px] rounded-md px-2 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-  windows:
-    'h-8 max-w-[180px] rounded-md px-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-};
-
-const avatarClassMap: Record<LayoutAuthButtonVariant, string> = {
-  sidebar: 'h-5 w-5',
-  appbar: 'h-5 w-5',
-  windows: 'h-4 w-4',
-};
-
-const menuClassMap: Record<LayoutAuthButtonVariant, string> = {
-  sidebar: 'w-64',
-  appbar: 'w-64',
-  windows: 'w-60',
-};
-
-const menuSideMap: Record<LayoutAuthButtonVariant, 'top' | 'right' | 'bottom'> = {
-  sidebar: 'right',
-  appbar: 'bottom',
-  windows: 'top',
-};
-
-const menuAlignMap: Record<LayoutAuthButtonVariant, 'start' | 'end'> = {
-  sidebar: 'start',
-  appbar: 'end',
-  windows: 'end',
-};
-
-export const LayoutAuthButton = ({
+export const LoginButton = ({
   variant,
   hideWhenLoggedOut = false,
 }: {
-  variant: LayoutAuthButtonVariant;
+  variant: LoginButtonVariant;
   hideWhenLoggedOut?: boolean;
 }) => {
+  const currentVariantConfig = variantConfig[variant];
   const { config } = useConfig();
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
@@ -82,14 +90,15 @@ export const LayoutAuthButton = ({
   }, [user?.email, user?.name]);
 
   const fallbackInitial = displayName.charAt(0).toUpperCase();
-  const showDisplayName = variant === 'sidebar';
-  const showCaret = variant === 'sidebar';
+  const { showDisplayName, showCaret } = currentVariantConfig;
 
   const baseButtonClasses = cn(
     'inline-flex items-center gap-2 min-w-0 shrink-0 transition-colors cursor-pointer',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
-    isAuthenticated ? authenticatedVariantClassMap[variant] : loggedOutVariantClassMap[variant],
+    isAuthenticated
+      ? currentVariantConfig.button.authenticated
+      : currentVariantConfig.button.loggedOut,
   );
   const isOnRequiredAuthRoute = useMemo(() => {
     const nav = config.navigation;
@@ -194,7 +203,7 @@ export const LayoutAuthButton = ({
               alt={displayName}
               className={cn(
                 'shrink-0 rounded-full border border-sidebar-border object-cover',
-                avatarClassMap[variant],
+                currentVariantConfig.avatar,
               )}
               referrerPolicy="no-referrer"
             />
@@ -202,7 +211,7 @@ export const LayoutAuthButton = ({
             <span
               className={cn(
                 'shrink-0 rounded-full border border-sidebar-border bg-muted flex items-center justify-center text-[10px] font-semibold',
-                avatarClassMap[variant],
+                currentVariantConfig.avatar,
               )}
               aria-hidden
             >
@@ -230,10 +239,10 @@ export const LayoutAuthButton = ({
         ref={contentRef}
         forceMount
         data-auth-menu-content
-        side={menuSideMap[variant]}
-        align={menuAlignMap[variant]}
+        side={currentVariantConfig.menu.side}
+        align={currentVariantConfig.menu.align}
         collisionPadding={8}
-        className={cn('p-1.5', menuClassMap[variant])}
+        className={cn('p-1.5', currentVariantConfig.menu.width)}
         onPointerDownOutside={() => setIsMenuOpen(false)}
         onFocusOutside={() => setIsMenuOpen(false)}
         onEscapeKeyDown={() => setIsMenuOpen(false)}
@@ -260,46 +269,3 @@ export const LayoutAuthButton = ({
     </DropdownMenu>
   );
 };
-
-const SidebarCaretIcon = ({ className, isOpen }: { className?: string; isOpen: boolean }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden
-  >
-    {isOpen ? <path d="m15 6-6 6 6 6" /> : <path d="m9 6 6 6-6 6" />}
-  </svg>
-);
-
-const LogoutIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden
-  >
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line
-      x1="21"
-      y1="12"
-      x2="9"
-      y2="12"
-    />
-  </svg>
-);

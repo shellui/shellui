@@ -432,7 +432,7 @@
   }
 }
 
-/* Auth account dropdown menu animation (LayoutAuthButton) */
+/* Auth account dropdown menu animation (LoginButton) */
 @keyframes auth-menu-in {
   from {
     opacity: 0;
