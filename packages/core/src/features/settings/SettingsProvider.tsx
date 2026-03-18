@@ -8,7 +8,6 @@ import {
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '../auth/hooks/useAuth';
 import { defaultTheme } from '../theme/themes';
 import {
@@ -68,7 +67,6 @@ const defaultSettings: Settings = {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
-  const { i18n } = useTranslation();
   const { user: authUser, session, syncUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
@@ -212,7 +210,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const settingsToPropagate = buildSettingsForPropagation(
             fallbackSettings,
             config,
-            i18n.language || 'en',
+            fallbackSettings.language?.code || 'en',
           );
           shellui.propagateMessage({
             type: 'SHELLUI_SETTINGS',
@@ -234,7 +232,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const settingsToPropagate = buildSettingsForPropagation(
           mergedSettings,
           config,
-          i18n.language || 'en',
+          mergedSettings.language?.code || 'en',
         );
         shellui.propagateMessage({
           type: 'SHELLUI_SETTINGS',
@@ -260,7 +258,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     config?.backend?.publishableKey,
     config?.backend?.type,
     config?.backend?.url,
-    i18n.language,
     session?.accessToken,
     session?.userId,
   ]);
@@ -285,7 +282,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const settingsWithNav = buildSettingsForPropagation(
         nextSettings,
         config,
-        i18n.language || 'en',
+        nextSettings.language?.code || 'en',
       );
       shellui.propagateMessage({
         type: 'SHELLUI_SETTINGS',
@@ -294,7 +291,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       logger.error('Failed to sync auth user into settings:', { error });
     }
-  }, [authUser, config, i18n.language]);
+  }, [authUser, config]);
 
   // Listen for settings updates from parent/other nodes
   useEffect(() => {
@@ -317,7 +314,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               const settingsToPropagate = buildSettingsForPropagation(
                 newSettings,
                 config,
-                i18n.language || 'en',
+                newSettings.language?.code || 'en',
               );
               logger.info('Root Parent received settings update', { message });
               shellui.propagateMessage({
@@ -340,7 +337,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const settingsWithNav = buildSettingsForPropagation(
           currentSettings,
           config,
-          i18n.language || 'en',
+          currentSettings.language?.code || 'en',
         );
         shellui.propagateMessage({
           type: 'SHELLUI_SETTINGS',
@@ -366,7 +363,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettings();
       cleanupSettingsRequested();
     };
-  }, [settings, config?.navigation, i18n.language]);
+  }, [config]);
 
   useEffect(() => {
     if (
@@ -416,7 +413,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const settingsWithNav = buildSettingsForPropagation(
             newSettings,
             config,
-            i18n.language || 'en',
+            newSettings.language?.code || 'en',
           );
           shellui.propagateMessage({
             type: 'SHELLUI_SETTINGS',
@@ -433,7 +430,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         payload: { settings: newSettings },
       });
     },
-    [settings, config?.navigation, i18n.language],
+    [settings, config],
   );
 
   const updateSetting = useCallback(
@@ -480,7 +477,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const settingsToPropagate = buildSettingsForPropagation(
             newSettings,
             config,
-            i18n.language || 'en',
+            newSettings.language?.code || 'en',
           );
           shellui.propagateMessage({
             type: 'SHELLUI_SETTINGS',
@@ -503,7 +500,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         logger.error('Failed to reset all data:', { error });
       }
     }
-  }, [config?.navigation, i18n.language, logout]);
+  }, [config, logout]);
 
   const value = useMemo(
     () => ({
