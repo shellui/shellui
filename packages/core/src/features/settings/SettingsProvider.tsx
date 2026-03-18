@@ -26,6 +26,7 @@ const USER_METADATA_ENDPOINT = '/auth/v1/user';
 const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
 
 const STORAGE_KEY = 'shellui:settings';
+const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 
 const defaultAppearance: Appearance = {
   name: defaultTheme.name,
@@ -68,7 +69,7 @@ const defaultSettings: Settings = {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
   const { i18n } = useTranslation();
-  const { user: authUser, session, syncUserPreferences } = useAuth();
+  const { user: authUser, session, syncUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
@@ -452,8 +453,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     // Clear all localStorage data
     if (typeof window !== 'undefined') {
       try {
+        // Force logout so in-memory auth state is also reset.
+        void logout();
+
         // Clear settings
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
 
         // Clear all other localStorage items that start with shellui:
         const keysToRemove: string[] = [];
@@ -488,13 +493,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           type: 'SHELLUI_SETTINGS_UPDATED',
           payload: { settings: newSettings },
         });
+        shellui.sendMessageToParent({
+          type: 'SHELLUI_LOGOUT',
+          payload: {},
+        });
 
         logger.info('All app data has been reset');
       } catch (error) {
         logger.error('Failed to reset all data:', { error });
       }
     }
-  }, [config?.navigation, i18n.language]);
+  }, [config?.navigation, i18n.language, logout]);
 
   const value = useMemo(
     () => ({
