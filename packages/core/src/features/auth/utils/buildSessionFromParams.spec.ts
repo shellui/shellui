@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSessionFromParams } from './buildSessionFromParams';
 
-const toBase64Url = (value: string): string =>
-  Buffer.from(value, 'utf8').toString('base64url');
+const toBase64Url = (value: string): string => Buffer.from(value, 'utf8').toString('base64url');
 
 const createToken = () => {
   const payload = {

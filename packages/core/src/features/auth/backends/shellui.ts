@@ -1,30 +1,32 @@
+import { getLogger } from '@shellui/sdk';
 import type { AuthBackend } from './types';
 
 const NOT_IMPLEMENTED_MESSAGE = 'ShellUI auth backend is not implemented yet.';
+const logger = getLogger('shellcore');
 
 export const createShellUIAuthBackend = (): AuthBackend => ({
   type: 'shellui',
   readSessionFromCallback: () => {
-    console.info('[auth:shellui] readSessionFromCallback not implemented');
+    logger.info('readSessionFromCallback not implemented (shellui auth backend)');
     return null;
   },
   restoreSession: async () => {
-    console.info('[auth:shellui] restoreSession not implemented');
+    logger.info('restoreSession not implemented (shellui auth backend)');
     return null;
   },
   startOAuth: () => {
-    console.info('[auth:shellui] startOAuth not implemented');
+    logger.info('startOAuth not implemented (shellui auth backend)');
     throw new Error(NOT_IMPLEMENTED_MESSAGE);
   },
   logout: async () => {
-    console.info('[auth:shellui] logout not implemented');
+    logger.info('logout not implemented (shellui auth backend)');
   },
   getAuthSettings: async () => {
-    console.info('[auth:shellui] getAuthSettings not implemented');
+    logger.info('getAuthSettings not implemented (shellui auth backend)');
     return { methods: [], oauthProviders: [] };
   },
   sendMagicLink: async () => {
-    console.info('[auth:shellui] sendMagicLink not implemented');
+    logger.info('sendMagicLink not implemented (shellui auth backend)');
     throw new Error(NOT_IMPLEMENTED_MESSAGE);
   },
 });

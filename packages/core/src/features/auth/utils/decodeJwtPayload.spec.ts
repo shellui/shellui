@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { decodeJwtPayload } from './decodeJwtPayload';
 
-const toBase64Url = (value: string): string =>
-  Buffer.from(value, 'utf8').toString('base64url');
+const toBase64Url = (value: string): string => Buffer.from(value, 'utf8').toString('base64url');
 
 describe('decodeJwtPayload', () => {
   it('decodes payload from a valid JWT token', () => {

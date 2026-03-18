@@ -32,11 +32,13 @@ export const buildSettingsForPropagation = (
   }
 
   if (config?.navigation?.length) {
-    const items: SettingsNavigationItem[] = flattenNavigationItems(config.navigation).map((item) => ({
-      path: item.path,
-      url: item.url,
-      label: resolveLabel(item.label, lang),
-    }));
+    const items: SettingsNavigationItem[] = flattenNavigationItems(config.navigation).map(
+      (item) => ({
+        path: item.path,
+        url: item.url,
+        label: resolveLabel(item.label, lang),
+      }),
+    );
     result = { ...result, navigation: { items } };
   }
 

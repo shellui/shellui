@@ -12,7 +12,11 @@ describe('toAbsoluteFontUrls', () => {
     });
 
     expect(
-      toAbsoluteFontUrls(['https://cdn.example.com/font.css', 'fonts/local.woff2', '/fonts/a.woff2']),
+      toAbsoluteFontUrls([
+        'https://cdn.example.com/font.css',
+        'fonts/local.woff2',
+        '/fonts/a.woff2',
+      ]),
     ).toEqual([
       'https://cdn.example.com/font.css',
       'https://shellui.dev/fonts/local.woff2',
