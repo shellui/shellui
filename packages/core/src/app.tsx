@@ -9,7 +9,7 @@ import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
 import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
-import { AuthProvider } from './features/auth/hooks/useAuth';
+import { AuthProvider } from './features/auth/AuthProvider';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
