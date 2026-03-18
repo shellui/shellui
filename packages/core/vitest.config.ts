@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/features/auth/utils/**/*.spec.ts'],
+    include: ['src/features/auth/utils/**/*.spec.ts', 'src/features/settings/utils/**/*.spec.ts'],
   },
 });

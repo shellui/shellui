@@ -4,190 +4,27 @@ import {
   shellui,
   type ShellUIMessage,
   type Settings,
-  type SettingsNavigationItem,
   type Appearance,
-  type SettingsAvailableTheme,
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
-import type { NavigationItem, NavigationGroup, ShellUIConfig } from '../config/types';
-import { getTheme, getAllThemes, registerTheme } from '../theme/themes';
-import { useAuth, type AuthUser } from '../auth/hooks/useAuth';
+import { useAuth } from '../auth/hooks/useAuth';
+import {
+  buildSettingsForPropagation,
+  getBrowserTimezone,
+  getPreferenceSnapshot,
+  isSameUser,
+  mergePreferencesIntoSettings,
+  toSettingsUser,
+  type AppPreferences,
+} from './utils';
 
 const logger = getLogger('shellcore');
 const USER_METADATA_ENDPOINT = '/auth/v1/user';
 const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
 
-type AppPreferences = {
-  themeName?: string;
-  language?: string;
-  region?: string;
-  colorScheme?: 'light' | 'dark' | 'system';
-};
-
-function toSettingsUser(user: AuthUser | null) {
-  if (!user) return null;
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    profilePicture: user.profilePicture,
-    authProvider: user.authProvider,
-  };
-}
-
-function isSameUser(a: Settings['user'], b: Settings['user']) {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return (
-    a.id === b.id &&
-    a.email === b.email &&
-    a.name === b.name &&
-    a.profilePicture === b.profilePicture &&
-    a.authProvider === b.authProvider
-  );
-}
-
-function flattenNavigationItems(
-  navigation: (NavigationItem | NavigationGroup)[],
-): NavigationItem[] {
-  if (navigation.length === 0) return [];
-  return navigation.flatMap((item) => {
-    if ('title' in item && 'items' in item) return (item as NavigationGroup).items;
-    return [item as NavigationItem];
-  });
-}
-
-function resolveLabel(
-  value: string | { en: string; fr: string; [key: string]: string },
-  lang: string,
-): string {
-  if (typeof value === 'string') return value;
-  return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
-}
-
-function resolveColorMode(colorScheme: 'light' | 'dark' | 'system'): 'light' | 'dark' {
-  if (colorScheme === 'system' && typeof window !== 'undefined') {
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-  return colorScheme === 'dark' ? 'dark' : 'light';
-}
-
-/** Convert font file URLs to absolute so iframes/modals on other ports or domains can load them. */
-function toAbsoluteFontUrls(urls: string[]): string[] {
-  if (typeof window === 'undefined') return urls;
-  const origin = window.location.origin;
-  return urls.map((url) => {
-    const trimmed = url.trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-    const path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    return `${origin}${path}`;
-  });
-}
-
-/**
- * Build the full appearance object for settings propagation so apps receive all theme
- * variable values and can style without knowing the theme name.
- */
-function getResolvedAppearanceForSettings(
-  settings: Settings,
-  config: ShellUIConfig | undefined,
-): Appearance | undefined {
-  if (typeof window === 'undefined') return undefined;
-  config?.themes?.forEach(registerTheme);
-  const themeName = settings.appearance?.name || config?.defaultTheme || 'default';
-  const themeDef = getTheme(themeName) || getTheme('default');
-  if (!themeDef) return undefined;
-  const colorScheme = settings.appearance?.colorScheme ?? 'system';
-  const mode = resolveColorMode(colorScheme);
-  return {
-    name: themeDef.name,
-    displayName: themeDef.displayName,
-    mode,
-    colorScheme,
-    colors: themeDef.colors,
-    ...(themeDef.fontFamily !== undefined && { fontFamily: themeDef.fontFamily }),
-    ...(themeDef.bodyFontFamily !== undefined && {
-      bodyFontFamily: themeDef.bodyFontFamily,
-    }),
-    ...(themeDef.headingFontFamily !== undefined && {
-      headingFontFamily: themeDef.headingFontFamily,
-    }),
-    ...(themeDef.letterSpacing !== undefined && {
-      letterSpacing: themeDef.letterSpacing,
-    }),
-    ...(themeDef.textShadow !== undefined && { textShadow: themeDef.textShadow }),
-    ...(themeDef.lineHeight !== undefined && { lineHeight: themeDef.lineHeight }),
-    ...(themeDef.fontFiles !== undefined &&
-      themeDef.fontFiles.length > 0 && {
-        fontFiles: toAbsoluteFontUrls(themeDef.fontFiles),
-      }),
-  };
-}
-
-/**
- * Map registered themes to the slim shape sent to sub-apps (name, displayName, colors, optional typography for preview).
- */
-function getAvailableThemesForSettings(): SettingsAvailableTheme[] {
-  return getAllThemes().map((theme) => ({
-    name: theme.name,
-    displayName: theme.displayName,
-    colors: theme.colors,
-    ...(theme.fontFamily !== undefined && { fontFamily: theme.fontFamily }),
-    ...(theme.letterSpacing !== undefined && { letterSpacing: theme.letterSpacing }),
-    ...(theme.textShadow !== undefined && { textShadow: theme.textShadow }),
-  }));
-}
-
-/**
- * Build settings for propagation to iframes: inject navigation, full theme object,
- * and list of available themes so apps can render theme pickers.
- */
-function buildSettingsForPropagation(
-  settings: Settings,
-  config: ShellUIConfig | undefined,
-  lang: string,
-): Settings {
-  const appearance = getResolvedAppearanceForSettings(settings, config);
-  let result: Settings = {
-    ...settings,
-    appearance: appearance ?? settings.appearance,
-  };
-  // Inject available themes when we have a resolved appearance (themes are already registered above)
-  if (result.appearance && typeof window !== 'undefined') {
-    result = {
-      ...result,
-      appearance: {
-        ...result.appearance,
-        availableThemes: getAvailableThemesForSettings(),
-      },
-    };
-  }
-  if (config?.navigation?.length) {
-    const items: SettingsNavigationItem[] = flattenNavigationItems(config.navigation).map(
-      (item) => ({
-        path: item.path,
-        url: item.url,
-        label: resolveLabel(item.label, lang),
-      }),
-    );
-    result = { ...result, navigation: { items } };
-  }
-  return result;
-}
-
 const STORAGE_KEY = 'shellui:settings';
-
-// Get browser's timezone as default
-const getBrowserTimezone = (): string => {
-  if (typeof window !== 'undefined' && Intl) {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  }
-  return 'UTC';
-};
 
 const defaultAppearance: Appearance = {
   name: 'default',
@@ -287,54 +124,6 @@ const defaultSettings: Settings = {
   },
   user: null,
 };
-
-function getPreferenceSnapshot(settings: Settings): AppPreferences {
-  return {
-    themeName: settings.appearance?.name || defaultAppearance.name,
-    language: settings.language?.code || defaultSettings.language.code,
-    region: settings.region?.timezone || getBrowserTimezone(),
-    colorScheme: settings.appearance?.colorScheme || defaultAppearance.colorScheme,
-  };
-}
-
-function mergePreferencesIntoSettings(
-  currentSettings: Settings,
-  preferences: AppPreferences,
-): Settings {
-  const hasThemeName =
-    typeof preferences.themeName === 'string' && preferences.themeName.trim() !== '';
-  const hasLanguage =
-    typeof preferences.language === 'string' && preferences.language.trim() !== '';
-  const hasRegion = typeof preferences.region === 'string' && preferences.region.trim() !== '';
-  const hasColorScheme =
-    preferences.colorScheme === 'light' ||
-    preferences.colorScheme === 'dark' ||
-    preferences.colorScheme === 'system';
-  const normalizedColorScheme: 'light' | 'dark' | 'system' = hasColorScheme
-    ? (preferences.colorScheme as 'light' | 'dark' | 'system')
-    : currentSettings.appearance.colorScheme;
-  const normalizedLanguage =
-    preferences.language === 'fr' || preferences.language === 'en'
-      ? preferences.language
-      : currentSettings.language.code;
-
-  return {
-    ...currentSettings,
-    appearance: {
-      ...currentSettings.appearance,
-      ...(hasThemeName ? { name: preferences.themeName?.trim() } : {}),
-      colorScheme: normalizedColorScheme,
-    },
-    language: {
-      ...currentSettings.language,
-      ...(hasLanguage ? { code: normalizedLanguage } : {}),
-    },
-    region: {
-      ...currentSettings.region,
-      ...(hasRegion ? { timezone: preferences.region?.trim() } : {}),
-    },
-  };
-}
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
