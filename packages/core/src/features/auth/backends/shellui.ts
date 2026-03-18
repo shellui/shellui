@@ -29,4 +29,7 @@ export const createShellUIAuthBackend = (): AuthBackend => ({
     logger.info('sendMagicLink not implemented (shellui auth backend)');
     throw new Error(NOT_IMPLEMENTED_MESSAGE);
   },
+  syncUserPreferences: async () => {
+    logger.info('syncUserPreferences not implemented (shellui auth backend)');
+  },
 });

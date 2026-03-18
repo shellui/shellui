@@ -1,5 +1,5 @@
 import type { BackendConfig } from '../../config/types';
-import type { AuthSession, AuthSettings } from '../types';
+import type { AuthSession, AuthSettings, UserPreferences } from '../types';
 
 export interface AuthBackend {
   type: BackendConfig['type'] | 'none';
@@ -12,4 +12,5 @@ export interface AuthBackend {
   logout: (session: AuthSession | null) => Promise<void>;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath: string) => Promise<void>;
+  syncUserPreferences: (session: AuthSession | null, preferences: UserPreferences) => Promise<void>;
 }

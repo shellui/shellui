@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { AuthEvent, AuthSession, AuthSettings, AuthUser } from '../types';
+import type { AuthEvent, AuthSession, AuthSettings, AuthUser, UserPreferences } from '../types';
 
 export type { AuthSession, AuthUser } from '../types';
 
@@ -14,6 +14,7 @@ export interface AuthContextValue {
   startOAuth: (provider: string, redirectPath?: string) => boolean;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;
+  syncUserPreferences: (preferences: UserPreferences) => Promise<void>;
   logout: () => Promise<void>;
 }
 

@@ -15,6 +15,7 @@ const createNoopBackend = (): AuthBackend => ({
   sendMagicLink: async () => {
     throw new Error('No auth backend configured.');
   },
+  syncUserPreferences: async () => {},
 });
 
 export const createAuthBackend = (backendConfig: BackendConfig | undefined): AuthBackend => {

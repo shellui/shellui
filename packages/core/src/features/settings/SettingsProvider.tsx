@@ -128,7 +128,7 @@ const defaultSettings: Settings = {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
   const { i18n } = useTranslation();
-  const { user: authUser, session } = useAuth();
+  const { user: authUser, session, syncUserPreferences } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
@@ -428,15 +428,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings, config?.navigation, i18n.language]);
 
   useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      window.parent !== window ||
-      config?.backend?.type !== 'supabase' ||
-      !config?.backend?.url ||
-      !config?.backend?.publishableKey ||
-      !session?.accessToken ||
-      loadingPreferencesRef.current
-    ) {
+    if (typeof window === 'undefined' || window.parent !== window || loadingPreferencesRef.current) {
       return;
     }
 
@@ -447,53 +439,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
 
     let cancelled = false;
-    const backendUrl = config.backend.url.replace(/\/+$/, '');
-    const publishableKey = config.backend.publishableKey;
 
-    const syncPreferencesToSupabase = async () => {
+    const syncPreferences = async () => {
       try {
-        const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
-        userUrl.searchParams.set('apikey', publishableKey);
-
-        const response = await fetch(userUrl.toString(), {
-          method: 'PUT',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            apikey: publishableKey,
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-          body: JSON.stringify({
-            data: {
-              [APP_PREFERENCES_METADATA_KEY]: preferences,
-            },
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
+        await syncUserPreferences(preferences);
         if (cancelled) return;
-
         lastSyncedPreferencesRef.current = signature;
-        logger.info('Synced app preferences to Supabase metadata', { preferences });
+        logger.info('Synced app preferences to auth provider metadata', { preferences });
       } catch (error) {
-        logger.error('Failed to sync app preferences to Supabase metadata', { error });
+        logger.error('Failed to sync app preferences to auth provider metadata', { error });
       }
     };
 
-    void syncPreferencesToSupabase();
+    void syncPreferences();
     return () => {
       cancelled = true;
     };
-  }, [
-    config?.backend?.publishableKey,
-    config?.backend?.type,
-    config?.backend?.url,
-    session?.accessToken,
-    settings,
-  ]);
+  }, [settings, syncUserPreferences]);
 
   // ACTIONS
   const updateSettings = useCallback(

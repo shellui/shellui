@@ -26,3 +26,10 @@ export interface AuthSettings {
   methods: LoginMethod[];
   oauthProviders: string[];
 }
+
+export type UserPreferences = {
+  themeName?: string;
+  language?: string;
+  region?: string;
+  colorScheme?: 'light' | 'dark' | 'system';
+};

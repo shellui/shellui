@@ -4,7 +4,11 @@ import {
   normalizeAuthSettings,
   normalizeRedirectPath,
 } from '../utils';
+import type { UserPreferences } from '../types';
 import type { AuthBackend } from './types';
+
+const USER_METADATA_ENDPOINT = '/auth/v1/user';
+const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
 
 export const createSupabaseAuthBackend = ({
   backendUrl,
@@ -146,6 +150,33 @@ export const createSupabaseAuthBackend = ({
           payload?.error_description ??
           `Could not send magic link (HTTP ${response.status}).`,
       );
+    }
+  },
+  syncUserPreferences: async (session, preferences: UserPreferences) => {
+    if (!backendUrl || !publishableKey || !session?.accessToken) {
+      return;
+    }
+
+    const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
+    userUrl.searchParams.set('apikey', publishableKey);
+
+    const response = await fetch(userUrl.toString(), {
+      method: 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        apikey: publishableKey,
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({
+        data: {
+          [APP_PREFERENCES_METADATA_KEY]: preferences,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
   },
 });

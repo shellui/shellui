@@ -1,10 +1,10 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { shellui, type Settings } from '@shellui/sdk';
+import { getLogger, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue } from './hooks/useAuth';
-import type { AuthEvent, AuthSession, AuthUser } from './types';
+import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
 import {
   clearStoredAuthSession,
   getUserFromSdkSettings,
@@ -13,6 +13,8 @@ import {
   readStoredAuthSession,
   toAuthSessionFromSettingsUser,
 } from './utils';
+
+const logger = getLogger('shellcore');
 
 type LoginMessagePayload = {
   method?: 'oauth';
@@ -172,6 +174,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const syncUserPreferences = useCallback(
+    async (preferences: UserPreferences) => {
+      try {
+        await backend.syncUserPreferences(session, preferences);
+      } catch (err) {
+        logger.error('Failed to sync user preferences to auth provider metadata', { err });
+      }
+    },
+    [backend, session],
+  );
+
   const logout = useCallback(async () => {
     try {
       await backend.logout(session);
@@ -246,6 +259,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       startOAuth,
       getAuthSettings,
       sendMagicLink,
+      syncUserPreferences,
       logout,
     }),
     [
@@ -258,6 +272,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       startOAuth,
       getAuthSettings,
       sendMagicLink,
+      syncUserPreferences,
       logout,
     ],
   );
