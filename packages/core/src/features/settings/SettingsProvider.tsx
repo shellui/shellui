@@ -428,7 +428,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings, config?.navigation, i18n.language]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || window.parent !== window || loadingPreferencesRef.current) {
+    if (
+      typeof window === 'undefined' ||
+      window.parent !== window ||
+      loadingPreferencesRef.current
+    ) {
       return;
     }
 
