@@ -1,129 +1,10 @@
-import type { AuthSession, AuthSettings, LoginMethod } from '../types';
+import {
+  buildSessionFromParams,
+  isSessionExpired,
+  normalizeAuthSettings,
+  normalizeRedirectPath,
+} from '../utils';
 import type { AuthBackend } from './types';
-
-const NON_OAUTH_EXTERNAL_PROVIDERS = new Set(['email', 'phone', 'sms']);
-
-const isLoginMethod = (value: unknown): value is LoginMethod =>
-  value === 'password' || value === 'oauth' || value === 'magic_link';
-
-const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
-  try {
-    const payloadPart = token.split('.')[1];
-    if (!payloadPart) return null;
-    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
-    const binary = atob(padded);
-    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    const json = new TextDecoder('utf-8').decode(bytes);
-    return JSON.parse(json) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-};
-
-const buildSessionFromParams = (
-  params: URLSearchParams,
-  nowSeconds: number,
-): AuthSession | null => {
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (!accessToken || !refreshToken) return null;
-
-  const expiresAtFromParam = Number(params.get('expires_at'));
-  const expiresInFromParam = Number(params.get('expires_in'));
-  const expiresAt =
-    Number.isFinite(expiresAtFromParam) && expiresAtFromParam > 0
-      ? expiresAtFromParam
-      : Number.isFinite(expiresInFromParam) && expiresInFromParam > 0
-        ? nowSeconds + expiresInFromParam
-        : nowSeconds + 3600;
-
-  const tokenType = params.get('token_type') ?? 'bearer';
-  const payload = decodeJwtPayload(accessToken);
-  const appMetadata =
-    payload?.app_metadata && typeof payload.app_metadata === 'object'
-      ? (payload.app_metadata as Record<string, unknown>)
-      : null;
-  const userMetadata =
-    payload?.user_metadata && typeof payload.user_metadata === 'object'
-      ? (payload.user_metadata as Record<string, unknown>)
-      : null;
-  const userId =
-    typeof payload?.sub === 'string'
-      ? payload.sub
-      : typeof payload?.user_id === 'string'
-        ? payload.user_id
-        : null;
-
-  return {
-    accessToken,
-    refreshToken,
-    tokenType,
-    expiresAt,
-    provider: typeof appMetadata?.provider === 'string' ? appMetadata.provider : null,
-    userId,
-    userEmail: typeof payload?.email === 'string' ? payload.email : null,
-    userName:
-      typeof userMetadata?.full_name === 'string'
-        ? userMetadata.full_name
-        : typeof userMetadata?.name === 'string'
-          ? userMetadata.name
-          : null,
-    userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
-  };
-};
-
-const normalizeAuthSettings = (payload: unknown): AuthSettings => {
-  const record = Array.isArray(payload) ? payload[0] : payload;
-  if (!record || typeof record !== 'object') {
-    return { methods: [], oauthProviders: [] };
-  }
-
-  const obj = record as Record<string, unknown>;
-  const methodsFromArray = Array.isArray(obj.methods) ? obj.methods.filter(isLoginMethod) : [];
-  const methods = new Set<LoginMethod>(methodsFromArray);
-  const oauthProvidersSet = new Set<string>();
-
-  if (isLoginMethod(obj.loginMethod)) methods.add(obj.loginMethod);
-  if (obj.loginMethod === 'both') {
-    methods.add('password');
-    methods.add('oauth');
-  }
-  if (obj.enable_password === true) methods.add('password');
-  if (obj.enable_oauth === true) methods.add('oauth');
-  if (obj.enable_magic_link === true) methods.add('magic_link');
-
-  if (obj.external && typeof obj.external === 'object') {
-    const external = obj.external as Record<string, unknown>;
-    const enabledProviders = Object.entries(external)
-      .filter(([, enabled]) => enabled === true)
-      .map(([provider]) => provider);
-    if (enabledProviders.length > 0) methods.add('oauth');
-    enabledProviders
-      .filter((provider) => !NON_OAUTH_EXTERNAL_PROVIDERS.has(provider.toLowerCase()))
-      .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
-    if (external.email === true || obj.disable_signup === false) methods.add('magic_link');
-  }
-
-  if (Array.isArray(obj.oauthProviders)) {
-    obj.oauthProviders
-      .filter((provider): provider is string => typeof provider === 'string')
-      .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
-  }
-  if (typeof obj.oauth_provider === 'string') {
-    oauthProvidersSet.add(obj.oauth_provider.toLowerCase());
-  }
-
-  return {
-    methods: Array.from(methods),
-    oauthProviders: Array.from(oauthProvidersSet),
-  };
-};
-
-const isExpired = (session: AuthSession) => session.expiresAt <= Math.floor(Date.now() / 1000) + 30;
-
-const normalizeRedirectPath = (redirectPath: string) =>
-  redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`;
 
 export const createSupabaseAuthBackend = ({
   backendUrl,
@@ -139,7 +20,7 @@ export const createSupabaseAuthBackend = ({
   },
   restoreSession: async (storedSession, nowSeconds) => {
     if (!storedSession) return null;
-    if (!isExpired(storedSession)) return storedSession;
+    if (!isSessionExpired(storedSession)) return storedSession;
     if (!backendUrl || !publishableKey || !storedSession.refreshToken) return null;
 
     const refreshUrl = new URL(`${backendUrl}/auth/v1/token`);

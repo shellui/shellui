@@ -7,11 +7,19 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { shellui, type Settings, type SettingsUser } from '@shellui/sdk';
+import { shellui, type Settings } from '@shellui/sdk';
 import { useConfig } from '../../config/useConfig';
 import urls from '../../../constants/urls';
 import { createAuthBackend } from '../backends';
 import type { AuthEvent, AuthSession, AuthSettings, AuthUser } from '../types';
+import {
+  clearStoredAuthSession,
+  getUserFromSdkSettings,
+  isSessionExpired,
+  persistAuthSession,
+  readStoredAuthSession,
+  toAuthSessionFromSettingsUser,
+} from '../utils';
 
 export type { AuthSession, AuthUser } from '../types';
 type LoginMessagePayload = {
@@ -34,54 +42,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-const persistSession = (session: AuthSession) => {
-  try {
-    localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify(session));
-  } catch {
-    // Ignore storage errors (e.g. private mode); user can still continue in-memory.
-  }
-};
-
-const readStoredSession = (): AuthSession | null => {
-  try {
-    const raw = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AuthSession;
-  } catch {
-    return null;
-  }
-};
-
-const clearStoredSession = () => {
-  try {
-    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-  } catch {
-    // Ignore storage errors.
-  }
-};
-
-const isExpired = (session: AuthSession) => session.expiresAt <= Math.floor(Date.now() / 1000) + 30;
-
-const toAuthSessionFromSettingsUser = (settingsUser: SettingsUser): AuthSession => ({
-  accessToken: '',
-  refreshToken: '',
-  tokenType: 'bearer',
-  // Long-lived synthetic expiry; parent shell controls real auth.
-  expiresAt: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
-  provider: settingsUser.authProvider,
-  userId: settingsUser.id,
-  userEmail: settingsUser.email,
-  userName: settingsUser.name,
-  userAvatarUrl: settingsUser.profilePicture,
-});
-
-const getUserFromSdkSettings = (): SettingsUser | null => {
-  const initialSettings = shellui.initialSettings as Settings | null;
-  return initialSettings?.user ?? null;
-};
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
@@ -112,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const sessionFromHash = backend.readSessionFromCallback(window.location.hash, now);
       if (sessionFromHash) {
         if (!cancelled) {
-          persistSession(sessionFromHash);
+          persistAuthSession(sessionFromHash);
           setSession(sessionFromHash);
           setAuthEvent('oauth_callback');
           if (window.location.hash) {
@@ -136,7 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      const stored = readStoredSession();
+      const stored = readStoredAuthSession();
       if (!stored) {
         if (!cancelled) {
           setSession(null);
@@ -145,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (!isExpired(stored)) {
+      if (!isSessionExpired(stored)) {
         if (!cancelled) {
           setSession(stored);
           setIsLoading(false);
@@ -156,7 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const restored = await backend.restoreSession(stored, now);
         if (!restored) {
-          clearStoredSession();
+          clearStoredAuthSession();
           if (!cancelled) {
             setSession(null);
             setIsLoading(false);
@@ -165,12 +126,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (!cancelled) {
-          persistSession(restored);
+          persistAuthSession(restored);
           setSession(restored);
           setIsLoading(false);
         }
       } catch {
-        clearStoredSession();
+        clearStoredAuthSession();
         if (!cancelled) {
           setSession(null);
           setIsLoading(false);
@@ -195,9 +156,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(settingsUser ? toAuthSessionFromSettingsUser(settingsUser) : null);
     };
 
-    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (message) => {
-      syncSessionFromSettings(message);
-    });
+    // const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', (message) => {
+    //   syncSessionFromSettings(message);
+    // });
 
     const cleanupSettingsUpdated = shellui.addMessageListener(
       'SHELLUI_SETTINGS_UPDATED',
@@ -207,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     );
 
     return () => {
-      cleanupSettings();
+      // cleanupSettings();
       cleanupSettingsUpdated();
     };
   }, []);
@@ -247,7 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Even if API sign-out fails, still clear local session.
     }
 
-    clearStoredSession();
+    clearStoredAuthSession();
     setSession(null);
     setAuthEvent(null);
     setError(null);
@@ -306,7 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     () => ({
       session,
       user,
-      isAuthenticated: session !== null && !isExpired(session),
+      isAuthenticated: session !== null && !isSessionExpired(session),
       isLoading,
       error,
       authEvent,
