@@ -3,7 +3,7 @@ import { shellui } from '@shellui/sdk';
 import { useConfig } from '../../features/config/useConfig';
 import { filterNavigationForAuthState, getNavPathPrefix } from '../../features/layouts/utils';
 import type { NavigationItem, NavigationGroup } from '../../features/config/types';
-import { useAuth } from '../../features/auth/useAuth';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 
 const flattenNavigationItems = (
   navigation: (NavigationItem | NavigationGroup)[],

@@ -17,7 +17,7 @@ const CookiePreferencesView = lazy(() =>
   })),
 );
 const LoginView = lazy(() =>
-  import('../features/auth/LoginView').then((m) => ({ default: m.LoginView })),
+  import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView })),
 );
 const NavigationItemRoute = lazy(() =>
   import('./components/NavigationItemRoute').then((m) => ({ default: m.NavigationItemRoute })),

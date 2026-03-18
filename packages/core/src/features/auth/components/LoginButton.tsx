@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
-import { useAuth } from '../useAuth';
+import { useAuth } from '../hooks/useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
 import { flattenNavigationItems, getNavPathPrefix } from '../../layouts/utils';

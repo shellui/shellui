@@ -13,7 +13,7 @@ import { useConfig } from '../config/useConfig';
 import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup, ShellUIConfig } from '../config/types';
 import { getTheme, getAllThemes, registerTheme } from '../theme/themes';
-import { useAuth, type AuthUser } from '../auth/useAuth';
+import { useAuth, type AuthUser } from '../auth/hooks/useAuth';
 
 const logger = getLogger('shellcore');
 const USER_METADATA_ENDPOINT = '/auth/v1/user';

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
-import { Button } from '../../components/ui/button';
-import urls from '../../constants/urls';
-import { useAuth } from './useAuth';
-import type { AuthSettings } from './types';
+import { Button } from '../../../components/ui/button';
+import urls from '../../../constants/urls';
+import { useAuth } from '../hooks/useAuth';
+import type { AuthSettings } from '../types';
 
 const formatProviderLabel = (provider: string) => {
   if (provider.toLowerCase() === 'github') return 'GitHub';

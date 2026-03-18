@@ -16,7 +16,7 @@ import { SidebarInner } from './SidebarInner';
 import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
 import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
-import { useAuth } from '../../auth/useAuth';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();

@@ -8,12 +8,12 @@ import {
   type ReactNode,
 } from 'react';
 import { shellui, type Settings, type SettingsUser } from '@shellui/sdk';
-import { useConfig } from '../config/useConfig';
-import urls from '../../constants/urls';
-import { createAuthBackend } from './backends';
-import type { AuthEvent, AuthSession, AuthSettings, AuthUser } from './types';
+import { useConfig } from '../../config/useConfig';
+import urls from '../../../constants/urls';
+import { createAuthBackend } from '../backends';
+import type { AuthEvent, AuthSession, AuthSettings, AuthUser } from '../types';
 
-export type { AuthSession, AuthUser } from './types';
+export type { AuthSession, AuthUser } from '../types';
 type LoginMessagePayload = {
   method?: 'oauth';
   provider?: string;

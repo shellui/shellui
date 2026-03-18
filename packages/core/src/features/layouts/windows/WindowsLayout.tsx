@@ -24,7 +24,7 @@ import { ContentView } from '../../../components/ContentView';
 import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
 import { LoginButton } from '../../auth/components/LoginButton';
-import { useAuth } from '../../auth/useAuth';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 interface WindowsLayoutProps {
   title?: string;

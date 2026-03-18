@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { shellui } from '@shellui/sdk';
-import type { AuthUser } from '../../auth/useAuth';
+import type { AuthUser } from '../../auth/hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 
 const formatLoginMethod = (authProvider: string | null) => {

@@ -18,7 +18,7 @@ import { Select } from '../../../components/ui/select';
 import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
 import { cn } from '../../../lib/utils';
 import { LoginButton } from '../../auth/components/LoginButton';
-import { useAuth } from '../../auth/useAuth';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 

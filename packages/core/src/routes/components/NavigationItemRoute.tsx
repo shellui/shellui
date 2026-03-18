@@ -3,7 +3,7 @@ import { useNavigationItems } from '../hooks/useNavigationItems';
 import { NotFoundView } from './NotFoundView';
 import { Navigate, useLocation } from 'react-router';
 import urls from '../../constants/urls';
-import { useAuth } from '../../features/auth/useAuth';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 import { RouteFallback } from './RouteFallback';
 
 export const NavigationItemRoute = () => {

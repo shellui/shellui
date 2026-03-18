@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { AuthUser } from '../../auth/useAuth';
+import type { AuthUser } from '../../auth/hooks/useAuth';
 import { UserIcon } from './UserIcon';
 import { UserSettingsPanel } from './UserSettingsPanel';
 

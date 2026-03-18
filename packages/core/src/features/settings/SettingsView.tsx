@@ -30,7 +30,7 @@ import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel'
 import { createUserSettingsRoute } from './components/createUserSettingsRoute';
 import type { NavigationItem } from '../config/types';
 import { cn } from '../../lib/utils';
-import { useAuth } from '../auth/useAuth';
+import { useAuth } from '../auth/hooks/useAuth';
 
 export const SettingsView = () => {
   const location = useLocation();
