@@ -32,7 +32,7 @@ export const Develop = () => {
   const errorReportingConfigured = Boolean(config?.sentry?.dsn);
   const { isAccepted: sentryConsentAccepted } = useCookieConsent('sentry.io');
 
-  return (
+  return ( 
     <div className="space-y-6">
       <div>
         <h3
@@ -126,9 +126,9 @@ export const Develop = () => {
                 }}
               >
                 <option value="">{t('develop.navigation.placeholder')}</option>
-                {navItems.map((item) => (
+                {navItems.map((item, index) => (
                   <option
-                    key={item.path || 'root'}
+                    key={`${item.path || 'root'}-${item.url}-${item.openIn || 'default'}-${index}`}
                     value={getNavPathPrefix(item)}
                   >
                     {resolveLocalizedString(item.label, currentLanguage) || item.path}

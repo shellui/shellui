@@ -230,9 +230,9 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
               }
             }}
           >
-            {displayStartItems.map((item) => (
+            {displayStartItems.map((item, index) => (
               <option
-                key={item.path || 'root'}
+                key={`${item.path || 'root'}-${item.url}-${item.openIn || 'default'}-${index}`}
                 value={getNavPathPrefix(item)}
               >
                 {resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}

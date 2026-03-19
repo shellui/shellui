@@ -64,7 +64,7 @@ export const NotFoundView = () => {
           >
             {navItems.map((item, index) => (
               <span
-                key={item.path || 'root'}
+                key={`${item.path || 'root'}-${item.url}-${item.openIn || 'default'}-${index}`}
                 className="inline-flex items-center gap-x-2"
               >
                 {index > 0 && (
