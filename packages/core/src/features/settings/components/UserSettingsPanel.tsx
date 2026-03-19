@@ -44,6 +44,7 @@ export const UserSettingsPanel = ({
         : 'No access token available.',
     [accessToken, decodedJwtPayload],
   );
+  const settingsAccessTokenText = settingsAccessToken || 'Not shared for this app.';
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
@@ -56,6 +57,31 @@ export const UserSettingsPanel = ({
       setIsLoggingOut(false);
     }
   }, [onLogout]);
+  const handleCopyDeveloperDiagnostics = useCallback(async (label: string, value: string) => {
+    if (!navigator?.clipboard?.writeText) {
+      shellui.toast({
+        title: 'Copy failed',
+        description: 'Clipboard API is not available in this environment.',
+        type: 'error',
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      shellui.toast({
+        title: 'Copied',
+        description: `${label} copied to clipboard.`,
+        type: 'success',
+      });
+    } catch {
+      shellui.toast({
+        title: 'Copy failed',
+        description: 'Unable to copy developer diagnostics.',
+        type: 'error',
+      });
+    }
+  }, []);
 
   return (
     <section className="max-w-xl space-y-5">
@@ -105,19 +131,59 @@ export const UserSettingsPanel = ({
           </h3>
           <div className="mt-3 space-y-3 text-sm">
             <div>
-              <p className="text-muted-foreground">JWT payload</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-muted-foreground">JWT payload</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => void handleCopyDeveloperDiagnostics('JWT payload', jwtPayloadJson)}
+                >
+                  Copy
+                </Button>
+              </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
                 {jwtPayloadJson}
               </pre>
             </div>
             <div>
-              <p className="text-muted-foreground">Shared settings access token</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-muted-foreground">Shared settings access token</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() =>
+                    void handleCopyDeveloperDiagnostics(
+                      'Shared settings access token',
+                      settingsAccessTokenText,
+                    )
+                  }
+                >
+                  Copy
+                </Button>
+              </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
-                {settingsAccessToken || 'Not shared for this app.'}
+                {settingsAccessTokenText}
               </pre>
             </div>
             <div>
-              <p className="text-muted-foreground">Raw user settings</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-muted-foreground">Raw user settings</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() =>
+                    void handleCopyDeveloperDiagnostics('Raw user settings', rawUserSettingsJson)
+                  }
+                >
+                  Copy
+                </Button>
+              </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
                 {rawUserSettingsJson}
               </pre>
