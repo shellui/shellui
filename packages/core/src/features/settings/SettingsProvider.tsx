@@ -437,6 +437,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             : newSettings;
           settingsRef.current = nextSettings;
           setSettings(nextSettings);
+
+          // Forward settings down the iframe tree so deep descendants also update.
+          if (window.parent !== window) {
+            propagateSettingsToIframes(nextSettings);
+          }
         }
       },
     );
