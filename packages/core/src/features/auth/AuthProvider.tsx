@@ -190,6 +190,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend, session],
   );
 
+  const loadUserPreferences = useCallback(async () => {
+    try {
+      return await backend.loadUserPreferences(session);
+    } catch (err) {
+      logger.error('Failed to load user preferences from auth provider metadata', { err });
+      return null;
+    }
+  }, [backend, session]);
+
   const logout = useCallback(async () => {
     try {
       await backend.logout(session);
@@ -265,6 +274,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       getAuthSettings,
       sendMagicLink,
       syncUserPreferences,
+      loadUserPreferences,
       logout,
     }),
     [
@@ -278,6 +288,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       getAuthSettings,
       sendMagicLink,
       syncUserPreferences,
+      loadUserPreferences,
       logout,
     ],
   );

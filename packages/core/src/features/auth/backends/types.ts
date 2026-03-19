@@ -13,4 +13,5 @@ export interface AuthBackend {
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath: string) => Promise<void>;
   syncUserPreferences: (session: AuthSession | null, preferences: UserPreferences) => Promise<void>;
+  loadUserPreferences: (session: AuthSession | null) => Promise<UserPreferences | null>;
 }

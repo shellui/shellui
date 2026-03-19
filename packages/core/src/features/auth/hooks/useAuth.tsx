@@ -15,6 +15,7 @@ export interface AuthContextValue {
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;
   syncUserPreferences: (preferences: UserPreferences) => Promise<void>;
+  loadUserPreferences: () => Promise<UserPreferences | null>;
   logout: () => Promise<void>;
 }
 

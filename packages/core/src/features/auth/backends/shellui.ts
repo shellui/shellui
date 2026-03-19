@@ -32,4 +32,8 @@ export const createShellUIAuthBackend = (): AuthBackend => ({
   syncUserPreferences: async () => {
     logger.info('syncUserPreferences not implemented (shellui auth backend)');
   },
+  loadUserPreferences: async () => {
+    logger.info('loadUserPreferences not implemented (shellui auth backend)');
+    return null;
+  },
 });

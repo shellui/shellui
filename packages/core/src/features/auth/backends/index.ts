@@ -16,6 +16,7 @@ const createNoopBackend = (): AuthBackend => ({
     throw new Error('No auth backend configured.');
   },
   syncUserPreferences: async () => {},
+  loadUserPreferences: async () => null,
 });
 
 export const createAuthBackend = (backendConfig: BackendConfig | undefined): AuthBackend => {

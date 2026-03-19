@@ -179,4 +179,34 @@ export const createSupabaseAuthBackend = ({
       throw new Error(`HTTP ${response.status}`);
     }
   },
+  loadUserPreferences: async (session) => {
+    if (!backendUrl || !publishableKey || !session?.accessToken) {
+      return null;
+    }
+
+    const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
+    userUrl.searchParams.set('apikey', publishableKey);
+
+    const response = await fetch(userUrl.toString(), {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        apikey: publishableKey,
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const payload = (await response.json()) as {
+      user_metadata?: Record<string, unknown>;
+    };
+    const preferences = payload.user_metadata?.[APP_PREFERENCES_METADATA_KEY];
+    if (!preferences || typeof preferences !== 'object') {
+      return null;
+    }
+    return preferences as UserPreferences;
+  },
 });

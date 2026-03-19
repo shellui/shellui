@@ -18,12 +18,9 @@ import {
   isSameUser,
   mergePreferencesIntoSettings,
   toSettingsUser,
-  type AppPreferences,
 } from './utils';
 
 const logger = getLogger('shellcore');
-const USER_METADATA_ENDPOINT = '/auth/v1/user';
-const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
 
 const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
@@ -120,7 +117,7 @@ const defaultSettings: Settings = {
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { config } = useConfig();
-  const { user: authUser, session, syncUserPreferences, logout } = useAuth();
+  const { user: authUser, session, syncUserPreferences, loadUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
@@ -245,9 +242,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (
       typeof window === 'undefined' ||
       window.parent !== window ||
-      config?.backend?.type !== 'supabase' ||
-      !config?.backend?.url ||
-      !config?.backend?.publishableKey ||
       !session?.accessToken
     ) {
       return;
@@ -255,37 +249,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     loadingPreferencesRef.current = true;
-    const backendUrl = config.backend.url.replace(/\/+$/, '');
-    const publishableKey = config.backend.publishableKey;
 
-    const loadPreferencesFromSupabase = async () => {
+    const loadPreferences = async () => {
       try {
-        const userUrl = new URL(`${backendUrl}${USER_METADATA_ENDPOINT}`);
-        userUrl.searchParams.set('apikey', publishableKey);
-
-        const response = await fetch(userUrl.toString(), {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-            apikey: publishableKey,
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = (await response.json()) as {
-          user_metadata?: Record<string, unknown>;
-        };
-        const preferences = payload.user_metadata?.[APP_PREFERENCES_METADATA_KEY] as
-          | AppPreferences
-          | undefined;
+        const preferences = await loadUserPreferences();
 
         if (cancelled) return;
 
-        if (!preferences || typeof preferences !== 'object') {
+        if (!preferences) {
           const currentSettings = settingsRef.current ?? defaultSettings;
           const fallbackSettings = mergePreferencesIntoSettings(currentSettings, {
             themeName: defaultAppearance.name,
@@ -301,7 +272,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
           propagateSettingsToIframes(fallbackSettings);
 
-          logger.info('No Supabase preferences found; using app defaults');
+          logger.info('No auth provider preferences found; using app defaults');
           return;
         }
 
@@ -315,25 +286,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         propagateSettingsToIframes(mergedSettings);
 
-        logger.info('Loaded app preferences from Supabase metadata', {
+        logger.info('Loaded app preferences from auth provider metadata', {
           preferences: getPreferenceSnapshot(mergedSettings),
         });
       } catch (error) {
-        logger.error('Failed to load app preferences from Supabase metadata', { error });
+        logger.error('Failed to load app preferences from auth provider metadata', { error });
       } finally {
         loadingPreferencesRef.current = false;
       }
     };
 
-    void loadPreferencesFromSupabase();
+    void loadPreferences();
     return () => {
       cancelled = true;
       loadingPreferencesRef.current = false;
     };
   }, [
-    config?.backend?.publishableKey,
-    config?.backend?.type,
-    config?.backend?.url,
+    loadUserPreferences,
     session?.accessToken,
     session?.userId,
   ]);
