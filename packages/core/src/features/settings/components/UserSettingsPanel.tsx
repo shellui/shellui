@@ -67,31 +67,34 @@ export const UserSettingsPanel = ({
       setIsLoggingOut(false);
     }
   }, [onLogout]);
-  const handleCopyDeveloperDiagnostics = useCallback(async (label: string, value: string) => {
-    if (!navigator?.clipboard?.writeText) {
-      shellui.toast({
-        title: t('userAccount.clipboard.copyFailedTitle'),
-        description: t('userAccount.clipboard.clipboardApiUnavailable'),
-        type: 'error',
-      });
-      return;
-    }
+  const handleCopyDeveloperDiagnostics = useCallback(
+    async (label: string, value: string) => {
+      if (!navigator?.clipboard?.writeText) {
+        shellui.toast({
+          title: t('userAccount.clipboard.copyFailedTitle'),
+          description: t('userAccount.clipboard.clipboardApiUnavailable'),
+          type: 'error',
+        });
+        return;
+      }
 
-    try {
-      await navigator.clipboard.writeText(value);
-      shellui.toast({
-        title: t('userAccount.clipboard.copiedTitle'),
-        description: t('userAccount.clipboard.copiedDescription', { label }),
-        type: 'success',
-      });
-    } catch {
-      shellui.toast({
-        title: t('userAccount.clipboard.copyFailedTitle'),
-        description: t('userAccount.clipboard.unableToCopyDiagnostics'),
-        type: 'error',
-      });
-    }
-  }, [t]);
+      try {
+        await navigator.clipboard.writeText(value);
+        shellui.toast({
+          title: t('userAccount.clipboard.copiedTitle'),
+          description: t('userAccount.clipboard.copiedDescription', { label }),
+          type: 'success',
+        });
+      } catch {
+        shellui.toast({
+          title: t('userAccount.clipboard.copyFailedTitle'),
+          description: t('userAccount.clipboard.unableToCopyDiagnostics'),
+          type: 'error',
+        });
+      }
+    },
+    [t],
+  );
 
   return (
     <section className="max-w-xl space-y-5">
@@ -150,7 +153,9 @@ export const UserSettingsPanel = ({
           <div className="mt-3 space-y-3 text-sm">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground">{t('userAccount.developerDiagnostics.jwtPayload')}</p>
+                <p className="text-muted-foreground">
+                  {t('userAccount.developerDiagnostics.jwtPayload')}
+                </p>
                 <Button
                   type="button"
                   variant="outline"

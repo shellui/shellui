@@ -30,7 +30,10 @@ const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 
 const toAbsoluteUrl = (url: string): URL | null => {
   try {
-    return new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    return new URL(
+      url,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+    );
   } catch {
     return null;
   }
