@@ -233,27 +233,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config, isTrustedFrameForAuthToken, session?.accessToken],
   );
 
-  const sendSettingsToIframe = useCallback(
-    (baseSettings: Settings, iframeUuid: string) => {
-      const frame = shellui.frameRegistry
-        .getAllIframes()
-        .find(([uuid]) => uuid === iframeUuid)?.[1];
-      if (!frame) return;
-      const lang = baseSettings.language?.code || 'en';
-      const includeAuthAccessToken = isTrustedFrameForAuthToken(frame.src ?? '');
-      const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
-        includeAuthAccessToken,
-        accessToken: session?.accessToken ?? null,
-      });
-      shellui.sendMessage({
-        type: 'SHELLUI_SETTINGS',
-        payload: { settings: settingsToPropagate },
-        to: [iframeUuid],
-      });
-    },
-    [config, isTrustedFrameForAuthToken, session?.accessToken],
-  );
-
   // Keep ref in sync with state for message listeners
   useEffect(() => {
     settingsRef.current = settings;
@@ -416,9 +395,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       (message: ShellUIMessage) => {
         // Use ref to always get current settings (avoids stale closure)
         const currentSettings = settingsRef.current ?? defaultSettings;
-        const requestingIframeUuid = message.from?.[0];
-        if (requestingIframeUuid) {
-          sendSettingsToIframe(currentSettings, requestingIframeUuid);
+        const requestingPath = (message.from ?? []).filter(Boolean);
+
+        if (requestingPath.length > 0) {
+          const [firstHopIframeUuid] = requestingPath;
+          const frame = shellui.frameRegistry
+            .getAllIframes()
+            .find(([uuid]) => uuid === firstHopIframeUuid)?.[1];
+          const lang = currentSettings.language?.code || 'en';
+          const includeAuthAccessToken = frame
+            ? isTrustedFrameForAuthToken(frame.src ?? '')
+            : false;
+          const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
+            includeAuthAccessToken,
+            accessToken: session?.accessToken ?? null,
+          });
+
+          // Route through the full parent -> child -> ... -> requester path so deep descendants
+          // receive settings even when they are nested more than one level under root.
+          shellui.sendMessage({
+            type: 'SHELLUI_SETTINGS',
+            payload: { settings: settingsToPropagate },
+            to: requestingPath,
+          });
           return;
         }
         propagateSettingsToIframes(currentSettings);
@@ -447,7 +446,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettings();
       cleanupSettingsRequested();
     };
-  }, [propagateSettingsToIframes, sendSettingsToIframe]);
+  }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, session?.accessToken]);
 
   useEffect(() => {
     if (
