@@ -115,4 +115,29 @@ describe('buildSettingsForPropagation', () => {
     ]);
     expect(result.appearance?.availableThemes?.length).toBeGreaterThan(0);
   });
+
+  it('injects access token into settings.user only when explicitly allowed', () => {
+    const settingsWithUser: Settings = {
+      ...baseSettings,
+      user: {
+        id: 'u1',
+        email: 'dev@shellui.dev',
+        name: 'Dev User',
+        profilePicture: null,
+        authProvider: 'github',
+      },
+    };
+
+    const safeResult = buildSettingsForPropagation(settingsWithUser, undefined, 'en', {
+      includeAuthAccessToken: true,
+      accessToken: 'jwt.safe.token',
+    });
+    expect(safeResult.accessToken).toBe('jwt.safe.token');
+
+    const unsafeResult = buildSettingsForPropagation(settingsWithUser, undefined, 'en', {
+      includeAuthAccessToken: false,
+      accessToken: 'jwt.should.not.be.exposed',
+    });
+    expect(unsafeResult.accessToken).toBeNull();
+  });
 });

@@ -38,6 +38,12 @@ export interface NavigationItem {
   position?: 'start' | 'end';
   /** URL to display as a settings panel in Settings > Applications. When set, the nav item appears in the Applications group. */
   settings?: string;
+  /**
+   * Trust control for auth token sharing to iframe apps.
+   * - undefined/true: trusted (default), token can be shared
+   * - false: untrusted, token is never shared
+   */
+  safeForAuthToken?: boolean;
 }
 
 export interface NavigationGroup {

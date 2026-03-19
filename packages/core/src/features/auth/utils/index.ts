@@ -1,7 +1,7 @@
 export { buildSessionFromParams } from './buildSessionFromParams';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';
-export { getUserFromSdkSettings } from './getUserFromSdkSettings';
+export { getAccessTokenFromSdkSettings, getUserFromSdkSettings } from './getUserFromSdkSettings';
 export { isLoginMethod } from './isLoginMethod';
 export { isSessionExpired } from './isSessionExpired';
 export { normalizeAuthSettings } from './normalizeAuthSettings';

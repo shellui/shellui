@@ -5,3 +5,9 @@ export const getUserFromSdkSettings = (): SettingsUser | null => {
   const initialSettings = shellui.initialSettings as Settings | null;
   return initialSettings?.user ?? null;
 };
+
+// Retrieves the current access token from ShellUI initial settings when available.
+export const getAccessTokenFromSdkSettings = (): string | null => {
+  const initialSettings = shellui.initialSettings as Settings | null;
+  return initialSettings?.accessToken ?? null;
+};

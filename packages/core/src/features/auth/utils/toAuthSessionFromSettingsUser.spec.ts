@@ -15,14 +15,14 @@ describe('toAuthSessionFromSettingsUser', () => {
       authProvider: 'google',
     } as SettingsUser;
 
-    const session = toAuthSessionFromSettingsUser(settingsUser);
+    const session = toAuthSessionFromSettingsUser(settingsUser, 'jwt.example.token');
     expect(session.userId).toBe('user-1');
     expect(session.userEmail).toBe('user@example.com');
     expect(session.userName).toBe('Demo User');
     expect(session.userAvatarUrl).toBe('https://example.com/avatar.png');
     expect(session.provider).toBe('google');
     expect(session.tokenType).toBe('bearer');
-    expect(session.accessToken).toBe('');
+    expect(session.accessToken).toBe('jwt.example.token');
     expect(session.refreshToken).toBe('');
     expect(session.expiresAt).toBeGreaterThan(Math.floor(Date.now() / 1000));
 

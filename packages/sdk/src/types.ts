@@ -200,6 +200,8 @@ export interface Settings {
   };
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
+  /** Access token injected by shell for trusted iframe apps. */
+  accessToken?: string | null;
   // Add more settings here as needed
   // notifications: { ... }
 }

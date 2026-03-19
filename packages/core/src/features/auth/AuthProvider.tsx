@@ -7,6 +7,7 @@ import { AuthContext, type AuthContextValue } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
 import {
   clearStoredAuthSession,
+  getAccessTokenFromSdkSettings,
   getUserFromSdkSettings,
   isSessionExpired,
   persistAuthSession,
@@ -68,8 +69,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (isIframe) {
         const sdkUser = getUserFromSdkSettings();
+        const sdkAccessToken = getAccessTokenFromSdkSettings();
         if (!cancelled) {
-          setSession(sdkUser ? toAuthSessionFromSettingsUser(sdkUser) : null);
+          setSession(sdkUser ? toAuthSessionFromSettingsUser(sdkUser, sdkAccessToken) : null);
           setIsLoading(false);
         }
         return;
@@ -131,7 +133,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const syncSessionFromSettings = (message: { payload: unknown }) => {
       const payload = message.payload as { settings?: Settings };
       const settingsUser = payload.settings?.user ?? null;
-      setSession(settingsUser ? toAuthSessionFromSettingsUser(settingsUser) : null);
+      const settingsAccessToken = payload.settings?.accessToken ?? null;
+      setSession(
+        settingsUser ? toAuthSessionFromSettingsUser(settingsUser, settingsAccessToken) : null,
+      );
     };
 
     const cleanupSettingsUpdated = shellui.addMessageListener(

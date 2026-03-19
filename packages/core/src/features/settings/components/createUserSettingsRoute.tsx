@@ -18,6 +18,7 @@ export const createUserSettingsRoute = (
   options: {
     developerModeEnabled: boolean;
     accessToken: string | null;
+    settingsAccessToken: string | null;
     rawUserSettings: Settings['user'];
   },
 ): SettingsRouteItem[] =>
@@ -33,6 +34,7 @@ export const createUserSettingsRoute = (
               onLogout={logout}
               developerModeEnabled={options.developerModeEnabled}
               accessToken={options.accessToken}
+              settingsAccessToken={options.settingsAccessToken}
               rawUserSettings={options.rawUserSettings}
             />
           ),

@@ -8,6 +8,7 @@ import {
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
+import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
 import { defaultTheme } from '../theme/themes';
 import {
@@ -26,6 +27,54 @@ const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
 
 const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
+
+const toAbsoluteUrl = (url: string): URL | null => {
+  try {
+    return new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+  } catch {
+    return null;
+  }
+};
+
+const normalizePath = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '/';
+  const withoutTrailing = trimmed.replace(/\/+$/, '');
+  return withoutTrailing || '/';
+};
+
+const normalizeHashPath = (value: string): string => {
+  const hash = value.replace(/^#\/?/, '').replace(/\/+$/, '');
+  return hash;
+};
+
+const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean => {
+  const frame = toAbsoluteUrl(frameSrc);
+  const item = toAbsoluteUrl(itemUrl);
+  if (!frame || !item) return false;
+  if (frame.origin !== item.origin) return false;
+
+  const itemPathname = normalizePath(item.pathname);
+  const framePathname = normalizePath(frame.pathname);
+  if (framePathname !== itemPathname && !framePathname.startsWith(`${itemPathname}/`)) {
+    return false;
+  }
+
+  const itemHashPath = normalizeHashPath(item.hash);
+  if (!itemHashPath) {
+    return true;
+  }
+
+  const frameHashPath = normalizeHashPath(frame.hash);
+  return frameHashPath === itemHashPath || frameHashPath.startsWith(`${itemHashPath}/`);
+};
+
+const stripSensitiveUserFields = (settings: Settings): Settings => {
+  return {
+    ...settings,
+    accessToken: null,
+  };
+};
 
 const defaultAppearance: Appearance = {
   name: defaultTheme.name,
@@ -63,6 +112,7 @@ const defaultSettings: Settings = {
     enabled: true,
   },
   user: null,
+  accessToken: null,
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -132,6 +182,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
               enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? true,
             },
             user: parsed.user ?? null,
+            accessToken: null,
           };
           settingsRef.current = initialSettings;
           return initialSettings;
@@ -143,6 +194,65 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     settingsRef.current = defaultSettings;
     return defaultSettings;
   });
+
+  const navigationItems = useMemo<NavigationItem[]>(
+    () =>
+      config?.navigation?.flatMap((item) =>
+        'title' in item && 'items' in item ? item.items : [item],
+      ) ?? [],
+    [config?.navigation],
+  );
+
+  const isTrustedFrameForAuthToken = useCallback(
+    (frameSrc: string): boolean =>
+      navigationItems.some(
+        (item) => item.safeForAuthToken !== false && isFrameForNavigationItem(frameSrc, item.url),
+      ),
+    [navigationItems],
+  );
+
+  const propagateSettingsToIframes = useCallback(
+    (baseSettings: Settings) => {
+      const iframes = shellui.frameRegistry.getAllIframes();
+      if (iframes.length === 0) return;
+      const lang = baseSettings.language?.code || 'en';
+      for (const [uuid, iframe] of iframes) {
+        const frameSrc = iframe?.src ?? '';
+        const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+        const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
+          includeAuthAccessToken,
+          accessToken: session?.accessToken ?? null,
+        });
+        shellui.sendMessage({
+          type: 'SHELLUI_SETTINGS',
+          payload: { settings: settingsToPropagate },
+          to: [uuid],
+        });
+      }
+    },
+    [config, isTrustedFrameForAuthToken, session?.accessToken],
+  );
+
+  const sendSettingsToIframe = useCallback(
+    (baseSettings: Settings, iframeUuid: string) => {
+      const frame = shellui.frameRegistry
+        .getAllIframes()
+        .find(([uuid]) => uuid === iframeUuid)?.[1];
+      if (!frame) return;
+      const lang = baseSettings.language?.code || 'en';
+      const includeAuthAccessToken = isTrustedFrameForAuthToken(frame.src ?? '');
+      const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
+        includeAuthAccessToken,
+        accessToken: session?.accessToken ?? null,
+      });
+      shellui.sendMessage({
+        type: 'SHELLUI_SETTINGS',
+        payload: { settings: settingsToPropagate },
+        to: [iframeUuid],
+      });
+    },
+    [config, isTrustedFrameForAuthToken, session?.accessToken],
+  );
 
   // Keep ref in sync with state for message listeners
   useEffect(() => {
@@ -207,15 +317,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           setSettings(fallbackSettings);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSettings));
 
-          const settingsToPropagate = buildSettingsForPropagation(
-            fallbackSettings,
-            config,
-            fallbackSettings.language?.code || 'en',
-          );
-          shellui.propagateMessage({
-            type: 'SHELLUI_SETTINGS',
-            payload: { settings: settingsToPropagate },
-          });
+          propagateSettingsToIframes(fallbackSettings);
 
           logger.info('No Supabase preferences found; using app defaults');
           return;
@@ -229,15 +331,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setSettings(mergedSettings);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
 
-        const settingsToPropagate = buildSettingsForPropagation(
-          mergedSettings,
-          config,
-          mergedSettings.language?.code || 'en',
-        );
-        shellui.propagateMessage({
-          type: 'SHELLUI_SETTINGS',
-          payload: { settings: settingsToPropagate },
-        });
+        propagateSettingsToIframes(mergedSettings);
 
         logger.info('Loaded app preferences from Supabase metadata', {
           preferences: getPreferenceSnapshot(mergedSettings),
@@ -279,15 +373,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
-      const settingsWithNav = buildSettingsForPropagation(
-        nextSettings,
-        config,
-        nextSettings.language?.code || 'en',
-      );
-      shellui.propagateMessage({
-        type: 'SHELLUI_SETTINGS',
-        payload: { settings: settingsWithNav },
-      });
+      propagateSettingsToIframes(nextSettings);
     } catch (error) {
       logger.error('Failed to sync auth user into settings:', { error });
     }
@@ -305,22 +391,18 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const payload = message.payload as { settings: Settings };
         const newSettings = payload.settings;
         if (newSettings) {
+          const shouldStripSensitiveFields = window.parent === window;
+          const nextSettings = shouldStripSensitiveFields
+            ? stripSensitiveUserFields(newSettings)
+            : newSettings;
           // Update localStorage with new settings value
-          setSettings(newSettings);
+          settingsRef.current = nextSettings;
+          setSettings(nextSettings);
           if (window.parent === window) {
             try {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-              // Confirm: root updated localStorage; re-inject navigation when propagating
-              const settingsToPropagate = buildSettingsForPropagation(
-                newSettings,
-                config,
-                newSettings.language?.code || 'en',
-              );
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
               logger.info('Root Parent received settings update', { message });
-              shellui.propagateMessage({
-                type: 'SHELLUI_SETTINGS',
-                payload: { settings: settingsToPropagate },
-              });
+              propagateSettingsToIframes(nextSettings);
             } catch (error) {
               logger.error('Failed to update settings from message:', { error });
             }
@@ -331,18 +413,15 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     const cleanupSettingsRequested = shellui.addMessageListener(
       'SHELLUI_SETTINGS_REQUESTED',
-      () => {
+      (message: ShellUIMessage) => {
         // Use ref to always get current settings (avoids stale closure)
         const currentSettings = settingsRef.current ?? defaultSettings;
-        const settingsWithNav = buildSettingsForPropagation(
-          currentSettings,
-          config,
-          currentSettings.language?.code || 'en',
-        );
-        shellui.propagateMessage({
-          type: 'SHELLUI_SETTINGS',
-          payload: { settings: settingsWithNav },
-        });
+        const requestingIframeUuid = message.from?.[0];
+        if (requestingIframeUuid) {
+          sendSettingsToIframe(currentSettings, requestingIframeUuid);
+          return;
+        }
+        propagateSettingsToIframes(currentSettings);
       },
     );
 
@@ -353,7 +432,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const payload = message.payload as { settings: Settings };
         const newSettings = payload.settings;
         if (newSettings) {
-          setSettings(newSettings);
+          const shouldStripSensitiveFields = window.parent === window;
+          const nextSettings = shouldStripSensitiveFields
+            ? stripSensitiveUserFields(newSettings)
+            : newSettings;
+          settingsRef.current = nextSettings;
+          setSettings(nextSettings);
         }
       },
     );
@@ -363,7 +447,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettings();
       cleanupSettingsRequested();
     };
-  }, [config]);
+  }, [propagateSettingsToIframes, sendSettingsToIframe]);
 
   useEffect(() => {
     if (
@@ -402,35 +486,33 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // ACTIONS
   const updateSettings = useCallback(
     (updates: Partial<Settings>) => {
-      const newSettings = { ...settings, ...updates };
+      const nextSettings = { ...settings, ...updates };
 
       // Update localStorage and propagate to children if we're in the root window
       if (typeof window !== 'undefined' && window.parent === window) {
         try {
+          const newSettings = stripSensitiveUserFields(nextSettings);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+          settingsRef.current = newSettings;
           setSettings(newSettings);
           // Propagate to child iframes (sendMessageToParent does nothing in root)
-          const settingsWithNav = buildSettingsForPropagation(
-            newSettings,
-            config,
-            newSettings.language?.code || 'en',
-          );
-          shellui.propagateMessage({
-            type: 'SHELLUI_SETTINGS',
-            payload: { settings: settingsWithNav },
-          });
+          propagateSettingsToIframes(newSettings);
         } catch (error) {
           logger.error('Failed to update settings in localStorage:', { error });
         }
+      }
+      if (typeof window !== 'undefined' && window.parent !== window) {
+        settingsRef.current = nextSettings;
+        setSettings(nextSettings);
       }
 
       // For child iframes, send to parent (parent will propagate to siblings)
       shellui.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_UPDATED',
-        payload: { settings: newSettings },
+        payload: { settings: stripSensitiveUserFields(nextSettings) },
       });
     },
-    [settings, config],
+    [settings, propagateSettingsToIframes],
   );
 
   const updateSetting = useCallback(
@@ -469,20 +551,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         // Reset settings to defaults
         const newSettings = defaultSettings;
+        settingsRef.current = newSettings;
         setSettings(newSettings);
 
         // If we're in the root window, update localStorage with defaults
         if (window.parent === window) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-          const settingsToPropagate = buildSettingsForPropagation(
-            newSettings,
-            config,
-            newSettings.language?.code || 'en',
-          );
-          shellui.propagateMessage({
-            type: 'SHELLUI_SETTINGS',
-            payload: { settings: settingsToPropagate },
-          });
+          propagateSettingsToIframes(newSettings);
         }
 
         // Notify parent about reset
@@ -500,7 +575,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         logger.error('Failed to reset all data:', { error });
       }
     }
-  }, [config, logout]);
+  }, [logout, propagateSettingsToIframes]);
 
   const value = useMemo(
     () => ({

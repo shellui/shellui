@@ -108,9 +108,18 @@ export const SettingsView = () => {
       createUserSettingsRoute(user, logout, t, {
         developerModeEnabled: settings.developerFeatures.enabled,
         accessToken: session?.accessToken ?? null,
+        settingsAccessToken: settings.accessToken ?? null,
         rawUserSettings: settings.user ?? null,
       }),
-    [user, logout, t, settings.developerFeatures.enabled, settings.user, session?.accessToken],
+    [
+      user,
+      logout,
+      t,
+      settings.developerFeatures.enabled,
+      settings.accessToken,
+      settings.user,
+      session?.accessToken,
+    ],
   );
 
   // All routes (core + applications) for selection and routing

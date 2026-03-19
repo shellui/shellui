@@ -13,6 +13,10 @@ export const buildSettingsForPropagation = (
   settings: Settings,
   config: ShellUIConfig | undefined,
   lang: string,
+  options?: {
+    includeAuthAccessToken?: boolean;
+    accessToken?: string | null;
+  },
 ): Settings => {
   const appearance = getResolvedAppearanceForSettings(settings, config);
   let result: Settings = {
@@ -41,6 +45,11 @@ export const buildSettingsForPropagation = (
     );
     result = { ...result, navigation: { items } };
   }
+
+  result = {
+    ...result,
+    accessToken: options?.includeAuthAccessToken ? (options.accessToken ?? null) : null,
+  };
 
   return result;
 };

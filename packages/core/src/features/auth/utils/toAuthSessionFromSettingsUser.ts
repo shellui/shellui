@@ -2,8 +2,11 @@ import type { SettingsUser } from '@shellui/sdk';
 import type { AuthSession } from '../types';
 
 // Maps an SDK settings user object to the internal auth session shape.
-export const toAuthSessionFromSettingsUser = (settingsUser: SettingsUser): AuthSession => ({
-  accessToken: '',
+export const toAuthSessionFromSettingsUser = (
+  settingsUser: SettingsUser,
+  accessToken: string | null = null,
+): AuthSession => ({
+  accessToken: accessToken ?? '',
   refreshToken: '',
   tokenType: 'bearer',
   // Long-lived synthetic expiry; parent shell controls real auth.

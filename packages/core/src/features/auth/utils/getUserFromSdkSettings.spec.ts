@@ -7,7 +7,7 @@ vi.mock('@shellui/sdk', () => ({
 }));
 
 import { shellui } from '@shellui/sdk';
-import { getUserFromSdkSettings } from './getUserFromSdkSettings';
+import { getAccessTokenFromSdkSettings, getUserFromSdkSettings } from './getUserFromSdkSettings';
 
 describe('getUserFromSdkSettings', () => {
   it('returns null when sdk has no user', () => {
@@ -21,10 +21,12 @@ describe('getUserFromSdkSettings', () => {
         id: 'u1',
         email: 'u1@example.com',
       },
+      accessToken: 'jwt.from.initial.settings',
     };
     expect(getUserFromSdkSettings()).toEqual({
       id: 'u1',
       email: 'u1@example.com',
     });
+    expect(getAccessTokenFromSdkSettings()).toBe('jwt.from.initial.settings');
   });
 });

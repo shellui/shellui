@@ -17,12 +17,14 @@ export const UserSettingsPanel = ({
   onLogout,
   developerModeEnabled,
   accessToken,
+  settingsAccessToken,
   rawUserSettings,
 }: {
   user: AuthUser;
   onLogout: () => Promise<void>;
   developerModeEnabled: boolean;
   accessToken: string | null;
+  settingsAccessToken: string | null;
   rawUserSettings: Settings['user'];
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -42,7 +44,6 @@ export const UserSettingsPanel = ({
         : 'No access token available.',
     [accessToken, decodedJwtPayload],
   );
-
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
@@ -107,6 +108,12 @@ export const UserSettingsPanel = ({
               <p className="text-muted-foreground">JWT payload</p>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
                 {jwtPayloadJson}
+              </pre>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Shared settings access token</p>
+              <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
+                {settingsAccessToken || 'Not shared for this app.'}
               </pre>
             </div>
             <div>
