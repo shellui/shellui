@@ -239,11 +239,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [settings]);
 
   useEffect(() => {
-    if (
-      typeof window === 'undefined' ||
-      window.parent !== window ||
-      !session?.accessToken
-    ) {
+    if (typeof window === 'undefined' || window.parent !== window || !session?.accessToken) {
       return;
     }
 
@@ -301,11 +297,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       loadingPreferencesRef.current = false;
     };
-  }, [
-    loadUserPreferences,
-    session?.accessToken,
-    session?.userId,
-  ]);
+  }, [loadUserPreferences, session?.accessToken, session?.userId]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
