@@ -16,6 +16,46 @@
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
+  "userAccount": {
+    "profile": {
+      "avatarAltWithName": "{{name}} avatar",
+      "avatarAltDefault": "User avatar",
+      "unknownUser": "Unknown user",
+      "noEmail": "No email",
+      "placeholderInitial": "U"
+    },
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "loginMethod": "Login method"
+    },
+    "loginMethods": {
+      "unknown": "Unknown",
+      "magicLinkEmail": "Magic link (Email)",
+      "github": "GitHub"
+    },
+    "developerDiagnostics": {
+      "title": "Developer diagnostics",
+      "jwtPayload": "JWT payload",
+      "sharedSettingsAccessToken": "Shared settings access token",
+      "rawUserSettings": "Raw user settings",
+      "copy": "Copy",
+      "notSharedForApp": "Not shared for this app.",
+      "unableToDecodeJwtPayload": "Unable to decode JWT payload.",
+      "noAccessTokenAvailable": "No access token available."
+    },
+    "clipboard": {
+      "copyFailedTitle": "Copy failed",
+      "clipboardApiUnavailable": "Clipboard API is not available in this environment.",
+      "copiedTitle": "Copied",
+      "copiedDescription": "{{label}} copied to clipboard.",
+      "unableToCopyDiagnostics": "Unable to copy developer diagnostics."
+    },
+    "actions": {
+      "loggingOut": "Logging out...",
+      "logout": "Logout"
+    }
+  },
   "updateApp": {
     "description": "Check your app version and look for updates. When an update is available, you can install it from here.",
     "currentVersion": "Current version",

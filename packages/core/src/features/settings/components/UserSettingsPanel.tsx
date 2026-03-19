@@ -1,14 +1,18 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { shellui, type Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
 import { decodeJwtPayload } from '../../auth/utils/decodeJwtPayload';
 import { Button } from '../../../components/ui/button';
 
-const formatLoginMethod = (authProvider: string | null) => {
-  if (!authProvider) return 'Unknown';
+const formatLoginMethod = (
+  authProvider: string | null,
+  t: (key: string, options?: { [key: string]: string }) => string,
+) => {
+  if (!authProvider) return t('userAccount.loginMethods.unknown');
   const normalized = authProvider.toLowerCase();
-  if (normalized === 'email') return 'Magic link (Email)';
-  if (normalized === 'github') return 'GitHub';
+  if (normalized === 'email') return t('userAccount.loginMethods.magicLinkEmail');
+  if (normalized === 'github') return t('userAccount.loginMethods.github');
   return authProvider.charAt(0).toUpperCase() + authProvider.slice(1);
 };
 
@@ -27,6 +31,7 @@ export const UserSettingsPanel = ({
   settingsAccessToken: string | null;
   rawUserSettings: Settings['user'];
 }) => {
+  const { t } = useTranslation('settings');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const decodedJwtPayload = useMemo(
     () => (accessToken ? decodeJwtPayload(accessToken) : null),
@@ -40,11 +45,16 @@ export const UserSettingsPanel = ({
   const jwtPayloadJson = useMemo(
     () =>
       accessToken
-        ? JSON.stringify(decodedJwtPayload ?? 'Unable to decode JWT payload.', null, 2)
-        : 'No access token available.',
-    [accessToken, decodedJwtPayload],
+        ? JSON.stringify(
+            decodedJwtPayload ?? t('userAccount.developerDiagnostics.unableToDecodeJwtPayload'),
+            null,
+            2,
+          )
+        : t('userAccount.developerDiagnostics.noAccessTokenAvailable'),
+    [accessToken, decodedJwtPayload, t],
   );
-  const settingsAccessTokenText = settingsAccessToken || 'Not shared for this app.';
+  const settingsAccessTokenText =
+    settingsAccessToken || t('userAccount.developerDiagnostics.notSharedForApp');
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
     try {
@@ -60,8 +70,8 @@ export const UserSettingsPanel = ({
   const handleCopyDeveloperDiagnostics = useCallback(async (label: string, value: string) => {
     if (!navigator?.clipboard?.writeText) {
       shellui.toast({
-        title: 'Copy failed',
-        description: 'Clipboard API is not available in this environment.',
+        title: t('userAccount.clipboard.copyFailedTitle'),
+        description: t('userAccount.clipboard.clipboardApiUnavailable'),
         type: 'error',
       });
       return;
@@ -70,18 +80,18 @@ export const UserSettingsPanel = ({
     try {
       await navigator.clipboard.writeText(value);
       shellui.toast({
-        title: 'Copied',
-        description: `${label} copied to clipboard.`,
+        title: t('userAccount.clipboard.copiedTitle'),
+        description: t('userAccount.clipboard.copiedDescription', { label }),
         type: 'success',
       });
     } catch {
       shellui.toast({
-        title: 'Copy failed',
-        description: 'Unable to copy developer diagnostics.',
+        title: t('userAccount.clipboard.copyFailedTitle'),
+        description: t('userAccount.clipboard.unableToCopyDiagnostics'),
         type: 'error',
       });
     }
-  }, []);
+  }, [t]);
 
   return (
     <section className="max-w-xl space-y-5">
@@ -89,35 +99,43 @@ export const UserSettingsPanel = ({
         {user.profilePicture ? (
           <img
             src={user.profilePicture}
-            alt={user.name ? `${user.name} avatar` : 'User avatar'}
+            alt={
+              user.name
+                ? t('userAccount.profile.avatarAltWithName', { name: user.name })
+                : t('userAccount.profile.avatarAltDefault')
+            }
             className="h-12 w-12 rounded-full border border-border object-cover"
             referrerPolicy="no-referrer"
           />
         ) : (
           <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-muted text-xs text-muted-foreground">
-            {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+            {user.name?.charAt(0).toUpperCase() ||
+              user.email?.charAt(0).toUpperCase() ||
+              t('userAccount.profile.placeholderInitial')}
           </div>
         )}
         <div className="min-w-0">
           <p className="truncate text-base font-medium text-foreground">
-            {user.name || 'Unknown user'}
+            {user.name || t('userAccount.profile.unknownUser')}
           </p>
-          <p className="truncate text-sm text-muted-foreground">{user.email || 'No email'}</p>
+          <p className="truncate text-sm text-muted-foreground">
+            {user.email || t('userAccount.profile.noEmail')}
+          </p>
         </div>
       </div>
 
       <dl className="space-y-3 text-sm">
         <div>
-          <dt className="text-muted-foreground">Name</dt>
+          <dt className="text-muted-foreground">{t('userAccount.fields.name')}</dt>
           <dd className="mt-0.5 text-foreground">{user.name || '-'}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Email</dt>
+          <dt className="text-muted-foreground">{t('userAccount.fields.email')}</dt>
           <dd className="mt-0.5 text-foreground">{user.email || '-'}</dd>
         </div>
         <div>
-          <dt className="text-muted-foreground">Login method</dt>
-          <dd className="mt-0.5 text-foreground">{formatLoginMethod(user.authProvider)}</dd>
+          <dt className="text-muted-foreground">{t('userAccount.fields.loginMethod')}</dt>
+          <dd className="mt-0.5 text-foreground">{formatLoginMethod(user.authProvider, t)}</dd>
         </div>
       </dl>
 
@@ -127,20 +145,25 @@ export const UserSettingsPanel = ({
             className="text-sm font-semibold text-foreground"
             style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
           >
-            Developer diagnostics
+            {t('userAccount.developerDiagnostics.title')}
           </h3>
           <div className="mt-3 space-y-3 text-sm">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground">JWT payload</p>
+                <p className="text-muted-foreground">{t('userAccount.developerDiagnostics.jwtPayload')}</p>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="h-6 px-2 text-xs"
-                  onClick={() => void handleCopyDeveloperDiagnostics('JWT payload', jwtPayloadJson)}
+                  onClick={() =>
+                    void handleCopyDeveloperDiagnostics(
+                      t('userAccount.developerDiagnostics.jwtPayload'),
+                      jwtPayloadJson,
+                    )
+                  }
                 >
-                  Copy
+                  {t('userAccount.developerDiagnostics.copy')}
                 </Button>
               </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
@@ -149,7 +172,9 @@ export const UserSettingsPanel = ({
             </div>
             <div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground">Shared settings access token</p>
+                <p className="text-muted-foreground">
+                  {t('userAccount.developerDiagnostics.sharedSettingsAccessToken')}
+                </p>
                 <Button
                   type="button"
                   variant="outline"
@@ -157,12 +182,12 @@ export const UserSettingsPanel = ({
                   className="h-6 px-2 text-xs"
                   onClick={() =>
                     void handleCopyDeveloperDiagnostics(
-                      'Shared settings access token',
+                      t('userAccount.developerDiagnostics.sharedSettingsAccessToken'),
                       settingsAccessTokenText,
                     )
                   }
                 >
-                  Copy
+                  {t('userAccount.developerDiagnostics.copy')}
                 </Button>
               </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
@@ -171,17 +196,22 @@ export const UserSettingsPanel = ({
             </div>
             <div>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-muted-foreground">Raw user settings</p>
+                <p className="text-muted-foreground">
+                  {t('userAccount.developerDiagnostics.rawUserSettings')}
+                </p>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="h-6 px-2 text-xs"
                   onClick={() =>
-                    void handleCopyDeveloperDiagnostics('Raw user settings', rawUserSettingsJson)
+                    void handleCopyDeveloperDiagnostics(
+                      t('userAccount.developerDiagnostics.rawUserSettings'),
+                      rawUserSettingsJson,
+                    )
                   }
                 >
-                  Copy
+                  {t('userAccount.developerDiagnostics.copy')}
                 </Button>
               </div>
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
@@ -199,7 +229,7 @@ export const UserSettingsPanel = ({
         onClick={() => void handleLogout()}
         disabled={isLoggingOut}
       >
-        {isLoggingOut ? 'Logging out...' : 'Logout'}
+        {isLoggingOut ? t('userAccount.actions.loggingOut') : t('userAccount.actions.logout')}
       </Button>
     </section>
   );

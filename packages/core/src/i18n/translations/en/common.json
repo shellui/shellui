@@ -9,6 +9,15 @@
   },
   "navigationError": "Navigation error",
   "navigationNotAllowed": "This URL is not configured in the app navigation.",
+  "authMenu": {
+    "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
+    "noEmail": "No email",
+    "userFallback": "User",
+    "goToLoginAriaLabel": "Go to login",
+    "openAccountMenuAriaLabel": "Open account menu for {{name}}"
+  },
   "errorBoundary": {
     "titleChunk": "Page couldn't be loaded",
     "titleGeneric": "Something went wrong",

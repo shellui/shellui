@@ -1,5 +1,6 @@
 import { shellui } from '@shellui/sdk';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
@@ -75,6 +76,7 @@ export const LoginButton = ({
   hideWhenLoggedOut?: boolean;
 }) => {
   const currentVariantConfig = variantConfig[variant];
+  const { t } = useTranslation('common');
   const { config } = useConfig();
   const { isAuthenticated, user, logout } = useAuth();
   const location = useLocation();
@@ -86,8 +88,8 @@ export const LoginButton = ({
   const displayName = useMemo(() => {
     const name = user?.name?.trim();
     const email = user?.email?.trim();
-    return name || email || 'User';
-  }, [user?.email, user?.name]);
+    return name || email || t('authMenu.userFallback');
+  }, [t, user?.email, user?.name]);
 
   const fallbackInitial = displayName.charAt(0).toUpperCase();
   const { showDisplayName, showCaret } = currentVariantConfig;
@@ -170,11 +172,11 @@ export const LoginButton = ({
       <Link
         to={urls.login}
         className={baseButtonClasses}
-        aria-label="Go to login"
-        title="Login"
+        aria-label={t('authMenu.goToLoginAriaLabel')}
+        title={t('authMenu.login')}
       >
         <UserIcon />
-        <span className="truncate">Login</span>
+        <span className="truncate">{t('authMenu.login')}</span>
       </Link>
     );
   }
@@ -195,7 +197,7 @@ export const LoginButton = ({
           type="button"
           className={baseButtonClasses}
           title={displayName}
-          aria-label={`Open account menu for ${displayName}`}
+          aria-label={t('authMenu.openAccountMenuAriaLabel', { name: displayName })}
         >
           {user.profilePicture ? (
             <img
@@ -250,20 +252,20 @@ export const LoginButton = ({
         <DropdownMenuLabel className="space-y-0.5">
           <p className="truncate text-sm font-semibold text-popover-foreground">{displayName}</p>
           <p className="truncate text-xs font-normal text-muted-foreground">
-            {user.email || 'No email'}
+            {user.email || t('authMenu.noEmail')}
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={openProfileSettingsModal}>
           <UserIcon />
-          <span>Profile</span>
+          <span>{t('authMenu.profile')}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => void handleLogout()}
           className="text-destructive focus:text-destructive"
         >
           <LogoutIcon className="h-4 w-4" />
-          <span>Logout</span>
+          <span>{t('authMenu.logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

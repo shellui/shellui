@@ -9,6 +9,15 @@
   },
   "navigationError": "Erreur de navigation",
   "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application.",
+  "authMenu": {
+    "login": "Connexion",
+    "logout": "Se déconnecter",
+    "profile": "Profil",
+    "noEmail": "Aucun e-mail",
+    "userFallback": "Utilisateur",
+    "goToLoginAriaLabel": "Aller à la connexion",
+    "openAccountMenuAriaLabel": "Ouvrir le menu du compte pour {{name}}"
+  },
   "errorBoundary": {
     "titleChunk": "La page n'a pas pu être chargée",
     "titleGeneric": "Une erreur s'est produite",

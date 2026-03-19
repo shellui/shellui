@@ -16,6 +16,46 @@
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
+  "userAccount": {
+    "profile": {
+      "avatarAltWithName": "Avatar de {{name}}",
+      "avatarAltDefault": "Avatar utilisateur",
+      "unknownUser": "Utilisateur inconnu",
+      "noEmail": "Aucun e-mail",
+      "placeholderInitial": "U"
+    },
+    "fields": {
+      "name": "Nom",
+      "email": "E-mail",
+      "loginMethod": "Méthode de connexion"
+    },
+    "loginMethods": {
+      "unknown": "Inconnue",
+      "magicLinkEmail": "Lien magique (e-mail)",
+      "github": "GitHub"
+    },
+    "developerDiagnostics": {
+      "title": "Diagnostics développeur",
+      "jwtPayload": "Payload JWT",
+      "sharedSettingsAccessToken": "Jeton d'accès des paramètres partagés",
+      "rawUserSettings": "Paramètres utilisateur bruts",
+      "copy": "Copier",
+      "notSharedForApp": "Non partagé pour cette application.",
+      "unableToDecodeJwtPayload": "Impossible de décoder le payload JWT.",
+      "noAccessTokenAvailable": "Aucun jeton d'accès disponible."
+    },
+    "clipboard": {
+      "copyFailedTitle": "Échec de la copie",
+      "clipboardApiUnavailable": "L'API Clipboard n'est pas disponible dans cet environnement.",
+      "copiedTitle": "Copié",
+      "copiedDescription": "{{label}} copié dans le presse-papiers.",
+      "unableToCopyDiagnostics": "Impossible de copier les diagnostics développeur."
+    },
+    "actions": {
+      "loggingOut": "Déconnexion...",
+      "logout": "Se déconnecter"
+    }
+  },
   "updateApp": {
     "description": "Consultez la version de l'application et vérifiez les mises à jour. Lorsqu'une mise à jour est disponible, vous pouvez l'installer depuis ici.",
     "currentVersion": "Version actuelle",
