@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
 import { UserIcon } from './UserIcon';
 import { UserSettingsPanel } from './UserSettingsPanel';
@@ -14,6 +15,11 @@ export const createUserSettingsRoute = (
   user: AuthUser | null,
   logout: () => Promise<void>,
   t: (key: string, options?: { defaultValue?: string }) => string,
+  options: {
+    developerModeEnabled: boolean;
+    accessToken: string | null;
+    rawUserSettings: Settings['user'];
+  },
 ): SettingsRouteItem[] =>
   user
     ? [
@@ -25,6 +31,9 @@ export const createUserSettingsRoute = (
             <UserSettingsPanel
               user={user}
               onLogout={logout}
+              developerModeEnabled={options.developerModeEnabled}
+              accessToken={options.accessToken}
+              rawUserSettings={options.rawUserSettings}
             />
           ),
         },

@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
-import { shellui } from '@shellui/sdk';
+import { useCallback, useMemo, useState } from 'react';
+import { shellui, type Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
+import { decodeJwtPayload } from '../../auth/utils/decodeJwtPayload';
 import { Button } from '../../../components/ui/button';
 
 const formatLoginMethod = (authProvider: string | null) => {
@@ -14,11 +15,33 @@ const formatLoginMethod = (authProvider: string | null) => {
 export const UserSettingsPanel = ({
   user,
   onLogout,
+  developerModeEnabled,
+  accessToken,
+  rawUserSettings,
 }: {
   user: AuthUser;
   onLogout: () => Promise<void>;
+  developerModeEnabled: boolean;
+  accessToken: string | null;
+  rawUserSettings: Settings['user'];
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const decodedJwtPayload = useMemo(
+    () => (accessToken ? decodeJwtPayload(accessToken) : null),
+    [accessToken],
+  );
+
+  const rawUserSettingsJson = useMemo(
+    () => JSON.stringify(rawUserSettings ?? null, null, 2),
+    [rawUserSettings],
+  );
+  const jwtPayloadJson = useMemo(
+    () =>
+      accessToken
+        ? JSON.stringify(decodedJwtPayload ?? 'Unable to decode JWT payload.', null, 2)
+        : 'No access token available.',
+    [accessToken, decodedJwtPayload],
+  );
 
   const handleLogout = useCallback(async () => {
     setIsLoggingOut(true);
@@ -34,7 +57,7 @@ export const UserSettingsPanel = ({
   }, [onLogout]);
 
   return (
-    <section className="max-w-xl rounded-lg border border-border bg-card p-4">
+    <section className="max-w-xl space-y-5">
       <div className="flex items-center gap-3">
         {user.profilePicture ? (
           <img
@@ -56,24 +79,45 @@ export const UserSettingsPanel = ({
         </div>
       </div>
 
-      <dl className="mt-4 space-y-2 text-sm">
+      <dl className="space-y-3 text-sm">
         <div>
           <dt className="text-muted-foreground">Name</dt>
-          <dd className="text-foreground">{user.name || '-'}</dd>
+          <dd className="mt-0.5 text-foreground">{user.name || '-'}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Email</dt>
-          <dd className="text-foreground">{user.email || '-'}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">ID</dt>
-          <dd className="break-all font-mono text-foreground">{user.id || '-'}</dd>
+          <dd className="mt-0.5 text-foreground">{user.email || '-'}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">Login method</dt>
-          <dd className="text-foreground">{formatLoginMethod(user.authProvider)}</dd>
+          <dd className="mt-0.5 text-foreground">{formatLoginMethod(user.authProvider)}</dd>
         </div>
       </dl>
+
+      {developerModeEnabled && (
+        <div className="rounded-lg bg-muted/40 p-3">
+          <h3
+            className="text-sm font-semibold text-foreground"
+            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+          >
+            Developer diagnostics
+          </h3>
+          <div className="mt-3 space-y-3 text-sm">
+            <div>
+              <p className="text-muted-foreground">JWT payload</p>
+              <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
+                {jwtPayloadJson}
+              </pre>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Raw user settings</p>
+              <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
+                {rawUserSettingsJson}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Button
         type="button"

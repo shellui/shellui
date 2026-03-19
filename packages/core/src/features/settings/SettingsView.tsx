@@ -37,7 +37,7 @@ export const SettingsView = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { config } = useConfig();
-  const { user, logout } = useAuth();
+  const { user, session, logout } = useAuth();
   const { t, i18n } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
@@ -103,7 +103,15 @@ export const SettingsView = () => {
       });
   }, [config?.navigation, i18n.language]);
 
-  const userRoute = useMemo(() => createUserSettingsRoute(user, logout, t), [user, logout, t]);
+  const userRoute = useMemo(
+    () =>
+      createUserSettingsRoute(user, logout, t, {
+        developerModeEnabled: settings.developerFeatures.enabled,
+        accessToken: session?.accessToken ?? null,
+        rawUserSettings: settings.user ?? null,
+      }),
+    [user, logout, t, settings.developerFeatures.enabled, settings.user, session?.accessToken],
+  );
 
   // All routes (core + applications) for selection and routing
   const allRoutes = useMemo(
