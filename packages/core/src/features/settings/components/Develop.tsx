@@ -32,7 +32,7 @@ export const Develop = () => {
   const errorReportingConfigured = Boolean(config?.sentry?.dsn);
   const { isAccepted: sentryConsentAccepted } = useCookieConsent('sentry.io');
 
-  return ( 
+  return (
     <div className="space-y-6">
       <div>
         <h3
