@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../../components/ui/button';
 import urls from '../../../constants/urls';
+import { cn } from '../../../lib/utils';
 import { useConfig } from '../../config/useConfig';
 import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
@@ -223,10 +224,12 @@ export const LoginView = () => {
                       disabled={isActionPending}
                     >
                       <span
-                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${visual.iconClassName}`}
+                        className={cn(
+                          'inline-flex h-6 w-6 shrink-0 items-center justify-center',
+                        )}
                         aria-hidden
                       >
-                        {visual.iconText}
+                        <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                       </span>
                       <span className="truncate">
                         {oauthLoadingProvider === provider
@@ -236,27 +239,35 @@ export const LoginView = () => {
                     </Button>
                   );
                 })}
-                {configuredSettings.oauthProviders.length === 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="h-11 w-full justify-start px-3"
-                    onClick={() => void handleOAuthLogin('github')}
-                    disabled={isActionPending}
-                  >
-                    <span
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#24292F] text-[10px] font-semibold text-white"
-                      aria-hidden
-                    >
-                      GH
-                    </span>
-                    <span>
-                      {oauthLoadingProvider === 'github'
-                        ? 'Redirecting to GitHub...'
-                        : 'Continue with GitHub'}
-                    </span>
-                  </Button>
-                )}
+                {configuredSettings.oauthProviders.length === 0 &&
+                  (() => {
+                    const githubVisual = getProviderVisual('github');
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-11 w-full justify-start px-3"
+                        onClick={() => void handleOAuthLogin('github')}
+                        disabled={isActionPending}
+                      >
+                        <span
+                          className={cn(
+                            'inline-flex h-6 w-6 shrink-0 items-center justify-center',
+                          )}
+                          aria-hidden
+                        >
+                          <githubVisual.Icon
+                            className={cn('h-3 w-3', githubVisual.iconClassName)}
+                          />
+                        </span>
+                        <span>
+                          {oauthLoadingProvider === 'github'
+                            ? 'Redirecting to GitHub...'
+                            : 'Continue with GitHub'}
+                        </span>
+                      </Button>
+                    );
+                  })()}
               </div>
             </section>
           )}
