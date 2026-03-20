@@ -16,6 +16,10 @@ import {
   normalizeNextPath,
 } from '../utils';
 
+const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
+
+type LastUsedLogin = { method: 'oauth'; provider: string } | { method: 'magic_link' };
+
 export const LoginView = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +58,7 @@ export const LoginView = () => {
   const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [methodError, setMethodError] = useState<string | null>(null);
+  const [lastUsedLogin, setLastUsedLogin] = useState<LastUsedLogin | null>(null);
   const nextPath = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return normalizeNextPath(params.get('next')) ?? '/';
@@ -75,10 +80,50 @@ export const LoginView = () => {
     }
   }, [authLoading, isAuthenticated, navigate, nextPath]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem(LAST_USED_LOGIN_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { method?: string; provider?: string };
+      if (parsed.method === 'magic_link') {
+        setLastUsedLogin({ method: 'magic_link' });
+        return;
+      }
+      if (parsed.method === 'oauth' && typeof parsed.provider === 'string' && parsed.provider.trim()) {
+        setLastUsedLogin({ method: 'oauth', provider: parsed.provider.toLowerCase() });
+      }
+    } catch {
+      // Ignore malformed data and fallback to default ordering.
+    }
+  }, []);
+
   const supportsOAuth = configuredSettings.methods.includes('oauth');
   const supportsMagicLink = configuredSettings.methods.includes('magic_link');
   const settingsLoadError = authError ?? methodError;
   const isActionPending = Boolean(oauthLoadingProvider) || magicLinkLoading;
+  const allOAuthProviders = useMemo(
+    () =>
+      configuredSettings.oauthProviders.length > 0 ? configuredSettings.oauthProviders : ['github'],
+    [configuredSettings.oauthProviders],
+  );
+  const lastUsedOauthProvider = useMemo(() => {
+    if (!supportsOAuth || !lastUsedLogin || lastUsedLogin.method !== 'oauth') return null;
+    const provider = lastUsedLogin.provider.toLowerCase();
+    return allOAuthProviders.includes(provider) ? provider : null;
+  }, [allOAuthProviders, lastUsedLogin, supportsOAuth]);
+  const featuredMethod =
+    supportsMagicLink && lastUsedLogin?.method === 'magic_link'
+      ? 'magic_link'
+      : supportsOAuth && lastUsedOauthProvider
+        ? 'oauth'
+        : null;
+  const featuredOAuthProvider = featuredMethod === 'oauth' ? lastUsedOauthProvider : null;
+  const otherOAuthProviders = useMemo(() => {
+    if (!supportsOAuth) return [];
+    if (!featuredOAuthProvider) return allOAuthProviders;
+    return allOAuthProviders.filter((provider) => provider !== featuredOAuthProvider);
+  }, [allOAuthProviders, featuredOAuthProvider, supportsOAuth]);
   const signInDescription = useMemo(() => {
     if (supportsOAuth && supportsMagicLink) {
       return 'Continue with your identity provider or request a secure sign-in link by email.';
@@ -146,6 +191,11 @@ export const LoginView = () => {
       return;
     }
     const backendProvider = support.backendProvider ?? getPreferredBackendProvider(provider);
+    const rememberedLogin: LastUsedLogin = { method: 'oauth', provider: provider.toLowerCase() };
+    setLastUsedLogin(rememberedLogin);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
+    }
     if (typeof window !== 'undefined' && window.parent !== window) {
       shellui.login({
         method: 'oauth',
@@ -179,6 +229,11 @@ export const LoginView = () => {
       if (!support.isSupported) {
         return;
       }
+      const rememberedLogin: LastUsedLogin = { method: 'magic_link' };
+      setLastUsedLogin(rememberedLogin);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
+      }
       await sendMagicLink(email, loginPathWithNext);
       setMagicLinkMessage('Check your inbox for a magic login link.');
     } catch (err) {
@@ -205,13 +260,96 @@ export const LoginView = () => {
         )}
 
         <div className="space-y-4">
-          {supportsOAuth && (
+          {featuredMethod === 'oauth' && featuredOAuthProvider && (
             <section className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Social login
+                Last used
+              </p>
+              {(() => {
+                const visual = getProviderVisual(featuredOAuthProvider);
+                const label = formatProviderLabel(featuredOAuthProvider);
+                return (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-full justify-start px-3 text-base"
+                    onClick={() => void handleOAuthLogin(featuredOAuthProvider)}
+                    disabled={isActionPending}
+                  >
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                      <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                    </span>
+                    <span className="truncate">
+                      {oauthLoadingProvider === featuredOAuthProvider
+                        ? `Redirecting to ${label}...`
+                        : `Continue with ${label}`}
+                    </span>
+                  </Button>
+                );
+              })()}
+            </section>
+          )}
+
+          {featuredMethod === 'oauth' && (otherOAuthProviders.length > 0 || supportsMagicLink) && (
+            <div className="relative py-1">
+              <div className="border-t border-border" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                or
+              </span>
+            </div>
+          )}
+
+          {featuredMethod === 'magic_link' && supportsMagicLink && (
+            <section className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Last used
+              </p>
+              <form
+                className="space-y-2"
+                onSubmit={(event) => void handleMagicLinkLogin(event)}
+              >
+                <input
+                  id="magic-link-email"
+                  type="email"
+                  value={magicLinkEmail}
+                  onChange={(event) => setMagicLinkEmail(event.target.value)}
+                  placeholder="name@company.com"
+                  autoComplete="email"
+                  required
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="w-full"
+                  disabled={isActionPending}
+                >
+                  {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
+                </Button>
+                {magicLinkMessage && (
+                  <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
+                )}
+                {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
+              </form>
+            </section>
+          )}
+
+          {featuredMethod === 'magic_link' && supportsOAuth && (
+            <div className="relative py-1">
+              <div className="border-t border-border" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                or
+              </span>
+            </div>
+          )}
+
+          {supportsOAuth && otherOAuthProviders.length > 0 && (
+            <section className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {featuredMethod === 'oauth' ? 'Other social logins' : 'Social login'}
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
-                {configuredSettings.oauthProviders.map((provider) => {
+                {otherOAuthProviders.map((provider) => {
                   const visual = getProviderVisual(provider);
                   const label = formatProviderLabel(provider);
                   return (
@@ -223,12 +361,7 @@ export const LoginView = () => {
                       onClick={() => void handleOAuthLogin(provider)}
                       disabled={isActionPending}
                     >
-                      <span
-                        className={cn(
-                          'inline-flex h-6 w-6 shrink-0 items-center justify-center',
-                        )}
-                        aria-hidden
-                      >
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
                         <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                       </span>
                       <span className="truncate">
@@ -239,40 +372,11 @@ export const LoginView = () => {
                     </Button>
                   );
                 })}
-                {configuredSettings.oauthProviders.length === 0 &&
-                  (() => {
-                    const githubVisual = getProviderVisual('github');
-                    return (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-11 w-full justify-start px-3"
-                        onClick={() => void handleOAuthLogin('github')}
-                        disabled={isActionPending}
-                      >
-                        <span
-                          className={cn(
-                            'inline-flex h-6 w-6 shrink-0 items-center justify-center',
-                          )}
-                          aria-hidden
-                        >
-                          <githubVisual.Icon
-                            className={cn('h-3 w-3', githubVisual.iconClassName)}
-                          />
-                        </span>
-                        <span>
-                          {oauthLoadingProvider === 'github'
-                            ? 'Redirecting to GitHub...'
-                            : 'Continue with GitHub'}
-                        </span>
-                      </Button>
-                    );
-                  })()}
               </div>
             </section>
           )}
 
-          {supportsOAuth && supportsMagicLink && (
+          {supportsOAuth && supportsMagicLink && featuredMethod !== 'magic_link' && (
             <div className="relative py-1">
               <div className="border-t border-border" />
               <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
@@ -281,7 +385,7 @@ export const LoginView = () => {
             </div>
           )}
 
-          {supportsMagicLink && (
+          {supportsMagicLink && featuredMethod !== 'magic_link' && (
             <section className="space-y-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Email magic link
