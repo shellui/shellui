@@ -6,20 +6,14 @@ import urls from '../../../constants/urls';
 import { useConfig } from '../../config/useConfig';
 import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
-import { isLoginMethod } from '../utils/isLoginMethod';
-
-const formatProviderLabel = (provider: string) => {
-  if (provider.toLowerCase() === 'github') return 'GitHub';
-  return provider.charAt(0).toUpperCase() + provider.slice(1);
-};
-
-const normalizeNextPath = (value: string | null): string | null => {
-  if (!value) return null;
-  if (!value.startsWith('/')) return null;
-  if (value.startsWith('//')) return null;
-  if (value === urls.login || value.startsWith(`${urls.login}?`)) return null;
-  return value;
-};
+import {
+  formatProviderLabel,
+  getOAuthProviderCandidates,
+  getPreferredBackendProvider,
+  getProviderVisual,
+  isLoginMethod,
+  normalizeNextPath,
+} from '../utils';
 
 export const LoginView = () => {
   const navigate = useNavigate();
@@ -39,11 +33,15 @@ export const LoginView = () => {
     const configuredMethods = Array.isArray(config.backend?.login?.methods)
       ? config.backend.login.methods.filter(isLoginMethod)
       : [];
-    const configuredProviders = Array.isArray(config.backend?.login?.oauthProviders)
+    const configuredProvidersRaw = Array.isArray(config.backend?.login?.oauthProviders)
       ? config.backend.login.oauthProviders
-          .filter((provider): provider is string => typeof provider === 'string' && provider.trim() !== '')
+          .filter(
+            (provider): provider is string =>
+              typeof provider === 'string' && provider.trim() !== '',
+          )
           .map((provider) => provider.toLowerCase())
       : [];
+    const configuredProviders = Array.from(new Set(configuredProvidersRaw));
     return {
       methods: configuredMethods,
       oauthProviders: configuredProviders,
@@ -94,30 +92,43 @@ export const LoginView = () => {
   }, [supportsMagicLink, supportsOAuth]);
 
   const verifyMethodSupport = useCallback(
-    async (method: LoginMethod, provider?: string): Promise<boolean> => {
+    async (
+      method: LoginMethod,
+      provider?: string,
+    ): Promise<{ isSupported: boolean; backendProvider?: string }> => {
       try {
         const backendSettings = await getAuthSettings();
         if (!backendSettings.methods.includes(method)) {
           const humanMethod = method === 'magic_link' ? 'magic link' : method;
           setMethodError(`This backend does not support ${humanMethod} login.`);
-          return false;
+          return { isSupported: false };
         }
         if (method === 'oauth' && provider && backendSettings.oauthProviders.length > 0) {
-          const normalizedProvider = provider.toLowerCase();
+          const requestedCandidates = getOAuthProviderCandidates(provider);
           const availableProviders = backendSettings.oauthProviders.map((p) => p.toLowerCase());
-          if (!availableProviders.includes(normalizedProvider)) {
+          const matchedProvider = requestedCandidates.find((candidate) =>
+            availableProviders.includes(candidate),
+          );
+          if (!matchedProvider) {
             setMethodError(
               `This backend does not support OAuth with ${formatProviderLabel(provider)}.`,
             );
-            return false;
+            return { isSupported: false };
           }
+          return { isSupported: true, backendProvider: matchedProvider };
         }
-        return true;
+        if (method === 'oauth' && provider) {
+          return {
+            isSupported: true,
+            backendProvider: getPreferredBackendProvider(provider),
+          };
+        }
+        return { isSupported: true };
       } catch (err) {
         setMethodError(
           err instanceof Error ? err.message : 'Could not verify backend login capabilities.',
         );
-        return false;
+        return { isSupported: false };
       }
     },
     [getAuthSettings],
@@ -128,20 +139,21 @@ export const LoginView = () => {
     setMagicLinkError(null);
     setMagicLinkMessage(null);
     setOauthLoadingProvider(provider);
-    const isSupported = await verifyMethodSupport('oauth', provider);
-    if (!isSupported) {
+    const support = await verifyMethodSupport('oauth', provider);
+    if (!support.isSupported) {
       setOauthLoadingProvider(null);
       return;
     }
+    const backendProvider = support.backendProvider ?? getPreferredBackendProvider(provider);
     if (typeof window !== 'undefined' && window.parent !== window) {
       shellui.login({
         method: 'oauth',
-        provider,
+        provider: backendProvider,
         redirectPath: loginPathWithNext,
       });
       return;
     }
-    const started = startOAuth(provider, loginPathWithNext);
+    const started = startOAuth(backendProvider, loginPathWithNext);
     if (!started) {
       setOauthLoadingProvider(null);
     }
@@ -162,8 +174,8 @@ export const LoginView = () => {
     setMethodError(null);
 
     try {
-      const isSupported = await verifyMethodSupport('magic_link');
-      if (!isSupported) {
+      const support = await verifyMethodSupport('magic_link');
+      if (!support.isSupported) {
         return;
       }
       await sendMagicLink(email, loginPathWithNext);
@@ -180,60 +192,93 @@ export const LoginView = () => {
   }
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-md flex-col justify-center p-6">
-      <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{signInDescription}</p>
+    <main className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-center p-6">
+      <h1 className="text-center text-2xl font-semibold text-foreground">Welcome back</h1>
+      <p className="mt-2 text-center text-sm text-muted-foreground">{signInDescription}</p>
 
-      <div className="mt-6 rounded-lg border border-border bg-card p-4">
+      <div className="mt-6 rounded-xl border border-border bg-card p-5 shadow-sm">
         {settingsLoadError && (
-          <p className="text-sm text-destructive">
+          <p className="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {settingsLoadError}
           </p>
         )}
 
-        {!settingsLoadError && (
-          <div className="space-y-3">
-            {supportsOAuth && (
-              <div className="space-y-2">
-                {configuredSettings.oauthProviders.map((provider) => (
-                  <Button
-                    key={provider}
-                    type="button"
-                    className="w-full"
-                    onClick={() => void handleOAuthLogin(provider)}
-                    disabled={isActionPending}
-                  >
-                    {oauthLoadingProvider === provider
-                      ? `Redirecting to ${formatProviderLabel(provider)}...`
-                      : `Continue with ${formatProviderLabel(provider)}`}
-                  </Button>
-                ))}
+        <div className="space-y-4">
+          {supportsOAuth && (
+            <section className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Social login
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {configuredSettings.oauthProviders.map((provider) => {
+                  const visual = getProviderVisual(provider);
+                  const label = formatProviderLabel(provider);
+                  return (
+                    <Button
+                      key={provider}
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full justify-start px-3"
+                      onClick={() => void handleOAuthLogin(provider)}
+                      disabled={isActionPending}
+                    >
+                      <span
+                        className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold ${visual.iconClassName}`}
+                        aria-hidden
+                      >
+                        {visual.iconText}
+                      </span>
+                      <span className="truncate">
+                        {oauthLoadingProvider === provider
+                          ? `Redirecting to ${label}...`
+                          : `Continue with ${label}`}
+                      </span>
+                    </Button>
+                  );
+                })}
                 {configuredSettings.oauthProviders.length === 0 && (
                   <Button
                     type="button"
-                    className="w-full"
+                    variant="outline"
+                    className="h-11 w-full justify-start px-3"
                     onClick={() => void handleOAuthLogin('github')}
                     disabled={isActionPending}
                   >
-                    {oauthLoadingProvider === 'github'
-                      ? 'Redirecting to GitHub...'
-                      : 'Continue with GitHub'}
+                    <span
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#24292F] text-[10px] font-semibold text-white"
+                      aria-hidden
+                    >
+                      GH
+                    </span>
+                    <span>
+                      {oauthLoadingProvider === 'github'
+                        ? 'Redirecting to GitHub...'
+                        : 'Continue with GitHub'}
+                    </span>
                   </Button>
                 )}
               </div>
-            )}
+            </section>
+          )}
 
-            {supportsMagicLink && (
+          {supportsOAuth && supportsMagicLink && (
+            <div className="relative py-1">
+              <div className="border-t border-border" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
+                or
+              </span>
+            </div>
+          )}
+
+          {supportsMagicLink && (
+            <section className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Email magic link
+              </p>
               <form
                 className="space-y-2"
                 onSubmit={(event) => void handleMagicLinkLogin(event)}
               >
-                <label
-                  htmlFor="magic-link-email"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Email address
-                </label>
                 <input
                   id="magic-link-email"
                   type="email"
@@ -257,15 +302,15 @@ export const LoginView = () => {
                 )}
                 {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
               </form>
-            )}
+            </section>
+          )}
 
-            {!supportsOAuth && !supportsMagicLink && (
-              <p className="text-sm text-muted-foreground">
-                No login method is currently enabled in backend auth settings.
-              </p>
-            )}
-          </div>
-        )}
+          {!supportsOAuth && !supportsMagicLink && (
+            <p className="text-sm text-muted-foreground">
+              No login method is currently enabled in backend auth settings.
+            </p>
+          )}
+        </div>
       </div>
     </main>
   );
