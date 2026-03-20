@@ -187,7 +187,7 @@ export type RuntimeType = 'browser' | 'tauri';
 export type BackendType = 'shellui' | 'supabase';
 
 /** Supported auth login methods that can be declared in config. */
-export type BackendLoginMethod = 'password' | 'oauth' | 'magic_link';
+export type BackendLoginMethod = 'password' | 'oauth' | 'magic_link' | 'web3';
 
 /** Optional login capabilities declared by app config for immediate UI rendering. */
 export interface BackendLoginConfig {

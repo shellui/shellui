@@ -4,11 +4,44 @@ import {
   normalizeAuthSettings,
   normalizeRedirectPath,
 } from '../utils';
-import type { UserPreferences } from '../types';
+import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
+import { createClient } from '@supabase/supabase-js';
 
 const USER_METADATA_ENDPOINT = '/auth/v1/user';
 const APP_PREFERENCES_METADATA_KEY = 'shelluiPreferences';
+
+const buildSessionFromSupabaseSession = (session: {
+  access_token: string;
+  refresh_token: string;
+  token_type?: string;
+  expires_at?: number;
+  user?: {
+    id?: string;
+    email?: string;
+    app_metadata?: Record<string, unknown>;
+    user_metadata?: Record<string, unknown>;
+  };
+}): AuthSession => {
+  const userMetadata = session.user?.user_metadata ?? {};
+  const appMetadata = session.user?.app_metadata ?? {};
+  return {
+    accessToken: session.access_token,
+    refreshToken: session.refresh_token,
+    tokenType: session.token_type ?? 'bearer',
+    expiresAt: session.expires_at ?? Math.floor(Date.now() / 1000) + 3600,
+    provider: typeof appMetadata.provider === 'string' ? appMetadata.provider : 'ethereum',
+    userId: session.user?.id ?? null,
+    userEmail: session.user?.email ?? null,
+    userName:
+      typeof userMetadata.full_name === 'string'
+        ? userMetadata.full_name
+        : typeof userMetadata.name === 'string'
+          ? userMetadata.name
+          : null,
+    userAvatarUrl: typeof userMetadata.avatar_url === 'string' ? userMetadata.avatar_url : null,
+  };
+};
 
 export const createSupabaseAuthBackend = ({
   backendUrl,
@@ -73,6 +106,36 @@ export const createSupabaseAuthBackend = ({
     authorizeUrl.searchParams.set('redirect_to', redirectTo);
     authorizeUrl.searchParams.set('apikey', publishableKey);
     window.location.assign(authorizeUrl.toString());
+  },
+  startWeb3Ethereum: async () => {
+    if (!backendUrl || !publishableKey) {
+      throw new Error('Missing Supabase backend URL or publishableKey.');
+    }
+    if (typeof window === 'undefined' || typeof (window as Window & { ethereum?: unknown }).ethereum === 'undefined') {
+      throw new Error('No Ethereum wallet found. Install a wallet like MetaMask.');
+    }
+
+    const supabase = createClient(backendUrl, publishableKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    const { data, error } = await supabase.auth.signInWithWeb3({
+      chain: 'ethereum',
+      statement: `Sign in to ${window.location.host}`,
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const session = data.session;
+    if (!session?.access_token || !session.refresh_token) {
+      throw new Error('Ethereum sign-in completed but no session was returned.');
+    }
+    return buildSessionFromSupabaseSession(session);
   },
   logout: async (session) => {
     if (!backendUrl || !publishableKey || !session?.accessToken) {

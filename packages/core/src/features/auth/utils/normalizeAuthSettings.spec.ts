@@ -26,4 +26,14 @@ describe('normalizeAuthSettings', () => {
     expect(result.methods).toEqual(expect.arrayContaining(['password', 'oauth']));
     expect(result.oauthProviders).toEqual(['gitlab']);
   });
+
+  it('detects web3-enabled providers in settings payload', () => {
+    const payload = {
+      external: {
+        ethereum: true,
+      },
+    };
+    const result = normalizeAuthSettings(payload);
+    expect(result.methods).toEqual(expect.arrayContaining(['web3']));
+  });
 });

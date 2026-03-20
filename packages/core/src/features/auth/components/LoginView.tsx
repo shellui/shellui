@@ -18,16 +18,22 @@ import {
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
-type LastUsedLogin = { method: 'oauth'; provider: string } | { method: 'magic_link' };
+type LastUsedLogin =
+  | { method: 'oauth'; provider: string }
+  | { method: 'magic_link' }
+  | { method: 'web3'; chain: 'ethereum' };
 
 const readLastUsedLoginFromStorage = (): LastUsedLogin | null => {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(LAST_USED_LOGIN_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { method?: string; provider?: string };
+    const parsed = JSON.parse(raw) as { method?: string; provider?: string; chain?: string };
     if (parsed.method === 'magic_link') {
       return { method: 'magic_link' };
+    }
+    if (parsed.method === 'web3') {
+      return { method: 'web3', chain: 'ethereum' };
     }
     if (parsed.method === 'oauth' && typeof parsed.provider === 'string' && parsed.provider.trim()) {
       return { method: 'oauth', provider: parsed.provider.toLowerCase() };
@@ -67,6 +73,7 @@ export const LoginView = () => {
     authEvent,
     clearAuthEvent,
     startOAuth,
+    startWeb3Ethereum,
     getAuthSettings,
     sendMagicLink,
   } = useAuth();
@@ -89,6 +96,7 @@ export const LoginView = () => {
     };
   }, [config.backend?.login?.methods, config.backend?.login?.oauthProviders]);
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
+  const [web3Loading, setWeb3Loading] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
@@ -121,8 +129,9 @@ export const LoginView = () => {
 
   const supportsOAuth = configuredSettings.methods.includes('oauth');
   const supportsMagicLink = configuredSettings.methods.includes('magic_link');
+  const supportsWeb3 = configuredSettings.methods.includes('web3');
   const settingsLoadError = authError ?? methodError;
-  const isActionPending = Boolean(oauthLoadingProvider) || magicLinkLoading;
+  const isActionPending = Boolean(oauthLoadingProvider) || web3Loading || magicLinkLoading;
   const allOAuthProviders = useMemo(
     () =>
       configuredSettings.oauthProviders.length > 0 ? configuredSettings.oauthProviders : ['github'],
@@ -136,6 +145,8 @@ export const LoginView = () => {
   const featuredMethod =
     supportsMagicLink && lastUsedLogin?.method === 'magic_link'
       ? 'magic_link'
+      : supportsWeb3 && lastUsedLogin?.method === 'web3'
+        ? 'web3'
       : supportsOAuth && lastUsedOauthProvider
         ? 'oauth'
         : null;
@@ -148,13 +159,16 @@ export const LoginView = () => {
   }, [allOAuthProviders, featuredOAuthProvider, supportsOAuth]);
   const hasAlternativeMethods = useMemo(() => {
     if (featuredMethod === 'oauth') {
-      return otherOAuthProviders.length > 0 || supportsMagicLink;
+      return otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3;
+    }
+    if (featuredMethod === 'web3') {
+      return supportsOAuth || supportsMagicLink;
     }
     if (featuredMethod === 'magic_link') {
-      return supportsOAuth && otherOAuthProviders.length > 0;
+      return (supportsOAuth && otherOAuthProviders.length > 0) || supportsWeb3;
     }
     return false;
-  }, [featuredMethod, otherOAuthProviders.length, supportsMagicLink, supportsOAuth]);
+  }, [featuredMethod, otherOAuthProviders.length, supportsMagicLink, supportsOAuth, supportsWeb3]);
   const showAlternatives = featuredMethod === null || showAlternativeMethods;
   const alternativesAreCollapsible = featuredMethod !== null && hasAlternativeMethods;
   useEffect(() => {
@@ -163,17 +177,17 @@ export const LoginView = () => {
     }
   }, [featuredMethod]);
   const signInDescription = useMemo(() => {
-    if (supportsOAuth && supportsMagicLink) {
+    if ((supportsOAuth || supportsWeb3) && supportsMagicLink) {
       return 'Continue with your identity provider or request a secure sign-in link by email.';
     }
-    if (supportsOAuth) {
+    if (supportsOAuth || supportsWeb3) {
       return 'Continue with your configured identity provider.';
     }
     if (supportsMagicLink) {
       return 'Enter your email to receive a secure sign-in link.';
     }
     return 'No sign-in method is currently available.';
-  }, [supportsMagicLink, supportsOAuth]);
+  }, [supportsMagicLink, supportsOAuth, supportsWeb3]);
 
   const verifyMethodSupport = useCallback(
     async (
@@ -183,6 +197,10 @@ export const LoginView = () => {
       try {
         const backendSettings = await getAuthSettings();
         if (!backendSettings.methods.includes(method)) {
+          if (method === 'web3' && supportsWeb3) {
+            // Some Supabase settings payloads do not explicitly advertise web3 methods.
+            return { isSupported: true };
+          }
           const humanMethod = method === 'magic_link' ? 'magic link' : method;
           setMethodError(`This backend does not support ${humanMethod} login.`);
           return { isSupported: false };
@@ -215,7 +233,7 @@ export const LoginView = () => {
         return { isSupported: false };
       }
     },
-    [getAuthSettings],
+    [getAuthSettings, supportsWeb3],
   );
 
   const handleOAuthLogin = async (provider: string) => {
@@ -246,6 +264,39 @@ export const LoginView = () => {
     if (!started) {
       setOauthLoadingProvider(null);
     }
+  };
+
+  const handleWeb3Login = async () => {
+    setMethodError(null);
+    setMagicLinkError(null);
+    setMagicLinkMessage(null);
+    setWeb3Loading(true);
+    const support = await verifyMethodSupport('web3');
+    if (!support.isSupported) {
+      setWeb3Loading(false);
+      return;
+    }
+
+    const rememberedLogin: LastUsedLogin = { method: 'web3', chain: 'ethereum' };
+    setLastUsedLogin(rememberedLogin);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
+    }
+
+    if (typeof window !== 'undefined' && window.parent !== window) {
+      shellui.login({
+        method: 'web3',
+        chain: 'ethereum',
+        redirectPath: loginPathWithNext,
+      });
+      setWeb3Loading(false);
+      return;
+    }
+    const started = await startWeb3Ethereum();
+    if (!started) {
+      setMethodError('Unable to complete Ethereum wallet login.');
+    }
+    setWeb3Loading(false);
   };
 
   const handleMagicLinkLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -378,6 +429,33 @@ export const LoginView = () => {
               </section>
             )}
 
+            {featuredMethod === 'web3' && supportsWeb3 && (
+              <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Last used
+                </p>
+                {(() => {
+                  const visual = getProviderVisual('ethereum');
+                  return (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-12 w-full justify-start px-3 text-base"
+                      onClick={() => void handleWeb3Login()}
+                      disabled={isActionPending}
+                    >
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                        <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                      </span>
+                      <span className="truncate">
+                        {web3Loading ? 'Connecting wallet...' : 'Continue with Ethereum wallet'}
+                      </span>
+                    </Button>
+                  );
+                })()}
+              </section>
+            )}
+
             {featuredMethod !== null && hasAlternativeMethods && (
               <div className="pt-1">
                 <Button
@@ -419,7 +497,7 @@ export const LoginView = () => {
                   )}
                 >
                   {featuredMethod === 'oauth' &&
-                    (otherOAuthProviders.length > 0 || supportsMagicLink) && (
+                    (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
                     <div className="relative py-1">
                       <div className="border-t border-border" />
                       <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -428,13 +506,51 @@ export const LoginView = () => {
                     </div>
                   )}
 
-                  {featuredMethod === 'magic_link' && supportsOAuth && (
+                  {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
                     <div className="relative py-1">
                       <div className="border-t border-border" />
                       <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
                         or
                       </span>
                     </div>
+                  )}
+
+                  {featuredMethod === 'web3' && (supportsOAuth || supportsMagicLink) && (
+                    <div className="relative py-1">
+                      <div className="border-t border-border" />
+                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                        or
+                      </span>
+                    </div>
+                  )}
+
+                  {supportsWeb3 && featuredMethod !== 'web3' && (
+                    <section className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Wallet login
+                      </p>
+                      {(() => {
+                        const visual = getProviderVisual('ethereum');
+                        return (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 w-full justify-start px-3"
+                            onClick={() => void handleWeb3Login()}
+                            disabled={isActionPending}
+                          >
+                            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                              <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                            </span>
+                            <span className="truncate">
+                              {web3Loading
+                                ? 'Connecting wallet...'
+                                : 'Continue with Ethereum wallet'}
+                            </span>
+                          </Button>
+                        );
+                      })()}
+                    </section>
                   )}
 
                   {supportsOAuth && otherOAuthProviders.length > 0 && (
@@ -470,7 +586,9 @@ export const LoginView = () => {
                     </section>
                   )}
 
-                  {supportsOAuth && supportsMagicLink && featuredMethod !== 'magic_link' && (
+                  {(supportsOAuth || supportsWeb3) &&
+                    supportsMagicLink &&
+                    featuredMethod !== 'magic_link' && (
                     <div className="relative py-1">
                       <div className="border-t border-border" />
                       <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -519,7 +637,7 @@ export const LoginView = () => {
               </div>
             </div>
 
-            {!supportsOAuth && !supportsMagicLink && (
+            {!supportsOAuth && !supportsMagicLink && !supportsWeb3 && (
               <p className="text-sm text-muted-foreground">
                 No login method is currently enabled in backend auth settings.
               </p>

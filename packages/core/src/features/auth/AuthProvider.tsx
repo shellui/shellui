@@ -18,8 +18,9 @@ import {
 const logger = getLogger('shellcore');
 
 type LoginMessagePayload = {
-  method?: 'oauth';
+  method?: 'oauth' | 'web3';
   provider?: string;
+  chain?: 'ethereum';
   redirectPath?: string;
 };
 
@@ -165,6 +166,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const startWeb3Ethereum = useCallback(async () => {
+    try {
+      setError(null);
+      const nextSession = await backend.startWeb3Ethereum();
+      if (!nextSession) {
+        setError('Unable to complete Ethereum wallet login.');
+        return false;
+      }
+      persistAuthSession(nextSession);
+      setSession(nextSession);
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to start Ethereum wallet login.');
+      return false;
+    }
+  }, [backend]);
+
   const getAuthSettings = useCallback(() => backend.getAuthSettings(), [backend]);
 
   const sendMagicLink = useCallback(
@@ -231,6 +249,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const cleanup = shellui.addMessageListener('SHELLUI_LOGIN', (message) => {
       const payload = (message.payload ?? {}) as LoginMessagePayload;
+      if (payload.method === 'web3') {
+        if (payload.chain && payload.chain !== 'ethereum') {
+          return;
+        }
+        void startWeb3Ethereum();
+        return;
+      }
       if (payload.method !== 'oauth' || typeof payload.provider !== 'string') {
         return;
       }
@@ -244,7 +269,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => cleanup();
-  }, [startOAuth]);
+  }, [startOAuth, startWeb3Ethereum]);
 
   const clearAuthEvent = useCallback(() => setAuthEvent(null), []);
   const user = useMemo<AuthUser | null>(
@@ -271,6 +296,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       authEvent,
       clearAuthEvent,
       startOAuth,
+      startWeb3Ethereum,
       getAuthSettings,
       sendMagicLink,
       syncUserPreferences,
@@ -285,6 +311,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       authEvent,
       clearAuthEvent,
       startOAuth,
+      startWeb3Ethereum,
       getAuthSettings,
       sendMagicLink,
       syncUserPreferences,

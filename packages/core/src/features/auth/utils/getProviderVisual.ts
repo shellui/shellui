@@ -7,6 +7,7 @@ import {
   FaLinkedinIn,
   FaMicrosoft,
   FaQuestion,
+  FaEthereum,
   FaXTwitter,
 } from 'react-icons/fa6';
 
@@ -65,6 +66,12 @@ export const getProviderVisual = (provider: string): ProviderVisual => {
         Icon: FaLinkedinIn,
         iconClassName: 'text-[#0A66C2] dark:text-[#60A5FA]',
         badgeClassName: 'bg-[#0A66C2]/10 dark:bg-[#0A66C2]/20',
+      };
+    case 'ethereum':
+      return {
+        Icon: FaEthereum,
+        iconClassName: 'text-[#627EEA] dark:text-[#A5B4FC]',
+        badgeClassName: 'bg-[#627EEA]/10 dark:bg-[#627EEA]/20',
       };
     default:
       return {

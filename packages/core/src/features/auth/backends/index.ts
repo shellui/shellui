@@ -10,6 +10,9 @@ const createNoopBackend = (): AuthBackend => ({
   startOAuth: () => {
     throw new Error('No auth backend configured.');
   },
+  startWeb3Ethereum: async () => {
+    throw new Error('No auth backend configured.');
+  },
   logout: async () => {},
   getAuthSettings: async () => ({ methods: [], oauthProviders: [] }),
   sendMagicLink: async () => {

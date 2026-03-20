@@ -12,6 +12,7 @@ export interface AuthContextValue {
   authEvent: AuthEvent;
   clearAuthEvent: () => void;
   startOAuth: (provider: string, redirectPath?: string) => boolean;
+  startWeb3Ethereum: () => Promise<boolean>;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;
   syncUserPreferences: (preferences: UserPreferences) => Promise<void>;

@@ -15,6 +15,10 @@ describe('getProviderVisual', () => {
     const linkedIn = getProviderVisual('linkedin_oidc');
     expect(linkedIn.Icon).toBeTypeOf('function');
     expect(linkedIn.iconClassName).toContain('text-[#0A66C2]');
+
+    const ethereum = getProviderVisual('ethereum');
+    expect(ethereum.Icon).toBeTypeOf('function');
+    expect(ethereum.iconClassName).toContain('text-[#627EEA]');
   });
 
   it('returns fallback visual for unknown providers', () => {

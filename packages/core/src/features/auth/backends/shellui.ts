@@ -18,6 +18,10 @@ export const createShellUIAuthBackend = (): AuthBackend => ({
     logger.info('startOAuth not implemented (shellui auth backend)');
     throw new Error(NOT_IMPLEMENTED_MESSAGE);
   },
+  startWeb3Ethereum: async () => {
+    logger.info('startWeb3Ethereum not implemented (shellui auth backend)');
+    throw new Error(NOT_IMPLEMENTED_MESSAGE);
+  },
   logout: async () => {
     logger.info('logout not implemented (shellui auth backend)');
   },

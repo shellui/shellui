@@ -6,6 +6,7 @@ describe('isLoginMethod', () => {
     expect(isLoginMethod('password')).toBe(true);
     expect(isLoginMethod('oauth')).toBe(true);
     expect(isLoginMethod('magic_link')).toBe(true);
+    expect(isLoginMethod('web3')).toBe(true);
   });
 
   it('returns false for unsupported values', () => {

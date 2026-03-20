@@ -222,9 +222,11 @@ export interface OpenDrawerOptions {
  */
 export interface LoginOptions {
   /** Login strategy currently requested. */
-  method: 'oauth';
-  /** OAuth provider id (e.g. "github", "google"). */
-  provider: string;
+  method: 'oauth' | 'web3';
+  /** OAuth provider id (e.g. "github", "google"). Required for oauth. */
+  provider?: string;
+  /** Web3 chain id. Defaults to ethereum in shell. */
+  chain?: 'ethereum';
   /** Optional route that should receive the auth callback. */
   redirectPath?: string;
 }

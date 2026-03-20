@@ -20,7 +20,7 @@ export interface AuthUser {
 
 export type AuthEvent = 'oauth_callback' | null;
 
-export type LoginMethod = 'password' | 'oauth' | 'magic_link';
+export type LoginMethod = 'password' | 'oauth' | 'magic_link' | 'web3';
 
 export interface AuthSettings {
   methods: LoginMethod[];

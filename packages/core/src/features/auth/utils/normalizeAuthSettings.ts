@@ -2,6 +2,7 @@ import type { AuthSettings, LoginMethod } from '../types';
 import { isLoginMethod } from './isLoginMethod';
 
 const NON_OAUTH_EXTERNAL_PROVIDERS = new Set(['email', 'phone', 'sms']);
+const WEB3_EXTERNAL_PROVIDERS = new Set(['ethereum', 'solana', 'web3_ethereum', 'web3_solana']);
 
 // Normalizes auth settings payloads into supported login methods and providers.
 export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
@@ -23,6 +24,7 @@ export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   if (obj.enable_password === true) methods.add('password');
   if (obj.enable_oauth === true) methods.add('oauth');
   if (obj.enable_magic_link === true) methods.add('magic_link');
+  if (obj.enable_web3 === true) methods.add('web3');
 
   if (obj.external && typeof obj.external === 'object') {
     const external = obj.external as Record<string, unknown>;
@@ -33,6 +35,9 @@ export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
     enabledProviders
       .filter((provider) => !NON_OAUTH_EXTERNAL_PROVIDERS.has(provider.toLowerCase()))
       .forEach((provider) => oauthProvidersSet.add(provider.toLowerCase()));
+    if (enabledProviders.some((provider) => WEB3_EXTERNAL_PROVIDERS.has(provider.toLowerCase()))) {
+      methods.add('web3');
+    }
     if (external.email === true || obj.disable_signup === false) methods.add('magic_link');
   }
 

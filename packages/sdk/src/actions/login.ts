@@ -8,20 +8,31 @@ export function login(options: LoginOptions): void {
   if (typeof window === 'undefined') {
     return;
   }
-
-  const provider = options.provider.trim();
-  if (!provider) {
-    return;
-  }
-
-  const message = {
-    type: 'SHELLUI_LOGIN',
-    payload: {
-      method: 'oauth' as const,
-      provider,
-      redirectPath: options.redirectPath?.trim() || undefined,
-    },
-  };
+  const message =
+    options.method === 'web3'
+      ? {
+          type: 'SHELLUI_LOGIN',
+          payload: {
+            method: 'web3' as const,
+            chain: options.chain ?? 'ethereum',
+            redirectPath: options.redirectPath?.trim() || undefined,
+          },
+        }
+      : (() => {
+          const provider = options.provider?.trim();
+          if (!provider) {
+            return null;
+          }
+          return {
+            type: 'SHELLUI_LOGIN',
+            payload: {
+              method: 'oauth' as const,
+              provider,
+              redirectPath: options.redirectPath?.trim() || undefined,
+            },
+          };
+        })();
+  if (!message) return;
 
   if (window.parent !== window) {
     window.parent.postMessage(message, '*');
