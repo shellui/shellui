@@ -24,6 +24,7 @@ const logger = getLogger('shellcore');
 
 const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
+const AUTH_LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
 const toAbsoluteUrl = (url: string): URL | null => {
   try {
@@ -506,6 +507,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         // Clear settings
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
+        localStorage.removeItem(AUTH_LAST_USED_LOGIN_STORAGE_KEY);
 
         // Clear all other localStorage items that start with shellui:
         const keysToRemove: string[] = [];
