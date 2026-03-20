@@ -186,6 +186,17 @@ export type RuntimeType = 'browser' | 'tauri';
 /** Supported backend providers for auth/API communication. */
 export type BackendType = 'shellui' | 'supabase';
 
+/** Supported auth login methods that can be declared in config. */
+export type BackendLoginMethod = 'password' | 'oauth' | 'magic_link';
+
+/** Optional login capabilities declared by app config for immediate UI rendering. */
+export interface BackendLoginConfig {
+  /** Enabled login methods shown by the Login view. */
+  methods?: BackendLoginMethod[];
+  /** OAuth providers used when oauth is enabled (e.g. ["github"]). */
+  oauthProviders?: string[];
+}
+
 /** Backend API configuration. */
 export interface BackendConfig {
   /** Backend provider type. */
@@ -194,6 +205,8 @@ export interface BackendConfig {
   url: string;
   /** Optional Supabase publishable key (public key). */
   publishableKey?: string;
+  /** Optional login capabilities used by frontend for immediate rendering. */
+  login?: BackendLoginConfig;
 }
 
 export interface ShellUIConfig {

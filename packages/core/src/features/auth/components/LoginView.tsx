@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../../components/ui/button';
 import urls from '../../../constants/urls';
+import { useConfig } from '../../config/useConfig';
 import { useAuth } from '../hooks/useAuth';
-import type { AuthSettings } from '../types';
+import type { AuthSettings, LoginMethod } from '../types';
+import { isLoginMethod } from '../utils/isLoginMethod';
 
 const formatProviderLabel = (provider: string) => {
   if (provider.toLowerCase() === 'github') return 'GitHub';
@@ -22,8 +24,8 @@ const normalizeNextPath = (value: string | null): string | null => {
 export const LoginView = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { config } = useConfig();
   const {
-    session,
     isAuthenticated,
     isLoading: authLoading,
     error: authError,
@@ -32,17 +34,27 @@ export const LoginView = () => {
     startOAuth,
     getAuthSettings,
     sendMagicLink,
-    logout,
   } = useAuth();
-
-  const [settingsLoading, setSettingsLoading] = useState(true);
-  const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [settings, setSettings] = useState<AuthSettings>({ methods: [], oauthProviders: [] });
+  const configuredSettings = useMemo<AuthSettings>(() => {
+    const configuredMethods = Array.isArray(config.backend?.login?.methods)
+      ? config.backend.login.methods.filter(isLoginMethod)
+      : [];
+    const configuredProviders = Array.isArray(config.backend?.login?.oauthProviders)
+      ? config.backend.login.oauthProviders
+          .filter((provider): provider is string => typeof provider === 'string' && provider.trim() !== '')
+          .map((provider) => provider.toLowerCase())
+      : [];
+    return {
+      methods: configuredMethods,
+      oauthProviders: configuredProviders,
+    };
+  }, [config.backend?.login?.methods, config.backend?.login?.oauthProviders]);
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
+  const [methodError, setMethodError] = useState<string | null>(null);
   const nextPath = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return normalizeNextPath(params.get('next')) ?? '/';
@@ -64,47 +76,9 @@ export const LoginView = () => {
     }
   }, [authLoading, isAuthenticated, navigate, nextPath]);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      setSettingsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    const controller = new AbortController();
-
-    const loadAuthSettings = async () => {
-      try {
-        setSettingsLoading(true);
-        setSettingsError(null);
-        if (!cancelled) {
-          const nextSettings = await getAuthSettings();
-          if (!controller.signal.aborted) {
-            setSettings(nextSettings);
-          }
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Failed to load auth settings.';
-          setSettingsError(message);
-        }
-      } finally {
-        if (!cancelled) {
-          setSettingsLoading(false);
-        }
-      }
-    };
-
-    void loadAuthSettings();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, [getAuthSettings, isAuthenticated]);
-
-  const supportsOAuth = settings.methods.includes('oauth');
-  const supportsMagicLink = settings.methods.includes('magic_link');
-  const settingsLoadError = authError ?? settingsError;
+  const supportsOAuth = configuredSettings.methods.includes('oauth');
+  const supportsMagicLink = configuredSettings.methods.includes('magic_link');
+  const settingsLoadError = authError ?? methodError;
   const isActionPending = Boolean(oauthLoadingProvider) || magicLinkLoading;
   const signInDescription = useMemo(() => {
     if (supportsOAuth && supportsMagicLink) {
@@ -119,8 +93,46 @@ export const LoginView = () => {
     return 'No sign-in method is currently available.';
   }, [supportsMagicLink, supportsOAuth]);
 
-  const handleOAuthLogin = (provider: string) => {
+  const verifyMethodSupport = useCallback(
+    async (method: LoginMethod, provider?: string): Promise<boolean> => {
+      try {
+        const backendSettings = await getAuthSettings();
+        if (!backendSettings.methods.includes(method)) {
+          const humanMethod = method === 'magic_link' ? 'magic link' : method;
+          setMethodError(`This backend does not support ${humanMethod} login.`);
+          return false;
+        }
+        if (method === 'oauth' && provider && backendSettings.oauthProviders.length > 0) {
+          const normalizedProvider = provider.toLowerCase();
+          const availableProviders = backendSettings.oauthProviders.map((p) => p.toLowerCase());
+          if (!availableProviders.includes(normalizedProvider)) {
+            setMethodError(
+              `This backend does not support OAuth with ${formatProviderLabel(provider)}.`,
+            );
+            return false;
+          }
+        }
+        return true;
+      } catch (err) {
+        setMethodError(
+          err instanceof Error ? err.message : 'Could not verify backend login capabilities.',
+        );
+        return false;
+      }
+    },
+    [getAuthSettings],
+  );
+
+  const handleOAuthLogin = async (provider: string) => {
+    setMethodError(null);
+    setMagicLinkError(null);
+    setMagicLinkMessage(null);
     setOauthLoadingProvider(provider);
+    const isSupported = await verifyMethodSupport('oauth', provider);
+    if (!isSupported) {
+      setOauthLoadingProvider(null);
+      return;
+    }
     if (typeof window !== 'undefined' && window.parent !== window) {
       shellui.login({
         method: 'oauth',
@@ -141,13 +153,19 @@ export const LoginView = () => {
     if (!email) {
       setMagicLinkError('Please enter your email address.');
       setMagicLinkMessage(null);
+      setMethodError(null);
       return;
     }
     setMagicLinkLoading(true);
     setMagicLinkError(null);
     setMagicLinkMessage(null);
+    setMethodError(null);
 
     try {
+      const isSupported = await verifyMethodSupport('magic_link');
+      if (!isSupported) {
+        return;
+      }
       await sendMagicLink(email, loginPathWithNext);
       setMagicLinkMessage('Check your inbox for a magic login link.');
     } catch (err) {
@@ -167,54 +185,22 @@ export const LoginView = () => {
       <p className="mt-2 text-sm text-muted-foreground">{signInDescription}</p>
 
       <div className="mt-6 rounded-lg border border-border bg-card p-4">
-        {isAuthenticated && session && (
-          <div className="mb-4 space-y-3">
-            <div className="flex items-center gap-3">
-              {session.userAvatarUrl && (
-                <img
-                  src={session.userAvatarUrl}
-                  alt={session.userName ? `${session.userName} avatar` : 'User avatar'}
-                  className="h-10 w-10 rounded-full border border-border object-cover"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <p className="text-sm text-foreground">
-                Signed in
-                {session.userName ? ` as ${session.userName}` : ''}
-                {session.userEmail ? ` (${session.userEmail})` : ''}.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={() => void logout()}
-            >
-              Sign out
-            </Button>
-          </div>
-        )}
-
-        {!isAuthenticated && (authLoading || settingsLoading) && (
-          <p className="text-sm text-muted-foreground">Loading auth settings...</p>
-        )}
-
-        {!authLoading && !settingsLoading && settingsLoadError && (
+        {settingsLoadError && (
           <p className="text-sm text-destructive">
-            Unable to load sign-in settings. Please try again in a moment.
+            {settingsLoadError}
           </p>
         )}
 
-        {!authLoading && !settingsLoading && !settingsLoadError && !isAuthenticated && (
+        {!settingsLoadError && (
           <div className="space-y-3">
             {supportsOAuth && (
               <div className="space-y-2">
-                {settings.oauthProviders.map((provider) => (
+                {configuredSettings.oauthProviders.map((provider) => (
                   <Button
                     key={provider}
                     type="button"
                     className="w-full"
-                    onClick={() => handleOAuthLogin(provider)}
+                    onClick={() => void handleOAuthLogin(provider)}
                     disabled={isActionPending}
                   >
                     {oauthLoadingProvider === provider
@@ -222,11 +208,11 @@ export const LoginView = () => {
                       : `Continue with ${formatProviderLabel(provider)}`}
                   </Button>
                 ))}
-                {settings.oauthProviders.length === 0 && (
+                {configuredSettings.oauthProviders.length === 0 && (
                   <Button
                     type="button"
                     className="w-full"
-                    onClick={() => handleOAuthLogin('github')}
+                    onClick={() => void handleOAuthLogin('github')}
                     disabled={isActionPending}
                   >
                     {oauthLoadingProvider === 'github'
