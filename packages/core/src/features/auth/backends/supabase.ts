@@ -111,7 +111,10 @@ export const createSupabaseAuthBackend = ({
     if (!backendUrl || !publishableKey) {
       throw new Error('Missing Supabase backend URL or publishableKey.');
     }
-    if (typeof window === 'undefined' || typeof (window as Window & { ethereum?: unknown }).ethereum === 'undefined') {
+    if (
+      typeof window === 'undefined' ||
+      typeof (window as Window & { ethereum?: unknown }).ethereum === 'undefined'
+    ) {
       throw new Error('No Ethereum wallet found. Install a wallet like MetaMask.');
     }
 

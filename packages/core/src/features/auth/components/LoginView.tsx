@@ -35,7 +35,11 @@ const readLastUsedLoginFromStorage = (): LastUsedLogin | null => {
     if (parsed.method === 'web3') {
       return { method: 'web3', chain: 'ethereum' };
     }
-    if (parsed.method === 'oauth' && typeof parsed.provider === 'string' && parsed.provider.trim()) {
+    if (
+      parsed.method === 'oauth' &&
+      typeof parsed.provider === 'string' &&
+      parsed.provider.trim()
+    ) {
       return { method: 'oauth', provider: parsed.provider.toLowerCase() };
     }
   } catch {
@@ -147,9 +151,9 @@ export const LoginView = () => {
       ? 'magic_link'
       : supportsWeb3 && lastUsedLogin?.method === 'web3'
         ? 'web3'
-      : supportsOAuth && lastUsedOauthProvider
-        ? 'oauth'
-        : null;
+        : supportsOAuth && lastUsedOauthProvider
+          ? 'oauth'
+          : null;
   const isIframeView = typeof window !== 'undefined' && window.parent !== window;
   const featuredOAuthProvider = featuredMethod === 'oauth' ? lastUsedOauthProvider : null;
   const otherOAuthProviders = useMemo(() => {
@@ -338,7 +342,12 @@ export const LoginView = () => {
 
   return (
     <main className="flex min-h-full w-full bg-background">
-      {!isIframeView && <section className="hidden w-1/2 bg-muted/40 md:block" aria-hidden />}
+      {!isIframeView && (
+        <section
+          className="hidden w-1/2 bg-muted/40 md:block"
+          aria-hidden
+        />
+      )}
 
       <section
         className={cn(
@@ -380,7 +389,10 @@ export const LoginView = () => {
                       onClick={() => void handleOAuthLogin(featuredOAuthProvider)}
                       disabled={isActionPending}
                     >
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                      <span
+                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                        aria-hidden
+                      >
                         <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                       </span>
                       <span className="truncate">
@@ -444,7 +456,10 @@ export const LoginView = () => {
                       onClick={() => void handleWeb3Login()}
                       disabled={isActionPending}
                     >
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                      <span
+                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                        aria-hidden
+                      >
                         <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                       </span>
                       <span className="truncate">
@@ -498,13 +513,13 @@ export const LoginView = () => {
                 >
                   {featuredMethod === 'oauth' &&
                     (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
-                    <div className="relative py-1">
-                      <div className="border-t border-border" />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                        or
-                      </span>
-                    </div>
-                  )}
+                      <div className="relative py-1">
+                        <div className="border-t border-border" />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                          or
+                        </span>
+                      </div>
+                    )}
 
                   {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
                     <div className="relative py-1">
@@ -539,7 +554,10 @@ export const LoginView = () => {
                             onClick={() => void handleWeb3Login()}
                             disabled={isActionPending}
                           >
-                            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                            <span
+                              className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                              aria-hidden
+                            >
                               <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                             </span>
                             <span className="truncate">
@@ -571,7 +589,10 @@ export const LoginView = () => {
                               onClick={() => void handleOAuthLogin(provider)}
                               disabled={isActionPending}
                             >
-                              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                              <span
+                                className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                                aria-hidden
+                              >
                                 <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                               </span>
                               <span className="truncate">
@@ -589,13 +610,13 @@ export const LoginView = () => {
                   {(supportsOAuth || supportsWeb3) &&
                     supportsMagicLink &&
                     featuredMethod !== 'magic_link' && (
-                    <div className="relative py-1">
-                      <div className="border-t border-border" />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                        or
-                      </span>
-                    </div>
-                  )}
+                      <div className="relative py-1">
+                        <div className="border-t border-border" />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                          or
+                        </span>
+                      </div>
+                    )}
 
                   {supportsMagicLink && featuredMethod !== 'magic_link' && (
                     <section className="space-y-2">
