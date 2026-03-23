@@ -255,21 +255,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         if (!preferences) {
           const currentSettings = settingsRef.current ?? defaultSettings;
-          const fallbackSettings = mergePreferencesIntoSettings(currentSettings, {
-            themeName: defaultAppearance.name,
-            language: defaultSettings.language.code,
-            region: getBrowserTimezone(),
-            colorScheme: defaultAppearance.colorScheme,
-          });
-          const signature = JSON.stringify(getPreferenceSnapshot(fallbackSettings));
-          lastSyncedPreferencesRef.current = signature;
-          settingsRef.current = fallbackSettings;
-          setSettings(fallbackSettings);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSettings));
-
-          propagateSettingsToIframes(fallbackSettings);
-
-          logger.info('No auth provider preferences found; using app defaults');
+          const currentPreferences = getPreferenceSnapshot(currentSettings);
+          const signature = JSON.stringify(currentPreferences);
+          try {
+            await syncUserPreferences(currentPreferences);
+            if (cancelled) return;
+            lastSyncedPreferencesRef.current = signature;
+            logger.info('No auth provider preferences found; seeded with current app preferences', {
+              preferences: currentPreferences,
+            });
+          } catch (error) {
+            if (!cancelled) {
+              logger.error('Failed to seed auth provider preferences from current app settings', {
+                error,
+              });
+            }
+          }
           return;
         }
 
