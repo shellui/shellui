@@ -253,7 +253,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (payload.chain && payload.chain !== 'ethereum') {
           return;
         }
-        void startWeb3Ethereum();
+        void (async () => {
+          const started = await startWeb3Ethereum();
+          if (started && typeof window !== 'undefined') {
+            window.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
+          }
+        })();
         return;
       }
       if (payload.method !== 'oauth' || typeof payload.provider !== 'string') {
