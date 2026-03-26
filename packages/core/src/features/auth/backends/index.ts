@@ -24,7 +24,11 @@ const createNoopBackend = (): AuthBackend => ({
 
 export const createAuthBackend = (backendConfig: BackendConfig | undefined): AuthBackend => {
   if (!backendConfig) return createNoopBackend();
-  if (backendConfig.type === 'shellui') return createShellUIAuthBackend();
+  if (backendConfig.type === 'shellui') {
+    return createShellUIAuthBackend({
+      backendUrl: backendConfig.url?.replace(/\/+$/, '') ?? null,
+    });
+  }
   if (backendConfig.type === 'supabase') {
     return createSupabaseAuthBackend({
       backendUrl: backendConfig.url?.replace(/\/+$/, '') ?? null,
