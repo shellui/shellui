@@ -7,7 +7,7 @@ import {
 import type { UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 
-const USER_METADATA_ENDPOINT = '/auth/v1/user';
+const USER_PREFERENCES_ENDPOINT = '/auth/v1/preferences';
 
 export const createShellUIAuthBackend = ({
   backendUrl,
@@ -110,9 +110,11 @@ export const createShellUIAuthBackend = ({
       }),
     });
     if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as
-        | { msg?: string; message?: string; error?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        msg?: string;
+        message?: string;
+        error?: string;
+      } | null;
       throw new Error(
         payload?.msg ??
           payload?.message ??
@@ -125,18 +127,14 @@ export const createShellUIAuthBackend = ({
     if (!backendUrl || !session?.accessToken) {
       return;
     }
-    const response = await fetch(`${backendUrl}${USER_METADATA_ENDPOINT}`, {
+    const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
       method: 'PUT',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session.accessToken}`,
       },
-      body: JSON.stringify({
-        data: {
-          shelluiPreferences: preferences,
-        },
-      }),
+      body: JSON.stringify(preferences),
     });
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -146,7 +144,7 @@ export const createShellUIAuthBackend = ({
     if (!backendUrl || !session?.accessToken) {
       return null;
     }
-    const response = await fetch(`${backendUrl}${USER_METADATA_ENDPOINT}`, {
+    const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',
@@ -156,10 +154,7 @@ export const createShellUIAuthBackend = ({
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-    const payload = (await response.json()) as {
-      user_metadata?: Record<string, unknown>;
-    };
-    const preferences = payload.user_metadata?.shelluiPreferences;
+    const preferences = (await response.json()) as Record<string, unknown>;
     if (!preferences || typeof preferences !== 'object') {
       return null;
     }

@@ -8,7 +8,16 @@ const createToken = () => {
     sub: 'user-id',
     email: 'user@example.com',
     app_metadata: { provider: 'github' },
-    user_metadata: { name: 'Jane', avatar_url: 'https://example.com/avatar.png' },
+    user_metadata: {
+      name: 'Jane',
+      avatar_url: 'https://example.com/avatar.png',
+      shelluiPreferences: {
+        themeName: 'default',
+        language: 'fr',
+        region: 'Europe/Paris',
+        colorScheme: 'dark',
+      },
+    },
   };
   return `header.${toBase64Url(JSON.stringify(payload))}.signature`;
 };
@@ -30,6 +39,12 @@ describe('buildSessionFromParams', () => {
     expect(session?.userEmail).toBe('user@example.com');
     expect(session?.userName).toBe('Jane');
     expect(session?.userAvatarUrl).toBe('https://example.com/avatar.png');
+    expect(session?.userPreferences).toEqual({
+      themeName: 'default',
+      language: 'fr',
+      region: 'Europe/Paris',
+      colorScheme: 'dark',
+    });
     expect(session?.expiresAt).toBe(4_600);
   });
 

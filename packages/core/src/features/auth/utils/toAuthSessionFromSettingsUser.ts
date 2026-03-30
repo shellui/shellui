@@ -16,4 +16,5 @@ export const toAuthSessionFromSettingsUser = (
   userEmail: settingsUser.email,
   userName: settingsUser.name,
   userAvatarUrl: settingsUser.profilePicture,
+  userPreferences: null,
 });

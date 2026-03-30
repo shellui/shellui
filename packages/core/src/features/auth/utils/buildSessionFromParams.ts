@@ -1,4 +1,4 @@
-import type { AuthSession } from '../types';
+import type { AuthSession, UserPreferences } from '../types';
 import { decodeJwtPayload } from './decodeJwtPayload';
 
 // Builds an AuthSession from callback or refresh URL parameters.
@@ -29,6 +29,26 @@ export const buildSessionFromParams = (
     payload?.user_metadata && typeof payload.user_metadata === 'object'
       ? (payload.user_metadata as Record<string, unknown>)
       : null;
+  const rawPreferences =
+    userMetadata?.shelluiPreferences && typeof userMetadata.shelluiPreferences === 'object'
+      ? (userMetadata.shelluiPreferences as Record<string, unknown>)
+      : null;
+  const preferences: UserPreferences | null = rawPreferences
+    ? {
+        ...(typeof rawPreferences.themeName === 'string'
+          ? { themeName: rawPreferences.themeName }
+          : {}),
+        ...(rawPreferences.language === 'en' || rawPreferences.language === 'fr'
+          ? { language: rawPreferences.language as 'en' | 'fr' }
+          : {}),
+        ...(typeof rawPreferences.region === 'string' ? { region: rawPreferences.region } : {}),
+        ...(rawPreferences.colorScheme === 'light' ||
+        rawPreferences.colorScheme === 'dark' ||
+        rawPreferences.colorScheme === 'system'
+          ? { colorScheme: rawPreferences.colorScheme as 'light' | 'dark' | 'system' }
+          : {}),
+      }
+    : null;
   const userId =
     typeof payload?.sub === 'string'
       ? payload.sub
@@ -51,5 +71,6 @@ export const buildSessionFromParams = (
           ? userMetadata.name
           : null,
     userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
+    userPreferences: preferences,
   };
 };

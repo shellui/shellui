@@ -40,6 +40,10 @@ const buildSessionFromSupabaseSession = (session: {
           ? userMetadata.name
           : null,
     userAvatarUrl: typeof userMetadata.avatar_url === 'string' ? userMetadata.avatar_url : null,
+    userPreferences:
+      userMetadata.shelluiPreferences && typeof userMetadata.shelluiPreferences === 'object'
+        ? (userMetadata.shelluiPreferences as UserPreferences)
+        : null,
   };
 };
 

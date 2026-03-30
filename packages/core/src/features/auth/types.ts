@@ -8,6 +8,7 @@ export interface AuthSession {
   userEmail: string | null;
   userName: string | null;
   userAvatarUrl: string | null;
+  userPreferences?: UserPreferences | null;
 }
 
 export interface AuthUser {

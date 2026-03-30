@@ -249,6 +249,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     const loadPreferences = async () => {
       try {
+        const tokenPreferences = session?.userPreferences ?? null;
+        if (tokenPreferences) {
+          const currentSettings = settingsRef.current ?? defaultSettings;
+          const mergedSettings = mergePreferencesIntoSettings(currentSettings, tokenPreferences);
+          const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
+          lastSyncedPreferencesRef.current = signature;
+          settingsRef.current = mergedSettings;
+          setSettings(mergedSettings);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
+          propagateSettingsToIframes(mergedSettings);
+          logger.info('Loaded app preferences from JWT metadata', {
+            preferences: getPreferenceSnapshot(mergedSettings),
+          });
+          return;
+        }
+
         const preferences = await loadUserPreferences();
 
         if (cancelled) return;
