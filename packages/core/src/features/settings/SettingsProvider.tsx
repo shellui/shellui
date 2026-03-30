@@ -234,10 +234,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config, isTrustedFrameForAuthToken, session?.accessToken],
   );
 
+  // Keep load/sync helpers stable across access-token rotation (refresh after preference sync).
+  const loadUserPreferencesRef = useRef(loadUserPreferences);
+  loadUserPreferencesRef.current = loadUserPreferences;
+  const syncUserPreferencesRef = useRef(syncUserPreferences);
+  syncUserPreferencesRef.current = syncUserPreferences;
+  const propagateSettingsToIframesRef = useRef(propagateSettingsToIframes);
+  propagateSettingsToIframesRef.current = propagateSettingsToIframes;
+
   // Keep ref in sync with state for message listeners
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  // Serialize so effect does not re-run on every new session object / rotated access_token.
+  const sessionUserPreferencesKey = JSON.stringify(session?.userPreferences ?? null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window || !session?.accessToken) {
@@ -254,18 +265,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const currentSettings = settingsRef.current ?? defaultSettings;
           const mergedSettings = mergePreferencesIntoSettings(currentSettings, tokenPreferences);
           const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
+          const prevSignature = JSON.stringify(getPreferenceSnapshot(currentSettings));
           lastSyncedPreferencesRef.current = signature;
+          if (signature === prevSignature) {
+            logger.info('JWT app preferences match current settings; skipping state update', {
+              preferences: getPreferenceSnapshot(mergedSettings),
+            });
+            return;
+          }
           settingsRef.current = mergedSettings;
           setSettings(mergedSettings);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
-          propagateSettingsToIframes(mergedSettings);
+          propagateSettingsToIframesRef.current(mergedSettings);
           logger.info('Loaded app preferences from JWT metadata', {
             preferences: getPreferenceSnapshot(mergedSettings),
           });
           return;
         }
 
-        const preferences = await loadUserPreferences();
+        const preferences = await loadUserPreferencesRef.current();
 
         if (cancelled) return;
 
@@ -274,7 +292,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const currentPreferences = getPreferenceSnapshot(currentSettings);
           const signature = JSON.stringify(currentPreferences);
           try {
-            await syncUserPreferences(currentPreferences);
+            await syncUserPreferencesRef.current(currentPreferences);
             if (cancelled) return;
             lastSyncedPreferencesRef.current = signature;
             logger.info('No auth provider preferences found; seeded with current app preferences', {
@@ -293,12 +311,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const currentSettings = settingsRef.current ?? defaultSettings;
         const mergedSettings = mergePreferencesIntoSettings(currentSettings, preferences);
         const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
+        const prevSignature = JSON.stringify(getPreferenceSnapshot(currentSettings));
         lastSyncedPreferencesRef.current = signature;
+        if (signature === prevSignature) {
+          logger.info('Auth provider preferences match current settings; skipping state update', {
+            preferences: getPreferenceSnapshot(mergedSettings),
+          });
+          return;
+        }
         settingsRef.current = mergedSettings;
         setSettings(mergedSettings);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
 
-        propagateSettingsToIframes(mergedSettings);
+        propagateSettingsToIframesRef.current(mergedSettings);
 
         logger.info('Loaded app preferences from auth provider metadata', {
           preferences: getPreferenceSnapshot(mergedSettings),
@@ -315,7 +340,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       loadingPreferencesRef.current = false;
     };
-  }, [loadUserPreferences, session?.accessToken, session?.userId]);
+  }, [session?.userId, sessionUserPreferencesKey]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
@@ -454,7 +479,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
     const syncPreferences = async () => {
       try {
-        await syncUserPreferences(preferences);
+        await syncUserPreferencesRef.current(preferences);
         if (cancelled) return;
         lastSyncedPreferencesRef.current = signature;
         logger.info('Synced app preferences to auth provider metadata', { preferences });
@@ -467,7 +492,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [settings, syncUserPreferences]);
+  }, [settings]);
 
   // ACTIONS
   const updateSettings = useCallback(
