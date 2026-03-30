@@ -8,6 +8,11 @@ export interface AuthBackend {
     storedSession: AuthSession | null,
     nowSeconds: number,
   ) => Promise<AuthSession | null>;
+  /** Re-fetch tokens so the access JWT reflects latest user claims (e.g. after preference sync). */
+  refreshAuthSession: (
+    session: AuthSession | null,
+    nowSeconds: number,
+  ) => Promise<AuthSession | null>;
   startOAuth: (provider: string, redirectPath: string) => void;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;

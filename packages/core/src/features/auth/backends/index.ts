@@ -7,6 +7,7 @@ const createNoopBackend = (): AuthBackend => ({
   type: 'none',
   readSessionFromCallback: () => null,
   restoreSession: async () => null,
+  refreshAuthSession: async () => null,
   startOAuth: () => {
     throw new Error('No auth backend configured.');
   },

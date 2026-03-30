@@ -4,7 +4,7 @@ import {
   normalizeAuthSettings,
   normalizeRedirectPath,
 } from '../utils';
-import type { UserPreferences } from '../types';
+import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 
 const USER_PREFERENCES_ENDPOINT = '/auth/v1/preferences';
@@ -13,15 +13,11 @@ export const createShellUIAuthBackend = ({
   backendUrl,
 }: {
   backendUrl: string | null;
-}): AuthBackend => ({
-  type: 'shellui',
-  readSessionFromCallback: (locationHash, nowSeconds) => {
-    const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
-    return buildSessionFromParams(hashParams, nowSeconds);
-  },
-  restoreSession: async (storedSession, nowSeconds) => {
-    if (!storedSession) return null;
-    if (!isSessionExpired(storedSession)) return storedSession;
+}): AuthBackend => {
+  const refreshWithStoredToken = async (
+    storedSession: AuthSession,
+    nowSeconds: number,
+  ): Promise<AuthSession | null> => {
     if (!backendUrl || !storedSession.refreshToken) return null;
 
     const refreshUrl = new URL(`${backendUrl}/auth/v1/token`);
@@ -52,112 +48,129 @@ export const createShellUIAuthBackend = ({
     }
     if (typeof payload.token_type === 'string') refreshParams.set('token_type', payload.token_type);
     return buildSessionFromParams(refreshParams, nowSeconds);
-  },
-  startOAuth: (provider, redirectPath) => {
-    if (!backendUrl) {
-      throw new Error('Missing ShellUI backend URL.');
-    }
-    const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
-    const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
-    authorizeUrl.searchParams.set('provider', provider);
-    authorizeUrl.searchParams.set('redirect_to', redirectTo);
-    window.location.assign(authorizeUrl.toString());
-  },
-  startWeb3Ethereum: async () => {
-    throw new Error('Ethereum wallet login is not supported by the shellui backend.');
-  },
-  logout: async (session) => {
-    if (!backendUrl || !session?.accessToken) {
-      return;
-    }
-    await fetch(`${backendUrl}/auth/v1/logout`, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
-  },
-  getAuthSettings: async () => {
-    if (!backendUrl) {
-      return { methods: [], oauthProviders: [] };
-    }
-    const response = await fetch(`${backendUrl}/auth/v1/settings`, {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const payload = (await response.json()) as unknown;
-    return normalizeAuthSettings(payload);
-  },
-  sendMagicLink: async (email, redirectPath) => {
-    if (!backendUrl) {
-      throw new Error('Missing ShellUI backend URL.');
-    }
-    const emailRedirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
-    const response = await fetch(`${backendUrl}/auth/v1/otp`, {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email,
-        create_user: true,
-        email_redirect_to: emailRedirectTo,
-      }),
-    });
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as {
-        msg?: string;
-        message?: string;
-        error?: string;
-      } | null;
-      throw new Error(
-        payload?.msg ??
-          payload?.message ??
-          payload?.error ??
-          `Could not send magic link (HTTP ${response.status}).`,
-      );
-    }
-  },
-  syncUserPreferences: async (session, preferences: UserPreferences) => {
-    if (!backendUrl || !session?.accessToken) {
-      return;
-    }
-    const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
-      method: 'PUT',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify(preferences),
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-  },
-  loadUserPreferences: async (session) => {
-    if (!backendUrl || !session?.accessToken) {
-      return null;
-    }
-    const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const preferences = (await response.json()) as Record<string, unknown>;
-    if (!preferences || typeof preferences !== 'object') {
-      return null;
-    }
-    return preferences as UserPreferences;
-  },
-});
+  };
+
+  return {
+    type: 'shellui',
+    readSessionFromCallback: (locationHash, nowSeconds) => {
+      const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
+      return buildSessionFromParams(hashParams, nowSeconds);
+    },
+    restoreSession: async (storedSession, nowSeconds) => {
+      if (!storedSession) return null;
+      if (!isSessionExpired(storedSession)) return storedSession;
+      return refreshWithStoredToken(storedSession, nowSeconds);
+    },
+    refreshAuthSession: async (currentSession, nowSeconds) => {
+      if (!currentSession?.refreshToken) return null;
+      return refreshWithStoredToken(currentSession, nowSeconds);
+    },
+    startOAuth: (provider, redirectPath) => {
+      if (!backendUrl) {
+        throw new Error('Missing ShellUI backend URL.');
+      }
+      const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+      const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
+      authorizeUrl.searchParams.set('provider', provider);
+      authorizeUrl.searchParams.set('redirect_to', redirectTo);
+      window.location.assign(authorizeUrl.toString());
+    },
+    startWeb3Ethereum: async () => {
+      throw new Error('Ethereum wallet login is not supported by the shellui backend.');
+    },
+    logout: async (session) => {
+      if (!backendUrl || !session?.accessToken) {
+        return;
+      }
+      await fetch(`${backendUrl}/auth/v1/logout`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+    },
+    getAuthSettings: async () => {
+      if (!backendUrl) {
+        return { methods: [], oauthProviders: [] };
+      }
+      const response = await fetch(`${backendUrl}/auth/v1/settings`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const payload = (await response.json()) as unknown;
+      return normalizeAuthSettings(payload);
+    },
+    sendMagicLink: async (email, redirectPath) => {
+      if (!backendUrl) {
+        throw new Error('Missing ShellUI backend URL.');
+      }
+      const emailRedirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+      const response = await fetch(`${backendUrl}/auth/v1/otp`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          create_user: true,
+          email_redirect_to: emailRedirectTo,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          msg?: string;
+          message?: string;
+          error?: string;
+        } | null;
+        throw new Error(
+          payload?.msg ??
+            payload?.message ??
+            payload?.error ??
+            `Could not send magic link (HTTP ${response.status}).`,
+        );
+      }
+    },
+    syncUserPreferences: async (session, preferences: UserPreferences) => {
+      if (!backendUrl || !session?.accessToken) {
+        return;
+      }
+      const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify(preferences),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    },
+    loadUserPreferences: async (session) => {
+      if (!backendUrl || !session?.accessToken) {
+        return null;
+      }
+      const response = await fetch(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const preferences = (await response.json()) as Record<string, unknown>;
+      if (!preferences || typeof preferences !== 'object') {
+        return null;
+      }
+      return preferences as UserPreferences;
+    },
+  };
+};

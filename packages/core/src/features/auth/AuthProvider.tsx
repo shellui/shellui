@@ -201,6 +201,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async (preferences: UserPreferences) => {
       try {
         await backend.syncUserPreferences(session, preferences);
+        const now = Math.floor(Date.now() / 1000);
+        let nextSession: AuthSession | null = null;
+        try {
+          nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+        } catch (refreshErr) {
+          logger.error('Failed to refresh auth session after syncing preferences', { refreshErr });
+        }
+        if (!nextSession && session) {
+          nextSession = { ...session, userPreferences: preferences };
+        }
+        if (nextSession) {
+          // Keep stored snapshot aligned with what we synced (JWT claims can lag the PUT).
+          nextSession = { ...nextSession, userPreferences: preferences };
+          if (typeof window !== 'undefined' && window.parent === window) {
+            persistAuthSession(nextSession);
+          }
+          setSession(nextSession);
+        }
       } catch (err) {
         logger.error('Failed to sync user preferences to auth provider metadata', { err });
       }
