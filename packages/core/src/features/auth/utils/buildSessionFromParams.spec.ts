@@ -11,6 +11,7 @@ const createToken = () => {
     user_metadata: {
       name: 'Jane',
       avatar_url: 'https://example.com/avatar.png',
+      is_staff: true,
       shelluiPreferences: {
         themeName: 'default',
         language: 'fr',
@@ -39,6 +40,7 @@ describe('buildSessionFromParams', () => {
     expect(session?.userEmail).toBe('user@example.com');
     expect(session?.userName).toBe('Jane');
     expect(session?.userAvatarUrl).toBe('https://example.com/avatar.png');
+    expect(session?.userIsStaff).toBe(true);
     expect(session?.userPreferences).toEqual({
       themeName: 'default',
       language: 'fr',

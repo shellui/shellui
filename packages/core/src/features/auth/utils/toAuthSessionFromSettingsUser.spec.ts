@@ -20,6 +20,7 @@ describe('toAuthSessionFromSettingsUser', () => {
     expect(session.userEmail).toBe('user@example.com');
     expect(session.userName).toBe('Demo User');
     expect(session.userAvatarUrl).toBe('https://example.com/avatar.png');
+    expect(session.userIsStaff).toBe(false);
     expect(session.provider).toBe('google');
     expect(session.tokenType).toBe('bearer');
     expect(session.accessToken).toBe('jwt.example.token');

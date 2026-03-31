@@ -12,6 +12,7 @@ describe('toSettingsUser', () => {
       email: 'test@example.com',
       name: 'Test User',
       profilePicture: 'https://example.com/avatar.png',
+      isStaff: false,
       authProvider: 'github',
     });
 

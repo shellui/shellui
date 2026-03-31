@@ -20,6 +20,25 @@ import {
 
 type LoginButtonVariant = 'sidebar' | 'appbar' | 'windows';
 
+const AdministrationIcon = ({ className }: { className?: string }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    aria-hidden
+  >
+    <path d="M12 3l8 4v5c0 5-3.5 8.6-8 9-4.5-.4-8-4-8-9V7l8-4z" />
+    <path d="M9.5 12.5 11 14l3.5-3.5" />
+  </svg>
+);
+
 const variantConfig: Record<
   LoginButtonVariant,
   {
@@ -120,6 +139,22 @@ export const LoginButton = ({
     setIsMenuOpen(false);
     shellui.openModal(`${urls.settings}/user`);
   }, []);
+
+  const adminUrl = useMemo(() => {
+    const backendUrl = config.backend?.url?.trim();
+    if (!backendUrl || !user?.isStaff) {
+      return null;
+    }
+    return `${backendUrl.replace(/\/+$/, '')}/admin`;
+  }, [config.backend?.url, user?.isStaff]);
+
+  const openAdminPanel = useCallback(() => {
+    if (!adminUrl) {
+      return;
+    }
+    setIsMenuOpen(false);
+    window.open(adminUrl, '_blank', 'noopener,noreferrer');
+  }, [adminUrl]);
 
   const handleLogout = useCallback(async () => {
     setIsMenuOpen(false);
@@ -260,6 +295,12 @@ export const LoginButton = ({
           <UserIcon />
           <span>{t('authMenu.profile')}</span>
         </DropdownMenuItem>
+        {adminUrl && (
+          <DropdownMenuItem onSelect={openAdminPanel}>
+            <AdministrationIcon className="h-4 w-4" />
+            <span>{t('authMenu.administration')}</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onSelect={() => void handleLogout()}
           className="text-destructive focus:text-destructive"

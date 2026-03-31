@@ -71,6 +71,7 @@ export const buildSessionFromParams = (
           ? userMetadata.name
           : null,
     userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
+    userIsStaff: userMetadata?.is_staff === true,
     userPreferences: preferences,
   };
 };

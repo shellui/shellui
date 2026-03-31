@@ -8,6 +8,7 @@ export interface AuthSession {
   userEmail: string | null;
   userName: string | null;
   userAvatarUrl: string | null;
+  userIsStaff: boolean;
   userPreferences?: UserPreferences | null;
 }
 
@@ -16,6 +17,7 @@ export interface AuthUser {
   email: string | null;
   name: string | null;
   profilePicture: string | null;
+  isStaff: boolean;
   authProvider: string | null;
 }
 

@@ -303,6 +303,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: session.userEmail,
             name: session.userName,
             profilePicture: session.userAvatarUrl,
+            isStaff: session.userIsStaff,
             authProvider: session.provider,
           }
         : null,

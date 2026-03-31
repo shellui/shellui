@@ -13,6 +13,7 @@
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
+    "administration": "Administration",
     "noEmail": "No email",
     "userFallback": "User",
     "goToLoginAriaLabel": "Go to login",
