@@ -21,10 +21,14 @@ export const AdminView = () => {
   const { config } = useConfig();
   const { user } = useAuth();
   const isStaff = Boolean(user?.isStaff);
+  const backendAdminUrl = config.backend?.adminUrl?.trim();
+  const adminPath =
+    backendAdminUrl && backendAdminUrl.startsWith('/') ? backendAdminUrl : urls.admin;
+  const adminContentUrl = urls.settings;
   const adminContentItem: NavigationItem = {
     label: 'Settings',
-    path: urls.admin.replace(/^\/+/, ''),
-    url: urls.settings,
+    path: adminPath.replace(/^\/+/, ''),
+    url: adminContentUrl,
   };
 
   useEffect(() => {
@@ -70,8 +74,8 @@ export const AdminView = () => {
               path="*"
               element={
                 <ContentView
-                  url={urls.settings}
-                  pathPrefix={urls.admin.replace(/^\/+/, '')}
+                  url={adminContentUrl}
+                  pathPrefix={adminPath.replace(/^\/+/, '')}
                   navItem={adminContentItem}
                   ignoreMessages={true}
                 />

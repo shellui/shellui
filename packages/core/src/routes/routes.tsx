@@ -33,6 +33,9 @@ const NotFoundView = lazy(() =>
 );
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
+  const backendAdminUrl = config.backend?.adminUrl?.trim();
+  const adminPath =
+    backendAdminUrl && backendAdminUrl.startsWith('/') ? backendAdminUrl : urls.admin;
   const routes: RouteObject[] = [
     {
       path: '/',
@@ -68,7 +71,7 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         },
         {
           // Admin route
-          path: urls.admin.replace(/^\//, ''),
+          path: adminPath.replace(/^\//, ''),
           element: (
             <Suspense fallback={<RouteFallback />}>
               <AdminView />

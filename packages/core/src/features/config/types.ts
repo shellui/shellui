@@ -203,6 +203,12 @@ export interface BackendConfig {
   type: BackendType;
   /** Base URL used to access backend APIs. */
   url: string;
+  /**
+   * Admin URL behavior:
+   * - relative path (e.g. "/_admin"): used as Shell route path for embedded admin panel
+   * - absolute URL (e.g. "https://project.supabase.com"): opened in a new tab from admin menu
+   */
+  adminUrl?: string;
   /** Optional Supabase publishable key (public key). */
   publishableKey?: string;
   /** Optional login capabilities used by frontend for immediate rendering. */
