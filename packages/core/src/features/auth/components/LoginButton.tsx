@@ -140,21 +140,21 @@ export const LoginButton = ({
     shellui.openModal(`${urls.settings}/user`);
   }, []);
 
-  const adminUrl = useMemo(() => {
-    const backendUrl = config.backend?.url?.trim();
-    if (!backendUrl || !user?.isStaff) {
-      return null;
-    }
-    return `${backendUrl.replace(/\/+$/, '')}/admin`;
-  }, [config.backend?.url, user?.isStaff]);
+  const canAccessAdmin = useMemo(() => Boolean(user?.isStaff), [user?.isStaff]);
+  const isOnAdminRoute = useMemo(
+    () =>
+      location.pathname === urls.admin ||
+      location.pathname.startsWith(`${urls.admin}/`),
+    [location.pathname],
+  );
 
   const openAdminPanel = useCallback(() => {
-    if (!adminUrl) {
+    if (!canAccessAdmin) {
       return;
     }
     setIsMenuOpen(false);
-    window.open(adminUrl, '_blank', 'noopener,noreferrer');
-  }, [adminUrl]);
+    navigate(isOnAdminRoute ? '/' : urls.admin);
+  }, [canAccessAdmin, isOnAdminRoute, navigate]);
 
   const handleLogout = useCallback(async () => {
     setIsMenuOpen(false);
@@ -291,14 +291,20 @@ export const LoginButton = ({
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={openProfileSettingsModal}>
-          <UserIcon />
-          <span>{t('authMenu.profile')}</span>
-        </DropdownMenuItem>
-        {adminUrl && (
+        {!isOnAdminRoute && (
+          <DropdownMenuItem onSelect={openProfileSettingsModal}>
+            <UserIcon />
+            <span>{t('authMenu.profile')}</span>
+          </DropdownMenuItem>
+        )}
+        {canAccessAdmin && (
           <DropdownMenuItem onSelect={openAdminPanel}>
             <AdministrationIcon className="h-4 w-4" />
-            <span>{t('authMenu.administration')}</span>
+            <span>
+              {isOnAdminRoute
+                ? t('authMenu.backToHome', { defaultValue: 'Back to home' })
+                : t('authMenu.administration')}
+            </span>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
