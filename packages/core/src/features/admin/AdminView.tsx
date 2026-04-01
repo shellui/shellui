@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Outlet, Route, Routes, useNavigate } from 'react-router';
+import { useEffect, useMemo, useRef } from 'react';
+import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import urls from '../../constants/urls';
 import { ContentView } from '../../components/ContentView';
@@ -18,6 +18,7 @@ const AdminAccessGuard = ({ isStaff }: { isStaff: boolean }) => {
 
 export const AdminView = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { config } = useConfig();
   const { user } = useAuth();
   const isStaff = Boolean(user?.isStaff);
@@ -26,13 +27,35 @@ export const AdminView = () => {
     configuredAdminPathname && configuredAdminPathname.startsWith('/')
       ? configuredAdminPathname
       : urls.admin;
-  const configuredAdminUrl = config.backend?.adminUrl?.trim();
-  const adminContentUrl = configuredAdminUrl || urls.settings;
-  const adminContentItem: NavigationItem = {
-    label: 'Settings',
-    path: adminPath.replace(/^\/+/, ''),
-    url: adminContentUrl,
-  };
+  const baseAdminContentUrl = config.backend?.adminUrl?.trim() || urls.settings;
+  const initialAdminContentUrlRef = useRef<string | null>(null);
+  if (!initialAdminContentUrlRef.current) {
+    const normalizedAdminPath = adminPath.replace(/\/+$/, '');
+    const currentPath = location.pathname;
+    const suffix = currentPath.startsWith(normalizedAdminPath)
+      ? currentPath.slice(normalizedAdminPath.length)
+      : '';
+    const safeSuffix = suffix || '';
+
+    try {
+      const resolvedUrl = new URL(baseAdminContentUrl);
+      resolvedUrl.pathname = `${resolvedUrl.pathname.replace(/\/+$/, '')}${safeSuffix}` || '/';
+      resolvedUrl.search = location.search;
+      initialAdminContentUrlRef.current = resolvedUrl.toString();
+    } catch {
+      const cleanBase = baseAdminContentUrl.replace(/\/+$/, '');
+      initialAdminContentUrlRef.current = `${cleanBase}${safeSuffix}${location.search}`;
+    }
+  }
+  const initialAdminContentUrl = initialAdminContentUrlRef.current;
+  const adminContentItem = useMemo<NavigationItem>(
+    () => ({
+      label: 'Settings',
+      path: adminPath.replace(/^\/+/, ''),
+      url: baseAdminContentUrl,
+    }),
+    [adminPath, baseAdminContentUrl],
+  );
 
   useEffect(() => {
     if (config?.title) {
@@ -67,7 +90,10 @@ export const AdminView = () => {
           Back to home
         </Button>
         <div className="flex items-center gap-2">
-          <LoginButton variant="appbar" logoutOnly />
+          <LoginButton
+            variant="appbar"
+            logoutOnly
+          />
         </div>
       </header>
       <main className="flex min-h-0 flex-1">
@@ -77,10 +103,9 @@ export const AdminView = () => {
               path="*"
               element={
                 <ContentView
-                  url={adminContentUrl}
+                  url={initialAdminContentUrl}
                   pathPrefix={adminPath.replace(/^\/+/, '')}
                   navItem={adminContentItem}
-                  ignoreMessages={true}
                 />
               }
             />

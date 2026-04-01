@@ -73,12 +73,8 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         },
         {
           // Admin route
-          path: adminPath.replace(/^\//, ''),
-          element: (
-            <Suspense fallback={<RouteFallback />}>
-              <AdminView />
-            </Suspense>
-          ),
+          path: `${adminPath.replace(/^\//, '')}/*`,
+          element: <AdminView />,
         },
         {
           // Catch-all route
