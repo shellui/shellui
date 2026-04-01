@@ -25,7 +25,8 @@ interface AppLayoutProps {
   title?: string;
   appIcon?: string;
   logo?: string;
-  navigation: (NavigationItem | NavigationGroup)[];
+  navigation?: (NavigationItem | NavigationGroup)[];
+  children?: React.ReactNode;
 }
 
 /** Renders the layout based on settings.layout (override) or config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
@@ -35,6 +36,7 @@ export function AppLayout({
   appIcon,
   logo,
   navigation,
+  children,
 }: AppLayoutProps) {
   const { settings } = useSettings();
   const effectiveLayout: LayoutType = settings.layout ?? layout;
@@ -45,16 +47,16 @@ export function AppLayout({
 
   if (effectiveLayout === 'fullscreen') {
     LayoutComponent = FullscreenLayout;
-    layoutProps = { title, navigation };
+    layoutProps = { title, navigation: navigation || [], children };
   } else if (effectiveLayout === 'windows') {
     LayoutComponent = WindowsLayout;
-    layoutProps = { title, appIcon, logo, navigation };
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   } else if (effectiveLayout === 'app-bar') {
     LayoutComponent = AppBarLayout;
-    layoutProps = { title, appIcon, logo, navigation };
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   } else {
     LayoutComponent = SidebarLayout;
-    layoutProps = { title, appIcon, logo, navigation };
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   }
   return (
     <ModalProvider>
@@ -62,7 +64,7 @@ export function AppLayout({
         <SonnerProvider>
           <OverlayShell>
             <Suspense fallback={<LayoutFallback />}>
-              <LayoutComponent {...layoutProps} />
+              {children ? children : <LayoutComponent {...layoutProps} />}
             </Suspense>
           </OverlayShell>
         </SonnerProvider>

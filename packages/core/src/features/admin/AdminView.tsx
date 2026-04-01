@@ -8,6 +8,7 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
+import { AppLayout } from '../layouts/AppLayout';
 
 const AdminAccessGuard = ({ isStaff }: { isStaff: boolean }) => {
   if (!isStaff) {
@@ -66,52 +67,54 @@ export const AdminView = () => {
   }, [config?.title]);
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b bg-card px-2 md:px-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/')}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-            aria-hidden
+    <AppLayout>
+      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b bg-card px-2 md:px-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/')}
           >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          Back to home
-        </Button>
-        <div className="flex items-center gap-2">
-          <LoginButton
-            variant="appbar"
-            logoutOnly
-          />
-        </div>
-      </header>
-      <main className="flex min-h-0 flex-1">
-        <Routes>
-          <Route element={<AdminAccessGuard isStaff={isStaff} />}>
-            <Route
-              path="*"
-              element={
-                <ContentView
-                  url={initialAdminContentUrl}
-                  pathPrefix={adminPath.replace(/^\/+/, '')}
-                  navItem={adminContentItem}
-                />
-              }
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to home
+          </Button>
+          <div className="flex items-center gap-2">
+            <LoginButton
+              variant="appbar"
+              logoutOnly
             />
-          </Route>
-        </Routes>
-      </main>
-    </div>
+          </div>
+        </header>
+        <main className="flex min-h-0 flex-1">
+          <Routes>
+            <Route element={<AdminAccessGuard isStaff={isStaff} />}>
+              <Route
+                path="*"
+                element={
+                  <ContentView
+                    url={initialAdminContentUrl}
+                    pathPrefix={adminPath.replace(/^\/+/, '')}
+                    navItem={adminContentItem}
+                  />
+                }
+              />
+            </Route>
+          </Routes>
+        </main>
+      </div>
+    </AppLayout>
   );
 };

@@ -7,6 +7,7 @@ import { flattenNavigationItems } from '../utils';
 interface FullscreenLayoutProps {
   title?: string;
   navigation: (NavigationItem | NavigationGroup)[];
+  children?: React.ReactNode;
 }
 
 function resolveLocalizedLabel(
@@ -18,7 +19,7 @@ function resolveLocalizedLabel(
 }
 
 /** Full-width layout with no sidebar or navigation; only content area. Modal, drawer and providers are still active. */
-export function FullscreenLayout({ title, navigation }: FullscreenLayoutProps) {
+export function FullscreenLayout({ title, navigation, children }: FullscreenLayoutProps) {
   const location = useLocation();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
@@ -43,7 +44,7 @@ export function FullscreenLayout({ title, navigation }: FullscreenLayoutProps) {
 
   return (
     <main className="flex flex-col w-full h-screen overflow-hidden bg-background">
-      <Outlet />
+      {children || <Outlet />}
     </main>
   );
 }
