@@ -205,6 +205,8 @@ export interface BackendConfig {
   url: string;
   /** Admin route pathname (e.g. "/admin"). Used as Shell route path for embedded admin panel. */
   adminPathname?: string;
+  /** Admin content URL loaded in the admin route view (e.g. "https://example.com/admin"). */
+  adminUrl?: string;
   /** Optional Supabase publishable key (public key). */
   publishableKey?: string;
   /** Optional login capabilities used by frontend for immediate rendering. */

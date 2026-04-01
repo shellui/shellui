@@ -26,7 +26,8 @@ export const AdminView = () => {
     configuredAdminPathname && configuredAdminPathname.startsWith('/')
       ? configuredAdminPathname
       : urls.admin;
-  const adminContentUrl = urls.settings;
+  const configuredAdminUrl = config.backend?.adminUrl?.trim();
+  const adminContentUrl = configuredAdminUrl || urls.settings;
   const adminContentItem: NavigationItem = {
     label: 'Settings',
     path: adminPath.replace(/^\/+/, ''),
