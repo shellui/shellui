@@ -90,9 +90,11 @@ const variantConfig: Record<
 export const LoginButton = ({
   variant,
   hideWhenLoggedOut = false,
+  logoutOnly = false,
 }: {
   variant: LoginButtonVariant;
   hideWhenLoggedOut?: boolean;
+  logoutOnly?: boolean;
 }) => {
   const currentVariantConfig = variantConfig[variant];
   const { t } = useTranslation('common');
@@ -307,13 +309,13 @@ export const LoginButton = ({
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {!isOnAdminRoute && (
+        {!logoutOnly && !isOnAdminRoute && (
           <DropdownMenuItem onSelect={openProfileSettingsModal}>
             <UserIcon />
             <span>{t('authMenu.profile')}</span>
           </DropdownMenuItem>
         )}
-        {canAccessAdmin && (
+        {!logoutOnly && canAccessAdmin && (
           <DropdownMenuItem onSelect={openAdminPanel}>
             <AdministrationIcon className="h-4 w-4" />
             <span>

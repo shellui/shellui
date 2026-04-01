@@ -64,7 +64,7 @@ export const AdminView = () => {
           Back to home
         </Button>
         <div className="flex items-center gap-2">
-          <LoginButton variant="appbar" />
+          <LoginButton variant="appbar" logoutOnly />
         </div>
       </header>
       <main className="flex min-h-0 flex-1">
