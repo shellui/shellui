@@ -7,8 +7,25 @@ import { LoginButton } from '../auth/components/LoginButton';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
+import { getBaseUrlWithoutHash } from '../layouts/utils';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { AppLayout } from '../layouts/AppLayout';
+
+/** Admin microfrontend uses hash routes (e.g. createHashRouter); sync shell `/admin/...` with iframe `#/...`. */
+function buildAdminIframeSrc(
+  baseAdminContentUrl: string,
+  normalizedAdminPath: string,
+  pathname: string,
+  search: string,
+): string {
+  const pathAfterAdmin = pathname.startsWith(normalizedAdminPath)
+    ? pathname.slice(normalizedAdminPath.length)
+    : '';
+  const segment = pathAfterAdmin.replace(/^\/+|\/+$/g, '');
+  const hashRoute = segment ? `/${segment}` : '/';
+  const originBase = getBaseUrlWithoutHash(baseAdminContentUrl).replace(/\/+$/, '');
+  return `${originBase}/#${hashRoute}${search}`;
+}
 
 const AdminAccessGuard = ({ isStaff }: { isStaff: boolean }) => {
   if (!isStaff) {
@@ -32,21 +49,12 @@ export const AdminView = () => {
   const initialAdminContentUrlRef = useRef<string | null>(null);
   if (!initialAdminContentUrlRef.current) {
     const normalizedAdminPath = adminPath.replace(/\/+$/, '');
-    const currentPath = location.pathname;
-    const suffix = currentPath.startsWith(normalizedAdminPath)
-      ? currentPath.slice(normalizedAdminPath.length)
-      : '';
-    const safeSuffix = suffix || '';
-
-    try {
-      const resolvedUrl = new URL(baseAdminContentUrl);
-      resolvedUrl.pathname = `${resolvedUrl.pathname.replace(/\/+$/, '')}${safeSuffix}` || '/';
-      resolvedUrl.search = location.search;
-      initialAdminContentUrlRef.current = resolvedUrl.toString();
-    } catch {
-      const cleanBase = baseAdminContentUrl.replace(/\/+$/, '');
-      initialAdminContentUrlRef.current = `${cleanBase}${safeSuffix}${location.search}`;
-    }
+    initialAdminContentUrlRef.current = buildAdminIframeSrc(
+      baseAdminContentUrl,
+      normalizedAdminPath,
+      location.pathname,
+      location.search,
+    );
   }
   const initialAdminContentUrl = initialAdminContentUrlRef.current;
   const adminContentItem = useMemo<NavigationItem>(
@@ -54,6 +62,8 @@ export const AdminView = () => {
       label: 'Settings',
       path: adminPath.replace(/^\/+/, ''),
       url: baseAdminContentUrl,
+      /** Required so ContentView maps iframe hash → shell path (`/admin`, `/admin/users`, …). */
+      useHashRouter: true,
     }),
     [adminPath, baseAdminContentUrl],
   );
