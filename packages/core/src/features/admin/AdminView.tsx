@@ -21,9 +21,11 @@ export const AdminView = () => {
   const { config } = useConfig();
   const { user } = useAuth();
   const isStaff = Boolean(user?.isStaff);
-  const backendAdminUrl = config.backend?.adminUrl?.trim();
+  const configuredAdminPathname = config.backend?.adminPathname?.trim();
   const adminPath =
-    backendAdminUrl && backendAdminUrl.startsWith('/') ? backendAdminUrl : urls.admin;
+    configuredAdminPathname && configuredAdminPathname.startsWith('/')
+      ? configuredAdminPathname
+      : urls.admin;
   const adminContentUrl = urls.settings;
   const adminContentItem: NavigationItem = {
     label: 'Settings',

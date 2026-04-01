@@ -143,23 +143,17 @@ export const LoginButton = ({
   }, []);
 
   const canAccessAdmin = useMemo(() => Boolean(user?.isStaff), [user?.isStaff]);
-  const configuredAdminUrl = useMemo(() => config.backend?.adminUrl?.trim() ?? null, [config.backend?.adminUrl]);
-  const isRelativeAdminUrl = Boolean(configuredAdminUrl?.startsWith('/'));
-  const adminPath = isRelativeAdminUrl ? (configuredAdminUrl as string) : urls.admin;
-  const externalAdminUrl = useMemo(() => {
-    if (!configuredAdminUrl || isRelativeAdminUrl) {
-      return null;
-    }
-    if (/^[a-z][a-z\d+\-.]*:\/\//i.test(configuredAdminUrl)) {
-      return configuredAdminUrl;
-    }
-    return `https://${configuredAdminUrl}`;
-  }, [configuredAdminUrl, isRelativeAdminUrl]);
+  const configuredAdminPathname = useMemo(
+    () => config.backend?.adminPathname?.trim() ?? null,
+    [config.backend?.adminPathname],
+  );
+  const adminPath =
+    configuredAdminPathname && configuredAdminPathname.startsWith('/')
+      ? configuredAdminPathname
+      : urls.admin;
   const isOnAdminRoute = useMemo(
-    () =>
-      isRelativeAdminUrl &&
-      (location.pathname === adminPath || location.pathname.startsWith(`${adminPath}/`)),
-    [adminPath, isRelativeAdminUrl, location.pathname],
+    () => location.pathname === adminPath || location.pathname.startsWith(`${adminPath}/`),
+    [adminPath, location.pathname],
   );
 
   const openAdminPanel = useCallback(() => {
@@ -167,12 +161,8 @@ export const LoginButton = ({
       return;
     }
     setIsMenuOpen(false);
-    if (externalAdminUrl) {
-      window.open(externalAdminUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
     navigate(isOnAdminRoute ? '/' : adminPath);
-  }, [adminPath, canAccessAdmin, externalAdminUrl, isOnAdminRoute, navigate]);
+  }, [adminPath, canAccessAdmin, isOnAdminRoute, navigate]);
 
   const handleLogout = useCallback(async () => {
     setIsMenuOpen(false);
