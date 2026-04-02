@@ -205,11 +205,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   );
 
   const isTrustedFrameForAuthToken = useCallback(
-    (frameSrc: string): boolean =>
-      navigationItems.some(
+    (frameSrc: string): boolean => {
+      const adminUrl = config?.backend?.adminUrl?.trim();
+      if (adminUrl && isFrameForNavigationItem(frameSrc, adminUrl)) {
+        return true;
+      }
+      return navigationItems.some(
         (item) => item.safeForAuthToken !== false && isFrameForNavigationItem(frameSrc, item.url),
-      ),
-    [navigationItems],
+      );
+    },
+    [config?.backend?.adminUrl, navigationItems],
   );
 
   const propagateSettingsToIframes = useCallback(

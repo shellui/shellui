@@ -200,7 +200,10 @@ export interface Settings {
   };
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
-  /** Access token injected by shell for trusted iframe apps. */
+  /**
+   * Session JWT (access token) injected by shell for trusted iframe apps.
+   * Same token as the main app’s API `Authorization: Bearer` credential; omitted or null for untrusted frames.
+   */
   accessToken?: string | null;
   // Add more settings here as needed
   // notifications: { ... }
