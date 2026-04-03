@@ -27,9 +27,14 @@ const formatJwtUnixTooltip = (unixSeconds: number, lang: string, timezone: strin
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
+      timeZoneName: 'short',
     }).format(date);
   } catch {
-    absolute = date.toLocaleString(lang);
+    try {
+      absolute = date.toLocaleString(lang, { timeZone: timezone });
+    } catch {
+      absolute = date.toLocaleString(lang);
+    }
   }
 
   const rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' });
@@ -47,11 +52,11 @@ const formatJwtUnixTooltip = (unixSeconds: number, lang: string, timezone: strin
   for (const [unit, ms] of divisions) {
     if (Math.abs(elapsed) >= ms || unit === 'second') {
       const relative = rtf.format(Math.round(elapsed / ms), unit);
-      return `${relative}\n${absolute}`;
+      return `${relative}\n${absolute}\n(${timezone})`;
     }
   }
 
-  return absolute;
+  return `${absolute}\n(${timezone})`;
 };
 
 const JwtTimestampInfo = ({
