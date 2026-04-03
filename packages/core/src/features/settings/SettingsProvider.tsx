@@ -239,6 +239,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config, isTrustedFrameForAuthToken, session?.accessToken],
   );
 
+  // When the shell rotates the JWT, `authUser` often does not change, so the user-sync effect
+  // above skips — still push `SHELLUI_SETTINGS` so trusted iframes get the new `accessToken`.
+  const accessTokenForChildren = session?.accessToken ?? null;
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window || !accessTokenForChildren) {
+      return;
+    }
+    propagateSettingsToIframes(settingsRef.current ?? defaultSettings);
+  }, [accessTokenForChildren, propagateSettingsToIframes]);
+
   // Keep load/sync helpers stable across access-token rotation (refresh after preference sync).
   const loadUserPreferencesRef = useRef(loadUserPreferences);
   loadUserPreferencesRef.current = loadUserPreferences;

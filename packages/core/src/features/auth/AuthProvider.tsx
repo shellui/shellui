@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getLogger, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
@@ -16,6 +16,11 @@ import {
 } from './utils';
 
 const logger = getLogger('shellcore');
+
+/** Refresh the access token this many seconds before `expiresAt` so API calls stay valid (JWT exp is absolute). */
+const PROACTIVE_REFRESH_LEEWAY_SECONDS = 90;
+/** Periodic check while the shell tab is open (also mitigates background-tab timer throttling). */
+const TOKEN_REFRESH_TICK_MS = 45_000;
 
 type LoginMessagePayload = {
   method?: 'oauth' | 'web3';
@@ -35,6 +40,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
+  const sessionRef = useRef<AuthSession | null>(null);
+  sessionRef.current = session;
+  const refreshInFlightRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +133,71 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       cancelled = true;
     };
   }, [backend]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window || isLoading) {
+      return;
+    }
+    if (!session?.refreshToken) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const runRefresh = async () => {
+      if (cancelled) return;
+      const current = sessionRef.current;
+      if (!current?.refreshToken || refreshInFlightRef.current) return;
+
+      const now = Math.floor(Date.now() / 1000);
+      const secondsLeft = current.expiresAt - now;
+      if (secondsLeft > PROACTIVE_REFRESH_LEEWAY_SECONDS && !isSessionExpired(current)) {
+        return;
+      }
+
+      refreshInFlightRef.current = true;
+      try {
+        const next = await backend.refreshAuthSession(current, now);
+        if (cancelled || !next) return;
+        persistAuthSession(next);
+        sessionRef.current = next;
+        setSession(next);
+      } catch (err) {
+        logger.error('Token refresh failed', { err });
+        const message = err instanceof Error ? err.message : '';
+        if (/\b401\b/.test(message)) {
+          clearStoredAuthSession();
+          sessionRef.current = null;
+          setSession(null);
+        }
+      } finally {
+        refreshInFlightRef.current = false;
+      }
+    };
+
+    const maybeRefreshFromTimer = () => {
+      void runRefresh();
+    };
+
+    const maybeRefreshOnResume = () => {
+      if (cancelled || document.visibilityState !== 'visible') return;
+      const current = sessionRef.current;
+      if (!current?.refreshToken || !isSessionExpired(current)) return;
+      void runRefresh();
+    };
+
+    maybeRefreshFromTimer();
+    const intervalId = window.setInterval(maybeRefreshFromTimer, TOKEN_REFRESH_TICK_MS);
+    document.addEventListener('visibilitychange', maybeRefreshOnResume);
+    window.addEventListener('focus', maybeRefreshOnResume);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', maybeRefreshOnResume);
+      window.removeEventListener('focus', maybeRefreshOnResume);
+    };
+  }, [backend, isLoading, session?.refreshToken, session?.expiresAt]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) {
