@@ -42,7 +42,8 @@
       "copy": "Copier",
       "notSharedForApp": "Non partagé pour cette application.",
       "unableToDecodeJwtPayload": "Impossible de décoder le payload JWT.",
-      "noAccessTokenAvailable": "Aucun jeton d'accès disponible."
+      "noAccessTokenAvailable": "Aucun jeton d'accès disponible.",
+      "jwtTimestampTooltipAria": "Date lisible pour cet horodatage"
     },
     "clipboard": {
       "copyFailedTitle": "Échec de la copie",
