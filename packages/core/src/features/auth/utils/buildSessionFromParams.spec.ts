@@ -12,6 +12,7 @@ const createToken = () => {
       name: 'Jane',
       avatar_url: 'https://example.com/avatar.png',
       is_staff: true,
+      groups: ['editors', 'admin'],
       shelluiPreferences: {
         themeName: 'default',
         language: 'fr',
@@ -47,6 +48,7 @@ describe('buildSessionFromParams', () => {
       region: 'Europe/Paris',
       colorScheme: 'dark',
     });
+    expect(session?.userGroups).toEqual(['admin', 'editors']);
     expect(session?.expiresAt).toBe(4_600);
   });
 

@@ -27,7 +27,9 @@
     "fields": {
       "name": "Nom",
       "email": "E-mail",
-      "loginMethod": "Méthode de connexion"
+      "loginMethod": "Méthode de connexion",
+      "groups": "Groupes",
+      "noGroups": "Aucun"
     },
     "loginMethods": {
       "unknown": "Inconnue",

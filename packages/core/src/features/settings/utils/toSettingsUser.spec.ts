@@ -14,6 +14,7 @@ describe('toSettingsUser', () => {
       profilePicture: 'https://example.com/avatar.png',
       isStaff: false,
       authProvider: 'github',
+      groups: [],
     });
 
     expect(result).toEqual({
@@ -22,6 +23,25 @@ describe('toSettingsUser', () => {
       name: 'Test User',
       profilePicture: 'https://example.com/avatar.png',
       authProvider: 'github',
+      groups: null,
+    });
+
+    const withGroups = toSettingsUser({
+      id: 'u1',
+      email: 'test@example.com',
+      name: 'Test User',
+      profilePicture: null,
+      isStaff: true,
+      authProvider: 'github',
+      groups: ['beta', 'alpha'],
+    });
+    expect(withGroups).toEqual({
+      id: 'u1',
+      email: 'test@example.com',
+      name: 'Test User',
+      profilePicture: null,
+      authProvider: 'github',
+      groups: ['beta', 'alpha'],
     });
   });
 });

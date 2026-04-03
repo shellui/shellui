@@ -10,5 +10,6 @@ export const toSettingsUser = (user: AuthUser | null): Settings['user'] => {
     name: user.name,
     profilePicture: user.profilePicture,
     authProvider: user.authProvider,
+    groups: user.groups.length ? [...user.groups] : null,
   };
 };

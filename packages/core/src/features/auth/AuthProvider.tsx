@@ -378,6 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             profilePicture: session.userAvatarUrl,
             isStaff: session.userIsStaff,
             authProvider: session.provider,
+            groups: session.userGroups ?? [],
           }
         : null,
     [session],

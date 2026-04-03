@@ -1,5 +1,8 @@
 import type { Settings } from '@shellui/sdk';
 
+const groupsFingerprint = (g: Settings['user']): string =>
+  [...(g?.groups ?? [])].sort().join('\0');
+
 export const isSameUser = (a: Settings['user'], b: Settings['user']) => {
   if (!a && !b) return true;
   if (!a || !b) return false;
@@ -9,6 +12,7 @@ export const isSameUser = (a: Settings['user'], b: Settings['user']) => {
     a.email === b.email &&
     a.name === b.name &&
     a.profilePicture === b.profilePicture &&
-    a.authProvider === b.authProvider
+    a.authProvider === b.authProvider &&
+    groupsFingerprint(a) === groupsFingerprint(b)
   );
 };

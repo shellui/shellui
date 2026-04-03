@@ -153,6 +153,8 @@ export interface SettingsUser {
   name: string | null;
   profilePicture: string | null;
   authProvider: string | null;
+  /** Optional snapshot of group names propagated to iframe apps (e.g. from JWT). */
+  groups?: string[] | null;
 }
 
 export interface Settings {

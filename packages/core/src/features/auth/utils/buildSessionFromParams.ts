@@ -1,5 +1,5 @@
 import type { AuthSession, UserPreferences } from '../types';
-import { decodeJwtPayload } from './decodeJwtPayload';
+import { decodeJwtPayload, normalizeJwtUserGroups } from './decodeJwtPayload';
 
 // Builds an AuthSession from callback or refresh URL parameters.
 export const buildSessionFromParams = (
@@ -73,5 +73,6 @@ export const buildSessionFromParams = (
     userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
     userIsStaff: userMetadata?.is_staff === true,
     userPreferences: preferences,
+    userGroups: normalizeJwtUserGroups(userMetadata?.groups),
   };
 };

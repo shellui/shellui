@@ -13,3 +13,12 @@ export const decodeJwtPayload = (token: string): Record<string, unknown> | null 
     return null;
   }
 };
+
+/** Normalizes `user_metadata.groups` from a ShellUI auth JWT to sorted unique names. */
+export const normalizeJwtUserGroups = (raw: unknown): string[] => {
+  if (!Array.isArray(raw)) return [];
+  const names = raw
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((n) => n.trim());
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+};

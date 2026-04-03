@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { shellui, type Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
 import { decodeJwtPayload } from '../../auth/utils/decodeJwtPayload';
+import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import {
   Tooltip,
@@ -398,6 +399,26 @@ export const UserSettingsPanel = ({
         <div>
           <dt className="text-muted-foreground">{t('userAccount.fields.loginMethod')}</dt>
           <dd className="mt-0.5 text-foreground">{formatLoginMethod(user.authProvider, t)}</dd>
+        </div>
+        <div>
+          <dt className="text-muted-foreground">{t('userAccount.fields.groups')}</dt>
+          <dd className="mt-1.5">
+            {user.groups.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {user.groups.map((name) => (
+                  <Badge
+                    key={name}
+                    variant="secondary"
+                    className="font-normal"
+                  >
+                    {name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <span className="text-foreground">{t('userAccount.fields.noGroups')}</span>
+            )}
+          </dd>
         </div>
       </dl>
 

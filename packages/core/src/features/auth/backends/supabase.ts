@@ -4,6 +4,7 @@ import {
   normalizeAuthSettings,
   normalizeRedirectPath,
 } from '../utils';
+import { normalizeJwtUserGroups } from '../utils/decodeJwtPayload';
 import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 import { createClient } from '@supabase/supabase-js';
@@ -41,6 +42,7 @@ const buildSessionFromSupabaseSession = (session: {
           : null,
     userAvatarUrl: typeof userMetadata.avatar_url === 'string' ? userMetadata.avatar_url : null,
     userIsStaff: userMetadata.is_staff === true,
+    userGroups: normalizeJwtUserGroups(userMetadata.groups),
     userPreferences:
       userMetadata.shelluiPreferences && typeof userMetadata.shelluiPreferences === 'object'
         ? (userMetadata.shelluiPreferences as UserPreferences)

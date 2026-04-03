@@ -9,6 +9,8 @@ export interface AuthSession {
   userName: string | null;
   userAvatarUrl: string | null;
   userIsStaff: boolean;
+  /** Sorted unique group names from JWT `user_metadata.groups` (ShellUI auth). */
+  userGroups: string[];
   userPreferences?: UserPreferences | null;
 }
 
@@ -19,6 +21,8 @@ export interface AuthUser {
   profilePicture: string | null;
   isStaff: boolean;
   authProvider: string | null;
+  /** Group names from the access token; empty if none or not a ShellUI JWT. */
+  groups: string[];
 }
 
 export type AuthEvent = 'oauth_callback' | null;
