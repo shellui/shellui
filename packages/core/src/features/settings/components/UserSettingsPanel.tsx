@@ -12,8 +12,7 @@ import {
 } from '../../../components/ui/tooltip';
 import { useSettings } from '../hooks/useSettings';
 
-const JWT_TIMESTAMP_LINE =
-  /^(?<before>\s*"(?:exp|iat)"\s*:\s*)(?<sec>\d+)(?<after>,?\s*)$/;
+const JWT_TIMESTAMP_LINE = /^(?<before>\s*"(?:exp|iat)"\s*:\s*)(?<sec>\d+)(?<after>,?\s*)$/;
 
 const formatJwtUnixTooltip = (unixSeconds: number, lang: string, timezone: string): string => {
   const date = new Date(unixSeconds * 1000);
@@ -290,9 +289,7 @@ export const UserSettingsPanel = ({
                 jsonText={jwtPayloadJson}
                 lang={lang}
                 timezone={timezone}
-                timestampAriaLabel={t(
-                  'userAccount.developerDiagnostics.jwtTimestampTooltipAria',
-                )}
+                timestampAriaLabel={t('userAccount.developerDiagnostics.jwtTimestampTooltipAria')}
               />
             ) : (
               <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-xs text-foreground">
