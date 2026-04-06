@@ -13,6 +13,7 @@ describe('toSettingsUser', () => {
       name: 'Test User',
       profilePicture: 'https://example.com/avatar.png',
       isStaff: false,
+      isCompanyOwner: false,
       authProvider: 'github',
       groups: [],
     });
@@ -32,6 +33,7 @@ describe('toSettingsUser', () => {
       name: 'Test User',
       profilePicture: null,
       isStaff: true,
+      isCompanyOwner: false,
       authProvider: 'github',
       groups: ['beta', 'alpha'],
     });

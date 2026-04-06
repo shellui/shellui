@@ -72,6 +72,7 @@ export const buildSessionFromParams = (
           : null,
     userAvatarUrl: typeof userMetadata?.avatar_url === 'string' ? userMetadata.avatar_url : null,
     userIsStaff: userMetadata?.is_staff === true,
+    userIsCompanyOwner: userMetadata?.is_company_owner === true,
     userPreferences: preferences,
     userGroups: normalizeJwtUserGroups(userMetadata?.groups),
   };

@@ -377,6 +377,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             name: session.userName,
             profilePicture: session.userAvatarUrl,
             isStaff: session.userIsStaff,
+            isCompanyOwner: session.userIsCompanyOwner === true,
             authProvider: session.provider,
             groups: session.userGroups ?? [],
           }

@@ -42,6 +42,7 @@ const buildSessionFromSupabaseSession = (session: {
           : null,
     userAvatarUrl: typeof userMetadata.avatar_url === 'string' ? userMetadata.avatar_url : null,
     userIsStaff: userMetadata.is_staff === true,
+    userIsCompanyOwner: userMetadata.is_company_owner === true,
     userGroups: normalizeJwtUserGroups(userMetadata.groups),
     userPreferences:
       userMetadata.shelluiPreferences && typeof userMetadata.shelluiPreferences === 'object'

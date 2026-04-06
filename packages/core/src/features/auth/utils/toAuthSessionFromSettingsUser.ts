@@ -29,6 +29,7 @@ export const toAuthSessionFromSettingsUser = (
     userName: settingsUser.name,
     userAvatarUrl: settingsUser.profilePicture,
     userIsStaff: userMetadata?.is_staff === true,
+    userIsCompanyOwner: userMetadata?.is_company_owner === true,
     userGroups: fromSettings.length ? fromSettings : fromJwt,
     userPreferences: null,
   };

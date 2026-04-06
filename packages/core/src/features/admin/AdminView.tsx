@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import urls from '../../constants/urls';
@@ -27,19 +28,27 @@ function buildAdminIframeSrc(
   return `${originBase}/#${hashRoute}${search}`;
 }
 
-const AdminAccessGuard = ({ isStaff }: { isStaff: boolean }) => {
-  if (!isStaff) {
+const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
+  if (!allow) {
     return <AdminForbiddenAccess />;
   }
   return <Outlet />;
 };
 
 export const AdminView = () => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
   const { user } = useAuth();
   const isStaff = Boolean(user?.isStaff);
+  const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
+  const djangoAdminHref = useMemo(() => {
+    if (config.backend?.type !== 'shellui' || !config.backend.url?.trim()) {
+      return null;
+    }
+    return `${config.backend.url.replace(/\/+$/, '')}/admin`;
+  }, [config.backend?.type, config.backend?.url]);
   const configuredAdminPathname = config.backend?.adminPathname?.trim();
   const adminPath =
     configuredAdminPathname && configuredAdminPathname.startsWith('/')
@@ -102,6 +111,21 @@ export const AdminView = () => {
             Back to home
           </Button>
           <div className="flex items-center gap-2">
+            {isStaff && djangoAdminHref ? (
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+              >
+                <a
+                  href={djangoAdminHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('adminShell.djangoAdmin')}
+                </a>
+              </Button>
+            ) : null}
             <LoginButton
               variant="appbar"
               logoutOnly
@@ -110,7 +134,7 @@ export const AdminView = () => {
         </header>
         <main className="flex min-h-0 flex-1">
           <Routes>
-            <Route element={<AdminAccessGuard isStaff={isStaff} />}>
+            <Route element={<AdminAccessGuard allow={canOpenAdminPanel} />}>
               <Route
                 path="*"
                 element={

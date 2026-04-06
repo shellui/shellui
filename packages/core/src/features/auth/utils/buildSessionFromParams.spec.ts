@@ -12,6 +12,7 @@ const createToken = () => {
       name: 'Jane',
       avatar_url: 'https://example.com/avatar.png',
       is_staff: true,
+      is_company_owner: true,
       groups: ['editors', 'admin'],
       shelluiPreferences: {
         themeName: 'default',
@@ -42,6 +43,7 @@ describe('buildSessionFromParams', () => {
     expect(session?.userName).toBe('Jane');
     expect(session?.userAvatarUrl).toBe('https://example.com/avatar.png');
     expect(session?.userIsStaff).toBe(true);
+    expect(session?.userIsCompanyOwner).toBe(true);
     expect(session?.userPreferences).toEqual({
       themeName: 'default',
       language: 'fr',

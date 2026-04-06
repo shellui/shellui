@@ -9,6 +9,9 @@
   },
   "navigationError": "Erreur de navigation",
   "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application.",
+  "adminShell": {
+    "djangoAdmin": "Admin Django"
+  },
   "authMenu": {
     "login": "Connexion",
     "logout": "Se déconnecter",

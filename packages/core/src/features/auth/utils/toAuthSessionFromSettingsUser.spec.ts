@@ -8,6 +8,7 @@ const shelluiJwtWithGroups = () => {
   const payload = {
     user_metadata: {
       is_staff: true,
+      is_company_owner: true,
       groups: ['team-a', 'team-b'],
     },
   };
@@ -33,6 +34,7 @@ describe('toAuthSessionFromSettingsUser', () => {
     expect(session.userName).toBe('Demo User');
     expect(session.userAvatarUrl).toBe('https://example.com/avatar.png');
     expect(session.userIsStaff).toBe(false);
+    expect(session.userIsCompanyOwner).toBe(false);
     expect(session.userGroups).toEqual([]);
     expect(session.provider).toBe('google');
     expect(session.tokenType).toBe('bearer');
@@ -54,6 +56,7 @@ describe('toAuthSessionFromSettingsUser', () => {
 
     const session = toAuthSessionFromSettingsUser(settingsUser, shelluiJwtWithGroups());
     expect(session.userIsStaff).toBe(true);
+    expect(session.userIsCompanyOwner).toBe(true);
     expect(session.userGroups).toEqual(['team-a', 'team-b']);
   });
 

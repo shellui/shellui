@@ -142,7 +142,10 @@ export const LoginButton = ({
     shellui.openModal(`${urls.settings}/user`);
   }, []);
 
-  const canAccessAdmin = useMemo(() => Boolean(user?.isStaff), [user?.isStaff]);
+  const canAccessAdmin = useMemo(
+    () => Boolean(user?.isStaff || user?.isCompanyOwner),
+    [user?.isCompanyOwner, user?.isStaff],
+  );
   const configuredAdminPathname = useMemo(
     () => config.backend?.adminPathname?.trim() ?? null,
     [config.backend?.adminPathname],

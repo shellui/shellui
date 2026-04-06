@@ -9,6 +9,8 @@ export interface AuthSession {
   userName: string | null;
   userAvatarUrl: string | null;
   userIsStaff: boolean;
+  /** True when JWT `user_metadata.is_company_owner` is set for the active company (ShellUI auth). */
+  userIsCompanyOwner: boolean;
   /** Sorted unique group names from JWT `user_metadata.groups` (ShellUI auth). */
   userGroups: string[];
   userPreferences?: UserPreferences | null;
@@ -20,6 +22,8 @@ export interface AuthUser {
   name: string | null;
   profilePicture: string | null;
   isStaff: boolean;
+  /** Company owner for the JWT tenant (`user_metadata.is_company_owner`, ShellUI auth). */
+  isCompanyOwner: boolean;
   authProvider: string | null;
   /** Group names from the access token; empty if none or not a ShellUI JWT. */
   groups: string[];
