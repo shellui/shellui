@@ -1,5 +1,7 @@
 import {
   buildSessionFromParams,
+  getShellUILoginClientTimezone,
+  getShellUILoginDeviceId,
   isSessionExpired,
   normalizeAuthSettings,
   normalizeRedirectPath,
@@ -73,6 +75,14 @@ export const createShellUIAuthBackend = ({
       const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
       authorizeUrl.searchParams.set('redirect_to', redirectTo);
+      const clientTz = getShellUILoginClientTimezone();
+      if (clientTz) {
+        authorizeUrl.searchParams.set('client_timezone', clientTz);
+      }
+      const clientDeviceId = getShellUILoginDeviceId();
+      if (clientDeviceId) {
+        authorizeUrl.searchParams.set('client_device_id', clientDeviceId);
+      }
       window.location.assign(authorizeUrl.toString());
     },
     startWeb3Ethereum: async () => {
