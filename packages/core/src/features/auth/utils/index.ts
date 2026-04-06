@@ -1,4 +1,4 @@
-export { getShellUILoginClientTimezone, getShellUILoginDeviceId } from './clientLoginContext';
+export { getShellUILoginClientTimezone, getShellUILoginCompanyId, getShellUILoginDeviceId } from './clientLoginContext';
 export { buildSessionFromParams } from './buildSessionFromParams';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';

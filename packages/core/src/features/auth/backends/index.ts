@@ -28,6 +28,7 @@ export const createAuthBackend = (backendConfig: BackendConfig | undefined): Aut
   if (backendConfig.type === 'shellui') {
     return createShellUIAuthBackend({
       backendUrl: backendConfig.url?.replace(/\/+$/, '') ?? null,
+      companyId: backendConfig.companyId,
     });
   }
   if (backendConfig.type === 'supabase') {

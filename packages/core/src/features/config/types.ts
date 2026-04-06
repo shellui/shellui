@@ -211,6 +211,8 @@ export interface BackendConfig {
   publishableKey?: string;
   /** Optional login capabilities used by frontend for immediate rendering. */
   login?: BackendLoginConfig;
+  /** Optional tenant id used for multi-tenant shellui-auth calls. */
+  companyId?: string | number;
 }
 
 export interface ShellUIConfig {
