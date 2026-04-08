@@ -16,6 +16,7 @@
     "login": "Connexion",
     "logout": "Se déconnecter",
     "profile": "Profil",
+    "settings": "Paramètres",
     "administration": "Administration",
     "noEmail": "Aucun e-mail",
     "userFallback": "Utilisateur",

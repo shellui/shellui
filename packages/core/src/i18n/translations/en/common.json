@@ -16,6 +16,7 @@
     "login": "Login",
     "logout": "Logout",
     "profile": "Profile",
+    "settings": "Settings",
     "administration": "Administration",
     "noEmail": "No email",
     "userFallback": "User",
