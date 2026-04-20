@@ -18,6 +18,9 @@ import {
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
+const SHELLUI_OAUTH_ERROR_PARAM = 'shellui_oauth_error';
+const SHELLUI_OAUTH_ERROR_CODE_PARAM = 'shellui_oauth_error_code';
+
 type LastUsedLogin =
   | { method: 'oauth'; provider: string }
   | { method: 'magic_link' }
@@ -106,6 +109,7 @@ export const LoginView = () => {
   const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [methodError, setMethodError] = useState<string | null>(null);
+  const [oauthBounceError, setOauthBounceError] = useState<string | null>(null);
   const [lastUsedLogin, setLastUsedLogin] = useState<LastUsedLogin | null>(
     readLastUsedLoginFromStorage,
   );
@@ -117,6 +121,27 @@ export const LoginView = () => {
   const loginPathWithNext = useMemo(() => {
     return `${urls.login}?next=${encodeURIComponent(nextPath)}`;
   }, [nextPath]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const rawErr = params.get(SHELLUI_OAUTH_ERROR_PARAM);
+    if (!rawErr) {
+      return;
+    }
+    const code = params.get(SHELLUI_OAUTH_ERROR_CODE_PARAM);
+    params.delete(SHELLUI_OAUTH_ERROR_PARAM);
+    params.delete(SHELLUI_OAUTH_ERROR_CODE_PARAM);
+    const qs = params.toString();
+    const path = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
+    navigate(path, { replace: true });
+    setOauthLoadingProvider(null);
+    const baseMsg = rawErr.trim() || 'Sign-in could not continue.';
+    const hint =
+      code === 'redirect_not_allowed'
+        ? ` Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: ${typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}.`
+        : '';
+    setOauthBounceError(`${baseMsg}${hint}`);
+  }, [location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     if (authEvent === 'oauth_callback' && isAuthenticated) {
@@ -134,7 +159,7 @@ export const LoginView = () => {
   const supportsOAuth = configuredSettings.methods.includes('oauth');
   const supportsMagicLink = configuredSettings.methods.includes('magic_link');
   const supportsWeb3 = configuredSettings.methods.includes('web3');
-  const settingsLoadError = authError ?? methodError;
+  const settingsLoadError = oauthBounceError ?? authError ?? methodError;
   const isActionPending = Boolean(oauthLoadingProvider) || web3Loading || magicLinkLoading;
   const allOAuthProviders = useMemo(
     () =>
@@ -242,6 +267,7 @@ export const LoginView = () => {
 
   const handleOAuthLogin = async (provider: string) => {
     setMethodError(null);
+    setOauthBounceError(null);
     setMagicLinkError(null);
     setMagicLinkMessage(null);
     setOauthLoadingProvider(provider);
