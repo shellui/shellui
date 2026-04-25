@@ -102,7 +102,7 @@ export const createShellUIAuthBackend = ({
       if (!currentSession?.refreshToken) return null;
       return refreshWithStoredToken(currentSession, nowSeconds);
     },
-    startOAuth: (provider, redirectPath) => {
+    startOAuth: (provider, redirectPath, oauthClientId) => {
       if (!backendUrl) {
         throw new Error('Missing ShellUI backend URL.');
       }
@@ -110,6 +110,9 @@ export const createShellUIAuthBackend = ({
       const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
       authorizeUrl.searchParams.set('redirect_to', redirectTo);
+      if (typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0) {
+        authorizeUrl.searchParams.set('company_oauth_client_id', String(Math.trunc(oauthClientId)));
+      }
       const selectedCompanyId = getShellUILoginCompanyId(companyId);
       if (selectedCompanyId) {
         authorizeUrl.searchParams.set('company_id', selectedCompanyId);
@@ -146,7 +149,7 @@ export const createShellUIAuthBackend = ({
     },
     getAuthSettings: async () => {
       if (!backendUrl) {
-        return { methods: [], oauthProviders: [] };
+        return { methods: [], oauthProviders: [], oauthClients: [] };
       }
       const endpoint = new URL(`${backendUrl}/auth/v1/settings`);
       const selectedCompanyId = getShellUILoginCompanyId(companyId);

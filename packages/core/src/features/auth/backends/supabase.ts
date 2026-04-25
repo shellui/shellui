@@ -178,7 +178,7 @@ export const createSupabaseAuthBackend = ({
     },
     getAuthSettings: async () => {
       if (!backendUrl) {
-        return { methods: [], oauthProviders: [] };
+        return { methods: [], oauthProviders: [], oauthClients: [] };
       }
 
       const endpoint = new URL(`${backendUrl}/auth/v1/settings`);

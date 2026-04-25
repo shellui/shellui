@@ -13,7 +13,7 @@ export interface AuthBackend {
     session: AuthSession | null,
     nowSeconds: number,
   ) => Promise<AuthSession | null>;
-  startOAuth: (provider: string, redirectPath: string) => void;
+  startOAuth: (provider: string, redirectPath: string, oauthClientId?: number) => void;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
   getAuthSettings: () => Promise<AuthSettings>;

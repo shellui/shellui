@@ -8,13 +8,14 @@ const WEB3_EXTERNAL_PROVIDERS = new Set(['ethereum', 'solana', 'web3_ethereum', 
 export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   const record = Array.isArray(payload) ? payload[0] : payload;
   if (!record || typeof record !== 'object') {
-    return { methods: [], oauthProviders: [] };
+    return { methods: [], oauthProviders: [], oauthClients: [] };
   }
 
   const obj = record as Record<string, unknown>;
   const methodsFromArray = Array.isArray(obj.methods) ? obj.methods.filter(isLoginMethod) : [];
   const methods = new Set<LoginMethod>(methodsFromArray);
   const oauthProvidersSet = new Set<string>();
+  const oauthClients: AuthSettings['oauthClients'] = [];
 
   if (isLoginMethod(obj.loginMethod)) methods.add(obj.loginMethod);
   if (obj.loginMethod === 'both') {
@@ -49,9 +50,22 @@ export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   if (typeof obj.oauth_provider === 'string') {
     oauthProvidersSet.add(obj.oauth_provider.toLowerCase());
   }
+  if (Array.isArray(obj.oauthClients)) {
+    obj.oauthClients.forEach((row) => {
+      if (!row || typeof row !== 'object') return;
+      const item = row as Record<string, unknown>;
+      const id = Number(item.id);
+      const provider = typeof item.provider === 'string' ? item.provider.toLowerCase().trim() : '';
+      const label = typeof item.label === 'string' ? item.label.trim() : '';
+      if (!Number.isInteger(id) || id <= 0 || !provider || !label) return;
+      oauthClients.push({ id, provider, label });
+      oauthProvidersSet.add(provider);
+    });
+  }
 
   return {
     methods: Array.from(methods),
     oauthProviders: Array.from(oauthProvidersSet),
+    oauthClients,
   };
 };

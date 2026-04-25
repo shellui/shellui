@@ -234,6 +234,8 @@ export interface LoginOptions {
   chain?: 'ethereum';
   /** Optional route that should receive the auth callback. */
   redirectPath?: string;
+  /** Optional company OAuth client id when backend supports per-tenant keys. */
+  oauthClientId?: number;
 }
 
 export type ShellUIMessageType =

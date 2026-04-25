@@ -11,7 +11,7 @@ export interface AuthContextValue {
   error: string | null;
   authEvent: AuthEvent;
   clearAuthEvent: () => void;
-  startOAuth: (provider: string, redirectPath?: string) => boolean;
+  startOAuth: (provider: string, redirectPath?: string, oauthClientId?: number) => boolean;
   startWeb3Ethereum: () => Promise<boolean>;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;

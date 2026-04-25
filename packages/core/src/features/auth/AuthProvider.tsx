@@ -25,6 +25,7 @@ const TOKEN_REFRESH_TICK_MS = 45_000;
 type LoginMessagePayload = {
   method?: 'oauth' | 'web3';
   provider?: string;
+  oauthClientId?: number;
   chain?: 'ethereum';
   redirectPath?: string;
 };
@@ -226,10 +227,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const startOAuth = useCallback(
-    (provider: string, redirectPath = urls.login) => {
+    (provider: string, redirectPath = urls.login, oauthClientId?: number) => {
       try {
         setError(null);
-        backend.startOAuth(provider, redirectPath);
+        backend.startOAuth(provider, redirectPath, oauthClientId);
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
@@ -361,7 +362,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      startOAuth(provider, payload.redirectPath || urls.login);
+      startOAuth(provider, payload.redirectPath || urls.login, payload.oauthClientId);
     });
 
     return () => cleanup();

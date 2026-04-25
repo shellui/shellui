@@ -15,7 +15,7 @@ const createNoopBackend = (): AuthBackend => ({
     throw new Error('No auth backend configured.');
   },
   logout: async () => {},
-  getAuthSettings: async () => ({ methods: [], oauthProviders: [] }),
+  getAuthSettings: async () => ({ methods: [], oauthProviders: [], oauthClients: [] }),
   sendMagicLink: async () => {
     throw new Error('No auth backend configured.');
   },

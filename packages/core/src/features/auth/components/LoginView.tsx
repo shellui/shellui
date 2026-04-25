@@ -100,6 +100,7 @@ export const LoginView = () => {
     return {
       methods: configuredMethods,
       oauthProviders: configuredProviders,
+      oauthClients: [],
     };
   }, [config.backend?.login?.methods, config.backend?.login?.oauthProviders]);
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
@@ -222,7 +223,7 @@ export const LoginView = () => {
     async (
       method: LoginMethod,
       provider?: string,
-    ): Promise<{ isSupported: boolean; backendProvider?: string }> => {
+    ): Promise<{ isSupported: boolean; backendProvider?: string; oauthClientId?: number }> => {
       try {
         const backendSettings = await getAuthSettings();
         if (!backendSettings.methods.includes(method)) {
@@ -246,12 +247,22 @@ export const LoginView = () => {
             );
             return { isSupported: false };
           }
-          return { isSupported: true, backendProvider: matchedProvider };
-        }
-        if (method === 'oauth' && provider) {
+          const matchedClient = backendSettings.oauthClients.find(
+            (row) => row.provider === matchedProvider,
+          );
           return {
             isSupported: true,
-            backendProvider: getPreferredBackendProvider(provider),
+            backendProvider: matchedProvider,
+            oauthClientId: matchedClient?.id,
+          };
+        }
+        if (method === 'oauth' && provider) {
+          const backendProvider = getPreferredBackendProvider(provider);
+          const client = backendSettings.oauthClients.find((row) => row.provider === backendProvider);
+          return {
+            isSupported: true,
+            backendProvider,
+            oauthClientId: client?.id,
           };
         }
         return { isSupported: true };
@@ -287,10 +298,11 @@ export const LoginView = () => {
         method: 'oauth',
         provider: backendProvider,
         redirectPath: loginPathWithNext,
+        oauthClientId: support.oauthClientId,
       });
       return;
     }
-    const started = startOAuth(backendProvider, loginPathWithNext);
+    const started = startOAuth(backendProvider, loginPathWithNext, support.oauthClientId);
     if (!started) {
       setOauthLoadingProvider(null);
     }

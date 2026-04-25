@@ -36,6 +36,11 @@ export type LoginMethod = 'password' | 'oauth' | 'magic_link' | 'web3';
 export interface AuthSettings {
   methods: LoginMethod[];
   oauthProviders: string[];
+  oauthClients: Array<{
+    id: number;
+    provider: string;
+    label: string;
+  }>;
 }
 
 export type UserPreferences = {
