@@ -68,4 +68,3 @@ When configured, ShellUI exposes:
 
 Legal document content is rendered from markdown with ShellUI typography styles (headings, lists, links, blockquotes, inline code).  
 Use markdown headings (`#`, `##`, `###`) to structure long legal text.
-

@@ -73,7 +73,14 @@ export const OAuthCallbackView = () => {
     return () => {
       cancelled = true;
     };
-  }, [completeOAuthCallback, isAuthenticated, location.pathname, location.search, navigate, nextPath]);
+  }, [
+    completeOAuthCallback,
+    isAuthenticated,
+    location.pathname,
+    location.search,
+    navigate,
+    nextPath,
+  ]);
 
   const displayError = localError;
   if (displayError) {

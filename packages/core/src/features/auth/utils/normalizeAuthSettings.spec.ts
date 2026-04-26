@@ -21,7 +21,11 @@ describe('normalizeAuthSettings', () => {
   });
 
   it('supports array payloads and handles invalid values', () => {
-    expect(normalizeAuthSettings([])).toEqual({ methods: [], oauthProviders: [], oauthClients: [] });
+    expect(normalizeAuthSettings([])).toEqual({
+      methods: [],
+      oauthProviders: [],
+      oauthClients: [],
+    });
 
     const result = normalizeAuthSettings([{ loginMethod: 'both', oauth_provider: 'GitLab' }]);
     expect(result.methods).toEqual(expect.arrayContaining(['password', 'oauth']));

@@ -47,11 +47,16 @@ const LEGAL_DOCUMENT_DEFINITIONS: LegalDocumentDefinition[] = [
 export const getLegalDocuments = (config: ShellUIConfig): LegalDocumentDescriptor[] => {
   const legalConfig = config.legalDocuments;
   if (!legalConfig) return [];
-  return LEGAL_DOCUMENT_DEFINITIONS.filter((definition) => {
+  const documents: LegalDocumentDescriptor[] = [];
+  for (const definition of LEGAL_DOCUMENT_DEFINITIONS) {
     const content = legalConfig[definition.key];
-    return typeof content === 'string' && content.trim().length > 0;
-  }).map((definition) => ({
-    ...definition,
-    content: legalConfig[definition.key]!.trim(),
-  }));
+    if (typeof content !== 'string') continue;
+    const trimmedContent = content.trim();
+    if (!trimmedContent) continue;
+    documents.push({
+      ...definition,
+      content: trimmedContent,
+    });
+  }
+  return documents;
 };

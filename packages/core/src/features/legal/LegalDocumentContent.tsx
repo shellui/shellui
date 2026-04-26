@@ -62,10 +62,14 @@ export const LegalDocumentContent = ({ document }: LegalDocumentContentProps) =>
                 {children}
               </h3>
             ),
-            p: ({ children }) => <p className="text-sm leading-7 text-card-foreground">{children}</p>,
+            p: ({ children }) => (
+              <p className="text-sm leading-7 text-card-foreground">{children}</p>
+            ),
             ul: ({ children }) => <ul className="my-4 ml-6 list-disc space-y-2">{children}</ul>,
             ol: ({ children }) => <ol className="my-4 ml-6 list-decimal space-y-2">{children}</ol>,
-            li: ({ children }) => <li className="text-sm leading-7 text-card-foreground">{children}</li>,
+            li: ({ children }) => (
+              <li className="text-sm leading-7 text-card-foreground">{children}</li>
+            ),
             strong: ({ children }) => (
               <strong className="font-semibold text-card-foreground">{children}</strong>
             ),

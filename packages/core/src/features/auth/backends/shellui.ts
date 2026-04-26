@@ -52,9 +52,9 @@ export const createShellUIAuthBackend = ({
 
     const refreshUrl = new URL(`${backendUrl}/auth/v1/token`);
     refreshUrl.searchParams.set('grant_type', 'refresh_token');
-    const companyId = getCompanyIdFromAccessToken(storedSession.accessToken);
-    if (companyId) {
-      refreshUrl.searchParams.set('company_id', companyId);
+    const tokenCompanyId = getCompanyIdFromAccessToken(storedSession.accessToken);
+    if (tokenCompanyId) {
+      refreshUrl.searchParams.set('company_id', tokenCompanyId);
     }
     const clientTz = getShellUILoginClientTimezone();
     const response = await fetch(refreshUrl.toString(), {
@@ -116,7 +116,9 @@ export const createShellUIAuthBackend = ({
           provider,
           code,
           redirect_uri: redirectUri,
-          ...(typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0
+          ...(typeof oauthClientId === 'number' &&
+          Number.isFinite(oauthClientId) &&
+          oauthClientId > 0
             ? { company_oauth_client_id: Math.trunc(oauthClientId) }
             : {}),
           ...(clientTz ? { client_timezone: clientTz } : {}),
@@ -139,7 +141,8 @@ export const createShellUIAuthBackend = ({
       if (typeof payload?.expires_in === 'number' || typeof payload?.expires_in === 'string') {
         refreshParams.set('expires_in', String(payload.expires_in));
       }
-      if (typeof payload?.token_type === 'string') refreshParams.set('token_type', payload.token_type);
+      if (typeof payload?.token_type === 'string')
+        refreshParams.set('token_type', payload.token_type);
       return buildSessionFromParams(refreshParams, nowSeconds);
     },
     restoreSession: async (storedSession, nowSeconds) => {
@@ -155,16 +158,29 @@ export const createShellUIAuthBackend = ({
       if (!backendUrl) {
         throw new Error('Missing ShellUI backend URL.');
       }
-      const redirectToUrl = new URL(`${window.location.origin}${normalizeRedirectPath(redirectPath)}`);
+      const redirectToUrl = new URL(
+        `${window.location.origin}${normalizeRedirectPath(redirectPath)}`,
+      );
       redirectToUrl.searchParams.set('provider', provider);
-      if (typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0) {
-        redirectToUrl.searchParams.set('company_oauth_client_id', String(Math.trunc(oauthClientId)));
+      if (
+        typeof oauthClientId === 'number' &&
+        Number.isFinite(oauthClientId) &&
+        oauthClientId > 0
+      ) {
+        redirectToUrl.searchParams.set(
+          'company_oauth_client_id',
+          String(Math.trunc(oauthClientId)),
+        );
       }
       const redirectTo = redirectToUrl.toString();
       const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
       authorizeUrl.searchParams.set('redirect_to', redirectTo);
-      if (typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0) {
+      if (
+        typeof oauthClientId === 'number' &&
+        Number.isFinite(oauthClientId) &&
+        oauthClientId > 0
+      ) {
         authorizeUrl.searchParams.set('company_oauth_client_id', String(Math.trunc(oauthClientId)));
       }
       const selectedCompanyId = getShellUILoginCompanyId(companyId);
@@ -189,9 +205,9 @@ export const createShellUIAuthBackend = ({
         return;
       }
       const endpoint = new URL(`${backendUrl}/auth/v1/logout`);
-      const companyId = getCompanyIdFromAccessToken(session.accessToken);
-      if (companyId) {
-        endpoint.searchParams.set('company_id', companyId);
+      const tokenCompanyId = getCompanyIdFromAccessToken(session.accessToken);
+      if (tokenCompanyId) {
+        endpoint.searchParams.set('company_id', tokenCompanyId);
       }
       await fetch(endpoint.toString(), {
         method: 'POST',
@@ -256,9 +272,9 @@ export const createShellUIAuthBackend = ({
         return;
       }
       const endpoint = new URL(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`);
-      const companyId = getCompanyIdFromAccessToken(session.accessToken);
-      if (companyId) {
-        endpoint.searchParams.set('company_id', companyId);
+      const tokenCompanyId = getCompanyIdFromAccessToken(session.accessToken);
+      if (tokenCompanyId) {
+        endpoint.searchParams.set('company_id', tokenCompanyId);
       }
       const response = await fetch(endpoint.toString(), {
         method: 'PUT',
@@ -278,9 +294,9 @@ export const createShellUIAuthBackend = ({
         return null;
       }
       const endpoint = new URL(`${backendUrl}${USER_PREFERENCES_ENDPOINT}`);
-      const companyId = getCompanyIdFromAccessToken(session.accessToken);
-      if (companyId) {
-        endpoint.searchParams.set('company_id', companyId);
+      const tokenCompanyId = getCompanyIdFromAccessToken(session.accessToken);
+      if (tokenCompanyId) {
+        endpoint.searchParams.set('company_id', tokenCompanyId);
       }
       const response = await fetch(endpoint.toString(), {
         method: 'GET',

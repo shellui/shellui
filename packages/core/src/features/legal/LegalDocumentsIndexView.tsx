@@ -16,13 +16,13 @@ export const LegalDocumentsIndexView = () => {
         >
           Legal documents
         </h1>
-        <p className="text-sm text-muted-foreground">
-          Select a document to view its full content.
-        </p>
+        <p className="text-sm text-muted-foreground">Select a document to view its full content.</p>
       </div>
 
       {legalDocuments.length === 0 ? (
-        <p className="mt-6 text-sm text-muted-foreground">No legal document is currently configured.</p>
+        <p className="mt-6 text-sm text-muted-foreground">
+          No legal document is currently configured.
+        </p>
       ) : (
         <ul className="mt-6 space-y-2">
           {legalDocuments.map((document) => (

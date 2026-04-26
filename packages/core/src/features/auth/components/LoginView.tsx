@@ -262,7 +262,9 @@ export const LoginView = () => {
         }
         if (method === 'oauth' && provider) {
           const backendProvider = getPreferredBackendProvider(provider);
-          const client = backendSettings.oauthClients.find((row) => row.provider === backendProvider);
+          const client = backendSettings.oauthClients.find(
+            (row) => row.provider === backendProvider,
+          );
           return {
             isSupported: true,
             backendProvider,
@@ -392,10 +394,7 @@ export const LoginView = () => {
       )}
 
       <section
-        className={cn(
-          'flex min-h-full w-full flex-col px-6 py-10',
-          !isIframeView && 'md:w-1/2',
-        )}
+        className={cn('flex min-h-full w-full flex-col px-6 py-10', !isIframeView && 'md:w-1/2')}
       >
         <div className="flex w-full flex-1 items-center justify-center">
           <div
@@ -405,7 +404,9 @@ export const LoginView = () => {
             )}
           >
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Welcome back</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+                Welcome back
+              </h1>
               <p className="text-sm text-muted-foreground">{signInDescription}</p>
             </div>
 
@@ -449,113 +450,122 @@ export const LoginView = () => {
                 </section>
               )}
 
-            {featuredMethod === 'magic_link' && supportsMagicLink && (
-              <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Last used
-                </p>
-                <form
-                  className="space-y-2"
-                  onSubmit={(event) => void handleMagicLinkLogin(event)}
-                >
-                  <input
-                    id="magic-link-email"
-                    type="email"
-                    value={magicLinkEmail}
-                    onChange={(event) => setMagicLinkEmail(event.target.value)}
-                    placeholder="name@company.com"
-                    autoComplete="email"
-                    required
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    className="w-full"
-                    disabled={isActionPending}
+              {featuredMethod === 'magic_link' && supportsMagicLink && (
+                <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Last used
+                  </p>
+                  <form
+                    className="space-y-2"
+                    onSubmit={(event) => void handleMagicLinkLogin(event)}
                   >
-                    {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
-                  </Button>
-                  {magicLinkMessage && (
-                    <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                  )}
-                  {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
-                </form>
-              </section>
-            )}
-
-            {featuredMethod === 'web3' && supportsWeb3 && (
-              <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Last used
-                </p>
-                {(() => {
-                  const visual = getProviderVisual('ethereum');
-                  return (
+                    <input
+                      id="magic-link-email"
+                      type="email"
+                      value={magicLinkEmail}
+                      onChange={(event) => setMagicLinkEmail(event.target.value)}
+                      placeholder="name@company.com"
+                      autoComplete="email"
+                      required
+                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    />
                     <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 w-full justify-start px-3 text-base"
-                      onClick={() => void handleWeb3Login()}
+                      type="submit"
+                      variant="secondary"
+                      className="w-full"
                       disabled={isActionPending}
                     >
-                      <span
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
-                        aria-hidden
-                      >
-                        <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
-                      </span>
-                      <span className="truncate">
-                        {web3Loading ? 'Connecting wallet...' : 'Continue with Ethereum wallet'}
-                      </span>
+                      {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
                     </Button>
-                  );
-                })()}
-              </section>
-            )}
-
-            {featuredMethod !== null && hasAlternativeMethods && (
-              <div className="pt-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-expanded={showAlternativeMethods}
-                  className="h-8 w-auto justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowAlternativeMethods((prev) => !prev)}
-                >
-                  <ChevronDownIcon
-                    className={cn(
-                      'h-3.5 w-3.5 transition-transform duration-300',
-                      showAlternativeMethods ? 'rotate-180' : 'rotate-0',
+                    {magicLinkMessage && (
+                      <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
                     )}
-                  />
-                  {showAlternativeMethods ? 'Hide other methods' : 'Use another method'}
-                </Button>
-              </div>
-            )}
-
-            <div
-              className={cn(
-                'grid transition-[grid-template-rows,opacity] duration-500 ease-out',
-                alternativesAreCollapsible
-                  ? showAlternatives
-                    ? 'grid-rows-[1fr] opacity-100'
-                    : 'grid-rows-[0fr] opacity-0'
-                  : 'grid-rows-[1fr] opacity-100',
+                    {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
+                  </form>
+                </section>
               )}
-            >
-              <div className="min-h-0 overflow-hidden">
-                <div
-                  className={cn(
-                    'space-y-4 transition-transform duration-500 ease-out',
-                    alternativesAreCollapsible && !showAlternatives
-                      ? '-translate-y-2'
-                      : 'translate-y-0',
-                  )}
-                >
-                  {featuredMethod === 'oauth' &&
-                    (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
+
+              {featuredMethod === 'web3' && supportsWeb3 && (
+                <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Last used
+                  </p>
+                  {(() => {
+                    const visual = getProviderVisual('ethereum');
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-12 w-full justify-start px-3 text-base"
+                        onClick={() => void handleWeb3Login()}
+                        disabled={isActionPending}
+                      >
+                        <span
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                          aria-hidden
+                        >
+                          <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                        </span>
+                        <span className="truncate">
+                          {web3Loading ? 'Connecting wallet...' : 'Continue with Ethereum wallet'}
+                        </span>
+                      </Button>
+                    );
+                  })()}
+                </section>
+              )}
+
+              {featuredMethod !== null && hasAlternativeMethods && (
+                <div className="pt-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded={showAlternativeMethods}
+                    className="h-8 w-auto justify-start gap-2 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowAlternativeMethods((prev) => !prev)}
+                  >
+                    <ChevronDownIcon
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform duration-300',
+                        showAlternativeMethods ? 'rotate-180' : 'rotate-0',
+                      )}
+                    />
+                    {showAlternativeMethods ? 'Hide other methods' : 'Use another method'}
+                  </Button>
+                </div>
+              )}
+
+              <div
+                className={cn(
+                  'grid transition-[grid-template-rows,opacity] duration-500 ease-out',
+                  alternativesAreCollapsible
+                    ? showAlternatives
+                      ? 'grid-rows-[1fr] opacity-100'
+                      : 'grid-rows-[0fr] opacity-0'
+                    : 'grid-rows-[1fr] opacity-100',
+                )}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div
+                    className={cn(
+                      'space-y-4 transition-transform duration-500 ease-out',
+                      alternativesAreCollapsible && !showAlternatives
+                        ? '-translate-y-2'
+                        : 'translate-y-0',
+                    )}
+                  >
+                    {featuredMethod === 'oauth' &&
+                      (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
+                        <div className="relative py-1">
+                          <div className="border-t border-border" />
+                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                            or
+                          </span>
+                        </div>
+                      )}
+
+                    {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
                       <div className="relative py-1">
                         <div className="border-t border-border" />
                         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -564,72 +574,28 @@ export const LoginView = () => {
                       </div>
                     )}
 
-                  {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
-                    <div className="relative py-1">
-                      <div className="border-t border-border" />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                        or
-                      </span>
-                    </div>
-                  )}
+                    {featuredMethod === 'web3' && (supportsOAuth || supportsMagicLink) && (
+                      <div className="relative py-1">
+                        <div className="border-t border-border" />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                          or
+                        </span>
+                      </div>
+                    )}
 
-                  {featuredMethod === 'web3' && (supportsOAuth || supportsMagicLink) && (
-                    <div className="relative py-1">
-                      <div className="border-t border-border" />
-                      <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                        or
-                      </span>
-                    </div>
-                  )}
-
-                  {supportsWeb3 && featuredMethod !== 'web3' && (
-                    <section className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Wallet login
-                      </p>
-                      {(() => {
-                        const visual = getProviderVisual('ethereum');
-                        return (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="h-11 w-full justify-start px-3"
-                            onClick={() => void handleWeb3Login()}
-                            disabled={isActionPending}
-                          >
-                            <span
-                              className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
-                              aria-hidden
-                            >
-                              <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
-                            </span>
-                            <span className="truncate">
-                              {web3Loading
-                                ? 'Connecting wallet...'
-                                : 'Continue with Ethereum wallet'}
-                            </span>
-                          </Button>
-                        );
-                      })()}
-                    </section>
-                  )}
-
-                  {supportsOAuth && otherOAuthProviders.length > 0 && (
-                    <section className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {featuredMethod === 'oauth' ? 'Other social logins' : 'Social login'}
-                      </p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {otherOAuthProviders.map((provider) => {
-                          const visual = getProviderVisual(provider);
-                          const label = formatProviderLabel(provider);
+                    {supportsWeb3 && featuredMethod !== 'web3' && (
+                      <section className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Wallet login
+                        </p>
+                        {(() => {
+                          const visual = getProviderVisual('ethereum');
                           return (
                             <Button
-                              key={provider}
                               type="button"
                               variant="outline"
                               className="h-11 w-full justify-start px-3"
-                              onClick={() => void handleOAuthLogin(provider)}
+                              onClick={() => void handleWeb3Login()}
                               disabled={isActionPending}
                             >
                               <span
@@ -639,67 +605,102 @@ export const LoginView = () => {
                                 <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                               </span>
                               <span className="truncate">
-                                {oauthLoadingProvider === provider
-                                  ? `Redirecting to ${label}...`
-                                  : `Continue with ${label}`}
+                                {web3Loading
+                                  ? 'Connecting wallet...'
+                                  : 'Continue with Ethereum wallet'}
                               </span>
                             </Button>
                           );
-                        })}
-                      </div>
-                    </section>
-                  )}
-
-                  {(supportsOAuth || supportsWeb3) &&
-                    supportsMagicLink &&
-                    featuredMethod !== 'magic_link' && (
-                      <div className="relative py-1">
-                        <div className="border-t border-border" />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                          or
-                        </span>
-                      </div>
+                        })()}
+                      </section>
                     )}
 
-                  {supportsMagicLink && featuredMethod !== 'magic_link' && (
-                    <section className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Email magic link
-                      </p>
-                      <form
-                        className="space-y-2"
-                        onSubmit={(event) => void handleMagicLinkLogin(event)}
-                      >
-                        <input
-                          id="magic-link-email"
-                          type="email"
-                          value={magicLinkEmail}
-                          onChange={(event) => setMagicLinkEmail(event.target.value)}
-                          placeholder="name@company.com"
-                          autoComplete="email"
-                          required
-                          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        />
-                        <Button
-                          type="submit"
-                          variant="secondary"
-                          className="w-full"
-                          disabled={isActionPending}
+                    {supportsOAuth && otherOAuthProviders.length > 0 && (
+                      <section className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {featuredMethod === 'oauth' ? 'Other social logins' : 'Social login'}
+                        </p>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {otherOAuthProviders.map((provider) => {
+                            const visual = getProviderVisual(provider);
+                            const label = formatProviderLabel(provider);
+                            return (
+                              <Button
+                                key={provider}
+                                type="button"
+                                variant="outline"
+                                className="h-11 w-full justify-start px-3"
+                                onClick={() => void handleOAuthLogin(provider)}
+                                disabled={isActionPending}
+                              >
+                                <span
+                                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                                  aria-hidden
+                                >
+                                  <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                                </span>
+                                <span className="truncate">
+                                  {oauthLoadingProvider === provider
+                                    ? `Redirecting to ${label}...`
+                                    : `Continue with ${label}`}
+                                </span>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+
+                    {(supportsOAuth || supportsWeb3) &&
+                      supportsMagicLink &&
+                      featuredMethod !== 'magic_link' && (
+                        <div className="relative py-1">
+                          <div className="border-t border-border" />
+                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                            or
+                          </span>
+                        </div>
+                      )}
+
+                    {supportsMagicLink && featuredMethod !== 'magic_link' && (
+                      <section className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          Email magic link
+                        </p>
+                        <form
+                          className="space-y-2"
+                          onSubmit={(event) => void handleMagicLinkLogin(event)}
                         >
-                          {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
-                        </Button>
-                        {magicLinkMessage && (
-                          <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                        )}
-                        {magicLinkError && (
-                          <p className="text-sm text-destructive">{magicLinkError}</p>
-                        )}
-                      </form>
-                    </section>
-                  )}
+                          <input
+                            id="magic-link-email"
+                            type="email"
+                            value={magicLinkEmail}
+                            onChange={(event) => setMagicLinkEmail(event.target.value)}
+                            placeholder="name@company.com"
+                            autoComplete="email"
+                            required
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          />
+                          <Button
+                            type="submit"
+                            variant="secondary"
+                            className="w-full"
+                            disabled={isActionPending}
+                          >
+                            {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
+                          </Button>
+                          {magicLinkMessage && (
+                            <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
+                          )}
+                          {magicLinkError && (
+                            <p className="text-sm text-destructive">{magicLinkError}</p>
+                          )}
+                        </form>
+                      </section>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
               {!supportsOAuth && !supportsMagicLink && !supportsWeb3 && (
                 <p className="text-sm text-muted-foreground">
