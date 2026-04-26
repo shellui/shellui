@@ -122,6 +122,9 @@ export const LoginView = () => {
   const loginPathWithNext = useMemo(() => {
     return `${urls.login}?next=${encodeURIComponent(nextPath)}`;
   }, [nextPath]);
+  const oauthCallbackPathWithNext = useMemo(() => {
+    return `${urls.loginCallback}?next=${encodeURIComponent(nextPath)}`;
+  }, [nextPath]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -297,12 +300,12 @@ export const LoginView = () => {
       shellui.login({
         method: 'oauth',
         provider: backendProvider,
-        redirectPath: loginPathWithNext,
+        redirectPath: oauthCallbackPathWithNext,
         oauthClientId: support.oauthClientId,
       });
       return;
     }
-    const started = startOAuth(backendProvider, loginPathWithNext, support.oauthClientId);
+    const started = startOAuth(backendProvider, oauthCallbackPathWithNext, support.oauthClientId);
     if (!started) {
       setOauthLoadingProvider(null);
     }

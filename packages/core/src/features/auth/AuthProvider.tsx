@@ -240,6 +240,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const completeOAuthCallback = useCallback(
+    async ({
+      provider,
+      code,
+      redirectUri,
+      oauthClientId,
+    }: {
+      provider: string;
+      code: string;
+      redirectUri: string;
+      oauthClientId?: number;
+    }) => {
+      try {
+        setError(null);
+        const now = Math.floor(Date.now() / 1000);
+        const nextSession = await backend.exchangeOAuthCode({
+          provider,
+          code,
+          redirectUri,
+          oauthClientId,
+          nowSeconds: now,
+        });
+        if (!nextSession) {
+          setError('Unable to complete OAuth login.');
+          return false;
+        }
+        persistAuthSession(nextSession);
+        setSession(nextSession);
+        setAuthEvent('oauth_callback');
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to complete OAuth login.');
+        return false;
+      }
+    },
+    [backend],
+  );
+
   const startWeb3Ethereum = useCallback(async () => {
     try {
       setError(null);
@@ -395,6 +433,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       error,
       authEvent,
       clearAuthEvent,
+      completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,
       getAuthSettings,
@@ -410,6 +449,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       error,
       authEvent,
       clearAuthEvent,
+      completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,
       getAuthSettings,

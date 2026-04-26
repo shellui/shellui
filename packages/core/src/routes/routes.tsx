@@ -19,6 +19,11 @@ const CookiePreferencesView = lazy(() =>
 const LoginView = lazy(() =>
   import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView })),
 );
+const OAuthCallbackView = lazy(() =>
+  import('../features/auth/components/OAuthCallbackView').then((m) => ({
+    default: m.OAuthCallbackView,
+  })),
+);
 const AdminView = lazy(() =>
   import('../features/admin/AdminView').then((m) => ({ default: m.AdminView })),
 );
@@ -68,6 +73,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <LoginView />
+            </Suspense>
+          ),
+        },
+        {
+          // OAuth callback route (frontend receives code, then exchanges via backend).
+          path: urls.loginCallback.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <OAuthCallbackView />
             </Suspense>
           ),
         },

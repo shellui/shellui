@@ -4,6 +4,13 @@ import type { AuthSession, AuthSettings, UserPreferences } from '../types';
 export interface AuthBackend {
   type: BackendConfig['type'] | 'none';
   readSessionFromCallback: (locationHash: string, nowSeconds: number) => AuthSession | null;
+  exchangeOAuthCode: (params: {
+    provider: string;
+    code: string;
+    redirectUri: string;
+    oauthClientId?: number;
+    nowSeconds: number;
+  }) => Promise<AuthSession | null>;
   restoreSession: (
     storedSession: AuthSession | null,
     nowSeconds: number,

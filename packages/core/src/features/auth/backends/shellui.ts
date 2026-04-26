@@ -11,6 +11,7 @@ import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 
 const USER_PREFERENCES_ENDPOINT = '/auth/v1/preferences';
+const OAUTH_EXCHANGE_ENDPOINT = '/auth/v1/oauth/exchange';
 
 const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
   const parts = token.split('.');
@@ -93,6 +94,54 @@ export const createShellUIAuthBackend = ({
       const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
       return buildSessionFromParams(hashParams, nowSeconds);
     },
+    exchangeOAuthCode: async ({ provider, code, redirectUri, oauthClientId, nowSeconds }) => {
+      if (!backendUrl) {
+        throw new Error('Missing ShellUI backend URL.');
+      }
+      const selectedCompanyId = getShellUILoginCompanyId(companyId);
+      if (!selectedCompanyId) {
+        throw new Error('Missing company_id for OAuth exchange.');
+      }
+      const endpoint = new URL(`${backendUrl}${OAUTH_EXCHANGE_ENDPOINT}`);
+      endpoint.searchParams.set('company_id', selectedCompanyId);
+      const clientTz = getShellUILoginClientTimezone();
+      const clientDeviceId = getShellUILoginDeviceId();
+      const response = await fetch(endpoint.toString(), {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider,
+          code,
+          redirect_uri: redirectUri,
+          ...(typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0
+            ? { company_oauth_client_id: Math.trunc(oauthClientId) }
+            : {}),
+          ...(clientTz ? { client_timezone: clientTz } : {}),
+          ...(clientDeviceId ? { client_device_id: clientDeviceId } : {}),
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!response.ok) {
+        const err = payload?.error ?? payload?.detail;
+        throw new Error(typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`);
+      }
+      const refreshParams = new URLSearchParams();
+      if (typeof payload?.access_token === 'string')
+        refreshParams.set('access_token', payload.access_token);
+      if (typeof payload?.refresh_token === 'string')
+        refreshParams.set('refresh_token', payload.refresh_token);
+      if (typeof payload?.expires_at === 'number' || typeof payload?.expires_at === 'string') {
+        refreshParams.set('expires_at', String(payload.expires_at));
+      }
+      if (typeof payload?.expires_in === 'number' || typeof payload?.expires_in === 'string') {
+        refreshParams.set('expires_in', String(payload.expires_in));
+      }
+      if (typeof payload?.token_type === 'string') refreshParams.set('token_type', payload.token_type);
+      return buildSessionFromParams(refreshParams, nowSeconds);
+    },
     restoreSession: async (storedSession, nowSeconds) => {
       if (!storedSession) return null;
       if (!isSessionExpired(storedSession)) return storedSession;
@@ -106,7 +155,12 @@ export const createShellUIAuthBackend = ({
       if (!backendUrl) {
         throw new Error('Missing ShellUI backend URL.');
       }
-      const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+      const redirectToUrl = new URL(`${window.location.origin}${normalizeRedirectPath(redirectPath)}`);
+      redirectToUrl.searchParams.set('provider', provider);
+      if (typeof oauthClientId === 'number' && Number.isFinite(oauthClientId) && oauthClientId > 0) {
+        redirectToUrl.searchParams.set('company_oauth_client_id', String(Math.trunc(oauthClientId)));
+      }
+      const redirectTo = redirectToUrl.toString();
       const authorizeUrl = new URL(`${backendUrl}/auth/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
       authorizeUrl.searchParams.set('redirect_to', redirectTo);
