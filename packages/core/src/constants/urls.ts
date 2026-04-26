@@ -4,4 +4,9 @@ export default {
   login: '/login',
   loginCallback: '/login/callback',
   admin: '/admin',
+  legalDocuments: '/legal',
+  legalPrivacyPolicy: '/legal/privacy-policy',
+  legalTermsOfService: '/legal/terms-of-service',
+  legalNotice: '/legal/legal-notice',
+  legalDataProcessingAgreement: '/legal/data-processing-agreement',
 };

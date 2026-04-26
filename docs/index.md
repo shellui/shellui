@@ -33,6 +33,7 @@ New to ShellUI? Follow these steps to get up and running:
 
 - **[Application Settings](/features/application-settings)** - Expose per-application settings panels in Settings
 - **[Cookie Consent](/features/cookie-consent)** - Privacy-friendly cookie consent management
+- **[Legal Documents](/features/legal-documents)** - Publish privacy policy, terms, and legal notices from markdown
 - **[Service Worker](/features/service-worker)** - Offline support and automatic app updates
 - **[SDK Integration](/sdk)** - Programmatically integrate ShellUI features in your apps
 

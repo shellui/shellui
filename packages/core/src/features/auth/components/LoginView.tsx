@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useConfig } from '../../config/useConfig';
+import { LegalDocumentsLinks } from '../../legal/LegalDocumentsLinks';
 import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
 import {
@@ -392,60 +393,61 @@ export const LoginView = () => {
 
       <section
         className={cn(
-          'flex min-h-full w-full items-center justify-center px-6 py-10',
+          'flex min-h-full w-full flex-col px-6 py-10',
           !isIframeView && 'md:w-1/2',
         )}
       >
-        <div
-          className={cn(
-            'w-full max-w-xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
-            isIframeView ? 'max-w-2xl' : '',
-          )}
-        >
-          <div className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">{signInDescription}</p>
-          </div>
-
-          {settingsLoadError && (
-            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {settingsLoadError}
-            </p>
-          )}
-
-          <div className="space-y-4">
-            {featuredMethod === 'oauth' && featuredOAuthProvider && (
-              <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Last used
-                </p>
-                {(() => {
-                  const visual = getProviderVisual(featuredOAuthProvider);
-                  const label = formatProviderLabel(featuredOAuthProvider);
-                  return (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="h-12 w-full justify-start px-3 text-base"
-                      onClick={() => void handleOAuthLogin(featuredOAuthProvider)}
-                      disabled={isActionPending}
-                    >
-                      <span
-                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
-                        aria-hidden
-                      >
-                        <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
-                      </span>
-                      <span className="truncate">
-                        {oauthLoadingProvider === featuredOAuthProvider
-                          ? `Redirecting to ${label}...`
-                          : `Continue with ${label}`}
-                      </span>
-                    </Button>
-                  );
-                })()}
-              </section>
+        <div className="flex w-full flex-1 items-center justify-center">
+          <div
+            className={cn(
+              'w-full max-w-xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
+              isIframeView ? 'max-w-2xl' : '',
             )}
+          >
+            <div className="space-y-2">
+              <h1 className="text-3xl font-semibold tracking-tight text-foreground">Welcome back</h1>
+              <p className="text-sm text-muted-foreground">{signInDescription}</p>
+            </div>
+
+            {settingsLoadError && (
+              <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {settingsLoadError}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {featuredMethod === 'oauth' && featuredOAuthProvider && (
+                <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Last used
+                  </p>
+                  {(() => {
+                    const visual = getProviderVisual(featuredOAuthProvider);
+                    const label = formatProviderLabel(featuredOAuthProvider);
+                    return (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-12 w-full justify-start px-3 text-base"
+                        onClick={() => void handleOAuthLogin(featuredOAuthProvider)}
+                        disabled={isActionPending}
+                      >
+                        <span
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center"
+                          aria-hidden
+                        >
+                          <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
+                        </span>
+                        <span className="truncate">
+                          {oauthLoadingProvider === featuredOAuthProvider
+                            ? `Redirecting to ${label}...`
+                            : `Continue with ${label}`}
+                        </span>
+                      </Button>
+                    );
+                  })()}
+                </section>
+              )}
 
             {featuredMethod === 'magic_link' && supportsMagicLink && (
               <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
@@ -699,13 +701,19 @@ export const LoginView = () => {
               </div>
             </div>
 
-            {!supportsOAuth && !supportsMagicLink && !supportsWeb3 && (
-              <p className="text-sm text-muted-foreground">
-                No login method is currently enabled in backend auth settings.
-              </p>
-            )}
+              {!supportsOAuth && !supportsMagicLink && !supportsWeb3 && (
+                <p className="text-sm text-muted-foreground">
+                  No login method is currently enabled in backend auth settings.
+                </p>
+              )}
+            </div>
           </div>
         </div>
+        {!isIframeView && (
+          <div className="w-full max-w-xl border-t border-border pt-4">
+            <LegalDocumentsLinks />
+          </div>
+        )}
       </section>
     </main>
   );

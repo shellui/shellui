@@ -27,6 +27,14 @@ const OAuthCallbackView = lazy(() =>
 const AdminView = lazy(() =>
   import('../features/admin/AdminView').then((m) => ({ default: m.AdminView })),
 );
+const LegalDocumentView = lazy(() =>
+  import('../features/legal/LegalDocumentView').then((m) => ({ default: m.LegalDocumentView })),
+);
+const LegalDocumentsIndexView = lazy(() =>
+  import('../features/legal/LegalDocumentsIndexView').then((m) => ({
+    default: m.LegalDocumentsIndexView,
+  })),
+);
 const NavigationItemRoute = lazy(() =>
   import('./components/NavigationItemRoute').then((m) => ({ default: m.NavigationItemRoute })),
 );
@@ -82,6 +90,46 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <OAuthCallbackView />
+            </Suspense>
+          ),
+        },
+        {
+          path: urls.legalDocuments.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LegalDocumentsIndexView />
+            </Suspense>
+          ),
+        },
+        {
+          path: urls.legalPrivacyPolicy.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LegalDocumentView />
+            </Suspense>
+          ),
+        },
+        {
+          path: urls.legalTermsOfService.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LegalDocumentView />
+            </Suspense>
+          ),
+        },
+        {
+          path: urls.legalNotice.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LegalDocumentView />
+            </Suspense>
+          ),
+        },
+        {
+          path: urls.legalDataProcessingAgreement.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <LegalDocumentView />
             </Suspense>
           ),
         },

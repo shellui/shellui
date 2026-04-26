@@ -4,6 +4,7 @@ import {
   SettingsIcon,
   CodeIcon,
   ShieldIcon,
+  FileTextIcon,
   PackageIcon,
   RefreshDoubleIcon,
 } from './SettingsIcons';
@@ -14,6 +15,7 @@ import { Advanced } from './components/Advanced';
 import { Develop } from './components/Develop';
 import { DataPrivacy } from './components/DataPrivacy';
 import { ServiceWorker } from './components/ServiceWorker';
+import { LegalDocumentsPanel } from './components/LegalDocumentsPanel';
 import { isTauri } from '../../service-worker/register';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
@@ -46,6 +48,12 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     icon: ShieldIcon,
     path: 'data-privacy',
     element: <DataPrivacy />,
+  },
+  {
+    name: t('routes.legalDocuments'),
+    icon: FileTextIcon,
+    path: 'legal-documents',
+    element: <LegalDocumentsPanel />,
   },
   {
     name: t('routes.develop'),

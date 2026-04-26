@@ -146,7 +146,9 @@ export const SettingsView = () => {
       },
       {
         title: t('categories.system'),
-        routes: filteredRoutes.filter((route) => ['update-app', 'advanced'].includes(route.path)),
+        routes: filteredRoutes.filter((route) =>
+          ['update-app', 'advanced', 'legal-documents'].includes(route.path),
+        ),
       },
       {
         title: t('categories.developer'),

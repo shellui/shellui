@@ -22,6 +22,7 @@ export type {
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,
+  LegalDocumentsConfig,
 } from './features/config/types.js';
 export { useConfig } from './features/config/useConfig.js';
 export { useAuth } from './features/auth/hooks/useAuth.js';

@@ -180,6 +180,13 @@ export interface CookieConsentConfig {
   cookies: CookieDefinition[];
 }
 
+export interface LegalDocumentsConfig {
+  privacyPolicy?: string;
+  termsOfService?: string;
+  legalNotice?: string;
+  dataProcessingAgreement?: string;
+}
+
 /** When set to 'tauri', disables service worker and hides its settings (Tauri uses a different caching system). */
 export type RuntimeType = 'browser' | 'tauri';
 
@@ -242,4 +249,6 @@ export interface ShellUIConfig {
   backend?: BackendConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;
+  /** Legal documents content rendered as markdown. */
+  legalDocuments?: LegalDocumentsConfig;
 }
