@@ -25,9 +25,12 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
-- **Router:** added route-aware login flow with `next` redirect support for smoother sign-in transitions.
 - **Auth:** added support for Supabase and shellui auth authentication mechanisms.
 - **Legal documents:** added support for `legalDocuments` markdown content (`privacyPolicy`, `termsOfService`, `legalNotice`, `dataProcessingAgreement`).
+
+### 🛠 Improvements
+
+- **Router:** added route-aware login flow with `next` redirect support for smoother sign-in transitions.
 
 ## [0.2.0] - 2026-02-20
 

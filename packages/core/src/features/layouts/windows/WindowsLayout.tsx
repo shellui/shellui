@@ -19,7 +19,7 @@ import {
   resolveLocalizedString as resolveNavLabel,
   splitNavigationByPosition,
 } from '../utils';
-import { useSettings } from '../../settings/SettingsContext';
+import { useSettings } from '../../settings/hooks/useSettings';
 import { ContentView } from '../../../components/ContentView';
 import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
@@ -518,8 +518,8 @@ export function WindowsLayout({
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
-    () => filterNavigationForAuthState(navigation, isAuthenticated),
-    [navigation, isAuthenticated],
+    () => filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
   const timeZone = settings.region?.timezone ?? getBrowserTimezone();
   const { startNavItems, endNavItems, navigationItems } = useMemo(() => {

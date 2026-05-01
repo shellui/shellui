@@ -17,10 +17,12 @@ import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
 import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { useSettings } from '../../settings/hooks/useSettings';
 
 const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const { navigationItem, rootItem } = useNavigationItems();
 
   const currentLanguage = useMemo(() => {
@@ -29,8 +31,8 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
 
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
-    () => filterNavigationForAuthState(navigation, isAuthenticated),
-    [navigation, isAuthenticated],
+    () => filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
   const { startNav, endItems, mobileNavItems } = useMemo(() => {
     const desktopNav = filterNavigationByViewport(authAwareNavigation, 'desktop');

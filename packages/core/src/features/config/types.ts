@@ -24,6 +24,8 @@ export interface NavigationItem {
   hideWhenLoggedOut?: boolean;
   /** When true, navigating to this route requires authentication and redirects to login with a next URL. */
   requiresAuth?: boolean;
+  /** When true, this item is available only when Settings > Advanced > Developer features is enabled. */
+  requiresDevMode?: boolean;
   /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
   hiddenOnMobile?: boolean;
   /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */

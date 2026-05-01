@@ -19,6 +19,7 @@ import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
 import { cn } from '../../../lib/utils';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { useSettings } from '../../settings/hooks/useSettings';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -147,13 +148,14 @@ function TopBarEndItem({
 export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
-    () => filterNavigationForAuthState(navigation, isAuthenticated),
-    [navigation, isAuthenticated],
+    () => filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
 
   const { endNavItems, navigationItems, displayStartItems, activePathPrefix } = useMemo(() => {

@@ -162,6 +162,7 @@ export function hasLoginNavigationItem(navigation: (NavigationItem | NavigationG
 export function filterNavigationForAuthState(
   navigation: (NavigationItem | NavigationGroup)[],
   isAuthenticated: boolean,
+  isDevModeEnabled = false,
 ): (NavigationItem | NavigationGroup)[] {
   if (navigation.length === 0) return navigation;
   return navigation
@@ -170,6 +171,7 @@ export function filterNavigationForAuthState(
         const group = item as NavigationGroup;
         const visibleItems = group.items.filter((navItem) => {
           if (navItem.hideWhenLoggedOut && !isAuthenticated) return false;
+          if (navItem.requiresDevMode && !isDevModeEnabled) return false;
           if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return false;
           return true;
         });
@@ -178,6 +180,7 @@ export function filterNavigationForAuthState(
       }
       const navItem = item as NavigationItem;
       if (navItem.hideWhenLoggedOut && !isAuthenticated) return null;
+      if (navItem.requiresDevMode && !isDevModeEnabled) return null;
       if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return null;
       return item;
     })

@@ -4,6 +4,7 @@ import { useConfig } from '../../features/config/useConfig';
 import { filterNavigationForAuthState, getNavPathPrefix } from '../../features/layouts/utils';
 import type { NavigationItem, NavigationGroup } from '../../features/config/types';
 import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useSettings } from '../../features/settings/hooks/useSettings';
 
 const flattenNavigationItems = (
   navigation: (NavigationItem | NavigationGroup)[],
@@ -20,6 +21,7 @@ const flattenNavigationItems = (
 export const NotFoundView = () => {
   const { config } = useConfig();
   const { isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const { i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
 
@@ -33,7 +35,13 @@ export const NotFoundView = () => {
 
   const navItems =
     config?.navigation && config.navigation.length > 0
-      ? flattenNavigationItems(filterNavigationForAuthState(config.navigation, isAuthenticated))
+      ? flattenNavigationItems(
+          filterNavigationForAuthState(
+            config.navigation,
+            isAuthenticated,
+            settings.developerFeatures.enabled,
+          ),
+        )
           .filter((item) => !item.hidden)
           .filter((item, index, self) => index === self.findIndex((i) => i.path === item.path))
       : [];

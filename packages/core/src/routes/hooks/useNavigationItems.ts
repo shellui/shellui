@@ -1,21 +1,31 @@
 import { useMemo } from 'react';
 import { useConfig } from '../../features/config/useConfig';
+import { useAuth } from '../../features/auth/hooks/useAuth';
 import {
+  filterNavigationForAuthState,
   flattenNavigationItems,
   getBaseUrlWithoutHash,
   getHashPathFromUrl,
   getNavPathPrefix,
   isHashRouterNavItem,
 } from '../../features/layouts/utils';
+import { useSettings } from '../../features/settings/hooks/useSettings';
 import { useLocation } from 'react-router';
 
 export function useNavigationItems() {
   const { config } = useConfig();
+  const { isAuthenticated } = useAuth();
+  const { settings } = useSettings();
   const location = useLocation();
 
   const navigationItems = useMemo(() => {
-    return flattenNavigationItems(config?.navigation ?? []);
-  }, [config]);
+    const authAndDevFilteredNavigation = filterNavigationForAuthState(
+      config?.navigation ?? [],
+      isAuthenticated,
+      settings.developerFeatures.enabled,
+    );
+    return flattenNavigationItems(authAndDevFilteredNavigation);
+  }, [config?.navigation, isAuthenticated, settings.developerFeatures.enabled]);
 
   const navigationItem = useMemo(() => {
     return navigationItems.find((item) => {
@@ -29,6 +39,10 @@ export function useNavigationItems() {
     () => navigationItems.find((item) => item.path === '' || item.path === '/'),
     [navigationItems],
   );
+  const isRootFallback = useMemo(
+    () => !navigationItem && Boolean(rootItem) && location.pathname !== '/',
+    [navigationItem, rootItem, location.pathname],
+  );
 
   /**
    * Constructs the final URL for the iframe based on the navigation item and the pathname.
@@ -39,7 +53,7 @@ export function useNavigationItems() {
   const url = useMemo(() => {
     const pathname = location.pathname;
 
-    const useRootFallback = !navigationItem && rootItem && pathname !== '/';
+    const useRootFallback = isRootFallback;
     const actualNavItem = navigationItem ?? (useRootFallback ? rootItem : null);
 
     if (!actualNavItem) {
@@ -72,7 +86,7 @@ export function useNavigationItems() {
       }
     }
     return finalUrl;
-  }, [navigationItem, rootItem, location.pathname]);
+  }, [navigationItem, rootItem, location.pathname, isRootFallback]);
 
   return {
     url: url,
@@ -80,5 +94,6 @@ export function useNavigationItems() {
     currentItem: navigationItem || rootItem,
     navigationItem: navigationItem || rootItem,
     navigationItems: navigationItems,
+    isRootFallback,
   };
 }
