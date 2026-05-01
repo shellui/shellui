@@ -1,5 +1,5 @@
 /**
- * Client hints for shellui-auth login audit (`/auth/v1/authorize` query params).
+ * Client hints for shellui-auth login audit (`/api/v1/authorize` query params).
  * Must stay aligned with shellui-auth `normalize_client_timezone` / device id limits.
  */
 
