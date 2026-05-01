@@ -518,7 +518,8 @@ export function WindowsLayout({
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
-    () => filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
+    () =>
+      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
     [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
   const timeZone = settings.region?.timezone ?? getBrowserTimezone();

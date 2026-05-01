@@ -31,7 +31,8 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
 
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
-    () => filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
+    () =>
+      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
     [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
   const { startNav, endItems, mobileNavItems } = useMemo(() => {
