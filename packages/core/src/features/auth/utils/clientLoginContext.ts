@@ -4,7 +4,6 @@
  */
 
 const DEVICE_ID_STORAGE_KEY = 'shellui_auth_client_device_id';
-const COMPANY_ID_STORAGE_KEY = 'shellui_auth_company_id';
 
 const IANA_TZ_RE = /^[A-Za-z0-9_+/\-]{1,64}$/;
 
@@ -65,25 +64,9 @@ export function getShellUILoginDeviceId(): string {
 
 /**
  * Preferred company id for tenant-scoped auth calls.
- * Uses localStorage value first; if missing, persists and returns the configured fallback.
+ * Uses the configured value from shellui auth config (no persistence; config changes apply immediately).
  */
 export function getShellUILoginCompanyId(fallbackCompanyId?: string | number): string {
   const fallback = `${fallbackCompanyId ?? ''}`.trim();
-  const validFallback = fallback && /^\d+$/.test(fallback) ? fallback : '';
-  if (typeof window === 'undefined') {
-    return validFallback;
-  }
-  try {
-    const stored = localStorage.getItem(COMPANY_ID_STORAGE_KEY)?.trim() ?? '';
-    if (stored && /^\d+$/.test(stored)) {
-      return stored;
-    }
-    if (validFallback) {
-      localStorage.setItem(COMPANY_ID_STORAGE_KEY, validFallback);
-      return validFallback;
-    }
-  } catch {
-    return validFallback;
-  }
-  return '';
+  return fallback && /^\d+$/.test(fallback) ? fallback : '';
 }
