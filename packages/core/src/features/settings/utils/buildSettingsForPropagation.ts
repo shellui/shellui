@@ -46,9 +46,15 @@ export const buildSettingsForPropagation = (
     result = { ...result, navigation: { items } };
   }
 
+  const authBackendBaseUrl =
+    config?.backend?.type === 'shellui' && config.backend.url?.trim()
+      ? config.backend.url.trim().replace(/\/+$/, '')
+      : null;
+
   result = {
     ...result,
     accessToken: options?.includeAuthAccessToken ? (options.accessToken ?? null) : null,
+    authBackendBaseUrl,
   };
 
   return result;

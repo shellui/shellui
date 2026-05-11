@@ -207,6 +207,11 @@ export interface Settings {
    * Same token as the main app’s API `Authorization: Bearer` credential; omitted or null for untrusted frames.
    */
   accessToken?: string | null;
+  /**
+   * ShellUI-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
+   * Injected for trusted sub-apps (e.g. admin iframe) so they call the same backend as the shell.
+   */
+  authBackendBaseUrl?: string | null;
   // Add more settings here as needed
   // notifications: { ... }
 }

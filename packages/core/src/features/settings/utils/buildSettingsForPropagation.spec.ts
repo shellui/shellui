@@ -140,4 +140,28 @@ describe('buildSettingsForPropagation', () => {
     });
     expect(unsafeResult.accessToken).toBeNull();
   });
+
+  it('injects authBackendBaseUrl when backend type is shellui', () => {
+    const config = {
+      backend: {
+        type: 'shellui' as const,
+        url: 'https://id.example.com/',
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+  });
+
+  it('sets authBackendBaseUrl to null when backend is not shellui', () => {
+    const config = {
+      backend: {
+        type: 'supabase' as const,
+        url: 'https://xyz.supabase.co',
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.authBackendBaseUrl).toBeNull();
+  });
 });
