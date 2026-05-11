@@ -31,6 +31,7 @@ import { createUserSettingsRoute } from './components/createUserSettingsRoute';
 import type { NavigationItem } from '../config/types';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../auth/hooks/useAuth';
+import { getLegalDocuments } from '../legal/legalDocuments';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -75,6 +76,13 @@ export const SettingsView = () => {
       (route) => route.path !== 'developpers' && route.path !== 'service-worker',
     );
   }, [settings.developerFeatures.enabled, routesWithoutTauriSw]);
+
+  const settingsNavRoutes = useMemo(() => {
+    if (getLegalDocuments(config).length > 0) {
+      return filteredRoutes;
+    }
+    return filteredRoutes.filter((route) => route.path !== 'legal-documents');
+  }, [filteredRoutes, config]);
 
   // Application settings from navigation items with settings URL
   const applicationRoutes = useMemo(() => {
@@ -124,8 +132,8 @@ export const SettingsView = () => {
 
   // All routes (core + applications) for selection and routing
   const allRoutes = useMemo(
-    () => [...userRoute, ...filteredRoutes, ...applicationRoutes],
-    [userRoute, filteredRoutes, applicationRoutes],
+    () => [...userRoute, ...settingsNavRoutes, ...applicationRoutes],
+    [userRoute, settingsNavRoutes, applicationRoutes],
   );
 
   // Group routes by category
@@ -138,7 +146,7 @@ export const SettingsView = () => {
       {
         title: t('categories.preferences'),
         routes: [
-          ...filteredRoutes.filter((route) =>
+          ...settingsNavRoutes.filter((route) =>
             ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
           ),
           ...userRoute,
@@ -146,17 +154,17 @@ export const SettingsView = () => {
       },
       {
         title: t('categories.system'),
-        routes: filteredRoutes.filter((route) =>
+        routes: settingsNavRoutes.filter((route) =>
           ['update-app', 'advanced', 'legal-documents'].includes(route.path),
         ),
       },
       {
         title: t('categories.developer'),
-        routes: filteredRoutes.filter((route) => developerOnlyPaths.includes(route.path)),
+        routes: settingsNavRoutes.filter((route) => developerOnlyPaths.includes(route.path)),
       },
     ];
     return groups.filter((group) => group.routes.length > 0);
-  }, [filteredRoutes, applicationRoutes, userRoute, t]);
+  }, [settingsNavRoutes, applicationRoutes, userRoute, t]);
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = useCallback(() => {
