@@ -98,11 +98,7 @@ export default config;
   - **icon** (string, optional): Icon name for the navigation item
   - **hideWhenLoggedOut** (boolean, optional): Hide item from navigation while signed out
   - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
-- **legalDocuments** (object, optional): Markdown content for legal pages
-  - **privacyPolicy** (string, optional): Privacy Policy markdown
-  - **termsOfService** (string, optional): Terms of Service markdown
-  - **legalNotice** (string, optional): Legal Notice markdown
-  - **dataProcessingAgreement** (string, optional): DPA markdown
+- **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
 
 ## Step 4: Start the Development Server
 
