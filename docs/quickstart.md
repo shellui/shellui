@@ -87,9 +87,10 @@ export default config;
 
 - **port** (number, optional): Port number for the development server (default: 3000)
 - **title** (string, optional): Application title displayed in the UI
-- **backend** (object, optional): Backend config for auth/API communication (default: undefined)
+- **backend** (object, optional): Backend config for auth/API communication (default: undefined). See [Backend](/backend) and [Authentication](/features/authentication).
   - **type** (`"shellui"` | `"supabase"`): Backend provider
   - **url** (string): Base API URL
+  - **login** (object, optional): `methods` and `oauthProviders` for the login page
 - **navigation** (array, optional): Array of navigation items with:
   - **label** (string): Display text for the navigation item
   - **path** (string): Unique path identifier
@@ -169,9 +170,10 @@ my-shellui-app/
 
 ## Next Steps
 
-- **[Navigation Guide](/features/navigation)** - Learn how to configure navigation menus
-- **[CLI Reference](/cli)** - Learn about all available commands
-- **[Feature Guides](/)** - Explore all ShellUI features
+- **[Backend](/backend)** — Choose Supabase, the ShellUI identity service, or no backend
+- **[Authentication](/features/authentication)** — Login page, sessions, and guarded routes
+- **[Navigation](/features/navigation)** — Configure navigation menus
+- **[CLI Reference](/cli)** — Commands and configuration options
 
 ## Troubleshooting
 

@@ -152,7 +152,7 @@ Application title displayed in the UI.
 
 #### `backend` (object, optional)
 
-Backend communication settings used for auth/API integration.
+Backend communication settings used for auth/API integration. See [Backend](/backend) and [Authentication](/features/authentication).
 
 ```json
 {

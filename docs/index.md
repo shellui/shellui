@@ -1,50 +1,56 @@
 # ShellUI Documentation
 
-Welcome to the ShellUI documentation!
+Welcome to the ShellUI documentation.
 
-ShellUI is a lightweight microfrontend shell to ship apps faster.
+ShellUI is a lightweight microfrontend shell: one host app, many embedded URLs, shared navigation, themes, and settings. When you need sign-in, you connect a **backend** (Supabase, the ShellUI identity service, or no backend for public shells) and configure **authentication** in `shellui.config.ts`—login routes, sessions, and guarded navigation are built into the shell.
 
-## Getting Started
+Use the sections below as a map, or follow the recommended path in order.
 
-New to ShellUI? Follow these steps to get up and running:
+## Recommended path
 
-1. **[Installation](/installation)** - Install ShellUI CLI and dependencies
-2. **[Quick Start](/quickstart)** - Create your first ShellUI app in minutes
+1. **[Installation](/installation)** — Install the ShellUI CLI and verify your environment.
+2. **[Quick Start](/quickstart)** — Create `shellui.config.ts`, run the dev server, and build for production.
+3. **[Backend](/backend)** — Choose a provider (`shellui`, `supabase`, or none), set `backend.url`, and optional tenant or Supabase keys.
+4. **[Authentication](/features/authentication)** — Enable login methods, use `/login` and `/login/callback`, and protect routes with `requiresAuth`.
+5. **[Navigation](/features/navigation)** — Define sidebar items, groups, and auth-aware visibility (`hideWhenLoggedOut`).
+6. **[SDK](/sdk)** — Read user and settings from embedded apps; call `shellui.login()` for iframe-safe OAuth.
 
-## Core Features
+From there, pick layout, themes, i18n, and advanced features as your product needs them.
 
-### Navigation & Layout
+## Core features
 
-- **[Navigation](/features/navigation)** - Build flexible navigation menus with icons, groups, and multiple display modes
-- **[Layouts](/features/layouts)** - Choose from sidebar, fullscreen, windows desktop (experimental), or app bar layouts
-- **[Modals & Drawers](/features/modals-drawers)** - Open content in modal overlays or side drawer panels
+### Navigation and layout
+
+- **[Navigation](/features/navigation)** — Icons, groups, localization, opening modes, and route protection
+- **[Layouts](/features/layouts)** — Sidebar, fullscreen, Windows desktop (experimental), or app bar
+- **[Modals and drawers](/features/modals-drawers)** — Overlays and side panels for nav targets
 
 ### Customization
 
-- **[Themes](/features/themes)** - Create custom themes with light/dark modes, custom fonts, and colors
-- **[Internationalization](/features/internationalization)** - Multi-language support with localized navigation and UI
+- **[Themes](/features/themes)** — Light and dark modes, fonts, and colors
+- **[Internationalization](/features/internationalization)** — Localized navigation and UI
 
-### User Interface
+### User interface
 
-- **[Toast Notifications](/features/toasts)** - Show toast notifications with multiple styles and actions
-- **[Alert Dialogs](/features/dialogs)** - Display alert dialogs with different button configurations
+- **[Toast notifications](/features/toasts)** — Toasts with actions and styles
+- **[Alert dialogs](/features/dialogs)** — Confirm and alert patterns
 
-### Advanced Features
+### Advanced
 
-- **[Application Settings](/features/application-settings)** - Expose per-application settings panels in Settings
-- **[Cookie Consent](/features/cookie-consent)** - Privacy-friendly cookie consent management
-- **[Legal Documents](/features/legal-documents)** - Publish privacy policy, terms, and legal notices from markdown
-- **[Service Worker](/features/service-worker)** - Offline support and automatic app updates
-- **[SDK Integration](/sdk)** - Programmatically integrate ShellUI features in your apps
+- **[Application settings](/features/application-settings)** — Per-app settings panels in Settings
+- **[Cookie consent](/features/cookie-consent)** — Cookie registry and consent storage
+- **[Legal documents](/features/legal-documents)** — Privacy, terms, and notices from markdown (including on the login page)
+- **[Service worker](/features/service-worker)** — Offline support and update prompts
+- **[SDK integration](/sdk)** — Programmatic shell APIs for embedded apps
 
 ## Reference
 
-- **[CLI Reference](/cli)** - Command-line tool commands and options
-- **[Core Package](/core)** - Core React application runtime
-- **[SDK Reference](/sdk)** - JavaScript SDK API documentation
-- **[Tauri Integration](/tauri)** - Build desktop apps with Tauri
+- **[CLI](/cli)** — Commands, config file shape, and `backend` fields
+- **[Core package](/core)** — React runtime and exports such as `useAuth`
+- **[SDK](/sdk)** — JavaScript SDK API
+- **[Tauri](/tauri)** — Desktop packaging
 
-## Developer Resources
+## Developer resources
 
-- [Development Guide](/development) - Contributing to ShellUI
-- [Publishing Guide](/publishing) - Publishing ShellUI packages
+- [Development guide](/development) — Contributing to ShellUI
+- [Publishing guide](/publishing) — Releasing packages

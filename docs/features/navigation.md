@@ -443,6 +443,7 @@ export default config;
 
 ## Related Guides
 
+- [Authentication](/features/authentication) — Login, sessions, and `requiresAuth` behavior
 - [Layouts](/features/layouts) - Learn about different layout modes
 - [Internationalization](/features/internationalization) - Multi-language support
 - [Modals & Drawers](/features/modals-drawers) - Detailed guide on overlay modes
