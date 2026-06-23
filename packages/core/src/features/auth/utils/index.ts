@@ -3,6 +3,7 @@ export {
   getShellUILoginCompanyId,
   getShellUILoginDeviceId,
 } from './clientLoginContext';
+export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
 export { buildSessionFromParams } from './buildSessionFromParams';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';
