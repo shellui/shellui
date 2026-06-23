@@ -415,11 +415,10 @@ export async function registerServiceWorker(
         }
       }
 
+      let skipRegister = false;
       if (existingRegistration && wb) {
-        // Already registered, just update
-        isInitialRegistration = false; // This is an update check
-        wb.update();
-        return;
+        isInitialRegistration = false;
+        skipRegister = true;
       }
 
       // Check if there's already a service worker controlling the page
@@ -428,7 +427,6 @@ export async function registerServiceWorker(
 
       // Register the service worker
       // Only create new Workbox instance if one doesn't exist
-      const isNewWorkbox = !wb;
       if (!wb) {
         // Use updateViaCache: 'none' to ensure service worker file changes are always detected
         // This bypasses the browser cache when checking for updates to sw.js/sw-dev.js
@@ -475,8 +473,8 @@ export async function registerServiceWorker(
         eventListenersAdded = false;
       }
 
-      // Only add event listeners once (when creating a new Workbox instance or if they were removed)
-      if (isNewWorkbox && !eventListenersAdded) {
+      // Add event listeners when missing (handles React Strict Mode remounts)
+      if (!eventListenersAdded) {
         // Set flag IMMEDIATELY to prevent duplicate listener registration
         eventListenersAdded = true;
 
@@ -833,8 +831,10 @@ export async function registerServiceWorker(
         navigator.serviceWorker.addEventListener('messageerror', messageErrorHandler);
       } // End of event listeners block
 
-      // Register the service worker
-      await wb.register();
+      // Register the service worker (skip if already registered in this session)
+      if (!skipRegister) {
+        await wb.register();
+      }
 
       // Get the underlying registration to set updateViaCache
       // This ensures changes to sw.js/sw-dev.js are always detected (bypasses cache)
@@ -890,29 +890,36 @@ export async function registerServiceWorker(
 
       notifyStatusListeners();
 
-      // Check for updates periodically (including service worker file changes)
-      // This ensures changes to sw.js/sw-dev.js are detected
-      /* const _updateInterval = */ setInterval(
-        () => {
-          if (wb && options.enabled) {
-            // wb.update() checks for updates to the service worker file itself
-            // The browser will compare the byte-by-byte content of sw.js/sw-dev.js
-            wb.update();
-          }
-        },
-        60 * 60 * 1000,
-      ); // Check every hour
+      // Check for updates immediately after registration
+      if (wb) {
+        await wb.update();
+      }
 
-      // Also check for updates when the page becomes visible (user returns to tab)
-      // This helps detect service worker file changes more quickly
+      // Check for updates periodically (including service worker file changes)
+      const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
+      setInterval(() => {
+        if (wb && options.enabled) {
+          wb.update();
+        }
+      }, UPDATE_CHECK_INTERVAL_MS);
+
+      // Check when the tab becomes visible or the window regains focus
       let visibilityHandler: (() => void) | null = null;
+      let focusHandler: (() => void) | null = null;
       if (typeof document !== 'undefined') {
-        visibilityHandler = () => {
-          if (!document.hidden && wb && options.enabled) {
+        const checkForUpdate = () => {
+          if (wb && options.enabled) {
             wb.update();
           }
         };
+        visibilityHandler = () => {
+          if (!document.hidden) {
+            checkForUpdate();
+          }
+        };
+        focusHandler = checkForUpdate;
         document.addEventListener('visibilitychange', visibilityHandler);
+        window.addEventListener('focus', focusHandler);
       }
 
       // CRITICAL: Mark registration as complete only after everything is set up
@@ -1042,7 +1049,10 @@ export async function updateServiceWorker(): Promise<void> {
     isInitialRegistration = false;
 
     // Set up reload handler before sending skip waiting
+    let reloaded = false;
     const reloadApp = () => {
+      if (reloaded) return;
+      reloaded = true;
       // Use shellUI refresh message if available, otherwise fallback to window.location.reload
       const sent = shellui.sendMessageToParent({
         type: 'SHELLUI_REFRESH_PAGE',
@@ -1064,25 +1074,18 @@ export async function updateServiceWorker(): Promise<void> {
     };
     if (wb) {
       wb.addEventListener('controlling', updateControllingHandler);
-    } else {
-      navigator.serviceWorker.addEventListener('controllerchange', updateControllingHandler, {
-        once: true,
-      });
     }
+    navigator.serviceWorker.addEventListener('controllerchange', updateControllingHandler, {
+      once: true,
+    });
 
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
 
-    // Fallback: if controlling event doesn't fire within 2 seconds, reload anyway
+    // Fallback: reload if controlling event doesn't fire within 2 seconds
     setTimeout(() => {
-      if (wb) {
-        wb.removeEventListener('controlling', updateControllingHandler);
-      }
-      // Check if service worker is now controlling
-      if (navigator.serviceWorker.controller) {
-        reloadApp();
-      }
-      // Reset flag if fallback is used
+      wb?.removeEventListener('controlling', updateControllingHandler);
+      reloadApp();
       setTimeout(() => {
         isIntentionalUpdate = false;
       }, 1000);
