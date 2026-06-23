@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
-import { normalizeNextPath } from '../utils';
+import { buildAuthUrlWithNext, normalizeNextPath } from '../utils';
 import { useAuth } from '../hooks/useAuth';
 
 const toPositiveInt = (raw: string | null): number | undefined => {
@@ -96,9 +96,7 @@ export const OAuthCallbackView = () => {
           <button
             type="button"
             className="text-sm text-primary underline-offset-4 hover:underline"
-            onClick={() =>
-              navigate(`${urls.login}?next=${encodeURIComponent(nextPath)}`, { replace: true })
-            }
+            onClick={() => navigate(buildAuthUrlWithNext(urls.login, nextPath), { replace: true })}
           >
             Return to login
           </button>
