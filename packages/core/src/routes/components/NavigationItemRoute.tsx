@@ -3,6 +3,7 @@ import { useNavigationItems } from '../hooks/useNavigationItems';
 import { NotFoundView } from './NotFoundView';
 import { Navigate, useLocation } from 'react-router';
 import urls from '../../constants/urls';
+import { buildAuthUrlWithNext } from '../../features/auth/utils';
 import { useAuth } from '../../features/auth/hooks/useAuth';
 import { RouteFallback } from './RouteFallback';
 
@@ -30,7 +31,7 @@ export const NavigationItemRoute = () => {
     }
     if (!isAuthenticated) {
       const next = `${location.pathname}${location.search}`;
-      const loginUrl = `${urls.login}?next=${encodeURIComponent(next)}`;
+      const loginUrl = buildAuthUrlWithNext(urls.login, next);
       return (
         <Navigate
           to={loginUrl}
