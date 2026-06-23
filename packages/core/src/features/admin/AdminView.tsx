@@ -2,31 +2,15 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
-import urls from '../../constants/urls';
 import { ContentView } from '../../components/ContentView';
 import { LoginButton } from '../auth/components/LoginButton';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
-import { getBaseUrlWithoutHash } from '../layouts/utils';
-import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { AppLayout } from '../layouts/AppLayout';
-
-/** Admin microfrontend uses hash routes (e.g. createHashRouter); sync shell `/admin/...` with iframe `#/...`. */
-function buildAdminIframeSrc(
-  baseAdminContentUrl: string,
-  normalizedAdminPath: string,
-  pathname: string,
-  search: string,
-): string {
-  const pathAfterAdmin = pathname.startsWith(normalizedAdminPath)
-    ? pathname.slice(normalizedAdminPath.length)
-    : '';
-  const segment = pathAfterAdmin.replace(/^\/+|\/+$/g, '');
-  const hashRoute = segment ? `/${segment}` : '/';
-  const originBase = getBaseUrlWithoutHash(baseAdminContentUrl).replace(/\/+$/, '');
-  return `${originBase}/#${hashRoute}${search}`;
-}
+import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
+import { getAdminContentUrl, getAdminPath } from './config';
+import { buildAdminIframeSrc, getDjangoAdminHref } from './utils';
 
 const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
   if (!allow) {
@@ -43,18 +27,9 @@ export const AdminView = () => {
   const { user } = useAuth();
   const isStaff = Boolean(user?.isStaff);
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
-  const djangoAdminHref = useMemo(() => {
-    if (config.backend?.type !== 'shellui' || !config.backend.url?.trim()) {
-      return null;
-    }
-    return `${config.backend.url.replace(/\/+$/, '')}/admin`;
-  }, [config.backend?.type, config.backend?.url]);
-  const configuredAdminPathname = config.backend?.adminPathname?.trim();
-  const adminPath =
-    configuredAdminPathname && configuredAdminPathname.startsWith('/')
-      ? configuredAdminPathname
-      : urls.admin;
-  const baseAdminContentUrl = config.backend?.adminUrl?.trim() || urls.settings;
+  const djangoAdminHref = useMemo(() => getDjangoAdminHref(config), [config]);
+  const adminPath = getAdminPath(config);
+  const baseAdminContentUrl = getAdminContentUrl(config);
   const initialAdminContentUrlRef = useRef<string | null>(null);
   if (!initialAdminContentUrlRef.current) {
     const normalizedAdminPath = adminPath.replace(/\/+$/, '');

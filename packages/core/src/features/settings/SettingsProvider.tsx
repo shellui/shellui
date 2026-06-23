@@ -10,6 +10,7 @@ import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
+import { isAdminFrame } from '../admin/utils';
 import { defaultTheme } from '../theme/themes';
 import {
   buildSettingsForPropagation,
@@ -206,15 +207,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const isTrustedFrameForAuthToken = useCallback(
     (frameSrc: string): boolean => {
-      const adminUrl = config?.backend?.adminUrl?.trim();
-      if (adminUrl && isFrameForNavigationItem(frameSrc, adminUrl)) {
+      if (isAdminFrame(frameSrc, config)) {
         return true;
       }
       return navigationItems.some(
         (item) => item.safeForAuthToken !== false && isFrameForNavigationItem(frameSrc, item.url),
       );
     },
-    [config?.backend?.adminUrl, navigationItems],
+    [config, navigationItems],
   );
 
   const propagateSettingsToIframes = useCallback(
