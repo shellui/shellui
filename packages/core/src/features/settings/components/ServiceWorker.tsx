@@ -20,7 +20,7 @@ export const ServiceWorker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [swFileExists, setSwFileExists] = useState(true); // Track if service worker file exists
 
-  const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true;
+  const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? false;
 
   useEffect(() => {
     // Don't check service worker status if disabled
@@ -36,7 +36,7 @@ export const ServiceWorker = () => {
     // Initial check with loading state
     const initialCheck = async () => {
       // Double-check service worker is still enabled before proceeding
-      const stillEnabled = settings?.serviceWorker?.enabled ?? true;
+      const stillEnabled = settings?.serviceWorker?.enabled ?? false;
       if (!stillEnabled) {
         setIsLoading(false);
         return;
@@ -48,7 +48,7 @@ export const ServiceWorker = () => {
       const exists = await serviceWorkerFileExists();
 
       // Check again if service worker was disabled during the async operation
-      const currentEnabled = settings?.serviceWorker?.enabled ?? true;
+      const currentEnabled = settings?.serviceWorker?.enabled ?? false;
       if (!currentEnabled) {
         setIsLoading(false);
         return;
@@ -61,7 +61,7 @@ export const ServiceWorker = () => {
         const status = await getServiceWorkerStatus();
 
         // Final check before updating state
-        const finalCheck = settings?.serviceWorker?.enabled ?? true;
+        const finalCheck = settings?.serviceWorker?.enabled ?? false;
         if (finalCheck) {
           setIsRegistered(status.registered);
           setUpdateAvailable(status.updateAvailable);
@@ -69,7 +69,7 @@ export const ServiceWorker = () => {
       } else {
         // File doesn't exist, so service worker can't be registered
         // Only update if service worker is still enabled
-        const finalCheck = settings?.serviceWorker?.enabled ?? true;
+        const finalCheck = settings?.serviceWorker?.enabled ?? false;
         if (finalCheck) {
           setIsRegistered(false);
           setUpdateAvailable(false);
@@ -82,7 +82,7 @@ export const ServiceWorker = () => {
     // Background refresh without affecting loading state
     const refreshStatus = async () => {
       // Skip if service worker was disabled (check current setting value)
-      const currentEnabled = settings?.serviceWorker?.enabled ?? true;
+      const currentEnabled = settings?.serviceWorker?.enabled ?? false;
       if (!currentEnabled) {
         return;
       }
@@ -91,7 +91,7 @@ export const ServiceWorker = () => {
       const exists = await serviceWorkerFileExists();
 
       // Check again if service worker was disabled during the async operation
-      const currentEnabledAfter = settings?.serviceWorker?.enabled ?? true;
+      const currentEnabledAfter = settings?.serviceWorker?.enabled ?? false;
       if (!currentEnabledAfter) {
         return;
       }
@@ -103,7 +103,7 @@ export const ServiceWorker = () => {
         const status = await getServiceWorkerStatus();
 
         // Final check before updating state
-        const finalCheck = settings?.serviceWorker?.enabled ?? true;
+        const finalCheck = settings?.serviceWorker?.enabled ?? false;
         if (finalCheck) {
           setIsRegistered(status.registered);
           setUpdateAvailable(status.updateAvailable);
@@ -111,7 +111,7 @@ export const ServiceWorker = () => {
       } else {
         // File doesn't exist, so service worker can't be registered
         // Only update if service worker is still enabled
-        const finalCheck = settings?.serviceWorker?.enabled ?? true;
+        const finalCheck = settings?.serviceWorker?.enabled ?? false;
         if (finalCheck) {
           setIsRegistered(false);
           setUpdateAvailable(false);
@@ -125,7 +125,7 @@ export const ServiceWorker = () => {
     // Listen for status changes
     const unsubscribe = addStatusListener((status) => {
       // Only update if service worker is still enabled (check current setting value)
-      const currentEnabled = settings?.serviceWorker?.enabled ?? true;
+      const currentEnabled = settings?.serviceWorker?.enabled ?? false;
       if (currentEnabled) {
         setIsRegistered(status.registered);
         setUpdateAvailable(status.updateAvailable);
@@ -161,7 +161,7 @@ export const ServiceWorker = () => {
     // Give it a moment to register/unregister
     setTimeout(async () => {
       // Double-check service worker is still enabled before updating state
-      const currentEnabled = settings?.serviceWorker?.enabled ?? true;
+      const currentEnabled = settings?.serviceWorker?.enabled ?? false;
       if (enabled && currentEnabled) {
         const registered = await isServiceWorkerRegistered();
         setIsRegistered(registered);

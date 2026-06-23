@@ -62,7 +62,57 @@ export function isTauri(): boolean {
   return false;
 }
 
-// Cache for service worker file existence check to avoid duplicate fetches
+const STORAGE_KEY = 'shellui:settings';
+
+/**
+ * Read whether the service worker is enabled from persisted settings.
+ * Defaults to false when unset (opt-in).
+ */
+export function isServiceWorkerEnabledInSettings(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return false;
+    }
+    const parsed = JSON.parse(stored) as {
+      serviceWorker?: { enabled?: boolean };
+      caching?: { enabled?: boolean };
+    };
+    return parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Unregister the service worker when settings say it is disabled but the browser
+ * still has a registration or controller from a previous session.
+ */
+export async function ensureServiceWorkerDisabledWhenOff(): Promise<void> {
+  if (!('serviceWorker' in navigator) || isTauri()) {
+    return;
+  }
+  if (isServiceWorkerEnabledInSettings()) {
+    return;
+  }
+
+  const hasController = !!navigator.serviceWorker.controller;
+  let hasRegistration = false;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    hasRegistration = !!registration;
+  } catch {
+    hasRegistration = false;
+  }
+
+  if (hasController || hasRegistration || wb) {
+    await unregisterServiceWorker();
+  }
+}
+
 let swFileExistsCache: Promise<boolean> | null = null;
 let swFileExistsCacheTime = 0;
 const SW_FILE_EXISTS_CACHE_TTL = 5000; // Cache for 5 seconds
@@ -109,7 +159,6 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
     // Disable service worker in settings
     // We need to access settings through localStorage since we're in a module
     if (typeof window !== 'undefined') {
-      const STORAGE_KEY = 'shellui:settings';
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -274,7 +323,7 @@ export async function serviceWorkerFileExists(): Promise<boolean> {
  * Register the service worker and handle updates
  */
 export async function registerServiceWorker(
-  options: ServiceWorkerRegistrationOptions = { enabled: true },
+  options: ServiceWorkerRegistrationOptions = { enabled: false },
 ): Promise<void> {
   if (!('serviceWorker' in navigator)) {
     return;
@@ -916,7 +965,25 @@ export async function registerServiceWorker(
  * This will reload the page when the update is installed
  */
 export async function updateServiceWorker(): Promise<void> {
-  if (!wb || !waitingServiceWorker) {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  // Resolve waiting worker from registration when Workbox was not initialized this session
+  if (!waitingServiceWorker) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.waiting) {
+        waitingServiceWorker = registration.waiting;
+        updateAvailable = true;
+      }
+    } catch (error) {
+      logger.error('Failed to resolve waiting service worker:', { error });
+    }
+  }
+
+  if (!waitingServiceWorker) {
+    logger.warn('updateServiceWorker: no waiting service worker found');
     return;
   }
 
@@ -986,7 +1053,7 @@ export async function updateServiceWorker(): Promise<void> {
       }
     };
 
-    // Add one-time listener for controlling event
+    // Add one-time listener for controlling event (Workbox or native controllerchange)
     const updateControllingHandler = () => {
       reloadApp();
       wb?.removeEventListener('controlling', updateControllingHandler);
@@ -995,14 +1062,22 @@ export async function updateServiceWorker(): Promise<void> {
         isIntentionalUpdate = false;
       }, 1000);
     };
-    wb.addEventListener('controlling', updateControllingHandler);
+    if (wb) {
+      wb.addEventListener('controlling', updateControllingHandler);
+    } else {
+      navigator.serviceWorker.addEventListener('controllerchange', updateControllingHandler, {
+        once: true,
+      });
+    }
 
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
 
     // Fallback: if controlling event doesn't fire within 2 seconds, reload anyway
     setTimeout(() => {
-      if (controllingHandler) wb?.removeEventListener('controlling', controllingHandler);
+      if (wb) {
+        wb.removeEventListener('controlling', updateControllingHandler);
+      }
       // Check if service worker is now controlling
       if (navigator.serviceWorker.controller) {
         reloadApp();
@@ -1180,8 +1255,19 @@ export async function getServiceWorkerStatus(): Promise<{
  * Resolves when the check is complete. Listen to addStatusListener for updateAvailable changes.
  */
 export async function checkForServiceWorkerUpdate(): Promise<void> {
-  if (isTauri() || !wb) return;
-  await wb.update();
+  if (isTauri() || !('serviceWorker' in navigator)) return;
+  if (wb) {
+    await wb.update();
+    return;
+  }
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration) {
+      await registration.update();
+    }
+  } catch (error) {
+    logger.error('Failed to check for service worker update:', { error });
+  }
 }
 
 /**

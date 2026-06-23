@@ -13,7 +13,13 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
-import { registerServiceWorker, unregisterServiceWorker, isTauri } from './service-worker/register';
+import {
+  registerServiceWorker,
+  unregisterServiceWorker,
+  isTauri,
+  isServiceWorkerEnabledInSettings,
+  ensureServiceWorkerDisabledWhenOff,
+} from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
 
 const AppContent = () => {
@@ -28,13 +34,24 @@ const AppContent = () => {
     }
   }, [config?.favicon]);
 
+  // Unregister any stale service worker as early as possible when the setting is off
+  useLayoutEffect(() => {
+    if (isTauri()) {
+      void unregisterServiceWorker();
+      return;
+    }
+    if (!isServiceWorkerEnabledInSettings()) {
+      void ensureServiceWorkerDisabledWhenOff();
+    }
+  }, []);
+
   // Register or unregister service worker based on setting
   useEffect(() => {
     if (isTauri()) {
       unregisterServiceWorker();
       return;
     }
-    const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? false; // Default to enabled
+    const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? false;
 
     // Don't register service worker if navigation is empty or undefined
     // This helps prevent issues in development or misconfigured apps
@@ -53,6 +70,7 @@ const AppContent = () => {
       });
     } else {
       unregisterServiceWorker();
+      void ensureServiceWorkerDisabledWhenOff();
     }
   }, [settings?.serviceWorker?.enabled, config?.navigation]);
 
