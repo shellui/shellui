@@ -27,6 +27,11 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - Improve **login** next params (#2)
 
+### 🐛 Bug Fixes
+
+- Default **adminUrl** value (#1)
+- **Navigate** call using sdk fails to default urls (#4)
+
 ## [0.3.0] - 2026-05-13
 
 ### ✨ Feature
