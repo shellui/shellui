@@ -20,6 +20,7 @@ import {
   mergePreferencesIntoSettings,
   toSettingsUser,
 } from './utils';
+import { unregisterServiceWorker } from '../../service-worker/register';
 
 const logger = getLogger('shellcore');
 
@@ -111,7 +112,7 @@ const defaultSettings: Settings = {
     consentedCookieHosts: [],
   },
   serviceWorker: {
-    enabled: true,
+    enabled: false,
   },
   user: null,
   accessToken: null,
@@ -180,8 +181,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                 : (defaultSettings.cookieConsent?.consentedCookieHosts ?? []),
             },
             serviceWorker: {
-              // Migrate from legacy "caching" key if present
-              enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? true,
+              // Migrate from legacy "caching" key if present; default off for new installs
+              enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? false,
             },
             user: parsed.user ?? null,
             accessToken: null,
@@ -575,6 +576,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           }
         }
         keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+        // Stop any active service worker after reset (default is disabled)
+        void unregisterServiceWorker();
 
         // Reset settings to defaults
         const newSettings = defaultSettings;

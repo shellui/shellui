@@ -32,6 +32,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - Default **adminUrl** value (#1)
 - **Navigate** call using sdk fails to default urls (#4)
+- Make **Software update** disabled by default and experimental (#5)
 
 ## [0.3.0] - 2026-05-13
 

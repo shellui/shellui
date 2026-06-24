@@ -20,6 +20,7 @@ let isIntentionalUpdate = false; // Track if we're performing an intentional upd
 let isRegistering = false; // Track if registration is currently in progress
 let registrationStartTime = typeof window !== 'undefined' ? Date.now() : 0; // Track when registration started (initialize to page load time)
 const REGISTRATION_GRACE_PERIOD = 5000; // Don't auto-disable within 5 seconds of page load/registration start
+const UPDATE_AVAILABLE_TOAST_ID = 'shellui:update-available';
 
 // Store event handler references so we can remove them if needed
 type EventHandler = (event?: unknown) => void;
@@ -62,7 +63,57 @@ export function isTauri(): boolean {
   return false;
 }
 
-// Cache for service worker file existence check to avoid duplicate fetches
+const STORAGE_KEY = 'shellui:settings';
+
+/**
+ * Read whether the service worker is enabled from persisted settings.
+ * Defaults to false when unset (opt-in).
+ */
+export function isServiceWorkerEnabledInSettings(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return false;
+    }
+    const parsed = JSON.parse(stored) as {
+      serviceWorker?: { enabled?: boolean };
+      caching?: { enabled?: boolean };
+    };
+    return parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Unregister the service worker when settings say it is disabled but the browser
+ * still has a registration or controller from a previous session.
+ */
+export async function ensureServiceWorkerDisabledWhenOff(): Promise<void> {
+  if (!('serviceWorker' in navigator) || isTauri()) {
+    return;
+  }
+  if (isServiceWorkerEnabledInSettings()) {
+    return;
+  }
+
+  const hasController = !!navigator.serviceWorker.controller;
+  let hasRegistration = false;
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    hasRegistration = !!registration;
+  } catch {
+    hasRegistration = false;
+  }
+
+  if (hasController || hasRegistration || wb) {
+    await unregisterServiceWorker();
+  }
+}
+
 let swFileExistsCache: Promise<boolean> | null = null;
 let swFileExistsCacheTime = 0;
 const SW_FILE_EXISTS_CACHE_TTL = 5000; // Cache for 5 seconds
@@ -75,6 +126,55 @@ async function notifyStatusListeners() {
     updateAvailable,
   };
   statusListeners.forEach((listener) => listener(status));
+}
+
+function createUpdateAvailableActionHandler(): () => void {
+  return () => {
+    logger.info('Install Now clicked, updating service worker...');
+    updateServiceWorker().catch((error) => {
+      logger.error('Failed to update service worker:', { error });
+    });
+  };
+}
+
+function showUpdateAvailableNotification(): void {
+  shellui.toast({
+    id: UPDATE_AVAILABLE_TOAST_ID,
+    title: 'New version available',
+    description: 'A new version of the app is available. Install now or later?',
+    type: 'info',
+    duration: 0,
+    position: 'bottom-left',
+    action: {
+      label: 'Install Now',
+      onClick: createUpdateAvailableActionHandler(),
+    },
+    cancel: {
+      label: 'Later',
+      onClick: () => {
+        // User chose to install later, toast will be dismissed
+      },
+    },
+  });
+}
+
+/**
+ * Show the update-available toast for developer testing (Settings → Service Worker).
+ * Syncs waiting service worker state when one exists so "Install Now" works end-to-end.
+ */
+export async function showUpdateAvailableToastForTesting(): Promise<void> {
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration?.waiting) {
+      waitingServiceWorker = registration.waiting;
+      updateAvailable = true;
+      await notifyStatusListeners();
+    }
+  } catch (error) {
+    logger.warn('Failed to sync waiting service worker for update toast test:', { error });
+  }
+
+  showUpdateAvailableNotification();
 }
 
 export interface ServiceWorkerRegistrationOptions {
@@ -109,7 +209,6 @@ async function disableCachingAutomatically(reason: string): Promise<void> {
     // Disable service worker in settings
     // We need to access settings through localStorage since we're in a module
     if (typeof window !== 'undefined') {
-      const STORAGE_KEY = 'shellui:settings';
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -274,7 +373,7 @@ export async function serviceWorkerFileExists(): Promise<boolean> {
  * Register the service worker and handle updates
  */
 export async function registerServiceWorker(
-  options: ServiceWorkerRegistrationOptions = { enabled: true },
+  options: ServiceWorkerRegistrationOptions = { enabled: false },
 ): Promise<void> {
   if (!('serviceWorker' in navigator)) {
     return;
@@ -366,11 +465,10 @@ export async function registerServiceWorker(
         }
       }
 
+      let skipRegister = false;
       if (existingRegistration && wb) {
-        // Already registered, just update
-        isInitialRegistration = false; // This is an update check
-        wb.update();
-        return;
+        isInitialRegistration = false;
+        skipRegister = true;
       }
 
       // Check if there's already a service worker controlling the page
@@ -379,7 +477,6 @@ export async function registerServiceWorker(
 
       // Register the service worker
       // Only create new Workbox instance if one doesn't exist
-      const isNewWorkbox = !wb;
       if (!wb) {
         // Use updateViaCache: 'none' to ensure service worker file changes are always detected
         // This bypasses the browser cache when checking for updates to sw.js/sw-dev.js
@@ -426,17 +523,12 @@ export async function registerServiceWorker(
         eventListenersAdded = false;
       }
 
-      // Only add event listeners once (when creating a new Workbox instance or if they were removed)
-      if (isNewWorkbox && !eventListenersAdded) {
+      // Add event listeners when missing (handles React Strict Mode remounts)
+      if (!eventListenersAdded) {
         // Set flag IMMEDIATELY to prevent duplicate listener registration
         eventListenersAdded = true;
 
         // Handle service worker updates
-        // CRITICAL: Use a consistent toast ID to prevent duplicate toasts
-        // If the handler is called multiple times (event listener + manual call),
-        // using the same ID will update the existing toast instead of creating a new one
-        const UPDATE_AVAILABLE_TOAST_ID = 'shellui:update-available';
-
         waitingHandler = async () => {
           try {
             // CRITICAL: If we're auto-activating (user refreshed), don't show toast
@@ -490,51 +582,7 @@ export async function registerServiceWorker(
             if (options.onUpdateAvailable) {
               options.onUpdateAvailable();
             } else {
-              // CRITICAL: Use consistent toast ID so duplicate calls update the same toast
-              // This prevents multiple toasts from appearing if the handler is called multiple times
-              // CRITICAL: Always create fresh action handlers that reference the current waitingServiceWorker
-              // This ensures the action handler always has the correct service worker reference
-              // even if the toast is updated later
-              const actionHandler = () => {
-                logger.info('Install Now clicked, updating service worker...');
-                // CRITICAL: Get the current waitingServiceWorker at click time, not at toast creation time
-                // This ensures it works even if the toast was created earlier and then updated
-                if (waitingServiceWorker) {
-                  updateServiceWorker().catch((error) => {
-                    logger.error('Failed to update service worker:', { error });
-                  });
-                } else {
-                  logger.warn('Install Now clicked but no waiting service worker found');
-                  // Try to get it from registration as fallback
-                  navigator.serviceWorker.getRegistration().then((swRegistration) => {
-                    if (swRegistration?.waiting) {
-                      waitingServiceWorker = swRegistration.waiting;
-                      updateServiceWorker().catch((error) => {
-                        logger.error('Failed to update service worker:', { error });
-                      });
-                    }
-                  });
-                }
-              };
-
-              shellui.toast({
-                id: UPDATE_AVAILABLE_TOAST_ID, // Use consistent ID to prevent duplicates
-                title: 'New version available',
-                description: 'A new version of the app is available. Install now or later?',
-                type: 'info',
-                duration: 0, // Don't auto-dismiss
-                position: 'bottom-left',
-                action: {
-                  label: 'Install Now',
-                  onClick: actionHandler, // Use the handler function
-                },
-                cancel: {
-                  label: 'Later',
-                  onClick: () => {
-                    // User chose to install later, toast will be dismissed
-                  },
-                },
-              });
+              showUpdateAvailableNotification();
             }
           } catch (error) {
             logger.error('Error in waiting handler:', { error });
@@ -784,8 +832,10 @@ export async function registerServiceWorker(
         navigator.serviceWorker.addEventListener('messageerror', messageErrorHandler);
       } // End of event listeners block
 
-      // Register the service worker
-      await wb.register();
+      // Register the service worker (skip if already registered in this session)
+      if (!skipRegister) {
+        await wb.register();
+      }
 
       // Get the underlying registration to set updateViaCache
       // This ensures changes to sw.js/sw-dev.js are always detected (bypasses cache)
@@ -841,29 +891,36 @@ export async function registerServiceWorker(
 
       notifyStatusListeners();
 
-      // Check for updates periodically (including service worker file changes)
-      // This ensures changes to sw.js/sw-dev.js are detected
-      /* const _updateInterval = */ setInterval(
-        () => {
-          if (wb && options.enabled) {
-            // wb.update() checks for updates to the service worker file itself
-            // The browser will compare the byte-by-byte content of sw.js/sw-dev.js
-            wb.update();
-          }
-        },
-        60 * 60 * 1000,
-      ); // Check every hour
+      // Check for updates immediately after registration
+      if (wb) {
+        await wb.update();
+      }
 
-      // Also check for updates when the page becomes visible (user returns to tab)
-      // This helps detect service worker file changes more quickly
+      // Check for updates periodically (including service worker file changes)
+      const UPDATE_CHECK_INTERVAL_MS = 5 * 60 * 1000; // every 5 minutes
+      setInterval(() => {
+        if (wb && options.enabled) {
+          wb.update();
+        }
+      }, UPDATE_CHECK_INTERVAL_MS);
+
+      // Check when the tab becomes visible or the window regains focus
       let visibilityHandler: (() => void) | null = null;
+      let focusHandler: (() => void) | null = null;
       if (typeof document !== 'undefined') {
-        visibilityHandler = () => {
-          if (!document.hidden && wb && options.enabled) {
+        const checkForUpdate = () => {
+          if (wb && options.enabled) {
             wb.update();
           }
         };
+        visibilityHandler = () => {
+          if (!document.hidden) {
+            checkForUpdate();
+          }
+        };
+        focusHandler = checkForUpdate;
         document.addEventListener('visibilitychange', visibilityHandler);
+        window.addEventListener('focus', focusHandler);
       }
 
       // CRITICAL: Mark registration as complete only after everything is set up
@@ -912,11 +969,63 @@ export async function registerServiceWorker(
 }
 
 /**
+ * Clear all service worker caches.
+ */
+export async function clearAppCaches(): Promise<void> {
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  }
+}
+
+/**
+ * Reload the app (parent shell when embedded, otherwise the current page).
+ */
+export function reloadApp(): void {
+  const sent = shellui.sendMessageToParent({
+    type: 'SHELLUI_REFRESH_PAGE',
+    payload: {},
+  });
+  if (!sent) {
+    window.location.reload();
+  }
+}
+
+/**
+ * Clear cached files and reload the app to fetch the latest version from the server.
+ */
+export async function reloadAppToLatestVersion(): Promise<void> {
+  await clearAppCaches();
+  reloadApp();
+}
+
+/**
  * Update the service worker immediately
  * This will reload the page when the update is installed
  */
 export async function updateServiceWorker(): Promise<void> {
-  if (!wb || !waitingServiceWorker) {
+  if (!('serviceWorker' in navigator)) {
+    return;
+  }
+
+  // Resolve waiting worker from registration when Workbox was not initialized this session
+  if (!waitingServiceWorker) {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration?.waiting) {
+        waitingServiceWorker = registration.waiting;
+        updateAvailable = true;
+      }
+    } catch (error) {
+      logger.error('Failed to resolve waiting service worker:', { error });
+    }
+  }
+
+  if (!waitingServiceWorker) {
+    logger.warn(
+      'updateServiceWorker: no waiting service worker found, clearing caches and reloading',
+    );
+    await reloadAppToLatestVersion();
     return;
   }
 
@@ -975,7 +1084,10 @@ export async function updateServiceWorker(): Promise<void> {
     isInitialRegistration = false;
 
     // Set up reload handler before sending skip waiting
+    let reloaded = false;
     const reloadApp = () => {
+      if (reloaded) return;
+      reloaded = true;
       // Use shellUI refresh message if available, otherwise fallback to window.location.reload
       const sent = shellui.sendMessageToParent({
         type: 'SHELLUI_REFRESH_PAGE',
@@ -986,7 +1098,7 @@ export async function updateServiceWorker(): Promise<void> {
       }
     };
 
-    // Add one-time listener for controlling event
+    // Add one-time listener for controlling event (Workbox or native controllerchange)
     const updateControllingHandler = () => {
       reloadApp();
       wb?.removeEventListener('controlling', updateControllingHandler);
@@ -995,19 +1107,20 @@ export async function updateServiceWorker(): Promise<void> {
         isIntentionalUpdate = false;
       }, 1000);
     };
-    wb.addEventListener('controlling', updateControllingHandler);
+    if (wb) {
+      wb.addEventListener('controlling', updateControllingHandler);
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', updateControllingHandler, {
+      once: true,
+    });
 
     // Send skip waiting message to the waiting service worker
     waitingServiceWorker.postMessage({ type: 'SKIP_WAITING' });
 
-    // Fallback: if controlling event doesn't fire within 2 seconds, reload anyway
+    // Fallback: reload if controlling event doesn't fire within 2 seconds
     setTimeout(() => {
-      if (controllingHandler) wb?.removeEventListener('controlling', controllingHandler);
-      // Check if service worker is now controlling
-      if (navigator.serviceWorker.controller) {
-        reloadApp();
-      }
-      // Reset flag if fallback is used
+      wb?.removeEventListener('controlling', updateControllingHandler);
+      reloadApp();
       setTimeout(() => {
         isIntentionalUpdate = false;
       }, 1000);
@@ -1180,8 +1293,19 @@ export async function getServiceWorkerStatus(): Promise<{
  * Resolves when the check is complete. Listen to addStatusListener for updateAvailable changes.
  */
 export async function checkForServiceWorkerUpdate(): Promise<void> {
-  if (isTauri() || !wb) return;
-  await wb.update();
+  if (isTauri() || !('serviceWorker' in navigator)) return;
+  if (wb) {
+    await wb.update();
+    return;
+  }
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration) {
+      await registration.update();
+    }
+  } catch (error) {
+    logger.error('Failed to check for service worker update:', { error });
+  }
 }
 
 /**
