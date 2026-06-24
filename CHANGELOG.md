@@ -26,6 +26,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### 🛠 Improvements
 
 - Improve **login** next params (#2)
+- Improve tauri integration for better developer user experience (9)
 
 ### 🐛 Bug Fixes
 
