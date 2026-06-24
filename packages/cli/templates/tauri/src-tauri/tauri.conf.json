@@ -6,15 +6,15 @@
   "build": {
     "beforeDevCommand": {
       "cwd": "../../..",
-      "script": "node packages/cli/bin/shellui.js start --target tauri",
+      "script": "shellui start",
       "wait": false
     },
-    "devUrl": "http://localhost:4000",
+    "devUrl": "http://localhost:3000",
     "beforeBuildCommand": {
       "cwd": "../../..",
-      "script": "node packages/cli/bin/shellui.js build --target tauri"
+      "script": "shellui build"
     },
-    "frontendDist": "../../dist/web"
+    "frontendDist": "../../web"
   },
   "app": {
     "windows": [
@@ -27,6 +27,7 @@
   },
   "bundle": {
     "active": true,
+    "targets": ["app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

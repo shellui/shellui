@@ -11,15 +11,27 @@ import {
   createShelluiConfigPlugin,
   getShelluiConfigAlias,
   resolvePackagePath,
+  getShelluiTargetDefine,
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
 import { initCommand } from './init.js';
+import { tauriDevCommand } from '../utils/tauri.js';
 
 let currentServer = null;
 let configWatcher = null;
 let restartTimeout = null;
 let isFirstStart = true;
+
+/**
+ * Apply CLI target option to process.env for Vite define injection.
+ * @param {{ target?: string }} options
+ */
+function applyTargetOption(options = {}) {
+  if (options.target === 'tauri' || options.target === 'web') {
+    process.env.SHELLUI_TARGET = options.target;
+  }
+}
 
 /**
  * Start the Vite server with current configuration
@@ -54,6 +66,7 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
     // Force cacheDir to project root - this prevents Vite from creating cache
     // relative to root (which would be inside @shellui/core)
     cacheDir: viteCacheDir,
+    define: getShelluiTargetDefine(config),
     plugins: [
       react(),
       createShelluiConfigPlugin(config),
@@ -154,11 +167,20 @@ function watchConfig(root, cwd, host = false) {
 /**
  * Start command - Starts the ShellUI development server
  * @param {string} root - Root directory (default: '.')
- * @param {{ host?: boolean }} options - Command options (e.g. { host: true } for network access)
+ * @param {{ host?: boolean; app?: boolean; target?: string }} options - Command options
  */
 export async function startCommand(root = '.', options = {}) {
   const cwd = process.cwd();
-  const host = !!options?.host;
+  applyTargetOption(options);
+  const host = !!options?.host || process.env.SHELLUI_HOST === '1';
+
+  if (options?.app) {
+    if (host) {
+      process.env.SHELLUI_HOST = '1';
+    }
+    await tauriDevCommand(root, { host });
+    return;
+  }
 
   const configDir = path.resolve(cwd, root);
   const configPath = path.join(configDir, 'shellui.config.ts');

@@ -44,18 +44,20 @@ shellui init ./my-app
 shellui init --force
 ```
 
-After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.svg`, and `icons/` (e.g. `home.svg`, `settings.svg`) to customize assets, then run `shellui start` to begin development.
+After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.svg`, and `icons/` (e.g. `home.svg`, `settings.svg`) to customize assets, then run `shellui dev` to begin development.
 
-### `shellui start [root]`
+### `shellui start [root]` / `shellui dev [root]`
 
-Start the ShellUI development server.
+Start the ShellUI development server. `dev` is an alias for `start`.
 
 **Usage:**
 
 ```bash
 shellui start
+shellui dev
 shellui start ./my-project
-shellui start --host
+shellui dev --host
+shellui dev --app
 ```
 
 **Description:**
@@ -64,23 +66,29 @@ shellui start --host
 - Automatically opens your browser (on first start)
 - Watches for configuration file changes and restarts automatically
 - Uses the port specified in your configuration (default: 3000)
+- With `--app`, starts a native desktop development environment (see [Desktop app](/tauri))
 
 **Options:**
 
 - `root` (optional): Project root directory (default: current directory)
 - `--host`: Listen on `0.0.0.0` so the app can be accessed from other devices on your network (e.g. via your machine’s LAN IP)
+- `--app`: Start as a native desktop app. On first run, generates `dist/app/` (desktop wrapper) and installs desktop build tools if needed.
+- `--target <web|tauri>`: Build target injected at compile time (default: `web`). Set to `tauri` for desktop-specific behavior (e.g. disable service worker). Automatically applied when using `--app`.
 
 **Example:**
 
 ```bash
 # Start server in current directory
-shellui start
+shellui dev
 
 # Start server in specific directory
 shellui start ./my-app
 
 # Allow access from network (e.g. from phone or another machine)
-shellui start --host
+shellui dev --host
+
+# Start desktop development (ShellUI server + native window)
+shellui dev --app
 ```
 
 ### `shellui build [root]`
@@ -92,18 +100,24 @@ Build the ShellUI application for production.
 ```bash
 shellui build
 shellui build ./my-project
+shellui build --app
+shellui build --app --bundles app,dmg
 ```
 
 **Description:**
 
 - Builds your ShellUI application for production
-- Outputs optimized files to the `dist/` directory
+- Outputs optimized files to `dist/web/`
 - Minifies and optimizes assets
 - Creates a production-ready static site
+- With `--app`, builds a native desktop app (web assets to `dist/web/`, desktop wrapper and bundles under `dist/app/`)
 
 **Options:**
 
 - `root` (optional): Project root directory (default: current directory)
+- `--app`: Build the desktop app. Generates `dist/app/` on first run and installs desktop build tools if needed.
+- `--bundles <targets>`: Desktop bundle format(s) when using `--app` (comma-separated). Default: `app` (e.g. `.app` on macOS). Use `app,dmg` on macOS to also produce a `.dmg` installer. See [Desktop app — Bundle targets](/tauri#bundle-targets).
+- `--target <web|tauri>`: Build target injected at compile time (default: `web`). Set to `tauri` for desktop builds. Automatically applied when using `--app`.
 
 **Example:**
 
@@ -113,6 +127,12 @@ shellui build
 
 # Build specific project
 shellui build ./my-app
+
+# Build native desktop app (.app on macOS, default)
+shellui build --app
+
+# Build desktop app + macOS DMG installer (for distribution)
+npx shellui build --app --bundles app,dmg
 ```
 
 ## Configuration
@@ -253,9 +273,14 @@ When using the CLI, your project structure should look like:
 my-project/
 ├── shellui.config.ts
 ├── package.json
-├── dist/                  # Production build output
+├── static/                # Optional static assets (favicon, icons, fonts)
+├── dist/                  # Build output (gitignored, generated locally)
+│   ├── web/               # Web build (`shellui build`)
+│   └── app/               # Desktop wrapper (`shellui dev --app` / `shellui build --app`)
 └── node_modules/
 ```
+
+Only source files are committed — `dist/` is generated on each machine (`shellui init` adds `dist/` to `.gitignore`).
 
 ## Configuration Reference
 

@@ -10,6 +10,7 @@
   "files": [
     "bin",
     "src",
+    "templates",
     "README.md",
     "package.json"
   ],
