@@ -328,6 +328,17 @@ export function ensureTauriIcons(projectRoot, appDir, config) {
 }
 
 /**
+ * Merge project-level tauri.conf.json overrides into the generated config.
+ * @param {Record<string, unknown>} tauriConf
+ * @param {Record<string, unknown>} overrides
+ */
+function mergeProjectTauriOverrides(tauriConf, overrides) {
+  if (overrides.app?.windows?.[0] && tauriConf.app?.windows?.[0]) {
+    Object.assign(tauriConf.app.windows[0], overrides.app.windows[0]);
+  }
+}
+
+/**
  * Sync shellui.config.ts values into app/src-tauri/tauri.conf.json
  * @param {string} root
  * @param {string} cwd
@@ -376,6 +387,12 @@ export async function syncTauriConfig(root, cwd, options = {}) {
         .filter(Boolean)
     : ['app'];
   tauriConf.bundle.icon = [...TAURI_BUNDLE_ICONS];
+
+  const projectTauriConfPath = path.join(projectRoot, 'tauri.conf.json');
+  if (fs.existsSync(projectTauriConfPath)) {
+    const projectTauriConf = JSON.parse(fs.readFileSync(projectTauriConfPath, 'utf8'));
+    mergeProjectTauriOverrides(tauriConf, projectTauriConf);
+  }
 
   fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
   console.log(pc.green(`Synced shellui.config.ts -> ${DESKTOP_APP_DIR}/`));
