@@ -31,7 +31,7 @@ let redundantHandler: EventHandler | null = null;
 let serviceWorkerErrorHandler: EventHandler | null = null;
 let messageErrorHandler: EventHandler | null = null;
 
-/** Global set by host or by us from config so Tauri can be forced (e.g. when __TAURI__ is not yet injected in dev). */
+/** Global set by the CLI build target or from Tauri globals so desktop mode can be detected before __TAURI__ is injected in dev. */
 declare global {
   interface Window {
     __SHELLUI_TAURI__?: boolean;

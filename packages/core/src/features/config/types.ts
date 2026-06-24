@@ -189,9 +189,6 @@ export interface LegalDocumentsConfig {
   dataProcessingAgreement?: string;
 }
 
-/** When set to 'tauri', disables service worker and hides its settings (Tauri uses a different caching system). */
-export type RuntimeType = 'browser' | 'tauri';
-
 /** Supported backend providers for auth/API communication. */
 export type BackendType = 'shellui' | 'supabase';
 
@@ -229,8 +226,6 @@ export interface ShellUIConfig {
   title?: string;
   /** App version string (e.g. "1.2.0"). Shown in Settings > System > Update app. */
   version?: string;
-  /** Set to 'tauri' when the app runs inside Tauri so service worker is disabled and hidden. */
-  runtime?: RuntimeType;
   /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */
   favicon?: string;
   /** App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header. */

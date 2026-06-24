@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" role="img" aria-hidden="true">
+  <style>
+    svg { color: #2a2a2a; }
+    @media (prefers-color-scheme: dark) {
+      svg { color: #d0d0d0; }
+    }
+  </style>
+  <rect x="2.5" y="2.5" width="27" height="27" rx="6" ry="6" stroke="currentColor" stroke-width="2" fill="none" opacity="0.92"/>
+  <rect x="9" y="9" width="14" height="14" rx="3" ry="3" fill="currentColor" opacity="0.78"/>
+</svg>
