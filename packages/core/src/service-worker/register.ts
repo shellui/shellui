@@ -20,6 +20,7 @@ let isIntentionalUpdate = false; // Track if we're performing an intentional upd
 let isRegistering = false; // Track if registration is currently in progress
 let registrationStartTime = typeof window !== 'undefined' ? Date.now() : 0; // Track when registration started (initialize to page load time)
 const REGISTRATION_GRACE_PERIOD = 5000; // Don't auto-disable within 5 seconds of page load/registration start
+const UPDATE_AVAILABLE_TOAST_ID = 'shellui:update-available';
 
 // Store event handler references so we can remove them if needed
 type EventHandler = (event?: unknown) => void;
@@ -125,6 +126,55 @@ async function notifyStatusListeners() {
     updateAvailable,
   };
   statusListeners.forEach((listener) => listener(status));
+}
+
+function createUpdateAvailableActionHandler(): () => void {
+  return () => {
+    logger.info('Install Now clicked, updating service worker...');
+    updateServiceWorker().catch((error) => {
+      logger.error('Failed to update service worker:', { error });
+    });
+  };
+}
+
+function showUpdateAvailableNotification(): void {
+  shellui.toast({
+    id: UPDATE_AVAILABLE_TOAST_ID,
+    title: 'New version available',
+    description: 'A new version of the app is available. Install now or later?',
+    type: 'info',
+    duration: 0,
+    position: 'bottom-left',
+    action: {
+      label: 'Install Now',
+      onClick: createUpdateAvailableActionHandler(),
+    },
+    cancel: {
+      label: 'Later',
+      onClick: () => {
+        // User chose to install later, toast will be dismissed
+      },
+    },
+  });
+}
+
+/**
+ * Show the update-available toast for developer testing (Settings → Service Worker).
+ * Syncs waiting service worker state when one exists so "Install Now" works end-to-end.
+ */
+export async function showUpdateAvailableToastForTesting(): Promise<void> {
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration?.waiting) {
+      waitingServiceWorker = registration.waiting;
+      updateAvailable = true;
+      await notifyStatusListeners();
+    }
+  } catch (error) {
+    logger.warn('Failed to sync waiting service worker for update toast test:', { error });
+  }
+
+  showUpdateAvailableNotification();
 }
 
 export interface ServiceWorkerRegistrationOptions {
@@ -479,11 +529,6 @@ export async function registerServiceWorker(
         eventListenersAdded = true;
 
         // Handle service worker updates
-        // CRITICAL: Use a consistent toast ID to prevent duplicate toasts
-        // If the handler is called multiple times (event listener + manual call),
-        // using the same ID will update the existing toast instead of creating a new one
-        const UPDATE_AVAILABLE_TOAST_ID = 'shellui:update-available';
-
         waitingHandler = async () => {
           try {
             // CRITICAL: If we're auto-activating (user refreshed), don't show toast
@@ -537,51 +582,7 @@ export async function registerServiceWorker(
             if (options.onUpdateAvailable) {
               options.onUpdateAvailable();
             } else {
-              // CRITICAL: Use consistent toast ID so duplicate calls update the same toast
-              // This prevents multiple toasts from appearing if the handler is called multiple times
-              // CRITICAL: Always create fresh action handlers that reference the current waitingServiceWorker
-              // This ensures the action handler always has the correct service worker reference
-              // even if the toast is updated later
-              const actionHandler = () => {
-                logger.info('Install Now clicked, updating service worker...');
-                // CRITICAL: Get the current waitingServiceWorker at click time, not at toast creation time
-                // This ensures it works even if the toast was created earlier and then updated
-                if (waitingServiceWorker) {
-                  updateServiceWorker().catch((error) => {
-                    logger.error('Failed to update service worker:', { error });
-                  });
-                } else {
-                  logger.warn('Install Now clicked but no waiting service worker found');
-                  // Try to get it from registration as fallback
-                  navigator.serviceWorker.getRegistration().then((swRegistration) => {
-                    if (swRegistration?.waiting) {
-                      waitingServiceWorker = swRegistration.waiting;
-                      updateServiceWorker().catch((error) => {
-                        logger.error('Failed to update service worker:', { error });
-                      });
-                    }
-                  });
-                }
-              };
-
-              shellui.toast({
-                id: UPDATE_AVAILABLE_TOAST_ID, // Use consistent ID to prevent duplicates
-                title: 'New version available',
-                description: 'A new version of the app is available. Install now or later?',
-                type: 'info',
-                duration: 0, // Don't auto-dismiss
-                position: 'bottom-left',
-                action: {
-                  label: 'Install Now',
-                  onClick: actionHandler, // Use the handler function
-                },
-                cancel: {
-                  label: 'Later',
-                  onClick: () => {
-                    // User chose to install later, toast will be dismissed
-                  },
-                },
-              });
+              showUpdateAvailableNotification();
             }
           } catch (error) {
             logger.error('Error in waiting handler:', { error });
@@ -968,6 +969,37 @@ export async function registerServiceWorker(
 }
 
 /**
+ * Clear all service worker caches.
+ */
+export async function clearAppCaches(): Promise<void> {
+  if ('caches' in window) {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map((name) => caches.delete(name)));
+  }
+}
+
+/**
+ * Reload the app (parent shell when embedded, otherwise the current page).
+ */
+export function reloadApp(): void {
+  const sent = shellui.sendMessageToParent({
+    type: 'SHELLUI_REFRESH_PAGE',
+    payload: {},
+  });
+  if (!sent) {
+    window.location.reload();
+  }
+}
+
+/**
+ * Clear cached files and reload the app to fetch the latest version from the server.
+ */
+export async function reloadAppToLatestVersion(): Promise<void> {
+  await clearAppCaches();
+  reloadApp();
+}
+
+/**
  * Update the service worker immediately
  * This will reload the page when the update is installed
  */
@@ -990,7 +1022,10 @@ export async function updateServiceWorker(): Promise<void> {
   }
 
   if (!waitingServiceWorker) {
-    logger.warn('updateServiceWorker: no waiting service worker found');
+    logger.warn(
+      'updateServiceWorker: no waiting service worker found, clearing caches and reloading',
+    );
+    await reloadAppToLatestVersion();
     return;
   }
 
