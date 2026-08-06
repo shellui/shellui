@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import urls from '../../constants/urls';
@@ -9,8 +8,8 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { getBaseUrlWithoutHash } from '../layouts/utils';
-import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { AppLayout } from '../layouts/AppLayout';
+import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 
 /** Admin microfrontend uses hash routes (e.g. createHashRouter); sync shell `/admin/...` with iframe `#/...`. */
 function buildAdminIframeSrc(
@@ -36,19 +35,11 @@ const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
 };
 
 export const AdminView = () => {
-  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
   const { user } = useAuth();
-  const isStaff = Boolean(user?.isStaff);
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
-  const djangoAdminHref = useMemo(() => {
-    if (config.backend?.type !== 'shellui' || !config.backend.url?.trim()) {
-      return null;
-    }
-    return `${config.backend.url.replace(/\/+$/, '')}/admin`;
-  }, [config.backend?.type, config.backend?.url]);
   const configuredAdminPathname = config.backend?.adminPathname?.trim();
   const adminPath =
     configuredAdminPathname && configuredAdminPathname.startsWith('/')
@@ -111,21 +102,6 @@ export const AdminView = () => {
             Back to home
           </Button>
           <div className="flex items-center gap-2">
-            {isStaff && djangoAdminHref ? (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <a
-                  href={djangoAdminHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t('adminShell.djangoAdmin')}
-                </a>
-              </Button>
-            ) : null}
             <LoginButton
               variant="appbar"
               logoutOnly

@@ -41,9 +41,29 @@ export const buildSettingsForPropagation = (
         path: item.path,
         url: item.url,
         label: resolveLabel(item.label, lang),
+        ...(item.icon ? { icon: item.icon } : {}),
       }),
     );
     result = { ...result, navigation: { items } };
+  }
+
+  if (config?.administration) {
+    result = {
+      ...result,
+      administration: {
+        title: resolveLabel(config.administration.title, lang),
+        navigation: (config.administration.navigation ?? []).map((item) => ({
+          path: item.path,
+          url: item.url,
+          label: resolveLabel(item.label, lang),
+          ...(item.icon ? { icon: item.icon } : {}),
+          ...(item.requiresStaff ? { requiresStaff: true } : {}),
+          ...(item.openIn === 'external' ? { openIn: 'external' as const } : {}),
+        })),
+      },
+    };
+  } else {
+    result = { ...result, administration: null };
   }
 
   const authBackendBaseUrl =

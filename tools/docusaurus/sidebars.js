@@ -61,6 +61,7 @@ const sidebars = {
           type: 'category',
           label: 'Advanced',
           items: [
+            'features/administration',
             'features/application-settings',
             'features/cookie-consent',
             'features/service-worker',

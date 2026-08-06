@@ -235,8 +235,12 @@ shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
   const colorScheme = settings.appearance?.colorScheme;
   const themeValues = settings.appearance;
   const language = settings.language?.code;
+  // Staff admin custom nav (from host `administration` config); null when unset
+  const adminNav = settings.administration;
 });
 ```
+
+Host `administration` navigation is documented in [Administration panel](/features/administration).
 
 ## Frame Management
 

@@ -31,11 +31,12 @@ New to ShellUI? Follow these steps to get up and running:
 
 ### Advanced Features
 
-- **[Application Settings](/features/application-settings)** - Expose per-application settings panels in Settings
-- **[Cookie Consent](/features/cookie-consent)** - Privacy-friendly cookie consent management
-- **[Legal Documents](/features/legal-documents)** - Publish privacy policy, terms, and legal notices from markdown
-- **[Service Worker](/features/service-worker)** - Offline support and automatic app updates
-- **[SDK Integration](/sdk)** - Programmatically integrate ShellUI features in your apps
+- **[Administration panel](/features/administration)** — Staff admin iframe, custom sidebar navigation from config
+- **[Application settings](/features/application-settings)** — Per-app settings panels in Settings
+- **[Cookie consent](/features/cookie-consent)** — Cookie registry and consent storage
+- **[Legal documents](/features/legal-documents)** — Privacy, terms, and notices from markdown (including on the login page)
+- **[Service worker](/features/service-worker)** — Offline support and update prompts
+- **[SDK integration](/sdk)** — Programmatic shell APIs for embedded apps
 
 ## Reference
 

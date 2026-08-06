@@ -19,6 +19,7 @@ export type {
   LayoutType,
   BackendType,
   BackendConfig,
+  AdministrationConfig,
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,

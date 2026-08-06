@@ -11,5 +11,7 @@ export const toSettingsUser = (user: AuthUser | null): Settings['user'] => {
     profilePicture: user.profilePicture,
     authProvider: user.authProvider,
     groups: user.groups.length ? [...user.groups] : null,
+    isStaff: user.isStaff,
+    isCompanyOwner: user.isCompanyOwner,
   };
 };

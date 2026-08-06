@@ -164,4 +164,52 @@ describe('buildSettingsForPropagation', () => {
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
     expect(result.authBackendBaseUrl).toBeNull();
   });
+
+  it('injects localized administration navigation from config', () => {
+    const config = {
+      administration: {
+        title: { en: 'Applications', fr: 'Applications FR' },
+        navigation: [
+          {
+            label: { en: 'Billing', fr: 'Facturation' },
+            path: 'billing',
+            url: 'https://app.example.com/billing',
+            icon: '/icons/billing.svg',
+          },
+          {
+            label: { en: 'Django admin', fr: 'Admin Django' },
+            path: 'django-admin',
+            url: '/admin/',
+            requiresStaff: true,
+            openIn: 'external',
+          },
+        ],
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'fr');
+    expect(result.administration).toEqual({
+      title: 'Applications FR',
+      navigation: [
+        {
+          path: 'billing',
+          url: 'https://app.example.com/billing',
+          label: 'Facturation',
+          icon: '/icons/billing.svg',
+        },
+        {
+          path: 'django-admin',
+          url: '/admin/',
+          label: 'Admin Django',
+          requiresStaff: true,
+          openIn: 'external',
+        },
+      ],
+    });
+  });
+
+  it('sets administration to null when not configured', () => {
+    const result = buildSettingsForPropagation(baseSettings, undefined, 'en');
+    expect(result.administration).toBeNull();
+  });
 });

@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.4.0] - 2026-MM-DD
+
+### ✨ Feature
+
+- **Administration panel:** configure custom admin sidebar navigation via `administration` in `shellui.config.ts` (title, flat nav items, `requiresStaff`, `openIn: 'external'` for Django admin); propagated to the admin app through SDK settings. (#6)
+
 ## [0.3.0] - 2026-05-13
 
 ### ✨ Feature
