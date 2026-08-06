@@ -24,8 +24,10 @@ const sidebars = {
       type: 'category',
       label: 'Getting Started',
       items: [
-        'quickstart',
         'installation',
+        'quickstart',
+        'backend',
+        'features/authentication',
       ],
     },
     {
@@ -64,6 +66,7 @@ const sidebars = {
             'features/administration',
             'features/application-settings',
             'features/cookie-consent',
+            'features/legal-documents',
             'features/service-worker',
           ],
         },

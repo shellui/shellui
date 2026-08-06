@@ -1,31 +1,15 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
-import urls from '../../constants/urls';
 import { ContentView } from '../../components/ContentView';
 import { LoginButton } from '../auth/components/LoginButton';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
-import { getBaseUrlWithoutHash } from '../layouts/utils';
 import { AppLayout } from '../layouts/AppLayout';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
-
-/** Admin microfrontend uses hash routes (e.g. createHashRouter); sync shell `/admin/...` with iframe `#/...`. */
-function buildAdminIframeSrc(
-  baseAdminContentUrl: string,
-  normalizedAdminPath: string,
-  pathname: string,
-  search: string,
-): string {
-  const pathAfterAdmin = pathname.startsWith(normalizedAdminPath)
-    ? pathname.slice(normalizedAdminPath.length)
-    : '';
-  const segment = pathAfterAdmin.replace(/^\/+|\/+$/g, '');
-  const hashRoute = segment ? `/${segment}` : '/';
-  const originBase = getBaseUrlWithoutHash(baseAdminContentUrl).replace(/\/+$/, '');
-  return `${originBase}/#${hashRoute}${search}`;
-}
+import { getAdminContentUrl, getAdminPath } from './config';
+import { buildAdminIframeSrc } from './utils';
 
 const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
   if (!allow) {
@@ -40,12 +24,8 @@ export const AdminView = () => {
   const { config } = useConfig();
   const { user } = useAuth();
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
-  const configuredAdminPathname = config.backend?.adminPathname?.trim();
-  const adminPath =
-    configuredAdminPathname && configuredAdminPathname.startsWith('/')
-      ? configuredAdminPathname
-      : urls.admin;
-  const baseAdminContentUrl = config.backend?.adminUrl?.trim() || urls.settings;
+  const adminPath = getAdminPath(config);
+  const baseAdminContentUrl = getAdminContentUrl(config);
   const initialAdminContentUrlRef = useRef<string | null>(null);
   if (!initialAdminContentUrlRef.current) {
     const normalizedAdminPath = adminPath.replace(/\/+$/, '');

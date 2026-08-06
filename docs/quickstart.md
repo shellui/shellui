@@ -87,9 +87,10 @@ export default config;
 
 - **port** (number, optional): Port number for the development server (default: 3000)
 - **title** (string, optional): Application title displayed in the UI
-- **backend** (object, optional): Backend config for auth/API communication (default: undefined)
+- **backend** (object, optional): Backend config for auth/API communication (default: undefined). See [Backend](/backend) and [Authentication](/features/authentication).
   - **type** (`"shellui"` | `"supabase"`): Backend provider
   - **url** (string): Base API URL
+  - **login** (object, optional): `methods` and `oauthProviders` for the login page
 - **navigation** (array, optional): Array of navigation items with:
   - **label** (string): Display text for the navigation item
   - **path** (string): Unique path identifier
@@ -97,25 +98,23 @@ export default config;
   - **icon** (string, optional): Icon name for the navigation item
   - **hideWhenLoggedOut** (boolean, optional): Hide item from navigation while signed out
   - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
-- **legalDocuments** (object, optional): Markdown content for legal pages
-  - **privacyPolicy** (string, optional): Privacy Policy markdown
-  - **termsOfService** (string, optional): Terms of Service markdown
-  - **legalNotice** (string, optional): Legal Notice markdown
-  - **dataProcessingAgreement** (string, optional): DPA markdown
+- **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
 
 ## Step 4: Start the Development Server
 
 Run the development server:
 
 ```bash
-shellui start
+shellui dev
 ```
 
 Or if installed locally:
 
 ```bash
-npx shellui start
+npx shellui dev
 ```
+
+`shellui start` works the same way — `dev` is an alias for `start`.
 
 The server will:
 
@@ -124,7 +123,9 @@ The server will:
 - Watch for configuration file changes and restart automatically
 - Display the server URL in the terminal
 
-Use `shellui start --host` to listen on `0.0.0.0` and access the app from other devices on your network.
+Use `shellui dev --host` to listen on `0.0.0.0` and access the app from other devices on your network.
+
+To run as a native desktop app, see [Tauri](/tauri) and use `shellui dev --app`.
 
 You should see output like:
 
@@ -150,10 +151,10 @@ shellui build
 This will:
 
 - Build your ShellUI application
-- Output the production files to the `dist/` directory
+- Output the production files to the `dist/web/` directory
 - Optimize assets for production
 
-The built files will be in the `dist/` directory and can be deployed to any static hosting service.
+The built files will be in `dist/web/` and can be deployed to any static hosting service.
 
 ## Project Structure
 
@@ -163,15 +164,20 @@ A typical ShellUI project structure looks like:
 my-shellui-app/
 ├── shellui.config.ts
 ├── package.json
-├── dist/                  # Production build (generated)
+├── static/                # Optional static assets
+├── dist/                  # Generated build output (gitignored)
+│   ├── web/               # Web build
+│   └── app/               # Desktop wrapper (--app)
 └── node_modules/
 ```
 
 ## Next Steps
 
-- **[Navigation Guide](/features/navigation)** - Learn how to configure navigation menus
-- **[CLI Reference](/cli)** - Learn about all available commands
-- **[Feature Guides](/)** - Explore all ShellUI features
+- **[Tauri](/tauri)** — Ship as a native desktop app with `shellui dev --app`
+- **[Backend](/backend)** — Choose Supabase, the ShellUI identity service, or no backend
+- **[Authentication](/features/authentication)** — Login page, sessions, and guarded routes
+- **[Navigation](/features/navigation)** — Configure navigation menus
+- **[CLI Reference](/cli)** — Commands and configuration options
 
 ## Troubleshooting
 

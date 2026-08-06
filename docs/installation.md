@@ -23,8 +23,12 @@ After installation, you can use the `shellui` command from any directory:
 
 ```bash
 shellui start
+shellui dev            # alias for start
 shellui start --host   # listen on 0.0.0.0 to access from other devices
+shellui dev --app      # start Tauri desktop development
 shellui build
+shellui build --app    # build desktop app (.app on macOS)
+npx shellui build --app --bundles app,dmg   # + macOS DMG installer
 ```
 
 ### Local Installation
@@ -47,8 +51,11 @@ Or add scripts to your `package.json`:
 ```json
 {
   "scripts": {
-    "start": "shellui start",
-    "build": "shellui build"
+    "dev": "shellui dev",
+    "build": "shellui build",
+    "dev:app": "shellui dev --app",
+    "build:app": "shellui build --app",
+    "build:app:dmg": "shellui build --app --bundles app,dmg"
   }
 }
 ```

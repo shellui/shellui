@@ -10,7 +10,9 @@ import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
 import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
+import { useConfig } from '../config/useConfig';
 import { getNavPathPrefix, resolveLocalizedString } from './utils';
+import { resolveSdkNavigatePath } from './resolveSdkNavigatePath';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -21,6 +23,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { navigationItems } = useNavigationItems();
+  const { config } = useConfig();
   const { isOpen, modalUrl, closeModal } = useModal();
   const {
     isOpen: isDrawerOpen,
@@ -59,27 +62,9 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
       closeModal();
       closeDrawer();
 
-      let pathname: string;
-
-      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
-        try {
-          pathname = new URL(rawUrl).pathname;
-        } catch {
-          pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-        }
-      } else {
-        pathname = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`;
-      }
-
-      const isHomepage = pathname === '/' || pathname === '';
-      const isAllowed =
-        isHomepage ||
-        navigationItems.some((item) => {
-          const pathPrefix = getNavPathPrefix(item);
-          return pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`);
-        });
-      if (isAllowed) {
-        navigate(pathname || '/');
+      const resolvedPath = resolveSdkNavigatePath(rawUrl, config, navigationItems);
+      if (resolvedPath) {
+        navigate(resolvedPath);
       } else {
         shellui.toast({
           type: 'error',
@@ -90,7 +75,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
       }
     });
     return () => cleanup();
-  }, [navigate, closeModal, closeDrawer, navigationItems, t]);
+  }, [navigate, closeModal, closeDrawer, config, navigationItems, t]);
   return (
     <>
       {children}

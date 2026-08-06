@@ -5,6 +5,7 @@ import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 import { AppLayout } from '../features/layouts/AppLayout';
 import { flattenNavigationItems } from '../features/layouts/utils';
 import urls from '../constants/urls';
+import { createAdminRoute } from '../features/admin/routes';
 import { RouteFallback } from './components/RouteFallback';
 
 // Lazy load route components
@@ -23,9 +24,6 @@ const OAuthCallbackView = lazy(() =>
   import('../features/auth/components/OAuthCallbackView').then((m) => ({
     default: m.OAuthCallbackView,
   })),
-);
-const AdminView = lazy(() =>
-  import('../features/admin/AdminView').then((m) => ({ default: m.AdminView })),
 );
 const LegalDocumentView = lazy(() =>
   import('../features/legal/LegalDocumentView').then((m) => ({ default: m.LegalDocumentView })),
@@ -46,11 +44,6 @@ const NotFoundView = lazy(() =>
 );
 
 export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
-  const configuredAdminPathname = config.backend?.adminPathname?.trim();
-  const adminPath =
-    configuredAdminPathname && configuredAdminPathname.startsWith('/')
-      ? configuredAdminPathname
-      : urls.admin;
   const routes: RouteObject[] = [
     {
       path: '/',
@@ -133,11 +126,7 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
             </Suspense>
           ),
         },
-        {
-          // Admin route
-          path: `${adminPath.replace(/^\//, '')}/*`,
-          element: <AdminView />,
-        },
+        createAdminRoute(config),
         {
           // Catch-all route
           path: '*',

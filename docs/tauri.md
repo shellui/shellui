@@ -1,10 +1,10 @@
-# Tauri Desktop App
+# Desktop App
 
-Ship your ShellUI app as a native desktop application using [Tauri 2](https://v2.tauri.app/). The Tauri package wraps your ShellUI web app in a minimal native window and uses values from `shellui.config.ts` (title, icon, port).
+Ship your ShellUI app as a native desktop application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the desktop wrapper is generated into `dist/app/` so you never manage native project files in your repo.
 
 ## Prerequisites
 
-**Required before running any Tauri commands:**
+**Required before running desktop commands:**
 
 1. **[Rust](https://www.rust-lang.org/tools/install)** – Install via [rustup](https://rustup.rs/):
 
@@ -12,25 +12,16 @@ Ship your ShellUI app as a native desktop application using [Tauri 2](https://v2
    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
    ```
 
-   **What to expect:**
-   - The installer will prompt you to choose installation options (defaults are usually fine)
-   - After installation, you'll see a message like: `Rust is installed now. Great!`
-   - You may need to restart your terminal or run `source ~/.cargo/env` to add Rust to your PATH
-
    **Verify installation:**
 
    ```bash
-   cargo --version  # Should print something like: cargo 1.xx.x (xxxxx xxxx-xx-xx)
-   rustc --version  # Should print something like: rustc 1.xx.x (xxxxx xxxx-xx-xx)
+   cargo --version
+   rustc --version
    ```
 
-   If these commands fail, restart your terminal or run:
+   If these commands fail, restart your terminal or run `source ~/.cargo/env`.
 
-   ```bash
-   source ~/.cargo/env
-   ```
-
-2. **[Node](https://nodejs.org/)** 18+ and **[pnpm](https://pnpm.io/)** (recommended) or npm
+2. **[Node](https://nodejs.org/)** 18+ and a package manager (npm, pnpm, or yarn)
 
 **Platform-specific requirements** (see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)):
 
@@ -38,173 +29,172 @@ Ship your ShellUI app as a native desktop application using [Tauri 2](https://v2
 - **Windows**: Microsoft Visual Studio C++ Build Tools, WebView2
 - **Linux**: webkit2gtk, and other dev packages (see Tauri docs)
 
-> **Note**: If you see `failed to run 'cargo metadata'` or `No such file or directory (os error 2)`, Rust/Cargo is not installed or not in your PATH. Install Rust via rustup and restart your terminal.
+> **Note**: If you see `failed to run 'cargo metadata'`, Rust/Cargo is not installed or not in your PATH.
 
-## Installation
+## Quick start
 
-From the repository root:
+From your ShellUI project directory:
 
 ```bash
-pnpm install
-pnpm tauri:install
+# Development: ShellUI server + native window
+shellui dev --app
+
+# Production: web build + native desktop app (.app on macOS)
+shellui build --app
+
+# Production + macOS DMG installer (for distribution)
+npx shellui build --app --bundles app,dmg
 ```
 
-`tauri:install` installs dependencies for the `@shellui/tauri` package and runs the config sync (see below).
+On first run, the CLI:
+
+1. Generates `dist/app/` with the desktop wrapper (implementation-specific project files)
+2. Installs desktop build dependencies (e.g. `@tauri-apps/cli`) if not already present
+3. Syncs `shellui.config.ts` (title, icon, port) into the generated wrapper
+
+`shellui start --app` works the same as `shellui dev --app`.
+
+## Build output layout
+
+| Command                                 | Output                                                |
+| --------------------------------------- | ----------------------------------------------------- |
+| `shellui build`                         | `dist/web/` — static site for hosting                 |
+| `shellui build --app`                   | `dist/web/` + `.app` bundle (macOS) under `dist/app/` |
+| `shellui build --app --bundles app,dmg` | Above + `.dmg` installer (macOS)                      |
+
+Everything under `dist/` is generated locally and gitignored — nothing to commit or hand-edit.
 
 ## Configuration
 
-The app is driven by your existing **shellui.config.ts** at the repo root:
+The CLI syncs these fields from `shellui.config.ts`:
 
-| Config field | Use in Tauri                                        |
-| ------------ | --------------------------------------------------- |
-| `title`      | Window title and app name (productName)             |
-| `appIcon`    | App icon (copied to `tools/tauri/src-tauri/icons/`) |
-| `port`       | Dev server URL (`http://localhost:<port>`)          |
+| Config field | Use in desktop app                         |
+| ------------ | ------------------------------------------ |
+| `title`      | Window title and app name                  |
+| `appIcon`    | App icon                                   |
+| `port`       | Dev server URL (`http://localhost:<port>`) |
 
-Sync runs automatically before `tauri dev` and `tauri build`. To sync manually:
-
-```bash
-cd tools/tauri && pnpm run sync-config
-```
+No extra config is needed for desktop vs web. The CLI sets the build target automatically when you use `--app`. Your `shellui.config.ts` stays the same for both.
 
 ## Commands
 
-Run from the **repository root**:
-
-| Command              | Description                                               |
-| -------------------- | --------------------------------------------------------- |
-| `pnpm tauri:install` | Install Tauri deps and sync config from shellui.config.ts |
-| `pnpm tauri:dev`     | Start ShellUI dev server and open the Tauri window        |
-| `pnpm tauri:build`   | Build web app, then build the native desktop app          |
-
-Or from `tools/tauri`:
+| Command                                 | Description                                                                       |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `shellui dev --app`                     | Start ShellUI dev server and open the native window                               |
+| `shellui build --app`                   | Build web app to `dist/web/`, then build the native desktop app (`.app` on macOS) |
+| `shellui build --app --bundles app,dmg` | Same, plus a macOS `.dmg` installer for distribution                              |
 
 ```bash
-pnpm run dev    # same as tauri:dev from root
-pnpm run build  # same as tauri:build from root
+shellui dev --app ./my-project
+shellui dev --app --host
+shellui build --app ./my-project
+npx shellui build --app --bundles app,dmg
+```
+
+## Bundle targets
+
+When you run `shellui build --app`, the CLI passes a `--bundles` flag to the desktop bundler (Tauri today). By default only the **`app`** target is built — on macOS that is a `.app` you can run directly from:
+
+```
+dist/app/src-tauri/target/release/bundle/macos/
+```
+
+This default avoids flaky macOS DMG packaging during local development.
+
+To also produce a **`.dmg` disk image** (for distribution or notarization), pass `--bundles app,dmg`:
+
+```bash
+npx shellui build --app --bundles app,dmg
+```
+
+The DMG is written under `dist/app/src-tauri/target/release/bundle/dmg/`.
+
+Other [Tauri bundle targets](https://v2.tauri.app/reference/config/#bundleconfig) (`deb`, `rpm`, `appimage`, `msi`, `nsis`, …) can be passed the same way if you need them on Linux or Windows.
+
+**`package.json` scripts example:**
+
+```json
+{
+  "scripts": {
+    "build:app": "shellui build --app",
+    "build:app:dmg": "shellui build --app --bundles app,dmg"
+  }
+}
 ```
 
 ## Development
 
-1. From root: `pnpm tauri:dev`
-2. This starts the ShellUI dev server (from `shellui.config.ts`, e.g. port 4000) and opens the Tauri window pointing at it.
-3. Edit your app or config; the web app hot-reloads as usual.
+1. Run `shellui dev --app` from your project root.
+2. The CLI generates or updates `dist/app/`, syncs config, and starts the desktop dev environment.
+3. The ShellUI dev server starts (via `shellui start --target tauri`) and a native window opens pointing at it.
+4. Edit your app or config; the web app hot-reloads as usual.
 
 ## Production build
 
-1. From root: `pnpm tauri:build`
-2. This runs `pnpm build` (web assets to `dist/`), then builds the Tauri app. Outputs are under `tools/tauri/src-tauri/target/release/` and in the bundle (e.g. `.app`, `.exe`, `.AppImage`).
+1. Run `shellui build --app` from your project root.
+2. Web assets are built to `dist/web/`, then the native desktop app is built.
+3. On macOS, the `.app` bundle is under `dist/app/src-tauri/target/release/bundle/macos/`.
+
+For a macOS **DMG installer** (distribution):
+
+```bash
+npx shellui build --app --bundles app,dmg
+```
+
+See [Bundle targets](#bundle-targets) for details and other platforms.
 
 ## Icons
 
-The sync script automatically handles icon setup:
+Icon setup runs automatically during sync:
 
-1. **Copies your icon** from `shellui.config.ts` `appIcon` (or `static/favicon.svg`) to `tools/tauri/src-tauri/icons/`
-2. **If it's an SVG**, automatically runs `tauri icon` to generate platform-specific icons (PNG, ICO, ICNS) for all platforms
-3. **Updates `tauri.conf.json`** with the generated icon paths
+1. Copies your icon from `appIcon` or `static/favicon.svg`
+2. Generates platform-specific icons when the source is SVG
+3. Falls back to bundled defaults if no icon is configured
 
-**What gets generated**:
+## Project layout
 
-- `32x32.png`, `128x128.png`, `128x128@2x.png` (for Linux/Windows)
-- `icon.icns` (for macOS)
-- `icon.ico` (for Windows)
-
-**Manual icon generation**: If you need to regenerate icons manually (e.g., after updating the source SVG):
-
-```bash
-cd tools/tauri
-pnpm exec tauri icon src-tauri/icons/icon.svg
+```
+my-project/
+├── shellui.config.ts      # Shared config for web and desktop
+├── static/                  # Optional assets
+└── dist/                    # Generated (gitignored)
+    ├── web/                 # Web build
+    └── app/                 # Desktop wrapper (regenerated by --app)
 ```
 
-See [Tauri icons documentation](https://v2.tauri.app/develop/icons/) for more details.
+You only maintain `shellui.config.ts` and your static assets. The desktop wrapper in `dist/app/` is an implementation detail — today Tauri, swappable without changing your workflow.
 
-## Layout
+## ShellUI monorepo
 
-- **tools/tauri/** – Tauri app (lives under `tools/` with other app generators, e.g. future Electron)
-  - **package.json** – scripts and `@tauri-apps/cli` / `@tauri-apps/api`
-  - **scripts/sync-shellui-config.mjs** – reads `shellui.config.ts`, updates `tauri.conf.json`, copies icon
-  - **src-tauri/** – Rust project and Tauri config
-    - **tauri.conf.json** – window title, dev URL, build paths, icon (updated by sync)
-    - **src/** – minimal Rust entry (no custom logic)
-    - **capabilities/** – default capability for the main window
-
-Configuration is kept minimal on purpose; extend `tauri.conf.json` or add Tauri plugins as needed.
-
-## Version control (what to commit)
-
-**Yes, commit the `tools/tauri` folder**, including `src-tauri/`, but not everything inside it:
-
-| Commit                                                | Ignore (in `.gitignore`)                                                    |
-| ----------------------------------------------------- | --------------------------------------------------------------------------- |
-| `src-tauri/Cargo.toml`, `build.rs`, `tauri.conf.json` | `src-tauri/target/` (build output)                                          |
-| `src-tauri/src/`, `src-tauri/capabilities/`           | `src-tauri/gen/` (Tauri-generated schemas)                                  |
-| `src-tauri/icons/icon.svg` (source icon)              | Generated icons: `*.png`, `*.ico`, `*.icns`, `icons/android/`, `icons/ios/` |
-| `src-tauri/Cargo.lock` (reproducible builds)          |                                                                             |
-
-Generated icons and `target/` are recreated when you run `pnpm run sync-config` and `pnpm tauri:dev` or `pnpm tauri:build`. The `.gitignore` in `tools/tauri/` is already set up for this.
+When developing ShellUI itself, the monorepo provides `pnpm tauri:dev` and `pnpm tauri:build` via `tools/tauri/`. For apps built with the published CLI, use `shellui dev --app` and `shellui build --app`.
 
 ## Troubleshooting
 
-### `failed to run 'cargo metadata'` or `No such file or directory (os error 2)`
+### `failed to run 'cargo metadata'`
 
-**Problem**: Rust/Cargo is not installed or not in your PATH.
+Rust/Cargo is not installed or not in PATH. Install via [rustup](https://rustup.rs/) and restart your terminal.
 
-**Solution**:
+### `failed to open icon .../icon.png`
 
-1. Install Rust via [rustup](https://rustup.rs/):
+Regenerate the desktop wrapper:
 
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
+```bash
+rm -rf dist/app
+shellui dev --app
+```
 
-   The installer will guide you through the setup. Choose the default options if unsure.
+### `bundle_dmg.sh` failed (macOS)
 
-2. After installation completes, you'll see: `Rust is installed now. Great!`
-3. **Important**: Restart your terminal or reload your shell config to add Rust to PATH:
+**What happened:** The app itself likely built successfully. Tauri then tries to create a `.dmg` disk image installer using `bundle_dmg.sh` — that optional packaging step failed. This is a [known flaky step](https://github.com/tauri-apps/tauri/issues/4995) on macOS (AppleScript, disk mounting, CI quirks).
 
-   ```bash
-   source ~/.cargo/env  # or restart terminal
-   ```
+**Check for your app:** look for `dist/app/src-tauri/target/release/bundle/macos/*.app` — you can run it directly.
 
-4. Verify `cargo` is available:
+**Default behavior:** `shellui build --app` now builds the `.app` bundle only (skips DMG) for a reliable local build.
 
-   ```bash
-   cargo --version
-   ```
+**For a DMG installer** (distribution):
 
-   You should see output like `cargo 1.xx.x (xxxxx xxxx-xx-xx)`. If you get "command not found", restart your terminal.
+```bash
+shellui build --app --bundles app,dmg
+```
 
-5. Try `pnpm tauri:dev` again. The first run may take a while as Rust downloads and compiles dependencies.
-
-### `failed to open icon .../icon.png: No such file or directory`
-
-**Problem**: Tauri is looking for a PNG/ICO/ICNS icon file that doesn't exist. This can happen if:
-
-- The sync script failed to generate icons (e.g., Tauri CLI not installed)
-- Icon files were deleted manually
-
-**Solution**:
-
-1. Run the sync script to regenerate icons:
-
-   ```bash
-   cd tools/tauri && pnpm run sync-config
-   ```
-
-   This will copy your icon and automatically generate platform icons if it's an SVG.
-
-2. If icon generation fails, ensure Tauri CLI is installed:
-
-   ```bash
-   cd tools/tauri
-   pnpm install  # ensures @tauri-apps/cli is installed
-   pnpm exec tauri icon src-tauri/icons/icon.svg  # manual generation
-   ```
-
-3. Try `pnpm tauri:dev` again.
-
-### Other issues
-
-- **macOS**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-- **Build errors**: See [Tauri troubleshooting](https://v2.tauri.app/develop/troubleshooting/)
-- **Icon generation**: Run `pnpm exec tauri icon src-tauri/icons/icon.svg` if bundle icons are missing
+If DMG still fails, try unmounting stale volumes: `hdiutil info` then `hdiutil detach /dev/diskX`.

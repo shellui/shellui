@@ -18,7 +18,7 @@ const port = process.argv[2] ? parseInt(process.argv[2], 10) : 8000;
 
 // Resolve dist directory relative to project root (two levels up from tools/serve)
 const projectRoot = path.resolve(__dirname, '../..');
-const distDir = path.join(projectRoot, 'dist');
+const distDir = path.join(projectRoot, 'dist', 'web');
 
 // Check if dist directory exists
 if (!fs.existsSync(distDir)) {

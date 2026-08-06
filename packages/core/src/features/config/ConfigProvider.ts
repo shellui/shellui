@@ -27,7 +27,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
   const [config] = useState<ShellUIConfig>(() => {
     try {
       const resolved = shelluiConfig ?? ({} as ShellUIConfig);
-      if (typeof window !== 'undefined' && resolved.runtime === 'tauri') {
+      if (typeof window !== 'undefined' && __SHELLUI_TARGET__ === 'tauri') {
         (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
       }
       if (process.env.NODE_ENV === 'development' && !configLogged) {

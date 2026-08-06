@@ -27,6 +27,19 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - **Administration panel:** configure custom admin sidebar navigation via `administration` in `shellui.config.ts` (title, flat nav items, `requiresStaff`, `openIn: 'external'` for Django admin); propagated to the admin app through SDK settings. (#6)
 
+## [0.3.1] - 2026-06-24
+
+### 🛠 Improvements
+
+- Improve **login** next params (#2)
+- Improve tauri integration for better developer user experience (9)
+
+### 🐛 Bug Fixes
+
+- Default **adminUrl** value (#1)
+- **Navigate** call using sdk fails to default urls (#4)
+- Make **Software update** disabled by default and experimental (#5)
+
 ## [0.3.0] - 2026-05-13
 
 ### ✨ Feature

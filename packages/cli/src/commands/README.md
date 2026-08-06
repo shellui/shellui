@@ -6,8 +6,9 @@ This directory contains all CLI commands, each in its own file for better mainta
 
 Each command is a separate file that exports a command function:
 
-- `start.js` - Start the ShellUI development server
-- `build.js` - Build the ShellUI application for production
+- `start.js` - Start the ShellUI development server (`dev` alias, `--app` for Tauri)
+- `build.js` - Build the ShellUI application for production (`--app` for Tauri)
+- `init.js` - Create a `shellui.config.ts` boilerplate
 
 ## Adding a New Command
 
@@ -36,5 +37,6 @@ export { newCommandCommand } from './new-command.js';
 
 ## Available Commands
 
-- **start** - Starts the development server
-- **build** - Builds the application for production
+- **dev** / **start** - Starts the development server (`--app` for Tauri desktop)
+- **build** - Builds the application for production (`--app` for Tauri desktop)
+- **init** - Creates a `shellui.config.ts` boilerplate

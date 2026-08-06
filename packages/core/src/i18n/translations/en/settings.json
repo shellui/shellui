@@ -230,6 +230,15 @@
     "resetError": {
       "title": "Reset Failed",
       "description": "Failed to clear cached files. Please try again later."
+    },
+    "testing": {
+      "title": "Test update notification",
+      "description": "Show the update notification to verify the Install Now button works.",
+      "button": "Show update modal",
+      "error": {
+        "title": "Test failed",
+        "description": "Could not show the update notification. Please try again."
+      }
     }
   },
   "develop": {

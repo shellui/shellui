@@ -78,7 +78,7 @@ const baseSettings: Settings = {
   language: { code: 'en' },
   region: { timezone: 'UTC' },
   cookieConsent: { acceptedHosts: [], consentedCookieHosts: [] },
-  serviceWorker: { enabled: true },
+  serviceWorker: { enabled: false },
   user: null,
 };
 

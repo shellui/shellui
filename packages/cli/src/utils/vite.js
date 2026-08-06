@@ -37,6 +37,27 @@ const SHELLUI_CONFIG_VIRTUAL_ID = 'virtual:shellui-config';
 const SHELLUI_CONFIG_ALIAS_ID = '\0' + SHELLUI_CONFIG_VIRTUAL_ID;
 
 /**
+ * Resolve build target from CLI flag/env or legacy config.runtime field.
+ * @param {Object} config - Loaded shellui config
+ * @returns {'web' | 'tauri'}
+ */
+export function resolveShelluiTarget(config) {
+  const fromEnv = process.env.SHELLUI_TARGET;
+  if (fromEnv === 'tauri' || fromEnv === 'web') return fromEnv;
+  if (config?.runtime === 'tauri') return 'tauri';
+  return 'web';
+}
+
+/**
+ * Vite define for the ShellUI build target injected into @shellui/core.
+ * @param {Object} config - Loaded shellui config
+ * @returns {Record<string, string>}
+ */
+export function getShelluiTargetDefine(config) {
+  return { __SHELLUI_TARGET__: JSON.stringify(resolveShelluiTarget(config)) };
+}
+
+/**
  * Create Vite plugin that provides the ShellUI config as a virtual module.
  * The app and any code can import from '@shellui/config' (via alias) and get the config object as TypeScript.
  * @param {Object} config - Loaded shellui config (will be serialized for the virtual module)
@@ -44,6 +65,7 @@ const SHELLUI_CONFIG_ALIAS_ID = '\0' + SHELLUI_CONFIG_VIRTUAL_ID;
  */
 export function createShelluiConfigPlugin(config) {
   const serializableConfig = JSON.parse(JSON.stringify(config));
+  delete serializableConfig.runtime;
   const moduleContent = `export const shelluiConfig = ${JSON.stringify(serializableConfig)};
 export default shelluiConfig;
 `;

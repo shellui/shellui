@@ -45,6 +45,34 @@ interface SonnerProviderProps {
   children: ReactNode;
 }
 
+/** Root-window toasts store callbacks locally; iframe toasts route via postMessage. */
+function createToastButtonHandler(
+  toastId: string | undefined,
+  from: string[] | undefined,
+  kind: 'action' | 'cancel',
+): (() => void) | undefined {
+  if (!toastId) return undefined;
+  let sent = false;
+  return () => {
+    if (sent) return;
+    sent = true;
+    if (!from?.length) {
+      if (kind === 'action') {
+        shellui.callbackRegistry.triggerAction(toastId);
+      } else {
+        shellui.callbackRegistry.triggerCancel(toastId);
+      }
+      shellui.callbackRegistry.clear(toastId);
+      return;
+    }
+    shellui.sendMessage({
+      type: kind === 'action' ? 'SHELLUI_TOAST_ACTION' : 'SHELLUI_TOAST_CANCEL',
+      payload: { id: toastId },
+      to: from,
+    });
+  };
+}
+
 export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   const toast = useCallback((options: ToastOptions) => {
     const {
@@ -192,38 +220,16 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
         },
         action:
           payload.action &&
-          (() => {
-            let actionSent = false;
-            return {
-              label: payload.action?.label ?? undefined,
-              onClick: () => {
-                if (actionSent) return;
-                actionSent = true;
-                shellui.sendMessage({
-                  type: 'SHELLUI_TOAST_ACTION',
-                  payload: { id: payload.id },
-                  to: data.from,
-                });
-              },
-            };
-          })(),
+          (() => ({
+            label: payload.action?.label ?? undefined,
+            onClick: createToastButtonHandler(payload.id, data.from, 'action') ?? (() => {}),
+          }))(),
         cancel:
           payload.cancel &&
-          (() => {
-            let cancelSent = false;
-            return {
-              label: payload.cancel?.label ?? undefined,
-              onClick: () => {
-                if (cancelSent) return;
-                cancelSent = true;
-                shellui.sendMessage({
-                  type: 'SHELLUI_TOAST_CANCEL',
-                  payload: { id: payload.id },
-                  to: data.from,
-                });
-              },
-            };
-          })(),
+          (() => ({
+            label: payload.cancel?.label ?? undefined,
+            onClick: createToastButtonHandler(payload.id, data.from, 'cancel') ?? (() => {}),
+          }))(),
       });
     });
 
@@ -240,38 +246,16 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
           // These handlers send messages that trigger the callbackRegistry
           action:
             payload.action &&
-            (() => {
-              let actionSent = false;
-              return {
-                label: payload.action?.label ?? undefined,
-                onClick: () => {
-                  if (actionSent) return;
-                  actionSent = true;
-                  shellui.sendMessage({
-                    type: 'SHELLUI_TOAST_ACTION',
-                    payload: { id: payload.id },
-                    to: data.from,
-                  });
-                },
-              };
-            })(),
+            (() => ({
+              label: payload.action?.label ?? undefined,
+              onClick: createToastButtonHandler(payload.id, data.from, 'action') ?? (() => {}),
+            }))(),
           cancel:
             payload.cancel &&
-            (() => {
-              let cancelSent = false;
-              return {
-                label: payload.cancel?.label ?? undefined,
-                onClick: () => {
-                  if (cancelSent) return;
-                  cancelSent = true;
-                  shellui.sendMessage({
-                    type: 'SHELLUI_TOAST_CANCEL',
-                    payload: { id: payload.id },
-                    to: data.from,
-                  });
-                },
-              };
-            })(),
+            (() => ({
+              label: payload.cancel?.label ?? undefined,
+              onClick: createToastButtonHandler(payload.id, data.from, 'cancel') ?? (() => {}),
+            }))(),
         });
       },
     );

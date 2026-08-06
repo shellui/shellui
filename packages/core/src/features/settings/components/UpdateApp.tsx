@@ -24,7 +24,7 @@ export const UpdateApp = () => {
   const [showUpToDateInButton, setShowUpToDateInButton] = useState(false);
   const [checkError, setCheckError] = useState(false);
 
-  const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? true;
+  const serviceWorkerEnabled = settings?.serviceWorker?.enabled ?? false;
 
   useEffect(() => {
     if (isTauri()) return;

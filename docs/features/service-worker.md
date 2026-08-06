@@ -87,31 +87,15 @@ When offline, ShellUI:
 
 ### Disable Service Worker
 
-Disable the service worker in your configuration:
+Disable the service worker via user settings (Settings > Advanced > Service Worker).
 
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
+For Tauri desktop builds, the service worker is disabled automatically when you use `shellui dev --app` or `shellui build --app` — no config change required.
 
-const config: ShellUIConfig = {
-  runtime: 'tauri', // Disables service worker (for Tauri apps)
-  // ... rest of config
-};
-```
+### Tauri Desktop Builds
 
-Or disable via user settings (Settings > Advanced > Service Worker).
+When building or developing with `--app`, the CLI injects a Tauri build target at compile time. The service worker stays enabled for normal web builds (`shellui dev`, `shellui build`) using the same `shellui.config.ts`.
 
-### Tauri Runtime
-
-When running in Tauri, the service worker is automatically disabled:
-
-```typescript
-const config: ShellUIConfig = {
-  runtime: 'tauri', // Service worker disabled automatically
-  // ... rest of config
-};
-```
-
-Tauri uses its own caching system, so the service worker is not needed.
+Tauri uses its own caching system, so the service worker is not needed in desktop builds.
 
 ## Update Behavior
 

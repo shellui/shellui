@@ -7,6 +7,8 @@ import { cn } from '../../../lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
+import { getAdminPath } from '../../admin/config';
+import { isAdminPath } from '../../admin/utils';
 import { flattenNavigationItems, getNavPathPrefix } from '../../layouts/utils';
 import { LogoutIcon, SidebarCaretIcon } from './LoginButtonIcons';
 import {
@@ -169,17 +171,10 @@ export const LoginButton = ({
     () => Boolean(user?.isStaff || user?.isCompanyOwner),
     [user?.isCompanyOwner, user?.isStaff],
   );
-  const configuredAdminPathname = useMemo(
-    () => config.backend?.adminPathname?.trim() ?? null,
-    [config.backend?.adminPathname],
-  );
-  const adminPath =
-    configuredAdminPathname && configuredAdminPathname.startsWith('/')
-      ? configuredAdminPathname
-      : urls.admin;
+  const adminPath = getAdminPath(config);
   const isOnAdminRoute = useMemo(
-    () => location.pathname === adminPath || location.pathname.startsWith(`${adminPath}/`),
-    [adminPath, location.pathname],
+    () => isAdminPath(location.pathname, config),
+    [config, location.pathname],
   );
 
   const openAdminPanel = useCallback(() => {

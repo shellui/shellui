@@ -9,6 +9,7 @@ import { LegalDocumentsLinks } from '../../legal/LegalDocumentsLinks';
 import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
 import {
+  buildAuthUrlWithNext,
   formatProviderLabel,
   getOAuthProviderCandidates,
   getPreferredBackendProvider,
@@ -121,10 +122,10 @@ export const LoginView = () => {
     return normalizeNextPath(params.get('next')) ?? '/';
   }, [location.search]);
   const loginPathWithNext = useMemo(() => {
-    return `${urls.login}?next=${encodeURIComponent(nextPath)}`;
+    return buildAuthUrlWithNext(urls.login, nextPath);
   }, [nextPath]);
   const oauthCallbackPathWithNext = useMemo(() => {
-    return `${urls.loginCallback}?next=${encodeURIComponent(nextPath)}`;
+    return buildAuthUrlWithNext(urls.loginCallback, nextPath);
   }, [nextPath]);
 
   useEffect(() => {

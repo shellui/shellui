@@ -17,25 +17,40 @@ npm install --save-dev @shellui/cli
 ## Usage
 
 ```bash
-shellui start [path/to/project] [--host]
-shellui build [path/to/project]
+shellui dev [path/to/project] [--host] [--app]
+shellui start [path/to/project] [--host] [--app]   # alias: dev
+shellui build [path/to/project] [--app] [--bundles <targets>]
+shellui init [path/to/project] [--force]
 ```
 
 ### Commands
 
-- **start** - Start the ShellUI development server
+- **dev** / **start** - Start the ShellUI development server
 
   ```bash
-  shellui start
-  shellui start ./my-project
-  shellui start --host   # listen on 0.0.0.0 for network access
+  shellui dev
+  shellui dev ./my-project
+  shellui dev --host      # listen on 0.0.0.0 for network access
+  shellui dev --app       # desktop development (generates dist/app/)
   ```
 
 - **build** - Build the ShellUI application for production
+
   ```bash
   shellui build
   shellui build ./my-project
+  shellui build --app              # desktop app (.app on macOS)
+  shellui build --app --bundles app,dmg   # + macOS DMG installer
   ```
+
+- **init** - Create a `shellui.config.ts` boilerplate
+
+  ```bash
+  shellui init
+  shellui init --force
+  ```
+
+See the ShellUI docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
 
 ## Project Structure
 

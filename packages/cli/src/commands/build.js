@@ -13,7 +13,10 @@ import {
   getShelluiConfigAlias,
   createViteResolveConfig,
   resolvePackagePath,
+  getShelluiTargetDefine,
 } from '../utils/index.js';
+import { tauriBuildCommand } from '../utils/tauri.js';
+import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
 
 /**
  * Collect all unique path values from navigation config (items and nested groups).
@@ -71,11 +74,29 @@ function copyDir(src, dest) {
 }
 
 /**
+ * Apply CLI target option to process.env for Vite define injection.
+ * @param {{ target?: string }} options
+ */
+function applyTargetOption(options = {}) {
+  if (options.target === 'tauri' || options.target === 'web') {
+    process.env.SHELLUI_TARGET = options.target;
+  }
+}
+
+/**
  * Build command - Builds the ShellUI application for production
  * @param {string} root - Root directory (default: '.')
+ * @param {{ app?: boolean; target?: string; bundles?: string }} options - Command options
  */
-export async function buildCommand(root = '.') {
+export async function buildCommand(root = '.', options = {}) {
   const cwd = process.cwd();
+  const projectRoot = getProjectRoot(root, cwd);
+  applyTargetOption(options);
+
+  if (options?.app) {
+    await tauriBuildCommand(root, { bundles: options.bundles });
+    return;
+  }
 
   console.log(pc.blue(`Building ShellUI...`));
 
@@ -108,12 +129,15 @@ export async function buildCommand(root = '.') {
   const resolveConfig = createViteResolveConfig();
   const resolveAlias = createResolveAlias();
   const postcssConfig = createPostCSSConfig();
+  const targetDefine = getShelluiTargetDefine(config);
+  const distPath = getWebDistDir(root, cwd);
 
   try {
     // Build main app
     await build({
       root: coreSrcPath,
       plugins: [react(), createShelluiConfigPlugin(config)],
+      define: targetDefine,
       resolve: {
         ...resolveConfig,
         alias: { ...resolveAlias, ...getShelluiConfigAlias() },
@@ -122,7 +146,7 @@ export async function buildCommand(root = '.') {
         postcss: postcssConfig,
       },
       build: {
-        outDir: path.resolve(cwd, 'dist'),
+        outDir: distPath,
         emptyOutDir: true,
         sourcemap: true,
         // Ensure every build generates unique filenames with content hashes
@@ -146,13 +170,13 @@ export async function buildCommand(root = '.') {
     // Build service worker with Vite first
     console.log(pc.blue('Building service worker...'));
     const swInputPath = path.join(corePackagePath, 'src', 'service-worker', 'sw.ts');
-    const distPath = path.resolve(cwd, 'dist');
     const swTempPath = path.join(distPath, 'sw-temp.js');
 
     // Build service worker TypeScript to JavaScript
     await build({
       root: coreSrcPath,
       plugins: [createShelluiConfigPlugin(config)],
+      define: targetDefine,
       resolve: {
         ...resolveConfig,
         alias: { ...resolveAlias, ...getShelluiConfigAlias() },
@@ -202,7 +226,7 @@ export async function buildCommand(root = '.') {
 
     // Copy static folder contents to dist if it exists
     // This ensures icons are served from the same path in dev and prod
-    const staticPath = path.resolve(cwd, 'static');
+    const staticPath = path.join(projectRoot, 'static');
 
     if (fs.existsSync(staticPath)) {
       console.log(pc.blue('Copying static assets...'));
@@ -238,7 +262,7 @@ export async function buildCommand(root = '.') {
       }
     }
 
-    console.log(pc.green('Build complete!'));
+    console.log(pc.green(`Build complete! Output: dist/web/`));
   } catch (e) {
     console.error(pc.red(`Error building: ${e.message}`));
     process.exit(1);

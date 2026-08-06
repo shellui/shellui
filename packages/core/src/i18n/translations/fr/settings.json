@@ -230,6 +230,15 @@
     "resetError": {
       "title": "Échec de la réinitialisation",
       "description": "Échec de l'effacement des fichiers mis en cache. Veuillez réessayer plus tard."
+    },
+    "testing": {
+      "title": "Tester la notification de mise à jour",
+      "description": "Afficher la notification de mise à jour pour vérifier que le bouton Installer maintenant fonctionne.",
+      "button": "Afficher la modale de mise à jour",
+      "error": {
+        "title": "Échec du test",
+        "description": "Impossible d'afficher la notification de mise à jour. Veuillez réessayer."
+      }
     }
   },
   "develop": {
