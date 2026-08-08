@@ -14,9 +14,11 @@ import {
   getOAuthProviderCandidates,
   getPreferredBackendProvider,
   getProviderVisual,
+  isAccessPendingErrorCode,
   isLoginMethod,
   normalizeNextPath,
 } from '../utils';
+import { AccessPendingView } from './AccessPendingView';
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
@@ -113,6 +115,7 @@ export const LoginView = () => {
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [methodError, setMethodError] = useState<string | null>(null);
   const [oauthBounceError, setOauthBounceError] = useState<string | null>(null);
+  const [oauthBounceCode, setOauthBounceCode] = useState<string | null>(null);
   const [lastUsedLogin, setLastUsedLogin] = useState<LastUsedLogin | null>(
     readLastUsedLoginFromStorage,
   );
@@ -147,6 +150,7 @@ export const LoginView = () => {
         ? ` Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: ${typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}.`
         : '';
     setOauthBounceError(`${baseMsg}${hint}`);
+    setOauthBounceCode(code);
   }, [location.hash, location.pathname, location.search, navigate]);
 
   useEffect(() => {
@@ -383,6 +387,19 @@ export const LoginView = () => {
 
   if (isAuthenticated) {
     return null;
+  }
+
+  if (isAccessPendingErrorCode(oauthBounceCode)) {
+    return (
+      <AccessPendingView
+        message={oauthBounceError}
+        code={oauthBounceCode}
+        onBackToLogin={() => {
+          setOauthBounceError(null);
+          setOauthBounceCode(null);
+        }}
+      />
+    );
   }
 
   return (

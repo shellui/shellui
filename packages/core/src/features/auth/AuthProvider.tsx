@@ -6,14 +6,18 @@ import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
 import {
+  AuthRequestError,
   clearStoredAuthSession,
   getAccessTokenFromSdkSettings,
+  getAuthRequestErrorCode,
   getUserFromSdkSettings,
+  inferAccessPendingErrorCode,
   isSessionExpired,
   persistAuthSession,
   readStoredAuthSession,
   toAuthSessionFromSettingsUser,
 } from './utils';
+import type { OAuthCallbackResult } from './hooks/useAuth';
 
 const logger = getLogger('shellcore');
 
@@ -40,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
@@ -51,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeSession = async () => {
       setIsLoading(true);
       setError(null);
+      setErrorCode(null);
 
       if (typeof window === 'undefined') {
         setIsLoading(false);
@@ -230,10 +236,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     (provider: string, redirectPath = urls.login, oauthClientId?: number) => {
       try {
         setError(null);
+        setErrorCode(null);
         backend.startOAuth(provider, redirectPath, oauthClientId);
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
+        setErrorCode(err instanceof AuthRequestError ? err.code : null);
         return false;
       }
     },
@@ -251,9 +259,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       code: string;
       redirectUri: string;
       oauthClientId?: number;
-    }) => {
+    }): Promise<OAuthCallbackResult> => {
       try {
         setError(null);
+        setErrorCode(null);
         const now = Math.floor(Date.now() / 1000);
         const nextSession = await backend.exchangeOAuthCode({
           provider,
@@ -263,16 +272,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           nowSeconds: now,
         });
         if (!nextSession) {
-          setError('Unable to complete OAuth login.');
-          return false;
+          const message = 'Unable to complete OAuth login.';
+          setError(message);
+          setErrorCode(null);
+          return { ok: false, error: message, errorCode: null };
         }
         persistAuthSession(nextSession);
         setSession(nextSession);
         setAuthEvent('oauth_callback');
-        return true;
+        return { ok: true };
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to complete OAuth login.');
-        return false;
+        const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
+        const code =
+          getAuthRequestErrorCode(err) ??
+          inferAccessPendingErrorCode(message) ??
+          (err instanceof AuthRequestError ? err.code : null);
+        setError(message);
+        setErrorCode(code);
+        return { ok: false, error: message, errorCode: code };
       }
     },
     [backend],
@@ -281,9 +298,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const startWeb3Ethereum = useCallback(async () => {
     try {
       setError(null);
+      setErrorCode(null);
       const nextSession = await backend.startWeb3Ethereum();
       if (!nextSession) {
         setError('Unable to complete Ethereum wallet login.');
+        setErrorCode(null);
         return false;
       }
       persistAuthSession(nextSession);
@@ -291,6 +310,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to start Ethereum wallet login.');
+      setErrorCode(err instanceof AuthRequestError ? err.code : null);
       return false;
     }
   }, [backend]);
@@ -358,6 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setAuthEvent(null);
     setError(null);
+    setErrorCode(null);
   }, [backend, session]);
 
   useEffect(() => {
@@ -431,6 +452,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: session !== null && !isSessionExpired(session),
       isLoading,
       error,
+      errorCode,
       authEvent,
       clearAuthEvent,
       completeOAuthCallback,
@@ -447,6 +469,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       isLoading,
       error,
+      errorCode,
       authEvent,
       clearAuthEvent,
       completeOAuthCallback,

@@ -5,6 +5,12 @@ export {
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
 export { buildSessionFromParams } from './buildSessionFromParams';
+export {
+  AuthRequestError,
+  getAuthRequestErrorCode,
+  inferAccessPendingErrorCode,
+  isAccessPendingErrorCode,
+} from './authRequestError';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';
 export { formatProviderLabel } from './formatProviderLabel';

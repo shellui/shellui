@@ -6,6 +6,7 @@ import {
   normalizeAuthSettings,
   normalizeRedirectPath,
 } from '../utils';
+import { AuthRequestError } from '../utils/authRequestError';
 import { getShellUILoginCompanyId } from '../utils/clientLoginContext';
 import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
@@ -100,7 +101,13 @@ export const createShellUIAuthBackend = ({
       const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
       if (!response.ok) {
         const err = payload?.error ?? payload?.detail;
-        throw new Error(typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`);
+        const message = typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`;
+        let code = typeof payload?.error_code === 'string' ? payload.error_code.trim() : null;
+        // Exchange uses 403 only for company join denial; default the code if omitted.
+        if (!code && response.status === 403) {
+          code = 'access_pending';
+        }
+        throw new AuthRequestError(message, code);
       }
       const refreshParams = new URLSearchParams();
       if (typeof payload?.access_token === 'string')
