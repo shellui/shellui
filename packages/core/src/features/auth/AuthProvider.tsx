@@ -3,7 +3,7 @@ import { getLogger, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
-import { AuthContext, type AuthContextValue } from './hooks/useAuth';
+import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
 import {
   AuthRequestError,
@@ -17,7 +17,6 @@ import {
   readStoredAuthSession,
   toAuthSessionFromSettingsUser,
 } from './utils';
-import type { OAuthCallbackResult } from './hooks/useAuth';
 
 const logger = getLogger('shellcore');
 
@@ -283,13 +282,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return { ok: true };
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
-        const code =
+        const oauthErrorCode =
           getAuthRequestErrorCode(err) ??
           inferAccessPendingErrorCode(message) ??
           (err instanceof AuthRequestError ? err.code : null);
         setError(message);
-        setErrorCode(code);
-        return { ok: false, error: message, errorCode: code };
+        setErrorCode(oauthErrorCode);
+        return { ok: false, error: message, errorCode: oauthErrorCode };
       }
     },
     [backend],

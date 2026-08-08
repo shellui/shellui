@@ -33,10 +33,11 @@ export const AccessPendingView = ({ message, code, onBackToLogin }: Props) => {
     : 'An administrator has been notified and will review your request. You will receive an email when access is enabled.';
 
   const backendDetail = message?.trim() || null;
+  const detailLower = backendDetail?.toLowerCase() ?? '';
   const showBackendDetail =
     Boolean(backendDetail) &&
-    !backendDetail!.toLowerCase().includes('waiting for an administrator') &&
-    !backendDetail!.toLowerCase().includes('email domain is not authorized');
+    !detailLower.includes('waiting for an administrator') &&
+    !detailLower.includes('email domain is not authorized');
 
   return (
     <main className="flex min-h-full items-center justify-center bg-background px-6 py-12">

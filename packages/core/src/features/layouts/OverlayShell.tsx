@@ -11,7 +11,7 @@ import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
 import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
 import { useConfig } from '../config/useConfig';
-import { getNavPathPrefix, resolveLocalizedString } from './utils';
+import { resolveLocalizedString } from './utils';
 import { resolveSdkNavigatePath } from './resolveSdkNavigatePath';
 
 interface OverlayShellProps {

@@ -102,12 +102,12 @@ export const createShellUIAuthBackend = ({
       if (!response.ok) {
         const err = payload?.error ?? payload?.detail;
         const message = typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`;
-        let code = typeof payload?.error_code === 'string' ? payload.error_code.trim() : null;
+        let errorCode = typeof payload?.error_code === 'string' ? payload.error_code.trim() : null;
         // Exchange uses 403 only for company join denial; default the code if omitted.
-        if (!code && response.status === 403) {
-          code = 'access_pending';
+        if (!errorCode && response.status === 403) {
+          errorCode = 'access_pending';
         }
-        throw new AuthRequestError(message, code);
+        throw new AuthRequestError(message, errorCode);
       }
       const refreshParams = new URLSearchParams();
       if (typeof payload?.access_token === 'string')
