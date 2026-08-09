@@ -211,6 +211,22 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (isAdminFrame(frameSrc, config)) {
         return true;
       }
+      // Trust admin-panel iframe apps (navigation + storage files explorer / viewer modals).
+      const adminNavItems = config?.administration?.navigation ?? [];
+      if (
+        adminNavItems.some(
+          (item) =>
+            item.openIn !== 'external' &&
+            Boolean(item.url?.trim()) &&
+            isFrameForNavigationItem(frameSrc, item.url),
+        )
+      ) {
+        return true;
+      }
+      const filesUrl = config?.storage?.filesUrl?.trim();
+      if (filesUrl && isFrameForNavigationItem(frameSrc, filesUrl)) {
+        return true;
+      }
       return navigationItems.some(
         (item) => item.safeForAuthToken !== false && isFrameForNavigationItem(frameSrc, item.url),
       );

@@ -92,6 +92,17 @@ export interface SettingsAdministration {
   navigation: SettingsAdministrationNavigationItem[];
 }
 
+/**
+ * Storage-service connection from host `storage` in shellui.config.ts.
+ * Used by Admin → Storage and (later) shell upload / file selector.
+ */
+export interface SettingsStorage {
+  /** Base URL of storage-service (no trailing slash). */
+  url: string;
+  /** Files explorer app URL when configured. */
+  filesUrl?: string | null;
+}
+
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
 export interface ThemeColorsMode {
   background: string;
@@ -238,6 +249,11 @@ export interface Settings {
    * Consumed by the staff admin app to render extra sidebar links below Dashboard.
    */
   administration?: SettingsAdministration | null;
+  /**
+   * Storage-service connection (from host `storage` in shellui.config.ts).
+   * When set, Admin shows Storage; shell upload/file-selector features will use this later.
+   */
+  storage?: SettingsStorage | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**

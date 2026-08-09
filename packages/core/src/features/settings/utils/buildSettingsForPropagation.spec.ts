@@ -167,6 +167,7 @@ describe('buildSettingsForPropagation', () => {
 
   it('injects localized administration navigation from config', () => {
     const config = {
+      storage: { url: 'http://localhost:8001/', filesUrl: 'http://localhost:5175/' },
       administration: {
         title: { en: 'Applications', fr: 'Applications FR' },
         navigation: [
@@ -206,10 +207,15 @@ describe('buildSettingsForPropagation', () => {
         },
       ],
     });
+    expect(result.storage).toEqual({
+      url: 'http://localhost:8001',
+      filesUrl: 'http://localhost:5175/',
+    });
   });
 
-  it('sets administration to null when not configured', () => {
+  it('sets administration and storage to null when not configured', () => {
     const result = buildSettingsForPropagation(baseSettings, undefined, 'en');
     expect(result.administration).toBeNull();
+    expect(result.storage).toBeNull();
   });
 });

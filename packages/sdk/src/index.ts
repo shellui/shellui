@@ -45,6 +45,7 @@ export type {
   SettingsNavigationItem,
   SettingsAdministration,
   SettingsAdministrationNavigationItem,
+  SettingsStorage,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,

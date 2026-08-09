@@ -20,6 +20,7 @@ export type {
   BackendType,
   BackendConfig,
   AdministrationConfig,
+  StorageConfig,
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,

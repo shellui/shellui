@@ -66,6 +66,20 @@ export const buildSettingsForPropagation = (
     result = { ...result, administration: null };
   }
 
+  const storageUrl = config?.storage?.url?.trim().replace(/\/+$/, '') || null;
+  if (storageUrl) {
+    const filesUrl = config.storage?.filesUrl?.trim() || null;
+    result = {
+      ...result,
+      storage: {
+        url: storageUrl,
+        ...(filesUrl ? { filesUrl } : {}),
+      },
+    };
+  } else {
+    result = { ...result, storage: null };
+  }
+
   const authBackendBaseUrl =
     config?.backend?.type === 'shellui' && config.backend.url?.trim()
       ? config.backend.url.trim().replace(/\/+$/, '')

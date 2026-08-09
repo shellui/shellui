@@ -224,6 +224,18 @@ export interface BackendConfig {
 }
 
 /**
+ * Optional storage-service wiring for the shell and admin panel.
+ * When set, admin shows the Storage sidebar (files explorer, statistics, Django admin).
+ * ShellUI will also use this for upload / file selector features.
+ */
+export interface StorageConfig {
+  /** Base URL of storage-service (e.g. `http://localhost:8001`). */
+  url: string;
+  /** Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`). */
+  filesUrl?: string;
+}
+
+/**
  * Custom navigation section for the staff administration panel.
  * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
  * v1 is a flat list only (no nested groups).
@@ -260,6 +272,11 @@ export interface ShellUIConfig {
    * Propagated to the admin iframe via SDK settings. See Administration docs.
    */
   administration?: AdministrationConfig;
+  /**
+   * Storage-service connection. Propagated to iframes via SDK settings.
+   * Enables Admin → Storage when `url` is set; shell upload/file-selector features will use this later.
+   */
+  storage?: StorageConfig;
   themes?: ThemeDefinition[]; // Custom themes to register
   defaultTheme?: string; // Default theme name to use
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
