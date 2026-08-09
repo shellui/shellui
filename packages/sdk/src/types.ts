@@ -204,6 +204,11 @@ export interface SettingsUser {
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
+    /**
+     * When true, skips proactive / restore token refresh so an access token can expire
+     * for local testing (Settings → Develop).
+     */
+    disableTokenAutoRefresh?: boolean;
   };
   /** User toggle for sending error reports (only relevant when app has reporting configured). */
   errorReporting: {

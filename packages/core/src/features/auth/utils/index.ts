@@ -20,6 +20,7 @@ export { getPreferredBackendProvider } from './getPreferredBackendProvider';
 export { getProviderVisual } from './getProviderVisual';
 export { isLoginMethod } from './isLoginMethod';
 export { isSessionExpired } from './isSessionExpired';
+export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';
 export { normalizeNextPath } from './normalizeNextPath';
 export { normalizeRedirectPath } from './normalizeRedirectPath';

@@ -269,6 +269,13 @@
         "description": "Activez la journalisation pour les opérations ShellUI Core"
       }
     },
+    "auth": {
+      "title": "Authentification",
+      "disableTokenAutoRefresh": {
+        "label": "Désactiver le rafraîchissement automatique du jeton",
+        "description": "Arrête le rafraîchissement du jeton d'accès en arrière-plan pour qu'il puisse expirer. Utile pour tester la gestion des jetons expirés."
+      }
+    },
     "testing": {
       "title": "Tests",
       "description": "Testez les fonctionnalités de ShellUI.",

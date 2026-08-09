@@ -13,6 +13,7 @@ import {
   getUserFromSdkSettings,
   inferAccessPendingErrorCode,
   isSessionExpired,
+  isTokenAutoRefreshDisabled,
   persistAuthSession,
   readStoredAuthSession,
   toAuthSessionFromSettingsUser,
@@ -109,6 +110,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Keep the expired session so apps can exercise 401 / re-auth flows locally.
+      if (isTokenAutoRefreshDisabled()) {
+        logger.info(
+          'Skipped session restore refresh because Develop → Disable token auto-refresh is on',
+        );
+        if (!cancelled) {
+          setSession(stored);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
         const restored = await backend.restoreSession(stored, now);
         if (!restored) {
@@ -149,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     let cancelled = false;
+    let skippedRefreshLogged = false;
 
     const runRefresh = async () => {
       if (cancelled) return;
@@ -158,6 +172,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = Math.floor(Date.now() / 1000);
       const secondsLeft = current.expiresAt - now;
       if (secondsLeft > PROACTIVE_REFRESH_LEEWAY_SECONDS && !isSessionExpired(current)) {
+        return;
+      }
+
+      // Re-read when refresh is due so Develop → disableTokenAutoRefresh takes effect without remount.
+      if (isTokenAutoRefreshDisabled()) {
+        if (!skippedRefreshLogged) {
+          skippedRefreshLogged = true;
+          logger.info('Skipped token refresh because Develop → Disable token auto-refresh is on', {
+            expiresAt: current.expiresAt,
+            secondsLeft,
+          });
+        }
         return;
       }
 
@@ -335,7 +361,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const now = Math.floor(Date.now() / 1000);
         let nextSession: AuthSession | null = null;
         try {
-          nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+          if (session && isTokenAutoRefreshDisabled()) {
+            logger.info(
+              'Skipped token refresh after preferences sync because Develop → Disable token auto-refresh is on',
+            );
+            nextSession = null;
+          } else {
+            nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+          }
         } catch (refreshErr) {
           logger.error('Failed to refresh auth session after syncing preferences', { refreshErr });
         }

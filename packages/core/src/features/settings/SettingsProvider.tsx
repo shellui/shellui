@@ -90,6 +90,7 @@ const defaultAppearance: Appearance = {
 const defaultSettings: Settings = {
   developerFeatures: {
     enabled: false,
+    disableTokenAutoRefresh: false,
   },
   errorReporting: {
     enabled: true,
@@ -152,6 +153,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                 ...defaultSettings.logging.namespaces,
                 ...parsed.logging?.namespaces,
               },
+            },
+            developerFeatures: {
+              enabled:
+                parsed.developerFeatures?.enabled ?? defaultSettings.developerFeatures.enabled,
+              disableTokenAutoRefresh:
+                parsed.developerFeatures?.disableTokenAutoRefresh ??
+                defaultSettings.developerFeatures.disableTokenAutoRefresh,
             },
             appearance: {
               ...defaultAppearance,

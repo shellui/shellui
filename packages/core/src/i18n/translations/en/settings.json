@@ -269,6 +269,13 @@
         "description": "Enable logging for ShellUI Core operations"
       }
     },
+    "auth": {
+      "title": "Auth",
+      "disableTokenAutoRefresh": {
+        "label": "Disable token auto-refresh",
+        "description": "Stop refreshing the access token in the background so it can expire. Useful for testing expired-token handling."
+      }
+    },
     "testing": {
       "title": "Testing",
       "description": "Test ShellUI features and functionality.",
