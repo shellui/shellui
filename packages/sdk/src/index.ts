@@ -97,12 +97,23 @@ export class ShellUISDK {
     if (window.parent === window) {
       return;
     }
-    return new Promise((resolve) => {
-      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', (data) => {
-        const { settings } = data.payload as { settings: Settings };
+
+    const applySettings = (data: ShellUIMessage) => {
+      const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
+      if (settings) {
         this.initialSettings = settings;
-        resolve();
+      }
+    };
+
+    // Keep `initialSettings` fresh across token refresh / preference pushes so late
+    // readers (nested iframes, hooks mounting after a refresh) do not reuse a stale JWT.
+    this.addMessageListener('SHELLUI_SETTINGS', applySettings);
+    this.addMessageListener('SHELLUI_SETTINGS_UPDATED', applySettings);
+
+    return new Promise((resolve) => {
+      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', () => {
         cleanup();
+        resolve();
       });
       this.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_REQUESTED',

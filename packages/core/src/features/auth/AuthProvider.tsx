@@ -187,8 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const maybeRefreshOnResume = () => {
       if (cancelled || document.visibilityState !== 'visible') return;
-      const current = sessionRef.current;
-      if (!current?.refreshToken || !isSessionExpired(current)) return;
+      // Use the same proactive leeway as the timer (do not wait until already expired).
       void runRefresh();
     };
 
@@ -219,14 +218,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
     };
 
+    // Parent shell pushes rotated JWTs via `SHELLUI_SETTINGS` (and sometimes UPDATED).
+    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', syncSessionFromSettings);
     const cleanupSettingsUpdated = shellui.addMessageListener(
       'SHELLUI_SETTINGS_UPDATED',
-      (message) => {
-        syncSessionFromSettings(message);
-      },
+      syncSessionFromSettings,
     );
 
     return () => {
+      cleanupSettings();
       cleanupSettingsUpdated();
     };
   }, []);

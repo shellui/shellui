@@ -234,17 +234,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config, navigationItems],
   );
 
+  const accessTokenRef = useRef<string | null>(session?.accessToken ?? null);
+  accessTokenRef.current = session?.accessToken ?? null;
+
   const propagateSettingsToIframes = useCallback(
     (baseSettings: Settings) => {
       const iframes = shellui.frameRegistry.getAllIframes();
       if (iframes.length === 0) return;
       const lang = baseSettings.language?.code || 'en';
+      const accessToken = accessTokenRef.current;
       for (const [uuid, iframe] of iframes) {
         const frameSrc = iframe?.src ?? '';
         const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
         const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
           includeAuthAccessToken,
-          accessToken: session?.accessToken ?? null,
+          accessToken,
         });
         shellui.sendMessage({
           type: 'SHELLUI_SETTINGS',
@@ -253,7 +257,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [config, isTrustedFrameForAuthToken, session?.accessToken],
+    [config, isTrustedFrameForAuthToken],
+  );
+
+  const pushSettingsToFrame = useCallback(
+    (iframeUuid: string, frameSrc: string, baseSettings: Settings) => {
+      const lang = baseSettings.language?.code || 'en';
+      const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+      const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
+        includeAuthAccessToken,
+        accessToken: accessTokenRef.current,
+      });
+      shellui.sendMessage({
+        type: 'SHELLUI_SETTINGS',
+        payload: { settings: settingsToPropagate },
+        to: [iframeUuid],
+      });
+    },
+    [config, isTrustedFrameForAuthToken],
   );
 
   // When the shell rotates the JWT, `authUser` often does not change, so the user-sync effect
@@ -447,7 +468,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             : false;
           const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
             includeAuthAccessToken,
-            accessToken: session?.accessToken ?? null,
+            accessToken: accessTokenRef.current,
           });
 
           // Route through the full parent -> child -> ... -> requester path so deep descendants
@@ -485,12 +506,32 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       },
     );
 
+    // After an iframe finishes SDK init, re-push current settings (incl. rotated JWT).
+    // Covers races where the frame registered after a refresh broadcast, or remounted.
+    const cleanupInitialized = shellui.addMessageListener(
+      'SHELLUI_INITIALIZED',
+      (_message: ShellUIMessage, event: MessageEvent) => {
+        if (typeof window === 'undefined' || window.parent !== window) {
+          return;
+        }
+        const source = event.source;
+        if (!source) return;
+        const match = shellui.frameRegistry
+          .getAllIframes()
+          .find(([, iframe]) => iframe?.contentWindow === source);
+        if (!match) return;
+        const [iframeUuid, iframe] = match;
+        pushSettingsToFrame(iframeUuid, iframe?.src ?? '', settingsRef.current ?? defaultSettings);
+      },
+    );
+
     return () => {
       cleanup();
       cleanupSettings();
       cleanupSettingsRequested();
+      cleanupInitialized();
     };
-  }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, session?.accessToken]);
+  }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, pushSettingsToFrame]);
 
   useEffect(() => {
     if (
