@@ -14,6 +14,7 @@
     "advanced": "Advanced",
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
+    "storage": "Storage",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
@@ -135,6 +136,18 @@
         }
       }
     }
+  },
+  "storage": {
+    "description": "See how much of your storage quota is in use.",
+    "yourUsage": "Your usage",
+    "organization": "Organization",
+    "noPersonalLimit": "No personal limit. Your files count toward the organization quota.",
+    "usedOfMax": "{{used}} of {{max}}",
+    "usedOnly": "{{used}} used",
+    "signInRequired": "Sign in to see your storage usage.",
+    "loading": "Loading storage usage…",
+    "error": "Unable to load storage usage.",
+    "retry": "Try again"
   },
   "dataPrivacy": {
     "title": "Data Privacy",

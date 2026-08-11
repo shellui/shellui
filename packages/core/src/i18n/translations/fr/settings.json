@@ -14,6 +14,7 @@
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
+    "storage": "Stockage",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
@@ -135,6 +136,18 @@
         }
       }
     }
+  },
+  "storage": {
+    "description": "Consultez l'utilisation de votre quota de stockage.",
+    "yourUsage": "Votre utilisation",
+    "organization": "Organisation",
+    "noPersonalLimit": "Aucune limite personnelle. Vos fichiers comptent dans le quota de l'organisation.",
+    "usedOfMax": "{{used}} sur {{max}}",
+    "usedOnly": "{{used}} utilisés",
+    "signInRequired": "Connectez-vous pour voir votre utilisation du stockage.",
+    "loading": "Chargement de l'utilisation du stockage…",
+    "error": "Impossible de charger l'utilisation du stockage.",
+    "retry": "Réessayer"
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",

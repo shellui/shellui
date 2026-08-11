@@ -99,6 +99,7 @@ export default config;
   - **hideWhenLoggedOut** (boolean, optional): Hide item from navigation while signed out
   - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
 - **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
+- **storage** (object, optional): Storage-service URL. Settings → Storage is shown only when this is configured. See [Storage](/features/storage).
 
 ## Step 4: Start the Development Server
 

@@ -64,6 +64,7 @@ const sidebars = {
           label: 'Advanced',
           items: [
             'features/administration',
+            'features/storage',
             'features/application-settings',
             'features/cookie-consent',
             'features/legal-documents',

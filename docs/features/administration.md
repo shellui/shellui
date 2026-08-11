@@ -123,3 +123,4 @@ When `administration` is omitted from config, the shell sends `administration: n
 - [Authentication](/features/authentication) — staff account menu and session propagation
 - [Navigation](/features/navigation) — `NavigationItem` fields shared with host nav
 - [SDK](/sdk) — settings messages between shell and iframes
+- [Storage](/features/storage) — Settings → Storage quota (only when `storage` is configured)

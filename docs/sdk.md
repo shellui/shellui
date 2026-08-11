@@ -240,7 +240,7 @@ shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
 });
 ```
 
-Host `administration` navigation is documented in [Administration panel](/features/administration).
+Host `administration` navigation is documented in [Administration panel](/features/administration). Host `storage` is documented in [Storage](/features/storage); Settings → Storage is only shown when `storage.url` is set and `showInSettings` is not `false`.
 
 ## Frame Management
 

@@ -94,7 +94,7 @@ export interface SettingsAdministration {
 
 /**
  * Storage-service connection from host `storage` in shellui.config.ts.
- * Used by Admin → Storage and (later) shell upload / file selector.
+ * Used by Admin → Storage, Settings → Storage (quota), and (later) shell upload / file selector.
  */
 export interface SettingsStorage {
   /** Base URL of storage-service (no trailing slash). */
@@ -256,7 +256,8 @@ export interface Settings {
   administration?: SettingsAdministration | null;
   /**
    * Storage-service connection (from host `storage` in shellui.config.ts).
-   * When set, Admin shows Storage; shell upload/file-selector features will use this later.
+   * When set, Admin shows Storage. Settings → Storage (quota) is a host UI
+   * and is omitted when `storage` is unset or `showInSettings` is false.
    */
   storage?: SettingsStorage | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */

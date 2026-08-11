@@ -226,6 +226,7 @@ export interface BackendConfig {
 /**
  * Optional storage-service wiring for the shell and admin panel.
  * When set, admin shows the Storage sidebar (files explorer, statistics, Django admin).
+ * Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false.
  * ShellUI will also use this for upload / file selector features.
  */
 export interface StorageConfig {
@@ -233,6 +234,11 @@ export interface StorageConfig {
   url: string;
   /** Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`). */
   filesUrl?: string;
+  /**
+   * When false, hide Settings → Storage even if `url` is set.
+   * Admin Storage is unaffected. Default: true.
+   */
+  showInSettings?: boolean;
 }
 
 /**
@@ -274,7 +280,8 @@ export interface ShellUIConfig {
   administration?: AdministrationConfig;
   /**
    * Storage-service connection. Propagated to iframes via SDK settings.
-   * Enables Admin → Storage when `url` is set; shell upload/file-selector features will use this later.
+   * Enables Admin → Storage when `url` is set. Settings → Storage (quota) is shown
+   * when `url` is set unless `storage.showInSettings` is false.
    */
   storage?: StorageConfig;
   themes?: ThemeDefinition[]; // Custom themes to register

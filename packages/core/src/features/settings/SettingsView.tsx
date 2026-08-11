@@ -32,6 +32,7 @@ import type { NavigationItem } from '../config/types';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
+import { isStorageSettingsEnabled } from '../storage/quota';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -78,10 +79,14 @@ export const SettingsView = () => {
   }, [settings.developerFeatures.enabled, routesWithoutTauriSw]);
 
   const settingsNavRoutes = useMemo(() => {
-    if (getLegalDocuments(config).length > 0) {
-      return filteredRoutes;
+    let routes = filteredRoutes;
+    if (getLegalDocuments(config).length === 0) {
+      routes = routes.filter((route) => route.path !== 'legal-documents');
     }
-    return filteredRoutes.filter((route) => route.path !== 'legal-documents');
+    if (!isStorageSettingsEnabled(config)) {
+      routes = routes.filter((route) => route.path !== 'storage');
+    }
+    return routes;
   }, [filteredRoutes, config]);
 
   // Application settings from navigation items with settings URL
@@ -155,7 +160,7 @@ export const SettingsView = () => {
       {
         title: t('categories.system'),
         routes: settingsNavRoutes.filter((route) =>
-          ['update-app', 'advanced', 'legal-documents'].includes(route.path),
+          ['update-app', 'storage', 'advanced', 'legal-documents'].includes(route.path),
         ),
       },
       {
