@@ -114,15 +114,19 @@
       "description": "Autoriser cette application à envoyer des rapports d'erreurs pour aider à corriger les problèmes."
     },
     "developerFeatures": {
-      "label": "Afficher les fonctionnalités pour les développeurs",
-      "description": "Activez les outils et paramètres de développement dans le menu des paramètres."
+      "label": "Mode développeur",
+      "description": "Activez le mode développeur pour débloquer les outils techniques et les diagnostics dans l'application.",
+      "badge": "Actif",
+      "hintDisabled": "Une fois activé, un panneau Développer apparaît dans les Paramètres avec les journaux, les options de mise en page et d'autres outils techniques.",
+      "hintEnabled": "Le mode développeur est activé. Ouvrez le panneau Développer dans les Paramètres pour accéder aux outils techniques et diagnostics."
     },
     "dangerZone": {
       "title": "Zone de danger",
-      "description": "Actions irréversibles et destructives.",
+      "description": "Ces actions modifient ou effacent définitivement les données de l'application. Procédez avec prudence.",
+      "badge": "Irréversible",
       "reset": {
         "title": "Réinitialiser toutes les données",
-        "warning": "Cela supprimera définitivement tous vos paramètres, préférences et autres données d'application. Cette action ne peut pas être annulée.",
+        "warning": "Cela supprime définitivement vos paramètres, préférences et autres données d'application stockées sur cet appareil.",
         "button": "Réinitialiser toutes les données",
         "toast": {
           "title": "Réinitialiser toutes les données ?",

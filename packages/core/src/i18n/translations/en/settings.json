@@ -114,15 +114,19 @@
       "description": "Allow this app to send error reports to help fix issues."
     },
     "developerFeatures": {
-      "label": "Show features for developers",
-      "description": "Enable developer tools and settings in the settings menu."
+      "label": "Developer mode",
+      "description": "Turn on developer mode to unlock technical tools and diagnostics in this app.",
+      "badge": "Active",
+      "hintDisabled": "When enabled, a Develop panel appears in Settings with logging, layout overrides, and other technical options.",
+      "hintEnabled": "Developer mode is on. Open the Develop panel in Settings for technical tools and diagnostics."
     },
     "dangerZone": {
       "title": "Danger Zone",
-      "description": "Irreversible and destructive actions.",
+      "description": "These actions permanently change or erase app data. Proceed with care.",
+      "badge": "Irreversible",
       "reset": {
         "title": "Reset All Data",
-        "warning": "This will permanently delete all your settings, preferences, and other app data. This action cannot be undone.",
+        "warning": "This permanently deletes your settings, preferences, and other app data stored on this device.",
         "button": "Reset All Data",
         "toast": {
           "title": "Reset All Data?",
