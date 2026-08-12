@@ -148,64 +148,68 @@ export const Advanced = () => {
         </div>
       </div>
 
-      <div className="rounded-lg border border-destructive/30 bg-destructive/5">
-        <button
-          type="button"
-          className="flex w-full items-start gap-3 p-4 text-left"
-          aria-expanded={dangerZoneOpen}
-          onClick={() => setDangerZoneOpen((open) => !open)}
-        >
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-destructive/15 text-destructive"
-            aria-hidden
+      <div className="mt-8">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5">
+          <button
+            type="button"
+            className="flex w-full cursor-pointer items-start gap-3 p-4 text-left"
+            aria-expanded={dangerZoneOpen}
+            onClick={() => setDangerZoneOpen((open) => !open)}
           >
-            <AlertTriangleIcon />
-          </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3
-                className="text-sm font-semibold leading-none text-destructive"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {t('advanced.dangerZone.title')}
-              </h3>
-              <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                {t('advanced.dangerZone.badge')}
-              </span>
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-destructive/15 text-destructive"
+              aria-hidden
+            >
+              <AlertTriangleIcon />
             </div>
-            <p className="text-sm text-muted-foreground">{t('advanced.dangerZone.description')}</p>
-          </div>
-          <ChevronDownIcon
-            className={cn(
-              'mt-1 shrink-0 text-destructive transition-transform',
-              dangerZoneOpen && 'rotate-180',
-            )}
-          />
-        </button>
-
-        {dangerZoneOpen && (
-          <div className="space-y-3 border-t border-destructive/20 px-4 pb-4 pt-3">
-            <div className="space-y-1">
-              <label
-                className="text-sm font-medium leading-none"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {t('advanced.dangerZone.reset.title')}
-              </label>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3
+                  className="text-sm font-semibold leading-none text-destructive"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
+                  {t('advanced.dangerZone.title')}
+                </h3>
+                <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                  {t('advanced.dangerZone.badge')}
+                </span>
+              </div>
               <p className="text-sm text-muted-foreground">
-                {t('advanced.dangerZone.reset.warning')}
+                {t('advanced.dangerZone.description')}
               </p>
             </div>
+            <ChevronDownIcon
+              className={cn(
+                'mt-1 shrink-0 text-destructive transition-transform',
+                dangerZoneOpen && 'rotate-180',
+              )}
+            />
+          </button>
 
-            <Button
-              variant="destructive"
-              onClick={handleResetClick}
-              className="w-full sm:w-auto"
-            >
-              {t('advanced.dangerZone.reset.button')}
-            </Button>
-          </div>
-        )}
+          {dangerZoneOpen && (
+            <div className="space-y-3 border-t border-destructive/20 px-4 pb-4 pt-3">
+              <div className="space-y-1">
+                <label
+                  className="text-sm font-medium leading-none"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
+                  {t('advanced.dangerZone.reset.title')}
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  {t('advanced.dangerZone.reset.warning')}
+                </p>
+              </div>
+
+              <Button
+                variant="destructive"
+                onClick={handleResetClick}
+                className="w-full sm:w-auto"
+              >
+                {t('advanced.dangerZone.reset.button')}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
