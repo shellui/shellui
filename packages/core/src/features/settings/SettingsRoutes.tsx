@@ -34,10 +34,10 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     element: <LanguageAndRegion />,
   },
   {
-    name: t('routes.updateApp'),
-    icon: RefreshDoubleIcon,
-    path: 'update-app',
-    element: <UpdateApp />,
+    name: t('routes.dataPrivacy'),
+    icon: ShieldIcon,
+    path: 'data-privacy',
+    element: <DataPrivacy />,
   },
   {
     name: t('routes.storage'),
@@ -46,16 +46,16 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     element: <Storage />,
   },
   {
+    name: t('routes.updateApp'),
+    icon: RefreshDoubleIcon,
+    path: 'update-app',
+    element: <UpdateApp />,
+  },
+  {
     name: t('routes.advanced'),
     icon: SettingsIcon,
     path: 'advanced',
     element: <Advanced />,
-  },
-  {
-    name: t('routes.dataPrivacy'),
-    icon: ShieldIcon,
-    path: 'data-privacy',
-    element: <DataPrivacy />,
   },
   {
     name: t('routes.legalDocuments'),

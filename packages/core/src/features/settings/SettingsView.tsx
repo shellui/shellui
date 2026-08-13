@@ -39,7 +39,7 @@ export const SettingsView = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { config } = useConfig();
-  const { user, session, logout } = useAuth();
+  const { user, session, logout, isAuthenticated } = useAuth();
   const { t, i18n } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
@@ -83,11 +83,11 @@ export const SettingsView = () => {
     if (getLegalDocuments(config).length === 0) {
       routes = routes.filter((route) => route.path !== 'legal-documents');
     }
-    if (!isStorageSettingsEnabled(config)) {
+    if (!isStorageSettingsEnabled(config) || !isAuthenticated) {
       routes = routes.filter((route) => route.path !== 'storage');
     }
     return routes;
-  }, [filteredRoutes, config]);
+  }, [filteredRoutes, config, isAuthenticated]);
 
   // Application settings from navigation items with settings URL
   const applicationRoutes = useMemo(() => {
@@ -155,12 +155,13 @@ export const SettingsView = () => {
             ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
           ),
           ...userRoute,
+          ...settingsNavRoutes.filter((route) => route.path === 'storage'),
         ],
       },
       {
         title: t('categories.system'),
         routes: settingsNavRoutes.filter((route) =>
-          ['update-app', 'storage', 'advanced', 'legal-documents'].includes(route.path),
+          ['update-app', 'advanced', 'legal-documents'].includes(route.path),
         ),
       },
       {
