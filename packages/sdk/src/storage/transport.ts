@@ -1,7 +1,11 @@
 import { generateUuid } from '../utils/uuid.js';
 import type { ShellUIMessage } from '../types.js';
-import { StorageError } from './types.js';
-import type { StorageRequestInput, StorageResponse, StorageResponsePayload } from './types.js';
+import {
+  StorageError,
+  type StorageRequestInput,
+  type StorageResponse,
+  type StorageResponsePayload,
+} from './types.js';
 
 export const STORAGE_REQUEST_TIMEOUT_MS = 120_000;
 
