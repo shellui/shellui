@@ -23,6 +23,8 @@ import type {
   OpenDrawerOptions,
   LoginOptions,
 } from './types.js';
+import { StorageClient } from './storage/client.js';
+import { createPostMessageTransport } from './storage/transport.js';
 
 import packageJson from '../package.json';
 
@@ -53,6 +55,25 @@ export type {
   Appearance,
 } from './types.js';
 
+export { StorageError } from './storage/types.js';
+export type {
+  StorageResponse,
+  StorageListOptions,
+  StorageUploadOptions,
+  StorageMoveOptions,
+  StorageBucket,
+  StorageFileObject,
+  StorageFolderStats,
+  StorageFolderMoveResult,
+  StorageObjectAccess,
+  StorageRequestPayload,
+  StorageRequestInput,
+  StorageResponsePayload,
+  StorageErrorPayload,
+  StorageOp,
+} from './storage/types.js';
+export { StorageClient, StorageBucketApi } from './storage/client.js';
+
 export class ShellUISDK {
   initialized = false;
   currentPath: string;
@@ -61,6 +82,7 @@ export class ShellUISDK {
   messageListenerRegistry: MessageListenerRegistry;
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
+  storage: StorageClient;
 
   constructor() {
     this.currentPath =
@@ -72,6 +94,7 @@ export class ShellUISDK {
     this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
     this.callbackRegistry = new CallbackRegistry();
     this.initialSettings = null;
+    this.storage = new StorageClient(createPostMessageTransport(this));
   }
 
   async init(): Promise<this> {
@@ -292,5 +315,6 @@ export const sendMessageToParent = (message: ShellUIMessage): boolean =>
 export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
+export const storage = sdk.storage;
 
 export default sdk;

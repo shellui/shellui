@@ -94,7 +94,8 @@ export interface SettingsAdministration {
 
 /**
  * Storage-service connection from host `storage` in shellui.config.ts.
- * Used by Admin → Storage, Settings → Storage (quota), and (later) shell upload / file selector.
+ * Used by Admin → Storage, Settings → Storage (quota), and the SDK file API
+ * (`shellui.storage`) which the shell executes against this URL.
  */
 export interface SettingsStorage {
   /** Base URL of storage-service (no trailing slash). */
@@ -256,8 +257,9 @@ export interface Settings {
   administration?: SettingsAdministration | null;
   /**
    * Storage-service connection (from host `storage` in shellui.config.ts).
-   * When set, Admin shows Storage. Settings → Storage (quota) is a host UI
-   * and is omitted when `storage` is unset or `showInSettings` is false.
+   * When set, Admin shows Storage and iframe apps can call `shellui.storage`.
+   * Settings → Storage (quota) is a host UI and is omitted when `storage` is
+   * unset or `showInSettings` is false.
    */
   storage?: SettingsStorage | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
@@ -326,7 +328,9 @@ export type ShellUIMessageType =
   | 'SHELLUI_INITIALIZED'
   | 'SHELLUI_REFRESH_PAGE'
   | 'SHELLUI_LOGOUT'
-  | 'SHELLUI_LOGIN';
+  | 'SHELLUI_LOGIN'
+  | 'SHELLUI_STORAGE_REQUEST'
+  | 'SHELLUI_STORAGE_RESPONSE';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

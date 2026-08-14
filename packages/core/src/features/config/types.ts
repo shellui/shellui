@@ -227,7 +227,7 @@ export interface BackendConfig {
  * Optional storage-service wiring for the shell and admin panel.
  * When set, admin shows the Storage sidebar (files explorer, statistics, Django admin).
  * Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false.
- * ShellUI will also use this for upload / file selector features.
+ * ShellUI will also use this for the SDK file API (`shellui.storage`).
  */
 export interface StorageConfig {
   /** Base URL of storage-service (e.g. `http://localhost:8001`). */

@@ -14,6 +14,7 @@ export default defineConfig({
       'src/features/auth/utils/**/*.spec.ts',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
+      '../sdk/src/**/*.spec.ts',
     ],
   },
 });
