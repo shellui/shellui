@@ -11,6 +11,11 @@ import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
+import {
+  selectStorage as selectStorageAction,
+  selectFolders as selectFoldersAction,
+  selectFiles as selectFilesAction,
+} from './actions/selectStorage.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
@@ -22,6 +27,8 @@ import type {
   Settings,
   OpenDrawerOptions,
   LoginOptions,
+  StorageSelectOptions,
+  StorageSelectResult,
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
@@ -41,6 +48,12 @@ export type {
   DrawerPosition,
   OpenDrawerOptions,
   LoginOptions,
+  StorageSelectOptions,
+  StorageSelectResult,
+  StorageSelectedItem,
+  StorageSelectMode,
+  StorageSelectRequestPayload,
+  StorageSelectResponsePayload,
   LoggerInstance,
   Settings,
   SettingsUser,
@@ -71,6 +84,7 @@ export type {
   StorageResponsePayload,
   StorageErrorPayload,
   StorageOp,
+  StorageResolvedItem,
 } from './storage/types.js';
 export { StorageClient, StorageBucketApi } from './storage/client.js';
 
@@ -243,6 +257,21 @@ export class ShellUISDK {
     return dialogAction(options);
   }
 
+  selectStorage(options?: StorageSelectOptions): Promise<StorageSelectResult | null> {
+    return selectStorageAction(options);
+  }
+
+  selectFolders(options?: { multiple?: boolean }): Promise<StorageSelectResult | null> {
+    return selectFoldersAction(options);
+  }
+
+  selectFiles(options?: {
+    multiple?: boolean;
+    folders?: boolean;
+  }): Promise<StorageSelectResult | null> {
+    return selectFilesAction(options);
+  }
+
   getVersion(): string {
     return this.version;
   }
@@ -297,6 +326,16 @@ export const navigate = (url: string): void => sdk.navigate(url);
 export const login = (options: LoginOptions): void => sdk.login(options);
 export const toast = (options?: ToastOptions): string | void => toastAction(options);
 export const dialog = (options?: DialogOptions): string | void => dialogAction(options);
+export const selectStorage = (
+  options?: StorageSelectOptions,
+): Promise<StorageSelectResult | null> => selectStorageAction(options);
+export const selectFolders = (options?: {
+  multiple?: boolean;
+}): Promise<StorageSelectResult | null> => selectFoldersAction(options);
+export const selectFiles = (options?: {
+  multiple?: boolean;
+  folders?: boolean;
+}): Promise<StorageSelectResult | null> => selectFilesAction(options);
 export const addIframe = (iframe: HTMLIFrameElement): string => sdk.addIframe(iframe);
 export const removeIframe = (identifier: string | HTMLIFrameElement): boolean =>
   sdk.removeIframe(identifier);

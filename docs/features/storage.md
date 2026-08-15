@@ -145,8 +145,11 @@ The user must be signed in, and `storage.url` must be set. Otherwise the SDK ret
 | `.from(bucket).createFolder(path)`           | Create a virtual folder (e.g. `docs/reports`)                              |
 | `.from(bucket).removeFolder(path)`           | Delete every object under a folder prefix                                  |
 | `.from(bucket).folderStats(path)`            | Count files under a prefix (for delete confirmation)                       |
+| `shellui.storage.get(id)`                    | Resolve a picker `id` to the current path (survives rename)                |
 
 Errors are `StorageError` objects with `message`, `status`, and optional `code`.
+
+To let the user choose files or folders in a modal, use `shellui.selectFolders` / `shellui.selectFiles`. See [Storage picker](/features/storage-picker).
 
 ## Related guides
 

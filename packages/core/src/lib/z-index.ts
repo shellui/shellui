@@ -19,6 +19,12 @@ export const Z_INDEX = {
   /** Alert dialog overlay and content (confirmations; above toasts) */
   ALERT_DIALOG_OVERLAY: 10200,
   ALERT_DIALOG_CONTENT: 10201,
+  /**
+   * Storage file/folder picker (stacks above the generic URL modal so Develop
+   * inside Settings can open a picker without replacing settings).
+   */
+  STORAGE_PICKER_OVERLAY: 10050,
+  STORAGE_PICKER_CONTENT: 10051,
   /** Cookie consent (above everything to ensure visibility) */
   COOKIE_CONSENT_OVERLAY: 10300,
   COOKIE_CONSENT_CONTENT: 10301,

@@ -4,6 +4,7 @@ import { useSettings } from '../settings/SettingsContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
+import { StoragePickerProvider } from '../storage/StoragePickerContext';
 import { LayoutFallback } from './LayoutFallback';
 
 const SidebarLayout = lazy(() =>
@@ -60,11 +61,13 @@ export function AppLayout({
   return (
     <ModalProvider>
       <DrawerProvider>
-        <OverlayShell>
-          <Suspense fallback={<LayoutFallback />}>
-            {children ? children : <LayoutComponent {...layoutProps} />}
-          </Suspense>
-        </OverlayShell>
+        <StoragePickerProvider>
+          <OverlayShell>
+            <Suspense fallback={<LayoutFallback />}>
+              {children ? children : <LayoutComponent {...layoutProps} />}
+            </Suspense>
+          </OverlayShell>
+        </StoragePickerProvider>
       </DrawerProvider>
     </ModalProvider>
   );

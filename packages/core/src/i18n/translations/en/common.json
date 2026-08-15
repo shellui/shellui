@@ -60,5 +60,9 @@
     "statusComplete": "Uploaded",
     "statusError": "Failed",
     "statusCancelled": "Cancelled"
+  },
+  "storagePicker": {
+    "title": "Select files or folders",
+    "description": "Choose items, then confirm."
   }
 }

@@ -70,6 +70,11 @@ export type StorageFileObject = {
   id: string | null;
   name: string;
   bucket_id?: string;
+  /**
+   * Stable folder id (placeholder object UUID) when `id` is null.
+   * Survives rename; omit or null when the folder has no placeholder yet.
+   */
+  folder_id?: string | null;
   metadata: {
     size?: number;
     mimetype?: string;
@@ -78,6 +83,15 @@ export type StorageFileObject = {
   updated_at?: string | null;
   created_at?: string | null;
   access?: StorageObjectAccess;
+};
+
+/** Lookup result for `shellui.storage.get(id)` after a picker selection. */
+export type StorageResolvedItem = {
+  id: string;
+  bucket: string;
+  path: string;
+  name: string;
+  type: 'file' | 'folder';
 };
 
 export type StorageFolderStats = {
@@ -104,7 +118,8 @@ export type StorageOp =
   | 'remove'
   | 'removeFolder'
   | 'createFolder'
-  | 'folderStats';
+  | 'folderStats'
+  | 'get';
 
 export type StorageRequestPayload =
   | { id: string; op: 'listBuckets' }
@@ -136,7 +151,8 @@ export type StorageRequestPayload =
   | { id: string; op: 'remove'; bucket: string; paths: string[] }
   | { id: string; op: 'removeFolder'; bucket: string; path: string }
   | { id: string; op: 'createFolder'; bucket: string; path: string }
-  | { id: string; op: 'folderStats'; bucket: string; path: string };
+  | { id: string; op: 'folderStats'; bucket: string; path: string }
+  | { id: string; op: 'get'; objectId: string };
 
 /** Request body before the SDK assigns `id`. Distributes over the union so `bucket` stays valid. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;

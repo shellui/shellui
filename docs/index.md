@@ -39,6 +39,7 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 
 - **[Administration panel](/features/administration)** — Staff admin iframe, custom sidebar navigation from config
 - **[Storage](/features/storage)** — Settings → Storage quota and the SDK file API (`shellui.storage`) when `storage` is configured
+- **[Storage picker](/features/storage-picker)** — Modal file/folder picker (`shellui.selectFolders` / `selectFiles`)
 - **[Application settings](/features/application-settings)** — Per-app settings panels in Settings
 - **[Cookie consent](/features/cookie-consent)** — Cookie registry and consent storage
 - **[Legal documents](/features/legal-documents)** — Privacy, terms, and notices from markdown (including on the login page)

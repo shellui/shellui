@@ -193,7 +193,7 @@ export async function uploadObject(
   path: string,
   file: Blob,
   options: { upsert?: boolean; contentType?: string } = {},
-): Promise<{ path: string }> {
+): Promise<{ path: string; id?: string }> {
   const normalized = normalizeStoragePath(path);
   const headers = new Headers();
   headers.set('Authorization', `Bearer ${accessToken}`);
@@ -208,7 +208,17 @@ export async function uploadObject(
   if (!response.ok) {
     throw await parseError(response);
   }
-  return { path: normalized };
+  let id: string | undefined;
+  const contentType = response.headers.get('Content-Type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      const body = (await response.json()) as { Id?: string; id?: string };
+      id = body.Id || body.id;
+    } catch {
+      /* ignore */
+    }
+  }
+  return id ? { path: normalized, id } : { path: normalized };
 }
 
 export async function downloadObject(
@@ -309,15 +319,27 @@ export async function createFolder(
   accessToken: string,
   bucket: string,
   path: string,
-): Promise<{ path: string }> {
+): Promise<{ path: string; id?: string }> {
   const folderPath = normalizeStoragePath(path);
   const markerPath = folderPath ? `${folderPath}/${FOLDER_PLACEHOLDER}` : FOLDER_PLACEHOLDER;
   const marker = new Blob([], { type: 'application/x-directory' });
-  await uploadObject(storageBaseUrl, accessToken, bucket, markerPath, marker, {
+  const uploaded = await uploadObject(storageBaseUrl, accessToken, bucket, markerPath, marker, {
     upsert: true,
     contentType: 'application/x-directory',
   });
-  return { path: folderPath };
+  return { path: folderPath, ...(uploaded.id ? { id: uploaded.id } : {}) };
+}
+
+export async function getStorageItem(
+  storageBaseUrl: string,
+  accessToken: string,
+  objectId: string,
+): Promise<unknown> {
+  return request(
+    storageBaseUrl,
+    `/storage/v1/object/id/${encodeURIComponent(objectId)}`,
+    accessToken,
+  );
 }
 
 export async function folderStats(
@@ -382,6 +404,8 @@ export async function executeStorageOp(
       return createFolder(storageBaseUrl, accessToken, payload.bucket, payload.path);
     case 'folderStats':
       return folderStats(storageBaseUrl, accessToken, payload.bucket, payload.path);
+    case 'get':
+      return getStorageItem(storageBaseUrl, accessToken, payload.objectId);
     default: {
       const unknownOp = (payload as { op?: string }).op ?? 'unknown';
       throw new StorageHttpError(`Unknown storage operation: ${unknownOp}`, 400);

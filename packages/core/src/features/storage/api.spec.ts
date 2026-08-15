@@ -197,11 +197,14 @@ describe('executeStorageOp', () => {
   });
 
   it('creates a nested folder via placeholder upload', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      headers: new Headers(),
-    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({
+          Id: 'folder-uuid-1',
+          Key: 'company/docs/reports/2024/.emptyFolderPlaceholder',
+        }),
+      );
     vi.stubGlobal('fetch', fetchMock);
     await expect(
       executeStorageOp(baseUrl, token, {
@@ -209,9 +212,35 @@ describe('executeStorageOp', () => {
         bucket: 'company',
         path: 'docs/reports/2024',
       }),
-    ).resolves.toEqual({ path: 'docs/reports/2024' });
+    ).resolves.toEqual({ path: 'docs/reports/2024', id: 'folder-uuid-1' });
     expect(fetchMock.mock.calls[0][0]).toBe(
       `http://localhost:8001/storage/v1/object/company/docs/reports/2024/${FOLDER_PLACEHOLDER}`,
+    );
+  });
+
+  it('resolves a storage item by id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: 'folder-uuid-1',
+        bucket: 'company',
+        path: 'docs/reports',
+        name: 'reports',
+        type: 'folder',
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      executeStorageOp(baseUrl, token, { op: 'get', objectId: 'folder-uuid-1' }),
+    ).resolves.toEqual({
+      id: 'folder-uuid-1',
+      bucket: 'company',
+      path: 'docs/reports',
+      name: 'reports',
+      type: 'folder',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:8001/storage/v1/object/id/folder-uuid-1',
+      expect.objectContaining({ headers: expect.any(Headers) }),
     );
   });
 

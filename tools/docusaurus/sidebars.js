@@ -65,6 +65,7 @@ const sidebars = {
           items: [
             'features/administration',
             'features/storage',
+            'features/storage-picker',
             'features/application-settings',
             'features/cookie-consent',
             'features/legal-documents',

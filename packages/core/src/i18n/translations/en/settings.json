@@ -436,6 +436,18 @@
           "drawerBottomHalf": "Drawer bottom (60vh)",
           "closeDrawer": "Close drawer"
         }
+      },
+      "storagePicker": {
+        "title": "Storage picker",
+        "errorTitle": "Picker unavailable",
+        "error": "Could not open the storage picker.",
+        "remove": "Remove {{name}}",
+        "buttons": {
+          "folders": "Select folder",
+          "foldersMultiple": "Select folders",
+          "files": "Select files",
+          "filesAndFolders": "Select files and folders"
+        }
       }
     }
   }

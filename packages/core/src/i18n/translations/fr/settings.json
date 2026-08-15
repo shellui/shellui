@@ -436,6 +436,18 @@
           "drawerBottomHalf": "Tiroir bas (60vh)",
           "closeDrawer": "Fermer le tiroir"
         }
+      },
+      "storagePicker": {
+        "title": "Sélecteur de stockage",
+        "errorTitle": "Sélecteur indisponible",
+        "error": "Impossible d’ouvrir le sélecteur de stockage.",
+        "remove": "Retirer {{name}}",
+        "buttons": {
+          "folders": "Sélectionner un dossier",
+          "foldersMultiple": "Sélectionner des dossiers",
+          "files": "Sélectionner des fichiers",
+          "filesAndFolders": "Sélectionner fichiers et dossiers"
+        }
       }
     }
   }

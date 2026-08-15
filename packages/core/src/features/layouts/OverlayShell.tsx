@@ -8,6 +8,7 @@ import { Drawer, DrawerContent } from '../../components/ui/drawer';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
+import { useStoragePicker } from '../storage/StoragePickerContext';
 import { useNavigationItems } from '../../routes/hooks/useNavigationItems';
 import { useConfig } from '../config/useConfig';
 import { resolveLocalizedString } from './utils';
@@ -31,6 +32,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     size: drawerSize,
     closeDrawer,
   } = useDrawer();
+  const { isOpen: isPickerOpen, closePicker } = useStoragePicker();
   const { t, i18n } = useTranslation('common');
   const currentLanguage = i18n.language || 'en';
 
@@ -41,9 +43,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     if (locationKeyRef.current !== currentKey) {
       closeModal();
       closeDrawer();
+      closePicker();
       locationKeyRef.current = currentKey;
     }
-  }, [location.pathname, location.search, location.hash, closeModal, closeDrawer]);
+  }, [location.pathname, location.search, location.hash, closeModal, closeDrawer, closePicker]);
 
   useEffect(() => {
     const cleanup = shellui.addMessageListener('SHELLUI_OPEN_MODAL', () => {
@@ -80,7 +83,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
       {children}
       <Dialog
         open={isOpen}
-        onOpenChange={(open) => !open && closeModal()}
+        onOpenChange={(open) => {
+          if (!open && isPickerOpen) return;
+          if (!open) closeModal();
+        }}
       >
         <DialogContent className="max-w-4xl w-full h-[80vh] max-h-[680px] flex flex-col p-0 overflow-hidden">
           {modalUrl ? (

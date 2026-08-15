@@ -7,6 +7,7 @@ import type {
   StorageFolderStats,
   StorageListOptions,
   StorageMoveOptions,
+  StorageResolvedItem,
   StorageResponse,
   StorageUploadOptions,
 } from './types.js';
@@ -103,8 +104,8 @@ export class StorageBucketApi {
   }
 
   /** Create a virtual folder (nested paths allowed, e.g. `docs/reports`). */
-  createFolder(path: string): Promise<StorageResponse<{ path: string }>> {
-    return this.transport.request<{ path: string }>({
+  createFolder(path: string): Promise<StorageResponse<{ path: string; id?: string }>> {
+    return this.transport.request<{ path: string; id?: string }>({
       op: 'createFolder',
       bucket: this.bucket,
       path: normalizeStoragePath(path),
@@ -130,5 +131,16 @@ export class StorageClient {
 
   listBuckets(): Promise<StorageResponse<StorageBucket[]>> {
     return this.transport.request<StorageBucket[]>({ op: 'listBuckets' });
+  }
+
+  /**
+   * Resolve a file or folder by the stable id returned from the storage picker.
+   * Use this after a rename so a saved selection still points at the same item.
+   */
+  get(id: string): Promise<StorageResponse<StorageResolvedItem>> {
+    return this.transport.request<StorageResolvedItem>({
+      op: 'get',
+      objectId: id,
+    });
   }
 }

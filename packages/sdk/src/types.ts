@@ -305,6 +305,51 @@ export interface LoginOptions {
   oauthClientId?: number;
 }
 
+/** What the storage picker can choose. `folders` never selects files. */
+export type StorageSelectMode = 'folders' | 'files' | 'any';
+
+export type StorageSelectOptions = {
+  /** Allow more than one item. Default: `false`. */
+  multiple?: boolean;
+  /**
+   * - `folders` — folders only (files are hidden)
+   * - `files` — files only (folders are for navigation)
+   * - `any` — files and folders
+   */
+  mode?: StorageSelectMode;
+};
+
+/**
+ * One picked file or folder. Keep `id` to survive a later rename; `path` is the
+ * location at the moment of selection.
+ */
+export type StorageSelectedItem = {
+  /** Stable id (file UUID, or folder placeholder UUID). */
+  id: string;
+  bucket: string;
+  /** Current path in the bucket (`''` = bucket root). */
+  path: string;
+  name: string;
+  type: 'file' | 'folder';
+};
+
+export type StorageSelectResult = {
+  items: StorageSelectedItem[];
+};
+
+export type StorageSelectRequestPayload = {
+  id: string;
+  multiple: boolean;
+  mode: StorageSelectMode;
+};
+
+export type StorageSelectResponsePayload = {
+  id: string;
+  items?: StorageSelectedItem[];
+  cancelled?: boolean;
+  error?: { message: string; status?: number };
+};
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -331,6 +376,8 @@ export type ShellUIMessageType =
   | 'SHELLUI_LOGIN'
   | 'SHELLUI_STORAGE_REQUEST'
   | 'SHELLUI_STORAGE_RESPONSE'
+  | 'SHELLUI_SELECT_STORAGE'
+  | 'SHELLUI_SELECT_STORAGE_RESULT'
   | 'SHELLUI_UPLOAD_TOAST_DEMO';
 
 export interface ShellUIMessage {

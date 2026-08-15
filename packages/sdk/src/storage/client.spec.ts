@@ -104,6 +104,7 @@ describe('StorageClient', () => {
     await bucket.removeFolder('docs/reports');
     await bucket.folderStats('docs/reports');
     await bucket.createFolder('docs/reports/2024');
+    await new StorageClient(transport).get('folder-uuid-1');
     expect(requests).toEqual([
       {
         op: 'remove',
@@ -113,6 +114,7 @@ describe('StorageClient', () => {
       { op: 'removeFolder', bucket: 'company', path: 'docs/reports' },
       { op: 'folderStats', bucket: 'company', path: 'docs/reports' },
       { op: 'createFolder', bucket: 'company', path: 'docs/reports/2024' },
+      { op: 'get', objectId: 'folder-uuid-1' },
     ]);
   });
 

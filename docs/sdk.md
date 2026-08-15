@@ -179,7 +179,22 @@ const { data, error } = await shellui.storage
 const { data: entries } = await shellui.storage.from('company').list('docs/reports');
 ```
 
-Folders are path prefixes. `list()` returns folders with `id: null`. Use `{ folder: true }` on `move` / `rename` to move a whole folder.
+Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Use `{ folder: true }` on `move` / `rename` to move a whole folder.
+
+### Storage picker
+
+Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
+
+```javascript
+const folders = await shellui.selectFolders({ multiple: true });
+if (folders) {
+  console.log(folders.items);
+}
+
+const files = await shellui.selectFiles({ multiple: true, folders: true });
+```
+
+Each item includes a stable `id` (keep this so a rename still points at the same folder or file). See [Storage picker](/features/storage-picker).
 
 ## Message Passing
 
@@ -236,6 +251,7 @@ Common ShellUI message types:
 - `SHELLUI_LOGIN` - Login requested from iframe (minimal payload: method, provider, optional redirectPath)
 - `SHELLUI_INITIALIZED` - SDK initialized
 - `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE` - File API (handled by the root shell)
+- `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT` - Storage picker (handled by the root shell)
 
 ## Settings Access
 
@@ -432,6 +448,8 @@ shellui.dialog(dialogOptions);
 - `shellui.navigate(url)` - Navigate programmatically
 - `shellui.login(options)` - Request root-shell login
 - `shellui.storage` - File API (`from(bucket).upload`, `download`, `list`, `move`, `rename`, …)
+- `shellui.selectFolders(options)` - Open a folder picker modal
+- `shellui.selectFiles(options)` - Open a file picker modal (`{ folders: true }` also allows folders)
 
 ### Message Functions
 
@@ -466,4 +484,5 @@ shellui.dialog(dialogOptions);
 - [Alert Dialogs](/features/dialogs) - Detailed dialog guide
 - [Modals & Drawers](/features/modals-drawers) - Modal and drawer guide
 - [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
+- [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
 - [Navigation](/features/navigation) - Navigation configuration
