@@ -97,10 +97,13 @@ describe('handleTrackedUpload', () => {
 
     const xhr = MockXHR.last;
     expect(xhr).toBeTruthy();
-    expect(xhr?.headers.Authorization).toBe('Bearer token');
-    expect(xhr?.headers['Content-Type']).toBe('text/plain');
-    expect(xhr?.headers['x-upsert']).toBe('true');
-    xhr?.upload.onprogress?.({ lengthComputable: true, loaded: 4, total: 11 });
+    if (!xhr) {
+      throw new Error('expected XMLHttpRequest');
+    }
+    expect(xhr.headers.Authorization).toBe('Bearer token');
+    expect(xhr.headers['Content-Type']).toBe('text/plain');
+    expect(xhr.headers['x-upsert']).toBe('true');
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 4, total: 11 });
     expect(getUploadQueue()[0]).toMatchObject({
       id: 'up-1',
       name: 'notes.txt',
@@ -109,8 +112,8 @@ describe('handleTrackedUpload', () => {
       size: 11,
     });
 
-    xhr!.status = 200;
-    xhr!.onload?.();
+    xhr.status = 200;
+    xhr.onload?.();
     await expect(pending).resolves.toEqual({ id: 'up-1', data: { path: 'docs/notes.txt' } });
     expect(getUploadQueue()[0].status).toBe('success');
   });
@@ -128,7 +131,11 @@ describe('handleTrackedUpload', () => {
         file: new Blob(['x']),
       },
     });
-    const xhr = MockXHR.last!;
+    const xhr = MockXHR.last;
+    expect(xhr).toBeTruthy();
+    if (!xhr) {
+      throw new Error('expected XMLHttpRequest');
+    }
     xhr.status = 403;
     xhr.statusText = 'Forbidden';
     xhr.responseText = JSON.stringify({ message: 'Denied' });

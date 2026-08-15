@@ -197,14 +197,12 @@ describe('executeStorageOp', () => {
   });
 
   it('creates a nested folder via placeholder upload', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          Id: 'folder-uuid-1',
-          Key: 'company/docs/reports/2024/.emptyFolderPlaceholder',
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        Id: 'folder-uuid-1',
+        Key: 'company/docs/reports/2024/.emptyFolderPlaceholder',
+      }),
+    );
     vi.stubGlobal('fetch', fetchMock);
     await expect(
       executeStorageOp(baseUrl, token, {
