@@ -330,7 +330,8 @@ export type ShellUIMessageType =
   | 'SHELLUI_LOGOUT'
   | 'SHELLUI_LOGIN'
   | 'SHELLUI_STORAGE_REQUEST'
-  | 'SHELLUI_STORAGE_RESPONSE';
+  | 'SHELLUI_STORAGE_RESPONSE'
+  | 'SHELLUI_UPLOAD_TOAST_DEMO';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

@@ -11,6 +11,7 @@ import { Switch } from '../../../components/ui/switch';
 import { Select } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
 import { ToastTestButtons } from './develop/ToastTestButtons';
+import { UploadToastTestButton } from './develop/UploadToastTestButton';
 import { DialogTestButtons } from './develop/DialogTestButtons';
 import { ModalTestButtons } from './develop/ModalTestButtons';
 import { DrawerTestButtons } from './develop/DrawerTestButtons';
@@ -206,6 +207,7 @@ export const Develop = () => {
         </h3>
         <div className="space-y-4">
           <ToastTestButtons />
+          <UploadToastTestButton />
           <DialogTestButtons />
           <ModalTestButtons />
           <DrawerTestButtons />

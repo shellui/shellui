@@ -3,6 +3,7 @@ import {
   encodeObjectPath,
   executeStorageOp,
   FOLDER_PLACEHOLDER,
+  isFolderPlaceholderPath,
   normalizeStoragePath,
 } from './api';
 
@@ -35,6 +36,14 @@ describe('encodeObjectPath', () => {
 describe('normalizeStoragePath', () => {
   it('strips slashes', () => {
     expect(normalizeStoragePath('/docs/reports/')).toBe('docs/reports');
+  });
+});
+
+describe('isFolderPlaceholderPath', () => {
+  it('detects the folder marker at any depth', () => {
+    expect(isFolderPlaceholderPath(FOLDER_PLACEHOLDER)).toBe(true);
+    expect(isFolderPlaceholderPath(`docs/${FOLDER_PLACEHOLDER}`)).toBe(true);
+    expect(isFolderPlaceholderPath('docs/q1.pdf')).toBe(false);
   });
 });
 

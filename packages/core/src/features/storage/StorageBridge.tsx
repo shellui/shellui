@@ -4,6 +4,7 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import { handleStorageRequest } from './handleRequest';
 import { getStorageBaseUrl } from './quota';
+import { handleTrackedUpload, isUploadPayload } from './uploads/handleTrackedUpload';
 
 /**
  * Root-window bridge: iframe `SHELLUI_STORAGE_REQUEST` messages are handled here
@@ -24,7 +25,11 @@ export const StorageBridge = () => {
       const payload = message.payload as StorageRequestPayload | undefined;
       if (!payload?.id || !payload.op) return;
 
-      void handleStorageRequest({ storageUrl, accessToken, payload }).then((response) => {
+      const run = isUploadPayload(payload)
+        ? handleTrackedUpload({ storageUrl, accessToken, payload })
+        : handleStorageRequest({ storageUrl, accessToken, payload });
+
+      void run.then((response) => {
         const reply = {
           type: 'SHELLUI_STORAGE_RESPONSE' as const,
           payload: response,

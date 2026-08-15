@@ -5,7 +5,6 @@ import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Drawer, DrawerContent } from '../../components/ui/drawer';
-import { Toaster } from '../../components/ui/sonner';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
@@ -18,7 +17,7 @@ interface OverlayShellProps {
   children: ReactNode;
 }
 
-/** Renders modal, drawer and toaster overlays and handles SHELLUI_OPEN_MODAL / SHELLUI_NAVIGATE. */
+/** Renders modal and drawer overlays and handles SHELLUI_OPEN_MODAL / SHELLUI_NAVIGATE. */
 export const OverlayShell = ({ children }: OverlayShellProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -164,7 +163,6 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           )}
         </DrawerContent>
       </Drawer>
-      <Toaster />
     </>
   );
 };

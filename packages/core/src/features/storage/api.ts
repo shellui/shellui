@@ -98,6 +98,94 @@ export async function listObjects(
   return entries.filter((item) => item.name !== FOLDER_PLACEHOLDER);
 }
 
+export function isFolderPlaceholderPath(path: string | undefined | null): boolean {
+  const normalized = normalizeStoragePath(path);
+  return normalized === FOLDER_PLACEHOLDER || normalized.endsWith(`/${FOLDER_PLACEHOLDER}`);
+}
+
+export type UploadProgressHandler = (loaded: number, total: number) => void;
+
+export type UploadObjectOptions = {
+  upsert?: boolean;
+  contentType?: string;
+  signal?: AbortSignal;
+  onProgress?: UploadProgressHandler;
+};
+
+function parseXhrError(xhr: XMLHttpRequest): StorageHttpError {
+  let message = xhr.statusText || 'Request failed';
+  let code: string | undefined;
+  try {
+    const body = JSON.parse(xhr.responseText) as {
+      message?: string;
+      error?: string;
+      detail?: string;
+    };
+    message = body.message || body.error || body.detail || message;
+    code = typeof body.error === 'string' ? body.error : undefined;
+  } catch {
+    /* ignore */
+  }
+  return new StorageHttpError(message, xhr.status, code);
+}
+
+/** Upload with progress events and abort support (XMLHttpRequest). */
+export function uploadObjectWithProgress(
+  storageBaseUrl: string,
+  accessToken: string,
+  bucket: string,
+  path: string,
+  file: Blob,
+  options: UploadObjectOptions = {},
+): Promise<{ path: string }> {
+  const normalized = normalizeStoragePath(path);
+  const contentType = options.contentType || file.type || 'application/octet-stream';
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', objectUrl(storageBaseUrl, bucket, normalized));
+    xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+    xhr.setRequestHeader('Content-Type', contentType);
+    if (options.upsert) xhr.setRequestHeader('x-upsert', 'true');
+
+    xhr.upload.onprogress = (event) => {
+      if (!options.onProgress) return;
+      const total = event.lengthComputable ? event.total : file.size;
+      options.onProgress(event.loaded, total);
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve({ path: normalized });
+        return;
+      }
+      reject(parseXhrError(xhr));
+    };
+    xhr.onerror = () => {
+      reject(new StorageHttpError('Network error', 0));
+    };
+    xhr.onabort = () => {
+      reject(new StorageHttpError('Upload cancelled', 499, 'cancelled'));
+    };
+
+    if (options.signal) {
+      if (options.signal.aborted) {
+        xhr.abort();
+        return;
+      }
+      options.signal.addEventListener(
+        'abort',
+        () => {
+          xhr.abort();
+        },
+        { once: true },
+      );
+    }
+
+    xhr.send(file);
+  });
+}
+
 export async function uploadObject(
   storageBaseUrl: string,
   accessToken: string,

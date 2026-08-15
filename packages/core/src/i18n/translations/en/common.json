@@ -31,5 +31,30 @@
     "tryAgain": "Try again",
     "goToHome": "Go to home",
     "errorDetails": "Error details"
+  },
+  "uploads": {
+    "titleUploading_one": "Uploading {{count}} file",
+    "titleUploading_other": "Uploading {{count}} files",
+    "titleComplete_one": "{{count}} file uploaded",
+    "titleComplete_other": "{{count}} files uploaded",
+    "titleFailed_one": "{{count}} file failed",
+    "titleFailed_other": "{{count}} files failed",
+    "titleMixed": "{{success}} uploaded, {{errors}} failed",
+    "titleCancelled": "Upload cancelled",
+    "bytesProgress": "{{uploaded}} of {{total}}",
+    "filesProgress": "{{done}} of {{total}} done",
+    "progressPercent": "{{percent}}%",
+    "errorCount_one": "{{count}} error",
+    "errorCount_other": "{{count}} errors",
+    "expand": "Show files",
+    "collapse": "Hide files",
+    "dismiss": "Dismiss",
+    "cancelFile": "Cancel upload",
+    "removeFile": "Remove",
+    "cancelAll": "Cancel all",
+    "statusUploading": "Uploading",
+    "statusComplete": "Uploaded",
+    "statusError": "Failed",
+    "statusCancelled": "Cancelled"
   }
 }

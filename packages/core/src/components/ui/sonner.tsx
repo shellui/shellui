@@ -5,7 +5,8 @@ import { Z_INDEX } from '../../lib/z-index';
 
 type ToasterProps = ComponentProps<typeof Sonner>;
 
-const TOAST_BUTTON_SELECTOR = '[data-close-button], [data-cancel], [data-action]';
+const TOAST_BUTTON_SELECTOR =
+  '[data-close-button], [data-cancel], [data-action], [data-upload-action]';
 
 /**
  * Ensures toast action, cancel, and close buttons respond to pointer/touch on iPad
@@ -21,13 +22,16 @@ function useToastButtonPointerFix() {
       // When a modal is open (e.g. Radix), body has pointer-events: none so the toaster
       // may never receive the event on iPad. Use document capture + elementFromPoint so we
       // still detect touches over the toaster and trigger the button.
-      const toaster = document.querySelector('[data-sonner-toaster]');
-      if (!toaster) return;
+      const sonnerToaster = document.querySelector('[data-sonner-toaster]');
+      const uploadToast = document.querySelector('[data-upload-toast]');
+      if (!sonnerToaster && !uploadToast) return;
       const elementUnderPoint = document.elementFromPoint(ev.clientX, ev.clientY);
       if (!elementUnderPoint?.isConnected) return;
       const button = (elementUnderPoint as HTMLElement).closest?.(TOAST_BUTTON_SELECTOR);
-      if (!button || !toaster.contains(button) || button.getAttribute('data-disabled') === 'true')
-        return;
+      const inToastLayer =
+        Boolean(button && sonnerToaster?.contains(button)) ||
+        Boolean(button && uploadToast?.contains(button));
+      if (!button || !inToastLayer || button.getAttribute('data-disabled') === 'true') return;
       ev.preventDefault();
       ev.stopImmediatePropagation();
       const clickEvent = new MouseEvent('click', {

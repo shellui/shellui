@@ -411,6 +411,13 @@
           "dialogClosed": "Dialog closed"
         }
       },
+      "uploadProgress": {
+        "title": "Upload progress toast",
+        "description": "Preview the upload toaster with sample files. Nothing is actually uploaded.",
+        "buttons": {
+          "simulate": "Test upload toast"
+        }
+      },
       "modalTesting": {
         "title": "Modal Testing",
         "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",

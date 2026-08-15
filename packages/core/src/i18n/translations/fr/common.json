@@ -31,5 +31,30 @@
     "tryAgain": "Réessayer",
     "goToHome": "Retour à l'accueil",
     "errorDetails": "Détails de l'erreur"
+  },
+  "uploads": {
+    "titleUploading_one": "Envoi de {{count}} fichier",
+    "titleUploading_other": "Envoi de {{count}} fichiers",
+    "titleComplete_one": "{{count}} fichier envoyé",
+    "titleComplete_other": "{{count}} fichiers envoyés",
+    "titleFailed_one": "{{count}} fichier a échoué",
+    "titleFailed_other": "{{count}} fichiers ont échoué",
+    "titleMixed": "{{success}} envoyés, {{errors}} en échec",
+    "titleCancelled": "Envoi annulé",
+    "bytesProgress": "{{uploaded}} sur {{total}}",
+    "filesProgress": "{{done}} sur {{total}} terminés",
+    "progressPercent": "{{percent}} %",
+    "errorCount_one": "{{count}} erreur",
+    "errorCount_other": "{{count}} erreurs",
+    "expand": "Afficher les fichiers",
+    "collapse": "Masquer les fichiers",
+    "dismiss": "Fermer",
+    "cancelFile": "Interrompre l'envoi",
+    "removeFile": "Retirer",
+    "cancelAll": "Tout annuler",
+    "statusUploading": "Envoi en cours",
+    "statusComplete": "Envoyé",
+    "statusError": "Échec",
+    "statusCancelled": "Annulé"
   }
 }

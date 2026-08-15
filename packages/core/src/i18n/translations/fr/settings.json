@@ -411,6 +411,13 @@
           "dialogClosed": "Dialogue fermé"
         }
       },
+      "uploadProgress": {
+        "title": "Toast de progression d'envoi",
+        "description": "Aperçu du toaster d'envoi avec des fichiers d'exemple. Rien n'est réellement envoyé.",
+        "buttons": {
+          "simulate": "Tester le toast d'envoi"
+        }
+      },
       "modalTesting": {
         "title": "Tests du modal",
         "description": "Ouvre les paramètres dans un modal. Fermez avec le bouton × ou en cliquant à l'extérieur.",

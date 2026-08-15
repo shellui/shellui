@@ -1,7 +1,6 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
-import { SonnerProvider } from '../sonner/SonnerContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
@@ -61,13 +60,11 @@ export function AppLayout({
   return (
     <ModalProvider>
       <DrawerProvider>
-        <SonnerProvider>
-          <OverlayShell>
-            <Suspense fallback={<LayoutFallback />}>
-              {children ? children : <LayoutComponent {...layoutProps} />}
-            </Suspense>
-          </OverlayShell>
-        </SonnerProvider>
+        <OverlayShell>
+          <Suspense fallback={<LayoutFallback />}>
+            {children ? children : <LayoutComponent {...layoutProps} />}
+          </Suspense>
+        </OverlayShell>
       </DrawerProvider>
     </ModalProvider>
   );
