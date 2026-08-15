@@ -158,6 +158,6 @@ describe('handleTrackedUpload', () => {
       id: 'up-3',
       error: { message: 'Upload cancelled', status: 499, code: 'cancelled' },
     });
-    expect(getUploadQueue()).toEqual([]);
+    expect(getUploadQueue()[0]).toMatchObject({ id: 'up-3', status: 'cancelled' });
   });
 });

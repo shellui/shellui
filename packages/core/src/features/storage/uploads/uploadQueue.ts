@@ -151,7 +151,7 @@ export function setUploadProgress(id: string, loaded: number, total?: number): v
 
 export function completeUpload(id: string): void {
   const item = items.find((entry) => entry.id === id);
-  if (!item) return;
+  if (!item || item.status !== 'uploading') return;
   abortControllers.delete(id);
   clearDemoTimer(id);
   patchItem(id, {
@@ -162,7 +162,8 @@ export function completeUpload(id: string): void {
 }
 
 export function failUpload(id: string, message: string): void {
-  if (!items.some((item) => item.id === id)) return;
+  const item = items.find((entry) => entry.id === id);
+  if (!item || item.status !== 'uploading') return;
   abortControllers.delete(id);
   clearDemoTimer(id);
   patchItem(id, { status: 'error', error: message });
@@ -175,21 +176,28 @@ export function markUploadCancelled(id: string): void {
   patchItem(id, { status: 'cancelled' });
 }
 
-/** Abort an in-progress upload and remove it from the toaster. */
+/** Abort an in-progress upload and keep it visible as cancelled. */
 export function interruptUpload(id: string): void {
+  const item = items.find((entry) => entry.id === id);
+  if (!item || item.status !== 'uploading') return;
   abortControllers.get(id)?.abort();
+  markUploadCancelled(id);
+}
+
+/** Remove a finished (or cancelled) item from the toaster. */
+export function removeUpload(id: string): void {
+  const item = items.find((entry) => entry.id === id);
+  if (!item) return;
+  if (item.status === 'uploading') {
+    abortControllers.get(id)?.abort();
+  }
   abortControllers.delete(id);
   clearDemoTimer(id);
-  const next = items.filter((item) => item.id !== id);
+  const next = items.filter((entry) => entry.id !== id);
   if (next.length === items.length) return;
   items = next;
   if (items.length === 0) expanded = false;
   emit();
-}
-
-/** Remove a finished (or cancelled) item from the toaster. Aborts if still uploading. */
-export function removeUpload(id: string): void {
-  interruptUpload(id);
 }
 
 export function dismissFinishedUploads(): void {
@@ -210,12 +218,13 @@ export function interruptAllUploads(): void {
   if (uploading.length === 0) return;
   uploading.forEach((item) => {
     abortControllers.get(item.id)?.abort();
-    abortControllers.delete(item.id);
-    clearDemoTimer(item.id);
+    markUploadCancelled(item.id);
   });
-  items = items.filter((item) => item.status !== 'uploading');
-  if (items.length === 0) expanded = false;
-  emit();
+}
+
+/** Close the toaster: cancel leftover uploads and hide the panel. */
+export function closeUploadToaster(): void {
+  resetUploadQueue();
 }
 
 export function resetUploadQueue(): void {
@@ -335,5 +344,6 @@ export function startUploadToastDemo(): void {
 }
 
 export function isUploadSignalAborted(id: string, signal?: AbortSignal): boolean {
-  return Boolean(signal?.aborted) || !items.some((item) => item.id === id);
+  const item = items.find((entry) => entry.id === id);
+  return Boolean(signal?.aborted) || !item || item.status === 'cancelled';
 }

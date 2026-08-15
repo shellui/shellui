@@ -11,7 +11,7 @@ import { cn } from '../../../lib/utils';
 import { formatBytes } from '../quota';
 import type { UploadItem } from './types';
 import {
-  dismissFinishedUploads,
+  closeUploadToaster,
   getItemPercent,
   interruptAllUploads,
   interruptUpload,
@@ -241,7 +241,13 @@ function IconButton({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="top">{label}</TooltipContent>
+      <TooltipContent
+        side="top"
+        align="center"
+        collisionPadding={12}
+      >
+        {label}
+      </TooltipContent>
     </Tooltip>
   );
 }
@@ -262,7 +268,10 @@ function titleForSummary(
   if (summary.success > 0) {
     return t('uploads.titleComplete', { count: summary.success });
   }
-  return t('uploads.titleCancelled');
+  if (summary.cancelled > 0) {
+    return t('uploads.titleCancelled', { count: summary.cancelled });
+  }
+  return t('uploads.titleCancelled', { count: summary.total });
 }
 
 function FileRow({ item, locale }: { item: UploadItem; locale: string }) {
@@ -275,7 +284,14 @@ function FileRow({ item, locale }: { item: UploadItem; locale: string }) {
     <div className="flex flex-col gap-1.5 py-2">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium leading-tight">{item.name}</p>
+          <p
+            className={cn(
+              'truncate text-sm font-medium leading-tight',
+              item.status === 'cancelled' && 'text-muted-foreground',
+            )}
+          >
+            {item.name}
+          </p>
           <p
             className={cn(
               'mt-0.5 text-xs',
@@ -321,6 +337,9 @@ export function UploadToastCard() {
   }
   if (hasErrors) {
     subtitleParts.push(t('uploads.errorCount', { count: summary.error }));
+  }
+  if (summary.cancelled > 0) {
+    subtitleParts.push(t('uploads.cancelledCount', { count: summary.cancelled }));
   }
   if (summary.uploading > 0 && summary.total > summary.uploading) {
     subtitleParts.push(
@@ -370,11 +389,8 @@ export function UploadToastCard() {
               <ChevronIcon expanded={expanded} />
             </IconButton>
             <IconButton
-              label={t('uploads.dismiss')}
-              onClick={() => {
-                dismissFinishedUploads();
-                setUploadToastExpanded(false);
-              }}
+              label={summary.uploading > 0 ? t('uploads.closeAndCancel') : t('uploads.dismiss')}
+              onClick={() => closeUploadToaster()}
             >
               <CloseIcon />
             </IconButton>

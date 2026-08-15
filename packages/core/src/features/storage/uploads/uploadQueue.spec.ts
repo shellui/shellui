@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   addUpload,
+  closeUploadToaster,
   completeUpload,
   dismissFinishedUploads,
   failUpload,
@@ -9,6 +10,7 @@ import {
   getUploadSummary,
   interruptAllUploads,
   interruptUpload,
+  removeUpload,
   resetUploadQueue,
   setUploadProgress,
   setUploadToastExpanded,
@@ -47,7 +49,7 @@ describe('uploadQueue', () => {
     expect(getItemPercent(getUploadQueue()[1])).toBe(100);
   });
 
-  it('interrupts an in-progress upload and removes it', () => {
+  it('interrupts an in-progress upload and keeps it as cancelled', () => {
     const { signal } = addUpload({
       id: 'a',
       name: 'a.pdf',
@@ -57,7 +59,7 @@ describe('uploadQueue', () => {
     });
     interruptUpload('a');
     expect(signal.aborted).toBe(true);
-    expect(getUploadQueue()).toEqual([]);
+    expect(getUploadQueue()).toMatchObject([{ id: 'a', status: 'cancelled' }]);
   });
 
   it('dismisses finished uploads and keeps in-progress ones', () => {
@@ -70,12 +72,15 @@ describe('uploadQueue', () => {
     expect(getUploadQueue().map((item) => item.id)).toEqual(['up']);
   });
 
-  it('cancels every in-progress upload and leaves finished items', () => {
+  it('cancels every in-progress upload and leaves them visible as cancelled', () => {
     addUpload({ id: 'up', name: 'up.pdf', path: 'up.pdf', bucket: 'company', size: 10 });
     addUpload({ id: 'ok', name: 'ok.pdf', path: 'ok.pdf', bucket: 'company', size: 10 });
     completeUpload('ok');
     interruptAllUploads();
-    expect(getUploadQueue().map((item) => item.id)).toEqual(['ok']);
+    expect(getUploadQueue().map((item) => ({ id: item.id, status: item.status }))).toEqual([
+      { id: 'up', status: 'cancelled' },
+      { id: 'ok', status: 'success' },
+    ]);
   });
 
   it('does not count failed bytes toward overall percent', () => {
@@ -91,7 +96,23 @@ describe('uploadQueue', () => {
     addUpload({ id: 'a', name: 'a.pdf', path: 'a.pdf', bucket: 'company', size: 1 });
     setUploadToastExpanded(true);
     expect(isUploadToastExpanded()).toBe(true);
-    interruptUpload('a');
+    removeUpload('a');
+    expect(isUploadToastExpanded()).toBe(false);
+  });
+
+  it('closes the toaster by cancelling leftover uploads', () => {
+    const { signal } = addUpload({
+      id: 'up',
+      name: 'up.pdf',
+      path: 'up.pdf',
+      bucket: 'company',
+      size: 10,
+    });
+    addUpload({ id: 'ok', name: 'ok.pdf', path: 'ok.pdf', bucket: 'company', size: 10 });
+    completeUpload('ok');
+    closeUploadToaster();
+    expect(signal.aborted).toBe(true);
+    expect(getUploadQueue()).toEqual([]);
     expect(isUploadToastExpanded()).toBe(false);
   });
 });
