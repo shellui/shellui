@@ -73,7 +73,9 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
 
     return (
       <DialogPortal>
-        <DialogOverlay style={overlayZIndex != null ? { zIndex: overlayZIndex } : undefined} />
+        <DialogOverlay
+          style={overlayZIndex !== undefined ? { zIndex: overlayZIndex } : undefined}
+        />
         <DialogPrimitive.Content
           ref={ref}
           data-dialog-content
