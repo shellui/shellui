@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Backend | ShellUI</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://docs.shellui.com/img/docusaurus-social-card.jpg"><meta data-rh="true" name="twitter:image" content="https://docs.shellui.com/img/docusaurus-social-card.jpg"><meta data-rh="true" property="og:url" content="https://docs.shellui.com/backend"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Backend | ShellUI"><meta data-rh="true" name="description" content="After Quick Start, choose how ShellUI talks to an auth and API provider. This page compares options and documents the backend block in shellui.config.ts. Continue with Authentication to wire login and guarded routes."><meta data-rh="true" property="og:description" content="After Quick Start, choose how ShellUI talks to an auth and API provider. This page compares options and documents the backend block in shellui.config.ts. Continue with Authentication to wire login and guarded routes."><link data-rh="true" rel="icon" href="/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.shellui.com/backend"><link data-rh="true" rel="alternate" href="https://docs.shellui.com/backend" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.shellui.com/backend" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Backend","item":"https://docs.shellui.com/backend"}]}</script><link rel="stylesheet" href="/assets/css/styles.4cec034c.css">
-<script src="/assets/js/runtime~main.f8e7b461.js" defer="defer"></script>
-<script src="/assets/js/main.b28edc74.js" defer="defer"></script>
+<script src="/assets/js/runtime~main.f45c52a7.js" defer="defer"></script>
+<script src="/assets/js/main.72f47a3b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -24,7 +24,7 @@
 <li class="">Renders <code>/login</code> and <code>/login/callback</code> and merges <strong>config</strong> login capabilities with <strong>live</strong> settings from the backend (<code>GET /api/v1/settings</code> for ShellUI auth, Supabase auth settings for Supabase).</li>
 <li class="">Persists access and refresh tokens in the browser, refreshes before expiry, and exposes <code>useAuth()</code> in <code>@shellui/core</code>.</li>
 <li class="">Propagates user id, email, avatar, staff flag, groups, and access token to iframes via SDK settings (see <a class="" href="/features/authentication">Authentication</a> and <a class="" href="/sdk">SDK</a>).</li>
-<li class="">Optionally embeds a staff <strong>admin</strong> app when <code>adminPathname</code> and <code>adminUrl</code> are configured (<code>backend.type: &quot;shellui&quot;</code>).</li>
+<li class="">Optionally embeds a staff <strong>admin</strong> app when <code>adminPathname</code> and <code>adminUrl</code> are configured (<code>backend.type: &quot;shellui&quot;</code>). Custom admin sidebar links come from top-level <code>administration</code> (see <a class="" href="/features/administration">Administration panel</a>).</li>
 </ul>
 <p>Without <code>backend</code>, embedded apps do not receive auth settings and login actions throw at runtime.</p>
 <h2 class="anchor anchorTargetStickyNavbar_SAay" id="minimal-configuration">Minimal configuration<a href="#minimal-configuration" class="hash-link" aria-label="Direct link to Minimal configuration" title="Direct link to Minimal configuration" translate="no">​</a></h2>
@@ -46,6 +46,7 @@
 <h2 class="anchor anchorTargetStickyNavbar_SAay" id="related-guides">Related guides<a href="#related-guides" class="hash-link" aria-label="Direct link to Related guides" title="Direct link to Related guides" translate="no">​</a></h2>
 <ul>
 <li class=""><a class="" href="/features/authentication">Authentication</a> — login routes, guarded navigation, session and SDK usage</li>
+<li class=""><a class="" href="/features/administration">Administration panel</a> — staff admin iframe and custom sidebar navigation</li>
 <li class=""><a class="" href="/features/navigation">Navigation</a> — <code>requiresAuth</code> and <code>hideWhenLoggedOut</code></li>
 <li class=""><a class="" href="/cli">CLI configuration</a> — <code>backend</code> in JSON/TypeScript config</li>
 <li class=""><a class="" href="/sdk">SDK</a> — <code>shellui.login()</code> from iframes</li>
