@@ -25,6 +25,8 @@ describe('toSettingsUser', () => {
       profilePicture: 'https://example.com/avatar.png',
       authProvider: 'github',
       groups: null,
+      isStaff: false,
+      isCompanyOwner: false,
     });
 
     const withGroups = toSettingsUser({
@@ -44,6 +46,8 @@ describe('toSettingsUser', () => {
       profilePicture: null,
       authProvider: 'github',
       groups: ['beta', 'alpha'],
+      isStaff: true,
+      isCompanyOwner: false,
     });
   });
 });

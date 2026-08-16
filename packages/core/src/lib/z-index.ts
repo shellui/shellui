@@ -1,6 +1,6 @@
 /**
  * Central z-index scale for overlay layers.
- * Order (bottom to top): modal/drawer → toast → alert-dialog.
+ * Order (bottom to top): modal/drawer → toast → tooltip → alert-dialog.
  * Use these constants everywhere so stacking stays consistent.
  */
 export const Z_INDEX = {
@@ -9,16 +9,22 @@ export const Z_INDEX = {
   /** Modal overlay and content (settings panel, etc.) */
   MODAL_OVERLAY: 10000,
   MODAL_CONTENT: 10001,
-  /** Tooltip content (above modals so tooltips show over dialogs if needed) */
-  TOOLTIP: 10002,
   /** Drawer overlay and content (slide-out panels; same level as modal) */
   DRAWER_OVERLAY: 10000,
   DRAWER_CONTENT: 10001,
   /** Toasts (above modals so they stay clickable when modal is open) */
   TOAST: 10100,
+  /** Tooltip content (above toasts so labels on the upload toaster stay visible) */
+  TOOLTIP: 10150,
   /** Alert dialog overlay and content (confirmations; above toasts) */
   ALERT_DIALOG_OVERLAY: 10200,
   ALERT_DIALOG_CONTENT: 10201,
+  /**
+   * Storage file/folder picker (stacks above the generic URL modal so Develop
+   * inside Settings can open a picker without replacing settings).
+   */
+  STORAGE_PICKER_OVERLAY: 10050,
+  STORAGE_PICKER_CONTENT: 10051,
   /** Cookie consent (above everything to ensure visibility) */
   COOKIE_CONSENT_OVERLAY: 10300,
   COOKIE_CONSENT_CONTENT: 10301,

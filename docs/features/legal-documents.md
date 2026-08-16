@@ -129,5 +129,6 @@ After editing markdown, restart or rely on config watch (`shellui start`) so the
 
 - [Authentication](/features/authentication) — login page and `/login` route
 - [Application settings](/features/application-settings) — per-app panels under Settings
+- [Storage](/features/storage) — Settings → Storage (only when `storage` is configured)
 - [Quick Start](/quickstart) — `legalDocuments` in the config overview
 - [CLI](/cli) — configuration file format

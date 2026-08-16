@@ -14,6 +14,7 @@
     "advanced": "Advanced",
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
+    "storage": "Storage",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
@@ -113,15 +114,19 @@
       "description": "Allow this app to send error reports to help fix issues."
     },
     "developerFeatures": {
-      "label": "Show features for developers",
-      "description": "Enable developer tools and settings in the settings menu."
+      "label": "Developer mode",
+      "description": "Turn on developer mode to unlock technical tools and diagnostics in this app.",
+      "badge": "Active",
+      "hintDisabled": "When enabled, a Develop panel appears in Settings with logging, layout overrides, and other technical options.",
+      "hintEnabled": "Developer mode is on. Open the Develop panel in Settings for technical tools and diagnostics."
     },
     "dangerZone": {
       "title": "Danger Zone",
-      "description": "Irreversible and destructive actions.",
+      "description": "These actions permanently change or erase app data. Proceed with care.",
+      "badge": "Irreversible",
       "reset": {
         "title": "Reset All Data",
-        "warning": "This will permanently delete all your settings, preferences, and other app data. This action cannot be undone.",
+        "warning": "This permanently deletes your settings, preferences, and other app data stored on this device.",
         "button": "Reset All Data",
         "toast": {
           "title": "Reset All Data?",
@@ -135,6 +140,18 @@
         }
       }
     }
+  },
+  "storage": {
+    "description": "See how much of your storage quota is in use.",
+    "yourUsage": "Your usage",
+    "organization": "Organization",
+    "noPersonalLimit": "No personal limit. Your files count toward the organization quota.",
+    "usedOfMax": "{{used}} of {{max}}",
+    "usedOnly": "{{used}} used",
+    "signInRequired": "Sign in to see your storage usage.",
+    "loading": "Loading storage usage…",
+    "error": "Unable to load storage usage.",
+    "retry": "Try again"
   },
   "dataPrivacy": {
     "title": "Data Privacy",
@@ -269,6 +286,13 @@
         "description": "Enable logging for ShellUI Core operations"
       }
     },
+    "auth": {
+      "title": "Auth",
+      "disableTokenAutoRefresh": {
+        "label": "Disable token auto-refresh",
+        "description": "Stop refreshing the access token in the background so it can expire. Useful for testing expired-token handling."
+      }
+    },
     "testing": {
       "title": "Testing",
       "description": "Test ShellUI features and functionality.",
@@ -387,6 +411,13 @@
           "dialogClosed": "Dialog closed"
         }
       },
+      "uploadProgress": {
+        "title": "Upload progress toast",
+        "description": "Preview the upload toaster with sample files. Nothing is actually uploaded.",
+        "buttons": {
+          "simulate": "Test upload toast"
+        }
+      },
       "modalTesting": {
         "title": "Modal Testing",
         "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",
@@ -404,6 +435,18 @@
           "drawerRightNarrow": "Drawer right (400px)",
           "drawerBottomHalf": "Drawer bottom (60vh)",
           "closeDrawer": "Close drawer"
+        }
+      },
+      "storagePicker": {
+        "title": "Storage picker",
+        "errorTitle": "Picker unavailable",
+        "error": "Could not open the storage picker.",
+        "remove": "Remove {{name}}",
+        "buttons": {
+          "folders": "Select folder",
+          "foldersMultiple": "Select folders",
+          "files": "Select files",
+          "filesAndFolders": "Select files and folders"
         }
       }
     }

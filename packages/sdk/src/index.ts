@@ -11,6 +11,11 @@ import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
+import {
+  selectStorage as selectStorageAction,
+  selectFolders as selectFoldersAction,
+  selectFiles as selectFilesAction,
+} from './actions/selectStorage.js';
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
@@ -22,7 +27,11 @@ import type {
   Settings,
   OpenDrawerOptions,
   LoginOptions,
+  StorageSelectOptions,
+  StorageSelectResult,
 } from './types.js';
+import { StorageClient } from './storage/client.js';
+import { createPostMessageTransport } from './storage/transport.js';
 
 import packageJson from '../package.json';
 
@@ -39,16 +48,45 @@ export type {
   DrawerPosition,
   OpenDrawerOptions,
   LoginOptions,
+  StorageSelectOptions,
+  StorageSelectResult,
+  StorageSelectedItem,
+  StorageSelectMode,
+  StorageSelectRequestPayload,
+  StorageSelectResponsePayload,
   LoggerInstance,
   Settings,
   SettingsUser,
   SettingsNavigationItem,
+  SettingsAdministration,
+  SettingsAdministrationNavigationItem,
+  SettingsStorage,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,
   SettingsAvailableTheme,
   Appearance,
 } from './types.js';
+
+export { StorageError } from './storage/types.js';
+export type {
+  StorageResponse,
+  StorageListOptions,
+  StorageUploadOptions,
+  StorageMoveOptions,
+  StorageBucket,
+  StorageFileObject,
+  StorageFolderStats,
+  StorageFolderMoveResult,
+  StorageObjectAccess,
+  StorageRequestPayload,
+  StorageRequestInput,
+  StorageResponsePayload,
+  StorageErrorPayload,
+  StorageOp,
+  StorageResolvedItem,
+} from './storage/types.js';
+export { StorageClient, StorageBucketApi } from './storage/client.js';
 
 export class ShellUISDK {
   initialized = false;
@@ -58,6 +96,7 @@ export class ShellUISDK {
   messageListenerRegistry: MessageListenerRegistry;
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
+  storage: StorageClient;
 
   constructor() {
     this.currentPath =
@@ -69,6 +108,7 @@ export class ShellUISDK {
     this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
     this.callbackRegistry = new CallbackRegistry();
     this.initialSettings = null;
+    this.storage = new StorageClient(createPostMessageTransport(this));
   }
 
   async init(): Promise<this> {
@@ -94,12 +134,23 @@ export class ShellUISDK {
     if (window.parent === window) {
       return;
     }
-    return new Promise((resolve) => {
-      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', (data) => {
-        const { settings } = data.payload as { settings: Settings };
+
+    const applySettings = (data: ShellUIMessage) => {
+      const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
+      if (settings) {
         this.initialSettings = settings;
-        resolve();
+      }
+    };
+
+    // Keep `initialSettings` fresh across token refresh / preference pushes so late
+    // readers (nested iframes, hooks mounting after a refresh) do not reuse a stale JWT.
+    this.addMessageListener('SHELLUI_SETTINGS', applySettings);
+    this.addMessageListener('SHELLUI_SETTINGS_UPDATED', applySettings);
+
+    return new Promise((resolve) => {
+      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', () => {
         cleanup();
+        resolve();
       });
       this.sendMessageToParent({
         type: 'SHELLUI_SETTINGS_REQUESTED',
@@ -206,6 +257,21 @@ export class ShellUISDK {
     return dialogAction(options);
   }
 
+  selectStorage(options?: StorageSelectOptions): Promise<StorageSelectResult | null> {
+    return selectStorageAction(options);
+  }
+
+  selectFolders(options?: { multiple?: boolean }): Promise<StorageSelectResult | null> {
+    return selectFoldersAction(options);
+  }
+
+  selectFiles(options?: {
+    multiple?: boolean;
+    folders?: boolean;
+  }): Promise<StorageSelectResult | null> {
+    return selectFilesAction(options);
+  }
+
   getVersion(): string {
     return this.version;
   }
@@ -260,6 +326,16 @@ export const navigate = (url: string): void => sdk.navigate(url);
 export const login = (options: LoginOptions): void => sdk.login(options);
 export const toast = (options?: ToastOptions): string | void => toastAction(options);
 export const dialog = (options?: DialogOptions): string | void => dialogAction(options);
+export const selectStorage = (
+  options?: StorageSelectOptions,
+): Promise<StorageSelectResult | null> => selectStorageAction(options);
+export const selectFolders = (options?: {
+  multiple?: boolean;
+}): Promise<StorageSelectResult | null> => selectFoldersAction(options);
+export const selectFiles = (options?: {
+  multiple?: boolean;
+  folders?: boolean;
+}): Promise<StorageSelectResult | null> => selectFilesAction(options);
 export const addIframe = (iframe: HTMLIFrameElement): string => sdk.addIframe(iframe);
 export const removeIframe = (identifier: string | HTMLIFrameElement): boolean =>
   sdk.removeIframe(identifier);
@@ -278,5 +354,6 @@ export const sendMessageToParent = (message: ShellUIMessage): boolean =>
 export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
+export const storage = sdk.storage;
 
 export default sdk;

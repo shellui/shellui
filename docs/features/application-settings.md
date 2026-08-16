@@ -99,3 +99,4 @@ function saveSettings(settings) {
 - [Themes](/features/themes) - ShellUI theming
 - [Internationalization](/features/internationalization) - Multi-language support
 - [SDK Reference](/sdk) - ShellUI SDK integration
+- [Storage](/features/storage) - Settings → Storage quota (only when `storage` is configured)

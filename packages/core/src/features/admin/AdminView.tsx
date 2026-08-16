@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { ContentView } from '../../components/ContentView';
@@ -10,7 +9,7 @@ import type { NavigationItem } from '../config/types';
 import { AppLayout } from '../layouts/AppLayout';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { getAdminContentUrl, getAdminPath } from './config';
-import { buildAdminIframeSrc, getDjangoAdminHref } from './utils';
+import { buildAdminIframeSrc } from './utils';
 
 const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
   if (!allow) {
@@ -20,14 +19,11 @@ const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
 };
 
 export const AdminView = () => {
-  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
   const { user } = useAuth();
-  const isStaff = Boolean(user?.isStaff);
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
-  const djangoAdminHref = useMemo(() => getDjangoAdminHref(config), [config]);
   const adminPath = getAdminPath(config);
   const baseAdminContentUrl = getAdminContentUrl(config);
   const initialAdminContentUrlRef = useRef<string | null>(null);
@@ -86,21 +82,6 @@ export const AdminView = () => {
             Back to home
           </Button>
           <div className="flex items-center gap-2">
-            {isStaff && djangoAdminHref ? (
-              <Button
-                variant="outline"
-                size="sm"
-                asChild
-              >
-                <a
-                  href={djangoAdminHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t('adminShell.djangoAdmin')}
-                </a>
-              </Button>
-            ) : null}
             <LoginButton
               variant="appbar"
               logoutOnly

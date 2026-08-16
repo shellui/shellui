@@ -3,12 +3,19 @@ import type { AuthEvent, AuthSession, AuthSettings, AuthUser, UserPreferences } 
 
 export type { AuthSession, AuthUser } from '../types';
 
+export interface OAuthCallbackResult {
+  ok: boolean;
+  error?: string | null;
+  errorCode?: string | null;
+}
+
 export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  errorCode: string | null;
   authEvent: AuthEvent;
   clearAuthEvent: () => void;
   completeOAuthCallback: (params: {
@@ -16,7 +23,7 @@ export interface AuthContextValue {
     code: string;
     redirectUri: string;
     oauthClientId?: number;
-  }) => Promise<boolean>;
+  }) => Promise<OAuthCallbackResult>;
   startOAuth: (provider: string, redirectPath?: string, oauthClientId?: number) => boolean;
   startWeb3Ethereum: () => Promise<boolean>;
   getAuthSettings: () => Promise<AuthSettings>;

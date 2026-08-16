@@ -51,7 +51,7 @@ export default config;
 
 - `url` — identity service origin.
 - `companyId` — required for OAuth code exchange.
-- `adminPathname` / `adminUrl` — optional staff admin iframe; staff users see **Administration** in the account menu when `adminPathname` is set.
+- `adminPathname` / `adminUrl` — optional staff admin iframe; staff users see **Administration** in the account menu when `adminPathname` is set. Add top-level `administration` to inject custom sidebar links (see [Administration panel](/features/administration)).
 
 **Supabase (`type: 'supabase'`)**
 
@@ -161,6 +161,12 @@ function Example() {
 `AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (ShellUI JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
 
 Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. OAuth returns may deliver tokens in the URL hash; the shell persists them and strips the hash.
+
+## Company access and pending accounts
+
+When the ShellUI identity service uses a non-public company join mode (`domain` or `invite`), OAuth may create the user but **not** issue tokens for that company. Access is stored per company (`CompanyMembership.is_enabled`), so the same person can be approved in one tenant and blocked in another.
+
+The backend returns `error_code` `access_pending` or `access_denied` (also as `shellui_oauth_error_code` on bounce redirects). ShellUI then shows a dedicated pending-access screen. After an admin enables membership for that company, the user can sign in. Configure modes in admin **Organization** or `PATCH /api/v1/companies/<id>/` — see identity-service company access docs.
 
 ## Embedded apps and the SDK
 

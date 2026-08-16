@@ -22,12 +22,12 @@ const DialogClose = DialogPrimitive.Close;
 const DialogOverlay = forwardRef<
   ElementRef<typeof DialogPrimitive.Overlay>,
   ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     data-dialog-overlay
     className={cn('fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]', className)}
-    style={{ zIndex: Z_INDEX.MODAL_OVERLAY }}
+    style={{ zIndex: Z_INDEX.MODAL_OVERLAY, ...style }}
     {...props}
   />
 ));
@@ -36,10 +36,24 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 interface DialogContentProps extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   /** When true, the default close (X) button is not rendered. Escape and overlay still close. */
   hideCloseButton?: boolean;
+  overlayZIndex?: number;
+  contentZIndex?: number;
 }
 
 const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, DialogContentProps>(
-  ({ className, children, onPointerDownOutside, hideCloseButton, ...props }, ref) => {
+  (
+    {
+      className,
+      children,
+      onPointerDownOutside,
+      hideCloseButton,
+      overlayZIndex,
+      contentZIndex,
+      style,
+      ...props
+    },
+    ref,
+  ) => {
     const hasContent = Children.count(children) > 2;
 
     const handlePointerDownOutside = useCallback(
@@ -49,7 +63,7 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
         >[0],
       ) => {
         const target = event?.target as Element | null;
-        if (target?.closest?.('[data-sonner-toaster]')) {
+        if (target?.closest?.('[data-sonner-toaster], [data-upload-toast]')) {
           event.preventDefault();
         }
         onPointerDownOutside?.(event);
@@ -59,7 +73,9 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
 
     return (
       <DialogPortal>
-        <DialogOverlay />
+        <DialogOverlay
+          style={overlayZIndex !== undefined ? { zIndex: overlayZIndex } : undefined}
+        />
         <DialogPrimitive.Content
           ref={ref}
           data-dialog-content
@@ -69,7 +85,11 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
             'data-[has-content=false]:gap-0 data-[has-content=false]:[&>[data-dialog-header]]:border-b-0 data-[has-content=false]:[&>[data-dialog-header]]:pb-0',
             className,
           )}
-          style={{ backgroundColor: 'hsl(var(--background))', zIndex: Z_INDEX.MODAL_CONTENT }}
+          style={{
+            backgroundColor: 'hsl(var(--background))',
+            zIndex: contentZIndex ?? Z_INDEX.MODAL_CONTENT,
+            ...style,
+          }}
           onPointerDownOutside={handlePointerDownOutside}
           {...props}
         >

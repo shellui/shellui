@@ -61,6 +61,47 @@ export interface SettingsNavigationItem {
   path: string;
   url: string;
   label?: string;
+  icon?: string;
+}
+
+/**
+ * Custom admin-panel navigation item (from host `administration.navigation`).
+ * Labels are resolved to the active language before propagation.
+ */
+export interface SettingsAdministrationNavigationItem {
+  path: string;
+  url: string;
+  label: string;
+  icon?: string;
+  /** When true, only staff users should see this item in the admin sidebar. */
+  requiresStaff?: boolean;
+  /**
+   * How to open the item in the admin panel.
+   * - `default` (or omitted): embed `url` in a content iframe
+   * - `external`: open `url` in a new tab (`target="_blank"`) — use for apps that block iframes (e.g. Django admin)
+   */
+  openIn?: 'default' | 'external';
+}
+
+/**
+ * Custom navigation section for the staff admin panel (from host `administration`).
+ * Injected by the shell when sending settings to iframes.
+ */
+export interface SettingsAdministration {
+  title: string;
+  navigation: SettingsAdministrationNavigationItem[];
+}
+
+/**
+ * Storage-service connection from host `storage` in shellui.config.ts.
+ * Used by Admin → Storage, Settings → Storage (quota), and the SDK file API
+ * (`shellui.storage`) which the shell executes against this URL.
+ */
+export interface SettingsStorage {
+  /** Base URL of storage-service (no trailing slash). */
+  url: string;
+  /** Files explorer app URL when configured. */
+  filesUrl?: string | null;
 }
 
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
@@ -155,11 +196,20 @@ export interface SettingsUser {
   authProvider: string | null;
   /** Optional snapshot of group names propagated to iframe apps (e.g. from JWT). */
   groups?: string[] | null;
+  /** Staff flag from the shell session (Django `is_staff`). */
+  isStaff?: boolean;
+  /** Company-owner flag from the shell session for the active tenant. */
+  isCompanyOwner?: boolean;
 }
 
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
+    /**
+     * When true, skips proactive / restore token refresh so an access token can expire
+     * for local testing (Settings → Develop).
+     */
+    disableTokenAutoRefresh?: boolean;
   };
   /** User toggle for sending error reports (only relevant when app has reporting configured). */
   errorReporting: {
@@ -200,6 +250,18 @@ export interface Settings {
   navigation?: {
     items: SettingsNavigationItem[];
   };
+  /**
+   * Custom admin-panel navigation (from host `administration` in shellui.config.ts).
+   * Consumed by the staff admin app to render extra sidebar links below Dashboard.
+   */
+  administration?: SettingsAdministration | null;
+  /**
+   * Storage-service connection (from host `storage` in shellui.config.ts).
+   * When set, Admin shows Storage and iframe apps can call `shellui.storage`.
+   * Settings → Storage (quota) is a host UI and is omitted when `storage` is
+   * unset or `showInSettings` is false.
+   */
+  storage?: SettingsStorage | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**
@@ -243,6 +305,51 @@ export interface LoginOptions {
   oauthClientId?: number;
 }
 
+/** What the storage picker can choose. `folders` never selects files. */
+export type StorageSelectMode = 'folders' | 'files' | 'any';
+
+export type StorageSelectOptions = {
+  /** Allow more than one item. Default: `false`. */
+  multiple?: boolean;
+  /**
+   * - `folders` — folders only (files are hidden)
+   * - `files` — files only (folders are for navigation)
+   * - `any` — files and folders
+   */
+  mode?: StorageSelectMode;
+};
+
+/**
+ * One picked file or folder. Keep `id` to survive a later rename; `path` is the
+ * location at the moment of selection.
+ */
+export type StorageSelectedItem = {
+  /** Stable id (file UUID, or folder placeholder UUID). */
+  id: string;
+  bucket: string;
+  /** Current path in the bucket (`''` = bucket root). */
+  path: string;
+  name: string;
+  type: 'file' | 'folder';
+};
+
+export type StorageSelectResult = {
+  items: StorageSelectedItem[];
+};
+
+export type StorageSelectRequestPayload = {
+  id: string;
+  multiple: boolean;
+  mode: StorageSelectMode;
+};
+
+export type StorageSelectResponsePayload = {
+  id: string;
+  items?: StorageSelectedItem[];
+  cancelled?: boolean;
+  error?: { message: string; status?: number };
+};
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -266,7 +373,12 @@ export type ShellUIMessageType =
   | 'SHELLUI_INITIALIZED'
   | 'SHELLUI_REFRESH_PAGE'
   | 'SHELLUI_LOGOUT'
-  | 'SHELLUI_LOGIN';
+  | 'SHELLUI_LOGIN'
+  | 'SHELLUI_STORAGE_REQUEST'
+  | 'SHELLUI_STORAGE_RESPONSE'
+  | 'SHELLUI_SELECT_STORAGE'
+  | 'SHELLUI_SELECT_STORAGE_RESULT'
+  | 'SHELLUI_UPLOAD_TOAST_DEMO';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

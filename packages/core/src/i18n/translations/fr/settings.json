@@ -14,6 +14,7 @@
     "advanced": "Avancé",
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
+    "storage": "Stockage",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
@@ -113,15 +114,19 @@
       "description": "Autoriser cette application à envoyer des rapports d'erreurs pour aider à corriger les problèmes."
     },
     "developerFeatures": {
-      "label": "Afficher les fonctionnalités pour les développeurs",
-      "description": "Activez les outils et paramètres de développement dans le menu des paramètres."
+      "label": "Mode développeur",
+      "description": "Activez le mode développeur pour débloquer les outils techniques et les diagnostics dans l'application.",
+      "badge": "Actif",
+      "hintDisabled": "Une fois activé, un panneau Développer apparaît dans les Paramètres avec les journaux, les options de mise en page et d'autres outils techniques.",
+      "hintEnabled": "Le mode développeur est activé. Ouvrez le panneau Développer dans les Paramètres pour accéder aux outils techniques et diagnostics."
     },
     "dangerZone": {
       "title": "Zone de danger",
-      "description": "Actions irréversibles et destructives.",
+      "description": "Ces actions modifient ou effacent définitivement les données de l'application. Procédez avec prudence.",
+      "badge": "Irréversible",
       "reset": {
         "title": "Réinitialiser toutes les données",
-        "warning": "Cela supprimera définitivement tous vos paramètres, préférences et autres données d'application. Cette action ne peut pas être annulée.",
+        "warning": "Cela supprime définitivement vos paramètres, préférences et autres données d'application stockées sur cet appareil.",
         "button": "Réinitialiser toutes les données",
         "toast": {
           "title": "Réinitialiser toutes les données ?",
@@ -135,6 +140,18 @@
         }
       }
     }
+  },
+  "storage": {
+    "description": "Consultez l'utilisation de votre quota de stockage.",
+    "yourUsage": "Votre utilisation",
+    "organization": "Organisation",
+    "noPersonalLimit": "Aucune limite personnelle. Vos fichiers comptent dans le quota de l'organisation.",
+    "usedOfMax": "{{used}} sur {{max}}",
+    "usedOnly": "{{used}} utilisés",
+    "signInRequired": "Connectez-vous pour voir votre utilisation du stockage.",
+    "loading": "Chargement de l'utilisation du stockage…",
+    "error": "Impossible de charger l'utilisation du stockage.",
+    "retry": "Réessayer"
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",
@@ -269,6 +286,13 @@
         "description": "Activez la journalisation pour les opérations ShellUI Core"
       }
     },
+    "auth": {
+      "title": "Authentification",
+      "disableTokenAutoRefresh": {
+        "label": "Désactiver le rafraîchissement automatique du jeton",
+        "description": "Arrête le rafraîchissement du jeton d'accès en arrière-plan pour qu'il puisse expirer. Utile pour tester la gestion des jetons expirés."
+      }
+    },
     "testing": {
       "title": "Tests",
       "description": "Testez les fonctionnalités de ShellUI.",
@@ -387,6 +411,13 @@
           "dialogClosed": "Dialogue fermé"
         }
       },
+      "uploadProgress": {
+        "title": "Toast de progression d'envoi",
+        "description": "Aperçu du toaster d'envoi avec des fichiers d'exemple. Rien n'est réellement envoyé.",
+        "buttons": {
+          "simulate": "Tester le toast d'envoi"
+        }
+      },
       "modalTesting": {
         "title": "Tests du modal",
         "description": "Ouvre les paramètres dans un modal. Fermez avec le bouton × ou en cliquant à l'extérieur.",
@@ -404,6 +435,18 @@
           "drawerRightNarrow": "Tiroir droite (400px)",
           "drawerBottomHalf": "Tiroir bas (60vh)",
           "closeDrawer": "Fermer le tiroir"
+        }
+      },
+      "storagePicker": {
+        "title": "Sélecteur de stockage",
+        "errorTitle": "Sélecteur indisponible",
+        "error": "Impossible d’ouvrir le sélecteur de stockage.",
+        "remove": "Retirer {{name}}",
+        "buttons": {
+          "folders": "Sélectionner un dossier",
+          "foldersMultiple": "Sélectionner des dossiers",
+          "files": "Sélectionner des fichiers",
+          "filesAndFolders": "Sélectionner fichiers et dossiers"
         }
       }
     }

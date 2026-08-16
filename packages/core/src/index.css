@@ -237,7 +237,8 @@
 
   /* Toaster must receive pointer events when a modal has body pointer-events: none (e.g. Radix).
    * Without this, pointerdown never fires on iPad when a modal is open. */
-  [data-sonner-toaster] {
+  [data-sonner-toaster],
+  [data-upload-toast] {
     pointer-events: auto !important;
   }
 

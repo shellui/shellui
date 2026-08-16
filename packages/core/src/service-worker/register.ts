@@ -1049,7 +1049,6 @@ export async function updateServiceWorker(): Promise<void> {
     // This prevents the service worker from being disabled after refresh
     // The user explicitly clicked "Install Now", so we must keep the service worker enabled
     if (typeof window !== 'undefined') {
-      const STORAGE_KEY = 'shellui:settings';
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -1085,22 +1084,15 @@ export async function updateServiceWorker(): Promise<void> {
 
     // Set up reload handler before sending skip waiting
     let reloaded = false;
-    const reloadApp = () => {
+    const reloadOnce = () => {
       if (reloaded) return;
       reloaded = true;
-      // Use shellUI refresh message if available, otherwise fallback to window.location.reload
-      const sent = shellui.sendMessageToParent({
-        type: 'SHELLUI_REFRESH_PAGE',
-        payload: {},
-      });
-      if (!sent) {
-        window.location.reload();
-      }
+      reloadApp();
     };
 
     // Add one-time listener for controlling event (Workbox or native controllerchange)
     const updateControllingHandler = () => {
-      reloadApp();
+      reloadOnce();
       wb?.removeEventListener('controlling', updateControllingHandler);
       // Reset flag after reload is triggered
       setTimeout(() => {
@@ -1120,7 +1112,7 @@ export async function updateServiceWorker(): Promise<void> {
     // Fallback: reload if controlling event doesn't fire within 2 seconds
     setTimeout(() => {
       wb?.removeEventListener('controlling', updateControllingHandler);
-      reloadApp();
+      reloadOnce();
       setTimeout(() => {
         isIntentionalUpdate = false;
       }, 1000);

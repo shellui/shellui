@@ -7,6 +7,7 @@ import {
   FileTextIcon,
   PackageIcon,
   RefreshDoubleIcon,
+  HardDriveIcon,
 } from './SettingsIcons';
 import { Appearance } from './components/Appearance';
 import { LanguageAndRegion } from './components/LanguageAndRegion';
@@ -16,6 +17,7 @@ import { Develop } from './components/Develop';
 import { DataPrivacy } from './components/DataPrivacy';
 import { ServiceWorker } from './components/ServiceWorker';
 import { LegalDocumentsPanel } from './components/LegalDocumentsPanel';
+import { Storage } from './components/Storage';
 import { isTauri } from '../../service-worker/register';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
@@ -32,6 +34,18 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     element: <LanguageAndRegion />,
   },
   {
+    name: t('routes.dataPrivacy'),
+    icon: ShieldIcon,
+    path: 'data-privacy',
+    element: <DataPrivacy />,
+  },
+  {
+    name: t('routes.storage'),
+    icon: HardDriveIcon,
+    path: 'storage',
+    element: <Storage />,
+  },
+  {
     name: t('routes.updateApp'),
     icon: RefreshDoubleIcon,
     path: 'update-app',
@@ -42,12 +56,6 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     icon: SettingsIcon,
     path: 'advanced',
     element: <Advanced />,
-  },
-  {
-    name: t('routes.dataPrivacy'),
-    icon: ShieldIcon,
-    path: 'data-privacy',
-    element: <DataPrivacy />,
   },
   {
     name: t('routes.legalDocuments'),

@@ -11,9 +11,11 @@ import { Switch } from '../../../components/ui/switch';
 import { Select } from '../../../components/ui/select';
 import { Button } from '../../../components/ui/button';
 import { ToastTestButtons } from './develop/ToastTestButtons';
+import { UploadToastTestButton } from './develop/UploadToastTestButton';
 import { DialogTestButtons } from './develop/DialogTestButtons';
 import { ModalTestButtons } from './develop/ModalTestButtons';
 import { DrawerTestButtons } from './develop/DrawerTestButtons';
+import { StoragePickerTestButtons } from './develop/StoragePickerTestButtons';
 import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
 import type { LayoutType } from '../../config/types';
@@ -168,13 +170,49 @@ export const Develop = () => {
           className="text-lg font-semibold mb-2"
           style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
         >
+          {t('develop.auth.title')}
+        </h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <label
+                htmlFor="disable-token-auto-refresh"
+                className="text-sm font-medium leading-none"
+                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+              >
+                {t('develop.auth.disableTokenAutoRefresh.label')}
+              </label>
+              <p className="text-sm text-muted-foreground">
+                {t('develop.auth.disableTokenAutoRefresh.description')}
+              </p>
+            </div>
+            <Switch
+              id="disable-token-auto-refresh"
+              checked={settings.developerFeatures?.disableTokenAutoRefresh || false}
+              onCheckedChange={(checked) =>
+                updateSetting('developerFeatures', {
+                  disableTokenAutoRefresh: checked,
+                })
+              }
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3
+          className="text-lg font-semibold mb-2"
+          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+        >
           {t('develop.testing.title')}
         </h3>
         <div className="space-y-4">
           <ToastTestButtons />
+          <UploadToastTestButton />
           <DialogTestButtons />
           <ModalTestButtons />
           <DrawerTestButtons />
+          <StoragePickerTestButtons />
           {errorReportingConfigured && (
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

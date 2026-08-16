@@ -163,6 +163,39 @@ shellui.login({
 });
 ```
 
+### Storage (files)
+
+Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.ts`. See [Storage](/features/storage) for the full API.
+
+```javascript
+import { shellui } from '@shellui/sdk';
+
+await shellui.init();
+
+const { data, error } = await shellui.storage
+  .from('company')
+  .upload('docs/reports/2024/q1.pdf', file, { upsert: true });
+
+const { data: entries } = await shellui.storage.from('company').list('docs/reports');
+```
+
+Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Use `{ folder: true }` on `move` / `rename` to move a whole folder.
+
+### Storage picker
+
+Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
+
+```javascript
+const folders = await shellui.selectFolders({ multiple: true });
+if (folders) {
+  console.log(folders.items);
+}
+
+const files = await shellui.selectFiles({ multiple: true, folders: true });
+```
+
+Each item includes a stable `id` (keep this so a rename still points at the same folder or file). See [Storage picker](/features/storage-picker).
+
 ## Message Passing
 
 ShellUI uses a message passing system for communication between the shell and sub-apps (iframes).
@@ -217,6 +250,8 @@ Common ShellUI message types:
 - `SHELLUI_NAVIGATE` - Navigation requested
 - `SHELLUI_LOGIN` - Login requested from iframe (minimal payload: method, provider, optional redirectPath)
 - `SHELLUI_INITIALIZED` - SDK initialized
+- `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE` - File API (handled by the root shell)
+- `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT` - Storage picker (handled by the root shell)
 
 ## Settings Access
 
@@ -235,8 +270,12 @@ shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
   const colorScheme = settings.appearance?.colorScheme;
   const themeValues = settings.appearance;
   const language = settings.language?.code;
+  // Staff admin custom nav (from host `administration` config); null when unset
+  const adminNav = settings.administration;
 });
 ```
+
+Host `administration` navigation is documented in [Administration panel](/features/administration). Host `storage` and `shellui.storage` are documented in [Storage](/features/storage); Settings → Storage is only shown when `storage.url` is set and `showInSettings` is not `false`.
 
 ## Frame Management
 
@@ -408,6 +447,9 @@ shellui.dialog(dialogOptions);
 - `shellui.closeDrawer()` - Close drawer
 - `shellui.navigate(url)` - Navigate programmatically
 - `shellui.login(options)` - Request root-shell login
+- `shellui.storage` - File API (`from(bucket).upload`, `download`, `list`, `move`, `rename`, …)
+- `shellui.selectFolders(options)` - Open a folder picker modal
+- `shellui.selectFiles(options)` - Open a file picker modal (`{ folders: true }` also allows folders)
 
 ### Message Functions
 
@@ -441,4 +483,6 @@ shellui.dialog(dialogOptions);
 - [Toast Notifications](/features/toasts) - Detailed toast guide
 - [Alert Dialogs](/features/dialogs) - Detailed dialog guide
 - [Modals & Drawers](/features/modals-drawers) - Modal and drawer guide
+- [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
+- [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
 - [Navigation](/features/navigation) - Navigation configuration

@@ -10,6 +10,10 @@ import { I18nProvider } from './i18n/I18nProvider';
 import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
 import { AuthProvider } from './features/auth/AuthProvider';
+import { StorageBridge } from './features/storage/StorageBridge';
+import { SonnerProvider } from './features/sonner/SonnerContext';
+import { Toaster } from './components/ui/sonner';
+import { UploadToaster } from './features/storage/uploads/UploadToaster';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
@@ -123,11 +127,17 @@ const App = () => {
   return (
     <ConfigProvider>
       <AuthProvider>
+        <StorageBridge />
         <SettingsProvider>
           <ThemeProvider>
             <I18nProvider>
               <DialogProvider>
-                <AppContent />
+                <SonnerProvider>
+                  {/* Toaster + upload progress live at ShellUI root so they survive navigation. */}
+                  <Toaster />
+                  <UploadToaster />
+                  <AppContent />
+                </SonnerProvider>
               </DialogProvider>
             </I18nProvider>
           </ThemeProvider>

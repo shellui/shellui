@@ -1,10 +1,10 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
-import { SonnerProvider } from '../sonner/SonnerContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
+import { StoragePickerProvider } from '../storage/StoragePickerContext';
 import { LayoutFallback } from './LayoutFallback';
 
 const SidebarLayout = lazy(() =>
@@ -61,13 +61,13 @@ export function AppLayout({
   return (
     <ModalProvider>
       <DrawerProvider>
-        <SonnerProvider>
+        <StoragePickerProvider>
           <OverlayShell>
             <Suspense fallback={<LayoutFallback />}>
               {children ? children : <LayoutComponent {...layoutProps} />}
             </Suspense>
           </OverlayShell>
-        </SonnerProvider>
+        </StoragePickerProvider>
       </DrawerProvider>
     </ModalProvider>
   );

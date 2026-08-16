@@ -23,7 +23,7 @@ When `backend` is set, ShellUI:
 - Renders `/login` and `/login/callback` and merges **config** login capabilities with **live** settings from the backend (`GET /api/v1/settings` for ShellUI auth, Supabase auth settings for Supabase).
 - Persists access and refresh tokens in the browser, refreshes before expiry, and exposes `useAuth()` in `@shellui/core`.
 - Propagates user id, email, avatar, staff flag, groups, and access token to iframes via SDK settings (see [Authentication](/features/authentication) and [SDK](/sdk)).
-- Optionally embeds a staff **admin** app when `adminPathname` and `adminUrl` are configured (`backend.type: "shellui"`).
+- Optionally embeds a staff **admin** app when `adminPathname` and `adminUrl` are configured (`backend.type: "shellui"`). Custom admin sidebar links come from top-level `administration` (see [Administration panel](/features/administration)).
 
 Without `backend`, embedded apps do not receive auth settings and login actions throw at runtime.
 
@@ -105,6 +105,7 @@ TypeScript types live in `BackendConfig` and `BackendLoginConfig` in `@shellui/c
 ## Related guides
 
 - [Authentication](/features/authentication) — login routes, guarded navigation, session and SDK usage
+- [Administration panel](/features/administration) — staff admin iframe and custom sidebar navigation
 - [Navigation](/features/navigation) — `requiresAuth` and `hideWhenLoggedOut`
 - [CLI configuration](/cli) — `backend` in JSON/TypeScript config
 - [SDK](/sdk) — `shellui.login()` from iframes

@@ -3,13 +3,17 @@ import { getLogger, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
-import { AuthContext, type AuthContextValue } from './hooks/useAuth';
+import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
 import {
+  AuthRequestError,
   clearStoredAuthSession,
   getAccessTokenFromSdkSettings,
+  getAuthRequestErrorCode,
   getUserFromSdkSettings,
+  inferAccessPendingErrorCode,
   isSessionExpired,
+  isTokenAutoRefreshDisabled,
   persistAuthSession,
   readStoredAuthSession,
   toAuthSessionFromSettingsUser,
@@ -40,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
@@ -51,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeSession = async () => {
       setIsLoading(true);
       setError(null);
+      setErrorCode(null);
 
       if (typeof window === 'undefined') {
         setIsLoading(false);
@@ -104,6 +110,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      // Keep the expired session so apps can exercise 401 / re-auth flows locally.
+      if (isTokenAutoRefreshDisabled()) {
+        logger.info(
+          'Skipped session restore refresh because Develop → Disable token auto-refresh is on',
+        );
+        if (!cancelled) {
+          setSession(stored);
+          setIsLoading(false);
+        }
+        return;
+      }
+
       try {
         const restored = await backend.restoreSession(stored, now);
         if (!restored) {
@@ -144,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     let cancelled = false;
+    let skippedRefreshLogged = false;
 
     const runRefresh = async () => {
       if (cancelled) return;
@@ -153,6 +172,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = Math.floor(Date.now() / 1000);
       const secondsLeft = current.expiresAt - now;
       if (secondsLeft > PROACTIVE_REFRESH_LEEWAY_SECONDS && !isSessionExpired(current)) {
+        return;
+      }
+
+      // Re-read when refresh is due so Develop → disableTokenAutoRefresh takes effect without remount.
+      if (isTokenAutoRefreshDisabled()) {
+        if (!skippedRefreshLogged) {
+          skippedRefreshLogged = true;
+          logger.info('Skipped token refresh because Develop → Disable token auto-refresh is on', {
+            expiresAt: current.expiresAt,
+            secondsLeft,
+          });
+        }
         return;
       }
 
@@ -182,8 +213,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const maybeRefreshOnResume = () => {
       if (cancelled || document.visibilityState !== 'visible') return;
-      const current = sessionRef.current;
-      if (!current?.refreshToken || !isSessionExpired(current)) return;
+      // Use the same proactive leeway as the timer (do not wait until already expired).
       void runRefresh();
     };
 
@@ -214,14 +244,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
     };
 
+    // Parent shell pushes rotated JWTs via `SHELLUI_SETTINGS` (and sometimes UPDATED).
+    const cleanupSettings = shellui.addMessageListener('SHELLUI_SETTINGS', syncSessionFromSettings);
     const cleanupSettingsUpdated = shellui.addMessageListener(
       'SHELLUI_SETTINGS_UPDATED',
-      (message) => {
-        syncSessionFromSettings(message);
-      },
+      syncSessionFromSettings,
     );
 
     return () => {
+      cleanupSettings();
       cleanupSettingsUpdated();
     };
   }, []);
@@ -230,10 +261,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     (provider: string, redirectPath = urls.login, oauthClientId?: number) => {
       try {
         setError(null);
+        setErrorCode(null);
         backend.startOAuth(provider, redirectPath, oauthClientId);
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
+        setErrorCode(err instanceof AuthRequestError ? err.code : null);
         return false;
       }
     },
@@ -251,9 +284,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       code: string;
       redirectUri: string;
       oauthClientId?: number;
-    }) => {
+    }): Promise<OAuthCallbackResult> => {
       try {
         setError(null);
+        setErrorCode(null);
         const now = Math.floor(Date.now() / 1000);
         const nextSession = await backend.exchangeOAuthCode({
           provider,
@@ -263,16 +297,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           nowSeconds: now,
         });
         if (!nextSession) {
-          setError('Unable to complete OAuth login.');
-          return false;
+          const message = 'Unable to complete OAuth login.';
+          setError(message);
+          setErrorCode(null);
+          return { ok: false, error: message, errorCode: null };
         }
         persistAuthSession(nextSession);
         setSession(nextSession);
         setAuthEvent('oauth_callback');
-        return true;
+        return { ok: true };
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to complete OAuth login.');
-        return false;
+        const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
+        const oauthErrorCode =
+          getAuthRequestErrorCode(err) ??
+          inferAccessPendingErrorCode(message) ??
+          (err instanceof AuthRequestError ? err.code : null);
+        setError(message);
+        setErrorCode(oauthErrorCode);
+        return { ok: false, error: message, errorCode: oauthErrorCode };
       }
     },
     [backend],
@@ -281,9 +323,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const startWeb3Ethereum = useCallback(async () => {
     try {
       setError(null);
+      setErrorCode(null);
       const nextSession = await backend.startWeb3Ethereum();
       if (!nextSession) {
         setError('Unable to complete Ethereum wallet login.');
+        setErrorCode(null);
         return false;
       }
       persistAuthSession(nextSession);
@@ -291,6 +335,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to start Ethereum wallet login.');
+      setErrorCode(err instanceof AuthRequestError ? err.code : null);
       return false;
     }
   }, [backend]);
@@ -316,7 +361,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const now = Math.floor(Date.now() / 1000);
         let nextSession: AuthSession | null = null;
         try {
-          nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+          if (session && isTokenAutoRefreshDisabled()) {
+            logger.info(
+              'Skipped token refresh after preferences sync because Develop → Disable token auto-refresh is on',
+            );
+            nextSession = null;
+          } else {
+            nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+          }
         } catch (refreshErr) {
           logger.error('Failed to refresh auth session after syncing preferences', { refreshErr });
         }
@@ -358,6 +410,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(null);
     setAuthEvent(null);
     setError(null);
+    setErrorCode(null);
   }, [backend, session]);
 
   useEffect(() => {
@@ -431,6 +484,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: session !== null && !isSessionExpired(session),
       isLoading,
       error,
+      errorCode,
       authEvent,
       clearAuthEvent,
       completeOAuthCallback,
@@ -447,6 +501,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       isLoading,
       error,
+      errorCode,
       authEvent,
       clearAuthEvent,
       completeOAuthCallback,

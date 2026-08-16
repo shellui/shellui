@@ -5,6 +5,12 @@ export {
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
 export { buildSessionFromParams } from './buildSessionFromParams';
+export {
+  AuthRequestError,
+  getAuthRequestErrorCode,
+  inferAccessPendingErrorCode,
+  isAccessPendingErrorCode,
+} from './authRequestError';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';
 export { formatProviderLabel } from './formatProviderLabel';
@@ -14,6 +20,7 @@ export { getPreferredBackendProvider } from './getPreferredBackendProvider';
 export { getProviderVisual } from './getProviderVisual';
 export { isLoginMethod } from './isLoginMethod';
 export { isSessionExpired } from './isSessionExpired';
+export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';
 export { normalizeNextPath } from './normalizeNextPath';
 export { normalizeRedirectPath } from './normalizeRedirectPath';

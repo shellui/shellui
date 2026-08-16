@@ -21,6 +21,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.4.0] - 2026-08-16
+
+### ✨ Feature
+
+- **Administration panel:** configure custom admin sidebar navigation via `administration` in `shellui.config.ts` (title, flat nav items, `requiresStaff`, `openIn: 'external'` for Django admin); propagated to the admin app through SDK settings. (#6)
+- **Storage:** optional root `storage.url` / `filesUrl` in `shellui.config.ts` are propagated as SDK `settings.storage` so Admin (and later the shell) can use storage-service. Admin shows Storage when `storage.url` is set. Settings → Storage shows the signed-in user's quota when `storage.url` is set; hide it with `storage.showInSettings: false`.
+- **Storage SDK:** iframe apps call `shellui.storage` (Supabase-like `{ data, error }` API) for upload, download, list, move, and rename. Requests are forwarded to the root shell, which talks to storage-service with `storage.url`.
+- **Company access pending UI:** when identity-service blocks join (`access_pending` / `access_denied`), show a clear “account created, awaiting admin review” screen instead of a generic OAuth failure. Access is per company. (#15)
+
+### 📚 Documentation
+
+- Document company access modes and pending-access UX in authentication docs. (#15)
+- Document Settings → Storage: only shown when `storage` is configured, and how to disable it with `showInSettings`.
+- Document the SDK file API (`shellui.storage`) with nested-folder samples.
+
 ## [0.3.1] - 2026-06-24
 
 ### 🛠 Improvements

@@ -26,6 +26,8 @@ export interface NavigationItem {
   requiresAuth?: boolean;
   /** When true, this item is available only when Settings > Advanced > Developer features is enabled. */
   requiresDevMode?: boolean;
+  /** When true, this item is available only to staff users (`isStaff`). */
+  requiresStaff?: boolean;
   /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
   hiddenOnMobile?: boolean;
   /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */
@@ -221,6 +223,39 @@ export interface BackendConfig {
   companyId?: string | number;
 }
 
+/**
+ * Optional storage-service wiring for the shell and admin panel.
+ * When set, admin shows the Storage sidebar (files explorer, statistics, Django admin).
+ * Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false.
+ * ShellUI will also use this for the SDK file API (`shellui.storage`).
+ */
+export interface StorageConfig {
+  /** Base URL of storage-service (e.g. `http://localhost:8001`). */
+  url: string;
+  /** Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`). */
+  filesUrl?: string;
+  /**
+   * When false, hide Settings → Storage even if `url` is set.
+   * Admin Storage is unaffected. Default: true.
+   */
+  showInSettings?: boolean;
+}
+
+/**
+ * Custom navigation section for the staff administration panel.
+ * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
+ * v1 is a flat list only (no nested groups).
+ */
+export interface AdministrationConfig {
+  /** Section title shown in the admin sidebar below Dashboard. */
+  title: string | LocalizedString;
+  /**
+   * Flat list of navigation items (same shape as top-level `navigation` items).
+   * Order is preserved in the admin sidebar.
+   */
+  navigation: NavigationItem[];
+}
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -238,6 +273,17 @@ export interface ShellUIConfig {
   /** When set, opening the app at "/" redirects to this path (e.g. "/playground"). */
   start_url?: string;
   navigation?: (NavigationItem | NavigationGroup)[];
+  /**
+   * Custom navigation for the staff admin panel (below Dashboard).
+   * Propagated to the admin iframe via SDK settings. See Administration docs.
+   */
+  administration?: AdministrationConfig;
+  /**
+   * Storage-service connection. Propagated to iframes via SDK settings.
+   * Enables Admin → Storage when `url` is set. Settings → Storage (quota) is shown
+   * when `url` is set unless `storage.showInSettings` is false.
+   */
+  storage?: StorageConfig;
   themes?: ThemeDefinition[]; // Custom themes to register
   defaultTheme?: string; // Default theme name to use
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */

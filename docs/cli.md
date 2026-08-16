@@ -190,6 +190,28 @@ Backend communication settings used for auth/API integration. See [Backend](/bac
 - `type` (`"shellui" | "supabase"`, required when `backend` is set): Backend provider.
 - `url` (`string`, required when `backend` is set): Base API URL.
 
+#### `storage` (object, optional)
+
+Storage-service connection. See [Storage](/features/storage).
+
+```json
+{
+  "storage": {
+    "url": "http://localhost:8001",
+    "filesUrl": "http://localhost:5175/",
+    "showInSettings": true
+  }
+}
+```
+
+**Default:** `undefined` (Settings → Storage is hidden)
+
+**Properties:**
+
+- `url` (`string`, required when `storage` is set): Base URL of storage-service.
+- `filesUrl` (`string`, optional): Files explorer app URL for Admin → Storage.
+- `showInSettings` (`boolean`, optional): When `false`, hide Settings → Storage. Default: `true` when `url` is set.
+
 #### `navigation` (array, optional)
 
 Array of navigation items for the sidebar. See the [Navigation Guide](/features/navigation) for complete documentation.
@@ -291,6 +313,7 @@ For detailed configuration options, see:
 - **[Themes](/features/themes)** - Custom themes, fonts, and colors
 - **[Internationalization](/features/internationalization)** - Multi-language support
 - **[Cookie Consent](/features/cookie-consent)** - Privacy and cookie management
+- **[Storage](/features/storage)** - Settings → Storage quota (only when configured)
 
 ## Tips
 
