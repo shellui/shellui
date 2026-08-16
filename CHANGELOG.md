@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.4.0] - 2026-MM-DD
+## [0.4.0] - 2026-08-16
 
 ### ✨ Feature
 
