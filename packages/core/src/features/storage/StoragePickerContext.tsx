@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../../com
 import { Z_INDEX } from '../../lib/z-index';
 import type { NavigationItem } from '../config/types';
 import { useConfig } from '../config/useConfig';
-import { validateAndNormalizeUrl } from '../modal/ModalContext';
+import { validateAndNormalizeUrl } from '../modal/validateAndNormalizeUrl';
 
 type PendingSelect = {
   id: string;
@@ -133,7 +133,7 @@ export const StoragePickerProvider = ({ children }: StoragePickerProviderProps) 
         multiple: Boolean(payload.multiple),
         mode,
       });
-      const url = validateAndNormalizeUrl(rawUrl);
+      const url = validateAndNormalizeUrl(rawUrl, config);
       if (!url) {
         failRequest(message, 'Storage picker URL is not allowed.', 400);
         return;
@@ -167,7 +167,7 @@ export const StoragePickerProvider = ({ children }: StoragePickerProviderProps) 
       stopOpen();
       stopResult();
     };
-  }, [config?.storage?.filesUrl, failRequest]);
+  }, [config, failRequest]);
 
   const pickerNavItem = {
     path: '__storage-picker',

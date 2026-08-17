@@ -1,51 +1,9 @@
 import { shellui, type ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useConfig } from '../config/useConfig';
+import { validateAndNormalizeUrl } from './validateAndNormalizeUrl';
 
-/**
- * Validates and normalizes a URL to ensure it's from the same domain or localhost
- * @param url - The URL or path to validate
- * @returns The normalized absolute URL or null if invalid
- */
-export const validateAndNormalizeUrl = (url: string | undefined | null): string | null => {
-  if (!url || typeof url !== 'string') {
-    return null;
-  }
-
-  try {
-    // If it's already an absolute URL, check if it's same origin or localhost
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      const urlObj = new URL(url);
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-
-      // Allow same origin
-      if (urlObj.origin === currentOrigin) {
-        return url;
-      }
-
-      // Allow localhost URLs (for development)
-      if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
-        return url;
-      }
-
-      return null; // Different origin, reject for security
-    }
-
-    // If it's a relative URL, make it absolute using current origin
-    if (url.startsWith('/') || url.startsWith('./') || !url.startsWith('//')) {
-      const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-      // Ensure relative paths start with /
-      const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-      return `${currentOrigin}${normalizedPath}`;
-    }
-
-    // Reject protocol-relative URLs (//example.com) for security
-    return null;
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('Invalid URL:', url, error);
-    return null;
-  }
-};
+export { validateAndNormalizeUrl } from './validateAndNormalizeUrl';
 
 interface ModalContextValue {
   isOpen: boolean;
@@ -69,14 +27,18 @@ interface ModalProviderProps {
 }
 
 export const ModalProvider = ({ children }: ModalProviderProps) => {
+  const { config } = useConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [modalUrl, setModalUrl] = useState<string | null>(null);
 
-  const openModal = useCallback((url?: string) => {
-    const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
-    setModalUrl(validatedUrl);
-    setIsOpen(true);
-  }, []);
+  const openModal = useCallback(
+    (url?: string) => {
+      const validatedUrl = url ? validateAndNormalizeUrl(url, config) : null;
+      setModalUrl(validatedUrl);
+      setIsOpen(true);
+    },
+    [config],
+  );
 
   const closeModal = useCallback(() => {
     setIsOpen(false);
