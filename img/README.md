@@ -13,5 +13,5 @@ Docusaurus copies this directory to `/img/` in the built site.
 Reference in markdown:
 
 ```
-![ShellUI](/img/logo.png)
+![Shellui](/img/logo.png)
 ```
