@@ -1,6 +1,6 @@
-# ShellUI CLI
+# Shellui CLI
 
-The ShellUI CLI is the command-line tool for developing and building ShellUI applications.
+The Shellui CLI is the command-line tool for developing and building Shellui applications.
 
 ## Installation
 
@@ -48,7 +48,7 @@ After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.s
 
 ### `shellui start [root]` / `shellui dev [root]`
 
-Start the ShellUI development server. `dev` is an alias for `start`.
+Start the Shellui development server. `dev` is an alias for `start`.
 
 **Usage:**
 
@@ -87,13 +87,13 @@ shellui start ./my-app
 # Allow access from network (e.g. from phone or another machine)
 shellui dev --host
 
-# Start desktop development (ShellUI server + native window)
+# Start desktop development (Shellui server + native window)
 shellui dev --app
 ```
 
 ### `shellui build [root]`
 
-Build the ShellUI application for production.
+Build the Shellui application for production.
 
 **Usage:**
 
@@ -106,7 +106,7 @@ shellui build --app --bundles app,dmg
 
 **Description:**
 
-- Builds your ShellUI application for production
+- Builds your Shellui application for production
 - Outputs optimized files to `dist/web/`
 - Minifies and optimizes assets
 - Creates a production-ready static site
@@ -137,7 +137,7 @@ npx shellui build --app --bundles app,dmg
 
 ## Configuration
 
-ShellUI uses a TypeScript configuration file to customize your application. The CLI looks for `shellui.config.ts` in your project root.
+Shellui uses a TypeScript configuration file to customize your application. The CLI looks for `shellui.config.ts` in your project root.
 
 ### Configuration File Location
 
@@ -247,7 +247,7 @@ import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   port: 4000,
-  title: 'My ShellUI App',
+  title: 'My Shellui App',
   backend: {
     type: 'supabase',
     url: 'http://localhost:54321',

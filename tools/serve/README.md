@@ -1,10 +1,10 @@
-# ShellUI Serve Tool
+# Shellui Serve Tool
 
-A simple Node.js HTTP server for serving ShellUI production builds locally with SPA routing support.
+A simple Node.js HTTP server for serving Shellui production builds locally with SPA routing support.
 
 ## Usage
 
-After building your ShellUI application:
+After building your Shellui application:
 
 ```bash
 # From project root, serve on default port (8000)

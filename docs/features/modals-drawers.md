@@ -1,6 +1,6 @@
 # Modals & Drawers
 
-ShellUI supports opening content in modal overlays and side drawer panels, providing flexible ways to display content without navigating away from the current page.
+Shellui supports opening content in modal overlays and side drawer panels, providing flexible ways to display content without navigating away from the current page.
 
 ## Modals
 
@@ -48,7 +48,7 @@ Modals can be closed by:
 
 - Clicking outside the modal (on the backdrop)
 - Pressing the Escape key
-- Programmatically (automatically handled by ShellUI)
+- Programmatically (automatically handled by Shellui)
 
 ## Drawers
 
@@ -302,7 +302,7 @@ function editItem(itemId) {
    - Use **drawers** for secondary content or navigation
 
 2. **Appropriate sizes**:
-   - Modals: Let ShellUI handle sizing (responsive)
+   - Modals: Let Shellui handle sizing (responsive)
    - Drawers: Use appropriate sizes (e.g., `400px` for sidebars, `80vh` for panels)
 
 3. **Position considerations**:
@@ -317,7 +317,7 @@ function editItem(itemId) {
 
 5. **Don't nest**: Avoid opening modals/drawers from within other modals/drawers
 
-6. **Close properly**: Always provide a way to close (ShellUI handles Escape and backdrop clicks)
+6. **Close properly**: Always provide a way to close (Shellui handles Escape and backdrop clicks)
 
 ## Navigation vs Programmatic
 
@@ -343,4 +343,4 @@ Use programmatic opening when:
 - [Navigation](/features/navigation) - Learn about navigation configuration
 - [Toast Notifications](/features/toasts) - For non-blocking notifications
 - [Alert Dialogs](/features/dialogs) - For confirmations and prompts
-- [SDK Integration](/sdk) - Learn about the ShellUI SDK
+- [SDK Integration](/sdk) - Learn about the Shellui SDK

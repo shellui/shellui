@@ -25,7 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 📚 Documentation
 
-- Add ShellUI brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
+- Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
 
 ## [0.4.1] - 2026-08-18
 

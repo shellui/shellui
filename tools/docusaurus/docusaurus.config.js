@@ -6,7 +6,7 @@ const darkCodeTheme = require('prism-react-renderer').themes.dracula;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'ShellUI',
+  title: 'Shellui',
   tagline: 'A lightweight microfrontend shell to ship apps faster',
   favicon: 'img/favicon.ico',
   headTags: [
@@ -96,7 +96,7 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'ShellUI',
+        title: 'Shellui',
         items: [
           {
             type: 'docSidebar',
@@ -144,7 +144,7 @@ const config = {
             title: 'Resources',
             items: [
               {
-                label: 'ShellUI.com',
+                label: 'Shellui.com',
                 href: 'https://shellui.com',
               },
               {
@@ -158,7 +158,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} ShellUI.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Shellui.`,
       },
       prism: {
         theme: lightCodeTheme,

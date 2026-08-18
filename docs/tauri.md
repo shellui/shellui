@@ -1,6 +1,6 @@
 # Desktop App
 
-Ship your ShellUI app as a native desktop application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the desktop wrapper is generated into `dist/app/` so you never manage native project files in your repo.
+Ship your Shellui app as a native desktop application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the desktop wrapper is generated into `dist/app/` so you never manage native project files in your repo.
 
 ## Prerequisites
 
@@ -33,10 +33,10 @@ Ship your ShellUI app as a native desktop application. The CLI uses [Tauri 2](ht
 
 ## Quick start
 
-From your ShellUI project directory:
+From your Shellui project directory:
 
 ```bash
-# Development: ShellUI server + native window
+# Development: Shellui server + native window
 shellui dev --app
 
 # Production: web build + native desktop app (.app on macOS)
@@ -80,7 +80,7 @@ No extra config is needed for desktop vs web. The CLI sets the build target auto
 
 | Command                                 | Description                                                                       |
 | --------------------------------------- | --------------------------------------------------------------------------------- |
-| `shellui dev --app`                     | Start ShellUI dev server and open the native window                               |
+| `shellui dev --app`                     | Start Shellui dev server and open the native window                               |
 | `shellui build --app`                   | Build web app to `dist/web/`, then build the native desktop app (`.app` on macOS) |
 | `shellui build --app --bundles app,dmg` | Same, plus a macOS `.dmg` installer for distribution                              |
 
@@ -126,7 +126,7 @@ Other [Tauri bundle targets](https://v2.tauri.app/reference/config/#bundleconfig
 
 1. Run `shellui dev --app` from your project root.
 2. The CLI generates or updates `dist/app/`, syncs config, and starts the desktop dev environment.
-3. The ShellUI dev server starts (via `shellui start --target tauri`) and a native window opens pointing at it.
+3. The Shellui dev server starts (via `shellui start --target tauri`) and a native window opens pointing at it.
 4. Edit your app or config; the web app hot-reloads as usual.
 
 ## Production build
@@ -164,9 +164,9 @@ my-project/
 
 You only maintain `shellui.config.ts` and your static assets. The desktop wrapper in `dist/app/` is an implementation detail — today Tauri, swappable without changing your workflow.
 
-## ShellUI monorepo
+## Shellui monorepo
 
-When developing ShellUI itself, the monorepo provides `pnpm tauri:dev` and `pnpm tauri:build` via `tools/tauri/`. For apps built with the published CLI, use `shellui dev --app` and `shellui build --app`.
+When developing Shellui itself, the monorepo provides `pnpm tauri:dev` and `pnpm tauri:build` via `tools/tauri/`. For apps built with the published CLI, use `shellui dev --app` and `shellui build --app`.
 
 ## Troubleshooting
 

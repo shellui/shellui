@@ -1,6 +1,6 @@
 # Layouts
 
-ShellUI supports four layout modes: sidebar (default), fullscreen, windows desktop (experimental), and app bar. Choose the layout that best fits your application's needs.
+Shellui supports four layout modes: sidebar (default), fullscreen, windows desktop (experimental), and app bar. Choose the layout that best fits your application's needs.
 
 ## Sidebar Layout (Default)
 
@@ -183,7 +183,7 @@ function MyComponent() {
 
 - **Navigation**: No visible navigation UI, but routes still work
 - **Direct URLs**: Users can still navigate via direct URLs
-- **Embedding**: Perfect for embedding ShellUI in other applications
+- **Embedding**: Perfect for embedding Shellui in other applications
 - **Kiosk Mode**: Ideal for kiosk or single-purpose applications
 
 ### Windows Layout

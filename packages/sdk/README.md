@@ -1,6 +1,6 @@
 # @shellui/sdk
 
-ShellUI SDK - JavaScript SDK for ShellUI integration
+Shellui SDK - JavaScript SDK for Shellui integration
 
 ## Installation
 

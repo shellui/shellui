@@ -1,10 +1,10 @@
 # Cookie Consent
 
-ShellUI provides a privacy-friendly cookie consent management system that helps you comply with privacy regulations while giving users control over their data.
+Shellui provides a privacy-friendly cookie consent management system that helps you comply with privacy regulations while giving users control over their data.
 
 ## Configuration
 
-Configure cookie consent in your ShellUI configuration:
+Configure cookie consent in your Shellui configuration:
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -246,7 +246,7 @@ The preferences view allows users to:
 
 ## Consent Renewal
 
-If you add new cookies to your configuration after a user has already consented, ShellUI will:
+If you add new cookies to your configuration after a user has already consented, Shellui will:
 
 1. Detect new cookies (hosts not in `consentedCookieHosts`)
 2. Show the consent modal again
@@ -290,7 +290,7 @@ function App() {
 
 ## Privacy Compliance
 
-ShellUI's cookie consent system helps you comply with:
+Shellui's cookie consent system helps you comply with:
 
 - **GDPR** (General Data Protection Regulation)
 - **CCPA** (California Consumer Privacy Act)

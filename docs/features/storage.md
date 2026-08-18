@@ -4,7 +4,7 @@ Connect a [storage-service](https://github.com/shellui/storage-service) instance
 
 The Settings page is **only available when storage is configured**. It does not appear if `storage` is omitted, `storage.url` is empty, or you turn the page off with `showInSettings: false`.
 
-## What ShellUI does in the UI
+## What Shellui does in the UI
 
 When `storage.url` is a non-empty string and `showInSettings` is not `false`:
 

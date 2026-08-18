@@ -1,10 +1,10 @@
 # Alert Dialogs
 
-ShellUI provides alert dialogs through the SDK for displaying important messages, confirmations, and user prompts with various button configurations.
+Shellui provides alert dialogs through the SDK for displaying important messages, confirmations, and user prompts with various button configurations.
 
 ## Basic Usage
 
-Import and use the dialog function from the ShellUI SDK:
+Import and use the dialog function from the Shellui SDK:
 
 ```javascript
 import { shellui } from '@shellui/sdk';
@@ -28,7 +28,7 @@ shellui.dialog({
 
 ## Dialog Modes
 
-ShellUI supports different dialog modes for various use cases:
+Shellui supports different dialog modes for various use cases:
 
 ### OK Only
 
@@ -374,4 +374,4 @@ Shows an alert dialog.
 ## Related Guides
 
 - [Toast Notifications](/features/toasts) - For less critical messages
-- [SDK Integration](/sdk) - Learn about the ShellUI SDK
+- [SDK Integration](/sdk) - Learn about the Shellui SDK

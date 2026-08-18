@@ -2,11 +2,11 @@
 
 This guide follows [Backend](/backend) in the getting-started path. It covers sign-in configuration, built-in login routes, and navigation guards for developers hosting their own shell.
 
-ShellUI authentication is **configuration-driven**: set `backend` in `shellui.config.ts`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
+Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.ts`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
 
 ## Prerequisites
 
-Configure a backend provider first. See [Backend](/backend) for ShellUI identity service vs Supabase and field reference.
+Configure a backend provider first. See [Backend](/backend) for Shellui identity service vs Supabase and field reference.
 
 ## Enable authentication
 
@@ -34,20 +34,20 @@ export default config;
 
 ### Login methods
 
-`backend.login.methods` lists what the **login page is allowed to show**. At runtime ShellUI intersects this list with settings from the backend so misconfigured providers are not offered.
+`backend.login.methods` lists what the **login page is allowed to show**. At runtime Shellui intersects this list with settings from the backend so misconfigured providers are not offered.
 
 | Method       | Login UI         | Notes                                                                                          |
 | ------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
 | `oauth`      | Provider buttons | Requires `oauthProviders` and provider enabled on the backend.                                 |
-| `magic_link` | Email field      | Supabase email auth; ShellUI identity when the backend advertises it.                          |
-| `web3`       | Ethereum wallet  | Supabase external provider / ShellUI Web3 when enabled.                                        |
+| `magic_link` | Email field      | Supabase email auth; Shellui identity when the backend advertises it.                          |
+| `web3`       | Ethereum wallet  | Supabase external provider / Shellui Web3 when enabled.                                        |
 | `password`   | —                | Recognized in types and backend payloads; password UI is not rendered by the stock login view. |
 
-`backend.login.oauthProviders` is an array of provider ids (for example `github`, `google`, `microsoft`, `apple`). ShellUI deduplicates and lowercases them. For ShellUI auth, per-company OAuth clients from `/api/v1/settings` appear as separate buttons with labels.
+`backend.login.oauthProviders` is an array of provider ids (for example `github`, `google`, `microsoft`, `apple`). Shellui deduplicates and lowercases them. For Shellui auth, per-company OAuth clients from `/api/v1/settings` appear as separate buttons with labels.
 
 ### Provider-specific fields
 
-**ShellUI (`type: 'shellui'`)**
+**Shellui (`type: 'shellui'`)**
 
 - `url` — identity service origin.
 - `companyId` — required for OAuth code exchange.
@@ -60,7 +60,7 @@ export default config;
 
 ## Login page and routes
 
-ShellUI registers fixed auth routes (see `urls` in `@shellui/core`):
+Shellui registers fixed auth routes (see `urls` in `@shellui/core`):
 
 | Path              | Purpose                                                                    |
 | ----------------- | -------------------------------------------------------------------------- |
@@ -71,7 +71,7 @@ You do **not** implement these pages in your microfrontends. They are part of th
 
 ### `next` query parameter
 
-Protected routes redirect to `/login?next=<encoded-path>`. After a successful sign-in, ShellUI navigates to `next` (normalized to an in-app path). Example: `/billing` → `/login?next=%2Fbilling`.
+Protected routes redirect to `/login?next=<encoded-path>`. After a successful sign-in, Shellui navigates to `next` (normalized to an in-app path). Example: `/billing` → `/login?next=%2Fbilling`.
 
 ### Optional login navigation item
 
@@ -158,15 +158,15 @@ function Example() {
 }
 ```
 
-`AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (ShellUI JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
+`AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (Shellui JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
 
 Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. OAuth returns may deliver tokens in the URL hash; the shell persists them and strips the hash.
 
 ## Company access and pending accounts
 
-When the ShellUI identity service uses a non-public company join mode (`domain` or `invite`), OAuth may create the user but **not** issue tokens for that company. Access is stored per company (`CompanyMembership.is_enabled`), so the same person can be approved in one tenant and blocked in another.
+When the Shellui identity service uses a non-public company join mode (`domain` or `invite`), OAuth may create the user but **not** issue tokens for that company. Access is stored per company (`CompanyMembership.is_enabled`), so the same person can be approved in one tenant and blocked in another.
 
-The backend returns `error_code` `access_pending` or `access_denied` (also as `shellui_oauth_error_code` on bounce redirects). ShellUI then shows a dedicated pending-access screen. After an admin enables membership for that company, the user can sign in. Configure modes in admin **Organization** or `PATCH /api/v1/companies/<id>/` — see identity-service company access docs.
+The backend returns `error_code` `access_pending` or `access_denied` (also as `shellui_oauth_error_code` on bounce redirects). Shellui then shows a dedicated pending-access screen. After an admin enables membership for that company, the user can sign in. Configure modes in admin **Organization** or `PATCH /api/v1/companies/<id>/` — see identity-service company access docs.
 
 ## Embedded apps and the SDK
 
@@ -190,7 +190,7 @@ Settings propagation includes `authBackendBaseUrl` when `backend.type` is `shell
 
 ## User settings
 
-Signed-in users open **Settings** (built-in route) for account fields, theme, language, and region. ShellUI syncs preferences with the backend (`user_metadata` / ShellUI preferences endpoints) when configured.
+Signed-in users open **Settings** (built-in route) for account fields, theme, language, and region. Shellui syncs preferences with the backend (`user_metadata` / Shellui preferences endpoints) when configured.
 
 Legal document links on the login page come from `legalDocuments` in config; see [Legal documents](/features/legal-documents).
 

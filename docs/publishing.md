@@ -1,6 +1,6 @@
 # Publishing Guide
 
-This guide explains how to publish the ShellUI packages to npm.
+This guide explains how to publish the Shellui packages to npm.
 
 ## How publishing works
 

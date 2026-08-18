@@ -1,10 +1,10 @@
 # Toast Notifications
 
-ShellUI provides a toast notification system through the SDK, allowing you to display temporary messages to users with various styles and actions.
+Shellui provides a toast notification system through the SDK, allowing you to display temporary messages to users with various styles and actions.
 
 ## Basic Usage
 
-Import and use the toast function from the ShellUI SDK:
+Import and use the toast function from the Shellui SDK:
 
 ```javascript
 import { shellui } from '@shellui/sdk';
@@ -21,7 +21,7 @@ shellui.toast({
 
 ## Toast Types
 
-ShellUI supports multiple toast types for different use cases:
+Shellui supports multiple toast types for different use cases:
 
 ### Success Toast
 
@@ -362,4 +362,4 @@ Shows or updates a toast notification.
 ## Related Guides
 
 - [Alert Dialogs](/features/dialogs) - For more prominent confirmations
-- [SDK Integration](/sdk) - Learn about the ShellUI SDK
+- [SDK Integration](/sdk) - Learn about the Shellui SDK

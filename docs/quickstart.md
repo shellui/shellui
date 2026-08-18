@@ -1,15 +1,15 @@
 # Quick Start Guide
 
-Get up and running with ShellUI in minutes. This guide will walk you through creating your first ShellUI application.
+Get up and running with Shellui in minutes. This guide will walk you through creating your first Shellui application.
 
 ## Prerequisites
 
 - Node.js 18.0.0 or higher
-- ShellUI CLI installed ([Installation Guide](/installation))
+- Shellui CLI installed ([Installation Guide](/installation))
 
 ## Step 1: Create Your Project
 
-Create a new directory for your ShellUI application:
+Create a new directory for your Shellui application:
 
 ```bash
 mkdir my-shellui-app
@@ -22,9 +22,9 @@ Initialize a Node.js project (optional, but recommended):
 npm init -y
 ```
 
-## Step 2: Install ShellUI CLI
+## Step 2: Install Shellui CLI
 
-Install the ShellUI CLI as a dev dependency:
+Install the Shellui CLI as a dev dependency:
 
 ```bash
 npm install --save-dev @shellui/cli
@@ -59,7 +59,7 @@ import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   port: 4000,
-  title: 'My ShellUI App',
+  title: 'My Shellui App',
   backend: {
     type: 'supabase',
     url: 'http://localhost:54321',
@@ -131,7 +131,7 @@ To run as a native desktop app, see [Tauri](/tauri) and use `shellui dev --app`.
 You should see output like:
 
 ```
-Starting ShellUI...
+Starting Shellui...
 Loaded TypeScript config from /path/to/shellui.config.ts
 👀 Watching config file: /path/to/shellui.config.ts
 
@@ -151,7 +151,7 @@ shellui build
 
 This will:
 
-- Build your ShellUI application
+- Build your Shellui application
 - Output the production files to the `dist/web/` directory
 - Optimize assets for production
 
@@ -159,7 +159,7 @@ The built files will be in `dist/web/` and can be deployed to any static hosting
 
 ## Project Structure
 
-A typical ShellUI project structure looks like:
+A typical Shellui project structure looks like:
 
 ```
 my-shellui-app/
@@ -175,7 +175,7 @@ my-shellui-app/
 ## Next Steps
 
 - **[Tauri](/tauri)** — Ship as a native desktop app with `shellui dev --app`
-- **[Backend](/backend)** — Choose Supabase, the ShellUI identity service, or no backend
+- **[Backend](/backend)** — Choose Supabase, the Shellui identity service, or no backend
 - **[Authentication](/features/authentication)** — Login page, sessions, and guarded routes
 - **[Navigation](/features/navigation)** — Configure navigation menus
 - **[CLI Reference](/cli)** — Commands and configuration options

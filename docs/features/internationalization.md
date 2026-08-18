@@ -1,6 +1,6 @@
 # Internationalization
 
-ShellUI supports multi-language applications with localized navigation labels, UI text, and user preferences.
+Shellui supports multi-language applications with localized navigation labels, UI text, and user preferences.
 
 ## Enabling Languages
 
@@ -140,7 +140,7 @@ const config: ShellUIConfig = {
 
 ### Language Detection
 
-If `language` is not specified, ShellUI defaults to English (`'en'`).
+If `language` is not specified, Shellui defaults to English (`'en'`).
 
 ## User Language Selection
 
@@ -246,7 +246,7 @@ Users can switch languages through:
 2. **Consistent keys**: Use consistent language keys across your configuration
 3. **Complete translations**: Provide translations for all enabled languages
 4. **Test both languages**: Test your application in all enabled languages
-5. **Consider RTL**: While ShellUI currently supports LTR languages, consider future RTL support when designing layouts
+5. **Consider RTL**: While Shellui currently supports LTR languages, consider future RTL support when designing layouts
 
 ## Language Codes
 

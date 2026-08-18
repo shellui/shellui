@@ -1,6 +1,6 @@
 # Service Worker
 
-ShellUI includes a service worker that provides offline support, automatic app updates, and intelligent caching strategies.
+Shellui includes a service worker that provides offline support, automatic app updates, and intelligent caching strategies.
 
 ## Overview
 
@@ -24,7 +24,7 @@ No configuration needed - it works out of the box!
 
 ## Update Detection
 
-ShellUI automatically detects when a new version of your app is available:
+Shellui automatically detects when a new version of your app is available:
 
 1. **Background Check**: Service worker checks for updates in the background
 2. **Update Found**: When an update is detected, a notification appears
@@ -54,7 +54,7 @@ Users can control the service worker in Settings > Advanced > Service Worker:
 
 ## Caching Strategies
 
-ShellUI uses intelligent caching strategies:
+Shellui uses intelligent caching strategies:
 
 ### Precache
 
@@ -76,7 +76,7 @@ ShellUI uses intelligent caching strategies:
 
 ## Offline Support
 
-When offline, ShellUI:
+When offline, Shellui:
 
 - Serves cached assets
 - Shows cached pages
@@ -101,7 +101,7 @@ Tauri uses its own caching system, so the service worker is not needed in deskto
 
 ### Automatic Updates
 
-On page refresh, ShellUI automatically:
+On page refresh, Shellui automatically:
 
 1. Checks for waiting service worker
 2. Activates the new version

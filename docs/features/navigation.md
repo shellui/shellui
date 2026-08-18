@@ -1,6 +1,6 @@
 # Navigation
 
-ShellUI provides a flexible navigation system that supports icons, groups, localization, and multiple display modes.
+Shellui provides a flexible navigation system that supports icons, groups, localization, and multiple display modes.
 
 ## Basic Navigation
 
@@ -43,18 +43,18 @@ Each navigation item supports the following properties:
 - **`drawerPosition`** (`'top' | 'bottom' | 'left' | 'right'`, optional): Drawer side when `openIn: 'drawer'`
 - **`position`** (`'start' | 'end'`, optional): Place item in main nav or footer area
 - **`settings`** (string, optional): URL of a settings panel to display in **Settings > Applications**. See [Application Settings](/features/application-settings) for details.
-- **`useHashRouter`** (boolean, optional): When `true`, the app uses hash-based routing. If omitted, ShellUI infers this from the `url` containing `/#/` (see [Hash URL navigation](#hash-url-navigation) below).
+- **`useHashRouter`** (boolean, optional): When `true`, the app uses hash-based routing. If omitted, Shellui infers this from the `url` containing `/#/` (see [Hash URL navigation](#hash-url-navigation) below).
 
 ## Hash URL navigation
 
-ShellUI supports applications that use **hash-based routing** (e.g. React Router HashRouter, Vue Router in hash mode). For this to work, both the navigation configuration and any URLs opened in the shell must use the **`/#/`** segment in the URL.
+Shellui supports applications that use **hash-based routing** (e.g. React Router HashRouter, Vue Router in hash mode). For this to work, both the navigation configuration and any URLs opened in the shell must use the **`/#/`** segment in the URL.
 
-### How ShellUI detects hash routing
+### How Shellui detects hash routing
 
 - **In configuration:** A navigation item is treated as a hash-router app if its `url` **contains the literal sequence `/#/`** (slash–hash–slash). For example: `http://localhost:5173/#/` or `http://localhost:5173/#/themes`. You can also set `useHashRouter: true` explicitly.
-- **When opening a link:** When the user opens a URL (e.g. from the address bar or a link), ShellUI only applies hash-based navigation logic if the URL **contains `/#/`**. For example, `http://localhost:5173/#/themes/foo` will be parsed: the part after `/#/` becomes the path used inside the shell, and the shell matches the base URL (before `#`) to a navigation item that is configured for hash routing.
+- **When opening a link:** When the user opens a URL (e.g. from the address bar or a link), Shellui only applies hash-based navigation logic if the URL **contains `/#/`**. For example, `http://localhost:5173/#/themes/foo` will be parsed: the part after `/#/` becomes the path used inside the shell, and the shell matches the base URL (before `#`) to a navigation item that is configured for hash routing.
 
-If the URL does not contain `/#/`, ShellUI treats it as normal path-based routing (pathname + search only).
+If the URL does not contain `/#/`, Shellui treats it as normal path-based routing (pathname + search only).
 
 ### Example
 
@@ -224,7 +224,7 @@ Protect route access while preserving deep links:
 }
 ```
 
-If a signed-out user opens `/billing`, ShellUI redirects to `/login?next=%2Fbilling`. After login succeeds, the app navigates back to `next`.
+If a signed-out user opens `/billing`, Shellui redirects to `/login?next=%2Fbilling`. After login succeeds, the app navigates back to `next`.
 
 ### Combine Visibility + Protection
 
@@ -240,7 +240,7 @@ If a signed-out user opens `/billing`, ShellUI redirects to `/login?next=%2Fbill
 
 ### Logout on Protected Routes
 
-When the user logs out from a `requiresAuth` route, ShellUI first navigates to `/` so they are not immediately redirected back to login.
+When the user logs out from a `requiresAuth` route, Shellui first navigates to `/` so they are not immediately redirected back to login.
 
 ## Opening Modes
 

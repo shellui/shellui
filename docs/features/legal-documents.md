@@ -1,12 +1,12 @@
 # Legal documents
 
-Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in `shellui.config.ts`. ShellUI renders the content in the shell—no separate legal site or navigation item is required.
+Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in `shellui.config.ts`. Shellui renders the content in the shell—no separate legal site or navigation item is required.
 
 Legal pages are **public**: they work without sign-in and sit on dedicated routes outside the main app layout (no sidebar). Signed-in users can also open the same content from **Settings**.
 
-## What ShellUI does in the UI
+## What Shellui does in the UI
 
-When at least one document has non-empty markdown, ShellUI:
+When at least one document has non-empty markdown, Shellui:
 
 - Registers **public routes** under `/legal` for the index and each configured document.
 - Shows **footer links** on the login page (root window only, not when login runs inside an iframe).
@@ -105,7 +105,7 @@ Settings labels follow the active locale (`settings.routes.legalDocuments` in En
 
 ## Markdown rendering
 
-Content is rendered with `react-markdown` and ShellUI typography (headings, paragraphs, lists, blockquotes, inline code). Links in markdown open in a new tab with `rel="noreferrer"`.
+Content is rendered with `react-markdown` and Shellui typography (headings, paragraphs, lists, blockquotes, inline code). Links in markdown open in a new tab with `rel="noreferrer"`.
 
 On standalone legal and settings views, a breadcrumb links **Legal documents** → document title. Breadcrumbs are hidden when the content is shown inside an iframe.
 

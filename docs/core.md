@@ -1,18 +1,18 @@
-# ShellUI Core
+# Shellui Core
 
-ShellUI Core - Core React application runtime
+Shellui Core - Core React application runtime
 
 ## Overview
 
-The `@shellui/core` package provides the React application runtime for ShellUI. It's automatically included when you use the ShellUI CLI, so you typically don't need to install it separately.
+The `@shellui/core` package provides the React application runtime for Shellui. It's automatically included when you use the Shellui CLI, so you typically don't need to install it separately.
 
 ## When to Use
 
 Most users will interact with `@shellui/core` indirectly through the CLI. However, you might need to reference it directly if you're:
 
 - Creating custom TypeScript configuration files (for type definitions)
-- Integrating ShellUI programmatically
-- Extending ShellUI functionality
+- Integrating Shellui programmatically
+- Extending Shellui functionality
 
 ## Type Definitions
 
@@ -72,7 +72,7 @@ interface NavigationItem {
 
 ## For Developers
 
-If you're contributing to ShellUI or need to build the core package:
+If you're contributing to Shellui or need to build the core package:
 
 ```bash
 cd packages/core

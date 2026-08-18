@@ -1,6 +1,6 @@
 # @shellui/cli
 
-ShellUI CLI - Command-line tool for ShellUI
+Shellui CLI - Command-line tool for Shellui
 
 ## Installation
 
@@ -25,7 +25,7 @@ shellui init [path/to/project] [--force]
 
 ### Commands
 
-- **dev** / **start** - Start the ShellUI development server
+- **dev** / **start** - Start the Shellui development server
 
   ```bash
   shellui dev
@@ -34,7 +34,7 @@ shellui init [path/to/project] [--force]
   shellui dev --app       # desktop development (generates dist/app/)
   ```
 
-- **build** - Build the ShellUI application for production
+- **build** - Build the Shellui application for production
 
   ```bash
   shellui build
@@ -50,7 +50,7 @@ shellui init [path/to/project] [--force]
   shellui init --force
   ```
 
-See the ShellUI docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
+See the Shellui docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
 
 ## Project Structure
 

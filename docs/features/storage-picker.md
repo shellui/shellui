@@ -1,6 +1,6 @@
 # Storage picker
 
-Embedded apps can open a file or folder picker in a ShellUI modal. The user browses storage, keeps a selection while navigating, then confirms. The SDK returns serializable items — your app renders them however it wants.
+Embedded apps can open a file or folder picker in a Shellui modal. The user browses storage, keeps a selection while navigating, then confirms. The SDK returns serializable items — your app renders them however it wants.
 
 The picker UI lives in the files app (`storage.filesUrl`). The root shell opens it in a dedicated modal so it can stack above Settings.
 

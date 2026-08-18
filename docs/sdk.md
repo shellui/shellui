@@ -1,6 +1,6 @@
-# ShellUI SDK
+# Shellui SDK
 
-The ShellUI SDK provides programmatic access to ShellUI features from your JavaScript/TypeScript code.
+The Shellui SDK provides programmatic access to Shellui features from your JavaScript/TypeScript code.
 
 ## Installation
 
@@ -198,7 +198,7 @@ Each item includes a stable `id` (keep this so a rename still points at the same
 
 ## Message Passing
 
-ShellUI uses a message passing system for communication between the shell and sub-apps (iframes).
+Shellui uses a message passing system for communication between the shell and sub-apps (iframes).
 
 ### Listening for Messages
 
@@ -239,7 +239,7 @@ shellui.sendMessage({
 
 ### Message Types
 
-Common ShellUI message types:
+Common Shellui message types:
 
 - `SHELLUI_URL_CHANGED` - URL changed in shell
 - `SHELLUI_SETTINGS_UPDATED` - Settings were updated
@@ -298,7 +298,7 @@ shellui.removeIframe(iframe);
 
 ## Logging
 
-Use ShellUI's logger:
+Use Shellui's logger:
 
 ```javascript
 import { getLogger } from '@shellui/sdk';
@@ -325,7 +325,7 @@ Get SDK version:
 import { getVersion } from '@shellui/sdk';
 
 const version = getVersion();
-console.log(`ShellUI SDK version: ${version}`);
+console.log(`Shellui SDK version: ${version}`);
 ```
 
 ## Complete Example

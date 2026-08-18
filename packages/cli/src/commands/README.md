@@ -6,8 +6,8 @@ This directory contains all CLI commands, each in its own file for better mainta
 
 Each command is a separate file that exports a command function:
 
-- `start.js` - Start the ShellUI development server (`dev` alias, `--app` for Tauri)
-- `build.js` - Build the ShellUI application for production (`--app` for Tauri)
+- `start.js` - Start the Shellui development server (`dev` alias, `--app` for Tauri)
+- `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.ts` boilerplate
 
 ## Adding a New Command

@@ -1,6 +1,6 @@
 # Sentry Error Reporting
 
-ShellUI can report runtime errors to [Sentry](https://sentry.io) in production so you can track and fix bugs from real usage.
+Shellui can report runtime errors to [Sentry](https://sentry.io) in production so you can track and fix bugs from real usage.
 
 ## Behavior
 
@@ -37,7 +37,7 @@ At build time the CLI injects the full config (including `sentry`) via the virtu
 
   To disable Sentry even when `SENTRY_DSN` is set (e.g. for a staging build without reporting): set `SENTRY_ENABLED=false` or `SENTRY_ENABLED=0`.
 
-- Ensure your build process loads `.env` before running the ShellUI build (e.g. if you use `dotenv` or a tool that injects env, run it before `shellui build`).
+- Ensure your build process loads `.env` before running the Shellui build (e.g. if you use `dotenv` or a tool that injects env, run it before `shellui build`).
 
 **GitHub Actions (or other CI/CD)**
 
@@ -62,7 +62,7 @@ At build time the CLI injects the full config (including `sentry`) via the virtu
 
 ## How it is used
 
-- **When Sentry runs**: Only in production builds. The app checks `import.meta.env.DEV`; when it is `false` and the Sentry DSN is set, the ShellUI core initializes `@sentry/react`. The core reads Sentry options from the build-time config provided via `@shellui/config`.
+- **When Sentry runs**: Only in production builds. The app checks `import.meta.env.DEV`; when it is `false` and the Sentry DSN is set, the Shellui core initializes `@sentry/react`. The core reads Sentry options from the build-time config provided via `@shellui/config`.
 - **What gets reported**: Uncaught JavaScript errors and unhandled promise rejections are sent to Sentry automatically.
 - **When Sentry is disabled**: In dev mode, when `SENTRY_DSN` is not set, or when `SENTRY_ENABLED` is `false` or `0`, Sentry is not initialized and no data is sent.
 

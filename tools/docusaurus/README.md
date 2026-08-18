@@ -1,6 +1,6 @@
-# ShellUI Documentation Website
+# Shellui Documentation Website
 
-This directory contains the Docusaurus documentation website for ShellUI.
+This directory contains the Docusaurus documentation website for Shellui.
 
 ## Structure
 

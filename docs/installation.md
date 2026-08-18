@@ -1,15 +1,15 @@
 # Installation
 
-Install ShellUI to start building your microfrontend application.
+Install Shellui to start building your microfrontend application.
 
 ## Prerequisites
 
 - **Node.js** version 18.0.0 or higher
 - **npm** (comes with Node.js)
 
-## Install ShellUI CLI
+## Install Shellui CLI
 
-The ShellUI CLI is the main tool you'll use to create, develop, and build ShellUI applications.
+The Shellui CLI is the main tool you'll use to create, develop, and build Shellui applications.
 
 ### Global Installation (Recommended)
 
@@ -62,7 +62,7 @@ Or add scripts to your `package.json`:
 
 ## Verify Installation
 
-Check that ShellUI CLI is installed correctly:
+Check that Shellui CLI is installed correctly:
 
 ```bash
 shellui --version
@@ -74,15 +74,15 @@ You should see the version number printed.
 
 Once installed, you're ready to:
 
-1. **[Configure your ShellUI app](/quickstart#configuration)** - Create a configuration file
+1. **[Configure your Shellui app](/quickstart#configuration)** - Create a configuration file
 2. **[Start developing](/quickstart#running-the-development-server)** - Run the development server
 3. **[Build for production](/cli#build)** - Build your application
 
 ## Additional Packages
 
-The CLI automatically handles the core dependencies. If you need to integrate ShellUI programmatically, you can install:
+The CLI automatically handles the core dependencies. If you need to integrate Shellui programmatically, you can install:
 
 - `@shellui/core` - Core React application runtime
-- `@shellui/sdk` - JavaScript SDK for ShellUI integration
+- `@shellui/sdk` - JavaScript SDK for Shellui integration
 
 These are typically not needed for basic usage, as the CLI manages them automatically.

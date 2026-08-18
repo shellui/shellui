@@ -1,12 +1,12 @@
-# ShellUI Monorepo
+# Shellui Monorepo
 
 > A lightweight microfrontend shell to ship apps faster.
 
-This monorepo contains the ShellUI packages:
+This monorepo contains the Shellui packages:
 
-- **@shellui/cli** - Command-line tool for ShellUI
+- **@shellui/cli** - Command-line tool for Shellui
 - **@shellui/core** - Core React application runtime
-- **@shellui/sdk** - JavaScript SDK for ShellUI integration
+- **@shellui/sdk** - JavaScript SDK for Shellui integration
 
 ## Structure
 

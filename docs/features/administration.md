@@ -4,7 +4,7 @@ Staff and company owners can open an embedded **administration** app from the ac
 
 ## Prerequisites
 
-1. Configure a ShellUI identity backend (`backend.type: 'shellui'`). See [Backend](/backend).
+1. Configure a Shellui identity backend (`backend.type: 'shellui'`). See [Backend](/backend).
 2. Point `backend.adminPathname` and `backend.adminUrl` at the admin React app (local Vite server or production origin such as `https://admin.shellui.com`).
 3. Sign in as a user with `isStaff` or `isCompanyOwner`.
 
@@ -94,7 +94,7 @@ export default config;
 1. The shell includes a resolved `administration` object in SDK settings (`SHELLUI_SETTINGS` / `SHELLUI_SETTINGS_UPDATED`).
 2. Labels and the section title are resolved to the active language before propagation.
 3. The admin app reads `settings.administration` and renders the section under Dashboard.
-4. Clicking an item opens `#/app/<path>` inside admin and loads the item `url` in a registered ShellUI content iframe (settings are forwarded to the child frame). Relative URLs (starting with `/`) are resolved against `backend.url`. If `url` is empty, the first version falls back to `https://playground.shellui.com`.
+4. Clicking an item opens `#/app/<path>` inside admin and loads the item `url` in a registered Shellui content iframe (settings are forwarded to the child frame). Relative URLs (starting with `/`) are resolved against `backend.url`. If `url` is empty, the first version falls back to `https://playground.shellui.com`.
 
 ### Staff-only Django admin
 

@@ -1,6 +1,6 @@
 # Development Guide
 
-Guide for developing ShellUI packages.
+Guide for developing Shellui packages.
 
 ## Project Structure
 

@@ -1,10 +1,10 @@
 # Themes
 
-ShellUI supports custom themes with light/dark mode variants, custom fonts, and extensive color customization.
+Shellui supports custom themes with light/dark mode variants, custom fonts, and extensive color customization.
 
 ## Default Themes
 
-ShellUI comes with built-in light and dark themes. Users can switch between them in Settings > Appearance.
+Shellui comes with built-in light and dark themes. Users can switch between them in Settings > Appearance.
 
 ## Custom Themes
 
@@ -317,7 +317,7 @@ const config: ShellUIConfig = {
 };
 ```
 
-If `defaultTheme` is not specified, ShellUI uses the built-in default theme.
+If `defaultTheme` is not specified, Shellui uses the built-in default theme.
 
 ## User Theme Selection
 
