@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" role="img" aria-hidden="true">
-  <style>
-    svg { color: #2a2a2a; }
-    @media (prefers-color-scheme: dark) {
-      svg { color: #d0d0d0; }
-    }
-  </style>
-  <rect x="2.5" y="2.5" width="27" height="27" rx="6" ry="6" stroke="currentColor" stroke-width="2" fill="none" opacity="0.92"/>
-  <rect x="9" y="9" width="14" height="14" rx="3" ry="3" fill="currentColor" opacity="0.78"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1080 1080" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(0.890653,0,0,0.78865,89.3081,99.9722)">
+        <rect x="-105.862" y="-133.576" width="1222.76" height="1380.44"/>
+    </g>
+    <g transform="matrix(1.28904,0,0,1.26641,-101.377,-56.7975)">
+        <path d="M509,202C493,202 478,207 461,221L338,340C316,361 305,382 305,407C305,433 315,458 333,480C350,500 373,516 393,517C397,518 401,517 405,513L656,263C670,249 677,238 678,226C679,216 676,209 671,205C667,203 662,202 654,202L509,202Z" style="fill:white;fill-rule:nonzero;"/>
+    </g>
+    <g transform="matrix(1.28904,0,0,1.26641,-101.377,-56.7975)">
+        <path d="M599,419C586,422 575,431 562,444L320,695C312,703 308,711 310,720C312,732 320,739 331,740L482,740C500,740 513,736 526,725L646,607C670,584 683,559 687,531C690,506 684,480 672,460C661,439 645,425 628,420C618,417 608,417 599,419Z" style="fill:white;fill-rule:nonzero;"/>
+    </g>
 </svg>
