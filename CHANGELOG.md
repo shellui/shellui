@@ -21,11 +21,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.4.1] - 2026-08-DD
+## [0.4.1] - 2026-08-18
 
 ### 🐛 Bug Fixes
 
-- Fix modalUrl undefined when not localhost or same domain.
+- Tempiorary fix modalUrl undefined when not localhost or same domain by allowing storage and admin.
 
 ## [0.4.0] - 2026-08-16
 
