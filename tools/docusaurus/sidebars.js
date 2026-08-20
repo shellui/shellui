@@ -23,6 +23,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Getting Started',
+      collapsed: false,
       items: [
         'installation',
         'quickstart',
@@ -33,10 +34,12 @@ const sidebars = {
     {
       type: 'category',
       label: 'Features',
+      collapsed: false,
       items: [
         {
           type: 'category',
           label: 'Navigation & Layout',
+          collapsed: false,
           items: [
             'features/navigation',
             'features/layouts',
@@ -46,6 +49,7 @@ const sidebars = {
         {
           type: 'category',
           label: 'Customization',
+          collapsed: false,
           items: [
             'features/themes',
             'features/internationalization',
@@ -54,6 +58,7 @@ const sidebars = {
         {
           type: 'category',
           label: 'User Interface',
+          collapsed: false,
           items: [
             'features/toasts',
             'features/dialogs',
@@ -62,6 +67,7 @@ const sidebars = {
         {
           type: 'category',
           label: 'Advanced',
+          collapsed: false,
           items: [
             'features/administration',
             'features/storage',
@@ -77,6 +83,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Packages',
+      collapsed: false,
       items: [
         'cli',
         'core',
@@ -87,6 +94,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Guides',
+      collapsed: false,
       items: [
         'development',
         'publishing',

@@ -2,7 +2,7 @@
 // Note: type annotations allow type checking and IDEs autocompletion
 
 const lightCodeTheme = require('prism-react-renderer').themes.github;
-const darkCodeTheme = require('prism-react-renderer').themes.dracula;
+const darkCodeTheme = require('prism-react-renderer').themes.vsDark;
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -96,17 +96,26 @@ const config = {
         respectPrefersColorScheme: true,
       },
       navbar: {
-        title: 'Shellui',
+        title: '',
+        hideOnScroll: false,
+        logo: {
+          alt: 'Shellui documentation',
+          src: 'img/shellui_documentation_logo.png',
+          href: '/',
+          height: 22,
+          width: 202,
+        },
         items: [
           {
             type: 'docSidebar',
             sidebarId: 'tutorialSidebar',
             position: 'left',
             label: 'Documentation',
+            className: 'navbar__docs-link',
           },
           {
-            href: 'https://github.com/shellui/shellui',
-            label: 'GitHub',
+            href: 'https://shellui.com',
+            label: 'Website',
             position: 'right',
           },
         ],
