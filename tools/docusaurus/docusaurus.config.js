@@ -102,8 +102,8 @@ const config = {
           alt: 'Shellui documentation',
           src: 'img/shellui_documentation_logo.png',
           href: '/',
-          height: 22,
-          width: 202,
+          height: 28,
+          width: 257,
         },
         items: [
           {
@@ -113,61 +113,11 @@ const config = {
             label: 'Documentation',
             className: 'navbar__docs-link',
           },
-          {
-            href: 'https://shellui.com',
-            label: 'Website',
-            position: 'right',
-          },
         ],
       },
       footer: {
         style: 'light',
-        links: [
-          {
-            title: 'Docs',
-            items: [
-              {
-                label: 'Quick Start',
-                to: '/quickstart',
-              },
-              {
-                label: 'CLI',
-                to: '/cli',
-              },
-              {
-                label: 'SDK',
-                to: '/sdk',
-              },
-            ],
-          },
-          {
-            title: 'Community',
-            items: [
-              {
-                label: 'GitHub',
-                href: 'https://github.com/shellui/shellui',
-              },
-            ],
-          },
-          {
-            title: 'Resources',
-            items: [
-              {
-                label: 'Shellui.com',
-                href: 'https://shellui.com',
-              },
-              {
-                label: 'Playground',
-                href: 'https://playground.shellui.com',
-              },
-              {
-                label: 'GitHub',
-                href: 'https://github.com/shellui',
-              },
-            ],
-          },
-        ],
-        copyright: `Copyright © ${new Date().getFullYear()} Shellui.`,
+        copyright: `© ${new Date().getFullYear()} Shellui. All rights reserved.`,
       },
       prism: {
         theme: lightCodeTheme,
