@@ -173,7 +173,8 @@ html[data-theme='dark'] .navbar {
     padding-right: 1.25rem;
   }
 
-  .navbar__docs-link {
+  .navbar__docs-link,
+  .navbar__mobile-only-link {
     display: none;
   }
 }
@@ -763,6 +764,8 @@ html[data-theme='dark'] .footer.site-footer {
   flex-wrap: nowrap;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .site-footer__brand-link {
@@ -785,13 +788,15 @@ html[data-theme='dark'] .site-footer__brand-link:hover {
   display: flex;
   align-items: center;
   height: 1.5rem;
+  max-width: 100%;
 }
 
 .site-footer__logo svg {
   display: block;
   height: 1.5rem;
   width: auto;
-  overflow: visible;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .site-footer__socials {
@@ -831,6 +836,29 @@ html[data-theme='dark'] .site-footer__social:hover {
 .site-footer__social-icon--docker {
   width: 22px;
   height: 22px;
+}
+
+@media (max-width: 996px) {
+  .site-footer__inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .site-footer__brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .site-footer__logo {
+    height: auto;
+  }
+
+  .site-footer__logo svg {
+    height: auto;
+    width: min(100%, 16.75rem);
+  }
 }
 
 .site-footer__copyright {

@@ -113,6 +113,18 @@ const config = {
             label: 'Documentation',
             className: 'navbar__docs-link',
           },
+          {
+            href: 'https://shellui.com',
+            label: 'Shellui.com',
+            position: 'left',
+            className: 'navbar__mobile-only-link',
+          },
+          {
+            href: 'https://github.com/shellui',
+            label: 'GitHub',
+            position: 'left',
+            className: 'navbar__mobile-only-link',
+          },
         ],
       },
       footer: {

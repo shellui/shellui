@@ -3,7 +3,7 @@ import React from 'react';
 export default function DocumentationWordmark({alt, height = 28}) {
   return (
     <svg
-      viewBox="0 0 268 24"
+      viewBox="0 0 200 24"
       height={height}
       role="img"
       aria-label={alt}
