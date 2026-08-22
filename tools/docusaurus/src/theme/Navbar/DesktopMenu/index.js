@@ -84,7 +84,7 @@ export default function DesktopMenu() {
           </a>
           <a
             className="navbar-desktop-menu__link"
-            href="https://github.com/shellui/shellui"
+            href="https://github.com/shellui"
             target="_blank"
             rel="noopener noreferrer"
             role="menuitem"
