@@ -2,7 +2,13 @@ import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
 import { loadTypeScriptConfig } from './config-loaders.js';
-import { MAIN_CONFIG_FILE, discoverConfigMode, stripSchemaKey } from './config-paths.js';
+import {
+  MAIN_CONFIG_FILE,
+  discoverConfigMode,
+  resolveConfigLocation,
+  getConfigPathOption,
+  stripSchemaKey,
+} from './config-paths.js';
 import { validateConfig } from './config-validate.js';
 import { mergeSplitConfigs, readJsonConfigFile } from './config-split.js';
 import { substituteEnvInConfig } from './config-env.js';
@@ -72,19 +78,33 @@ function applyEnvSubstitution(config) {
 }
 
 /**
+ * Normalize loadConfig second argument (legacy string path or options object).
+ * @param {string | { config?: string }} [configOrOptions]
+ * @returns {string | undefined}
+ */
+function normalizeConfigPathArg(configOrOptions) {
+  if (configOrOptions == null) return getConfigPathOption({});
+  if (typeof configOrOptions === 'string') return configOrOptions;
+  return getConfigPathOption(configOrOptions);
+}
+
+/**
  * Load configuration (JSON-first, then split, then TypeScript advanced).
  * Applies ${ENV} substitution in string values, then validates against the
  * ShellUIConfig JSON Schema. Sentry is merged from env after validation.
- * @param {string} root - Root directory to search for config (default: current working directory)
+ *
+ * @param {string} root - Project root directory (default: current working directory)
+ * @param {string | { config?: string }} [configOrOptions] - `--config` path (file or directory), or options
  * @returns {Promise<Object>} Configuration object
  */
-export async function loadConfig(root = '.') {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
+export async function loadConfig(root = '.', configOrOptions) {
+  const configPath = normalizeConfigPathArg(configOrOptions);
+  const location = resolveConfigLocation(root, configPath);
+  const { configDir, mainPath, tsPath } = location;
 
   let discovery;
   try {
-    discovery = discoverConfigMode(configDir);
+    discovery = discoverConfigMode(configDir, { mainPath, tsPath });
   } catch (e) {
     console.error(pc.red(e.message));
     throw e;
@@ -108,7 +128,7 @@ export async function loadConfig(root = '.') {
       config = mergeSplitConfigs(discovery.splitFiles);
       sourceLabel = 'split configs';
       const names = discovery.splitFiles.map((f) => f.fileName).join(', ');
-      console.log(pc.green(`Loaded split config from ${names}`));
+      console.log(pc.green(`Loaded split config from ${configDir}: ${names}`));
     } catch (e) {
       console.error(pc.red(e.message));
       throw e;
@@ -127,7 +147,9 @@ export async function loadConfig(root = '.') {
     }
   } else {
     console.log(
-      pc.yellow(`No ${MAIN_CONFIG_FILE} (or split / TypeScript config) found, using defaults.`),
+      pc.yellow(
+        `No ${MAIN_CONFIG_FILE} (or split / TypeScript config) found in ${configDir}, using defaults.`,
+      ),
     );
   }
 
@@ -149,13 +171,14 @@ export async function loadConfig(root = '.') {
 /**
  * Resolve which config paths should be watched for changes.
  * @param {string} root
+ * @param {string | { config?: string }} [configOrOptions]
  * @returns {string[]}
  */
-export function getWatchableConfigPaths(root = '.') {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
+export function getWatchableConfigPaths(root = '.', configOrOptions) {
+  const configPath = normalizeConfigPathArg(configOrOptions);
+  const { configDir, mainPath, tsPath } = resolveConfigLocation(root, configPath);
   try {
-    const discovery = discoverConfigMode(configDir);
+    const discovery = discoverConfigMode(configDir, { mainPath, tsPath });
     if (discovery.mode === 'main') return [discovery.mainPath];
     if (discovery.mode === 'split') return discovery.splitFiles.map((f) => f.path);
     if (discovery.mode === 'ts') return [discovery.tsPath];
@@ -168,13 +191,14 @@ export function getWatchableConfigPaths(root = '.') {
 /**
  * Whether any supported config exists (JSON, split, or TS).
  * @param {string} root
+ * @param {string | { config?: string }} [configOrOptions]
  * @returns {boolean}
  */
-export function hasAnyConfig(root = '.') {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
+export function hasAnyConfig(root = '.', configOrOptions) {
+  const configPath = normalizeConfigPathArg(configOrOptions);
+  const { configDir, mainPath, tsPath } = resolveConfigLocation(root, configPath);
   try {
-    const discovery = discoverConfigMode(configDir);
+    const discovery = discoverConfigMode(configDir, { mainPath, tsPath });
     return discovery.mode !== 'none';
   } catch {
     // Conflict still means config files exist

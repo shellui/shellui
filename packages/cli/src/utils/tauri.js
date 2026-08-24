@@ -342,7 +342,7 @@ function mergeProjectTauriOverrides(tauriConf, overrides) {
  * Sync shellui config values into app/src-tauri/tauri.conf.json
  * @param {string} root
  * @param {string} cwd
- * @param {{ host?: boolean; bundles?: string }} [options]
+ * @param {{ host?: boolean; bundles?: string; config?: string }} [options]
  */
 export async function syncTauriConfig(root, cwd, options = {}) {
   const projectRoot = getProjectRoot(root, cwd);
@@ -353,7 +353,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
     throw new Error(`Tauri config not found at ${tauriConfPath}`);
   }
 
-  const config = await loadConfig(root);
+  const config = await loadConfig(root, { config: options.config });
   const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
 
   const title = config.title || 'shellui';

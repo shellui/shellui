@@ -1,11 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import {
-  MAIN_CONFIG_FILE,
-  TS_CONFIG_BACKUP_FILE,
-  TS_CONFIG_FILE,
-  stringifyConfigJson,
-} from './config-paths.js';
+import { MAIN_CONFIG_FILE, TS_CONFIG_FILE, stringifyConfigJson } from './config-paths.js';
 import { loadTypeScriptConfig } from './config-loaders.js';
 import { validateConfig } from './config-validate.js';
 
@@ -44,17 +39,20 @@ function toPlainConfigObject(value) {
  * Migrate shellui.config.ts → shellui.config.json by evaluating the TypeScript
  * module and writing the resulting initialized object as JSON.
  * @param {string} configDir
+ * @param {{ tsPath?: string, jsonPath?: string }} [options]
  * @returns {Promise<{ jsonPath: string, backupPath: string }>}
  */
-export async function migrateTsConfig(configDir) {
-  const tsPath = path.join(configDir, TS_CONFIG_FILE);
-  const jsonPath = path.join(configDir, MAIN_CONFIG_FILE);
-  const backupPath = path.join(configDir, TS_CONFIG_BACKUP_FILE);
+export async function migrateTsConfig(configDir, options = {}) {
+  const tsPath = options.tsPath || path.join(configDir, TS_CONFIG_FILE);
+  const jsonPath = options.jsonPath || path.join(configDir, MAIN_CONFIG_FILE);
+  const backupPath = `${tsPath}.bak`;
+  const tsName = path.basename(tsPath);
+  const jsonName = path.basename(jsonPath);
 
   if (!fs.existsSync(tsPath)) {
     const err = new Error(
-      `No ${TS_CONFIG_FILE} found in ${configDir}. ` +
-        `There is nothing to migrate. If you already use ${MAIN_CONFIG_FILE}, you are done. ` +
+      `No ${tsName} found in ${configDir}. ` +
+        `There is nothing to migrate. If you already use ${jsonName}, you are done. ` +
         `Otherwise run ${'`shellui init`'} to create a JSON config.`,
     );
     err.code = 'MIGRATE_NO_TS';
@@ -63,8 +61,8 @@ export async function migrateTsConfig(configDir) {
 
   if (fs.existsSync(jsonPath)) {
     const err = new Error(
-      `${MAIN_CONFIG_FILE} already exists in ${configDir}. ` +
-        `Remove or rename it before running migrate, or keep the JSON file and delete ${TS_CONFIG_FILE} if migration is complete.`,
+      `${jsonName} already exists in ${configDir}. ` +
+        `Remove or rename it before running migrate, or keep the JSON file and delete ${tsName} if migration is complete.`,
     );
     err.code = 'MIGRATE_JSON_EXISTS';
     throw err;
@@ -75,7 +73,7 @@ export async function migrateTsConfig(configDir) {
     loaded = await loadTypeScriptConfig(tsPath, configDir);
   } catch (e) {
     const err = new Error(
-      `Failed to evaluate ${TS_CONFIG_FILE}: ${e.message}\n` +
+      `Failed to evaluate ${tsName}: ${e.message}\n` +
         `Fix the TypeScript config so it loads successfully, then retry ${'`shellui config migrate`'}.`,
     );
     err.code = 'MIGRATE_LOAD_FAILED';
@@ -84,7 +82,7 @@ export async function migrateTsConfig(configDir) {
   }
 
   const config = toPlainConfigObject(loaded);
-  validateConfig(config, { source: TS_CONFIG_FILE });
+  validateConfig(config, { source: tsName });
 
   fs.writeFileSync(jsonPath, stringifyConfigJson(config), 'utf8');
   fs.renameSync(tsPath, backupPath);

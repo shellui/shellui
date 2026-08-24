@@ -1,7 +1,13 @@
 import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
-import { CONFIG_SCHEMA_REF, MAIN_CONFIG_FILE, TS_CONFIG_FILE } from '../utils/config-paths.js';
+import {
+  CONFIG_SCHEMA_REF,
+  MAIN_CONFIG_FILE,
+  TS_CONFIG_FILE,
+  resolveConfigLocation,
+  getConfigPathOption,
+} from '../utils/config-paths.js';
 
 const SHELLUI_CONFIG_JSON = {
   $schema: CONFIG_SCHEMA_REF,
@@ -48,14 +54,12 @@ function ensureDistGitignore(projectDir) {
 
 /**
  * Init command - Creates a shellui.config.json boilerplate in the project
- * @param {string} root - Root directory (default: current directory)
- * @param {{ force?: boolean }} options - Optional flags (e.g. force overwrite)
+ * @param {string} root - Project root directory (default: current directory)
+ * @param {{ force?: boolean, config?: string }} options - Optional flags
  */
 export async function initCommand(root = '.', options = {}) {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
-  const configPath = path.join(configDir, MAIN_CONFIG_FILE);
-  const tsPath = path.join(configDir, TS_CONFIG_FILE);
+  const location = resolveConfigLocation(root, getConfigPathOption(options));
+  const { projectRoot, configDir, mainPath: configPath, tsPath } = location;
 
   if (fs.existsSync(configPath) && !options.force) {
     console.log(
@@ -74,12 +78,12 @@ export async function initCommand(root = '.', options = {}) {
     if (fs.existsSync(tsPath)) {
       console.log(
         pc.yellow(
-          `Note: ${TS_CONFIG_FILE} is still present. JSON is preferred; run ${pc.bold('shellui config migrate')} or remove the TypeScript file. While both exist, JSON is loaded first.`,
+          `Note: ${path.basename(tsPath)} is still present. JSON is preferred; run ${pc.bold('shellui config migrate')} or remove the TypeScript file. While both exist, JSON is loaded first.`,
         ),
       );
     }
 
-    ensureDistGitignore(configDir);
+    ensureDistGitignore(projectRoot);
 
     console.log(
       pc.dim(

@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { migrateTsConfig } from '../migrate-config.js';
-import { MAIN_CONFIG_FILE, TS_CONFIG_BACKUP_FILE, TS_CONFIG_FILE } from '../config-paths.js';
+import { MAIN_CONFIG_FILE, TS_CONFIG_FILE } from '../config-paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -34,7 +34,7 @@ describe('migrateTsConfig', () => {
     expect(fs.existsSync(result.jsonPath)).toBe(true);
     expect(fs.existsSync(result.backupPath)).toBe(true);
     expect(fs.existsSync(path.join(testDir, TS_CONFIG_FILE))).toBe(false);
-    expect(fs.existsSync(path.join(testDir, TS_CONFIG_BACKUP_FILE))).toBe(true);
+    expect(result.backupPath.endsWith('.bak')).toBe(true);
 
     const json = JSON.parse(fs.readFileSync(result.jsonPath, 'utf8'));
     expect(json.title).toBe('Migrated');

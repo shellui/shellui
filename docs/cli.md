@@ -120,6 +120,7 @@ shellui dev --app
 - `--host`: Listen on `0.0.0.0` so the app can be accessed from other devices on your network (e.g. via your machine’s LAN IP)
 - `--app`: Start as a native desktop app. On first run, generates `dist/app/` (desktop wrapper) and installs desktop build tools if needed.
 - `--target <web|tauri>`: Build target injected at compile time (default: `web`). Set to `tauri` for desktop-specific behavior (e.g. disable service worker). Automatically applied when using `--app`.
+- `--config <path>`: Config file or directory (default: project root). See [Custom config location](#custom-config-location). Also: `SHELLUI_CONFIG`.
 
 **Example:**
 
@@ -164,6 +165,7 @@ shellui build --app --bundles app,dmg
 - `--app`: Build the desktop app. Generates `dist/app/` on first run and installs desktop build tools if needed.
 - `--bundles <targets>`: Desktop bundle format(s) when using `--app` (comma-separated). Default: `app` (e.g. `.app` on macOS). Use `app,dmg` on macOS to also produce a `.dmg` installer. See [Desktop app — Bundle targets](/tauri#bundle-targets).
 - `--target <web|tauri>`: Build target injected at compile time (default: `web`). Set to `tauri` for desktop builds. Automatically applied when using `--app`.
+- `--config <path>`: Config file or directory (default: project root). See [Custom config location](#custom-config-location). Also: `SHELLUI_CONFIG`.
 
 **Example:**
 
@@ -190,6 +192,30 @@ Shellui uses a JSON configuration file by default. The CLI looks for config in t
 3. `shellui.config.ts` (advanced, code-based configuration)
 
 You cannot use a main JSON file and split files at the same time. Configuration is validated against the JSON Schema shipped with `@shellui/core` (`schemas/shellui.config.schema.json`). Invalid config fails at load time with actionable errors.
+
+### Custom config location
+
+By default the CLI looks for config in the project root (`[root]` argument, or the current directory). Use `--config` (or the `SHELLUI_CONFIG` environment variable) to store config in another folder or point at a specific file:
+
+```bash
+# Directory containing shellui.config.json / split files / shellui.config.ts
+shellui start --config ./config
+shellui build --config ./config
+shellui init --config ./config
+shellui config migrate --config ./config
+
+# Or a specific file
+shellui start --config ./config/shellui.config.json
+shellui init --config ./config/shellui.config.json
+
+# Same via env (handy in CI)
+export SHELLUI_CONFIG=./config
+shellui start
+```
+
+- **Project root** (`[root]`) still holds `static/`, `dist/`, etc.
+- **Config directory** is where `shellui.config.json`, `shellui.*.config.json`, or `shellui.config.ts` live.
+- `--config` wins over `SHELLUI_CONFIG` when both are set.
 
 Point editors at the schema via `$schema`:
 
@@ -268,8 +294,10 @@ Sentry remains configurable via dedicated env vars (`SENTRY_DSN`, `SENTRY_ENABLE
 
 The CLI searches for configuration files in this order:
 
-1. The specified `root` directory (if provided)
-2. The current working directory
+1. Path from `--config` / `SHELLUI_CONFIG` (file or directory), if set
+2. Otherwise the project `root` directory (CLI `[root]` argument, default: current working directory)
+
+Inside that location it prefers, in order: `shellui.config.json` → split `shellui.<name>.config.json` files → `shellui.config.ts`.
 
 ### Configuration Options
 

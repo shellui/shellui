@@ -173,14 +173,16 @@ export function writeSplitConfigFiles(config, configDir) {
 /**
  * Split shellui.config.json into focused files.
  * @param {string} configDir
+ * @param {{ mainPath?: string }} [options]
  * @returns {{ written: string[], removed: string }}
  */
-export function splitConfig(configDir) {
-  const mainPath = path.join(configDir, MAIN_CONFIG_FILE);
+export function splitConfig(configDir, options = {}) {
+  const mainPath = options.mainPath || path.join(configDir, MAIN_CONFIG_FILE);
+  const mainName = path.basename(mainPath);
   if (!fs.existsSync(mainPath)) {
     const err = new Error(
-      `No ${MAIN_CONFIG_FILE} found in ${configDir}. ` +
-        `Split requires a single ${MAIN_CONFIG_FILE}. ` +
+      `No ${mainName} found in ${configDir}. ` +
+        `Split requires a single JSON config file. ` +
         `If you already use split files, there is nothing to do.`,
     );
     err.code = 'CONFIG_SPLIT_NO_MAIN';
@@ -190,7 +192,7 @@ export function splitConfig(configDir) {
   const existingSplit = listSplitConfigFiles(configDir);
   if (existingSplit.length) {
     const err = new Error(
-      `Split config files already exist alongside ${MAIN_CONFIG_FILE}. ` +
+      `Split config files already exist alongside ${mainName}. ` +
         `Remove them or run ${'`shellui config unsplit`'} first.`,
     );
     err.code = 'CONFIG_MODE_CONFLICT';
@@ -198,7 +200,7 @@ export function splitConfig(configDir) {
   }
 
   const config = readJsonConfigFile(mainPath);
-  validateConfig(config, { source: MAIN_CONFIG_FILE });
+  validateConfig(config, { source: mainName });
   const written = writeSplitConfigFiles(config, configDir);
   fs.unlinkSync(mainPath);
   return { written, removed: mainPath };
@@ -207,14 +209,16 @@ export function splitConfig(configDir) {
 /**
  * Merge split files back into shellui.config.json.
  * @param {string} configDir
+ * @param {{ mainPath?: string }} [options]
  * @returns {{ written: string, removed: string[] }}
  */
-export function unsplitConfig(configDir) {
-  const mainPath = path.join(configDir, MAIN_CONFIG_FILE);
+export function unsplitConfig(configDir, options = {}) {
+  const mainPath = options.mainPath || path.join(configDir, MAIN_CONFIG_FILE);
+  const mainName = path.basename(mainPath);
   if (fs.existsSync(mainPath)) {
     const err = new Error(
-      `${MAIN_CONFIG_FILE} already exists in ${configDir}. ` +
-        `Unsplit merges split files into ${MAIN_CONFIG_FILE}; remove the main file first or delete split files.`,
+      `${mainName} already exists in ${configDir}. ` +
+        `Unsplit merges split files into ${mainName}; remove the main file first or delete split files.`,
     );
     err.code = 'CONFIG_UNSPLIT_HAS_MAIN';
     throw err;

@@ -2,22 +2,27 @@ import path from 'path';
 import pc from 'picocolors';
 import { splitConfig, unsplitConfig } from '../utils/config-split.js';
 import { migrateTsConfig } from '../utils/migrate-config.js';
+import { resolveConfigLocation, getConfigPathOption } from '../utils/config-paths.js';
 
 /**
  * Config subcommands: migrate | split | unsplit
  * @param {string} action
  * @param {string} root
+ * @param {{ config?: string }} [options]
  */
-export async function configCommand(action, root = '.') {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
+export async function configCommand(action, root = '.', options = {}) {
+  const location = resolveConfigLocation(root, getConfigPathOption(options));
+  const { configDir, mainPath, tsPath } = location;
   const normalized = String(action || '')
     .trim()
     .toLowerCase();
 
   try {
     if (normalized === 'migrate') {
-      const { jsonPath, backupPath } = await migrateTsConfig(configDir);
+      const { jsonPath, backupPath } = await migrateTsConfig(configDir, {
+        tsPath,
+        jsonPath: mainPath,
+      });
       console.log(pc.green(`Migrated TypeScript config to ${jsonPath}`));
       console.log(pc.dim(`Original saved as ${backupPath}`));
       console.log(
@@ -29,7 +34,7 @@ export async function configCommand(action, root = '.') {
     }
 
     if (normalized === 'split') {
-      const { written, removed } = splitConfig(configDir);
+      const { written, removed } = splitConfig(configDir, { mainPath });
       console.log(pc.green(`Split ${removed} into:`));
       for (const file of written) {
         console.log(pc.dim(`  - ${file}`));
@@ -38,7 +43,7 @@ export async function configCommand(action, root = '.') {
     }
 
     if (normalized === 'unsplit') {
-      const { written, removed } = unsplitConfig(configDir);
+      const { written, removed } = unsplitConfig(configDir, { mainPath });
       console.log(pc.green(`Merged split configs into ${written}`));
       for (const file of removed) {
         console.log(pc.dim(`  removed ${file}`));

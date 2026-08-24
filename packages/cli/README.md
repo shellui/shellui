@@ -24,6 +24,10 @@ shellui init [path/to/project] [--force]
 shellui config migrate [path/to/project]
 shellui config split [path/to/project]
 shellui config unsplit [path/to/project]
+
+# Custom config location (directory or file)
+shellui start --config ./config
+shellui build --config ./config/shellui.config.json
 ```
 
 ### Commands

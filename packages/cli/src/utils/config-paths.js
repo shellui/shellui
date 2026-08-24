@@ -91,11 +91,12 @@ export function listSplitConfigFiles(configDir) {
 
 /**
  * @param {string} configDir
+ * @param {{ mainPath?: string, tsPath?: string }} [overrides]
  * @returns {{ mode: 'main' | 'split' | 'ts' | 'none', mainPath?: string, tsPath?: string, splitFiles?: ReturnType<typeof listSplitConfigFiles> }}
  */
-export function discoverConfigMode(configDir) {
-  const mainPath = path.join(configDir, MAIN_CONFIG_FILE);
-  const tsPath = path.join(configDir, TS_CONFIG_FILE);
+export function discoverConfigMode(configDir, overrides = {}) {
+  const mainPath = overrides.mainPath || path.join(configDir, MAIN_CONFIG_FILE);
+  const tsPath = overrides.tsPath || path.join(configDir, TS_CONFIG_FILE);
   const splitFiles = listSplitConfigFiles(configDir);
   const hasMain = fs.existsSync(mainPath);
   const hasSplit = splitFiles.length > 0;
@@ -103,8 +104,8 @@ export function discoverConfigMode(configDir) {
 
   if (hasMain && hasSplit) {
     const err = new Error(
-      `Both ${MAIN_CONFIG_FILE} and split config files exist in ${configDir}. ` +
-        `Use either a single ${MAIN_CONFIG_FILE} or split files (shellui.<name>.config.json), not both. ` +
+      `Both ${path.basename(mainPath)} and split config files exist in ${configDir}. ` +
+        `Use either a single JSON config or split files (shellui.<name>.config.json), not both. ` +
         `Run ${'`shellui config unsplit`'} to merge, or remove the split files.`,
     );
     err.code = 'CONFIG_MODE_CONFLICT';
@@ -182,4 +183,109 @@ export function stringifyConfigJson(config) {
     ...stripSchemaKey(config),
   };
   return `${JSON.stringify(withSchema, null, 2)}\n`;
+}
+
+/**
+ * Resolve where Shellui config files live.
+ *
+ * `--config` / `SHELLUI_CONFIG` may be:
+ * - a directory containing `shellui.config.json` / split files / `shellui.config.ts`
+ * - a path to a `.json` or `.ts` config file (parent dir is the config directory)
+ *
+ * Project `root` stays the app root (static/, dist/, …). Config location is independent.
+ *
+ * @param {string} [root='.'] - Project root (relative to cwd)
+ * @param {string} [configPath] - From `--config` or env (relative to cwd, or absolute)
+ * @returns {{
+ *   projectRoot: string,
+ *   configDir: string,
+ *   mainPath: string,
+ *   tsPath: string,
+ *   explicitMainJson: boolean,
+ *   explicitTs: boolean,
+ * }}
+ */
+export function resolveConfigLocation(root = '.', configPath) {
+  const cwd = process.cwd();
+  const projectRoot = path.resolve(cwd, root ?? '.');
+  const raw =
+    configPath != null && String(configPath).trim() !== '' ? String(configPath).trim() : null;
+
+  if (!raw) {
+    return {
+      projectRoot,
+      configDir: projectRoot,
+      mainPath: path.join(projectRoot, MAIN_CONFIG_FILE),
+      tsPath: path.join(projectRoot, TS_CONFIG_FILE),
+      explicitMainJson: false,
+      explicitTs: false,
+    };
+  }
+
+  let resolved = path.resolve(cwd, raw);
+  if (!fs.existsSync(resolved) && !path.isAbsolute(raw)) {
+    const fromRoot = path.resolve(projectRoot, raw);
+    if (fs.existsSync(fromRoot) || looksLikeConfigFile(raw)) {
+      resolved = fromRoot;
+    }
+  }
+
+  if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+    return {
+      projectRoot,
+      configDir: resolved,
+      mainPath: path.join(resolved, MAIN_CONFIG_FILE),
+      tsPath: path.join(resolved, TS_CONFIG_FILE),
+      explicitMainJson: false,
+      explicitTs: false,
+    };
+  }
+
+  if (looksLikeConfigFile(resolved) || looksLikeConfigFile(raw)) {
+    const configDir = path.dirname(resolved);
+    const base = path.basename(resolved).toLowerCase();
+    const isTs = base.endsWith('.ts');
+    return {
+      projectRoot,
+      configDir,
+      mainPath: isTs ? path.join(configDir, MAIN_CONFIG_FILE) : resolved,
+      tsPath: isTs ? resolved : path.join(configDir, TS_CONFIG_FILE),
+      explicitMainJson: !isTs,
+      explicitTs: isTs,
+    };
+  }
+
+  // Path does not exist yet and does not look like a file — treat as config directory (e.g. init).
+  return {
+    projectRoot,
+    configDir: resolved,
+    mainPath: path.join(resolved, MAIN_CONFIG_FILE),
+    tsPath: path.join(resolved, TS_CONFIG_FILE),
+    explicitMainJson: false,
+    explicitTs: false,
+  };
+}
+
+/**
+ * @param {string} p
+ * @returns {boolean}
+ */
+function looksLikeConfigFile(p) {
+  const base = path.basename(p).toLowerCase();
+  return base.endsWith('.json') || base.endsWith('.ts') || base.endsWith('.ts.bak');
+}
+
+/**
+ * Pick config path from CLI options or SHELLUI_CONFIG env.
+ * @param {{ config?: string }} [options]
+ * @returns {string | undefined}
+ */
+export function getConfigPathOption(options = {}) {
+  if (options?.config != null && String(options.config).trim() !== '') {
+    return String(options.config).trim();
+  }
+  if (process.env.SHELLUI_CONFIG != null && String(process.env.SHELLUI_CONFIG).trim() !== '') {
+    return String(process.env.SHELLUI_CONFIG).trim();
+  }
+  return undefined;
 }

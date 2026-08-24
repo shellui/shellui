@@ -102,6 +102,8 @@ Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/i
 
 String values may use `${VAR}` or `${VAR:-default}` for environment overrides (resolved at load time). See [CLI — Environment variable substitution](/cli#environment-variable-substitution).
 
+Store config outside the project root with `--config ./config` (or `SHELLUI_CONFIG`). See [CLI — Custom config location](/cli#custom-config-location).
+
 ## Step 4: Start the Development Server
 
 Run the development server:

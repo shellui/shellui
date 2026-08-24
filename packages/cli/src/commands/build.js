@@ -87,7 +87,7 @@ function applyTargetOption(options = {}) {
 /**
  * Build command - Builds the ShellUI application for production
  * @param {string} root - Root directory (default: '.')
- * @param {{ app?: boolean; target?: string; bundles?: string }} options - Command options
+ * @param {{ app?: boolean; target?: string; bundles?: string; config?: string }} options - Command options
  */
 export async function buildCommand(root = '.', options = {}) {
   const cwd = process.cwd();
@@ -95,7 +95,7 @@ export async function buildCommand(root = '.', options = {}) {
   applyTargetOption(options);
 
   if (options?.app) {
-    await tauriBuildCommand(root, { bundles: options.bundles });
+    await tauriBuildCommand(root, { bundles: options.bundles, config: options.config });
     return;
   }
 
@@ -107,7 +107,7 @@ export async function buildCommand(root = '.', options = {}) {
   process.env.NODE_ENV = 'production';
 
   // Load configuration
-  const config = await loadConfig(root);
+  const config = await loadConfig(root, { config: options.config });
 
   // Log config summary for debugging
   console.log(pc.blue(`Config loaded:`));

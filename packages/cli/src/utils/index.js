@@ -13,6 +13,8 @@ export {
   CONFIG_SCHEMA_REF,
   discoverConfigMode,
   listSplitConfigFiles,
+  resolveConfigLocation,
+  getConfigPathOption,
 } from './config-paths.js';
 export { validateConfig } from './config-validate.js';
 export { splitConfig, unsplitConfig, mergeSplitConfigs } from './config-split.js';
