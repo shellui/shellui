@@ -136,4 +136,35 @@ describe('loadConfig', () => {
 
     expect(config).toStrictEqual(jsonConfig);
   });
+
+  test('should substitute environment variables in JSON config', async () => {
+    process.env.SHELLUI_TEST_BACKEND_URL = 'http://localhost:8000';
+    fs.writeFileSync(
+      MAIN_CONFIG_FILE,
+      JSON.stringify({
+        title: '${SHELLUI_TEST_TITLE:-EnvApp}',
+        port: '${SHELLUI_TEST_PORT:-4000}',
+        backend: {
+          type: 'shellui',
+          url: '${SHELLUI_TEST_BACKEND_URL}',
+          companyId: '${SHELLUI_TEST_COMPANY_ID:-1}',
+        },
+      }),
+    );
+
+    try {
+      const config = await loadConfig('.');
+      expect(config).toEqual({
+        title: 'EnvApp',
+        port: 4000,
+        backend: {
+          type: 'shellui',
+          url: 'http://localhost:8000',
+          companyId: 1,
+        },
+      });
+    } finally {
+      delete process.env.SHELLUI_TEST_BACKEND_URL;
+    }
+  });
 });

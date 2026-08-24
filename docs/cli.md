@@ -201,6 +201,69 @@ Point editors at the schema via `$schema`:
 }
 ```
 
+### Environment variable substitution
+
+Any **string** value in the loaded configuration (JSON, split files, or TypeScript export) may contain placeholders that are resolved when the CLI loads the config:
+
+| Syntax            | Behavior                                                                                       |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| `${VAR}`          | Replaced with `process.env.VAR`. If unset or empty, becomes `""` and the CLI prints a warning. |
+| `${VAR:-default}` | Uses `default` when `VAR` is unset or empty; otherwise uses the env value.                     |
+
+Placeholders are resolved **recursively** in nested objects and arrays, after the config file(s) are read and **before** schema validation.
+
+When a value is **exactly** one placeholder (no surrounding text), the result is coerced when it looks like a JSON literal:
+
+- `"${PORT:-4000}"` → number `4000`
+- `"${FLAG:-true}"` → boolean `true`
+- `"${X:-null}"` → `null`
+
+Embedded placeholders stay strings: `"https://${HOST}/api"` → `"https://localhost/api"`.
+
+#### Build-time freeze (important)
+
+Env substitution runs **only in the CLI** (`shellui start`, `shellui build`, …). The browser never reads your `.env` or host environment to fill `${VAR}`.
+
+On `shellui build`:
+
+1. The CLI resolves all placeholders using the build-time environment.
+2. That **frozen** object is embedded in the JS bundle via `@shellui/config`.
+3. The same snapshot is written to `dist/web/shellui.config.json` for inspection/deploy artifacts.
+
+There is **no** runtime override of env placeholders in the frontend. Changing env vars after the build has no effect until you rebuild.
+
+**Treat config as public.** Anything in `shellui.config.json` (and thus in the generated frontend snapshot) is visible to users — URLs, feature flags, publishable keys, etc. Do **not** put secrets, private API keys, or credentials in Shellui config. Use a real backend for secrets.
+
+**Example (dev vs production URLs):**
+
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "backend": {
+    "type": "shellui",
+    "url": "${SHELLUI_BACKEND_URL:-https://id.shellui.com}",
+    "adminUrl": "${SHELLUI_ADMIN_URL:-https://admin.shellui.com}",
+    "companyId": "${SHELLUI_COMPANY_ID:-1}"
+  },
+  "storage": {
+    "url": "${SHELLUI_STORAGE_URL:-http://localhost:8001}"
+  }
+}
+```
+
+```bash
+# Local overrides via env (or .env — the CLI loads dotenv)
+export SHELLUI_BACKEND_URL=http://localhost:8000
+export SHELLUI_ADMIN_URL=http://localhost:5174
+shellui start
+
+# Production build bakes current env values into the frontend bundle
+SHELLUI_BACKEND_URL=https://id.shellui.com shellui build
+# → dist/web/shellui.config.json contains resolved values only
+```
+
+Sentry remains configurable via dedicated env vars (`SENTRY_DSN`, `SENTRY_ENABLED`, …) merged after load; you can also put `sentry.dsn` in JSON with `${SENTRY_DSN}` if you prefer. Remember a DSN in the frontend bundle is expected for client-side Sentry — still not a secret with write access to your infra.
+
 ### Configuration File Location
 
 The CLI searches for configuration files in this order:
@@ -406,6 +469,7 @@ For detailed configuration options, see:
 ## Tips
 
 - Prefer `shellui.config.json` with `$schema` for autocomplete and validation
+- Use `${VAR}` / `${VAR:-default}` for CLI/build-time env overrides (baked into the frontend on build — no runtime override; do not store secrets)
 - Use `shellui config migrate` to convert existing TypeScript configs
 - Use `shellui config split` / `unsplit` for large configs
 - The CLI automatically handles hot reloading during development

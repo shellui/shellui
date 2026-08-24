@@ -100,6 +100,8 @@ Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/i
 - **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
 - **storage** (object, optional): Storage-service URL. Settings → Storage is shown only when this is configured. See [Storage](/features/storage).
 
+String values may use `${VAR}` or `${VAR:-default}` for environment overrides (resolved at load time). See [CLI — Environment variable substitution](/cli#environment-variable-substitution).
+
 ## Step 4: Start the Development Server
 
 Run the development server:
@@ -151,6 +153,8 @@ shellui build
 This will:
 
 - Build your Shellui application
+- Resolve `${ENV}` placeholders at build time and embed a frozen config in the bundle
+- Write `dist/web/shellui.config.json` (resolved values only — public, not overridable at runtime)
 - Output the production files to the `dist/web/` directory
 - Optimize assets for production
 

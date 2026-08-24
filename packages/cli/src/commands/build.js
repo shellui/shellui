@@ -14,6 +14,7 @@ import {
   createViteResolveConfig,
   resolvePackagePath,
   getShelluiTargetDefine,
+  writeGeneratedFrontendConfig,
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
@@ -263,6 +264,15 @@ export async function buildCommand(root = '.', options = {}) {
     }
 
     console.log(pc.green(`Build complete! Output: dist/web/`));
+
+    // Write resolved config snapshot for the frontend (env already substituted; not overridable at runtime).
+    // This file is public — do not put secrets in shellui config.
+    const { filePath: generatedConfigPath } = writeGeneratedFrontendConfig(distPath, config);
+    console.log(
+      pc.green(
+        `Wrote resolved frontend config: ${generatedConfigPath} (env placeholders baked in; no runtime overrides)`,
+      ),
+    );
   } catch (e) {
     console.error(pc.red(`Error building: ${e.message}`));
     process.exit(1);

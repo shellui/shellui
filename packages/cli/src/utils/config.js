@@ -5,6 +5,7 @@ import { loadTypeScriptConfig } from './config-loaders.js';
 import { MAIN_CONFIG_FILE, discoverConfigMode, stripSchemaKey } from './config-paths.js';
 import { validateConfig } from './config-validate.js';
 import { mergeSplitConfigs, readJsonConfigFile } from './config-split.js';
+import { substituteEnvInConfig } from './config-env.js';
 
 /**
  * Merge Sentry config from env into the loaded config. Only adds sentry when
@@ -53,8 +54,27 @@ function warnStartUrlAndRootNav(config) {
 }
 
 /**
+ * Apply ${ENV} substitution to all string values in the config.
+ * @param {Object} config
+ * @returns {Object}
+ */
+function applyEnvSubstitution(config) {
+  const { value, missing } = substituteEnvInConfig(config);
+  if (missing.length) {
+    console.warn(
+      pc.yellow(
+        `⚠ Config references unset environment variable(s) with no default: ${missing.join(', ')}. ` +
+          `They were replaced with an empty string. Use \${VAR:-default} to provide a fallback.`,
+      ),
+    );
+  }
+  return /** @type {Object} */ (value);
+}
+
+/**
  * Load configuration (JSON-first, then split, then TypeScript advanced).
- * Validates against the ShellUIConfig JSON Schema. Sentry is merged from env.
+ * Applies ${ENV} substitution in string values, then validates against the
+ * ShellUIConfig JSON Schema. Sentry is merged from env after validation.
  * @param {string} root - Root directory to search for config (default: current working directory)
  * @returns {Promise<Object>} Configuration object
  */
@@ -112,6 +132,7 @@ export async function loadConfig(root = '.') {
   }
 
   if (sourceLabel) {
+    config = applyEnvSubstitution(config);
     try {
       config = validateConfig(config, { source: sourceLabel });
     } catch (e) {

@@ -18,6 +18,13 @@ export { validateConfig } from './config-validate.js';
 export { splitConfig, unsplitConfig, mergeSplitConfigs } from './config-split.js';
 export { migrateTsConfig } from './migrate-config.js';
 export {
+  substituteEnvInConfig,
+  substituteEnvInString,
+  prepareFrontendConfig,
+  writeGeneratedFrontendConfig,
+  GENERATED_FRONTEND_CONFIG_FILE,
+} from './config-env.js';
+export {
   DIST_DIR,
   WEB_DIST_DIR,
   DESKTOP_APP_DIR,

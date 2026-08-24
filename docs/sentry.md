@@ -5,7 +5,7 @@ Shellui can report runtime errors to [Sentry](https://sentry.io) in production s
 ## Behavior
 
 - **Production only**: Sentry is initialized only when the app is built and run in production. In development (`shellui start` / dev mode), Sentry is **never** initialized, so local errors are not sent and you avoid noise in your Sentry project.
-- **Env-only, merged on load**: You do **not** add Sentry to `shellui.config.json`. The CLI merges Sentry into the config when it loads it, using environment variables. Enable or disable via env only.
+- **Env-only, merged on load**: You do **not** need to add Sentry to `shellui.config.json`. The CLI merges Sentry into the config when it loads it, using environment variables. Enable or disable via env only. You may also set `"dsn": "${SENTRY_DSN}"` in JSON if you prefer explicit config with [env substitution](/cli#environment-variable-substitution); the dedicated merge still applies when `SENTRY_DSN` is set.
 
 ## Configuration
 
