@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [v0.5.0] - Work in progress
 
 ### 📚 Documentation
 
