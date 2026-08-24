@@ -10,7 +10,7 @@ See the [Installation Guide](/installation) for detailed installation instructio
 
 ### `shellui init [root]`
 
-Create a `shellui.config.ts` boilerplate to get started quickly.
+Create a `shellui.config.json` boilerplate to get started quickly.
 
 **Usage:**
 
@@ -22,14 +22,14 @@ shellui init --force
 
 **Description:**
 
-- Creates a minimal `shellui.config.ts` in the project root (or the given directory)
-- Includes port, title, layout, language, and sample navigation (Home + Settings)
+- Creates a minimal `shellui.config.json` in the project root (or the given directory)
+- Includes `$schema` for editor autocomplete, port, title, layout, language, and sample navigation (Home + Settings)
 - Does not overwrite an existing config unless `--force` is used
 
 **Options:**
 
 - `root` (optional): Directory where to create the config (default: current directory)
-- `--force`: Overwrite existing `shellui.config.ts`
+- `--force`: Overwrite existing `shellui.config.json`
 
 **Example:**
 
@@ -45,6 +45,52 @@ shellui init --force
 ```
 
 After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.svg`, and `icons/` (e.g. `home.svg`, `settings.svg`) to customize assets, then run `shellui dev` to begin development.
+
+### `shellui config migrate [root]`
+
+Migrate an existing `shellui.config.ts` to `shellui.config.json`.
+
+**Usage:**
+
+```bash
+shellui config migrate
+shellui config migrate ./my-project
+```
+
+**Description:**
+
+- **Evaluates** the TypeScript config (same as `shellui start` / `build`) and writes the resulting initialized object as JSON
+- Runtime values are baked in: `process.env`, `readFileSync` contents, computed fields, etc. become plain JSON values
+- Writes `shellui.config.json` with `$schema`
+- Renames `shellui.config.ts` to `shellui.config.ts.bak` (does not delete)
+- Validates the result against the JSON Schema
+
+If no `shellui.config.ts` is found, the command exits with a helpful error. Review the JSON afterward (especially env-dependent values), then optionally run `shellui config split`.
+
+### `shellui config split [root]` / `shellui config unsplit [root]`
+
+Split a single `shellui.config.json` into focused files, or merge them back.
+
+**Usage:**
+
+```bash
+shellui config split
+shellui config unsplit
+shellui config split ./my-project
+```
+
+**Split** turns one file into section files such as:
+
+- `shellui.root.config.json` — scalars (`port`, `title`, `layout`, …)
+- `shellui.navigation.config.json`
+- `shellui.storage.config.json`
+- `shellui.backend.config.json` (authentication / API)
+- `shellui.administration.config.json`
+- …and other top-level sections that are present
+
+After a successful split, `shellui.config.json` is removed (single-file and split modes cannot coexist).
+
+**Unsplit** merges all `shellui.*.config.json` files back into `shellui.config.json`, validates the result, and deletes the split files. Duplicate top-level keys across split files are rejected.
 
 ### `shellui start [root]` / `shellui dev [root]`
 
@@ -137,7 +183,23 @@ npx shellui build --app --bundles app,dmg
 
 ## Configuration
 
-Shellui uses a TypeScript configuration file to customize your application. The CLI looks for `shellui.config.ts` in your project root.
+Shellui uses a JSON configuration file by default. The CLI looks for config in this order:
+
+1. `shellui.config.json` (single file)
+2. Split files: `shellui.<name>.config.json` (when no main JSON file is present)
+3. `shellui.config.ts` (advanced, code-based configuration)
+
+You cannot use a main JSON file and split files at the same time. Configuration is validated against the JSON Schema shipped with `@shellui/core` (`schemas/shellui.config.schema.json`). Invalid config fails at load time with actionable errors.
+
+Point editors at the schema via `$schema`:
+
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "port": 4000,
+  "title": "My Application"
+}
+```
 
 ### Configuration File Location
 
@@ -240,7 +302,45 @@ For advanced navigation features like groups, localization, visibility control, 
 
 ### Example Configuration
 
-**TypeScript (`shellui.config.ts`):**
+**JSON (`shellui.config.json`) — recommended:**
+
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "port": 4000,
+  "title": "My Shellui App",
+  "backend": {
+    "type": "supabase",
+    "url": "http://localhost:54321"
+  },
+  "navigation": [
+    {
+      "label": "Documentation",
+      "path": "docs",
+      "url": "https://docs.example.com/",
+      "icon": "/icons/book-open.svg"
+    },
+    {
+      "label": "Dashboard",
+      "path": "dashboard",
+      "url": "http://localhost:4000/",
+      "icon": "/icons/layout.svg"
+    },
+    {
+      "label": "Settings",
+      "path": "settings",
+      "url": "/__settings",
+      "icon": "/icons/settings.svg",
+      "openIn": "modal",
+      "position": "end"
+    }
+  ]
+}
+```
+
+**Advanced TypeScript (`shellui.config.ts`):**
+
+Use TypeScript only when you need code (for example loading markdown from disk). Prefer JSON for declarative config. Migrate with `shellui config migrate` when possible.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -257,19 +357,7 @@ const config: ShellUIConfig = {
       label: 'Documentation',
       path: 'docs',
       url: 'https://docs.example.com/',
-      icon: 'BookOpen',
-    },
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: 'http://localhost:4000/',
-      icon: 'Layout',
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: 'https://app.example.com/settings',
-      icon: 'Settings',
+      icon: '/icons/book-open.svg',
     },
   ],
 };
@@ -279,7 +367,7 @@ export default config;
 
 ### Configuration File Watching
 
-When you run `shellui start`, the CLI automatically watches your configuration file for changes. When you modify the configuration:
+When you run `shellui start`, the CLI automatically watches your active configuration file(s) for changes. When you modify the configuration:
 
 1. The server detects the change
 2. Automatically restarts with the new configuration
@@ -293,7 +381,7 @@ When using the CLI, your project structure should look like:
 
 ```
 my-project/
-├── shellui.config.ts
+├── shellui.config.json
 ├── package.json
 ├── static/                # Optional static assets (favicon, icons, fonts)
 ├── dist/                  # Build output (gitignored, generated locally)
@@ -317,7 +405,9 @@ For detailed configuration options, see:
 
 ## Tips
 
-- TypeScript configuration gives you IDE support and type checking
+- Prefer `shellui.config.json` with `$schema` for autocomplete and validation
+- Use `shellui config migrate` to convert existing TypeScript configs
+- Use `shellui config split` / `unsplit` for large configs
 - The CLI automatically handles hot reloading during development
 - Configuration changes trigger automatic server restarts
 - Production builds are optimized and ready for deployment
@@ -341,7 +431,7 @@ npx shellui start
 
 ### Configuration Not Found
 
-Ensure `shellui.config.ts` exists in your project root directory.
+Ensure `shellui.config.json` exists in your project root (or split / TypeScript config). Run `shellui init` to create one.
 
 ### Port Already in Use
 
@@ -355,7 +445,7 @@ Change the port in your configuration file:
 
 ### TypeScript Config Not Loading
 
-Ensure TypeScript is installed if using `shellui.config.ts`:
+TypeScript config is an advanced fallback used only when no JSON or split config is present. Ensure the file exports a serializable object (`export default` or `export const config`). For declarative config, prefer JSON and `shellui config migrate`.
 
 ```bash
 npm install -D typescript

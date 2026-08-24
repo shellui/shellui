@@ -1,8 +1,8 @@
 # Backend
 
-After [Quick Start](/quickstart), choose how Shellui talks to an auth and API provider. This page compares options and documents the `backend` block in `shellui.config.ts`. Continue with [Authentication](/features/authentication) to wire login and guarded routes.
+After [Quick Start](/quickstart), choose how Shellui talks to an auth and API provider. This page compares options and documents the `backend` block in `shellui.config.json`. Continue with [Authentication](/features/authentication) to wire login and guarded routes.
 
-Shellui treats authentication and tenant-aware APIs as a **backend integration**. You choose a provider in `shellui.config.ts`; the shell handles login UI, session storage, token refresh, and propagating the signed-in user to embedded apps through the SDK.
+Shellui treats authentication and tenant-aware APIs as a **backend integration**. You choose a provider in `shellui.config.json`; the shell handles login UI, session storage, token refresh, and propagating the signed-in user to embedded apps through the SDK.
 
 Shellui does not ship a database or user directory. You run (or subscribe to) a backend that issues tokens and exposes auth settings. The shell connects to that backend over HTTP.
 

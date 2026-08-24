@@ -8,11 +8,12 @@ Each command is a separate file that exports a command function:
 
 - `start.js` - Start the Shellui development server (`dev` alias, `--app` for Tauri)
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
-- `init.js` - Create a `shellui.config.ts` boilerplate
+- `init.js` - Create a `shellui.config.json` boilerplate
+- `config.js` - `config migrate` / `config split` / `config unsplit`
 
 ## Adding a New Command
 
-1. Create a new file in this directory (e.g., `new-command.js`)
+1. Create a new file in this directory (e.g. `new-command.js`)
 2. Export a function that implements the command logic:
 
 ```javascript
@@ -39,4 +40,6 @@ export { newCommandCommand } from './new-command.js';
 
 - **dev** / **start** - Starts the development server (`--app` for Tauri desktop)
 - **build** - Builds the application for production (`--app` for Tauri desktop)
-- **init** - Creates a `shellui.config.ts` boilerplate
+- **init** - Creates a `shellui.config.json` boilerplate
+- **config migrate** - Evaluates TypeScript config and writes JSON
+- **config split** / **config unsplit** - Split or merge JSON configuration files

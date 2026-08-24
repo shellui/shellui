@@ -6,7 +6,17 @@
  */
 
 export { resolvePackagePath, resolveSdkEntry } from './package-path.js';
-export { loadConfig } from './config.js';
+export { loadConfig, getWatchableConfigPaths, hasAnyConfig } from './config.js';
+export {
+  MAIN_CONFIG_FILE,
+  TS_CONFIG_FILE,
+  CONFIG_SCHEMA_REF,
+  discoverConfigMode,
+  listSplitConfigFiles,
+} from './config-paths.js';
+export { validateConfig } from './config-validate.js';
+export { splitConfig, unsplitConfig, mergeSplitConfigs } from './config-split.js';
+export { migrateTsConfig } from './migrate-config.js';
 export {
   DIST_DIR,
   WEB_DIST_DIR,

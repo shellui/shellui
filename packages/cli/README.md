@@ -21,6 +21,9 @@ shellui dev [path/to/project] [--host] [--app]
 shellui start [path/to/project] [--host] [--app]   # alias: dev
 shellui build [path/to/project] [--app] [--bundles <targets>]
 shellui init [path/to/project] [--force]
+shellui config migrate [path/to/project]
+shellui config split [path/to/project]
+shellui config unsplit [path/to/project]
 ```
 
 ### Commands
@@ -43,11 +46,24 @@ shellui init [path/to/project] [--force]
   shellui build --app --bundles app,dmg   # + macOS DMG installer
   ```
 
-- **init** - Create a `shellui.config.ts` boilerplate
+- **init** - Create a `shellui.config.json` boilerplate
 
   ```bash
   shellui init
   shellui init --force
+  ```
+
+- **config migrate** - Evaluate `shellui.config.ts` and write `shellui.config.json`
+
+  ```bash
+  shellui config migrate
+  ```
+
+- **config split** / **config unsplit** - Split or merge JSON configuration files
+
+  ```bash
+  shellui config split
+  shellui config unsplit
   ```
 
 See the Shellui docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.

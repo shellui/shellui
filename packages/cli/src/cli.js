@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { cac } from 'cac';
-import { startCommand, buildCommand, initCommand } from './commands/index.js';
+import { startCommand, buildCommand, initCommand, configCommand } from './commands/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
 const cli = cac('shellui');
@@ -25,9 +25,13 @@ cli
   .action((root, options) => buildCommand(root, options));
 
 cli
-  .command('init [root]', 'Create a shellui.config.ts boilerplate')
+  .command('init [root]', 'Create a shellui.config.json boilerplate')
   .option('--force', 'Overwrite existing config file')
   .action((root, options) => initCommand(root, options));
+
+cli
+  .command('config <action> [root]', 'Config tools: migrate | split | unsplit')
+  .action((action, root) => configCommand(action, root));
 
 // Setup CLI metadata
 cli.help();

@@ -1,0 +1,737 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ShellUIConfig",
+  "definitions": {
+    "ShellUIConfig": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "number"
+        },
+        "title": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string",
+          "description": "App version string (e.g. \"1.2.0\"). Shown in Settings > System > Update app."
+        },
+        "favicon": {
+          "type": "string",
+          "description": "Favicon path (e.g. '/favicon.svg'). Used for the document link rel=\"icon\"."
+        },
+        "appIcon": {
+          "type": "string",
+          "description": "App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header."
+        },
+        "logo": {
+          "type": "string",
+          "description": "Logo path (e.g. '/logo.svg'). If defined, displayed as image in sidebar header instead of text title."
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "layout": {
+          "$ref": "#/definitions/LayoutType",
+          "description": "Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation."
+        },
+        "start_url": {
+          "type": "string",
+          "description": "When set, opening the app at \"/\" redirects to this path (e.g. \"/playground\")."
+        },
+        "navigation": {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/NavigationItem"
+              },
+              {
+                "$ref": "#/definitions/NavigationGroup"
+              }
+            ]
+          }
+        },
+        "administration": {
+          "$ref": "#/definitions/AdministrationConfig",
+          "description": "Custom navigation for the staff admin panel (below Dashboard). Propagated to the admin iframe via SDK settings. See Administration docs."
+        },
+        "storage": {
+          "$ref": "#/definitions/StorageConfig",
+          "description": "Storage-service connection. Propagated to iframes via SDK settings. Enables Admin → Storage when `url` is set. Settings → Storage (quota) is shown when `url` is set unless `storage.showInSettings` is false."
+        },
+        "themes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ThemeDefinition"
+          }
+        },
+        "defaultTheme": {
+          "type": "string"
+        },
+        "sentry": {
+          "$ref": "#/definitions/SentryConfig",
+          "description": "Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds."
+        },
+        "backend": {
+          "$ref": "#/definitions/BackendConfig",
+          "description": "Backend communication config. Defaults to undefined (no backend integration)."
+        },
+        "cookieConsent": {
+          "$ref": "#/definitions/CookieConsentConfig",
+          "description": "Cookie consent: list of cookies by category; accepted ids are stored in settings."
+        },
+        "legalDocuments": {
+          "$ref": "#/definitions/LegalDocumentsConfig",
+          "description": "Legal documents content rendered as markdown."
+        },
+        "$schema": {
+          "type": "string",
+          "description": "JSON Schema URL for editor autocomplete and validation."
+        }
+      },
+      "additionalProperties": false
+    },
+    "LayoutType": {
+      "type": "string",
+      "enum": ["sidebar", "fullscreen", "windows", "app-bar"],
+      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with select menu for start links and icon-only end links."
+    },
+    "NavigationItem": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/LocalizedString"
+            }
+          ]
+        },
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings."
+        },
+        "hideWhenLoggedOut": {
+          "type": "boolean",
+          "description": "When true, hide this item from navigation when the user is not authenticated."
+        },
+        "requiresAuth": {
+          "type": "boolean",
+          "description": "When true, navigating to this route requires authentication and redirects to login with a next URL."
+        },
+        "requiresDevMode": {
+          "type": "boolean",
+          "description": "When true, this item is available only when Settings > Advanced > Developer features is enabled."
+        },
+        "requiresStaff": {
+          "type": "boolean",
+          "description": "When true, this item is available only to staff users (`isStaff`)."
+        },
+        "hiddenOnMobile": {
+          "type": "boolean",
+          "description": "When true, hide this item on mobile (bottom nav). Has no effect if hidden is true."
+        },
+        "hiddenOnDesktop": {
+          "type": "boolean",
+          "description": "When true, hide this item on desktop (sidebar). Has no effect if hidden is true."
+        },
+        "openIn": {
+          "type": "string",
+          "enum": ["default", "modal", "drawer", "external"],
+          "description": "How to open this link: 'default' (navigate in main area), 'modal', 'drawer', or 'external' (target=\"_blank\")."
+        },
+        "useHashRouter": {
+          "type": "boolean",
+          "description": "When true, the app uses hash-based routing (e.g. /#/path). If omitted, inferred from url containing /#/."
+        },
+        "drawerPosition": {
+          "$ref": "#/definitions/DrawerPosition",
+          "description": "Optional drawer position when openIn === 'drawer'. Default is 'right' if omitted."
+        },
+        "position": {
+          "type": "string",
+          "enum": ["start", "end"],
+          "description": "Sidebar position: 'start' (default) or 'end'. End items are rendered in the sidebar footer."
+        },
+        "settings": {
+          "type": "string",
+          "description": "URL to display as a settings panel in Settings > Applications. When set, the nav item appears in the Applications group."
+        },
+        "safeForAuthToken": {
+          "type": "boolean",
+          "description": "Trust control for auth token sharing to iframe apps.\n- undefined/true: trusted (default), token can be shared\n- false: untrusted, token is never shared"
+        }
+      },
+      "required": ["label", "path", "url"],
+      "additionalProperties": false
+    },
+    "LocalizedString": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "en": {
+              "type": "string"
+            },
+            "fr": {
+              "type": "string"
+            }
+          },
+          "required": ["en", "fr"],
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "DrawerPosition": {
+      "type": "string",
+      "enum": ["top", "bottom", "left", "right"],
+      "description": "Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer')."
+    },
+    "NavigationGroup": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/LocalizedString"
+            }
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NavigationItem"
+          }
+        },
+        "position": {
+          "type": "string",
+          "enum": ["start", "end"],
+          "description": "Sidebar position: 'start' (default) or 'end'. End groups are rendered in the sidebar footer."
+        }
+      },
+      "required": ["title", "items"],
+      "additionalProperties": false
+    },
+    "AdministrationConfig": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "$ref": "#/definitions/LocalizedString"
+            }
+          ],
+          "description": "Section title shown in the admin sidebar below Dashboard."
+        },
+        "navigation": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NavigationItem"
+          },
+          "description": "Flat list of navigation items (same shape as top-level `navigation` items). Order is preserved in the admin sidebar."
+        }
+      },
+      "required": ["title", "navigation"],
+      "additionalProperties": false,
+      "description": "Custom navigation section for the staff administration panel. Admin app URL remains `backend.adminUrl` / `backend.adminPathname`. v1 is a flat list only (no nested groups)."
+    },
+    "StorageConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of storage-service (e.g. `http://localhost:8001`)."
+        },
+        "filesUrl": {
+          "type": "string",
+          "description": "Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`)."
+        },
+        "showInSettings": {
+          "type": "boolean",
+          "description": "When false, hide Settings → Storage even if `url` is set. Admin Storage is unaffected. Default: true."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. ShellUI will also use this for the SDK file API (`shellui.storage`)."
+    },
+    "ThemeDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "colors": {
+          "$ref": "#/definitions/ThemeColors"
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "headingFontFamily": {
+          "type": "string"
+        },
+        "bodyFontFamily": {
+          "type": "string"
+        },
+        "fontFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "letterSpacing": {
+          "type": "string"
+        },
+        "textShadow": {
+          "type": "string"
+        },
+        "lineHeight": {
+          "type": "string"
+        }
+      },
+      "required": ["name", "displayName", "colors"],
+      "additionalProperties": false
+    },
+    "ThemeColors": {
+      "type": "object",
+      "properties": {
+        "light": {
+          "type": "object",
+          "properties": {
+            "background": {
+              "type": "string"
+            },
+            "foreground": {
+              "type": "string"
+            },
+            "card": {
+              "type": "string"
+            },
+            "cardForeground": {
+              "type": "string"
+            },
+            "popover": {
+              "type": "string"
+            },
+            "popoverForeground": {
+              "type": "string"
+            },
+            "primary": {
+              "type": "string"
+            },
+            "primaryForeground": {
+              "type": "string"
+            },
+            "secondary": {
+              "type": "string"
+            },
+            "secondaryForeground": {
+              "type": "string"
+            },
+            "muted": {
+              "type": "string"
+            },
+            "mutedForeground": {
+              "type": "string"
+            },
+            "accent": {
+              "type": "string"
+            },
+            "accentForeground": {
+              "type": "string"
+            },
+            "destructive": {
+              "type": "string"
+            },
+            "destructiveForeground": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "input": {
+              "type": "string"
+            },
+            "ring": {
+              "type": "string"
+            },
+            "radius": {
+              "type": "string"
+            },
+            "sidebarBackground": {
+              "type": "string"
+            },
+            "sidebarForeground": {
+              "type": "string"
+            },
+            "sidebarPrimary": {
+              "type": "string"
+            },
+            "sidebarPrimaryForeground": {
+              "type": "string"
+            },
+            "sidebarAccent": {
+              "type": "string"
+            },
+            "sidebarAccentForeground": {
+              "type": "string"
+            },
+            "sidebarBorder": {
+              "type": "string"
+            },
+            "sidebarRing": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "background",
+            "foreground",
+            "card",
+            "cardForeground",
+            "popover",
+            "popoverForeground",
+            "primary",
+            "primaryForeground",
+            "secondary",
+            "secondaryForeground",
+            "muted",
+            "mutedForeground",
+            "accent",
+            "accentForeground",
+            "destructive",
+            "destructiveForeground",
+            "border",
+            "input",
+            "ring",
+            "radius",
+            "sidebarBackground",
+            "sidebarForeground",
+            "sidebarPrimary",
+            "sidebarPrimaryForeground",
+            "sidebarAccent",
+            "sidebarAccentForeground",
+            "sidebarBorder",
+            "sidebarRing"
+          ],
+          "additionalProperties": false
+        },
+        "dark": {
+          "type": "object",
+          "properties": {
+            "background": {
+              "type": "string"
+            },
+            "foreground": {
+              "type": "string"
+            },
+            "card": {
+              "type": "string"
+            },
+            "cardForeground": {
+              "type": "string"
+            },
+            "popover": {
+              "type": "string"
+            },
+            "popoverForeground": {
+              "type": "string"
+            },
+            "primary": {
+              "type": "string"
+            },
+            "primaryForeground": {
+              "type": "string"
+            },
+            "secondary": {
+              "type": "string"
+            },
+            "secondaryForeground": {
+              "type": "string"
+            },
+            "muted": {
+              "type": "string"
+            },
+            "mutedForeground": {
+              "type": "string"
+            },
+            "accent": {
+              "type": "string"
+            },
+            "accentForeground": {
+              "type": "string"
+            },
+            "destructive": {
+              "type": "string"
+            },
+            "destructiveForeground": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "input": {
+              "type": "string"
+            },
+            "ring": {
+              "type": "string"
+            },
+            "radius": {
+              "type": "string"
+            },
+            "sidebarBackground": {
+              "type": "string"
+            },
+            "sidebarForeground": {
+              "type": "string"
+            },
+            "sidebarPrimary": {
+              "type": "string"
+            },
+            "sidebarPrimaryForeground": {
+              "type": "string"
+            },
+            "sidebarAccent": {
+              "type": "string"
+            },
+            "sidebarAccentForeground": {
+              "type": "string"
+            },
+            "sidebarBorder": {
+              "type": "string"
+            },
+            "sidebarRing": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "background",
+            "foreground",
+            "card",
+            "cardForeground",
+            "popover",
+            "popoverForeground",
+            "primary",
+            "primaryForeground",
+            "secondary",
+            "secondaryForeground",
+            "muted",
+            "mutedForeground",
+            "accent",
+            "accentForeground",
+            "destructive",
+            "destructiveForeground",
+            "border",
+            "input",
+            "ring",
+            "radius",
+            "sidebarBackground",
+            "sidebarForeground",
+            "sidebarPrimary",
+            "sidebarPrimaryForeground",
+            "sidebarAccent",
+            "sidebarAccentForeground",
+            "sidebarBorder",
+            "sidebarRing"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": ["light", "dark"],
+      "additionalProperties": false
+    },
+    "SentryConfig": {
+      "type": "object",
+      "properties": {
+        "dsn": {
+          "type": "string",
+          "description": "Sentry DSN (Data Source Name). Required for Sentry to receive events."
+        },
+        "environment": {
+          "type": "string",
+          "description": "Environment name (e.g. 'production', 'staging'). Shown in Sentry dashboard."
+        },
+        "release": {
+          "type": "string",
+          "description": "Release identifier (e.g. git SHA or version). Used for release-based grouping."
+        }
+      },
+      "required": ["dsn"],
+      "additionalProperties": false,
+      "description": "Sentry error reporting configuration. Only used in production; ignored in dev."
+    },
+    "BackendConfig": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/BackendType",
+          "description": "Backend provider type."
+        },
+        "url": {
+          "type": "string",
+          "description": "Base URL used to access backend APIs."
+        },
+        "adminPathname": {
+          "type": "string",
+          "description": "Admin route pathname (e.g. \"/admin\"). Used as Shell route path for embedded admin panel."
+        },
+        "adminUrl": {
+          "type": "string",
+          "description": "Admin content URL loaded in the admin route view (e.g. \"https://example.com/admin\")."
+        },
+        "publishableKey": {
+          "type": "string",
+          "description": "Optional Supabase publishable key (public key)."
+        },
+        "login": {
+          "$ref": "#/definitions/BackendLoginConfig",
+          "description": "Optional login capabilities used by frontend for immediate rendering."
+        },
+        "companyId": {
+          "type": ["string", "number"],
+          "description": "Optional tenant id used for multi-tenant shellui-auth calls."
+        }
+      },
+      "required": ["type", "url"],
+      "additionalProperties": false,
+      "description": "Backend API configuration."
+    },
+    "BackendType": {
+      "type": "string",
+      "enum": ["shellui", "supabase"],
+      "description": "Supported backend providers for auth/API communication."
+    },
+    "BackendLoginConfig": {
+      "type": "object",
+      "properties": {
+        "methods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BackendLoginMethod"
+          },
+          "description": "Enabled login methods shown by the Login view."
+        },
+        "oauthProviders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "OAuth providers used when oauth is enabled (e.g. [\"github\"])."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional login capabilities declared by app config for immediate UI rendering."
+    },
+    "BackendLoginMethod": {
+      "type": "string",
+      "enum": ["password", "oauth", "magic_link", "web3"],
+      "description": "Supported auth login methods that can be declared in config."
+    },
+    "CookieConsentConfig": {
+      "type": "object",
+      "properties": {
+        "cookies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CookieDefinition"
+          },
+          "description": "List of cookies the app may use. User consent is collected per category/cookie."
+        }
+      },
+      "required": ["cookies"],
+      "additionalProperties": false,
+      "description": "Cookie consent configuration. Accepted hosts are stored in settings; store consentedCookieHosts when user submits so we can detect new cookies and re-prompt while keeping existing approvals."
+    },
+    "CookieDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name for the cookie (e.g. \"Sentry Error Reporting\")."
+        },
+        "host": {
+          "type": "string",
+          "description": "Host or domain the cookie belongs to (e.g. \"sentry.io\", \".example.com\"). Unique key for consent and feature gating."
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "Duration in seconds (e.g. 31536000 for 1 year)."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type label for clarity (e.g. \"first_party\", \"third_party\", \"http_only\")."
+        },
+        "category": {
+          "$ref": "#/definitions/CookieConsentCategory",
+          "description": "Category for grouping in the consent UI."
+        },
+        "description": {
+          "$ref": "#/definitions/LocalizedString",
+          "description": "Optional short description shown in the consent / settings UI. Can be a string or localized object with language keys."
+        }
+      },
+      "required": ["name", "host", "durationSeconds", "type", "category"],
+      "additionalProperties": false,
+      "description": "Definition of a cookie that can be toggled by the user via cookie consent. Host is the unique key: use it to gate features (e.g. getCookieConsentAccepted('sentry.io'))."
+    },
+    "CookieConsentCategory": {
+      "type": "string",
+      "enum": ["strict_necessary", "functional_performance", "targeting", "social_media_embedded"],
+      "description": "Cookie consent categories for privacy-friendly grouping in the UI.\n- strict_necessary: Required for the app to work; typically no consent needed.\n- functional_performance: Analytics, performance, preferences.\n- targeting: Advertising, personalisation.\n- social_media_embedded: Social widgets, embedded content."
+    },
+    "LegalDocumentsConfig": {
+      "type": "object",
+      "properties": {
+        "privacyPolicy": {
+          "type": "string"
+        },
+        "termsOfService": {
+          "type": "string"
+        },
+        "legalNotice": {
+          "type": "string"
+        },
+        "dataProcessingAgreement": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "title": "ShellUIConfig",
+  "description": "Shellui application configuration (shellui.config.json). Generated from ShellUIConfig TypeScript types."
+}

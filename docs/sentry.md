@@ -5,13 +5,13 @@ Shellui can report runtime errors to [Sentry](https://sentry.io) in production s
 ## Behavior
 
 - **Production only**: Sentry is initialized only when the app is built and run in production. In development (`shellui start` / dev mode), Sentry is **never** initialized, so local errors are not sent and you avoid noise in your Sentry project.
-- **Env-only, merged on load**: You do **not** add Sentry to `shellui.config.ts`. The CLI merges Sentry into the config when it loads it, using environment variables. Enable or disable via env only.
+- **Env-only, merged on load**: You do **not** add Sentry to `shellui.config.json`. The CLI merges Sentry into the config when it loads it, using environment variables. Enable or disable via env only.
 
 ## Configuration
 
 ### 1. Environment variables
 
-Sentry is **merged on load** by the CLI: when you run `shellui build` or `shellui start`, the loaded config is augmented with `sentry` from env. No Sentry code in `shellui.config.ts` is required.
+Sentry is **merged on load** by the CLI: when you run `shellui build` or `shellui start`, the loaded config is augmented with `sentry` from env. No Sentry code in `shellui.config.json` is required.
 
 | Environment variable | Required        | Description                                                                                                                                                                |
 | -------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,4 +75,4 @@ At build time the CLI injects the full config (including `sentry`) via the virtu
 | Production build, `SENTRY_DSN` not set          | No                  | No reporting.                           |
 | Production build, `SENTRY_ENABLED=false` or `0` | No                  | Disabled even if DSN is set.            |
 
-Sentry is configured only via env: set `SENTRY_DSN` (and optionally `SENTRY_ENABLED`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`) in deployment or `.env`. Nothing is required in `shellui.config.ts`.
+Sentry is configured only via env: set `SENTRY_DSN` (and optionally `SENTRY_ENABLED`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`) in deployment or `.env`. Nothing is required in `shellui.config.json`.

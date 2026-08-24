@@ -2,7 +2,7 @@
 
 This guide follows [Backend](/backend) in the getting-started path. It covers sign-in configuration, built-in login routes, and navigation guards for developers hosting their own shell.
 
-Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.ts`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
+Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.json`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Configure a backend provider first. See [Backend](/backend) for Shellui identity
 
 ## Enable authentication
 
-Add a `backend` block to `shellui.config.ts` (or `shellui.config.json`). Without it, `useAuth()` reports signed out and login actions are unavailable.
+Add a `backend` block to `shellui.config.json`. Without it, `useAuth()` reports signed out and login actions are unavailable.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -197,7 +197,7 @@ Legal document links on the login page come from `legalDocuments` in config; see
 ## Checklist
 
 1. Choose [Backend](/backend) provider and run it (identity service or Supabase).
-2. Set `backend.type`, `url`, and provider-specific keys in `shellui.config.ts`.
+2. Set `backend.type`, `url`, and provider-specific keys in `shellui.config.json`.
 3. Set `backend.login.methods` and `oauthProviders` to match what the backend enables.
 4. Mark sensitive nav items with `requiresAuth` and optionally `hideWhenLoggedOut`.
 5. Test deep links while signed out (`/billing` → login → return).

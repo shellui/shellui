@@ -93,7 +93,7 @@ export interface SettingsAdministration {
 }
 
 /**
- * Storage-service connection from host `storage` in shellui.config.ts.
+ * Storage-service connection from host `storage` in shellui.config.json.
  * Used by Admin → Storage, Settings → Storage (quota), and the SDK file API
  * (`shellui.storage`) which the shell executes against this URL.
  */
@@ -251,12 +251,12 @@ export interface Settings {
     items: SettingsNavigationItem[];
   };
   /**
-   * Custom admin-panel navigation (from host `administration` in shellui.config.ts).
+   * Custom admin-panel navigation (from host `administration` in shellui.config.json).
    * Consumed by the staff admin app to render extra sidebar links below Dashboard.
    */
   administration?: SettingsAdministration | null;
   /**
-   * Storage-service connection (from host `storage` in shellui.config.ts).
+   * Storage-service connection (from host `storage` in shellui.config.json).
    * When set, Admin shows Storage and iframe apps can call `shellui.storage`.
    * Settings → Storage (quota) is a host UI and is omitted when `storage` is
    * unset or `showInSettings` is false.

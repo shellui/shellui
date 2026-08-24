@@ -5,6 +5,8 @@ import fs from 'fs';
 import pc from 'picocolors';
 import {
   loadConfig,
+  getWatchableConfigPaths,
+  hasAnyConfig,
   getCoreSrcPath,
   createResolveAlias,
   createPostCSSConfig,
@@ -19,7 +21,8 @@ import { initCommand } from './init.js';
 import { tauriDevCommand } from '../utils/tauri.js';
 
 let currentServer = null;
-let configWatcher = null;
+/** @type {fs.FSWatcher[]} */
+let configWatchers = [];
 let restartTimeout = null;
 let isFirstStart = true;
 
@@ -49,8 +52,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
 
-  // Get project root node_modules path to ensure all modules resolve from root
-  const projectRootNodeModules = path.resolve(cwd, root, 'node_modules');
   // CRITICAL: Set cacheDir to absolute path in project root to prevent Vite from creating
   // cache inside @shellui/core/node_modules/.vite/deps
   const viteCacheDir = path.resolve(cwd, root, 'node_modules', '.vite');
@@ -136,32 +137,43 @@ async function restartServer(root, cwd, host = false) {
 }
 
 /**
- * Watch config file for changes
+ * Close all config file watchers.
+ */
+function closeConfigWatchers() {
+  for (const watcher of configWatchers) {
+    try {
+      watcher.close();
+    } catch {
+      // ignore
+    }
+  }
+  configWatchers = [];
+}
+
+/**
+ * Watch config file(s) for changes
  * @param {string} root - Root directory
  * @param {string} cwd - Current working directory
  * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
  */
 function watchConfig(root, cwd, host = false) {
-  const configDir = path.resolve(cwd, root);
-  const tsConfigPath = path.join(configDir, 'shellui.config.ts');
+  closeConfigWatchers();
 
-  if (!fs.existsSync(tsConfigPath)) {
-    console.log(pc.yellow(`No shellui.config.ts found, config watching disabled.`));
+  const paths = getWatchableConfigPaths(root);
+  if (!paths.length) {
+    console.log(pc.yellow('No config files found, config watching disabled.'));
     return;
   }
 
-  // Close existing watcher if any
-  if (configWatcher) {
-    configWatcher.close();
+  for (const configPath of paths) {
+    const watcher = fs.watch(configPath, { persistent: true }, async (eventType) => {
+      if (eventType === 'change') {
+        await restartServer(root, cwd, host);
+      }
+    });
+    configWatchers.push(watcher);
+    console.log(pc.green(`👀 Watching config file: ${configPath}`));
   }
-
-  configWatcher = fs.watch(tsConfigPath, { persistent: true }, async (eventType) => {
-    if (eventType === 'change') {
-      await restartServer(root, cwd, host);
-    }
-  });
-
-  console.log(pc.green(`👀 Watching config file: ${tsConfigPath}`));
 }
 
 /**
@@ -182,10 +194,8 @@ export async function startCommand(root = '.', options = {}) {
     return;
   }
 
-  const configDir = path.resolve(cwd, root);
-  const configPath = path.join(configDir, 'shellui.config.ts');
-  if (!fs.existsSync(configPath)) {
-    console.log(pc.yellow(`No shellui.config.ts found. Running init...`));
+  if (!hasAnyConfig(root)) {
+    console.log(pc.yellow(`No shellui.config.json found. Running init...`));
     await initCommand(root);
   }
 
@@ -202,9 +212,7 @@ export async function startCommand(root = '.', options = {}) {
 
     // Handle graceful shutdown
     process.on('SIGTERM', async () => {
-      if (configWatcher) {
-        configWatcher.close();
-      }
+      closeConfigWatchers();
       if (currentServer) {
         await currentServer.close();
       }
@@ -212,9 +220,7 @@ export async function startCommand(root = '.', options = {}) {
     });
 
     process.on('SIGINT', async () => {
-      if (configWatcher) {
-        configWatcher.close();
-      }
+      closeConfigWatchers();
       if (currentServer) {
         await currentServer.close();
       }

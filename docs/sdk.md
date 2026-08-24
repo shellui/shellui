@@ -165,7 +165,7 @@ shellui.login({
 
 ### Storage (files)
 
-Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.ts`. See [Storage](/features/storage) for the full API.
+Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.json`. See [Storage](/features/storage) for the full API.
 
 ```javascript
 import { shellui } from '@shellui/sdk';
