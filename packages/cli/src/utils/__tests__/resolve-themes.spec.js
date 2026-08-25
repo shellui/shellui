@@ -44,7 +44,7 @@ describe('resolve-themes', () => {
   test('curated-themes.json validates each theme against theme schema', () => {
     const curated = JSON.parse(fs.readFileSync(resolveCuratedThemesPath(), 'utf8'));
     expect(curated.version).toBe(1);
-    expect(curated.themes.length).toBe(5);
+    expect(curated.themes.length).toBe(47);
     for (const theme of curated.themes) {
       expect(() => validateThemeJson(theme, { source: theme.name })).not.toThrow();
     }
@@ -71,7 +71,55 @@ describe('resolve-themes', () => {
       MAIN_CONFIG_FILE,
       JSON.stringify({
         title: 'multi',
-        themes: ['shellui', 'claude', 'light-green', 'zen-inspired', 'astro-vista'],
+        themes: [
+          'shellui',
+          'claude',
+          'light-green',
+          'zen-inspired',
+          'astro-vista',
+          'shadcn',
+          'amber-minimal',
+          'amethyst-haze',
+          'bold-tech',
+          'bubblegum',
+          'caffeine',
+          'candyland',
+          'catppuccin',
+          'claymorphism',
+          'clean-slate',
+          'cosmic-night',
+          'cyberpunk',
+          'darkmatter',
+          'doom-64',
+          'elegant-luxury',
+          'graphite',
+          'kodama-grove',
+          'midnight-bloom',
+          'mocha-mousse',
+          'modern-minimal',
+          'mono',
+          'nature',
+          'neo-brutalism',
+          'northern-lights',
+          'notebook',
+          'ocean-breeze',
+          'pastel-dreams',
+          'perpetuity',
+          'quantum-rose',
+          'retro-arcade',
+          'sage-garden',
+          'soft-pop',
+          'solar-dusk',
+          'starry-night',
+          'sunset-horizon',
+          'supabase',
+          't3-chat',
+          'tangerine',
+          'twitter',
+          'vercel',
+          'vintage-paper',
+          'violet-bloom',
+        ],
         activeTheme: 'claude',
       }),
     );
@@ -82,6 +130,48 @@ describe('resolve-themes', () => {
       'light-green',
       'zen-inspired',
       'astro-vista',
+      'shadcn',
+      'amber-minimal',
+      'amethyst-haze',
+      'bold-tech',
+      'bubblegum',
+      'caffeine',
+      'candyland',
+      'catppuccin',
+      'claymorphism',
+      'clean-slate',
+      'cosmic-night',
+      'cyberpunk',
+      'darkmatter',
+      'doom-64',
+      'elegant-luxury',
+      'graphite',
+      'kodama-grove',
+      'midnight-bloom',
+      'mocha-mousse',
+      'modern-minimal',
+      'mono',
+      'nature',
+      'neo-brutalism',
+      'northern-lights',
+      'notebook',
+      'ocean-breeze',
+      'pastel-dreams',
+      'perpetuity',
+      'quantum-rose',
+      'retro-arcade',
+      'sage-garden',
+      'soft-pop',
+      'solar-dusk',
+      'starry-night',
+      'sunset-horizon',
+      'supabase',
+      't3-chat',
+      'tangerine',
+      'twitter',
+      'vercel',
+      'vintage-paper',
+      'violet-bloom',
     ]);
     expect(config.activeTheme).toBe('claude');
   });
@@ -143,6 +233,6 @@ describe('resolve-themes', () => {
     const builtins = loadBuiltinThemes();
     expect(builtins.shellui.name).toBe('shellui');
     expect(builtins.default.name).toBe('shellui');
-    expect(Object.keys(builtins).filter((k) => k !== 'default').length).toBe(5);
+    expect(Object.keys(builtins).filter((k) => k !== 'default').length).toBe(47);
   });
 });

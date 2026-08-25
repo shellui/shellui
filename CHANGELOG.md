@@ -25,7 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
-- **Theming v1:** curated themes as versioned OKLCH JSON (`shellui`, `claude`, `light-green`, `zen-inspired`, `astro-vista`), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
+- **Theming v1:** curated themes as versioned OKLCH JSON (`shellui`, `claude`, `light-green`, `zen-inspired`, `astro-vista`, `shadcn`, `amber-minimal`, `amethyst-haze`, `bold-tech`, `bubblegum`, `caffeine`, `candyland`, `catppuccin`, `claymorphism`, `clean-slate`), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
 
 ### 🚨 Changed
 
