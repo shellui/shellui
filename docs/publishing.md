@@ -66,7 +66,7 @@ For stable releases, use a version without `alpha` or `beta` (e.g. `1.0.0`); it 
 
 ## AI skill
 
-If this release changes agent-relevant APIs or config (CLI, SDK, config schema), update `skills/shellui`, bump `metadata.version` and `skills/shellui/CHANGELOG.md`, and keep the skill lean (see [ADR 0001](/adr/0001-ai-skill)).
+If this release changes agent-relevant APIs or config (CLI, SDK, config schema), update the matching skill in [shellui/skills](https://github.com/shellui/skills), bump `metadata.version` and that skill’s `CHANGELOG.md`, and keep the skill lean (see [ADR 0001](/adr/0001-ai-skill)).
 
 ## Testing before publishing
 

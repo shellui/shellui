@@ -10,12 +10,10 @@ Guide for developing Shellui packages.
 │   ├── cli/          # CLI package
 │   ├── core/          # Core React app
 │   └── sdk/           # SDK package
-├── skills/
-│   └── shellui/      # Official AI agent skill
 └── package.json       # Root workspace configuration
 ```
 
-When changing public CLI, SDK, or config behavior, update `skills/shellui` in the same PR and keep it small (see [ADR 0001](/adr/0001-ai-skill)).
+AI skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When changing public CLI, SDK, or config behavior, update the matching skill there and keep it small (see [ADR 0001](/adr/0001-ai-skill)).
 
 ## Development Workflow
 
