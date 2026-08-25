@@ -14,20 +14,26 @@ Shellui theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable mod
 
 ## Built-in themes
 
-Two curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`:
+Curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`:
 
-| Name      | Label   | Source                                          |
-| --------- | ------- | ----------------------------------------------- |
-| `shellui` | Shellui | Official gold brand (shellui.com) — **default** |
-| `claude`  | Claude  | Warm terracotta with Outfit + Geist Mono        |
+| Name           | Label        | Source                                                         |
+| -------------- | ------------ | -------------------------------------------------------------- |
+| `shellui`      | Shellui      | Official gold brand (shellui.com) — **default**                |
+| `claude`       | Claude       | Warm terracotta with Outfit + Geist Mono                       |
+| `light-green`  | Light Green  | Bright lime primary (Inter + JetBrains Mono)                   |
+| `zen-inspired` | Zen Inspired | Warm parchment neutrals (Inter + Playfair Display)             |
+| `astro-vista`  | Astro Vista  | Cool neutrals with warm orange primary (Outfit + Merriweather) |
 
 ```ts
 import {
   defaultTheme, // === themes.shellui
   themes,
-  themeNames, // ["shellui", "claude"]
+  themeNames, // ["shellui", "claude", "light-green", "zen-inspired", "astro-vista"]
   shelluiTheme,
   claudeTheme,
+  lightGreenTheme,
+  zenInspiredTheme,
+  astroVistaTheme,
 } from '@shellui/core';
 ```
 
@@ -90,7 +96,7 @@ Theme JSON must include `"version": 1` and pass the theme schema.
 
 ```json
 {
-  "themes": ["shellui", "claude"],
+  "themes": ["shellui", "claude", "light-green", "zen-inspired", "astro-vista"],
   "activeTheme": "shellui"
 }
 ```

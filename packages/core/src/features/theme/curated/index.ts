@@ -2,6 +2,9 @@ import type { ThemeColorsMode, ThemeDefinition, ThemeInput } from '../types';
 import { THEME_COLOR_KEYS } from '../types';
 import shelluiJson from './shellui.json';
 import claudeJson from './claude.json';
+import lightGreenJson from './light-green.json';
+import zenInspiredJson from './zen-inspired.json';
+import astroVistaJson from './astro-vista.json';
 
 function assertCompleteMode(mode: Record<string, string>, themeName: string): ThemeColorsMode {
   for (const key of THEME_COLOR_KEYS) {
@@ -45,13 +48,22 @@ export function themeFromCuratedJson(input: ThemeInput): ThemeDefinition {
 
 export const shelluiTheme = themeFromCuratedJson(shelluiJson as ThemeInput);
 export const claudeTheme = themeFromCuratedJson(claudeJson as ThemeInput);
+export const lightGreenTheme = themeFromCuratedJson(lightGreenJson as ThemeInput);
+export const zenInspiredTheme = themeFromCuratedJson(zenInspiredJson as ThemeInput);
+export const astroVistaTheme = themeFromCuratedJson(astroVistaJson as ThemeInput);
 
 /**
  * Official default theme (Shellui brand). Also available as `themes.default` for init BC.
  */
 export const defaultTheme: ThemeDefinition = shelluiTheme;
 
-const curatedList: ThemeDefinition[] = [shelluiTheme, claudeTheme];
+const curatedList: ThemeDefinition[] = [
+  shelluiTheme,
+  claudeTheme,
+  lightGreenTheme,
+  zenInspiredTheme,
+  astroVistaTheme,
+];
 
 /**
  * Curated themes keyed by name.
@@ -61,6 +73,9 @@ export const themes: Record<string, ThemeDefinition> = {
   shellui: shelluiTheme,
   default: shelluiTheme,
   claude: claudeTheme,
+  'light-green': lightGreenTheme,
+  'zen-inspired': zenInspiredTheme,
+  'astro-vista': astroVistaTheme,
 };
 
 /** Ordered curated theme names (excludes the `default` alias). */

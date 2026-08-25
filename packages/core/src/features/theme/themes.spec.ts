@@ -82,10 +82,16 @@ describe('resolveThemeConfig', () => {
 
   it('resolves the curated themes', () => {
     const resolved = resolveThemeConfig({
-      themes: ['shellui', 'claude'],
+      themes: ['shellui', 'claude', 'light-green', 'zen-inspired', 'astro-vista'],
       activeTheme: 'shellui',
     });
-    expect(resolved.themes.map((t) => t.name)).toEqual(['shellui', 'claude']);
+    expect(resolved.themes.map((t) => t.name)).toEqual([
+      'shellui',
+      'claude',
+      'light-green',
+      'zen-inspired',
+      'astro-vista',
+    ]);
     expect(resolved.activeTheme).toBe('shellui');
   });
 
@@ -115,12 +121,12 @@ describe('registry', () => {
 });
 
 describe('curated themes', () => {
-  it('exports shellui as defaultTheme plus claude', () => {
+  it('exports shellui as defaultTheme plus curated themes', () => {
     expect(defaultTheme.name).toBe('shellui');
     expect(shelluiTheme).toBe(defaultTheme);
     expect(claudeTheme.name).toBe('claude');
-    expect(themeNames).toEqual(['shellui', 'claude']);
-    expect(curatedThemes).toHaveLength(2);
+    expect(themeNames).toEqual(['shellui', 'claude', 'light-green', 'zen-inspired', 'astro-vista']);
+    expect(curatedThemes).toHaveLength(5);
   });
 
   it('every curated theme uses OKLCH color values', () => {

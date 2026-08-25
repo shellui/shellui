@@ -12,7 +12,13 @@ const packageRoot = path.resolve(__dirname, '..');
 const curatedDir = path.join(packageRoot, 'src/features/theme/curated');
 const outPath = path.join(packageRoot, 'schemas', 'curated-themes.json');
 
-const files = ['shellui.json', 'claude.json'];
+const files = [
+  'shellui.json',
+  'claude.json',
+  'light-green.json',
+  'zen-inspired.json',
+  'astro-vista.json',
+];
 const themes = files.map((fileName) => {
   const full = path.join(curatedDir, fileName);
   return JSON.parse(fs.readFileSync(full, 'utf8'));

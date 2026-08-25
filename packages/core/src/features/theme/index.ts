@@ -28,4 +28,7 @@ export {
   curatedThemes,
   shelluiTheme,
   claudeTheme,
+  lightGreenTheme,
+  zenInspiredTheme,
+  astroVistaTheme,
 } from './curated';
