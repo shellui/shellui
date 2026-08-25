@@ -26,7 +26,10 @@ const DialogOverlay = forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     data-dialog-overlay
-    className={cn('fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]', className)}
+    className={cn(
+      'fixed inset-0 bg-[color-mix(in oklch, var(--background) 80%, transparent)] backdrop-blur-[1px]',
+      className,
+    )}
     style={{ zIndex: Z_INDEX.MODAL_OVERLAY, ...style }}
     {...props}
   />
@@ -86,7 +89,7 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
             className,
           )}
           style={{
-            backgroundColor: 'hsl(var(--background))',
+            backgroundColor: 'var(--background)',
             zIndex: contentZIndex ?? Z_INDEX.MODAL_CONTENT,
             ...style,
           }}

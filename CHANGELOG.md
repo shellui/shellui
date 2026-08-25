@@ -23,9 +23,20 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ## [v0.5.0] - Work in progress
 
+### ✨ Feature
+
+- **Theming v1:** curated themes as versioned OKLCH JSON (`shellui`, `claude`), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
+
+### 🚨 Changed
+
+- CSS variables are full colors (`oklch(...)` / hex) consumed via `var(--token)` (no longer HSL channel triples).
+- Official default theme is **shellui** (gold brand). AI-generated zinc/slate/… palettes removed.
+- `shellui init` injects `theme: "shellui"`.
+
 ### 📚 Documentation
 
 - Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
+- Rewrite themes docs for OKLCH JSON themes and the config API.
 
 ## [0.4.1] - 2026-08-18
 

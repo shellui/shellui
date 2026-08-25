@@ -45,7 +45,10 @@ const DrawerOverlay = forwardRef<
   <VaulDrawer.Overlay
     ref={ref}
     data-drawer-overlay
-    className={cn('fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]', className)}
+    className={cn(
+      'fixed inset-0 bg-[color-mix(in oklch, var(--background) 80%, transparent)] backdrop-blur-[1px]',
+      className,
+    )}
     style={{ zIndex: Z_INDEX.DRAWER_OVERLAY }}
     {...props}
   />
@@ -91,7 +94,7 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
           data-drawer-content
           className={cn('outline-none', drawerContentByDirection[pos], className)}
           style={{
-            backgroundColor: 'hsl(var(--background))',
+            backgroundColor: 'var(--background)',
             zIndex: Z_INDEX.DRAWER_CONTENT,
             ...sizeStyle,
             ...style,

@@ -15,6 +15,7 @@ export default defineConfig({
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
+      'src/features/theme/**/*.spec.ts',
       '../sdk/src/**/*.spec.ts',
     ],
   },

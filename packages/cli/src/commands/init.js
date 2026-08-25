@@ -17,6 +17,7 @@ const SHELLUI_CONFIG_JSON = {
   logo: '/logo.svg',
   layout: 'sidebar',
   language: 'en',
+  theme: 'shellui',
   navigation: [
     {
       label: 'Home',

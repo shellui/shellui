@@ -15,6 +15,11 @@ export type {
   LocalizedString,
   ThemeDefinition,
   ThemeColors,
+  ThemeColorsMode,
+  ThemeFonts,
+  ThemeInput,
+  ThemeRef,
+  ThemesConfig,
   DrawerPosition,
   LayoutType,
   BackendType,
@@ -26,6 +31,26 @@ export type {
   CookieConsentConfig,
   LegalDocumentsConfig,
 } from './features/config/types.js';
+export {
+  defaultTheme,
+  themes,
+  themeNames,
+  recommendedThemeNames,
+  curatedThemes,
+  shelluiTheme,
+  claudeTheme,
+  THEME_SCHEMA_VERSION,
+  normalizeTheme,
+  toThemeJson,
+  resolveThemeConfig,
+  hexToHsl,
+  toCssVarValue,
+  applyTheme,
+  getTheme,
+  getAllThemes,
+  registerTheme,
+  setAvailableThemes,
+} from './features/theme/themes.js';
 export { useConfig } from './features/config/useConfig.js';
 export { useAuth } from './features/auth/hooks/useAuth.js';
 export { AuthProvider } from './features/auth/AuthProvider.js';

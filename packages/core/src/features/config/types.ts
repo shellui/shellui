@@ -57,81 +57,17 @@ export interface NavigationGroup {
   position?: 'start' | 'end';
 }
 
-export interface ThemeColors {
-  light: {
-    background: string;
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
-    ring: string;
-    radius: string;
-    sidebarBackground: string;
-    sidebarForeground: string;
-    sidebarPrimary: string;
-    sidebarPrimaryForeground: string;
-    sidebarAccent: string;
-    sidebarAccentForeground: string;
-    sidebarBorder: string;
-    sidebarRing: string;
-  };
-  dark: {
-    background: string;
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
-    ring: string;
-    radius: string;
-    sidebarBackground: string;
-    sidebarForeground: string;
-    sidebarPrimary: string;
-    sidebarPrimaryForeground: string;
-    sidebarAccent: string;
-    sidebarAccentForeground: string;
-    sidebarBorder: string;
-    sidebarRing: string;
-  };
-}
+export type {
+  ThemeColors,
+  ThemeColorsMode,
+  ThemeDefinition,
+  ThemeFonts,
+  ThemeInput,
+  ThemeRef,
+  ThemesConfig,
+} from '../theme/types';
 
-export interface ThemeDefinition {
-  name: string;
-  displayName: string;
-  colors: ThemeColors;
-  fontFamily?: string; // Optional custom font family (backward compatible)
-  headingFontFamily?: string; // Optional font family for headings (h1-h6)
-  bodyFontFamily?: string; // Optional font family for body text
-  fontFiles?: string[]; // Optional array of font file URLs or paths to load (e.g., Google Fonts links or local paths)
-  letterSpacing?: string; // Optional custom letter spacing (e.g., "0.02em")
-  textShadow?: string; // Optional custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
-  lineHeight?: string; // Optional custom line height (e.g., "1.6")
-}
+import type { ThemeDefinition, ThemeRef, ThemesConfig } from '../theme/types';
 
 /** Sentry error reporting configuration. Only used in production; ignored in dev. */
 export interface SentryConfig {
@@ -284,8 +220,32 @@ export interface ShellUIConfig {
    * when `url` is set unless `storage.showInSettings` is false.
    */
   storage?: StorageConfig;
-  themes?: ThemeDefinition[]; // Custom themes to register
-  defaultTheme?: string; // Default theme name to use
+  /**
+   * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
+   * When set without `themes`, only this theme is available in the selector.
+   */
+  theme?: ThemeRef;
+  /**
+   * Available themes for the app.
+   * - Array of built-in names, paths, or inline objects
+   * - Map of id → name | path | object
+   * After CLI load, resolved to a `ThemeDefinition[]` for the runtime.
+   */
+  themes?: ThemesConfig | ThemeDefinition[];
+  /**
+   * Directory of theme JSON files (one `.json` per theme) with optional sibling
+   * `<name>/fonts/` folders. Resolved by the CLI at load/build time.
+   */
+  themesDir?: string;
+  /**
+   * Active theme name on first visit (and when no user preference is stored).
+   * Prefer this over `defaultTheme`.
+   */
+  activeTheme?: string;
+  /**
+   * Default theme name. Alias of `activeTheme` (kept for backward compatibility).
+   */
+  defaultTheme?: string;
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */

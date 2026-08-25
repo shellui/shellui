@@ -1,6 +1,6 @@
 /**
- * Theme system public surface for internal imports.
- * Prefer importing from `@shellui/core` in app code.
+ * Node- and browser-safe theme API (no React, no CSS side effects).
+ * Import from `@shellui/core/theme` in the CLI or tooling.
  */
 
 export type {
@@ -17,18 +17,9 @@ export type {
 export { THEME_SCHEMA_VERSION, THEME_COLOR_KEYS } from './types';
 
 export { hexToHsl, toCssVarValue, isHexColor } from './color';
-export { applyTheme } from './applyTheme';
 export { normalizeTheme, toThemeJson } from './normalize';
 export { resolveThemeConfig } from './resolveConfig';
 export type { ResolveThemeConfigInput, ResolvedThemeConfig } from './resolveConfig';
-export {
-  registerTheme,
-  setAvailableThemes,
-  getTheme,
-  getAllThemes,
-  clearThemeRegistry,
-} from './registry';
-
 export {
   defaultTheme,
   themes,

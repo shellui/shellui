@@ -5,7 +5,12 @@ import { Button } from '../../../components/ui/button';
 import { ButtonGroup } from '../../../components/ui/button-group';
 import { cn } from '../../../lib/utils';
 import { useEffect, useState, useMemo } from 'react';
-import { getAllThemes, registerTheme, type ThemeDefinition } from '../../theme/themes';
+import {
+  getAllThemes,
+  setAvailableThemes,
+  defaultTheme,
+  type ThemeDefinition,
+} from '../../theme/themes';
 import type { SettingsAvailableTheme } from '@shellui/sdk';
 
 const SunIcon = () => (
@@ -90,35 +95,114 @@ const MonitorIcon = () => (
 type ThemePreviewItem = Pick<
   ThemeDefinition | SettingsAvailableTheme,
   'name' | 'displayName' | 'colors' | 'fontFamily' | 'letterSpacing' | 'textShadow'
->;
+> & { description?: string; recommended?: boolean };
 
-// Theme color preview component
+function MiniSwatch({ colors }: { colors: ThemePreviewItem['colors']['light'] }) {
+  return (
+    <div
+      className="flex flex-1 flex-col gap-1 rounded-md border p-1.5"
+      style={{ backgroundColor: colors.background, borderColor: colors.border }}
+    >
+      <div
+        className="h-3 rounded-sm"
+        style={{ backgroundColor: colors.primary }}
+      />
+      <div className="flex gap-0.5">
+        <div
+          className="h-2 flex-1 rounded-sm"
+          style={{ backgroundColor: colors.secondary }}
+        />
+        <div
+          className="h-2 flex-1 rounded-sm"
+          style={{ backgroundColor: colors.accent }}
+        />
+        <div
+          className="h-2 flex-1 rounded-sm"
+          style={{ backgroundColor: colors.muted }}
+        />
+      </div>
+    </div>
+  );
+}
+
 const ThemePreview = ({
   theme,
   isSelected,
   isDark,
+  layout,
+  recommendedLabel,
 }: {
   theme: ThemePreviewItem;
   isSelected: boolean;
   isDark: boolean;
+  layout: 'single' | 'few' | 'many';
+  recommendedLabel: string;
 }) => {
   const colors = isDark ? theme.colors.dark : theme.colors.light;
+
+  if (layout === 'many') {
+    return (
+      <div
+        className={cn(
+          'relative overflow-hidden rounded-lg border-2 transition-all',
+          isSelected
+            ? 'border-primary shadow-md'
+            : 'border-border hover:border-muted-foreground/40',
+        )}
+      >
+        <div className="flex gap-1 p-2">
+          <MiniSwatch colors={theme.colors.light} />
+          <MiniSwatch colors={theme.colors.dark} />
+        </div>
+        <div
+          className="border-t px-2 py-1.5"
+          style={{
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+            color: colors.foreground,
+          }}
+        >
+          <p
+            className="truncate text-xs font-medium"
+            style={
+              theme.fontFamily
+                ? {
+                    fontFamily: theme.fontFamily,
+                    letterSpacing: theme.letterSpacing || 'normal',
+                    textShadow: theme.textShadow || 'none',
+                  }
+                : undefined
+            }
+          >
+            {theme.displayName}
+          </p>
+          {theme.recommended ? (
+            <p
+              className="text-[10px] opacity-70"
+              style={{ color: colors.mutedForeground }}
+            >
+              {recommendedLabel}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
       className={cn(
         'relative overflow-hidden rounded-lg border-2 transition-all',
         isSelected ? 'border-primary shadow-lg' : 'border-border',
+        layout === 'single' && 'max-w-sm',
       )}
       style={{ backgroundColor: colors.background }}
     >
-      <div className="p-3 space-y-2">
-        {/* Primary color */}
+      <div className={cn('space-y-2', layout === 'single' ? 'p-4' : 'p-3')}>
         <div
-          className="h-8 rounded-md"
+          className={cn('rounded-md', layout === 'single' ? 'h-10' : 'h-8')}
           style={{ backgroundColor: colors.primary }}
         />
-        {/* Secondary colors */}
         <div className="flex gap-1">
           <div
             className="h-6 flex-1 rounded"
@@ -133,7 +217,6 @@ const ThemePreview = ({
             style={{ backgroundColor: colors.accent }}
           />
         </div>
-        {/* Accent colors */}
         <div className="flex gap-1">
           <div
             className="h-4 flex-1 rounded"
@@ -145,13 +228,12 @@ const ThemePreview = ({
           />
         </div>
       </div>
-      {/* Theme name overlay */}
       <div
-        className="absolute bottom-0 left-0 right-0 bg-background/90 backdrop-blur-sm px-2 py-1"
-        style={{ backgroundColor: colors.background }}
+        className="px-2 py-1.5"
+        style={{ backgroundColor: colors.background, color: colors.foreground }}
       >
         <p
-          className="text-xs font-medium text-center"
+          className={cn('font-medium text-center', layout === 'single' ? 'text-sm' : 'text-xs')}
           style={
             theme.fontFamily
               ? {
@@ -159,11 +241,19 @@ const ThemePreview = ({
                   letterSpacing: theme.letterSpacing || 'normal',
                   textShadow: theme.textShadow || 'none',
                 }
-              : {}
+              : undefined
           }
         >
           {theme.displayName}
         </p>
+        {layout === 'single' && theme.description ? (
+          <p
+            className="mt-0.5 text-center text-xs opacity-70"
+            style={{ color: colors.mutedForeground }}
+          >
+            {theme.description}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -178,24 +268,33 @@ export const Appearance = () => {
 
   const [localThemes, setLocalThemes] = useState<ThemeDefinition[]>([]);
 
-  // Register custom themes from config and get all themes (for shell context)
   useEffect(() => {
-    if (config?.themes) {
-      config.themes.forEach((themeDef: ThemeDefinition) => {
-        registerTheme(themeDef);
-      });
-    }
+    const available: ThemeDefinition[] =
+      config?.themes && Array.isArray(config.themes) && config.themes.length > 0
+        ? (config.themes as ThemeDefinition[])
+        : [defaultTheme];
+    setAvailableThemes(available);
     setLocalThemes(getAllThemes());
   }, [config]);
 
-  // Use availableThemes from settings when provided (e.g. from shell when in sub-app), else local registry
   const availableThemes = useMemo((): ThemePreviewItem[] => {
     const fromSettings = settings.appearance?.availableThemes;
     if (fromSettings?.length) return fromSettings;
     return localThemes;
   }, [settings.appearance?.availableThemes, localThemes]);
 
-  // Determine if we're in dark mode for preview
+  const sortedThemes = useMemo(() => {
+    return [...availableThemes].sort((a, b) => {
+      const ar = 'recommended' in a && a.recommended ? 0 : 1;
+      const br = 'recommended' in b && b.recommended ? 0 : 1;
+      if (ar !== br) return ar - br;
+      return a.displayName.localeCompare(b.displayName);
+    });
+  }, [availableThemes]);
+
+  const layout: 'single' | 'few' | 'many' =
+    sortedThemes.length <= 1 ? 'single' : sortedThemes.length <= 3 ? 'few' : 'many';
+
   const [isDarkForPreview, setIsDarkForPreview] = useState(() => {
     if (typeof window === 'undefined') return false;
     return (
@@ -204,7 +303,6 @@ export const Appearance = () => {
     );
   });
 
-  // Update preview mode when theme changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -237,9 +335,15 @@ export const Appearance = () => {
     { value: 'system' as const, label: t('appearance.themes.system'), icon: MonitorIcon },
   ];
 
+  const gridClass =
+    layout === 'single'
+      ? 'grid grid-cols-1 max-w-sm'
+      : layout === 'few'
+        ? 'grid grid-cols-1 sm:grid-cols-3 gap-4'
+        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
+
   return (
     <div className="space-y-6">
-      {/* Theme Mode Selection (Light/Dark/System) */}
       <div className="space-y-2">
         <div className="space-y-0.5">
           <label
@@ -279,7 +383,6 @@ export const Appearance = () => {
         </div>
       </div>
 
-      {/* Theme Selection (Color Scheme) */}
       <div className="space-y-2">
         <div className="space-y-0.5">
           <label
@@ -288,27 +391,35 @@ export const Appearance = () => {
           >
             {t('appearance.colorTheme')}
           </label>
-          <p className="text-sm text-muted-foreground">{t('appearance.colorThemeDescription')}</p>
+          <p className="text-sm text-muted-foreground">
+            {layout === 'single'
+              ? t('appearance.colorThemeDescriptionSingle')
+              : t('appearance.colorThemeDescription')}
+          </p>
         </div>
-        <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-4">
-          {availableThemes.map((theme) => {
+        <div className={cn('mt-2', gridClass)}>
+          {sortedThemes.map((theme) => {
             const isSelected = currentThemeName === theme.name;
             return (
               <button
                 key={theme.name}
+                type="button"
                 onClick={() => {
                   updateSetting('appearance', { name: theme.name });
                 }}
                 className={cn(
-                  'text-left transition-all cursor-pointer',
-                  isSelected && 'ring-2 ring-primary ring-offset-2 rounded-lg',
+                  'text-left transition-all cursor-pointer rounded-lg',
+                  isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 )}
                 aria-label={theme.displayName}
+                aria-pressed={isSelected}
               >
                 <ThemePreview
                   theme={theme}
                   isSelected={isSelected}
                   isDark={isDarkForPreview}
+                  layout={layout}
+                  recommendedLabel={t('appearance.recommended')}
                 />
               </button>
             );

@@ -141,6 +141,9 @@ export function prepareFrontendConfig(config) {
   if (frozen && typeof frozen === 'object' && !Array.isArray(frozen)) {
     delete frozen.runtime;
     delete frozen.$schema;
+    delete frozen.themesDir;
+    delete frozen.__themesDirAbs;
+    delete frozen.theme;
   }
 
   const serialized = JSON.stringify(frozen);

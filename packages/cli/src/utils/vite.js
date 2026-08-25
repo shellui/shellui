@@ -70,6 +70,7 @@ export function createShelluiConfigPlugin(config) {
   const moduleContent = `export const shelluiConfig = ${JSON.stringify(serializableConfig)};
 export default shelluiConfig;
 `;
+  const themesDirAbs = config?.__themesDirAbs;
 
   return {
     name: 'shellui-config',
@@ -84,6 +85,39 @@ export default shelluiConfig;
         return moduleContent;
       }
       return null;
+    },
+    configureServer(server) {
+      if (!themesDirAbs) return;
+      server.middlewares.use('/themes', (req, res, next) => {
+        try {
+          const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+          const filePath = path.join(themesDirAbs, urlPath.replace(/^\//, ''));
+          if (
+            !filePath.startsWith(themesDirAbs) ||
+            !fs.existsSync(filePath) ||
+            !fs.statSync(filePath).isFile()
+          ) {
+            next();
+            return;
+          }
+          const ext = path.extname(filePath).toLowerCase();
+          const types = {
+            '.woff2': 'font/woff2',
+            '.woff': 'font/woff',
+            '.ttf': 'font/ttf',
+            '.otf': 'font/otf',
+            '.css': 'text/css',
+            '.json': 'application/json',
+          };
+          res.setHeader('Content-Type', types[ext] || 'application/octet-stream');
+          fs.createReadStream(filePath).pipe(res);
+        } catch {
+          next();
+        }
+      });
+    },
+    closeBundle() {
+      // no-op; build copy handled separately when needed
     },
   };
 }

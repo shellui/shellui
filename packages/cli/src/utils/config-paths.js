@@ -29,6 +29,9 @@ export const ROOT_KEYS = [
   'layout',
   'start_url',
   'defaultTheme',
+  'activeTheme',
+  'theme',
+  'themesDir',
 ];
 
 /**
