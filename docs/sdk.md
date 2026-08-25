@@ -8,6 +8,48 @@ The Shellui SDK provides programmatic access to Shellui features from your JavaS
 npm install @shellui/sdk
 ```
 
+## Tiny injectable (external sites)
+
+For pages that only need **theme**, **language/region**, and **navigation sync**, use the tiny CDN script (`shellui.tiny.js`, ~2 KB min / ~1 KB gzip). It auto-handshakes on load — no `init()` required.
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@shellui/sdk/dist/shellui.tiny.js"
+  async
+></script>
+<script>
+  shellui.ready.then(() => {
+    console.log(shellui.theme?.mode, shellui.language, shellui.region?.timezone);
+    shellui.applyTheme();
+  });
+
+  shellui.on('theme', () => shellui.applyTheme());
+  shellui.navigate('/dashboard');
+</script>
+```
+
+Or via the package subpath:
+
+```js
+import shellui from '@shellui/sdk/tiny';
+
+await shellui.ready;
+shellui.applyTheme();
+```
+
+| Member            | Description                                                          |
+| ----------------- | -------------------------------------------------------------------- |
+| `ready`           | Promise resolved after handshake (or immediately outside an iframe)  |
+| `initialized`     | `boolean`                                                            |
+| `theme`           | Theme snapshot (`mode`, `colorScheme`, `colors`, fonts, …) or `null` |
+| `language`        | Language code (e.g. `"en"`) or `null`                                |
+| `region`          | `{ timezone }` or `null`                                             |
+| `on(event, cb)`   | `'ready'`, `'theme'`, `'language'`, `'region'` — returns unsubscribe |
+| `navigate(url)`   | Ask the shell to navigate                                            |
+| `applyTheme(el?)` | Write CSS variables on `el` (default `<html>`) and toggle `dark`     |
+
+URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** included — use the full SDK below for those.
+
 ## Quick Start
 
 ```javascript

@@ -60,6 +60,6 @@ pnpm test
 ## Workspace Dependencies
 
 - `@shellui/cli` depends on `@shellui/core`
-- `@shellui/sdk` depends on `@shellui/core`
+- `@shellui/core` depends on `@shellui/sdk`
 
-These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` and `sdk` during development.
+These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` during development.

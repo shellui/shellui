@@ -5,11 +5,18 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
+  "unpkg": "dist/shellui.tiny.js",
+  "jsdelivr": "dist/shellui.tiny.js",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./tiny": {
+      "types": "./dist/tiny.d.ts",
+      "import": "./dist/tiny.js",
+      "default": "./dist/tiny.js"
     },
     "./package.json": "./package.json"
   },
@@ -19,7 +26,7 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-tiny.mjs",
     "test": "echo \"No tests specified for @shellui/sdk\""
   },
   "keywords": [
@@ -34,6 +41,7 @@
     "roarr": "^7.21.4"
   },
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "typescript": "^5.9.3"
   },
   "publishConfig": {

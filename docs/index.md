@@ -13,7 +13,7 @@ Use the sections below as a map, or follow the recommended path in order.
 3. **[Backend](/backend)** — Choose a provider (`shellui`, `supabase`, or none), set `backend.url`, and optional tenant or Supabase keys.
 4. **[Authentication](/features/authentication)** — Enable login methods, use `/login` and `/login/callback`, and protect routes with `requiresAuth`.
 5. **[Navigation](/features/navigation)** — Define sidebar items, groups, and auth-aware visibility (`hideWhenLoggedOut`).
-6. **[SDK](/sdk)** — Read user and settings from embedded apps; call `shellui.login()` for iframe-safe OAuth.
+6. **[SDK](/sdk)** — Read user and settings from embedded apps; call `shellui.login()` for iframe-safe OAuth. For a tiny CDN drop-in (theme / language / navigation only), see the [tiny injectable](/sdk#tiny-injectable-external-sites) in the SDK docs.
 
 From there, pick layout, themes, i18n, and advanced features as your product needs them.
 
@@ -50,7 +50,7 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 
 - **[CLI](/cli)** — Commands, config file shape, and `backend` fields
 - **[Core package](/core)** — React runtime and exports such as `useAuth`
-- **[SDK](/sdk)** — JavaScript SDK API
+- **[SDK](/sdk)** — JavaScript SDK API (including the tiny CDN script)
 - **[Tauri](/tauri)** — Desktop packaging
 
 ## Developer resources
