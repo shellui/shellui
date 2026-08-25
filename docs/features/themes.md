@@ -2,6 +2,14 @@
 
 Shellui theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (light under `:root`, dark under `.dark`). Tokens are **full CSS colors** — prefer **OKLCH** (`oklch(...)`). Configuration lives in `shellui.config` (no live theme editor yet).
 
+## Designing your own theme
+
+Most curated themes below come from the excellent [tweakcn](https://tweakcn.com) — a perfect tool to create or customize a theme and export shadcn-compatible CSS variables. We highly encourage a [tweakcn Pro](https://tweakcn.com) subscription to support that project.
+
+Any theme built for [shadcn/ui](https://ui.shadcn.com/themes) works beautifully with Shellui: paste `:root` / `.dark` variables into theme JSON (`light` / `dark`), or map a registry-style export the same way. Many other platforms also share ready-made shadcn themes you can adapt the same way.
+
+When you are happy with a palette, save it as versioned theme JSON under `themesDir` (or inline in config) — see [Theme JSON shape](#theme-json-shape-version-1).
+
 ## Quick start
 
 `shellui init` injects the official Shellui theme:
@@ -14,9 +22,9 @@ Shellui theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable mod
 
 ## Built-in themes
 
-Curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`:
+Curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`. Community and brand palettes are adapted from [tweakcn](https://tweakcn.com) and [shadcn/ui](https://ui.shadcn.com/) unless noted otherwise:
 
-| Name              | Label           | Source                                                                                    |
+| Name              | Label           | Description                                                                               |
 | ----------------- | --------------- | ----------------------------------------------------------------------------------------- |
 | `shellui`         | Shellui         | Official Shellui theme — gold brand from shellui.com                                      |
 | `claude`          | Claude          | Warm terracotta theme with Outfit and Geist Mono                                          |
@@ -265,7 +273,7 @@ Or a map of id → name | path | object. `defaultTheme` remains an alias of `act
 }
 ```
 
-Paste from shadcn CSS by mapping `:root` / `.dark` variables into `light` / `dark` (kebab-case keys work).
+Paste from shadcn or [tweakcn](https://tweakcn.com) CSS by mapping `:root` / `.dark` variables into `light` / `dark` (kebab-case keys work). Registry JSON from tweakcn (`cssVars.light` / `cssVars.dark`) maps the same way.
 
 ## How colors apply
 
@@ -277,6 +285,8 @@ Settings → Appearance scales with the number of available themes (1 / few / ma
 
 ## Related
 
+- [tweakcn](https://tweakcn.com) — design and customize shadcn themes
+- [shadcn/ui themes](https://ui.shadcn.com/themes)
 - [Layouts](/features/layouts)
 - [Application settings](/features/application-settings)
 - [CLI](/cli)

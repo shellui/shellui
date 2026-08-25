@@ -25,7 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
-- **Theming v1:** curated themes as versioned OKLCH JSON (`shellui`, `claude`, `light-green`, `zen-inspired`, `astro-vista`, `shadcn`, `amber-minimal`, `amethyst-haze`, `bold-tech`, `bubblegum`, `caffeine`, `candyland`, `catppuccin`, `claymorphism`, `clean-slate`), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
+- **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
 
 ### 🚨 Changed
 
@@ -36,7 +36,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### 📚 Documentation
 
 - Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
-- Rewrite themes docs for OKLCH JSON themes and the config API.
+- Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com) as the recommended theme designer and note shadcn / other shared-theme platforms.
 
 ## [0.4.1] - 2026-08-18
 
