@@ -77,11 +77,11 @@ const variantConfig: Record<
   sidebar: {
     button: {
       authenticated:
-        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
       loggedOut:
-        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
     },
-    avatar: 'h-5 w-5',
+    avatar: 'size-4',
     menu: { width: 'w-64', side: 'right', align: 'start' },
     showDisplayName: true,
     showCaret: true,
@@ -240,7 +240,7 @@ export const LoginButton = ({
         title={t('authMenu.login')}
       >
         <UserIcon />
-        <span className="truncate">{t('authMenu.login')}</span>
+        <span className="truncate group-data-[collapsible=icon]:hidden">{t('authMenu.login')}</span>
       </Link>
     );
   }
@@ -268,7 +268,7 @@ export const LoginButton = ({
               src={user.profilePicture}
               alt={displayName}
               className={cn(
-                'shrink-0 rounded-full border border-sidebar-border object-cover',
+                'shrink-0 overflow-hidden rounded-full border border-sidebar-border object-cover aspect-square',
                 currentVariantConfig.avatar,
               )}
               referrerPolicy="no-referrer"
@@ -276,7 +276,7 @@ export const LoginButton = ({
           ) : (
             <span
               className={cn(
-                'shrink-0 rounded-full border border-sidebar-border bg-muted flex items-center justify-center text-[10px] font-semibold',
+                'flex shrink-0 aspect-square items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-muted text-[10px] font-semibold leading-none',
                 currentVariantConfig.avatar,
               )}
               aria-hidden
@@ -284,12 +284,14 @@ export const LoginButton = ({
               {fallbackInitial}
             </span>
           )}
-          {showDisplayName && <span className="truncate">{displayName}</span>}
+          {showDisplayName && (
+            <span className="truncate group-data-[collapsible=icon]:hidden">{displayName}</span>
+          )}
           {showCaret && (
             <span
               aria-hidden
               className={cn(
-                'ml-auto shrink-0 text-[10px]',
+                'ml-auto shrink-0 text-[10px] group-data-[collapsible=icon]:hidden',
                 isMenuOpen ? 'text-foreground' : 'text-muted-foreground',
               )}
             >

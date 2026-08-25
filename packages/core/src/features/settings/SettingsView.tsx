@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarProvider,
 } from '../../components/ui/sidebar';
 import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ import { useConfig } from '../config/useConfig';
 import { isTauri } from '../../service-worker/register';
 import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
+import { DefaultNavIcon } from '../layouts/sidebar/SidebarIcons';
 import { flattenNavigationItems, resolveLocalizedString } from '../layouts/utils';
 import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel';
 import { createUserSettingsRoute } from './components/createUserSettingsRoute';
@@ -229,46 +231,51 @@ export const SettingsView = () => {
 
   return (
     <div className="flex h-full w-full overflow-hidden items-start">
-      {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex">
-        <SidebarContent>
-          {groupedRoutes.map((group) => (
-            <SidebarGroup key={group.title}>
-              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.routes.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={item.name === selectedItem?.name}
-                      >
-                        <button
-                          onClick={() => navigate(`${urls.settings}/${item.path}`)}
-                          className="cursor-pointer"
+      {/* Desktop settings nav — local provider so this works outside the shell sidebar layout */}
+      <SidebarProvider className="hidden h-full min-h-0 w-auto shrink-0 md:flex">
+        <Sidebar
+          collapsible="none"
+          className="flex h-full border-r border-sidebar-border"
+        >
+          <SidebarContent>
+            {groupedRoutes.map((group) => (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.routes.map((item) => (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={item.name === selectedItem?.name}
                         >
-                          {'icon' in item && item.icon ? (
-                            <item.icon />
-                          ) : 'iconSrc' in item && item.iconSrc ? (
-                            <img
-                              src={item.iconSrc}
-                              alt=""
-                              className="h-4 w-4 shrink-0"
-                            />
-                          ) : (
-                            <span className="h-4 w-4 shrink-0" />
-                          )}
-                          <span>{item.name}</span>
-                        </button>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
-      </Sidebar>
+                          <button
+                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                            className="cursor-pointer"
+                          >
+                            {'icon' in item && item.icon ? (
+                              <item.icon />
+                            ) : 'iconSrc' in item && item.iconSrc ? (
+                              <img
+                                src={item.iconSrc}
+                                alt=""
+                                className="size-4 shrink-0"
+                              />
+                            ) : (
+                              <DefaultNavIcon />
+                            )}
+                            <span>{item.name}</span>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
 
       {/* Mobile List View */}
       <div className="md:hidden flex h-full w-full flex-col overflow-hidden">
@@ -300,10 +307,10 @@ export const SettingsView = () => {
                           <img
                             src={item.iconSrc}
                             alt=""
-                            className="h-4 w-4 shrink-0"
+                            className="size-4 shrink-0"
                           />
                         ) : (
-                          <span className="h-4 w-4 shrink-0" />
+                          <DefaultNavIcon />
                         );
                       return (
                         <div

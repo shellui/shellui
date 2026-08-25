@@ -14,7 +14,11 @@ import {
 import { cn } from '../../../lib/utils';
 import { getActivePathPrefix, getNavPathPrefix, flattenNavigationItems } from '../utils';
 import { getExternalFaviconUrl } from './sidebarUtils';
-import { ExternalLinkIcon } from './SidebarIcons';
+import { DefaultNavIcon, ExternalLinkIcon } from './SidebarIcons';
+
+const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup => {
+  return 'title' in item && 'items' in item;
+};
 
 export function NavigationContent({
   navigation,
@@ -33,24 +37,34 @@ export function NavigationContent({
     return value[lang] || value.en || value.fr || Object.values(value)[0] || '';
   };
 
-  const hasAnyIcons = useMemo(() => {
-    return navigation.some((item) => {
-      if ('title' in item && 'items' in item) {
-        return (item as NavigationGroup).items.some((navItem) => !!navItem.icon);
-      }
-      return !!(item as NavigationItem).icon;
-    });
-  }, [navigation]);
-
   const flatItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
   const activePathPrefix = useMemo(
     () => getActivePathPrefix(location.pathname, flatItems),
     [location.pathname, flatItems],
   );
 
-  const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup => {
-    return 'title' in item && 'items' in item;
-  };
+  // Chunk consecutive top-level items into one SidebarGroup so spacing matches
+  // items inside titled groups (one group padding, not one per item).
+  const sections = useMemo(() => {
+    const result: Array<
+      { type: 'group'; group: NavigationGroup } | { type: 'items'; items: NavigationItem[] }
+    > = [];
+
+    for (const item of navigation) {
+      if (isGroup(item)) {
+        result.push({ type: 'group', group: item });
+        continue;
+      }
+      const last = result[result.length - 1];
+      if (last?.type === 'items') {
+        last.items.push(item);
+      } else {
+        result.push({ type: 'items', items: [item] });
+      }
+    }
+
+    return result;
+  }, [navigation]);
 
   const renderNavItem = (navItem: NavigationItem) => {
     const pathPrefix = getNavPathPrefix(navItem);
@@ -64,13 +78,13 @@ export function NavigationContent({
       <img
         src={iconSrc}
         alt=""
-        className={cn('h-4 w-4', 'shrink-0')}
+        className="size-4 shrink-0"
       />
-    ) : hasAnyIcons ? (
-      <span className="h-4 w-4 shrink-0" />
-    ) : null;
+    ) : (
+      <DefaultNavIcon />
+    );
     const externalIcon = isExternal ? (
-      <ExternalLinkIcon className="ml-auto h-4 w-4 shrink-0 opacity-70" />
+      <ExternalLinkIcon className="ml-auto size-4 shrink-0 opacity-70" />
     ) : null;
     const content = (
       <>
@@ -117,6 +131,7 @@ export function NavigationContent({
       <SidebarMenuButton
         asChild
         isActive={isActive}
+        tooltip={itemLabel}
         className={cn('w-full', isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')}
       >
         {linkOrTrigger}
@@ -126,18 +141,18 @@ export function NavigationContent({
 
   return (
     <>
-      {navigation.map((item) => {
-        if (isGroup(item)) {
-          const groupTitle = resolveLocalizedString(item.title, currentLanguage);
+      {sections.map((section, sectionIndex) => {
+        if (section.type === 'group') {
+          const groupTitle = resolveLocalizedString(section.group.title, currentLanguage);
           return (
             <SidebarGroup
-              key={groupTitle}
+              key={`group-${groupTitle}-${sectionIndex}`}
               className="mt-0"
             >
               <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
-                  {item.items.map((navItem) => (
+                  {section.group.items.map((navItem) => (
                     <SidebarMenuItem key={navItem.path}>{renderNavItem(navItem)}</SidebarMenuItem>
                   ))}
                 </SidebarMenu>
@@ -145,13 +160,20 @@ export function NavigationContent({
             </SidebarGroup>
           );
         }
+
         return (
-          <SidebarMenu
-            key={item.path}
-            className="gap-0.5"
+          <SidebarGroup
+            key={`items-${section.items.map((i) => i.path).join('-')}-${sectionIndex}`}
+            className="mt-0"
           >
-            <SidebarMenuItem>{renderNavItem(item)}</SidebarMenuItem>
-          </SidebarMenu>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                {section.items.map((navItem) => (
+                  <SidebarMenuItem key={navItem.path}>{renderNavItem(navItem)}</SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         );
       })}
     </>

@@ -26,6 +26,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### ✨ Feature
 
 - **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
+- **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
 
 ### 🚨 Changed
 
@@ -37,6 +38,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
 - Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com) as the recommended theme designer and note shadcn / other shared-theme platforms.
+- Document sidebar desktop collapse and mobile sheet behavior.
 
 ## [0.4.1] - 2026-08-18
 

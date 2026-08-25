@@ -1,29 +1,47 @@
-import { Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sidebar } from '../../../components/ui/sidebar';
-import { cn } from '../../../lib/utils';
+import {
+  Sidebar,
+  SidebarInset,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from '../../../components/ui/sidebar';
 import {
   filterNavigationForAuthState,
   filterNavigationByViewport,
   filterNavigationForSidebar,
-  flattenNavigationItems,
   hasLoginNavigationItem,
   resolveLocalizedString as resolveLocalizedLabel,
   splitNavigationByPosition,
 } from '../utils';
 import { SidebarInner } from './SidebarInner';
-import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
 import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
+import { useIsMobile } from '../../../hooks/use-mobile';
 
-const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
+/** Close the mobile sheet when the route changes. */
+function CloseMobileSidebarOnNavigate() {
+  const location = useLocation();
+  const { setOpenMobile } = useSidebar();
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [location.pathname, setOpenMobile]);
+
+  return null;
+}
+
+const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
-  const { navigationItem, rootItem } = useNavigationItems();
+  const { navigationItem } = useNavigationItems();
+  const isMobile = useIsMobile();
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -35,18 +53,18 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
       filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
     [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
-  const { startNav, endItems, mobileNavItems } = useMemo(() => {
-    const desktopNav = filterNavigationByViewport(authAwareNavigation, 'desktop');
-    const mobileNav = filterNavigationByViewport(authAwareNavigation, 'mobile');
-    const { start, end } = splitNavigationByPosition(desktopNav);
-    const mobileFlat = flattenNavigationItems(mobileNav);
+  const { startNav, endItems } = useMemo(() => {
+    const viewportNav = filterNavigationByViewport(
+      authAwareNavigation,
+      isMobile ? 'mobile' : 'desktop',
+    );
+    const { start, end } = splitNavigationByPosition(viewportNav);
 
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
-      mobileNavItems: mobileFlat,
     };
-  }, [authAwareNavigation]);
+  }, [authAwareNavigation, isMobile]);
 
   useEffect(() => {
     if (!title) return;
@@ -59,31 +77,31 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
   }, [navigationItem, title, currentLanguage]);
 
   return (
-    <div>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar className={cn('hidden md:flex shrink-0')}>
-          <SidebarInner
-            title={title}
-            logo={logo}
-            startNav={startNav}
-            endItems={endItems}
-            showAuthButton={!hasCustomLoginNav || isAuthenticated}
-          />
-        </Sidebar>
+    <SidebarProvider className="h-svh overflow-hidden">
+      <CloseMobileSidebarOnNavigate />
+      <Sidebar
+        collapsible="icon"
+        className="border-sidebar-border"
+      >
+        <SidebarInner
+          startNav={startNav}
+          endItems={endItems}
+          showAuthButton={!hasCustomLoginNav || isAuthenticated}
+        />
+        <SidebarRail />
+      </Sidebar>
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
-          <div className="flex-1 flex flex-col overflow-auto pb-16 md:pb-0">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+      <SidebarInset className="min-w-0 overflow-hidden">
+        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 md:hidden">
+          <SidebarTrigger className="size-9 touch-manipulation text-foreground" />
+          {title && <span className="truncate text-sm font-semibold text-foreground">{title}</span>}
+        </header>
 
-      <MobileBottomNav
-        items={mobileNavItems}
-        currentLanguage={currentLanguage}
-        showHomeButton={!rootItem}
-      />
-    </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+          <Outlet />
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

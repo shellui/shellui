@@ -28,8 +28,8 @@ export function ExternalLinkIcon({ className }: { className?: string }) {
   );
 }
 
-/** Caret up: expand (show second line). */
-export function CaretUpIcon({ className }: { className?: string }) {
+/** Default nav icon when a navigation item has no custom icon. */
+export function DefaultNavIcon({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -41,53 +41,14 @@ export function CaretUpIcon({ className }: { className?: string }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={cn('shrink-0', className)}
+      className={cn('size-4 shrink-0', className)}
       aria-hidden
     >
-      <path d="m18 15-6-6-6 6" />
-    </svg>
-  );
-}
-
-/** Caret down: collapse (hide second line). */
-export function CaretDownIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn('shrink-0', className)}
-      aria-hidden
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-/** Home icon for mobile bottom bar (same as sidebar logo action). */
-export function HomeIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={cn('shrink-0', className)}
-      aria-hidden
-    >
-      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
+      <circle
+        cx="12"
+        cy="12"
+        r="8"
+      />
     </svg>
   );
 }
