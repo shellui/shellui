@@ -281,7 +281,7 @@ The shell sets CSS variables as **full colors** on `:root`. Tailwind consumes th
 
 ## Theme selector UI
 
-Settings → Appearance scales with the number of available themes (1 / few / many). Recommended themes sort first. Fonts from a theme’s `fonts.files` apply when that theme is active.
+Settings → Appearance scales with the number of available themes (1 / few / many). Recommended themes sort first. Each preview uses the theme’s color swatches, typography, and `radius` so sharp vs soft corners are visible before you switch. Fonts from a theme’s `fonts.files` apply when that theme is active.
 
 ## Related
 

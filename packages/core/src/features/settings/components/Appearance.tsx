@@ -97,28 +97,39 @@ type ThemePreviewItem = Pick<
   'name' | 'displayName' | 'colors' | 'fontFamily' | 'letterSpacing' | 'textShadow'
 > & { description?: string; recommended?: boolean };
 
+function previewRadius(radius: string | undefined, inset = 0): string {
+  const base = radius?.trim() || '0.5rem';
+  if (inset <= 0) return base;
+  return `max(0px, calc(${base} - ${inset}px))`;
+}
+
 function MiniSwatch({ colors }: { colors: ThemePreviewItem['colors']['light'] }) {
+  const radius = colors.radius;
   return (
     <div
-      className="flex flex-1 flex-col gap-1 rounded-md border p-1.5"
-      style={{ backgroundColor: colors.background, borderColor: colors.border }}
+      className="flex flex-1 flex-col gap-1 border p-1.5"
+      style={{
+        backgroundColor: colors.background,
+        borderColor: colors.border,
+        borderRadius: previewRadius(radius, 2),
+      }}
     >
       <div
-        className="h-3 rounded-sm"
-        style={{ backgroundColor: colors.primary }}
+        className="h-3"
+        style={{ backgroundColor: colors.primary, borderRadius: previewRadius(radius, 4) }}
       />
       <div className="flex gap-0.5">
         <div
-          className="h-2 flex-1 rounded-sm"
-          style={{ backgroundColor: colors.secondary }}
+          className="h-2 flex-1"
+          style={{ backgroundColor: colors.secondary, borderRadius: previewRadius(radius, 4) }}
         />
         <div
-          className="h-2 flex-1 rounded-sm"
-          style={{ backgroundColor: colors.accent }}
+          className="h-2 flex-1"
+          style={{ backgroundColor: colors.accent, borderRadius: previewRadius(radius, 4) }}
         />
         <div
-          className="h-2 flex-1 rounded-sm"
-          style={{ backgroundColor: colors.muted }}
+          className="h-2 flex-1"
+          style={{ backgroundColor: colors.muted, borderRadius: previewRadius(radius, 4) }}
         />
       </div>
     </div>
@@ -139,16 +150,18 @@ const ThemePreview = ({
   recommendedLabel: string;
 }) => {
   const colors = isDark ? theme.colors.dark : theme.colors.light;
+  const radius = colors.radius;
 
   if (layout === 'many') {
     return (
       <div
         className={cn(
-          'relative overflow-hidden rounded-lg border-2 transition-all',
+          'relative overflow-hidden border-2 transition-all',
           isSelected
             ? 'border-primary shadow-md'
             : 'border-border hover:border-muted-foreground/40',
         )}
+        style={{ borderRadius: previewRadius(radius) }}
       >
         <div className="flex gap-1 p-2">
           <MiniSwatch colors={theme.colors.light} />
@@ -192,39 +205,45 @@ const ThemePreview = ({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-lg border-2 transition-all',
+        'relative overflow-hidden border-2 transition-all',
         isSelected ? 'border-primary shadow-lg' : 'border-border',
         layout === 'single' && 'max-w-sm',
       )}
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.background, borderRadius: previewRadius(radius) }}
     >
       <div className={cn('space-y-2', layout === 'single' ? 'p-4' : 'p-3')}>
         <div
-          className={cn('rounded-md', layout === 'single' ? 'h-10' : 'h-8')}
-          style={{ backgroundColor: colors.primary }}
+          className={layout === 'single' ? 'h-10' : 'h-8'}
+          style={{ backgroundColor: colors.primary, borderRadius: previewRadius(radius, 2) }}
         />
         <div className="flex gap-1">
           <div
-            className="h-6 flex-1 rounded"
-            style={{ backgroundColor: colors.background }}
+            className="h-6 flex-1"
+            style={{
+              backgroundColor: colors.background,
+              borderRadius: previewRadius(radius, 4),
+            }}
           />
           <div
-            className="h-6 flex-1 rounded"
-            style={{ backgroundColor: colors.secondary }}
+            className="h-6 flex-1"
+            style={{
+              backgroundColor: colors.secondary,
+              borderRadius: previewRadius(radius, 4),
+            }}
           />
           <div
-            className="h-6 flex-1 rounded"
-            style={{ backgroundColor: colors.accent }}
+            className="h-6 flex-1"
+            style={{ backgroundColor: colors.accent, borderRadius: previewRadius(radius, 4) }}
           />
         </div>
         <div className="flex gap-1">
           <div
-            className="h-4 flex-1 rounded"
-            style={{ backgroundColor: colors.muted }}
+            className="h-4 flex-1"
+            style={{ backgroundColor: colors.muted, borderRadius: previewRadius(radius, 4) }}
           />
           <div
-            className="h-4 flex-1 rounded"
-            style={{ backgroundColor: colors.border }}
+            className="h-4 flex-1"
+            style={{ backgroundColor: colors.border, borderRadius: previewRadius(radius, 4) }}
           />
         </div>
       </div>
@@ -400,6 +419,7 @@ export const Appearance = () => {
         <div className={cn('mt-2', gridClass)}>
           {sortedThemes.map((theme) => {
             const isSelected = currentThemeName === theme.name;
+            const previewColors = isDarkForPreview ? theme.colors.dark : theme.colors.light;
             return (
               <button
                 key={theme.name}
@@ -408,9 +428,10 @@ export const Appearance = () => {
                   updateSetting('appearance', { name: theme.name });
                 }}
                 className={cn(
-                  'text-left transition-all cursor-pointer rounded-lg',
+                  'text-left transition-all cursor-pointer',
                   isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                 )}
+                style={{ borderRadius: previewRadius(previewColors.radius) }}
                 aria-label={theme.displayName}
                 aria-pressed={isSelected}
               >
