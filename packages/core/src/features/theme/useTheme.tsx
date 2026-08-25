@@ -1,8 +1,13 @@
-/* eslint-disable no-console */
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useEffect } from 'react';
 import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
-import { getTheme, registerTheme, applyTheme, type ThemeDefinition } from './themes';
+import {
+  getTheme,
+  setAvailableThemes,
+  applyTheme,
+  defaultTheme,
+  type ThemeDefinition,
+} from './themes';
 
 /**
  * Apply theme to document element
@@ -25,47 +30,58 @@ function applyThemeToDocument(isDark: boolean) {
  * Also applies theme colors based on themeName setting
  */
 export function useTheme() {
-  const { settings } = useSettings();
+  const { settings, updateSetting } = useSettings();
   const { config } = useConfig();
   const colorScheme = settings.appearance?.colorScheme ?? 'system';
-  const themeName = settings.appearance?.name ?? 'default';
+  const themeName = settings.appearance?.name;
+  const configDefault = config?.activeTheme || config?.defaultTheme || defaultTheme.name;
 
-  // Apply theme immediately on mount (synchronously) to prevent empty colors
-  // This ensures CSS variables are set before first render
+  // Seed appearance.name from config when the user has no stored preference yet
+  useEffect(() => {
+    if (!config) return;
+    if (themeName) return;
+    if (!configDefault) return;
+    updateSetting('appearance', { name: configDefault });
+  }, [config, configDefault, themeName, updateSetting]);
+
   useLayoutEffect(() => {
-    // Get the effective theme name (from settings or config)
-    // Use themeName from settings first, then config defaultTheme, then 'default'
-    const effectiveThemeName = themeName || config?.defaultTheme || 'default';
+    const effectiveThemeName = themeName || configDefault || defaultTheme.name;
 
-    if (config?.themes) {
-      config.themes.forEach((themeDef: ThemeDefinition) => {
-        registerTheme(themeDef);
-      });
-    }
+    const available: ThemeDefinition[] =
+      config?.themes && Array.isArray(config.themes) && config.themes.length > 0
+        ? (config.themes as ThemeDefinition[])
+        : [defaultTheme];
 
-    const themeDefinition = getTheme(effectiveThemeName) || getTheme('default');
+    setAvailableThemes(available);
 
-    if (themeDefinition) {
-      const determineIsDark = () => {
-        if (colorScheme === 'system') {
-          const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-          return mediaQuery.matches;
-        }
-        return colorScheme === 'dark';
-      };
-      const isDark = determineIsDark();
+    const themeDefinition =
+      getTheme(effectiveThemeName) || getTheme(defaultTheme.name) || defaultTheme;
+
+    const determineIsDark = () => {
+      if (colorScheme === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+      return colorScheme === 'dark';
+    };
+
+    let isDark = determineIsDark();
+    applyThemeToDocument(isDark);
+    applyTheme(themeDefinition, isDark);
+
+    if (colorScheme !== 'system') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      isDark = mediaQuery.matches;
       applyThemeToDocument(isDark);
       applyTheme(themeDefinition, isDark);
-    } else {
-      console.error('[Theme] No theme definition found, using fallback');
-      // Fallback: at least set primary color from default theme
-      const defaultTheme = getTheme('default');
-      if (defaultTheme) {
-        const isDark =
-          colorScheme === 'dark' ||
-          (colorScheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        applyTheme(defaultTheme, isDark);
-      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
     }
-  }, [colorScheme, themeName, config]); // Run when colorScheme, themeName, or config changes
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, [colorScheme, themeName, config, configDefault]);
 }

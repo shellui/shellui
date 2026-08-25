@@ -69,14 +69,35 @@
           "$ref": "#/definitions/StorageConfig",
           "description": "Storage-service connection. Propagated to iframes via SDK settings. Enables Admin → Storage when `url` is set. Settings → Storage (quota) is shown when `url` is set unless `storage.showInSettings` is false."
         },
+        "theme": {
+          "$ref": "#/definitions/ThemeRef",
+          "description": "Single theme: built-in name, path to a theme JSON/folder, or inline theme object. When set without `themes`, only this theme is available in the selector."
+        },
         "themes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ThemeDefinition"
-          }
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ThemesConfig"
+            },
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/ThemeDefinition"
+              }
+            }
+          ],
+          "description": "Available themes for the app.\n- Array of built-in names, paths, or inline objects\n- Map of id → name | path | object After CLI load, resolved to a `ThemeDefinition[]` for the runtime."
+        },
+        "themesDir": {
+          "type": "string",
+          "description": "Directory of theme JSON files (one `.json` per theme) with optional sibling `<name>/fonts/` folders. Resolved by the CLI at load/build time."
+        },
+        "activeTheme": {
+          "type": "string",
+          "description": "Active theme name on first visit (and when no user preference is stored). Prefer this over `defaultTheme`."
         },
         "defaultTheme": {
-          "type": "string"
+          "type": "string",
+          "description": "Default theme name. Alias of `activeTheme` (kept for backward compatibility)."
         },
         "sentry": {
           "$ref": "#/definitions/SentryConfig",
@@ -287,6 +308,252 @@
       "additionalProperties": false,
       "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. ShellUI will also use this for the SDK file API (`shellui.storage`)."
     },
+    "ThemeRef": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/ThemeInput"
+        },
+        {
+          "$ref": "#/definitions/ThemeDefinition"
+        }
+      ],
+      "description": "Built-in name, filesystem path, or inline theme object."
+    },
+    "ThemeInput": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 1
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "description": "Theme JSON schema version. Required in theme folder JSON files (must be 1). Optional for inline config objects."
+        },
+        "$schema": {
+          "type": "string",
+          "description": "JSON Schema URL for editor tooling (theme JSON files)."
+        },
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label (preferred)."
+        },
+        "displayName": {
+          "type": "string",
+          "deprecated": "Prefer `label`. Kept for existing configs."
+        },
+        "description": {
+          "type": "string"
+        },
+        "recommended": {
+          "type": "boolean"
+        },
+        "fonts": {
+          "$ref": "#/definitions/ThemeFonts"
+        },
+        "fontFamily": {
+          "type": "string"
+        },
+        "headingFontFamily": {
+          "type": "string"
+        },
+        "bodyFontFamily": {
+          "type": "string"
+        },
+        "fontFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "letterSpacing": {
+          "type": "string"
+        },
+        "textShadow": {
+          "type": "string"
+        },
+        "lineHeight": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "string",
+          "description": "Shared radius applied to both modes when mode tokens omit `radius`."
+        },
+        "light": {
+          "$ref": "#/definitions/ThemeColorsModePartial"
+        },
+        "dark": {
+          "$ref": "#/definitions/ThemeColorsModePartial"
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "light": {
+              "$ref": "#/definitions/ThemeColorsModePartial"
+            },
+            "dark": {
+              "$ref": "#/definitions/ThemeColorsModePartial"
+            }
+          },
+          "required": ["light", "dark"],
+          "additionalProperties": false,
+          "description": "Legacy full colors object (required keys when used as a complete theme)."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Flexible theme object for config or theme JSON files. Supports compact (`light`/`dark` + `label`) and legacy (`colors` + `displayName`) shapes. Partial light/dark tokens are merged onto the default theme."
+    },
+    "ThemeFonts": {
+      "type": "object",
+      "properties": {
+        "sans": {
+          "type": "string",
+          "description": "Sans / UI font stack"
+        },
+        "mono": {
+          "type": "string",
+          "description": "Monospace font stack"
+        },
+        "serif": {
+          "type": "string",
+          "description": "Serif font stack"
+        },
+        "heading": {
+          "type": "string",
+          "description": "Heading font stack (falls back to sans)"
+        },
+        "body": {
+          "type": "string",
+          "description": "Body font stack (falls back to sans)"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Font file URLs or paths (Google Fonts CSS, local `.css`, or `.woff2`). Paths in theme JSON are relative to the theme file / themesDir."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional font packaging for a theme."
+    },
+    "ThemeColorsModePartial": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "foreground": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "cardForeground": {
+          "type": "string"
+        },
+        "popover": {
+          "type": "string"
+        },
+        "popoverForeground": {
+          "type": "string"
+        },
+        "primary": {
+          "type": "string"
+        },
+        "primaryForeground": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "secondaryForeground": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "string"
+        },
+        "mutedForeground": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "accentForeground": {
+          "type": "string"
+        },
+        "destructive": {
+          "type": "string"
+        },
+        "destructiveForeground": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "ring": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "string"
+        },
+        "sidebarBackground": {
+          "type": "string"
+        },
+        "sidebarForeground": {
+          "type": "string"
+        },
+        "sidebarPrimary": {
+          "type": "string"
+        },
+        "sidebarPrimaryForeground": {
+          "type": "string"
+        },
+        "sidebarAccent": {
+          "type": "string"
+        },
+        "sidebarAccentForeground": {
+          "type": "string"
+        },
+        "sidebarBorder": {
+          "type": "string"
+        },
+        "sidebarRing": {
+          "type": "string"
+        },
+        "chart1": {
+          "type": "string",
+          "description": "Optional chart series colors (shadcn chart tokens)."
+        },
+        "chart2": {
+          "type": "string"
+        },
+        "chart3": {
+          "type": "string"
+        },
+        "chart4": {
+          "type": "string"
+        },
+        "chart5": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Partial token overrides when extending a base theme."
+    },
     "ThemeDefinition": {
       "type": "object",
       "properties": {
@@ -295,6 +562,13 @@
         },
         "displayName": {
           "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "recommended": {
+          "type": "boolean",
+          "description": "Highlight in the selector when many themes are available."
         },
         "colors": {
           "$ref": "#/definitions/ThemeColors"
@@ -325,254 +599,175 @@
         }
       },
       "required": ["name", "displayName", "colors"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Normalized runtime theme (always complete light + dark palettes)."
     },
     "ThemeColors": {
       "type": "object",
       "properties": {
         "light": {
-          "type": "object",
-          "properties": {
-            "background": {
-              "type": "string"
-            },
-            "foreground": {
-              "type": "string"
-            },
-            "card": {
-              "type": "string"
-            },
-            "cardForeground": {
-              "type": "string"
-            },
-            "popover": {
-              "type": "string"
-            },
-            "popoverForeground": {
-              "type": "string"
-            },
-            "primary": {
-              "type": "string"
-            },
-            "primaryForeground": {
-              "type": "string"
-            },
-            "secondary": {
-              "type": "string"
-            },
-            "secondaryForeground": {
-              "type": "string"
-            },
-            "muted": {
-              "type": "string"
-            },
-            "mutedForeground": {
-              "type": "string"
-            },
-            "accent": {
-              "type": "string"
-            },
-            "accentForeground": {
-              "type": "string"
-            },
-            "destructive": {
-              "type": "string"
-            },
-            "destructiveForeground": {
-              "type": "string"
-            },
-            "border": {
-              "type": "string"
-            },
-            "input": {
-              "type": "string"
-            },
-            "ring": {
-              "type": "string"
-            },
-            "radius": {
-              "type": "string"
-            },
-            "sidebarBackground": {
-              "type": "string"
-            },
-            "sidebarForeground": {
-              "type": "string"
-            },
-            "sidebarPrimary": {
-              "type": "string"
-            },
-            "sidebarPrimaryForeground": {
-              "type": "string"
-            },
-            "sidebarAccent": {
-              "type": "string"
-            },
-            "sidebarAccentForeground": {
-              "type": "string"
-            },
-            "sidebarBorder": {
-              "type": "string"
-            },
-            "sidebarRing": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "background",
-            "foreground",
-            "card",
-            "cardForeground",
-            "popover",
-            "popoverForeground",
-            "primary",
-            "primaryForeground",
-            "secondary",
-            "secondaryForeground",
-            "muted",
-            "mutedForeground",
-            "accent",
-            "accentForeground",
-            "destructive",
-            "destructiveForeground",
-            "border",
-            "input",
-            "ring",
-            "radius",
-            "sidebarBackground",
-            "sidebarForeground",
-            "sidebarPrimary",
-            "sidebarPrimaryForeground",
-            "sidebarAccent",
-            "sidebarAccentForeground",
-            "sidebarBorder",
-            "sidebarRing"
-          ],
-          "additionalProperties": false
+          "$ref": "#/definitions/ThemeColorsMode"
         },
         "dark": {
-          "type": "object",
-          "properties": {
-            "background": {
-              "type": "string"
-            },
-            "foreground": {
-              "type": "string"
-            },
-            "card": {
-              "type": "string"
-            },
-            "cardForeground": {
-              "type": "string"
-            },
-            "popover": {
-              "type": "string"
-            },
-            "popoverForeground": {
-              "type": "string"
-            },
-            "primary": {
-              "type": "string"
-            },
-            "primaryForeground": {
-              "type": "string"
-            },
-            "secondary": {
-              "type": "string"
-            },
-            "secondaryForeground": {
-              "type": "string"
-            },
-            "muted": {
-              "type": "string"
-            },
-            "mutedForeground": {
-              "type": "string"
-            },
-            "accent": {
-              "type": "string"
-            },
-            "accentForeground": {
-              "type": "string"
-            },
-            "destructive": {
-              "type": "string"
-            },
-            "destructiveForeground": {
-              "type": "string"
-            },
-            "border": {
-              "type": "string"
-            },
-            "input": {
-              "type": "string"
-            },
-            "ring": {
-              "type": "string"
-            },
-            "radius": {
-              "type": "string"
-            },
-            "sidebarBackground": {
-              "type": "string"
-            },
-            "sidebarForeground": {
-              "type": "string"
-            },
-            "sidebarPrimary": {
-              "type": "string"
-            },
-            "sidebarPrimaryForeground": {
-              "type": "string"
-            },
-            "sidebarAccent": {
-              "type": "string"
-            },
-            "sidebarAccentForeground": {
-              "type": "string"
-            },
-            "sidebarBorder": {
-              "type": "string"
-            },
-            "sidebarRing": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "background",
-            "foreground",
-            "card",
-            "cardForeground",
-            "popover",
-            "popoverForeground",
-            "primary",
-            "primaryForeground",
-            "secondary",
-            "secondaryForeground",
-            "muted",
-            "mutedForeground",
-            "accent",
-            "accentForeground",
-            "destructive",
-            "destructiveForeground",
-            "border",
-            "input",
-            "ring",
-            "radius",
-            "sidebarBackground",
-            "sidebarForeground",
-            "sidebarPrimary",
-            "sidebarPrimaryForeground",
-            "sidebarAccent",
-            "sidebarAccentForeground",
-            "sidebarBorder",
-            "sidebarRing"
-          ],
-          "additionalProperties": false
+          "$ref": "#/definitions/ThemeColorsMode"
         }
       },
       "required": ["light", "dark"],
       "additionalProperties": false
+    },
+    "ThemeColorsMode": {
+      "type": "object",
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "foreground": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "cardForeground": {
+          "type": "string"
+        },
+        "popover": {
+          "type": "string"
+        },
+        "popoverForeground": {
+          "type": "string"
+        },
+        "primary": {
+          "type": "string"
+        },
+        "primaryForeground": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "secondaryForeground": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "string"
+        },
+        "mutedForeground": {
+          "type": "string"
+        },
+        "accent": {
+          "type": "string"
+        },
+        "accentForeground": {
+          "type": "string"
+        },
+        "destructive": {
+          "type": "string"
+        },
+        "destructiveForeground": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "ring": {
+          "type": "string"
+        },
+        "radius": {
+          "type": "string"
+        },
+        "sidebarBackground": {
+          "type": "string"
+        },
+        "sidebarForeground": {
+          "type": "string"
+        },
+        "sidebarPrimary": {
+          "type": "string"
+        },
+        "sidebarPrimaryForeground": {
+          "type": "string"
+        },
+        "sidebarAccent": {
+          "type": "string"
+        },
+        "sidebarAccentForeground": {
+          "type": "string"
+        },
+        "sidebarBorder": {
+          "type": "string"
+        },
+        "sidebarRing": {
+          "type": "string"
+        },
+        "chart1": {
+          "type": "string",
+          "description": "Optional chart series colors (shadcn chart tokens)."
+        },
+        "chart2": {
+          "type": "string"
+        },
+        "chart3": {
+          "type": "string"
+        },
+        "chart4": {
+          "type": "string"
+        },
+        "chart5": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "background",
+        "foreground",
+        "card",
+        "cardForeground",
+        "popover",
+        "popoverForeground",
+        "primary",
+        "primaryForeground",
+        "secondary",
+        "secondaryForeground",
+        "muted",
+        "mutedForeground",
+        "accent",
+        "accentForeground",
+        "destructive",
+        "destructiveForeground",
+        "border",
+        "input",
+        "ring",
+        "radius",
+        "sidebarBackground",
+        "sidebarForeground",
+        "sidebarPrimary",
+        "sidebarPrimaryForeground",
+        "sidebarAccent",
+        "sidebarAccentForeground",
+        "sidebarBorder",
+        "sidebarRing"
+      ],
+      "additionalProperties": false,
+      "description": "Color tokens for one mode (light or dark)."
+    },
+    "ThemesConfig": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ThemeRef"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ThemeRef"
+          }
+        }
+      ],
+      "description": "Array of refs, or map of id → ref (id used as name when the ref is a string/path)."
     },
     "SentryConfig": {
       "type": "object",

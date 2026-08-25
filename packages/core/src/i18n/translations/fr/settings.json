@@ -86,6 +86,8 @@
     "modeDescription": "Choisissez le mode clair, sombre ou automatique.",
     "colorTheme": "Thème de couleur",
     "colorThemeDescription": "Sélectionnez un thème de couleur. Chaque thème a des variantes claires et sombres.",
+    "colorThemeDescriptionSingle": "Thème de votre application. Les variantes claire et sombre suivent le mode ci-dessus.",
+    "recommended": "Recommandé",
     "themes": {
       "light": "Clair",
       "dark": "Sombre",

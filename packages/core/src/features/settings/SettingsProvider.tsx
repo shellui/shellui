@@ -124,6 +124,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user: authUser, session, syncUserPreferences, loadUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
+  const settingsHydratedFromStorageRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
   const settingsRef = useRef<Settings | null>(null);
   const [settings, setSettings] = useState<Settings>(() => {
@@ -132,6 +133,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (shellui.initialSettings) {
       initialSettings = shellui.initialSettings;
       settingsRef.current = initialSettings;
+      settingsHydratedFromStorageRef.current = true;
       return initialSettings;
     }
 
@@ -140,6 +142,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
+          settingsHydratedFromStorageRef.current = true;
           const parsed = JSON.parse(stored);
           // Deep merge with defaults to handle new settings
           initialSettings = {
@@ -540,6 +543,44 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupInitialized();
     };
   }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, pushSettingsToFrame]);
+
+  // Apply config activeTheme / defaultTheme on first visit (no localStorage preference yet)
+  useEffect(() => {
+    if (settingsHydratedFromStorageRef.current) return;
+    const desired = config?.activeTheme || config?.defaultTheme;
+    if (!desired) return;
+    setSettings((prev) => {
+      if (prev.appearance?.name === desired) return prev;
+      const themeFromConfig = Array.isArray(config?.themes)
+        ? config.themes.find(
+            (t) =>
+              t && typeof t === 'object' && 'name' in t && (t as { name: string }).name === desired,
+          )
+        : undefined;
+      const typed =
+        themeFromConfig && typeof themeFromConfig === 'object' && 'displayName' in themeFromConfig
+          ? (themeFromConfig as {
+              displayName: string;
+              colors: Appearance['colors'];
+            })
+          : undefined;
+      const next: Settings = {
+        ...prev,
+        appearance: {
+          ...prev.appearance,
+          name: desired,
+          ...(typed
+            ? {
+                displayName: typed.displayName,
+                colors: typed.colors,
+              }
+            : {}),
+        },
+      };
+      settingsRef.current = next;
+      return next;
+    });
+  }, [config?.activeTheme, config?.defaultTheme, config?.themes]);
 
   useEffect(() => {
     if (

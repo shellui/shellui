@@ -23,7 +23,10 @@ const AlertDialogOverlay = forwardRef<
   <AlertDialogPrimitive.Overlay
     ref={ref}
     data-dialog-overlay
-    className={cn('fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]', className)}
+    className={cn(
+      'fixed inset-0 bg-[color-mix(in oklch, var(--background) 80%, transparent)] backdrop-blur-[1px]',
+      className,
+    )}
     style={{ zIndex: Z_INDEX.ALERT_DIALOG_OVERLAY }}
     {...props}
   />

@@ -12,6 +12,7 @@ import {
 import { validateConfig } from './config-validate.js';
 import { mergeSplitConfigs, readJsonConfigFile } from './config-split.js';
 import { substituteEnvInConfig } from './config-env.js';
+import { resolveConfigThemes } from './resolve-themes.js';
 
 /**
  * Merge Sentry config from env into the loaded config. Only adds sentry when
@@ -165,7 +166,10 @@ export async function loadConfig(root = '.', configOrOptions) {
 
   const merged = mergeSentryFromEnv(config);
   warnStartUrlAndRootNav(merged);
-  return merged;
+  return resolveConfigThemes(merged, {
+    configDir,
+    projectRoot: location.projectRoot,
+  });
 }
 
 /**

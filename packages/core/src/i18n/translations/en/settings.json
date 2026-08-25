@@ -86,6 +86,8 @@
     "modeDescription": "Choose light, dark, or automatic mode.",
     "colorTheme": "Color Theme",
     "colorThemeDescription": "Select a color theme. Each theme has light and dark variants.",
+    "colorThemeDescriptionSingle": "Your app theme. Light and dark variants follow the mode above.",
+    "recommended": "Recommended",
     "themes": {
       "light": "Light",
       "dark": "Dark",

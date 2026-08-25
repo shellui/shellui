@@ -18,6 +18,12 @@
       "default": "./src/constants/urls.ts"
     },
     "./schemas/shellui.config.schema.json": "./schemas/shellui.config.schema.json",
+    "./schemas/shellui.theme.schema.json": "./schemas/shellui.theme.schema.json",
+    "./schemas/curated-themes.json": "./schemas/curated-themes.json",
+    "./theme": {
+      "import": "./src/features/theme/index.ts",
+      "default": "./src/features/theme/index.ts"
+    },
     "./style.css": "./src/index.css",
     "./package.json": "./package.json"
   },
@@ -32,7 +38,8 @@
   "scripts": {
     "test": "node scripts/test.js",
     "generate:config-schema": "node scripts/generate-config-schema.mjs",
-    "build": "pnpm run generate:config-schema"
+    "generate:curated-themes": "node scripts/generate-curated-themes.mjs",
+    "build": "pnpm run generate:config-schema && pnpm run generate:curated-themes"
   },
   "keywords": [
     "shellui",
