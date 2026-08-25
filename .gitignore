@@ -4,6 +4,7 @@ dist/
 .DS_Store
 .env
 .env.local
+.pnpm-store/
 shellui.config.*
 !packages/core/schemas/shellui.config.schema.json
 shellui.config.ts
