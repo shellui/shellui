@@ -13,7 +13,7 @@ Guide for developing Shellui packages.
 └── package.json       # Root workspace configuration
 ```
 
-AI skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When changing public CLI, SDK, or config behavior, update the matching skill there and keep it small (see [ADR 0001](/adr/0001-ai-skill)).
+AI skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When changing public CLI, SDK, or config behavior, update the matching skill there and keep it small (see [ADR 0001](/adr/ai-skill)).
 
 ## Development Workflow
 

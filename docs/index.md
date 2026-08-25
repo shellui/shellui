@@ -64,10 +64,10 @@ npx skills add shellui/skills --skill shellui
 
 Update with `npx skills update`.
 
-Decision record: [ADR 0001 — Official shellui AI skill](/adr/0001-ai-skill).
+Decision record: [ADR 0001 — Official shellui AI skill](/adr/ai-skill).
 
 ## Developer resources
 
 - [Development guide](/development) — Contributing to Shellui
 - [Publishing guide](/publishing) — Releasing packages
-- [ADR 0001](/adr/0001-ai-skill) — AI skill hosting, versioning, and token budget
+- [ADR 0001](/adr/ai-skill) — AI skill hosting, versioning, and token budget
