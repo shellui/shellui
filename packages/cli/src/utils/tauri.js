@@ -239,7 +239,7 @@ export function resolveSourceIconPath(projectRoot, config) {
   if (fs.existsSync(defaultIcon)) return defaultIcon;
 
   throw new Error(
-    'No icon source found for Tauri (add static/favicon.svg or appIcon in shellui.config.ts)',
+    'No icon source found for Tauri (add static/favicon.svg or appIcon in shellui.config.json)',
   );
 }
 
@@ -339,10 +339,10 @@ function mergeProjectTauriOverrides(tauriConf, overrides) {
 }
 
 /**
- * Sync shellui.config.ts values into app/src-tauri/tauri.conf.json
+ * Sync shellui config values into app/src-tauri/tauri.conf.json
  * @param {string} root
  * @param {string} cwd
- * @param {{ host?: boolean; bundles?: string }} [options]
+ * @param {{ host?: boolean; bundles?: string; config?: string }} [options]
  */
 export async function syncTauriConfig(root, cwd, options = {}) {
   const projectRoot = getProjectRoot(root, cwd);
@@ -353,7 +353,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
     throw new Error(`Tauri config not found at ${tauriConfPath}`);
   }
 
-  const config = await loadConfig(root);
+  const config = await loadConfig(root, { config: options.config });
   const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
 
   const title = config.title || 'shellui';
@@ -395,7 +395,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   }
 
   fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
-  console.log(pc.green(`Synced shellui.config.ts -> ${DESKTOP_APP_DIR}/`));
+  console.log(pc.green(`Synced shellui config -> ${DESKTOP_APP_DIR}/`));
 }
 
 /**

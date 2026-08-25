@@ -17,18 +17,22 @@
       "import": "./src/constants/urls.ts",
       "default": "./src/constants/urls.ts"
     },
+    "./schemas/shellui.config.schema.json": "./schemas/shellui.config.schema.json",
     "./style.css": "./src/index.css",
     "./package.json": "./package.json"
   },
   "files": [
     "src",
+    "schemas",
     "postcss.config.js",
     "tailwind.config.js",
     "README.md",
     "package.json"
   ],
   "scripts": {
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "generate:config-schema": "node scripts/generate-config-schema.mjs",
+    "build": "pnpm run generate:config-schema"
   },
   "keywords": [
     "shellui",
@@ -81,6 +85,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss-animate": "^1.0.7",
+    "ts-json-schema-generator": "^2.9.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

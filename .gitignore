@@ -5,4 +5,5 @@ dist/
 .env
 .env.local
 shellui.config.*
+!packages/core/schemas/shellui.config.schema.json
 shellui.config.ts

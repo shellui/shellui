@@ -14,6 +14,7 @@ import {
   createViteResolveConfig,
   resolvePackagePath,
   getShelluiTargetDefine,
+  writeGeneratedFrontendConfig,
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
@@ -86,7 +87,7 @@ function applyTargetOption(options = {}) {
 /**
  * Build command - Builds the ShellUI application for production
  * @param {string} root - Root directory (default: '.')
- * @param {{ app?: boolean; target?: string; bundles?: string }} options - Command options
+ * @param {{ app?: boolean; target?: string; bundles?: string; config?: string }} options - Command options
  */
 export async function buildCommand(root = '.', options = {}) {
   const cwd = process.cwd();
@@ -94,19 +95,19 @@ export async function buildCommand(root = '.', options = {}) {
   applyTargetOption(options);
 
   if (options?.app) {
-    await tauriBuildCommand(root, { bundles: options.bundles });
+    await tauriBuildCommand(root, { bundles: options.bundles, config: options.config });
     return;
   }
 
   console.log(pc.blue(`Building ShellUI...`));
 
   // Set environment variable to indicate this is a build
-  // This allows shellui.config.ts to detect build mode and generate build ID
+  // This allows shellui.config.ts (advanced) to detect build mode and generate build ID
   process.env.SHELLUI_BUILD = 'true';
   process.env.NODE_ENV = 'production';
 
   // Load configuration
-  const config = await loadConfig(root);
+  const config = await loadConfig(root, { config: options.config });
 
   // Log config summary for debugging
   console.log(pc.blue(`Config loaded:`));
@@ -263,6 +264,15 @@ export async function buildCommand(root = '.', options = {}) {
     }
 
     console.log(pc.green(`Build complete! Output: dist/web/`));
+
+    // Write resolved config snapshot for the frontend (env already substituted; not overridable at runtime).
+    // This file is public — do not put secrets in shellui config.
+    const { filePath: generatedConfigPath } = writeGeneratedFrontendConfig(distPath, config);
+    console.log(
+      pc.green(
+        `Wrote resolved frontend config: ${generatedConfigPath} (env placeholders baked in; no runtime overrides)`,
+      ),
+    );
   } catch (e) {
     console.error(pc.red(`Error building: ${e.message}`));
     process.exit(1);

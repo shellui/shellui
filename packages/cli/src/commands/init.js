@@ -1,11 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
+import {
+  CONFIG_SCHEMA_REF,
+  MAIN_CONFIG_FILE,
+  TS_CONFIG_FILE,
+  resolveConfigLocation,
+  getConfigPathOption,
+} from '../utils/config-paths.js';
 
-const SHELLUI_CONFIG_TS = `import { type ShellUIConfig } from '@shellui/core';
-import urls from '@shellui/core/constants/urls';
-
-const config: ShellUIConfig = {
+const SHELLUI_CONFIG_JSON = {
+  $schema: CONFIG_SCHEMA_REF,
   port: 4000,
   title: 'My App',
   favicon: '/favicon.svg',
@@ -21,15 +26,12 @@ const config: ShellUIConfig = {
     {
       label: 'Settings',
       path: 'settings',
-      url: urls.settings,
+      url: '/__settings',
       openIn: 'modal',
       position: 'end',
     },
   ],
 };
-
-export default config;
-`;
 
 const GITIGNORE_DIST_ENTRY = 'dist/\n';
 
@@ -51,14 +53,13 @@ function ensureDistGitignore(projectDir) {
 }
 
 /**
- * Init command - Creates a shellui.config.ts boilerplate in the project
- * @param {string} root - Root directory (default: current directory)
- * @param {{ force?: boolean }} options - Optional flags (e.g. force overwrite)
+ * Init command - Creates a shellui.config.json boilerplate in the project
+ * @param {string} root - Project root directory (default: current directory)
+ * @param {{ force?: boolean, config?: string }} options - Optional flags
  */
 export async function initCommand(root = '.', options = {}) {
-  const cwd = process.cwd();
-  const configDir = path.resolve(cwd, root);
-  const configPath = path.join(configDir, 'shellui.config.ts');
+  const location = resolveConfigLocation(root, getConfigPathOption(options));
+  const { projectRoot, configDir, mainPath: configPath, tsPath } = location;
 
   if (fs.existsSync(configPath) && !options.force) {
     console.log(
@@ -71,10 +72,18 @@ export async function initCommand(root = '.', options = {}) {
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
-    fs.writeFileSync(configPath, SHELLUI_CONFIG_TS, 'utf-8');
+    fs.writeFileSync(configPath, `${JSON.stringify(SHELLUI_CONFIG_JSON, null, 2)}\n`, 'utf-8');
     console.log(pc.green(`Created ${configPath}`));
 
-    ensureDistGitignore(configDir);
+    if (fs.existsSync(tsPath)) {
+      console.log(
+        pc.yellow(
+          `Note: ${path.basename(tsPath)} is still present. JSON is preferred; run ${pc.bold('shellui config migrate')} or remove the TypeScript file. While both exist, JSON is loaded first.`,
+        ),
+      );
+    }
+
+    ensureDistGitignore(projectRoot);
 
     console.log(
       pc.dim(

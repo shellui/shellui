@@ -2,14 +2,14 @@
 
 Welcome to the Shellui documentation.
 
-Shellui is a lightweight microfrontend shell: one host app, many embedded URLs, shared navigation, themes, and settings. When you need sign-in, you connect a **backend** (Supabase, the Shellui identity service, or no backend for public shells) and configure **authentication** in `shellui.config.ts`—login routes, sessions, and guarded navigation are built into the shell.
+Shellui is a lightweight microfrontend shell: one host app, many embedded URLs, shared navigation, themes, and settings. When you need sign-in, you connect a **backend** (Supabase, the Shellui identity service, or no backend for public shells) and configure **authentication** in `shellui.config.json`—login routes, sessions, and guarded navigation are built into the shell.
 
 Use the sections below as a map, or follow the recommended path in order.
 
 ## Recommended path
 
 1. **[Installation](/installation)** — Install the Shellui CLI and verify your environment.
-2. **[Quick Start](/quickstart)** — Create `shellui.config.ts`, run the dev server, and build for production.
+2. **[Quick Start](/quickstart)** — Create `shellui.config.json`, run the dev server, and build for production.
 3. **[Backend](/backend)** — Choose a provider (`shellui`, `supabase`, or none), set `backend.url`, and optional tenant or Supabase keys.
 4. **[Authentication](/features/authentication)** — Enable login methods, use `/login` and `/login/callback`, and protect routes with `requiresAuth`.
 5. **[Navigation](/features/navigation)** — Define sidebar items, groups, and auth-aware visibility (`hideWhenLoggedOut`).

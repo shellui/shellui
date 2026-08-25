@@ -3,6 +3,7 @@ import fs from 'fs';
 import tailwindcssPlugin from '@tailwindcss/postcss';
 import autoprefixerPlugin from 'autoprefixer';
 import { resolvePackagePath, resolveSdkEntry } from './index.js';
+import { prepareFrontendConfig } from './config-env.js';
 
 /**
  * Get the path to the core package source directory
@@ -59,13 +60,13 @@ export function getShelluiTargetDefine(config) {
 
 /**
  * Create Vite plugin that provides the ShellUI config as a virtual module.
- * The app and any code can import from '@shellui/config' (via alias) and get the config object as TypeScript.
+ * Injects a frozen snapshot (env already resolved by loadConfig). The browser
+ * cannot override env placeholders at runtime.
  * @param {Object} config - Loaded shellui config (will be serialized for the virtual module)
  * @returns {import('vite').Plugin}
  */
 export function createShelluiConfigPlugin(config) {
-  const serializableConfig = JSON.parse(JSON.stringify(config));
-  delete serializableConfig.runtime;
+  const serializableConfig = prepareFrontendConfig(config);
   const moduleContent = `export const shelluiConfig = ${JSON.stringify(serializableConfig)};
 export default shelluiConfig;
 `;

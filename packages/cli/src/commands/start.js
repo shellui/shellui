@@ -5,6 +5,8 @@ import fs from 'fs';
 import pc from 'picocolors';
 import {
   loadConfig,
+  getWatchableConfigPaths,
+  hasAnyConfig,
   getCoreSrcPath,
   createResolveAlias,
   createPostCSSConfig,
@@ -19,9 +21,12 @@ import { initCommand } from './init.js';
 import { tauriDevCommand } from '../utils/tauri.js';
 
 let currentServer = null;
-let configWatcher = null;
+/** @type {fs.FSWatcher[]} */
+let configWatchers = [];
 let restartTimeout = null;
 let isFirstStart = true;
+/** @type {string | undefined} */
+let activeConfigPath;
 
 /**
  * Apply CLI target option to process.env for Vite define injection.
@@ -42,20 +47,13 @@ function applyTargetOption(options = {}) {
  * @returns {Promise<import('vite').ViteDevServer>}
  */
 async function startServer(root, cwd, shouldOpen = false, host = false) {
-  // Load configuration
-  const config = await loadConfig(root);
+  const config = await loadConfig(root, { config: activeConfigPath });
 
-  // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
 
-  // Get project root node_modules path to ensure all modules resolve from root
-  const projectRootNodeModules = path.resolve(cwd, root, 'node_modules');
-  // CRITICAL: Set cacheDir to absolute path in project root to prevent Vite from creating
-  // cache inside @shellui/core/node_modules/.vite/deps
   const viteCacheDir = path.resolve(cwd, root, 'node_modules', '.vite');
 
-  // Check if static folder exists in project root
   const staticPath = path.resolve(cwd, root, 'static');
   const publicDir = fs.existsSync(staticPath) ? staticPath : false;
 
@@ -63,8 +61,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
 
   const server = await createServer({
     root: coreSrcPath,
-    // Force cacheDir to project root - this prevents Vite from creating cache
-    // relative to root (which would be inside @shellui/core)
     cacheDir: viteCacheDir,
     define: getShelluiTargetDefine(config),
     plugins: [
@@ -77,7 +73,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       alias: {
         ...resolveAlias,
         ...getShelluiConfigAlias(),
-        // Force @shellui/core to always resolve from project root
         '@shellui/core': corePackagePath,
       },
     },
@@ -85,8 +80,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       postcss: createPostCSSConfig(),
     },
     publicDir: publicDir || false,
-    // Disable source maps in dev mode to avoid errors from missing source map files
-    // Source maps are enabled in build mode for production debugging
     esbuild: {
       sourcemap: false,
     },
@@ -96,7 +89,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       open: shouldOpen,
       host: host ? true : undefined,
       fs: {
-        // Allow serving files from core package, SDK package, and user's project
         allow: [corePackagePath, cwd],
       },
     },
@@ -108,9 +100,9 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
 
 /**
  * Restart the server when config changes
- * @param {string} root - Root directory
- * @param {string} cwd - Current working directory
- * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
+ * @param {string} root
+ * @param {string} cwd
+ * @param {boolean} host
  */
 async function restartServer(root, cwd, host = false) {
   if (restartTimeout) {
@@ -121,90 +113,89 @@ async function restartServer(root, cwd, host = false) {
     try {
       console.log(pc.yellow('\n🔄 Config file changed, restarting server...\n'));
 
-      // Close existing server
       if (currentServer) {
         await currentServer.close();
       }
 
-      // Start new server with updated config (don't open browser on restart)
       currentServer = await startServer(root, cwd, false, host);
       currentServer.printUrls();
     } catch (e) {
       console.error(pc.red(`Error restarting server: ${e.message}`));
     }
-  }, 300); // Debounce: wait 300ms before restarting
+  }, 300);
+}
+
+function closeConfigWatchers() {
+  for (const watcher of configWatchers) {
+    try {
+      watcher.close();
+    } catch {
+      // ignore
+    }
+  }
+  configWatchers = [];
 }
 
 /**
- * Watch config file for changes
- * @param {string} root - Root directory
- * @param {string} cwd - Current working directory
- * @param {boolean} host - Whether to listen on 0.0.0.0 (network access)
+ * @param {string} root
+ * @param {string} cwd
+ * @param {boolean} host
  */
 function watchConfig(root, cwd, host = false) {
-  const configDir = path.resolve(cwd, root);
-  const tsConfigPath = path.join(configDir, 'shellui.config.ts');
+  closeConfigWatchers();
 
-  if (!fs.existsSync(tsConfigPath)) {
-    console.log(pc.yellow(`No shellui.config.ts found, config watching disabled.`));
+  const paths = getWatchableConfigPaths(root, { config: activeConfigPath });
+  if (!paths.length) {
+    console.log(pc.yellow('No config files found, config watching disabled.'));
     return;
   }
 
-  // Close existing watcher if any
-  if (configWatcher) {
-    configWatcher.close();
+  for (const configPath of paths) {
+    const watcher = fs.watch(configPath, { persistent: true }, async (eventType) => {
+      if (eventType === 'change') {
+        await restartServer(root, cwd, host);
+      }
+    });
+    configWatchers.push(watcher);
+    console.log(pc.green(`👀 Watching config file: ${configPath}`));
   }
-
-  configWatcher = fs.watch(tsConfigPath, { persistent: true }, async (eventType) => {
-    if (eventType === 'change') {
-      await restartServer(root, cwd, host);
-    }
-  });
-
-  console.log(pc.green(`👀 Watching config file: ${tsConfigPath}`));
 }
 
 /**
  * Start command - Starts the ShellUI development server
- * @param {string} root - Root directory (default: '.')
- * @param {{ host?: boolean; app?: boolean; target?: string }} options - Command options
+ * @param {string} root
+ * @param {{ host?: boolean; app?: boolean; target?: string; config?: string }} options
  */
 export async function startCommand(root = '.', options = {}) {
   const cwd = process.cwd();
   applyTargetOption(options);
+  activeConfigPath = options.config;
   const host = !!options?.host || process.env.SHELLUI_HOST === '1';
 
   if (options?.app) {
     if (host) {
       process.env.SHELLUI_HOST = '1';
     }
-    await tauriDevCommand(root, { host });
+    await tauriDevCommand(root, { host, config: options.config });
     return;
   }
 
-  const configDir = path.resolve(cwd, root);
-  const configPath = path.join(configDir, 'shellui.config.ts');
-  if (!fs.existsSync(configPath)) {
-    console.log(pc.yellow(`No shellui.config.ts found. Running init...`));
-    await initCommand(root);
+  if (!hasAnyConfig(root, { config: activeConfigPath })) {
+    console.log(pc.yellow(`No shellui.config.json found. Running init...`));
+    await initCommand(root, { config: activeConfigPath });
   }
 
   console.log(pc.blue(`Starting ShellUI...`));
 
   try {
-    // Start initial server (open browser only on first start)
     currentServer = await startServer(root, cwd, isFirstStart, host);
     isFirstStart = false;
     currentServer.printUrls();
 
-    // Watch config file for changes
     watchConfig(root, cwd, host);
 
-    // Handle graceful shutdown
     process.on('SIGTERM', async () => {
-      if (configWatcher) {
-        configWatcher.close();
-      }
+      closeConfigWatchers();
       if (currentServer) {
         await currentServer.close();
       }
@@ -212,9 +203,7 @@ export async function startCommand(root = '.', options = {}) {
     });
 
     process.on('SIGINT', async () => {
-      if (configWatcher) {
-        configWatcher.close();
-      }
+      closeConfigWatchers();
       if (currentServer) {
         await currentServer.close();
       }
