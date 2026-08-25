@@ -1,5 +1,9 @@
-import type { ThemeColorsMode, ThemeDefinition, ThemeInput } from '../types';
-import { THEME_COLOR_KEYS } from '../types';
+import {
+  THEME_COLOR_KEYS,
+  type ThemeColorsMode,
+  type ThemeDefinition,
+  type ThemeInput,
+} from '../types';
 import shelluiJson from './shellui.json';
 import claudeJson from './claude.json';
 import lightGreenJson from './light-green.json';

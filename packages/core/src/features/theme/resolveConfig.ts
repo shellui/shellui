@@ -122,11 +122,11 @@ export function resolveThemeConfig(
     resolved.push(theme);
   };
 
-  if (input.themes != null) {
+  if (input.themes !== undefined && input.themes !== null) {
     for (const { key, ref } of entriesFromThemesConfig(input.themes)) {
       add(resolveRef(ref, builtins, themesFromDir, pathThemes, key));
     }
-  } else if (input.theme != null) {
+  } else if (input.theme !== undefined && input.theme !== null) {
     add(resolveRef(input.theme, builtins, themesFromDir, pathThemes));
   } else if (Object.keys(themesFromDir).length > 0) {
     for (const theme of Object.values(themesFromDir)) {

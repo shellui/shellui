@@ -11,7 +11,10 @@ import {
 
 function isCompleteMode(mode: ThemeColorsModePartial | undefined): mode is ThemeColorsMode {
   if (!mode) return false;
-  return THEME_COLOR_KEYS.every((key) => typeof mode[key] === 'string' && mode[key]!.length > 0);
+  return THEME_COLOR_KEYS.every((key) => {
+    const value = mode[key];
+    return typeof value === 'string' && value.length > 0;
+  });
 }
 
 function mergeMode(
@@ -74,11 +77,7 @@ export function normalizeTheme(
 
   const themeInput = input as ThemeInput;
 
-  if (
-    themeInput.version != null &&
-    themeInput.version !== THEME_SCHEMA_VERSION &&
-    typeof themeInput.version === 'number'
-  ) {
+  if (typeof themeInput.version === 'number' && themeInput.version !== THEME_SCHEMA_VERSION) {
     throw new Error(
       `Unsupported theme version ${themeInput.version}. Expected ${THEME_SCHEMA_VERSION}.`,
     );

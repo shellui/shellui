@@ -50,7 +50,7 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
 
   for (const [key, cssVar] of COLOR_VAR_MAP) {
     const value = colors[key];
-    if (value == null || value === '') continue;
+    if (value === undefined || value === null || value === '') continue;
     const cssValue = toCssVarValue(value);
     root.style.setProperty(cssVar, cssValue);
     // CSS-variable alias: --sidebar mirrors --sidebar-background

@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { useLayoutEffect, useEffect } from 'react';
 import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
