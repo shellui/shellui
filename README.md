@@ -16,10 +16,24 @@ This monorepo contains the Shellui packages:
 │   ├── cli/          # CLI package
 │   ├── core/         # Core React app
 │   └── sdk/          # SDK package
+├── skills/
+│   └── shellui/      # Official AI agent skill (Agent Skills)
 ├── docs/              # Documentation files
 ├── tools/             # Development tools (Docusaurus)
 └── package.json       # Root workspace configuration
 ```
+
+## AI skill (for coding agents)
+
+Install the official shellui skill so agents follow config, CLI, SDK, and naming conventions:
+
+```bash
+npx skills add shellui/shellui --skill shellui
+```
+
+Update later with `npx skills update`, or copy `skills/shellui/` into `.agents/skills/shellui/` or `.cursor/skills/shellui/`.
+
+See [docs/adr/0001-ai-skill.md](docs/adr/0001-ai-skill.md) for hosting, versioning, and contribution notes.
 
 ## Development
 

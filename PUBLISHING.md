@@ -64,6 +64,10 @@ This runs `scripts/publish-with-tag.js`, which publishes `@shellui/sdk`, `@shell
 
 For stable releases, use a version without `alpha` or `beta` (e.g. `1.0.0`); it will be published with tag `latest`.
 
+## AI skill
+
+If this release changes agent-relevant APIs or config (CLI, SDK, config schema), update `skills/shellui`, bump `metadata.version` and `skills/shellui/CHANGELOG.md`, and keep the skill lean (see [docs/adr/0001-ai-skill.md](docs/adr/0001-ai-skill.md)).
+
 ## Testing before publishing
 
 1. Build and link locally:

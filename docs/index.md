@@ -53,7 +53,20 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 - **[SDK](/sdk)** — JavaScript SDK API (including the tiny CDN script)
 - **[Tauri](/tauri)** — Desktop packaging
 
+## For AI agents
+
+Install the official shellui skill (Agent Skills format):
+
+```bash
+npx skills add shellui/shellui --skill shellui
+```
+
+Update with `npx skills update`, or copy `skills/shellui/` from this repo into `.agents/skills/shellui/` or `.cursor/skills/shellui/`.
+
+Decision record: [ADR 0001 — Official shellui AI skill](/adr/0001-ai-skill).
+
 ## Developer resources
 
 - [Development guide](/development) — Contributing to Shellui
 - [Publishing guide](/publishing) — Releasing packages
+- [ADR 0001](/adr/0001-ai-skill) — AI skill hosting, versioning, and token budget
