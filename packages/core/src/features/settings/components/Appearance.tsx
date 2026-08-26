@@ -4,14 +4,34 @@ import { useConfig } from '../../config/useConfig';
 import { Button } from '../../../components/ui/button';
 import { ButtonGroup } from '../../../components/ui/button-group';
 import { cn } from '../../../lib/utils';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   getAllThemes,
   setAvailableThemes,
   defaultTheme,
   type ThemeDefinition,
 } from '../../theme/themes';
+import { waitForThemeSwitchIdle } from '../../theme/safeApplyTheme';
 import type { SettingsAvailableTheme } from '@shellui/sdk';
+
+const ThemeSwitchSpinner = ({ className }: { className?: string }) => (
+  <svg
+    data-theme-switch-spinner=""
+    className={cn('animate-spin', className)}
+    xmlns="http://www.w3.org/2000/svg"
+    width="20"
+    height="20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+  </svg>
+);
 
 const SunIcon = () => (
   <svg
@@ -140,29 +160,42 @@ const ThemePreview = ({
   theme,
   isSelected,
   isDark,
+  isPending = false,
   layout,
   recommendedLabel,
 }: {
   theme: ThemePreviewItem;
   isSelected: boolean;
   isDark: boolean;
+  isPending?: boolean;
   layout: 'single' | 'few' | 'many';
   recommendedLabel: string;
 }) => {
   const colors = isDark ? theme.colors.dark : theme.colors.light;
   const radius = colors.radius;
 
+  const pendingOverlay = isPending ? (
+    <div
+      className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]"
+      style={{ borderRadius: previewRadius(radius) }}
+    >
+      <ThemeSwitchSpinner className="size-5 text-primary" />
+      <span className="sr-only">Applying theme</span>
+    </div>
+  ) : null;
+
   if (layout === 'many') {
     return (
       <div
         className={cn(
-          'relative overflow-hidden border-2 transition-all',
+          'relative overflow-hidden border-2',
           isSelected
             ? 'border-primary shadow-md'
             : 'border-border hover:border-muted-foreground/40',
         )}
         style={{ borderRadius: previewRadius(radius) }}
       >
+        {pendingOverlay}
         <div className="flex gap-1 p-2">
           <MiniSwatch colors={theme.colors.light} />
           <MiniSwatch colors={theme.colors.dark} />
@@ -205,12 +238,13 @@ const ThemePreview = ({
   return (
     <div
       className={cn(
-        'relative overflow-hidden border-2 transition-all',
+        'relative overflow-hidden border-2',
         isSelected ? 'border-primary shadow-lg' : 'border-border',
         layout === 'single' && 'max-w-sm',
       )}
       style={{ backgroundColor: colors.background, borderRadius: previewRadius(radius) }}
     >
+      {pendingOverlay}
       <div className={cn('space-y-2', layout === 'single' ? 'p-4' : 'p-3')}>
         <div
           className={layout === 'single' ? 'h-10' : 'h-8'}
@@ -286,6 +320,65 @@ export const Appearance = () => {
   const currentThemeName = settings.appearance?.name ?? 'default';
 
   const [localThemes, setLocalThemes] = useState<ThemeDefinition[]>([]);
+  const [pendingThemeName, setPendingThemeName] = useState<string | null>(null);
+  const [pendingColorScheme, setPendingColorScheme] = useState<'light' | 'dark' | 'system' | null>(
+    null,
+  );
+  // Ref lock so rapid clicks in the same render cannot all pass the busy check.
+  const switchLockRef = useRef(false);
+  const themeSwitchBusy = pendingThemeName !== null || pendingColorScheme !== null;
+  const displayedColorScheme = pendingColorScheme ?? currentTheme;
+
+  const runAppearanceSwitch = useCallback(async (work: () => void) => {
+    try {
+      work();
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      });
+      await waitForThemeSwitchIdle();
+      // Cover trailing iframe settings echo so the next click won't collide.
+      await new Promise((resolve) => setTimeout(resolve, 220));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const selectTheme = useCallback(
+    async (themeName: string) => {
+      if (switchLockRef.current) return;
+      if (themeName === currentThemeName) return;
+      switchLockRef.current = true;
+      setPendingThemeName(themeName);
+      try {
+        await runAppearanceSwitch(() => {
+          updateSetting('appearance', { name: themeName });
+        });
+      } finally {
+        switchLockRef.current = false;
+        setPendingThemeName(null);
+      }
+    },
+    [currentThemeName, updateSetting, runAppearanceSwitch],
+  );
+
+  const selectColorScheme = useCallback(
+    async (colorScheme: 'light' | 'dark' | 'system') => {
+      if (switchLockRef.current) return;
+      if (colorScheme === currentTheme) return;
+      switchLockRef.current = true;
+      setPendingColorScheme(colorScheme);
+      try {
+        await runAppearanceSwitch(() => {
+          updateSetting('appearance', { colorScheme });
+        });
+      } finally {
+        switchLockRef.current = false;
+        setPendingColorScheme(null);
+      }
+    },
+    [currentTheme, updateSetting, runAppearanceSwitch],
+  );
 
   useEffect(() => {
     const available: ThemeDefinition[] =
@@ -317,8 +410,9 @@ export const Appearance = () => {
   const [isDarkForPreview, setIsDarkForPreview] = useState(() => {
     if (typeof window === 'undefined') return false;
     return (
-      currentTheme === 'dark' ||
-      (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      displayedColorScheme === 'dark' ||
+      (displayedColorScheme === 'system' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
     );
   });
 
@@ -327,14 +421,15 @@ export const Appearance = () => {
 
     const updatePreview = () => {
       setIsDarkForPreview(
-        currentTheme === 'dark' ||
-          (currentTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches),
+        displayedColorScheme === 'dark' ||
+          (displayedColorScheme === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches),
       );
     };
 
     updatePreview();
 
-    if (currentTheme === 'system') {
+    if (displayedColorScheme === 'system') {
       const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
       const handleChange = () => updatePreview();
 
@@ -346,7 +441,7 @@ export const Appearance = () => {
         return () => mediaQuery.removeListener(handleChange);
       }
     }
-  }, [currentTheme]);
+  }, [displayedColorScheme]);
 
   const modeThemes = [
     { value: 'light' as const, label: t('appearance.themes.light'), icon: SunIcon },
@@ -377,23 +472,27 @@ export const Appearance = () => {
           <ButtonGroup>
             {modeThemes.map((theme) => {
               const Icon = theme.icon;
-              const isSelected = currentTheme === theme.value;
+              const isSelected = displayedColorScheme === theme.value;
+              const isPending = pendingColorScheme === theme.value;
               return (
                 <Button
                   key={theme.value}
                   variant={isSelected ? 'default' : 'outline'}
                   onClick={() => {
-                    updateSetting('appearance', { colorScheme: theme.value });
+                    void selectColorScheme(theme.value);
                   }}
+                  disabled={themeSwitchBusy}
                   className={cn(
-                    'h-10 px-4 transition-all flex items-center gap-2 cursor-pointer',
+                    'h-10 px-4 flex items-center gap-2 cursor-pointer disabled:cursor-wait',
                     isSelected && ['font-semibold'],
                     !isSelected && ['bg-background hover:bg-accent/50', 'text-muted-foreground'],
+                    themeSwitchBusy && !isPending && 'opacity-70',
                   )}
                   aria-label={theme.label}
                   title={theme.label}
+                  aria-busy={isPending}
                 >
-                  <Icon />
+                  {isPending ? <ThemeSwitchSpinner className="size-4" /> : <Icon />}
                   <span className="text-sm font-medium">{theme.label}</span>
                 </Button>
               );
@@ -425,20 +524,24 @@ export const Appearance = () => {
                 key={theme.name}
                 type="button"
                 onClick={() => {
-                  updateSetting('appearance', { name: theme.name });
+                  void selectTheme(theme.name);
                 }}
+                disabled={themeSwitchBusy}
                 className={cn(
-                  'text-left transition-all cursor-pointer',
+                  'relative text-left cursor-pointer disabled:cursor-wait',
                   isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
+                  themeSwitchBusy && pendingThemeName !== theme.name && 'opacity-60',
                 )}
                 style={{ borderRadius: previewRadius(previewColors.radius) }}
                 aria-label={theme.displayName}
                 aria-pressed={isSelected}
+                aria-busy={pendingThemeName === theme.name}
               >
                 <ThemePreview
                   theme={theme}
-                  isSelected={isSelected}
+                  isSelected={isSelected || pendingThemeName === theme.name}
                   isDark={isDarkForPreview}
+                  isPending={pendingThemeName === theme.name}
                   layout={layout}
                   recommendedLabel={t('appearance.recommended')}
                 />

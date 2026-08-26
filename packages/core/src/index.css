@@ -212,6 +212,21 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/*
+ * While switching themes, disable CSS transitions so colors snap instead of morphing.
+ * Do NOT disable animations — that restarts Radix dialog/drawer open animations and
+ * looks like the settings modal is closing and reopening on every theme change.
+ * Overlay surfaces keep their transitions so backdrop fade stays stable.
+ */
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]),
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay])::before,
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay])::after {
+  transition: none !important;
+}
+
 @layer base {
   * {
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
