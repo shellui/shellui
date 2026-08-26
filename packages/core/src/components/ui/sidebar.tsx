@@ -41,7 +41,8 @@ function PanelLeftIcon({ className }: { className?: string }) {
 
 const SIDEBAR_STORAGE_KEY = 'shellui:sidebar:open';
 const SIDEBAR_WIDTH = '16rem';
-const SIDEBAR_WIDTH_MOBILE = '18rem';
+/** Cap at the viewport so a phone narrower than 18rem still gets a full-width sheet. */
+const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%)';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 
@@ -228,7 +229,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
-          className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          className="w-(--sidebar-width) max-w-full overflow-x-hidden bg-sidebar p-0 text-sidebar-foreground sm:max-w-full [&>button]:hidden"
           style={
             {
               '--sidebar-width': SIDEBAR_WIDTH_MOBILE,

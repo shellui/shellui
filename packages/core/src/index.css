@@ -590,6 +590,7 @@ html.shellui-theme-switching
 
 [data-auth-menu-content][data-state='open'] {
   animation: auth-menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
 }
 
 [data-auth-menu-content][data-state='closed'] {
