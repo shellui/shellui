@@ -25,11 +25,8 @@ const DialogOverlay = forwardRef<
 >(({ className, style, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    data-dialog-overlay
-    className={cn(
-      'fixed inset-0 bg-[color-mix(in oklch, var(--background) 80%, transparent)] backdrop-blur-[1px]',
-      className,
-    )}
+    data-dialog-overlay=""
+    className={cn('fixed inset-0 bg-black/50 backdrop-blur-[1px]', className)}
     style={{ zIndex: Z_INDEX.MODAL_OVERLAY, ...style }}
     {...props}
   />

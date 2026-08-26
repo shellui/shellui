@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
+import { useIsMobile } from '../../../hooks/use-mobile';
 import { useAuth } from '../hooks/useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
@@ -77,12 +78,12 @@ const variantConfig: Record<
   sidebar: {
     button: {
       authenticated:
-        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
       loggedOut:
-        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
     },
-    avatar: 'h-5 w-5',
-    menu: { width: 'w-64', side: 'right', align: 'start' },
+    avatar: 'size-4',
+    menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'right', align: 'start' },
     showDisplayName: true,
     showCaret: true,
   },
@@ -94,7 +95,7 @@ const variantConfig: Record<
         'h-8 max-w-[220px] rounded-md px-2 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
     },
     avatar: 'h-5 w-5',
-    menu: { width: 'w-64', side: 'bottom', align: 'end' },
+    menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'bottom', align: 'end' },
     showDisplayName: false,
     showCaret: false,
   },
@@ -106,7 +107,7 @@ const variantConfig: Record<
         'h-8 max-w-[180px] rounded-md px-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
     },
     avatar: 'h-4 w-4',
-    menu: { width: 'w-60', side: 'top', align: 'end' },
+    menu: { width: 'w-[min(15rem,calc(100vw-1.5rem))]', side: 'top', align: 'end' },
     showDisplayName: false,
     showCaret: false,
   },
@@ -122,6 +123,7 @@ export const LoginButton = ({
   logoutOnly?: boolean;
 }) => {
   const currentVariantConfig = variantConfig[variant];
+  const isMobile = useIsMobile();
   const { t } = useTranslation('common');
   const { config } = useConfig();
   const { isAuthenticated, user, logout } = useAuth();
@@ -139,6 +141,9 @@ export const LoginButton = ({
 
   const fallbackInitial = displayName.charAt(0).toUpperCase();
   const { showDisplayName, showCaret } = currentVariantConfig;
+  const menuSide = variant === 'sidebar' && isMobile ? 'top' : currentVariantConfig.menu.side;
+  const menuAlign = variant === 'sidebar' && isMobile ? 'start' : currentVariantConfig.menu.align;
+  const menuCollisionPadding = isMobile ? 12 : 8;
 
   const baseButtonClasses = cn(
     'inline-flex items-center gap-2 min-w-0 shrink-0 transition-colors cursor-pointer',
@@ -240,7 +245,7 @@ export const LoginButton = ({
         title={t('authMenu.login')}
       >
         <UserIcon />
-        <span className="truncate">{t('authMenu.login')}</span>
+        <span className="truncate group-data-[collapsible=icon]:hidden">{t('authMenu.login')}</span>
       </Link>
     );
   }
@@ -268,7 +273,7 @@ export const LoginButton = ({
               src={user.profilePicture}
               alt={displayName}
               className={cn(
-                'shrink-0 rounded-full border border-sidebar-border object-cover',
+                'shrink-0 overflow-hidden rounded-full border border-sidebar-border object-cover aspect-square',
                 currentVariantConfig.avatar,
               )}
               referrerPolicy="no-referrer"
@@ -276,7 +281,7 @@ export const LoginButton = ({
           ) : (
             <span
               className={cn(
-                'shrink-0 rounded-full border border-sidebar-border bg-muted flex items-center justify-center text-[10px] font-semibold',
+                'flex shrink-0 aspect-square items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-muted text-[10px] font-semibold leading-none',
                 currentVariantConfig.avatar,
               )}
               aria-hidden
@@ -284,12 +289,14 @@ export const LoginButton = ({
               {fallbackInitial}
             </span>
           )}
-          {showDisplayName && <span className="truncate">{displayName}</span>}
+          {showDisplayName && (
+            <span className="truncate group-data-[collapsible=icon]:hidden">{displayName}</span>
+          )}
           {showCaret && (
             <span
               aria-hidden
               className={cn(
-                'ml-auto shrink-0 text-[10px]',
+                'ml-auto shrink-0 text-[10px] group-data-[collapsible=icon]:hidden',
                 isMenuOpen ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
@@ -305,10 +312,10 @@ export const LoginButton = ({
         ref={contentRef}
         forceMount
         data-auth-menu-content
-        side={currentVariantConfig.menu.side}
-        align={currentVariantConfig.menu.align}
-        collisionPadding={8}
-        className={cn('p-1.5', currentVariantConfig.menu.width)}
+        side={menuSide}
+        align={menuAlign}
+        collisionPadding={menuCollisionPadding}
+        className={cn('p-1.5 max-w-[calc(100vw-1.5rem)]', currentVariantConfig.menu.width)}
         onPointerDownOutside={() => setIsMenuOpen(false)}
         onFocusOutside={() => setIsMenuOpen(false)}
         onEscapeKeyDown={() => setIsMenuOpen(false)}

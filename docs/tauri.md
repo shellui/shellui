@@ -76,6 +76,8 @@ The CLI syncs these fields from `shellui.config.json`:
 
 No extra config is needed for desktop vs web. The CLI sets the build target automatically when you use `--app`. Your `shellui.config.json` stays the same for both.
 
+On **macOS**, the desktop window uses an overlay titlebar: no native title bar. Close / minimize / zoom are **system traffic lights** drawn by macOS (not the web UI). Tauri only hosts them; Shellui vertically centers them in the 38px sidebar chrome (JSON `trafficLightPosition.y` only grows the titlebar, it does not move the buttons). A full-width invisible 38px top strip (`data-tauri-drag-region`; requires `core:window:allow-start-dragging`) is mounted at the app root so it works on every page — layouts, login, settings, and route error screens. Buttons and other controls sit above that strip so they stay clickable. A **Back** control in the sidebar goes back in the embedded app iframe — including out of a login page — since there is no browser chrome.
+
 ## Commands
 
 | Command                                 | Description                                                                       |

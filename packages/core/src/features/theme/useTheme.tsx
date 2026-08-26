@@ -1,25 +1,8 @@
 import { useLayoutEffect, useEffect } from 'react';
 import { useSettings } from '../settings/hooks/useSettings';
 import { useConfig } from '../config/useConfig';
-import {
-  getTheme,
-  setAvailableThemes,
-  applyTheme,
-  defaultTheme,
-  type ThemeDefinition,
-} from './themes';
-
-/**
- * Apply theme to document element
- */
-function applyThemeToDocument(isDark: boolean) {
-  const root = document.documentElement;
-  if (isDark) {
-    root.classList.add('dark');
-  } else {
-    root.classList.remove('dark');
-  }
-}
+import { getTheme, setAvailableThemes, defaultTheme, type ThemeDefinition } from './themes';
+import { scheduleSafeThemeApply } from './safeApplyTheme';
 
 /**
  * Hook to apply theme based on settings
@@ -27,7 +10,8 @@ function applyThemeToDocument(isDark: boolean) {
  * - 'light': removes dark class
  * - 'dark': adds dark class
  * - 'system': follows prefers-color-scheme media query
- * Also applies theme colors based on themeName setting
+ * Also applies theme colors based on themeName setting.
+ * Rapid switches are coalesced and CSS transitions are locked so the UI snaps.
  */
 export function useTheme() {
   const { settings, updateSetting } = useSettings();
@@ -65,16 +49,14 @@ export function useTheme() {
     };
 
     let isDark = determineIsDark();
-    applyThemeToDocument(isDark);
-    applyTheme(themeDefinition, isDark);
+    scheduleSafeThemeApply(themeDefinition, isDark);
 
     if (colorScheme !== 'system') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
       isDark = mediaQuery.matches;
-      applyThemeToDocument(isDark);
-      applyTheme(themeDefinition, isDark);
+      scheduleSafeThemeApply(themeDefinition, isDark);
     };
 
     if (mediaQuery.addEventListener) {

@@ -25,6 +25,7 @@ import {
   ensureServiceWorkerDisabledWhenOff,
 } from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
+import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
 
 const AppContent = () => {
   const { config } = useConfig();
@@ -90,9 +91,10 @@ const AppContent = () => {
   if (!config.navigation || config.navigation.length === 0) {
     return (
       <>
+        <DesktopChrome />
         <CookieConsentModal />
         <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-          <h1>{config.title || 'ShellUI'}</h1>
+          <h1>{config.title || 'Shellui'}</h1>
           <p>No navigation items configured.</p>
         </div>
       </>
@@ -105,6 +107,7 @@ const AppContent = () => {
 
   return (
     <>
+      <DesktopChrome />
       <CookieConsentModal />
       <RouterProvider router={router} />
     </>

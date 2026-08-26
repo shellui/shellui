@@ -28,7 +28,7 @@ export interface NavigationItem {
   requiresDevMode?: boolean;
   /** When true, this item is available only to staff users (`isStaff`). */
   requiresStaff?: boolean;
-  /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
+  /** When true, hide this item on mobile (sidebar sheet). Has no effect if hidden is true. */
   hiddenOnMobile?: boolean;
   /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */
   hiddenOnDesktop?: boolean;

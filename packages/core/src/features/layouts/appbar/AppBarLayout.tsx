@@ -20,6 +20,11 @@ import { cn } from '../../../lib/utils';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
+import { NavIcon } from '../sidebar/SidebarIcons';
+import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
+import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
+import { MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -29,19 +34,6 @@ interface AppBarLayoutProps {
   logo?: string;
   navigation: (NavigationItem | NavigationGroup)[];
 }
-
-const getExternalFaviconUrl = (url: string): string | null => {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname;
-    if (!hostname) return null;
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
-  } catch {
-    return null;
-  }
-};
-
-const isAppIcon = (src: string) => src.startsWith('/icons/');
 
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
@@ -71,13 +63,9 @@ function TopBarEndItem({
   const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
 
   const iconEl = iconSrc ? (
-    <img
+    <NavIcon
       src={iconSrc}
-      alt=""
-      className={cn(
-        'size-5 shrink-0 rounded-sm object-cover',
-        isAppIcon(iconSrc) && 'opacity-90 dark:opacity-100 dark:invert',
-      )}
+      className="size-5 rounded-sm object-cover"
     />
   ) : (
     <span
@@ -151,6 +139,8 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const { settings } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
+  const isTauriEnv = useIsTauriClient();
+  const overlay = useMacOverlayChrome();
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -201,10 +191,16 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Top bar: max 42px */}
       <header
-        className="flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
-        style={{ minHeight: 32, maxHeight: TOP_BAR_MAX_HEIGHT }}
+        className="relative z-[46] flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
+        style={{
+          minHeight: 32,
+          maxHeight: TOP_BAR_MAX_HEIGHT,
+          paddingLeft: overlay ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : undefined,
+        }}
         data-layout="app-bar"
+        {...(overlay ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
       >
+        {isTauriEnv ? <DesktopBackButton /> : null}
         {/* Logo / title (home link) */}
         <Link
           to="/"

@@ -212,6 +212,28 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/*
+ * While switching themes, disable CSS transitions so colors snap instead of morphing.
+ * Do NOT disable animations — that restarts Radix dialog/drawer open animations and
+ * looks like the settings modal is closing and reopening on every theme change.
+ * Overlay surfaces keep their transitions so backdrop fade stays stable.
+ * Appearance theme controls keep transitions so disable/pending states can ease in.
+ */
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *),
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *)::before,
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *)::after {
+  transition: none !important;
+}
+
 @layer base {
   * {
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
@@ -269,8 +291,8 @@
     color: var(--destructive) !important;
   }
 
-  /* Invert sidebar icons in dark mode - target all icons in sidebar context */
-  /* Exclude app icon and logo which have their own rules */
+  /* Local /icons/ nav items use CSS mask + currentColor (see NavIcon) so they
+   * follow sidebar hover/active text. Keep invert only for legacy <img> icons. */
   .dark [data-sidebar='sidebar'] img[src*='/icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
   .dark [data-sidebar='sidebar'] img[src*='icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
   .dark [data-sidebar='sidebar'] img[src$='.svg']:not(.sidebar-app-icon):not(.sidebar-logo) {
@@ -376,6 +398,129 @@
   animation: dialog-content-out 0.1s ease-in both;
 }
 
+/* Sheet overlay and panel animations (mobile sidebar) */
+@keyframes sheet-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheet-overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sheet-content-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes sheet-content-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes sheet-content-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes sheet-content-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+[data-sheet-overlay][data-state='open'] {
+  animation: sheet-overlay-fade-in 0.2s ease-out both;
+}
+[data-sheet-overlay][data-state='closed'] {
+  animation: sheet-overlay-fade-out 0.2s ease-in both;
+  pointer-events: none;
+}
+
+[data-sheet-content] {
+  will-change: transform;
+}
+
+[data-sheet-content][data-side='left'][data-state='open'] {
+  animation: sheet-content-in-left 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='left'][data-state='closed'] {
+  animation: sheet-content-out-left 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='right'][data-state='open'] {
+  animation: sheet-content-in-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='right'][data-state='closed'] {
+  animation: sheet-content-out-right 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='top'][data-state='open'] {
+  animation: sheet-content-in-top 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='top'][data-state='closed'] {
+  animation: sheet-content-out-top 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='bottom'][data-state='open'] {
+  animation: sheet-content-in-bottom 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='bottom'][data-state='closed'] {
+  animation: sheet-content-out-bottom 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
 /* Cookie consent dialog (bottom-left) animations */
 @keyframes cookie-dialog-content-in {
   from {
@@ -445,9 +590,53 @@
 
 [data-auth-menu-content][data-state='open'] {
   animation: auth-menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
 }
 
 [data-auth-menu-content][data-state='closed'] {
   animation: auth-menu-out 0.12s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+/* Tauri overlay titlebar: drag via data-tauri-drag-region; keep controls clickable. */
+[data-shellui-drag-region],
+[data-tauri-drag-region] {
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
+[data-shellui-drag-region] [data-shellui-no-drag],
+[data-shellui-no-drag],
+[data-shellui-drag-region] a,
+[data-shellui-drag-region] button,
+[data-shellui-drag-region] input,
+[data-shellui-drag-region] select,
+[data-shellui-drag-region] [role='combobox'] {
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+html[data-shellui-overlay-chrome] {
+  --shellui-titlebar-height: 38px;
+  --shellui-traffic-lights-width: 78px;
+}
+
+/* Keep sidebar chrome above the full-width drag strip so Back / trigger stay clickable. */
+html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
+  z-index: 46;
+}
+
+/* Collapsed Tauri: full-width 38px titlebar; push sidebar + content below it. */
+html[data-shellui-collapsed-titlebar] [data-slot='sidebar-container'] {
+  top: var(--shellui-titlebar-height, 38px);
+  height: calc(100svh - var(--shellui-titlebar-height, 38px));
+}
+
+html[data-shellui-collapsed-titlebar] [data-slot='sidebar-inset'] {
+  padding-top: var(--shellui-titlebar-height, 38px);
+}
+
+/* Avoid iframe stealing pointer events while dragging the sidebar border. */
+[data-slot='sidebar-wrapper'][data-resizing] iframe {
   pointer-events: none;
 }

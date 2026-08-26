@@ -23,10 +23,14 @@ const config: ShellUIConfig = {
 
 **Features:**
 
-- Persistent sidebar navigation
-- Responsive design (collapses to bottom navigation on mobile)
+- Persistent sidebar navigation built on the shadcn/ui sidebar primitives
+- Desktop: collapsible icon rail (click the trigger, rail, or press `⌘B` / `Ctrl+B`)
+- Desktop: drag the expanded sidebar border to resize (200–480px; persisted for the tab session)
+- Mobile: sheet/drawer sidebar opened from the top header trigger
+- **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back + open-sidebar (nav icons stay in the rail); when expanded, those controls sit in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root (all layouts and pages, including error screens). A **Back** button leaves iframe login pages (there is no browser chrome).
 - Supports icons, groups, and positioning
 - Works with all navigation features
+- Themed via sidebar CSS variables (`--sidebar-*`) for light and dark modes
 
 ## Fullscreen Layout
 
@@ -174,8 +178,9 @@ function MyComponent() {
 
 ### Sidebar Layout
 
-- **Mobile**: Automatically switches to bottom navigation bar
-- **Desktop**: Sidebar can be collapsed/expanded
+- **Mobile**: Sheet/drawer sidebar opened from the top header trigger
+- **Desktop app**: On macOS Tauri, the native title bar is hidden; window controls overlay the sidebar. Drag the top of the sidebar or the transparent content strip to move the window. Use **Back** in the sidebar header to leave an iframe page (for example a login screen).
+- **Desktop**: Sidebar can be collapsed to icons (trigger, rail, or `⌘B` / `Ctrl+B`)
 - **Groups**: Navigation groups appear as sections in the sidebar
 - **Positioning**: Use `position: 'end'` to place items in sidebar footer
 
@@ -242,7 +247,7 @@ export default config;
    - Windows: Items accessible via start menu
    - App bar: Start items in a select; end items as icons with tooltips
 
-3. **Mobile considerations**: Sidebar layout automatically adapts to mobile with bottom navigation
+3. **Mobile considerations**: Sidebar layout opens as a sheet from the top header on small screens
 
 4. **Testing**: Test your application in all layout modes to ensure compatibility
 

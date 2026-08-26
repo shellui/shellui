@@ -306,6 +306,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const propagateSettingsToIframesRef = useRef(propagateSettingsToIframes);
   propagateSettingsToIframesRef.current = propagateSettingsToIframes;
 
+  // Trailing-debounce iframe settings pushes during rapid theme spam so
+  // children only apply the final theme after switching settles.
+  const pendingIframeSettingsRef = useRef<Settings | null>(null);
+  const iframePropagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedulePropagateSettingsToIframes = useCallback((next: Settings) => {
+    pendingIframeSettingsRef.current = next;
+    if (iframePropagateTimerRef.current !== null) {
+      clearTimeout(iframePropagateTimerRef.current);
+    }
+    iframePropagateTimerRef.current = setTimeout(() => {
+      iframePropagateTimerRef.current = null;
+      const pending = pendingIframeSettingsRef.current;
+      pendingIframeSettingsRef.current = null;
+      if (pending) {
+        propagateSettingsToIframesRef.current(pending);
+      }
+    }, 100);
+  }, []);
+
   // Keep ref in sync with state for message listeners
   useEffect(() => {
     settingsRef.current = settings;
@@ -628,8 +647,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
           settingsRef.current = newSettings;
           setSettings(newSettings);
-          // Propagate to child iframes (sendMessageToParent does nothing in root)
-          propagateSettingsToIframes(newSettings);
+          // Trailing coalesce: spam theme switches only push the latest to iframes
+          schedulePropagateSettingsToIframes(newSettings);
         } catch (error) {
           logger.error('Failed to update settings in localStorage:', { error });
         }
@@ -645,7 +664,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         payload: { settings: stripSensitiveUserFields(nextSettings) },
       });
     },
-    [settings, propagateSettingsToIframes],
+    [settings, schedulePropagateSettingsToIframes],
   );
 
   const updateSetting = useCallback(

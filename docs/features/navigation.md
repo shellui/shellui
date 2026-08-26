@@ -37,7 +37,7 @@ Each navigation item supports the following properties:
 - **`hidden`** (boolean, optional): Hide item from sidebar and 404 links (route still exists)
 - **`hideWhenLoggedOut`** (boolean, optional): Hide item from navigation while signed out
 - **`requiresAuth`** (boolean, optional): Protect route access and redirect signed-out users to login
-- **`hiddenOnMobile`** (boolean, optional): Hide item on mobile bottom navigation
+- **`hiddenOnMobile`** (boolean, optional): Hide item from the mobile sidebar sheet
 - **`hiddenOnDesktop`** (boolean, optional): Hide item on desktop sidebar
 - **`openIn`** (`'default' | 'modal' | 'drawer' | 'external'`, optional): How to open the item
 - **`drawerPosition`** (`'top' | 'bottom' | 'left' | 'right'`, optional): Drawer side when `openIn: 'drawer'`
@@ -183,7 +183,7 @@ Hide items on specific screen sizes:
   label: 'Desktop Only',
   path: 'desktop',
   url: '/desktop',
-  hiddenOnMobile: true, // Hidden on mobile (bottom nav)
+  hiddenOnMobile: true, // Hidden on mobile (sidebar sheet)
 }
 
 {
