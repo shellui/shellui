@@ -23,6 +23,9 @@ import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { ContentDragOverlay } from '../chrome/ContentDragOverlay';
+import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
 
 /** Close the mobile sheet when the route changes. */
 function CloseMobileSidebarOnNavigate() {
@@ -42,6 +45,8 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const isMobile = useIsMobile();
+  const isTauriEnv = useIsTauriClient();
+  const overlay = useMacOverlayChrome();
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -76,6 +81,18 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
     }
   }, [navigationItem, title, currentLanguage]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (overlay) root.setAttribute('data-shellui-overlay-chrome', '');
+    else root.removeAttribute('data-shellui-overlay-chrome');
+    if (isTauriEnv) root.setAttribute('data-shellui-tauri', '');
+    else root.removeAttribute('data-shellui-tauri');
+    return () => {
+      root.removeAttribute('data-shellui-overlay-chrome');
+      root.removeAttribute('data-shellui-tauri');
+    };
+  }, [overlay, isTauriEnv]);
+
   return (
     <SidebarProvider className="h-svh overflow-hidden">
       <CloseMobileSidebarOnNavigate />
@@ -91,10 +108,13 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="min-w-0 overflow-hidden">
+      <SidebarInset className="relative min-w-0 overflow-hidden">
         <header className="relative z-20 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 select-none md:hidden">
+          {isTauriEnv ? <DesktopBackButton /> : null}
           <SidebarTrigger className="relative size-9 touch-manipulation text-foreground" />
         </header>
+
+        {overlay ? <ContentDragOverlay /> : null}
 
         <div className="flex min-h-0 flex-1 flex-col overflow-auto">
           <Outlet />

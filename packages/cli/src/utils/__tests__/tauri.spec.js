@@ -105,6 +105,23 @@ describe('tauri utilities', () => {
     }
   });
 
+  test('tauri template uses overlay titlebar without a native title', () => {
+    const confPath = path.join(getTauriTemplateDir(), 'src-tauri', 'tauri.conf.json');
+    const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+    const windowConf = conf.app.windows[0];
+    expect(windowConf.hiddenTitle).toBe(true);
+    expect(windowConf.titleBarStyle).toBe('Overlay');
+    expect(windowConf.decorations).toBe(true);
+    expect(windowConf.acceptFirstMouse).toBe(true);
+    expect(windowConf.trafficLightPosition).toEqual({ x: 16, y: 24 });
+  });
+
+  test('tauri template allows window start-dragging', () => {
+    const capsPath = path.join(getTauriTemplateDir(), 'src-tauri', 'capabilities', 'default.json');
+    const caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
+    expect(caps.permissions).toContain('core:window:allow-start-dragging');
+  });
+
   test('tauri template ships default icon.png', () => {
     const iconPng = path.join(getTauriTemplateDir(), 'src-tauri/icons/icon.png');
     expect(fs.existsSync(iconPng)).toBe(true);

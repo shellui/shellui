@@ -363,6 +363,11 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   tauriConf.identifier = identifier;
   if (tauriConf.app?.windows?.[0]) {
     tauriConf.app.windows[0].title = title;
+    tauriConf.app.windows[0].hiddenTitle = true;
+    tauriConf.app.windows[0].titleBarStyle = 'Overlay';
+    tauriConf.app.windows[0].decorations = true;
+    tauriConf.app.windows[0].acceptFirstMouse = true;
+    tauriConf.app.windows[0].trafficLightPosition = { x: 16, y: 24 };
   }
 
   const port = config.port ?? 3000;

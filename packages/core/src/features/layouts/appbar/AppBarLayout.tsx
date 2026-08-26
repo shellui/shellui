@@ -22,6 +22,10 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
+import { ContentDragOverlay } from '../chrome/ContentDragOverlay';
+import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
+import { MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -136,6 +140,8 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
   const { settings } = useSettings();
   const location = useLocation();
   const navigate = useNavigate();
+  const isTauriEnv = useIsTauriClient();
+  const overlay = useMacOverlayChrome();
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -177,6 +183,18 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
     }
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
+  useEffect(() => {
+    const root = document.documentElement;
+    if (overlay) root.setAttribute('data-shellui-overlay-chrome', '');
+    else root.removeAttribute('data-shellui-overlay-chrome');
+    if (isTauriEnv) root.setAttribute('data-shellui-tauri', '');
+    else root.removeAttribute('data-shellui-tauri');
+    return () => {
+      root.removeAttribute('data-shellui-overlay-chrome');
+      root.removeAttribute('data-shellui-tauri');
+    };
+  }, [overlay, isTauriEnv]);
+
   const currentPathPrefix =
     location.pathname === '/'
       ? '/'
@@ -184,12 +202,19 @@ export function AppBarLayout({ title, logo, navigation }: AppBarLayoutProps) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {overlay ? <ContentDragOverlay /> : null}
       {/* Top bar: max 42px */}
       <header
-        className="flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
-        style={{ minHeight: 32, maxHeight: TOP_BAR_MAX_HEIGHT }}
+        className="relative z-[46] flex items-center gap-3 px-3 border-b border-border bg-sidebar-background shrink-0"
+        style={{
+          minHeight: 32,
+          maxHeight: TOP_BAR_MAX_HEIGHT,
+          paddingLeft: overlay ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : undefined,
+        }}
         data-layout="app-bar"
+        {...(overlay ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
       >
+        {isTauriEnv ? <DesktopBackButton /> : null}
         {/* Logo / title (home link) */}
         <Link
           to="/"

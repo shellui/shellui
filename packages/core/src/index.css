@@ -597,3 +597,31 @@ html.shellui-theme-switching
   animation: auth-menu-out 0.12s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
 }
+
+/* Tauri overlay titlebar: drag via data-tauri-drag-region; keep controls clickable. */
+[data-shellui-drag-region],
+[data-tauri-drag-region] {
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
+[data-shellui-drag-region] [data-shellui-no-drag],
+[data-shellui-no-drag],
+[data-shellui-drag-region] a,
+[data-shellui-drag-region] button,
+[data-shellui-drag-region] input,
+[data-shellui-drag-region] select,
+[data-shellui-drag-region] [role='combobox'] {
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+html[data-shellui-overlay-chrome] {
+  --shellui-titlebar-height: 38px;
+  --shellui-traffic-lights-width: 78px;
+}
+
+/* Keep sidebar chrome above the full-width drag strip so Back / trigger stay clickable. */
+html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
+  z-index: 46;
+}

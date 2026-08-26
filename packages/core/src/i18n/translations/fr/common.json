@@ -64,5 +64,8 @@
   "storagePicker": {
     "title": "Sélectionner des fichiers ou dossiers",
     "description": "Choisissez des éléments, puis confirmez."
+  },
+  "desktopChrome": {
+    "back": "Retour"
   }
 }

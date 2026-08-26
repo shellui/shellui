@@ -21,7 +21,15 @@
       {
         "title": "shellui",
         "width": 1024,
-        "height": 768
+        "height": 768,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "decorations": true,
+        "acceptFirstMouse": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 24
+        }
       }
     ]
   },
@@ -31,7 +39,6 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ]

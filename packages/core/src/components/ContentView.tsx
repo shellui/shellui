@@ -12,6 +12,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
+import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
 
 const logger = getLogger('shellcore');
 
@@ -200,6 +201,25 @@ export const ContentView = ({
     }, LOADING_OVERLAY_DURATION_MS);
     return () => clearTimeout(timeoutId);
   }, [isLoading]);
+
+  // After the first load, a cross-origin document (OAuth/login) cannot be inspected.
+  // Flag it so desktop Back can restore the iframe to its assigned app URL.
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    let loads = 0;
+    const onLoad = () => {
+      loads += 1;
+      try {
+        void iframe.contentWindow?.location.href;
+        iframe.removeAttribute(IFRAME_FOREIGN_ATTR);
+      } catch {
+        if (loads > 1) iframe.setAttribute(IFRAME_FOREIGN_ATTR, 'true');
+      }
+    };
+    iframe.addEventListener('load', onLoad);
+    return () => iframe.removeEventListener('load', onLoad);
+  }, [iframeUrl, navItem?.path]);
 
   return (
     <div
