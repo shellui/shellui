@@ -398,6 +398,129 @@ html.shellui-theme-switching
   animation: dialog-content-out 0.1s ease-in both;
 }
 
+/* Sheet overlay and panel animations (mobile sidebar) */
+@keyframes sheet-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheet-overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sheet-content-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes sheet-content-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes sheet-content-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes sheet-content-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+[data-sheet-overlay][data-state='open'] {
+  animation: sheet-overlay-fade-in 0.2s ease-out both;
+}
+[data-sheet-overlay][data-state='closed'] {
+  animation: sheet-overlay-fade-out 0.2s ease-in both;
+  pointer-events: none;
+}
+
+[data-sheet-content] {
+  will-change: transform;
+}
+
+[data-sheet-content][data-side='left'][data-state='open'] {
+  animation: sheet-content-in-left 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='left'][data-state='closed'] {
+  animation: sheet-content-out-left 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='right'][data-state='open'] {
+  animation: sheet-content-in-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='right'][data-state='closed'] {
+  animation: sheet-content-out-right 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='top'][data-state='open'] {
+  animation: sheet-content-in-top 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='top'][data-state='closed'] {
+  animation: sheet-content-out-top 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='bottom'][data-state='open'] {
+  animation: sheet-content-in-bottom 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='bottom'][data-state='closed'] {
+  animation: sheet-content-out-bottom 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
 /* Cookie consent dialog (bottom-left) animations */
 @keyframes cookie-dialog-content-in {
   from {
