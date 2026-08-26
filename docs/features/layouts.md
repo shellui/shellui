@@ -25,6 +25,7 @@ const config: ShellUIConfig = {
 
 - Persistent sidebar navigation built on the shadcn/ui sidebar primitives
 - Desktop: collapsible icon rail (click the trigger, rail, or press `⌘B` / `Ctrl+B`)
+- Desktop: drag the expanded sidebar border to resize (200–480px; persisted for the tab session)
 - Mobile: sheet/drawer sidebar opened from the top header trigger
 - **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 38px sidebar header). A full-width invisible 38px top strip drags the window; shell controls under it stay clickable. A **Back** button appears in the sidebar so you can leave iframe login pages (there is no browser chrome).
 - Supports icons, groups, and positioning

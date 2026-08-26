@@ -26,7 +26,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### ✨ Feature
 
 - **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
-- **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
+- **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (200–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
 - **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px sidebar chrome). A full-width invisible 38px top strip moves the window; interactive controls under it stay clickable. A Back button restores iframe history so login pages in embedded apps are not a dead end.
 
 ### 🚨 Changed

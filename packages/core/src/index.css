@@ -625,3 +625,8 @@ html[data-shellui-overlay-chrome] {
 html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   z-index: 46;
 }
+
+/* Avoid iframe stealing pointer events while dragging the sidebar border. */
+[data-slot='sidebar-wrapper'][data-resizing] iframe {
+  pointer-events: none;
+}
