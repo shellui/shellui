@@ -302,19 +302,24 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
 
   return (
     <Button
+      type="button"
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      className={cn('size-7', className)}
+      aria-label="Toggle Sidebar"
+      className={cn(
+        'size-7 touch-manipulation select-none [-webkit-touch-callout:none]',
+        className,
+      )}
+      {...props}
       onClick={(event) => {
         onClick?.(event);
+        if (event.defaultPrevented) return;
         toggleSidebar();
       }}
-      {...props}
     >
       <PanelLeftIcon />
-      <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
 }

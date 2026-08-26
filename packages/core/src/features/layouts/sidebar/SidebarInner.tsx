@@ -20,7 +20,7 @@ export function SidebarInner({
 }) {
   return (
     <>
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border select-none">
         <SidebarTrigger className="size-8 touch-manipulation" />
       </SidebarHeader>
       <SidebarContent className="gap-1">

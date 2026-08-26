@@ -92,9 +92,8 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
       </Sidebar>
 
       <SidebarInset className="min-w-0 overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 md:hidden">
-          <SidebarTrigger className="size-9 touch-manipulation text-foreground" />
-          {title && <span className="truncate text-sm font-semibold text-foreground">{title}</span>}
+        <header className="relative z-20 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 select-none md:hidden">
+          <SidebarTrigger className="relative size-9 touch-manipulation text-foreground" />
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-auto">
