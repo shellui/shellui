@@ -25,7 +25,12 @@ import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { DesktopBackButton } from '../chrome/DesktopBackButton';
 import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
-import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
+import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
+import {
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+} from '../chrome/constants';
 
 /** Close the mobile sheet when the route changes. */
 function CloseMobileSidebarOnNavigate() {
@@ -62,6 +67,10 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
   const { navigationItem } = useNavigationItems();
   const isMobile = useIsMobile();
   const isTauriEnv = useIsTauriClient();
+  const trafficLights = useMacTrafficLights();
+  const mobileTrafficInset = trafficLights
+    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
+    : undefined;
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -114,9 +123,21 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
       </Sidebar>
 
       <SidebarInset className="relative min-w-0 overflow-hidden">
-        <header className="relative z-20 flex h-12 shrink-0 items-center gap-2 border-b border-border bg-background px-3 select-none md:hidden">
+        <header
+          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
+          style={{
+            height: DESKTOP_TITLEBAR_HEIGHT_PX,
+            ...(mobileTrafficInset != null ? { paddingLeft: mobileTrafficInset } : {}),
+          }}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
+        >
+          <SidebarTrigger
+            data-shellui-no-drag=""
+            className="relative size-8 touch-manipulation text-foreground"
+          />
           {isTauriEnv ? <DesktopBackButton /> : null}
-          <SidebarTrigger className="relative size-9 touch-manipulation text-foreground" />
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-auto">

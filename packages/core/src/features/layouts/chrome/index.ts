@@ -5,7 +5,12 @@ export {
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from './constants';
 export { goDesktopBack, goBackInIframes, tryGoBackInIframe } from './goDesktopBack';
-export { useIsTauriClient, useMacOverlayChrome, isMacOSDesktop } from './runtime';
+export {
+  useIsTauriClient,
+  useMacOverlayChrome,
+  useMacTrafficLights,
+  isMacOSDesktop,
+} from './runtime';
 export { DesktopBackButton } from './DesktopBackButton';
 export { ContentDragOverlay } from './ContentDragOverlay';
 export { DesktopChrome } from './DesktopChrome';

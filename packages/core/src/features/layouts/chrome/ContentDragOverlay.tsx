@@ -12,7 +12,7 @@ export function ContentDragOverlay() {
     <div
       aria-hidden
       data-tauri-drag-region
-      className="fixed inset-x-0 top-0 z-[45] hidden w-full md:block"
+      className="fixed inset-x-0 top-0 z-[45] w-full"
       style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX }}
     />
   );

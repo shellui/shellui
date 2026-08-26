@@ -22,15 +22,24 @@ export function useIsTauriClient(): boolean {
   return value;
 }
 
-/** Overlay titlebar + traffic lights: Tauri on macOS, desktop viewport. */
+/** Overlay titlebar chrome: Tauri on macOS, desktop (non-mobile) viewport. */
 export function useMacOverlayChrome(): boolean {
-  const tauri = useIsTauriClient();
+  const trafficLights = useMacTrafficLights();
   const isMobile = useIsMobile();
+  return trafficLights && !isMobile;
+}
+
+/**
+ * Native macOS traffic lights are on the window (Tauri macOS), including
+ * narrow / mobile layouts where overlay chrome is otherwise disabled.
+ */
+export function useMacTrafficLights(): boolean {
+  const tauri = useIsTauriClient();
   const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
     setIsMac(isMacOSDesktop());
   }, []);
 
-  return tauri && isMac && !isMobile;
+  return tauri && isMac;
 }

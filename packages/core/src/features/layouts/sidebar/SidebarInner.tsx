@@ -10,7 +10,7 @@ import { NavigationContent } from './NavigationContent';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { DesktopBackButton } from '../chrome/DesktopBackButton';
-import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
+import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   MAC_TRAFFIC_LIGHTS_GAP_PX,
@@ -29,11 +29,17 @@ export function SidebarInner({
 }) {
   const isTauriEnv = useIsTauriClient();
   const overlay = useMacOverlayChrome();
+  const trafficLights = useMacTrafficLights();
   const { state, isMobile } = useSidebar();
   const collapsed = state === 'collapsed' && !isMobile;
   // Collapsed Tauri: Back + trigger live in CollapsedDesktopTitlebar instead.
   const showCollapsedTopBar = overlay && collapsed;
   const showOverlayHeader = overlay && !collapsed;
+  // Narrow Tauri window: sheet header must clear native traffic lights.
+  const mobileSheetHeader = isMobile && trafficLights;
+  const mobileTrafficInset = mobileSheetHeader
+    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
+    : undefined;
 
   return (
     <>
@@ -42,7 +48,16 @@ export function SidebarInner({
           'border-b border-sidebar-border select-none',
           showOverlayHeader && 'gap-0 p-0',
           showCollapsedTopBar && 'hidden',
+          mobileSheetHeader && 'gap-0 p-0',
         )}
+        style={
+          mobileSheetHeader
+            ? {
+                height: DESKTOP_TITLEBAR_HEIGHT_PX,
+                paddingLeft: mobileTrafficInset,
+              }
+            : undefined
+        }
         {...(showOverlayHeader
           ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
           : {})}
@@ -77,8 +92,7 @@ export function SidebarInner({
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-0.5">
-            {isTauriEnv ? <DesktopBackButton /> : null}
+          <div className={cn('flex items-center gap-0.5', mobileSheetHeader && 'h-full')}>
             <SidebarTrigger className="size-8 touch-manipulation" />
           </div>
         )}
