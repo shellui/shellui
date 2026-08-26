@@ -174,15 +174,20 @@ const ThemePreview = ({
   const colors = isDark ? theme.colors.dark : theme.colors.light;
   const radius = colors.radius;
 
-  const pendingOverlay = isPending ? (
+  const pendingOverlay = (
     <div
-      className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-[1px]"
+      className={cn(
+        'absolute inset-0 z-10 flex items-center justify-center bg-background/55 backdrop-blur-[1px]',
+        'transition-opacity duration-300 ease-out',
+        isPending ? 'opacity-100' : 'opacity-0 pointer-events-none',
+      )}
       style={{ borderRadius: previewRadius(radius) }}
+      aria-hidden={!isPending}
     >
       <ThemeSwitchSpinner className="size-5 text-primary" />
-      <span className="sr-only">Applying theme</span>
+      {isPending ? <span className="sr-only">Applying theme</span> : null}
     </div>
-  ) : null;
+  );
 
   if (layout === 'many') {
     return (
@@ -457,7 +462,10 @@ export const Appearance = () => {
         : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      data-theme-switch-ui
+    >
       <div className="space-y-2">
         <div className="space-y-0.5">
           <label
@@ -484,9 +492,12 @@ export const Appearance = () => {
                   disabled={themeSwitchBusy}
                   className={cn(
                     'h-10 px-4 flex items-center gap-2 cursor-pointer disabled:cursor-wait',
+                    'transition-opacity duration-300 ease-out',
                     isSelected && ['font-semibold'],
                     !isSelected && ['bg-background hover:bg-accent/50', 'text-muted-foreground'],
-                    themeSwitchBusy && !isPending && 'opacity-70',
+                    themeSwitchBusy && !isPending
+                      ? 'opacity-40 disabled:opacity-40'
+                      : 'opacity-100 disabled:opacity-100',
                   )}
                   aria-label={theme.label}
                   title={theme.label}
@@ -528,9 +539,11 @@ export const Appearance = () => {
                 }}
                 disabled={themeSwitchBusy}
                 className={cn(
-                  'relative text-left cursor-pointer disabled:cursor-wait',
+                  'relative text-left transition-[opacity,transform] duration-300 ease-out',
+                  themeSwitchBusy ? 'cursor-wait' : 'cursor-pointer',
                   isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
-                  themeSwitchBusy && pendingThemeName !== theme.name && 'opacity-60',
+                  themeSwitchBusy && pendingThemeName !== theme.name && 'opacity-40 scale-[0.99]',
+                  (!themeSwitchBusy || pendingThemeName === theme.name) && 'opacity-100 scale-100',
                 )}
                 style={{ borderRadius: previewRadius(previewColors.radius) }}
                 aria-label={theme.displayName}

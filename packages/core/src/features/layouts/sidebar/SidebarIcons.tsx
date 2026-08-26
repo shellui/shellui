@@ -1,4 +1,5 @@
 import { cn } from '../../../lib/utils';
+import { isAppIcon } from './sidebarUtils';
 
 /** Inline SVG: external-link icon. Bundled so consumers don't need to serve static SVGs. */
 export function ExternalLinkIcon({ className }: { className?: string }) {
@@ -50,5 +51,42 @@ export function DefaultNavIcon({ className }: { className?: string }) {
         r="8"
       />
     </svg>
+  );
+}
+
+/**
+ * Nav icon that follows sidebar text color (including hover / active).
+ * Local `/icons/*.svg` use a CSS mask + `currentColor`; external images stay as `<img>`.
+ */
+export function NavIcon({ src, className }: { src?: string | null; className?: string }) {
+  if (!src) {
+    return <DefaultNavIcon className={className} />;
+  }
+
+  if (isAppIcon(src)) {
+    return (
+      <span
+        aria-hidden
+        className={cn('size-4 shrink-0 bg-current', className)}
+        style={{
+          maskImage: `url("${src}")`,
+          WebkitMaskImage: `url("${src}")`,
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+        }}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      className={cn('size-4 shrink-0', className)}
+    />
   );
 }

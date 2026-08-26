@@ -27,11 +27,11 @@ export function SidebarInner({
         <NavigationContent navigation={startNav} />
       </SidebarContent>
       <SidebarFooter className="gap-0 border-t border-sidebar-border p-0">
-        {endItems.length > 0 && <NavigationContent navigation={endItems} />}
-        {showAuthButton && (
-          <div className="p-2">
-            <LoginButton variant="sidebar" />
-          </div>
+        {(endItems.length > 0 || showAuthButton) && (
+          <NavigationContent
+            navigation={endItems}
+            trailing={showAuthButton ? <LoginButton variant="sidebar" /> : undefined}
+          />
         )}
       </SidebarFooter>
     </>

@@ -20,6 +20,8 @@ import { cn } from '../../../lib/utils';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
+import { NavIcon } from '../sidebar/SidebarIcons';
+import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 
 const TOP_BAR_MAX_HEIGHT = 42;
 
@@ -29,19 +31,6 @@ interface AppBarLayoutProps {
   logo?: string;
   navigation: (NavigationItem | NavigationGroup)[];
 }
-
-const getExternalFaviconUrl = (url: string): string | null => {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname;
-    if (!hostname) return null;
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
-  } catch {
-    return null;
-  }
-};
-
-const isAppIcon = (src: string) => src.startsWith('/icons/');
 
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
@@ -71,13 +60,9 @@ function TopBarEndItem({
   const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
 
   const iconEl = iconSrc ? (
-    <img
+    <NavIcon
       src={iconSrc}
-      alt=""
-      className={cn(
-        'size-5 shrink-0 rounded-sm object-cover',
-        isAppIcon(iconSrc) && 'opacity-90 dark:opacity-100 dark:invert',
-      )}
+      className="size-5 rounded-sm object-cover"
     />
   ) : (
     <span

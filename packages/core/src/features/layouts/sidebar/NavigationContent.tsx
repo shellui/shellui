@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
@@ -14,7 +14,7 @@ import {
 import { cn } from '../../../lib/utils';
 import { getActivePathPrefix, getNavPathPrefix, flattenNavigationItems } from '../utils';
 import { getExternalFaviconUrl } from './sidebarUtils';
-import { DefaultNavIcon, ExternalLinkIcon } from './SidebarIcons';
+import { ExternalLinkIcon, NavIcon } from './SidebarIcons';
 
 const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup => {
   return 'title' in item && 'items' in item;
@@ -22,8 +22,11 @@ const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGrou
 
 export function NavigationContent({
   navigation,
+  trailing,
 }: {
   navigation: (NavigationItem | NavigationGroup)[];
+  /** Appended as the last item in the final menu so spacing matches the stack (e.g. avatar). */
+  trailing?: ReactNode;
 }) {
   const location = useLocation();
   const { i18n } = useTranslation();
@@ -74,15 +77,7 @@ export function NavigationContent({
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
-    const iconEl = iconSrc ? (
-      <img
-        src={iconSrc}
-        alt=""
-        className="size-4 shrink-0"
-      />
-    ) : (
-      <DefaultNavIcon />
-    );
+    const iconEl = <NavIcon src={iconSrc} />;
     const externalIcon = isExternal ? (
       <ExternalLinkIcon className="ml-auto size-4 shrink-0 opacity-70" />
     ) : null;
@@ -139,9 +134,26 @@ export function NavigationContent({
     );
   };
 
+  const trailingItem = trailing ? (
+    <SidebarMenuItem key="__trailing">{trailing}</SidebarMenuItem>
+  ) : null;
+
+  if (sections.length === 0 && trailingItem) {
+    return (
+      <SidebarGroup className="mt-0">
+        <SidebarGroupContent>
+          <SidebarMenu className="gap-0.5">{trailingItem}</SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
+
   return (
     <>
       {sections.map((section, sectionIndex) => {
+        const isLastSection = sectionIndex === sections.length - 1;
+        const menuTrailing = isLastSection ? trailingItem : null;
+
         if (section.type === 'group') {
           const groupTitle = resolveLocalizedString(section.group.title, currentLanguage);
           return (
@@ -155,6 +167,7 @@ export function NavigationContent({
                   {section.group.items.map((navItem) => (
                     <SidebarMenuItem key={navItem.path}>{renderNavItem(navItem)}</SidebarMenuItem>
                   ))}
+                  {menuTrailing}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -171,6 +184,7 @@ export function NavigationContent({
                 {section.items.map((navItem) => (
                   <SidebarMenuItem key={navItem.path}>{renderNavItem(navItem)}</SidebarMenuItem>
                 ))}
+                {menuTrailing}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

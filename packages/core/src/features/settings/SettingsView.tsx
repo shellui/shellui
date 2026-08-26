@@ -26,7 +26,7 @@ import { useConfig } from '../config/useConfig';
 import { isTauri } from '../../service-worker/register';
 import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
-import { DefaultNavIcon } from '../layouts/sidebar/SidebarIcons';
+import { NavIcon } from '../layouts/sidebar/SidebarIcons';
 import { flattenNavigationItems, resolveLocalizedString } from '../layouts/utils';
 import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel';
 import { createUserSettingsRoute } from './components/createUserSettingsRoute';
@@ -255,14 +255,8 @@ export const SettingsView = () => {
                           >
                             {'icon' in item && item.icon ? (
                               <item.icon />
-                            ) : 'iconSrc' in item && item.iconSrc ? (
-                              <img
-                                src={item.iconSrc}
-                                alt=""
-                                className="size-4 shrink-0"
-                              />
                             ) : (
-                              <DefaultNavIcon />
+                              <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
                             )}
                             <span>{item.name}</span>
                           </button>
@@ -303,14 +297,8 @@ export const SettingsView = () => {
                       const iconEl =
                         'icon' in item && item.icon ? (
                           <item.icon />
-                        ) : 'iconSrc' in item && item.iconSrc ? (
-                          <img
-                            src={item.iconSrc}
-                            alt=""
-                            className="size-4 shrink-0"
-                          />
                         ) : (
-                          <DefaultNavIcon />
+                          <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
                         );
                       return (
                         <div
@@ -325,7 +313,7 @@ export const SettingsView = () => {
                             className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className="flex-shrink-0 text-foreground/70">{iconEl}</div>
+                              <div className="flex-shrink-0">{iconEl}</div>
                               <span className="text-sm font-normal text-foreground">
                                 {item.name}
                               </span>
