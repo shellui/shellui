@@ -10,7 +10,7 @@ export type LocalizedString =
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with select menu for start links and icon-only end links. */
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links. */
 export type LayoutType = 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
 
 export interface NavigationItem {

@@ -3,8 +3,10 @@ import { IFRAME_FOREIGN_ATTR } from './constants';
 import {
   goBackInIframes,
   goDesktopBack,
+  goDesktopForward,
   normalizeHref,
   tryGoBackInIframe,
+  tryGoForwardInIframe,
   type DesktopBackIframe,
 } from './goDesktopBack';
 
@@ -22,7 +24,7 @@ function mockIframe(
     src,
     contentWindow: rest.contentWindow ?? {
       location: { href: src },
-      history: { back: vi.fn() },
+      history: { back: vi.fn(), forward: vi.fn() },
     },
     getAttribute: (name) => attrs[name] ?? null,
     removeAttribute: (name) => {
@@ -63,7 +65,7 @@ describe('tryGoBackInIframe', () => {
       src: 'http://localhost/app',
       contentWindow: {
         location: { href: 'http://localhost/app/login' },
-        history: { back },
+        history: { back, forward: vi.fn() },
       },
     });
 
@@ -76,12 +78,44 @@ describe('tryGoBackInIframe', () => {
     const iframe = mockIframe({
       contentWindow: {
         location: { href: 'http://localhost/app' },
-        history: { back },
+        history: { back, forward: vi.fn() },
       },
     });
 
     expect(tryGoBackInIframe(iframe, 'http://localhost')).toBe(false);
     expect(back).not.toHaveBeenCalled();
+  });
+});
+
+describe('tryGoForwardInIframe', () => {
+  it('calls history.forward and succeeds when the URL changes', () => {
+    const location = { href: 'http://localhost/app' };
+    const forward = vi.fn(() => {
+      location.href = 'http://localhost/app/login';
+    });
+    const iframe = mockIframe({
+      src: 'http://localhost/app',
+      contentWindow: {
+        location,
+        history: { back: vi.fn(), forward },
+      },
+    });
+
+    expect(tryGoForwardInIframe(iframe, 'http://localhost')).toBe(true);
+    expect(forward).toHaveBeenCalledOnce();
+  });
+
+  it('returns false when forward does not change the URL', () => {
+    const forward = vi.fn();
+    const iframe = mockIframe({
+      contentWindow: {
+        location: { href: 'http://localhost/app' },
+        history: { back: vi.fn(), forward },
+      },
+    });
+
+    expect(tryGoForwardInIframe(iframe, 'http://localhost')).toBe(false);
+    expect(forward).toHaveBeenCalledOnce();
   });
 });
 
@@ -94,7 +128,7 @@ describe('goDesktopBack', () => {
         src: 'http://localhost/app',
         contentWindow: {
           location: { href: 'http://localhost/app/login' },
-          history: { back },
+          history: { back, forward: vi.fn() },
         },
       }),
     ];
@@ -140,7 +174,7 @@ describe('goDesktopBack', () => {
           src: 'http://localhost/modal',
           contentWindow: {
             location: { href: 'http://localhost/modal/login' },
-            history: { back: topBack },
+            history: { back: topBack, forward: vi.fn() },
           },
         }),
       ],
@@ -148,5 +182,37 @@ describe('goDesktopBack', () => {
     );
     expect(result).toBe(true);
     expect(topBack).toHaveBeenCalledOnce();
+  });
+});
+
+describe('goDesktopForward', () => {
+  it('prefers iframe forward over router', () => {
+    const location = { href: 'http://localhost/app' };
+    const forward = vi.fn(() => {
+      location.href = 'http://localhost/app/next';
+    });
+    const goRouterForward = vi.fn();
+    expect(
+      goDesktopForward({
+        iframes: [
+          mockIframe({
+            contentWindow: {
+              location,
+              history: { back: vi.fn(), forward },
+            },
+          }),
+        ],
+        goRouterForward,
+        baseHref: 'http://localhost',
+      }),
+    ).toBe('iframe');
+    expect(forward).toHaveBeenCalledOnce();
+    expect(goRouterForward).not.toHaveBeenCalled();
+  });
+
+  it('falls back to router forward', () => {
+    const goRouterForward = vi.fn();
+    expect(goDesktopForward({ iframes: [], goRouterForward })).toBe('router');
+    expect(goRouterForward).toHaveBeenCalledOnce();
   });
 });

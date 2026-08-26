@@ -5,13 +5,14 @@ export type DesktopBackIframe = {
   src: string;
   contentWindow: {
     location: { href: string };
-    history: { back: () => void };
+    history: { back: () => void; forward: () => void };
   } | null;
   getAttribute: (name: string) => string | null;
   removeAttribute: (name: string) => void;
 };
 
 export type DesktopBackResult = 'iframe' | 'overlay' | 'router';
+export type DesktopForwardResult = 'iframe' | 'router';
 
 export function normalizeHref(href: string, base = 'http://localhost'): string {
   try {
@@ -73,5 +74,39 @@ export function goDesktopBack(options: {
     return 'overlay';
   }
   options.goRouterBack?.();
+  return 'router';
+}
+
+/** Same-origin iframe forward when location actually changes (SPA navigations). */
+export function tryGoForwardInIframe(iframe: DesktopBackIframe, baseHref?: string): boolean {
+  if (!iframe.isConnected) return false;
+  try {
+    const win = iframe.contentWindow;
+    if (!win) return false;
+    const before = normalizeHref(win.location.href, baseHref);
+    win.history.forward();
+    const after = normalizeHref(win.location.href, baseHref);
+    return after !== before;
+  } catch {
+    return false;
+  }
+}
+
+export function goForwardInIframes(iframes: DesktopBackIframe[], baseHref?: string): boolean {
+  for (let index = iframes.length - 1; index >= 0; index -= 1) {
+    if (tryGoForwardInIframe(iframes[index], baseHref)) return true;
+  }
+  return false;
+}
+
+export function goDesktopForward(options: {
+  iframes?: DesktopBackIframe[];
+  goRouterForward?: () => void;
+  baseHref?: string;
+}): DesktopForwardResult {
+  if (options.iframes && goForwardInIframes(options.iframes, options.baseHref)) {
+    return 'iframe';
+  }
+  options.goRouterForward?.();
   return 'router';
 }

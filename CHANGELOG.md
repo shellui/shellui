@@ -27,7 +27,8 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
 - **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (200–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
-- **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). A Back button restores iframe history so login pages in embedded apps are not a dead end.
+- **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.
+- **App-bar layout:** 38px chrome bar with text start links (left sheet on mobile), title-only brand (no logo), icon end links, and the same Tauri traffic-light / Back/Forward / drag treatment as the sidebar.
 
 ### 🚨 Changed
 
@@ -91,7 +92,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### ✨ Feature
 
 - **Application settings:** navigation items can define a `settings` URL to display their own settings panel in Settings > Applications.
-- **Layout:** new **app-bar** layout with compact top bar, select menu for start links, and icon-only end links with tooltips
+- **Layout:** new **app-bar** layout with a 38px top bar: 9-square + current page name launcher (wrapping icon strip), Back/Forward on Tauri, and icon-only end links
 - **CLI:** `shellui init [root]` command to create a `shellui.config.ts` boilerplate (use `--force` to overwrite)
 
 ### 🛠 Improvements

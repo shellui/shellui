@@ -23,7 +23,7 @@ import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
-import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
@@ -137,7 +137,7 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
             data-shellui-no-drag=""
             className="relative size-8 touch-manipulation text-foreground"
           />
-          {isTauriEnv ? <DesktopBackButton /> : null}
+          {isTauriEnv ? <DesktopHistoryButtons /> : null}
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-auto">

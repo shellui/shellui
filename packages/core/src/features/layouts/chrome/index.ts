@@ -4,7 +4,14 @@ export {
   MAC_TRAFFIC_LIGHTS_GAP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from './constants';
-export { goDesktopBack, goBackInIframes, tryGoBackInIframe } from './goDesktopBack';
+export {
+  goDesktopBack,
+  goBackInIframes,
+  tryGoBackInIframe,
+  goDesktopForward,
+  goForwardInIframes,
+  tryGoForwardInIframe,
+} from './goDesktopBack';
 export {
   useIsTauriClient,
   useMacOverlayChrome,
@@ -12,6 +19,8 @@ export {
   isMacOSDesktop,
 } from './runtime';
 export { DesktopBackButton } from './DesktopBackButton';
+export { DesktopForwardButton } from './DesktopForwardButton';
+export { DesktopHistoryButtons } from './DesktopHistoryButtons';
 export { ContentDragOverlay } from './ContentDragOverlay';
 export { DesktopChrome } from './DesktopChrome';
 export { CollapsedDesktopTitlebar } from './CollapsedDesktopTitlebar';

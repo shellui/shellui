@@ -9,7 +9,7 @@ import {
 import { NavigationContent } from './NavigationContent';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
-import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
@@ -88,7 +88,7 @@ export function SidebarInner({
                 data-tauri-drag-region=""
                 className="min-h-full min-w-[8px] flex-1"
               />
-              {isTauriEnv ? <DesktopBackButton className="shrink-0 self-center" /> : null}
+              {isTauriEnv ? <DesktopHistoryButtons className="self-center" /> : null}
             </div>
           </div>
         ) : (

@@ -66,6 +66,9 @@
     "description": "Choisissez des éléments, puis confirmez."
   },
   "desktopChrome": {
-    "back": "Retour"
+    "back": "Retour",
+    "forward": "Suivant",
+    "navigation": "Navigation",
+    "openNavigation": "Ouvrir la navigation"
   }
 }

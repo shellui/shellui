@@ -1,6 +1,6 @@
 import { SidebarTrigger, useSidebar } from '../../../components/ui/sidebar';
 import { cn } from '../../../lib/utils';
-import { DesktopBackButton } from './DesktopBackButton';
+import { DesktopHistoryButtons } from './DesktopHistoryButtons';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   MAC_TRAFFIC_LIGHTS_GAP_PX,
@@ -42,7 +42,7 @@ export function CollapsedDesktopTitlebar({ className }: { className?: string }) 
         style={{ paddingLeft: MAC_TRAFFIC_LIGHTS_GAP_PX }}
       >
         <SidebarTrigger className="size-8 touch-manipulation" />
-        {isTauriEnv ? <DesktopBackButton /> : null}
+        {isTauriEnv ? <DesktopHistoryButtons /> : null}
       </div>
     </div>
   );

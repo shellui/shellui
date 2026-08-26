@@ -90,11 +90,11 @@ const variantConfig: Record<
   appbar: {
     button: {
       authenticated:
-        'h-8 w-8 rounded-md p-0 justify-center text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'size-7 rounded-md p-0 justify-center text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
       loggedOut:
-        'h-8 max-w-[220px] rounded-md px-2 text-sm text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+        'h-7 max-w-[220px] rounded-md px-2 text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
     },
-    avatar: 'h-5 w-5',
+    avatar: 'size-4',
     menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'bottom', align: 'end' },
     showDisplayName: false,
     showCaret: false,

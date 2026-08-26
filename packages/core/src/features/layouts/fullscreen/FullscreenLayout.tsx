@@ -3,7 +3,7 @@ import { Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import { flattenNavigationItems } from '../utils';
-import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
 import { DESKTOP_TITLEBAR_HEIGHT_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
@@ -57,7 +57,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
             paddingLeft: overlay ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
         >
-          <DesktopBackButton />
+          <DesktopHistoryButtons />
         </div>
       ) : null}
       {children || <Outlet />}
