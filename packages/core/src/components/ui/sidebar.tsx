@@ -81,7 +81,7 @@ function readSidebarWidth(fallbackPx: number): number {
   if (typeof window === 'undefined') return fallbackPx;
   try {
     const stored = sessionStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
-    if (stored == null) return fallbackPx;
+    if (stored === null) return fallbackPx;
     const parsed = Number.parseInt(stored, 10);
     if (!Number.isFinite(parsed)) return fallbackPx;
     return clampSidebarWidth(parsed);

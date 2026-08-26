@@ -127,7 +127,7 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
           className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
           style={{
             height: DESKTOP_TITLEBAR_HEIGHT_PX,
-            ...(mobileTrafficInset != null ? { paddingLeft: mobileTrafficInset } : {}),
+            ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
           }}
           {...(trafficLights
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
