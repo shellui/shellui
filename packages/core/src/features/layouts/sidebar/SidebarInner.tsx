@@ -11,7 +11,11 @@ import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { DesktopBackButton } from '../chrome/DesktopBackButton';
 import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
-import { DESKTOP_TITLEBAR_HEIGHT_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 
 /** Reusable sidebar inner: header, main nav, footer. Used in desktop Sidebar and mobile Sheet. */
 export function SidebarInner({
@@ -27,38 +31,57 @@ export function SidebarInner({
   const overlay = useMacOverlayChrome();
   const { state, isMobile } = useSidebar();
   const collapsed = state === 'collapsed' && !isMobile;
-
-  const controls = (
-    <div
-      data-shellui-no-drag=""
-      className={cn('flex items-center gap-0.5', overlay && collapsed && 'w-full flex-col p-2')}
-    >
-      {isTauriEnv ? <DesktopBackButton /> : null}
-      <SidebarTrigger className="size-8 touch-manipulation" />
-    </div>
-  );
+  // Collapsed Tauri: Back + trigger live in CollapsedDesktopTitlebar instead.
+  const showCollapsedTopBar = overlay && collapsed;
+  const showOverlayHeader = overlay && !collapsed;
 
   return (
     <>
       <SidebarHeader
-        className={cn('border-b border-sidebar-border select-none', overlay && 'gap-0 p-0')}
-        {...(overlay ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
+        className={cn(
+          'border-b border-sidebar-border select-none',
+          showOverlayHeader && 'gap-0 p-0',
+          showCollapsedTopBar && 'hidden',
+        )}
+        {...(showOverlayHeader
+          ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+          : {})}
       >
-        {overlay ? (
+        {showOverlayHeader ? (
           <div
-            className="flex shrink-0 items-center"
+            className="flex w-full shrink-0 items-stretch"
             style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX }}
             data-shellui-drag-region=""
             data-tauri-drag-region=""
           >
             <div
               className="h-full shrink-0"
-              style={{ width: collapsed ? '100%' : MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
+              style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
+              aria-hidden
             />
-            {collapsed ? null : controls}
+            <div
+              className="flex h-full min-w-0 flex-1 items-stretch"
+              style={{ paddingLeft: MAC_TRAFFIC_LIGHTS_GAP_PX }}
+            >
+              <SidebarTrigger
+                data-shellui-no-drag=""
+                className="size-8 shrink-0 self-center touch-manipulation"
+              />
+              <div
+                aria-hidden
+                data-shellui-drag-region=""
+                data-tauri-drag-region=""
+                className="min-h-full min-w-[8px] flex-1"
+              />
+              {isTauriEnv ? <DesktopBackButton className="shrink-0 self-center" /> : null}
+            </div>
           </div>
-        ) : null}
-        {!overlay || collapsed ? controls : null}
+        ) : (
+          <div className="flex items-center gap-0.5">
+            {isTauriEnv ? <DesktopBackButton /> : null}
+            <SidebarTrigger className="size-8 touch-manipulation" />
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent className="gap-1">
         <NavigationContent navigation={startNav} />

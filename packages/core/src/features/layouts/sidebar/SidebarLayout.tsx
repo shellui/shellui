@@ -23,8 +23,8 @@ import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
-import { ContentDragOverlay } from '../chrome/ContentDragOverlay';
 import { DesktopBackButton } from '../chrome/DesktopBackButton';
+import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
 import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
 
 /** Close the mobile sheet when the route changes. */
@@ -39,6 +39,22 @@ function CloseMobileSidebarOnNavigate() {
   return null;
 }
 
+/** Sync collapsed-titlebar layout offset onto <html> for CSS. */
+function CollapsedTitlebarOffset() {
+  const overlay = useMacOverlayChrome();
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === 'collapsed' && !isMobile;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (overlay && collapsed) root.setAttribute('data-shellui-collapsed-titlebar', '');
+    else root.removeAttribute('data-shellui-collapsed-titlebar');
+    return () => root.removeAttribute('data-shellui-collapsed-titlebar');
+  }, [overlay, collapsed]);
+
+  return null;
+}
+
 const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -46,7 +62,6 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
   const { navigationItem } = useNavigationItems();
   const isMobile = useIsMobile();
   const isTauriEnv = useIsTauriClient();
-  const overlay = useMacOverlayChrome();
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -81,21 +96,11 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
     }
   }, [navigationItem, title, currentLanguage]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (overlay) root.setAttribute('data-shellui-overlay-chrome', '');
-    else root.removeAttribute('data-shellui-overlay-chrome');
-    if (isTauriEnv) root.setAttribute('data-shellui-tauri', '');
-    else root.removeAttribute('data-shellui-tauri');
-    return () => {
-      root.removeAttribute('data-shellui-overlay-chrome');
-      root.removeAttribute('data-shellui-tauri');
-    };
-  }, [overlay, isTauriEnv]);
-
   return (
     <SidebarProvider className="h-svh overflow-hidden">
       <CloseMobileSidebarOnNavigate />
+      <CollapsedTitlebarOffset />
+      <CollapsedDesktopTitlebar />
       <Sidebar
         collapsible="icon"
         className="border-sidebar-border"
@@ -113,8 +118,6 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
           {isTauriEnv ? <DesktopBackButton /> : null}
           <SidebarTrigger className="relative size-9 touch-manipulation text-foreground" />
         </header>
-
-        {overlay ? <ContentDragOverlay /> : null}
 
         <div className="flex min-h-0 flex-1 flex-col overflow-auto">
           <Outlet />

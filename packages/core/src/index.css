@@ -626,6 +626,16 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   z-index: 46;
 }
 
+/* Collapsed Tauri: full-width 38px titlebar; push sidebar + content below it. */
+html[data-shellui-collapsed-titlebar] [data-slot='sidebar-container'] {
+  top: var(--shellui-titlebar-height, 38px);
+  height: calc(100svh - var(--shellui-titlebar-height, 38px));
+}
+
+html[data-shellui-collapsed-titlebar] [data-slot='sidebar-inset'] {
+  padding-top: var(--shellui-titlebar-height, 38px);
+}
+
 /* Avoid iframe stealing pointer events while dragging the sidebar border. */
 [data-slot='sidebar-wrapper'][data-resizing] iframe {
   pointer-events: none;

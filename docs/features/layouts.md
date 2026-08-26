@@ -27,7 +27,7 @@ const config: ShellUIConfig = {
 - Desktop: collapsible icon rail (click the trigger, rail, or press `⌘B` / `Ctrl+B`)
 - Desktop: drag the expanded sidebar border to resize (200–480px; persisted for the tab session)
 - Mobile: sheet/drawer sidebar opened from the top header trigger
-- **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 38px sidebar header). A full-width invisible 38px top strip drags the window; shell controls under it stay clickable. A **Back** button appears in the sidebar so you can leave iframe login pages (there is no browser chrome).
+- **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back + open-sidebar (nav icons stay in the rail); when expanded, those controls sit in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root (all layouts and pages, including error screens). A **Back** button leaves iframe login pages (there is no browser chrome).
 - Supports icons, groups, and positioning
 - Works with all navigation features
 - Themed via sidebar CSS variables (`--sidebar-*`) for light and dark modes
