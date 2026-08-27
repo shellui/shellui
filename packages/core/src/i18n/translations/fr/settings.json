@@ -422,9 +422,13 @@
       },
       "modalTesting": {
         "title": "Tests du modal",
-        "description": "Ouvre les paramètres dans un modal. Fermez avec le bouton × ou en cliquant à l'extérieur.",
+        "description": "Ouvre les paramètres dans un modal (dialogue bureau / tiroir bas mobile). Le dimensionnement dynamique épouse le contenu compact. Fermez avec ×, le fond, Échap, ou un balayage sur mobile.",
         "buttons": {
-          "openModal": "Ouvrir le modal (paramètres)"
+          "openModal": "Ouvrir le modal (paramètres)",
+          "openModalSm": "Ouvrir le modal (sm)",
+          "openModalContent": "Ouvrir le modal (contenu, sans ×)",
+          "openModalDynamic": "Ouvrir le modal (taille dynamique)",
+          "closeModal": "Fermer le modal"
         }
       },
       "drawerTesting": {
@@ -436,6 +440,8 @@
           "drawerBottom": "Tiroir depuis le bas",
           "drawerRightNarrow": "Tiroir droite (400px)",
           "drawerBottomHalf": "Tiroir bas (60vh)",
+          "drawerBottomDynamic": "Tiroir bas (taille dynamique)",
+          "drawerNoClose": "Tiroir bas (sans ×)",
           "closeDrawer": "Fermer le tiroir"
         }
       },

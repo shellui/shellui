@@ -34,8 +34,17 @@ const DialogOverlay = forwardRef<
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 interface DialogContentProps extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
-  /** When true, the default close (X) button is not rendered. Escape and overlay still close. */
+  /**
+   * When true, the default close (X) button is not rendered.
+   * Prefer `showCloseButton={false}` for new code.
+   */
   hideCloseButton?: boolean;
+  /**
+   * When false, the default close (X) button is not rendered.
+   * Escape / overlay click still follow Dialog `onOpenChange` / interact-outside handlers.
+   * Default true.
+   */
+  showCloseButton?: boolean;
   overlayZIndex?: number;
   contentZIndex?: number;
 }
@@ -47,6 +56,7 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
       children,
       onPointerDownOutside,
       hideCloseButton,
+      showCloseButton = true,
       overlayZIndex,
       contentZIndex,
       style,
@@ -55,6 +65,7 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
     ref,
   ) => {
     const hasContent = Children.count(children) > 2;
+    const renderClose = showCloseButton && !hideCloseButton;
 
     const handlePointerDownOutside = useCallback(
       (
@@ -88,13 +99,20 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
           style={{
             backgroundColor: 'var(--background)',
             zIndex: contentZIndex ?? Z_INDEX.MODAL_CONTENT,
+            ...(style?.transition === 'none'
+              ? { transition: 'none' }
+              : {
+                  transitionProperty: 'height, width, max-height, max-width',
+                  transitionDuration: '200ms',
+                  transitionTimingFunction: 'ease',
+                }),
             ...style,
           }}
           onPointerDownOutside={handlePointerDownOutside}
           {...props}
         >
           {children}
-          {!hideCloseButton && (
+          {renderClose && (
             <DialogPrimitive.Close
               onPointerDown={(e) => e.currentTarget.click()}
               className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"

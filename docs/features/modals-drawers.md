@@ -2,9 +2,13 @@
 
 Shellui supports opening content in modal overlays and side drawer panels, providing flexible ways to display content without navigating away from the current page.
 
+Modals and drawers share one options surface: size presets, optional close chrome, and dismiss behavior. On mobile, `openModal` presents as a bottom drawer automatically.
+
 ## Modals
 
-Modals display content in a centered overlay with a backdrop, perfect for focused interactions like settings or forms.
+Modals display content in a centered overlay with a backdrop on desktop — perfect for focused interactions like settings or forms. On viewports below 768px, the same `openModal` API morphs into a bottom sheet (drag handle + swipe-to-dismiss).
+
+**Content continuity:** resizing across the mobile breakpoint only changes chrome (dialog ↔ sheet). The iframe stays mounted — typed form state is not reloaded.
 
 ### Opening Modals via Navigation
 
@@ -27,36 +31,52 @@ const config: ShellUIConfig = {
 
 ### Opening Modals Programmatically
 
-Open modals programmatically using the SDK:
-
 ```javascript
 import { shellui } from '@shellui/sdk';
 
-// Initialize SDK
 await shellui.init();
 
-// Open a URL in a modal
+// Simple URL (desktop dialog / mobile bottom drawer)
 shellui.openModal('/settings');
 
-// Or with full URL
-shellui.openModal('https://example.com/form');
+// Options object
+shellui.openModal({
+  url: '/settings',
+  size: 'lg', // sm | md | lg | xl | full | content
+  dynamicSizing: false, // true → height follows iframe reports
+  showCloseButton: true, // default true — set false so the app owns dismiss UI
+  dismissible: true, // Escape / swipe (default true)
+  closeOnOverlayClick: true, // backdrop click (default true)
+  movable: true, // drag top edge on desktop/tablet (default true)
+  resizable: true, // resize from edges/corners (default true; off when dynamicSizing)
+});
 ```
+
+On desktop and tablet, modals are **movable** (drag the top edge — grab cursor on the border) and **resizable** (edges and corners) by default. The move hit target sits on the frame edge so content buttons stay clickable. Pass `movable: false` / `resizable: false` to lock them. Mobile sheet presentation ignores these flags.
 
 ### Closing Modals
 
 Modals can be closed by:
 
-- Clicking outside the modal (on the backdrop)
-- Pressing the Escape key
-- Programmatically (automatically handled by Shellui)
+- The overlay close (×) control — when `showCloseButton` is true (default)
+- Clicking the backdrop — when `closeOnOverlayClick` is true (default)
+- Pressing Escape — when `dismissible` is true (default)
+- Swipe-to-dismiss on mobile (bottom sheet) — when `dismissible` is true
+- Programmatically:
+
+```javascript
+shellui.closeModal();
+```
+
+When `showCloseButton: false`, Escape / backdrop / swipe still follow the flags above; your iframe content should provide its own close action (and typically call `shellui.closeModal()`).
+
+Resizing the window between desktop and mobile while a modal is open keeps the same iframe instance (no remount / no lost input).
 
 ## Drawers
 
-Drawers slide in from the edges of the screen, perfect for sidebars, panels, or secondary content.
+Drawers slide in from the edges of the screen, perfect for sidebars, panels, or secondary content. Side drawers remain available on all viewports (`left` / `right` / `top` / `bottom`).
 
 ### Opening Drawers via Navigation
-
-Configure navigation items to open in drawer mode:
 
 ```typescript
 const config: ShellUIConfig = {
@@ -74,269 +94,161 @@ const config: ShellUIConfig = {
 
 ### Drawer Positions
 
-Drawers can slide in from any direction:
-
 ```typescript
-{
-  label: 'Top Drawer',
-  path: 'top',
-  url: '/top',
-  openIn: 'drawer',
-  drawerPosition: 'top', // Slides down from top
-}
-
-{
-  label: 'Bottom Drawer',
-  path: 'bottom',
-  url: '/bottom',
-  openIn: 'drawer',
-  drawerPosition: 'bottom', // Slides up from bottom
-}
-
-{
-  label: 'Left Drawer',
-  path: 'left',
-  url: '/left',
-  openIn: 'drawer',
-  drawerPosition: 'left', // Slides in from left
-}
-
-{
-  label: 'Right Drawer',
-  path: 'right',
-  url: '/right',
-  openIn: 'drawer',
-  drawerPosition: 'right', // Slides in from right (default)
-}
+{ openIn: 'drawer', drawerPosition: 'top' }
+{ openIn: 'drawer', drawerPosition: 'bottom' }
+{ openIn: 'drawer', drawerPosition: 'left' }
+{ openIn: 'drawer', drawerPosition: 'right' } // default
 ```
 
 ### Opening Drawers Programmatically
 
-Open drawers programmatically with full control:
-
 ```javascript
 import { shellui } from '@shellui/sdk';
 
-// Initialize SDK
 await shellui.init();
 
-// Open drawer with default position (right) and size
 shellui.openDrawer({
   url: '/settings',
 });
 
-// Open drawer from left with custom size
 shellui.openDrawer({
   url: '/sidebar',
   position: 'left',
-  size: '400px', // Fixed width
+  size: 'md', // preset
+  showCloseButton: true,
+  showDragHandle: true, // default when dismissible
+  dismissible: true,
+  closeOnOverlayClick: true,
+  resizable: true, // default on desktop — drag free edge; not movable
 });
 
-// Open drawer from bottom with viewport-relative size
+// Freeform CSS length (backward compatible)
 shellui.openDrawer({
   url: '/panel',
   position: 'bottom',
-  size: '80vh', // 80% of viewport height
-});
-
-// Open drawer from top
-shellui.openDrawer({
-  url: '/menu',
-  position: 'top',
-  size: '50vh', // 50% of viewport height
+  size: '80vh',
 });
 ```
 
-### Drawer Size
+### Drawer Gestures
 
-Control drawer size using CSS length values:
+When `dismissible` is true (default), drawers show a theme-aware drag handle and support swipe-to-dismiss:
 
-```javascript
-// Fixed pixel size
-shellui.openDrawer({
-  url: '/panel',
-  size: '400px',
-});
+- **Bottom**: drag down
+- **Top**: drag up
+- **Left / right**: drag toward the dismiss edge
 
-// Viewport-relative size
-shellui.openDrawer({
-  url: '/panel',
-  size: '50vw', // 50% of viewport width (for left/right)
-  size: '80vh', // 80% of viewport height (for top/bottom)
-});
+Set `showDragHandle: false` to hide the bar while keeping other dismiss paths, or `dismissible: false` to disable swipe / Escape.
 
-// Percentage-based
-shellui.openDrawer({
-  url: '/panel',
-  size: '30%', // 30% of viewport
-});
-```
-
-**Size Guidelines:**
-
-- **Top/Bottom drawers**: Use height values (`vh`, `px` for height)
-- **Left/Right drawers**: Use width values (`vw`, `px` for width)
+On desktop, drawers are **resizable** by default from the free edge (width for left/right, height for top/bottom). They are not movable. Pass `resizable: false` to lock size. Resize is disabled on mobile.
 
 ### Closing Drawers
 
-Drawers can be closed by:
+- Overlay close (×) when `showCloseButton` is true
+- Backdrop click when `closeOnOverlayClick` is true
+- Escape / swipe when `dismissible` is true
+- Programmatically: `shellui.closeDrawer()`
 
-- Clicking outside the drawer (on the backdrop)
-- Pressing the Escape key
-- Programmatically:
+## Size
+
+### Presets
+
+| Preset    | Modal (desktop)                 | Drawer (vertical) | Drawer (horizontal) |
+| --------- | ------------------------------- | ----------------- | ------------------- |
+| `sm`      | narrow                          | ~40dvh            | ~20rem              |
+| `md`      | medium                          | ~55dvh            | ~28rem              |
+| `lg`      | default (previous modal chrome) | ~75dvh            | ~36rem              |
+| `xl`      | large                           | ~90dvh            | ~48rem              |
+| `full`    | near-viewport                   | 100dvh            | 100%                |
+| `content` | grows with iframe size reports  | auto height/width | auto                |
+
+All sizes are clamped to the viewport (`dvh` / safe max). You can also pass explicit `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number).
+
+Drawers still accept freeform CSS lengths (`"400px"`, `"50vw"`) for the primary dimension.
+
+### Iframe auto-height (`dynamicSizing`)
+
+Same-origin `contentDocument` hacks are unreliable for microfrontends. Use the SDK message protocol instead.
+
+**Parent (open the overlay with dynamic sizing):**
 
 ```javascript
-shellui.closeDrawer();
+shellui.openModal({ url: '/confirm', dynamicSizing: true });
+shellui.openDrawer({ url: '/confirm', position: 'bottom', dynamicSizing: true });
+
+// Equivalent: size: 'content'
+shellui.openModal({ url: '/confirm', size: 'content' });
 ```
+
+While `dynamicSizing` is on, **manual resize is disabled** (auto height and drag-resize would fight). Movable modals still work.
+
+**Child (iframe app):**
+
+```javascript
+import { shellui } from '@shellui/sdk';
+
+await shellui.init();
+
+// Observe with ResizeObserver — immediate by default (optional debounceMs), skips &lt;2px no-ops
+// Prefer `target` = your content root (grows with children)
+const stop = shellui.overlay.autoSize({
+  observe: true,
+  target: document.querySelector('[data-overlay-root]'),
+});
+// later: stop() or shellui.overlay.autoSize({ observe: false })
+
+// Or one-shot
+shellui.overlay.reportSize({ height: 480 });
+```
+
+**Message contract** (`SHELLUI_OVERLAY_SIZE`):
+
+```json
+{
+  "type": "SHELLUI_OVERLAY_SIZE",
+  "payload": {
+    "version": 1,
+    "height": 480,
+    "width": 640,
+    "overlayId": "optional-id"
+  }
+}
+```
+
+- `height` (required): content height in CSS pixels
+- `width` (optional, reported by default from `autoSize`): content width in CSS pixels
+- Parent listens only while a modal/drawer with dynamic sizing is open
+- Clamps to min (~40px) and max (~92% of viewport); scrolls if content exceeds max
+- **Fallback:** if no size messages arrive, uses a viewport-relative height with inner scroll
+- **Pending chrome:** until the first size report, dynamic **modals** open as a compact square with a spinner; dynamic **drawers** open as a **40px** full-bleed loading strip. Both then **snap** to the reported size (no size tween)
+- On close, the last size is kept through the exit animation (does not shrink back to the spinner)
+- **Avoid `vh` / `%` height in iframe content** when using dynamic sizing: those units are relative to the iframe viewport. As the shell grows the iframe, content height grows again → stepped “jumping” resize. Prefer fixed `px` / `rem` for tall blocks.
+
+## Theming & polish
+
+Overlay chrome uses existing design tokens (`--background`, `--border`, `--muted-foreground`, etc.). Light and dark themes apply with no hardcoded colors. Open/close use short ease transitions; dynamic content sizing snaps with no size tween.
 
 ## Use Cases
 
 ### Modals
 
-Use modals for:
-
-- **Settings panels**: Quick access to settings without leaving the page
-- **Forms**: Focused form interactions
-- **Confirmations**: Important actions requiring attention
-- **Details**: Viewing item details without navigation
-
-**Example:**
-
-```typescript
-{
-  label: 'Quick Settings',
-  path: 'settings',
-  url: '/settings',
-  openIn: 'modal',
-}
-```
+- Settings panels, forms, focused details
+- Prefer `openModal` when you want desktop dialog + mobile bottom sheet from one call
 
 ### Drawers
 
-Use drawers for:
-
-- **Sidebars**: Additional navigation or filters
-- **Panels**: Secondary content that doesn't need full focus
-- **Menus**: Slide-out menus
-- **Details**: Item details or information panels
-
-**Example:**
-
-```typescript
-{
-  label: 'Filters',
-  path: 'filters',
-  url: '/filters',
-  openIn: 'drawer',
-  drawerPosition: 'right',
-}
-```
-
-## Complete Examples
-
-### Settings Modal
-
-```typescript
-const config: ShellUIConfig = {
-  navigation: [
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/settings',
-      openIn: 'modal',
-      position: 'end', // Appears in sidebar footer
-    },
-  ],
-};
-```
-
-### Filter Drawer
-
-```typescript
-const config: ShellUIConfig = {
-  navigation: [
-    {
-      label: 'Filters',
-      path: 'filters',
-      url: '/filters',
-      openIn: 'drawer',
-      drawerPosition: 'left',
-    },
-  ],
-};
-```
-
-### Programmatic Drawer for Search
-
-```javascript
-function openSearchPanel() {
-  shellui.openDrawer({
-    url: '/search',
-    position: 'top',
-    size: '400px',
-  });
-}
-
-// Close when search is complete
-function closeSearchPanel() {
-  shellui.closeDrawer();
-}
-```
-
-### Dynamic Modal Based on User Action
-
-```javascript
-function viewItemDetails(itemId) {
-  shellui.openModal(`/items/${itemId}`);
-}
-
-function editItem(itemId) {
-  shellui.openModal(`/items/${itemId}/edit`);
-}
-```
+- Sidebars, filters, persistent panels
+- Use an explicit `position` when you need a side edge on mobile too
 
 ## Best Practices
 
-1. **Choose the right overlay**:
-   - Use **modals** for focused, important interactions
-   - Use **drawers** for secondary content or navigation
-
-2. **Appropriate sizes**:
-   - Modals: Let Shellui handle sizing (responsive)
-   - Drawers: Use appropriate sizes (e.g., `400px` for sidebars, `80vh` for panels)
-
-3. **Position considerations**:
-   - **Right drawer**: Common for sidebars and panels
-   - **Left drawer**: Alternative sidebar position
-   - **Top drawer**: Good for menus or notifications
-   - **Bottom drawer**: Useful for mobile-friendly panels
-
-4. **Mobile considerations**:
-   - Drawers work well on mobile devices
-   - Consider using bottom drawers for mobile-friendly interfaces
-
-5. **Don't nest**: Avoid opening modals/drawers from within other modals/drawers
-
-6. **Close properly**: Always provide a way to close (Shellui handles Escape and backdrop clicks)
-
-## Navigation vs Programmatic
-
-### Navigation Configuration
-
-Use navigation configuration when:
-
-- The modal/drawer is part of your main navigation
-- You want it accessible via sidebar/menu
-- It's a persistent feature of your app
-
-### Programmatic Opening
-
-Use programmatic opening when:
-
-- The modal/drawer is triggered by user actions
-- It's contextual (e.g., "View Details" button)
-- You need dynamic URLs or sizes
-- It's not part of main navigation
+1. Choose the right overlay: modals for focus, drawers for secondary chrome
+2. Use presets (`sm`–`xl`) unless you need a freeform CSS length
+3. Use `dynamicSizing: true` + `shellui.overlay.autoSize()` for confirm panels that should hug content
+4. Set `showCloseButton: false` when the app provides its own dismiss control
+5. Don't nest overlays
+6. Document dismiss behavior for your users when you disable Escape or backdrop click
 
 ## Related Guides
 

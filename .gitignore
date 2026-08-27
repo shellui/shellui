@@ -8,3 +8,12 @@ dist/
 shellui.config.*
 !packages/core/schemas/shellui.config.schema.json
 shellui.config.ts
+shellui.config.json
+shellui.root.config.json
+shellui.navigation.config.json
+shellui.administration.config.json
+shellui.storage.config.json
+shellui.backend.config.json
+shellui.themes.config.json
+shellui.cookieConsent.config.json
+shellui.legalDocuments.config.json
