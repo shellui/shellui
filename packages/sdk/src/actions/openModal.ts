@@ -33,6 +33,7 @@ export function openModal(urlOrOptions?: string | OpenModalOptions): void {
       closeOnOverlayClick: options.closeOnOverlayClick,
       movable: options.movable,
       resizable: options.resizable,
+      dynamicSizing: options.dynamicSizing,
     },
   };
 

@@ -17,6 +17,11 @@ const CookiePreferencesView = lazy(() =>
     default: m.CookiePreferencesView,
   })),
 );
+const OverlayDynamicDemoView = lazy(() =>
+  import('../features/overlays/OverlayDynamicDemoView').then((m) => ({
+    default: m.OverlayDynamicDemoView,
+  })),
+);
 const LoginView = lazy(() =>
   import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView })),
 );
@@ -65,6 +70,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <CookiePreferencesView />
+            </Suspense>
+          ),
+        },
+        {
+          // Compact overlay demo (develop → dynamicSizing)
+          path: urls.overlayDemo.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <OverlayDynamicDemoView />
             </Suspense>
           ),
         },

@@ -315,6 +315,12 @@ export interface OverlayOpenOptions {
   dismissible?: boolean;
   /** When true (default), clicking the backdrop closes the overlay. */
   closeOnOverlayClick?: boolean;
+  /**
+   * When true, the overlay height follows iframe content via
+   * `shellui.overlay.autoSize()` / `SHELLUI_OVERLAY_SIZE` (same as `size: 'content'`).
+   * Manual resize is disabled while dynamic sizing is active.
+   */
+  dynamicSizing?: boolean;
 }
 
 export interface OpenModalOptions extends OverlayOpenOptions {
@@ -359,10 +365,19 @@ export interface OverlayReportSizeOptions {
 export interface OverlayAutoSizeOptions {
   /** When true (default), start observing; when false, stop any active observer. */
   observe?: boolean;
-  /** Also report width. Default false (height-only). */
+  /** Also report width. Default true. */
   includeWidth?: boolean;
-  /** Debounce interval in ms. Default 100. */
+  /**
+   * Optional debounce interval in ms. Default 0 (report on the next animation frame).
+   * Set only if you need to coalesce noisy observers.
+   */
   debounceMs?: number;
+  /**
+   * Element (or CSS selector) whose content size should be measured.
+   * Prefer a content-sized root — observing `html`/`body` alone often misses growth
+   * when they are `height: 100%` of a fixed iframe.
+   */
+  target?: Element | string | null;
   overlayId?: string;
 }
 

@@ -8,6 +8,18 @@ import type {
 
 const PRESETS = new Set<string>(['sm', 'md', 'lg', 'xl', 'full', 'content']);
 
+/**
+ * Compact square (modal) / strip (drawer) while waiting for the first
+ * `SHELLUI_OVERLAY_SIZE` report when `dynamicSizing` / `size: 'content'`.
+ */
+export const DYNAMIC_OVERLAY_PENDING_PX = 112;
+
+/**
+ * Hidden iframe layout width while pending so content height is measured at a
+ * realistic wrap width (not the 112px spinner), avoiding tall→short jumps.
+ */
+export const DYNAMIC_OVERLAY_MEASURE_WIDTH_PX = 420;
+
 export function isOverlaySizePreset(value: unknown): value is OverlaySizePreset {
   return typeof value === 'string' && PRESETS.has(value);
 }
@@ -48,8 +60,10 @@ const DIALOG_PRESET: Record<
       'max-w-[calc(100vw-2.5rem)] w-[calc(100vw-2.5rem)] h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] rounded-lg',
   },
   content: {
-    className: 'max-w-4xl w-[min(56rem,calc(100vw-5rem))] rounded-lg',
-    style: { height: 'auto', maxHeight: 'min(90dvh, 100dvh - 2.5rem)' },
+    // Width comes from SHELLUI_OVERLAY_SIZE; max-w only caps. Avoid forcing 56rem
+    // (that caused reflow: narrow measure → tall report → wide chrome → shorter report).
+    className: 'max-w-4xl w-max rounded-lg',
+    style: { height: 'auto', width: 'auto', maxHeight: 'min(90dvh, 100dvh - 2.5rem)' },
     contentSized: true,
   },
 };
@@ -98,19 +112,24 @@ function applyExplicitDimensions(
   return next;
 }
 
+export function isDynamicSizing(options?: OverlayOpenOptions | null): boolean {
+  return options?.dynamicSizing === true || options?.size === 'content';
+}
+
 /**
  * Resolve modal (dialog) sizing from open options.
  * Default preset: `lg` (matches previous fixed chrome).
  */
 export function resolveDialogSize(options?: OverlayOpenOptions | null): ResolvedOverlaySize {
-  const size = options?.size;
+  const dynamic = isDynamicSizing(options);
+  const size = dynamic ? 'content' : options?.size;
   const preset: OverlaySizePreset = size && isOverlaySizePreset(size) ? size : 'lg';
   // Freeform CSS size on modal maps to height when not a preset
-  const freeform = size && !isOverlaySizePreset(size) ? toCssLength(size) : undefined;
+  const freeform = !dynamic && size && !isOverlaySizePreset(size) ? toCssLength(size) : undefined;
 
   const base = DIALOG_PRESET[preset];
   let style: CSSProperties = {
-    transition: 'height 200ms ease, width 200ms ease, max-height 200ms ease',
+    transition: dynamic ? 'none' : 'height 200ms ease, width 200ms ease, max-height 200ms ease',
     ...base.style,
   };
   if (freeform) {
@@ -122,7 +141,7 @@ export function resolveDialogSize(options?: OverlayOpenOptions | null): Resolved
   return {
     className: `${base.className} flex flex-col p-0 overflow-hidden`,
     style,
-    contentSized: base.contentSized === true || preset === 'content',
+    contentSized: dynamic || base.contentSized === true || preset === 'content',
     drawerSize: null,
   };
 }
@@ -136,8 +155,9 @@ export function resolveDrawerSize(
   position: DrawerPosition = 'right',
 ): ResolvedOverlaySize {
   const isVertical = position === 'top' || position === 'bottom';
-  const size = options?.size as OverlaySizeValue | undefined;
-  const contentSized = size === 'content';
+  const dynamic = isDynamicSizing(options);
+  const size = (dynamic ? 'content' : options?.size) as OverlaySizeValue | undefined;
+  const contentSized = dynamic || size === 'content';
 
   let drawerSize: string;
   if (!size) {
@@ -149,7 +169,9 @@ export function resolveDrawerSize(
   }
 
   let style: CSSProperties = {
-    transition: 'height 200ms ease, width 200ms ease, max-height 200ms ease, max-width 200ms ease',
+    transition: contentSized
+      ? 'none'
+      : 'height 200ms ease, width 200ms ease, max-height 200ms ease, max-width 200ms ease',
   };
   style = applyExplicitDimensions(style, options ?? {});
 

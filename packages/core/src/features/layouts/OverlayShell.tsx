@@ -14,12 +14,16 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { resolveLocalizedString } from './utils';
 import { resolveSdkNavigatePath } from './resolveSdkNavigatePath';
 import {
+  DYNAMIC_OVERLAY_MEASURE_WIDTH_PX,
+  DYNAMIC_OVERLAY_PENDING_PX,
   resolveDialogSize,
   resolveDismissOptions,
   resolveDrawerSize,
+  isDynamicSizing,
 } from '../overlays/overlaySize';
 import { useOverlayReportedSize } from '../overlays/useOverlayReportedSize';
 import { ResponsiveModal } from '../overlays/ResponsiveModal';
+import { OverlayPendingSpinner } from '../overlays/OverlayPendingSpinner';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -47,38 +51,93 @@ function OverlayIframe({
   navItem,
   contentSized,
   reportedHeight,
+  reportedWidth,
   allowInnerScroll,
+  pending,
+  pendingFill,
 }: {
   url: string;
   navItem: NavigationItem;
   contentSized: boolean;
   reportedHeight: number | null;
-  /** When content-size fallback kicks in, allow the iframe area to scroll. */
+  reportedWidth?: number | null;
+  /** When content-size fallback / clamp kicks in, allow the iframe area to scroll. */
   allowInnerScroll?: boolean;
+  /** Waiting for first SHELLUI_OVERLAY_SIZE — show spinner, keep iframe loading underneath. */
+  pending?: boolean;
+  /** Side drawers: fill the pending strip instead of using a square height. */
+  pendingFill?: boolean;
 }) {
-  // Content-sized: iframe height tracks reported content (or a short fallback until first report).
-  // Preset-sized: fill the overlay and allow inner scroll.
+  // Content-sized: iframe tracks reported content. While pending, chrome is a square/strip
+  // but the iframe lays out at MEASURE width (opacity 0) so height isn't inflated by wrapping.
   const scroll = allowInnerScroll || !contentSized;
-  const iframeWrapStyle: CSSProperties = contentSized
-    ? {
-        height: reportedHeight ?? 200,
-        minHeight: reportedHeight ?? 200,
-        transition: 'height 200ms ease, min-height 200ms ease',
+  const pendingPx = DYNAMIC_OVERLAY_PENDING_PX;
+  const measureW = DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
+
+  if (!contentSized) {
+    return (
+      <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
+        <ContentView
+          url={url}
+          pathPrefix="settings"
+          ignoreMessages={true}
+          navItem={navItem}
+        />
+      </div>
+    );
+  }
+
+  const iframeWrapStyle: CSSProperties = pending
+    ? pendingFill
+      ? {
+          flex: 1,
+          minHeight: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'hidden',
+        }
+      : {
+          // Hidden measure box — realistic wrap width for an accurate first report
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: measureW,
+          height: 'auto',
+          opacity: 0,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }
+    : {
+        height: reportedHeight ?? pendingPx,
+        minHeight: reportedHeight ?? pendingPx,
+        width: reportedWidth ?? '100%',
         overflow: scroll ? 'auto' : 'hidden',
-      }
-    : { flex: 1, minHeight: 0, overflow: 'hidden' };
+      };
 
   return (
     <div
-      className={contentSized ? 'w-full' : 'flex-1 min-h-0 flex flex-col'}
-      style={iframeWrapStyle}
+      className={`relative w-full${pending && pendingFill ? ' flex-1 min-h-0' : ''}`}
+      style={
+        pending && !pendingFill
+          ? { width: pendingPx, height: pendingPx, overflow: 'hidden' }
+          : pending && pendingFill
+            ? { flex: 1, minHeight: 0, width: '100%' }
+            : undefined
+      }
     >
-      <ContentView
-        url={url}
-        pathPrefix="settings"
-        ignoreMessages={true}
-        navItem={navItem}
-      />
+      {pending ? <OverlayPendingSpinner /> : null}
+      <div
+        className={pending ? undefined : 'h-full w-full'}
+        style={iframeWrapStyle}
+        aria-hidden={pending || undefined}
+      >
+        <ContentView
+          url={url}
+          pathPrefix="settings"
+          ignoreMessages={true}
+          navItem={navItem}
+        />
+      </div>
     </div>
   );
 }
@@ -105,6 +164,9 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const modalDismiss = useMemo(() => resolveDismissOptions(modalOptions), [modalOptions]);
   const drawerDismiss = useMemo(() => resolveDismissOptions(drawerOptions), [drawerOptions]);
 
+  const modalDynamic = isDynamicSizing(modalOptions);
+  const drawerDynamic = isDynamicSizing(drawerOptions);
+
   const dialogSize = useMemo(() => resolveDialogSize(modalOptions), [modalOptions]);
   const drawerSize = useMemo(
     () => resolveDrawerSize(drawerOptions, drawerPosition),
@@ -112,19 +174,34 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   );
   // Sheet presentation for mobile — bottom drawer sizing from the same modal options.
   const sheetSize = useMemo(
-    () => resolveDrawerSize({ ...modalOptions, size: modalOptions?.size ?? 'lg' }, 'bottom'),
-    [modalOptions],
+    () =>
+      resolveDrawerSize(
+        {
+          ...modalOptions,
+          size: modalDynamic ? 'content' : (modalOptions?.size ?? 'lg'),
+          dynamicSizing: modalDynamic || modalOptions?.dynamicSizing,
+        },
+        'bottom',
+      ),
+    [modalOptions, modalDynamic],
   );
 
-  const modalContentSized = dialogSize.contentSized || sheetSize.contentSized;
-  const { reported: modalReported, usedFallback: modalSizeFallback } = useOverlayReportedSize(
-    modalContentSized,
-    isOpen && !isDrawerOpen,
-  );
-  const { reported: drawerReported, usedFallback: drawerSizeFallback } = useOverlayReportedSize(
-    drawerSize.contentSized,
-    isDrawerOpen,
-  );
+  const modalContentSized = dialogSize.contentSized || sheetSize.contentSized || modalDynamic;
+  const {
+    reported: modalReported,
+    usedFallback: modalSizeFallback,
+    wasClamped: modalWasClamped,
+  } = useOverlayReportedSize(modalContentSized, isOpen && !isDrawerOpen);
+  const {
+    reported: drawerReported,
+    usedFallback: drawerSizeFallback,
+    wasClamped: drawerWasClamped,
+  } = useOverlayReportedSize(drawerSize.contentSized || drawerDynamic, isDrawerOpen);
+
+  const modalPending = isOpen && modalContentSized && !modalReported;
+  const drawerPending =
+    isDrawerOpen && (drawerSize.contentSized || drawerDynamic) && !drawerReported;
+  const pendingPx = DYNAMIC_OVERLAY_PENDING_PX;
 
   // Close modal and drawer when app URL changes (navigation, back button) so overlay content stays url-specific
   const locationKeyRef = useRef(location.pathname + location.search + location.hash);
@@ -174,45 +251,82 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
 
   const presentation = isMobile ? 'sheet' : 'dialog';
 
-  const modalChromeClassName =
-    presentation === 'sheet' ? sheetSize.className : dialogSize.className;
+  const modalChromeClassName = modalPending
+    ? presentation === 'sheet'
+      ? 'w-full p-0 overflow-hidden flex flex-col'
+      : 'rounded-lg p-0 overflow-hidden flex flex-col !w-auto !max-w-none'
+    : presentation === 'sheet'
+      ? sheetSize.className
+      : dialogSize.className;
 
   const modalChromeStyle: CSSProperties = {
-    ...(presentation === 'sheet' ? sheetSize.style : dialogSize.style),
-    ...(modalReported
+    // Dynamic overlays snap to reported size — no height/width tween (avoids multi-step jumps)
+    ...(modalContentSized ? { transition: 'none' } : {}),
+    ...(modalPending
       ? presentation === 'sheet'
         ? {
-            height: modalReported.height,
-            maxHeight: `min(${modalReported.height}px, 92dvh)`,
+            height: pendingPx,
+            minHeight: pendingPx,
+            maxHeight: pendingPx,
           }
         : {
-            height: modalReported.height,
-            maxHeight: `min(${modalReported.height}px, 92dvh)`,
-            ...(modalReported.width
-              ? { width: modalReported.width, maxWidth: 'min(92vw, 100%)' }
+            width: pendingPx,
+            height: pendingPx,
+            minWidth: pendingPx,
+            minHeight: pendingPx,
+            maxWidth: pendingPx,
+            maxHeight: pendingPx,
+          }
+      : {
+          ...(presentation === 'sheet' ? sheetSize.style : dialogSize.style),
+          ...(modalReported
+            ? presentation === 'sheet'
+              ? {
+                  height: modalReported.height,
+                  maxHeight: `min(${modalReported.height}px, 92dvh)`,
+                  ...(modalReported.width
+                    ? { width: modalReported.width, maxWidth: 'min(92vw, 100%)' }
+                    : {}),
+                }
+              : {
+                  height: modalReported.height,
+                  maxHeight: `min(${modalReported.height}px, 92dvh)`,
+                  width: modalReported.width ?? DYNAMIC_OVERLAY_MEASURE_WIDTH_PX,
+                  maxWidth: 'min(92vw, 100%)',
+                }
+            : presentation === 'sheet' && sheetSize.drawerSize
+              ? {
+                  height: sheetSize.drawerSize,
+                  maxHeight: `min(${sheetSize.drawerSize}, 100dvh)`,
+                }
               : {}),
-          }
-      : presentation === 'sheet' && sheetSize.drawerSize
-        ? {
-            height: sheetSize.drawerSize,
-            maxHeight: `min(${sheetSize.drawerSize}, 100dvh)`,
-          }
-        : {}),
+        }),
   };
 
   const drawerContentStyle: CSSProperties = {
     ...drawerSize.style,
-    ...(drawerReported
+    ...(drawerSize.contentSized || drawerDynamic ? { transition: 'none' } : {}),
+    ...(drawerPending
       ? drawerPosition === 'top' || drawerPosition === 'bottom'
         ? {
-            height: drawerReported.height,
-            maxHeight: `min(${drawerReported.height}px, 92dvh)`,
+            height: pendingPx,
+            maxHeight: pendingPx,
           }
         : {
-            width: drawerReported.width ?? drawerReported.height,
-            maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
+            width: pendingPx,
+            maxWidth: pendingPx,
           }
-      : {}),
+      : drawerReported
+        ? drawerPosition === 'top' || drawerPosition === 'bottom'
+          ? {
+              height: drawerReported.height,
+              maxHeight: `min(${drawerReported.height}px, 92dvh)`,
+            }
+          : {
+              width: drawerReported.width ?? drawerReported.height,
+              maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
+            }
+        : {}),
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -250,12 +364,13 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         style={modalChromeStyle}
         title={modalTitle}
         description={t('modalContent') ?? 'Modal content'}
-        showCloseButton={modalDismiss.showCloseButton}
+        showCloseButton={!modalPending && modalDismiss.showCloseButton}
         dismissible={modalDismiss.dismissible}
         closeOnOverlayClick={modalDismiss.closeOnOverlayClick}
-        showDragHandle={modalDismiss.showDragHandle && modalDismiss.dismissible}
-        movable={modalOptions?.movable !== false}
-        resizable={modalOptions?.resizable !== false}
+        showDragHandle={!modalPending && modalDismiss.showDragHandle && modalDismiss.dismissible}
+        movable={!modalPending && modalOptions?.movable !== false}
+        // Dynamic height and manual resize fight each other — dynamic wins
+        resizable={!modalPending && !modalDynamic && modalOptions?.resizable !== false}
       >
         {modalUrl ? (
           <OverlayIframe
@@ -263,7 +378,9 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             navItem={modalNavItem}
             contentSized={modalContentSized}
             reportedHeight={modalReported?.height ?? null}
-            allowInnerScroll={modalSizeFallback}
+            reportedWidth={modalReported?.width ?? null}
+            allowInnerScroll={modalSizeFallback || modalWasClamped}
+            pending={modalPending}
           />
         ) : (
           <OverlayUrlError kind="modal" />
@@ -285,14 +402,20 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
               ? drawerPosition === 'top' || drawerPosition === 'bottom'
                 ? `${drawerReported.height}px`
                 : `${drawerReported.width ?? drawerReported.height}px`
-              : drawerSize.drawerSize
+              : drawerPending
+                ? `${pendingPx}px`
+                : drawerSize.drawerSize
           }
           style={drawerContentStyle}
           className={drawerSize.className}
-          showCloseButton={drawerDismiss.showCloseButton}
-          showDragHandle={drawerDismiss.showDragHandle && drawerDismiss.dismissible}
+          showCloseButton={!drawerPending && drawerDismiss.showCloseButton}
+          showDragHandle={
+            !drawerPending && drawerDismiss.showDragHandle && drawerDismiss.dismissible
+          }
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
-          resizable={!isMobile && drawerOptions?.resizable !== false}
+          resizable={
+            !drawerPending && !isMobile && !drawerDynamic && drawerOptions?.resizable !== false
+          }
         >
           {drawerUrl ? (
             <>
@@ -312,7 +435,14 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
                     ? (drawerReported?.height ?? null)
                     : (drawerReported?.width ?? drawerReported?.height ?? null)
                 }
-                allowInnerScroll={drawerSizeFallback}
+                reportedWidth={
+                  drawerPosition === 'left' || drawerPosition === 'right'
+                    ? (drawerReported?.width ?? null)
+                    : null
+                }
+                allowInnerScroll={drawerSizeFallback || drawerWasClamped}
+                pending={drawerPending}
+                pendingFill={drawerPosition === 'left' || drawerPosition === 'right'}
               />
             </>
           ) : (

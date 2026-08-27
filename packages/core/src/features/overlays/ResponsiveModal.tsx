@@ -446,21 +446,23 @@ export function ResponsiveModal({
           </div>
         )}
 
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+
         {isSheet && showDragHandle && dismissible && (
           <div
             data-responsive-modal-handle
-            className="flex shrink-0 cursor-grab touch-none items-center justify-center py-3 active:cursor-grabbing"
-            onPointerDown={handleSheetPointerDown}
-            onPointerMove={handleSheetPointerMove}
-            onPointerUp={handleSheetPointerUp}
-            onPointerCancel={resetSheetDrag}
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 flex touch-none items-center justify-center bg-transparent py-3"
             role="presentation"
           >
-            <div className="h-1.5 w-12 rounded-full bg-muted-foreground/40" />
+            <div
+              className="pointer-events-auto h-1.5 w-12 cursor-grab rounded-full bg-muted-foreground/40 active:cursor-grabbing"
+              onPointerDown={handleSheetPointerDown}
+              onPointerMove={handleSheetPointerMove}
+              onPointerUp={handleSheetPointerUp}
+              onPointerCancel={resetSheetDrag}
+            />
           </div>
         )}
-
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
 
         {canResize &&
           RESIZE_HANDLES.map(({ edge, className: handleClass, cursor }) => (

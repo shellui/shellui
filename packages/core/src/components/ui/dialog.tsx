@@ -99,9 +99,13 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
           style={{
             backgroundColor: 'var(--background)',
             zIndex: contentZIndex ?? Z_INDEX.MODAL_CONTENT,
-            transitionProperty: 'height, width, max-height, max-width',
-            transitionDuration: '200ms',
-            transitionTimingFunction: 'ease',
+            ...(style?.transition === 'none'
+              ? { transition: 'none' }
+              : {
+                  transitionProperty: 'height, width, max-height, max-width',
+                  transitionDuration: '200ms',
+                  transitionTimingFunction: 'ease',
+                }),
             ...style,
           }}
           onPointerDownOutside={handlePointerDownOutside}

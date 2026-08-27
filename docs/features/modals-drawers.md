@@ -43,11 +43,12 @@ shellui.openModal('/settings');
 shellui.openModal({
   url: '/settings',
   size: 'lg', // sm | md | lg | xl | full | content
+  dynamicSizing: false, // true → height follows iframe reports
   showCloseButton: true, // default true — set false so the app owns dismiss UI
   dismissible: true, // Escape / swipe (default true)
   closeOnOverlayClick: true, // backdrop click (default true)
   movable: true, // drag top edge on desktop/tablet (default true)
-  resizable: true, // resize from edges/corners (default true)
+  resizable: true, // resize from edges/corners (default true; off when dynamicSizing)
 });
 ```
 
@@ -166,9 +167,21 @@ All sizes are clamped to the viewport (`dvh` / safe max). You can also pass expl
 
 Drawers still accept freeform CSS lengths (`"400px"`, `"50vw"`) for the primary dimension.
 
-### Iframe auto-height (`content`)
+### Iframe auto-height (`dynamicSizing`)
 
 Same-origin `contentDocument` hacks are unreliable for microfrontends. Use the SDK message protocol instead.
+
+**Parent (open the overlay with dynamic sizing):**
+
+```javascript
+shellui.openModal({ url: '/confirm', dynamicSizing: true });
+shellui.openDrawer({ url: '/confirm', position: 'bottom', dynamicSizing: true });
+
+// Equivalent: size: 'content'
+shellui.openModal({ url: '/confirm', size: 'content' });
+```
+
+While `dynamicSizing` is on, **manual resize is disabled** (auto height and drag-resize would fight). Movable modals still work.
 
 **Child (iframe app):**
 
@@ -177,12 +190,16 @@ import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 
-// One-shot
-shellui.overlay.reportSize({ height: 480 });
-
-// Or observe with ResizeObserver (recommended)
-const stop = shellui.overlay.autoSize({ observe: true });
+// Observe with ResizeObserver — immediate by default (optional debounceMs), skips &lt;2px no-ops
+// Prefer `target` = your content root (grows with children)
+const stop = shellui.overlay.autoSize({
+  observe: true,
+  target: document.querySelector('[data-overlay-root]'),
+});
 // later: stop() or shellui.overlay.autoSize({ observe: false })
+
+// Or one-shot
+shellui.overlay.reportSize({ height: 480 });
 ```
 
 **Message contract** (`SHELLUI_OVERLAY_SIZE`):
@@ -200,21 +217,17 @@ const stop = shellui.overlay.autoSize({ observe: true });
 ```
 
 - `height` (required): content height in CSS pixels
-- `width` (optional): content width in CSS pixels
-- `overlayId` (optional): when multiple overlays could be open
-- Parent clamps to min/max and the viewport, debounces rapid updates, and ignores invalid / no-op values
-- **Fallback:** if no size messages arrive, the overlay uses a viewport-relative height and allows inner scroll
-
-Open with `size: 'content'` so the shell listens and animates:
-
-```javascript
-shellui.openModal({ url: '/form', size: 'content' });
-shellui.openDrawer({ url: '/panel', position: 'bottom', size: 'content' });
-```
+- `width` (optional, reported by default from `autoSize`): content width in CSS pixels
+- Parent listens only while a modal/drawer with dynamic sizing is open
+- Clamps to min (~120px) and max (~92% of viewport); scrolls if content exceeds max
+- **Fallback:** if no size messages arrive, uses a viewport-relative height with inner scroll
+- **Pending chrome:** until the first size report, dynamic overlays open as a compact square (dialog) or short strip (drawer/sheet) with a spinner, then **snap** to the reported size (no size tween)
+- On close, the last size is kept through the exit animation (does not shrink back to the spinner)
+- **Avoid `vh` / `%` height in iframe content** when using dynamic sizing: those units are relative to the iframe viewport. As the shell grows the iframe, content height grows again → stepped “jumping” resize. Prefer fixed `px` / `rem` for tall blocks.
 
 ## Theming & polish
 
-Overlay chrome uses existing design tokens (`--background`, `--border`, `--muted-foreground`, etc.). Light and dark themes apply with no hardcoded colors. Open/close and content resize use short ease transitions.
+Overlay chrome uses existing design tokens (`--background`, `--border`, `--muted-foreground`, etc.). Light and dark themes apply with no hardcoded colors. Open/close use short ease transitions; dynamic content sizing snaps with no size tween.
 
 ## Use Cases
 
@@ -232,7 +245,7 @@ Overlay chrome uses existing design tokens (`--background`, `--border`, `--muted
 
 1. Choose the right overlay: modals for focus, drawers for secondary chrome
 2. Use presets (`sm`–`xl`) unless you need a freeform CSS length
-3. Use `size: 'content'` + `shellui.overlay.autoSize()` for iframe forms that should hug content
+3. Use `dynamicSizing: true` + `shellui.overlay.autoSize()` for confirm panels that should hug content
 4. Set `showCloseButton: false` when the app provides its own dismiss control
 5. Don't nest overlays
 6. Document dismiss behavior for your users when you disable Escape or backdrop click

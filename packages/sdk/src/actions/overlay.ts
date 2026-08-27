@@ -8,7 +8,6 @@ import type { OverlayAutoSizeOptions, OverlayReportSizeOptions } from '../types.
 const OVERLAY_SIZE_TYPE = 'SHELLUI_OVERLAY_SIZE';
 
 let autoSizeCleanup: (() => void) | null = null;
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let lastReported: { height: number; width?: number } | null = null;
 
 function postToParent(message: { type: string; payload: Record<string, unknown> }): void {
@@ -20,31 +19,53 @@ function postToParent(message: { type: string; payload: Record<string, unknown> 
   }
 }
 
-function measureContentSize(): { height: number; width: number } {
+function resolveTarget(target?: Element | string | null): Element | null {
+  if (!target) return null;
+  if (typeof target === 'string') {
+    return document.querySelector(target);
+  }
+  return target;
+}
+
+/**
+ * Measure content height. Prefer scrollHeight / child extents over offsetHeight —
+ * when html/body are `height: 100%` of a fixed iframe, offsetHeight stays locked
+ * to the viewport and never reflects growing content.
+ */
+function measureContentSize(root?: Element | null): { height: number; width: number } {
+  if (root instanceof HTMLElement) {
+    const rect = root.getBoundingClientRect();
+    return {
+      height: Math.ceil(Math.max(root.scrollHeight, root.offsetHeight, rect.height)),
+      width: Math.ceil(Math.max(root.scrollWidth, root.offsetWidth, rect.width)),
+    };
+  }
+
   const doc = document.documentElement;
   const body = document.body;
-  const height = Math.ceil(
-    Math.max(
-      doc?.scrollHeight ?? 0,
-      doc?.offsetHeight ?? 0,
-      body?.scrollHeight ?? 0,
-      body?.offsetHeight ?? 0,
-    ),
-  );
-  const width = Math.ceil(
-    Math.max(
-      doc?.scrollWidth ?? 0,
-      doc?.offsetWidth ?? 0,
-      body?.scrollWidth ?? 0,
-      body?.offsetWidth ?? 0,
-    ),
-  );
-  return { height, width };
+  let height = Math.max(doc?.scrollHeight ?? 0, body?.scrollHeight ?? 0);
+  let width = Math.max(doc?.scrollWidth ?? 0, body?.scrollWidth ?? 0);
+
+  // Body offsetHeight is often the iframe viewport — walk in-flow children instead
+  if (body) {
+    for (const child of Array.from(body.children)) {
+      if (!(child instanceof HTMLElement)) continue;
+      const style = window.getComputedStyle(child);
+      if (style.display === 'none') continue;
+      if (style.position === 'fixed') continue;
+      const bottom = child.offsetTop + Math.max(child.scrollHeight, child.offsetHeight);
+      const right = child.offsetLeft + Math.max(child.scrollWidth, child.offsetWidth);
+      height = Math.max(height, bottom);
+      width = Math.max(width, right);
+    }
+  }
+
+  return { height: Math.ceil(height), width: Math.ceil(width) };
 }
 
 /**
  * Report overlay content size to the parent shell.
- * Parent animates the modal/drawer to this height (clamped to the viewport).
+ * Parent applies the size immediately (no size transition for dynamic overlays).
  */
 export function reportSize(options: OverlayReportSizeOptions): void {
   const height = Number(options?.height);
@@ -82,11 +103,16 @@ export function reportSize(options: OverlayReportSizeOptions): void {
 }
 
 /**
- * Observe document size and report changes to the parent overlay.
+ * Observe content size and report changes to the parent overlay.
  * Call once after `shellui.init()` when the page is shown inside a modal/drawer
- * with size preset `content` (or when you want the overlay to grow with content).
+ * with `dynamicSizing: true` or `size: 'content'`.
  *
- * Pass `{ observe: false }` (or call again after stopping) to tear down the observer.
+ * Reports immediately by default (no debounce). Optional `debounceMs` coalesces
+ * rapid ResizeObserver bursts. Skips no-op updates (&lt; 2px).
+ * Pass `{ observe: false }` to tear down the observer.
+ *
+ * Tip: pass `target` as your content root (grows with children). Observing only
+ * `html`/`body` often misses growth when they are height-locked to the iframe.
  */
 export function autoSize(options: OverlayAutoSizeOptions = { observe: true }): () => void {
   if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') {
@@ -97,19 +123,30 @@ export function autoSize(options: OverlayAutoSizeOptions = { observe: true }): (
   autoSizeCleanup = null;
 
   if (options.observe === false) {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
-    }
+    lastReported = null;
     return () => undefined;
   }
 
-  const debounceMs = options.debounceMs ?? 100;
-  const includeWidth = options.includeWidth ?? false;
+  const debounceMs = options.debounceMs ?? 0;
+  const includeWidth = options.includeWidth ?? true;
   const overlayId = options.overlayId;
+  const minDeltaPx = 2;
+  const targetEl = resolveTarget(options.target ?? null);
+  let coalesceTimer: ReturnType<typeof setTimeout> | null = null;
+  let settleRaf = 0;
 
   const send = () => {
-    const { height, width } = measureContentSize();
+    const { height, width } = measureContentSize(targetEl);
+    if (height <= 0) return;
+    if (
+      lastReported &&
+      Math.abs(lastReported.height - height) < minDeltaPx &&
+      (!includeWidth ||
+        lastReported.width === undefined ||
+        Math.abs((lastReported.width ?? 0) - width) < minDeltaPx)
+    ) {
+      return;
+    }
     reportSize({
       height,
       ...(includeWidth ? { width } : {}),
@@ -117,26 +154,62 @@ export function autoSize(options: OverlayAutoSizeOptions = { observe: true }): (
     });
   };
 
+  /** Optional debounce; otherwise one rAF so layout settles within the same frame burst. */
   const schedule = () => {
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(send, debounceMs);
+    if (debounceMs > 0) {
+      if (coalesceTimer) clearTimeout(coalesceTimer);
+      coalesceTimer = setTimeout(() => {
+        coalesceTimer = null;
+        send();
+      }, debounceMs);
+      return;
+    }
+    if (settleRaf) return;
+    settleRaf = requestAnimationFrame(() => {
+      settleRaf = 0;
+      send();
+    });
   };
 
-  // Initial report (load / first open)
+  // Reset so a new observe session always sends an initial size
+  lastReported = null;
   send();
 
   const observer = new ResizeObserver(schedule);
-  observer.observe(document.documentElement);
-  if (document.body) observer.observe(document.body);
+  if (targetEl) {
+    observer.observe(targetEl);
+  } else {
+    observer.observe(document.documentElement);
+    if (document.body) {
+      observer.observe(document.body);
+      // Body border-box often stays fixed (height:100%); watch children that grow
+      for (const child of Array.from(document.body.children)) {
+        if (child instanceof Element) observer.observe(child);
+      }
+    }
+  }
+
+  // DOM changes that don't resize the observed box (e.g. toggling blocks)
+  const mutationObserver = new MutationObserver(schedule);
+  mutationObserver.observe(targetEl ?? document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
 
   window.addEventListener('load', send);
 
   const cleanup = () => {
     observer.disconnect();
+    mutationObserver.disconnect();
     window.removeEventListener('load', send);
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-      debounceTimer = null;
+    if (coalesceTimer) {
+      clearTimeout(coalesceTimer);
+      coalesceTimer = null;
+    }
+    if (settleRaf) {
+      cancelAnimationFrame(settleRaf);
+      settleRaf = 0;
     }
     if (autoSizeCleanup === cleanup) autoSizeCleanup = null;
   };

@@ -156,11 +156,12 @@ shellui.openModal('/settings');
 shellui.openModal({
   url: 'https://example.com/form',
   size: 'lg', // sm | md | lg | xl | full | content
+  dynamicSizing: false, // true → height follows iframe; disables manual resize
   showCloseButton: true,
   dismissible: true,
   closeOnOverlayClick: true,
   movable: true, // default — drag top edge (desktop/tablet)
-  resizable: true, // default — resize edges/corners (desktop/tablet)
+  resizable: true, // default — off when dynamicSizing
 });
 
 shellui.closeModal();
@@ -183,7 +184,7 @@ shellui.openDrawer({
   showDragHandle: true,
   dismissible: true,
   closeOnOverlayClick: true,
-  resizable: true, // default on desktop — drag free edge; not movable
+  resizable: true, // default on desktop — off when dynamicSizing
 });
 
 shellui.closeDrawer();
@@ -191,12 +192,12 @@ shellui.closeDrawer();
 
 ### Overlay auto-size (iframe → shell)
 
-When the overlay is opened with `size: 'content'`, the iframe reports its height over the message bus:
+When the overlay is opened with `dynamicSizing: true` (or `size: 'content'`), the iframe reports its height over the message bus:
 
 ```javascript
 await shellui.init();
 
-// Observe document size and report (ResizeObserver)
+// Observe document size and report (ResizeObserver; immediate by default)
 shellui.overlay.autoSize({ observe: true });
 
 // Or one-shot
@@ -205,8 +206,6 @@ shellui.overlay.reportSize({ height: 420 });
 
 Message type: `SHELLUI_OVERLAY_SIZE` with payload `{ version: 1, height, width?, overlayId? }`.
 See the [Modals & Drawers guide](/features/modals-drawers) for the full contract and fallback behavior.
-
-See the [Modals & Drawers guide](/features/modals-drawers) for complete details.
 
 ### Navigation
 

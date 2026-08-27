@@ -269,14 +269,10 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
             ? { height: effectiveSize, maxHeight: `min(${effectiveSize}, 100dvh)` }
             : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
 
-    const handlePositionClass =
-      pos === 'bottom'
-        ? 'mx-auto mt-3 mb-1'
-        : pos === 'top'
-          ? 'mx-auto mb-3 mt-1 order-last'
-          : pos === 'left'
-            ? 'my-auto ml-auto mr-2 h-[100px] w-1.5 absolute right-2 top-1/2 -translate-y-1/2'
-            : 'my-auto mr-auto ml-2 h-[100px] w-1.5 absolute left-2 top-1/2 -translate-y-1/2';
+    const sideHandleClass =
+      pos === 'left'
+        ? 'absolute right-2 top-1/2 z-20 my-0 h-[100px] w-1.5 -translate-y-1/2 rounded-full'
+        : 'absolute left-2 top-1/2 z-20 my-0 h-[100px] w-1.5 -translate-y-1/2 rounded-full';
 
     const resizeHandle = resizeHandleByDirection[pos];
 
@@ -292,20 +288,33 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
           style={{
             backgroundColor: 'var(--background)',
             zIndex: Z_INDEX.DRAWER_CONTENT,
-            transitionProperty: isResizing ? 'none' : 'height, width, max-height, max-width',
-            transitionDuration: isResizing ? '0ms' : '200ms',
-            transitionTimingFunction: 'ease',
+            ...(style?.transition === 'none' || isResizing
+              ? { transition: 'none' }
+              : {
+                  transitionProperty: 'height, width, max-height, max-width',
+                  transitionDuration: '200ms',
+                  transitionTimingFunction: 'ease',
+                }),
             ...sizeStyle,
             ...style,
           }}
           {...props}
         >
-          {showDragHandle && (
-            <DrawerHandle
-              className={cn(isVertical ? undefined : 'rounded-full', handlePositionClass)}
-            />
-          )}
           {children}
+          {showDragHandle &&
+            (pos === 'bottom' || pos === 'top' ? (
+              <div
+                data-drawer-handle-overlay
+                className={cn(
+                  'pointer-events-none absolute inset-x-0 z-20 flex justify-center bg-transparent',
+                  pos === 'bottom' ? 'top-0 pt-3' : 'bottom-0 pb-3',
+                )}
+              >
+                <DrawerHandle className="pointer-events-auto !mt-0" />
+              </div>
+            ) : (
+              <DrawerHandle className={cn('rounded-full', sideHandleClass)} />
+            ))}
           {showCloseButton && (
             <VaulDrawer.Close
               className="absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"

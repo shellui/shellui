@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DYNAMIC_OVERLAY_PENDING_PX,
   isOverlaySizePreset,
   resolveDialogSize,
   resolveDismissOptions,
@@ -8,6 +9,11 @@ import {
 } from './overlaySize';
 
 describe('overlaySize', () => {
+  it('exposes a compact pending size for dynamic overlays', () => {
+    expect(DYNAMIC_OVERLAY_PENDING_PX).toBeGreaterThan(0);
+    expect(DYNAMIC_OVERLAY_PENDING_PX).toBeLessThan(200);
+  });
+
   it('recognizes size presets', () => {
     expect(isOverlaySizePreset('sm')).toBe(true);
     expect(isOverlaySizePreset('content')).toBe(true);
@@ -29,6 +35,11 @@ describe('overlaySize', () => {
   it('marks content preset as contentSized', () => {
     const resolved = resolveDialogSize({ size: 'content' });
     expect(resolved.contentSized).toBe(true);
+  });
+
+  it('marks dynamicSizing as contentSized', () => {
+    expect(resolveDialogSize({ dynamicSizing: true }).contentSized).toBe(true);
+    expect(resolveDrawerSize({ dynamicSizing: true }, 'bottom').contentSized).toBe(true);
   });
 
   it('resolves drawer CSS lengths', () => {
