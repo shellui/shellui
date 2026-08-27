@@ -92,7 +92,7 @@ const config: ShellUIConfig = {
   - Resize windows by dragging edges
   - Minimize, maximize, and close windows
   - Focus windows by clicking them or their taskbar button
-- **Desktop Background**: Customizable desktop area
+- **Desktop Background**: Full-bleed primary color wash behind open windows (follows the active theme)
 
 **Window Controls:**
 

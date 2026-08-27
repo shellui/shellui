@@ -661,9 +661,24 @@ export function WindowsLayout({
   return (
     <>
       <div
-        className="fixed inset-0 bg-muted/30"
+        className="fixed inset-0 overflow-hidden bg-background"
         style={{ paddingBottom: TASKBAR_HEIGHT }}
       >
+        {/* Organic primary wash behind windows — follows --primary with the active theme. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: [
+              'radial-gradient(ellipse 95% 70% at 18% 108%, color-mix(in oklch, var(--primary) 32%, transparent), transparent 58%)',
+              'radial-gradient(ellipse 70% 55% at 78% 118%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 62%)',
+              'radial-gradient(ellipse 55% 40% at 52% 92%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 70%)',
+              'radial-gradient(ellipse 40% 30% at 92% 78%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 68%)',
+              'radial-gradient(ellipse 35% 28% at 8% 72%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 65%)',
+            ].join(', '),
+          }}
+        />
+
         {/* Desktop area: windows */}
         {windows.map((win, index) => {
           const navItem = navigationItems.find((n) => n.path === win.path);
