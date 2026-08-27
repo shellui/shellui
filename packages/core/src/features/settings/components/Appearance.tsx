@@ -454,12 +454,14 @@ export const Appearance = () => {
     { value: 'system' as const, label: t('appearance.themes.system'), icon: MonitorIcon },
   ];
 
+  // 2 columns on small screens; from md, auto-fill so cards stay ~12rem
+  // instead of stretching across a fixed 4-column grid.
   const gridClass =
     layout === 'single'
-      ? 'grid grid-cols-1 max-w-sm'
+      ? 'grid max-w-sm grid-cols-1'
       : layout === 'few'
-        ? 'grid grid-cols-1 sm:grid-cols-3 gap-4'
-        : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3';
+        ? 'grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,14rem),1fr))]'
+        : 'grid grid-cols-2 gap-3 md:[grid-template-columns:repeat(auto-fill,minmax(12rem,1fr))]';
 
   return (
     <div
@@ -539,7 +541,7 @@ export const Appearance = () => {
                 }}
                 disabled={themeSwitchBusy}
                 className={cn(
-                  'relative text-left transition-[opacity,transform] duration-300 ease-out',
+                  'relative min-w-0 text-left transition-[opacity,transform] duration-300 ease-out',
                   themeSwitchBusy ? 'cursor-wait' : 'cursor-pointer',
                   isSelected && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                   themeSwitchBusy && pendingThemeName !== theme.name && 'opacity-40 scale-[0.99]',
