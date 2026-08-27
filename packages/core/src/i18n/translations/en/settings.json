@@ -422,9 +422,12 @@
       },
       "modalTesting": {
         "title": "Modal Testing",
-        "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",
+        "description": "Opens settings in a modal (desktop dialog / mobile bottom drawer). Close with ×, backdrop, Escape, or swipe on mobile.",
         "buttons": {
-          "openModal": "Open modal (settings)"
+          "openModal": "Open modal (settings)",
+          "openModalSm": "Open modal (sm)",
+          "openModalContent": "Open modal (content, no ×)",
+          "closeModal": "Close modal"
         }
       },
       "drawerTesting": {
@@ -436,6 +439,7 @@
           "drawerBottom": "Drawer from bottom",
           "drawerRightNarrow": "Drawer right (400px)",
           "drawerBottomHalf": "Drawer bottom (60vh)",
+          "drawerNoClose": "Drawer bottom (no ×)",
           "closeDrawer": "Close drawer"
         }
       },

@@ -1,8 +1,9 @@
 import type { OpenDrawerOptions } from '../types.js';
 
 /**
- * Opens the drawer with optional url, position (top, bottom, left, right), and size (e.g. "400px", "80vh", "50vw").
- * Size is height for top/bottom drawers, width for left/right drawers.
+ * Opens the drawer with optional url, position, size, and dismiss options.
+ * Size may be a preset (`sm` | `md` | `lg` | `xl` | `full` | `content`) or a CSS length
+ * (height for top/bottom, width for left/right).
  * If inside an iframe, sends a message to the parent to open the drawer.
  */
 export function openDrawer(options?: OpenDrawerOptions): void {
@@ -15,6 +16,14 @@ export function openDrawer(options?: OpenDrawerOptions): void {
         url: options.url ?? undefined,
         position: options.position ?? undefined,
         size: options.size ?? undefined,
+        width: options.width,
+        height: options.height,
+        maxWidth: options.maxWidth,
+        maxHeight: options.maxHeight,
+        showCloseButton: options.showCloseButton,
+        dismissible: options.dismissible,
+        closeOnOverlayClick: options.closeOnOverlayClick,
+        showDragHandle: options.showDragHandle,
       }
     : {};
 

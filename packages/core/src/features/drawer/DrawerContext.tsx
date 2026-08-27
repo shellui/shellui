@@ -1,4 +1,4 @@
-import { shellui, type ShellUIMessage } from '@shellui/sdk';
+import { shellui, type OpenDrawerOptions, type ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { DrawerDirection } from '../../components/ui/drawer';
 import { useModal } from '../modal/ModalContext';
@@ -32,17 +32,12 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
 export const DEFAULT_DRAWER_POSITION: DrawerDirection = 'right';
 
-interface OpenDrawerOptions {
-  url?: string;
-  position?: DrawerDirection;
-  /** CSS length: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
-  size?: string;
-}
-
 interface DrawerContextValue {
   isOpen: boolean;
   drawerUrl: string | null;
   position: DrawerDirection;
+  options: OpenDrawerOptions | null;
+  /** @deprecated Prefer options.size — kept for callers reading the resolved CSS/preset string. */
   size: string | null;
   openDrawer: (options?: OpenDrawerOptions) => void;
   closeDrawer: () => void;
@@ -67,16 +62,16 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [drawerUrl, setDrawerUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
-  const [size, setSize] = useState<string | null>(null);
+  const [options, setOptions] = useState<OpenDrawerOptions | null>(null);
 
   const openDrawer = useCallback(
-    (options?: OpenDrawerOptions) => {
+    (openOptions?: OpenDrawerOptions) => {
       closeModal();
-      const url = options?.url;
+      const url = openOptions?.url;
       const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
       setDrawerUrl(validatedUrl);
-      setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
-      setSize(options?.size ?? null);
+      setPosition(openOptions?.position ?? DEFAULT_DRAWER_POSITION);
+      setOptions(openOptions ?? null);
       setIsOpen(true);
     },
     [closeModal],
@@ -93,8 +88,8 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
     const cleanupOpen = shellui.addMessageListener(
       'SHELLUI_OPEN_DRAWER',
       (data: ShellUIMessage) => {
-        const payload = data.payload as { url?: string; position?: DrawerDirection; size?: string };
-        openDrawer({ url: payload.url, position: payload.position, size: payload.size });
+        const payload = data.payload as OpenDrawerOptions;
+        openDrawer(payload);
       },
     );
 
@@ -108,8 +103,20 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
     };
   }, [openDrawer, closeDrawer]);
 
+  const size = options?.size !== undefined && options?.size !== null ? String(options.size) : null;
+
   return (
-    <DrawerContext.Provider value={{ isOpen, drawerUrl, position, size, openDrawer, closeDrawer }}>
+    <DrawerContext.Provider
+      value={{
+        isOpen,
+        drawerUrl,
+        position,
+        options,
+        size,
+        openDrawer,
+        closeDrawer,
+      }}
+    >
       {children}
     </DrawerContext.Provider>
   );

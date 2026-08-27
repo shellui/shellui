@@ -6,8 +6,10 @@
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
+import { closeModal as closeModalAction } from './actions/closeModal.js';
 import { openDrawer as openDrawerAction } from './actions/openDrawer.js';
 import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
+import { reportSize as overlayReportSize, autoSize as overlayAutoSize } from './actions/overlay.js';
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
@@ -26,6 +28,9 @@ import type {
   DialogOptions,
   Settings,
   OpenDrawerOptions,
+  OpenModalOptions,
+  OverlayAutoSizeOptions,
+  OverlayReportSizeOptions,
   LoginOptions,
   StorageSelectOptions,
   StorageSelectResult,
@@ -46,7 +51,14 @@ export type {
   AlertDialogSize,
   DialogPosition,
   DrawerPosition,
+  OverlaySizePreset,
+  OverlaySizeValue,
+  OverlayOpenOptions,
+  OpenModalOptions,
   OpenDrawerOptions,
+  OverlayReportSizeOptions,
+  OverlayAutoSizeOptions,
+  OverlaySizePayload,
   LoginOptions,
   StorageSelectOptions,
   StorageSelectResult,
@@ -67,6 +79,12 @@ export type {
   SettingsAvailableTheme,
   Appearance,
 } from './types.js';
+
+/** Iframe helpers for content-sized modal/drawer overlays. */
+export const overlay = {
+  reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
+  autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+};
 
 export { StorageError } from './storage/types.js';
 export type {
@@ -226,8 +244,18 @@ export class ShellUISDK {
     });
   }
 
-  openModal(url?: string): void {
-    openModalAction(url);
+  /** Iframe helpers for content-sized modal/drawer overlays. */
+  overlay = {
+    reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
+    autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+  };
+
+  openModal(urlOrOptions?: string | OpenModalOptions): void {
+    openModalAction(urlOrOptions);
+  }
+
+  closeModal(): void {
+    closeModalAction();
   }
 
   openDrawer(options?: OpenDrawerOptions): void {
@@ -319,7 +347,9 @@ const sdk = new ShellUISDK();
 
 export const init = async (): Promise<ShellUISDK> => await sdk.init();
 export const getVersion = (): string => sdk.getVersion();
-export const openModal = (url?: string): void => openModalAction(url);
+export const openModal = (urlOrOptions?: string | OpenModalOptions): void =>
+  openModalAction(urlOrOptions);
+export const closeModal = (): void => closeModalAction();
 export const openDrawer = (options?: OpenDrawerOptions): void => openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
 export const navigate = (url: string): void => sdk.navigate(url);

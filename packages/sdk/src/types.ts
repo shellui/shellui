@@ -280,12 +280,83 @@ export interface Settings {
 
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Size as CSS length: e.g. "400px", "80vh", "50vw" */
-export interface OpenDrawerOptions {
+/**
+ * Named overlay size presets.
+ * - `content` — grow/shrink with iframe reports via `shellui.overlay.reportSize` / `autoSize`
+ * - CSS lengths (e.g. `"400px"`, `"80vh"`) remain supported for drawers
+ */
+export type OverlaySizePreset = 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'content';
+
+export type OverlaySizeValue = OverlaySizePreset | (string & {});
+
+/** Shared size + dismiss options for modals and drawers. */
+export interface OverlayOpenOptions {
+  /**
+   * Size preset (`sm` | `md` | `lg` | `xl` | `full` | `content`) or a CSS length
+   * (e.g. `"400px"`, `"80vh"`) for freeform drawer sizing.
+   */
+  size?: OverlaySizeValue;
+  /** Explicit width (CSS length or px number). Clamped to the viewport. */
+  width?: string | number;
+  /** Explicit height (CSS length or px number). Clamped to the viewport. */
+  height?: string | number;
+  maxWidth?: string | number;
+  maxHeight?: string | number;
+  /**
+   * When true (default), render the overlay chrome close (×) control.
+   * When false, the host app owns dismiss UI; Escape / overlay click / swipe
+   * still follow `dismissible` / `closeOnOverlayClick`.
+   */
+  showCloseButton?: boolean;
+  /**
+   * When true (default), Escape and swipe-to-dismiss can close the overlay.
+   * Set false to require an explicit close from app content or `closeModal` / `closeDrawer`.
+   */
+  dismissible?: boolean;
+  /** When true (default), clicking the backdrop closes the overlay. */
+  closeOnOverlayClick?: boolean;
+}
+
+export interface OpenModalOptions extends OverlayOpenOptions {
+  url?: string;
+}
+
+export interface OpenDrawerOptions extends OverlayOpenOptions {
   url?: string;
   position?: DrawerPosition;
-  /** CSS length for drawer size: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
-  size?: string;
+  /**
+   * Show the native drag handle when swipe-to-dismiss is enabled.
+   * Defaults to true when `dismissible` is true.
+   */
+  showDragHandle?: boolean;
+}
+
+/** Child → parent size report for content-sized overlays. */
+export interface OverlayReportSizeOptions {
+  /** Content height in CSS pixels. */
+  height: number;
+  /** Optional content width in CSS pixels. */
+  width?: number;
+  /** Optional id when multiple overlays could be open. */
+  overlayId?: string;
+}
+
+export interface OverlayAutoSizeOptions {
+  /** When true (default), start observing; when false, stop any active observer. */
+  observe?: boolean;
+  /** Also report width. Default false (height-only). */
+  includeWidth?: boolean;
+  /** Debounce interval in ms. Default 100. */
+  debounceMs?: number;
+  overlayId?: string;
+}
+
+/** Payload for `SHELLUI_OVERLAY_SIZE` (iframe → shell). */
+export interface OverlaySizePayload {
+  version: 1;
+  height: number;
+  width?: number;
+  overlayId?: string;
 }
 
 /**
@@ -356,6 +427,7 @@ export type ShellUIMessageType =
   | 'SHELLUI_CLOSE_MODAL'
   | 'SHELLUI_OPEN_DRAWER'
   | 'SHELLUI_CLOSE_DRAWER'
+  | 'SHELLUI_OVERLAY_SIZE'
   | 'SHELLUI_NAVIGATE'
   | 'SHELLUI_SETTINGS_UPDATED'
   | 'SHELLUI_SETTINGS'
@@ -387,7 +459,9 @@ export interface ShellUIMessage {
     | Record<string, never>
     | { url?: string | null }
     | { url: string }
-    | { url?: string; position?: DrawerPosition; size?: string }
+    | OpenModalOptions
+    | OpenDrawerOptions
+    | OverlaySizePayload
     | ToastOptions
     | DialogOptions
     | { [key: string]: unknown };
