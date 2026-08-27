@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { shellui, type OverlaySizePayload, type ShellUIMessage } from '@shellui/sdk';
 
-const MIN_CONTENT_HEIGHT = 120;
+const MIN_CONTENT_HEIGHT = 40;
 const MAX_VIEWPORT_RATIO = 0.92;
 /** If no size messages arrive, fall back to a scrollable preset height. */
 const FALLBACK_MS = 1500;

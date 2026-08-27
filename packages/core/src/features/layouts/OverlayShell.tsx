@@ -14,6 +14,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { resolveLocalizedString } from './utils';
 import { resolveSdkNavigatePath } from './resolveSdkNavigatePath';
 import {
+  DYNAMIC_DRAWER_PENDING_PX,
   DYNAMIC_OVERLAY_MEASURE_WIDTH_PX,
   DYNAMIC_OVERLAY_PENDING_PX,
   resolveDialogSize,
@@ -24,6 +25,7 @@ import {
 import { useOverlayReportedSize } from '../overlays/useOverlayReportedSize';
 import { ResponsiveModal } from '../overlays/ResponsiveModal';
 import { OverlayPendingSpinner } from '../overlays/OverlayPendingSpinner';
+import { OverlayDrawerPendingBar } from '../overlays/OverlayDrawerPendingBar';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -55,6 +57,7 @@ function OverlayIframe({
   allowInnerScroll,
   pending,
   pendingFill,
+  pendingChrome = 'spinner',
 }: {
   url: string;
   navItem: NavigationItem;
@@ -63,16 +66,27 @@ function OverlayIframe({
   reportedWidth?: number | null;
   /** When content-size fallback / clamp kicks in, allow the iframe area to scroll. */
   allowInnerScroll?: boolean;
-  /** Waiting for first SHELLUI_OVERLAY_SIZE — show spinner, keep iframe loading underneath. */
+  /** Waiting for first SHELLUI_OVERLAY_SIZE — show pending chrome, keep iframe loading underneath. */
   pending?: boolean;
   /** Side drawers: fill the pending strip instead of using a square height. */
   pendingFill?: boolean;
+  /** Modal: centered spinner. Drawer: full-bleed 40px loading bar. */
+  pendingChrome?: 'spinner' | 'bar';
 }) {
   // Content-sized: iframe tracks reported content. While pending, chrome is a square/strip
-  // but the iframe lays out at MEASURE width (opacity 0) so height isn't inflated by wrapping.
+  // but the iframe lays out at a realistic width (opacity 0) so the first report matches
+  // final wrap — drawers use viewport width; modals use a compact measure width.
   const scroll = allowInnerScroll || !contentSized;
-  const pendingPx = DYNAMIC_OVERLAY_PENDING_PX;
-  const measureW = DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
+  const modalPendingPx = DYNAMIC_OVERLAY_PENDING_PX;
+  const drawerPendingPx = DYNAMIC_DRAWER_PENDING_PX;
+  const useSquarePending = pending && !pendingFill && pendingChrome === 'spinner';
+  const useDrawerBarPending = pending && pendingChrome === 'bar';
+  const measureW =
+    pendingChrome === 'bar'
+      ? typeof window !== 'undefined'
+        ? window.innerWidth
+        : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX
+      : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
 
   if (!contentSized) {
     return (
@@ -88,44 +102,41 @@ function OverlayIframe({
   }
 
   const iframeWrapStyle: CSSProperties = pending
-    ? pendingFill
-      ? {
-          flex: 1,
-          minHeight: 0,
-          width: '100%',
-          height: '100%',
-          overflow: 'hidden',
-        }
-      : {
-          // Hidden measure box — realistic wrap width for an accurate first report
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width: measureW,
-          height: 'auto',
-          opacity: 0,
-          pointerEvents: 'none',
-          overflow: 'hidden',
-        }
+    ? {
+        // Hidden measure box — width must match final chrome or height reflows (tall→short)
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: measureW,
+        height: 'auto',
+        opacity: 0,
+        pointerEvents: 'none',
+        overflow: 'hidden',
+      }
     : {
-        height: reportedHeight ?? pendingPx,
-        minHeight: reportedHeight ?? pendingPx,
+        height: reportedHeight ?? modalPendingPx,
+        minHeight: reportedHeight ?? modalPendingPx,
         width: reportedWidth ?? '100%',
         overflow: scroll ? 'auto' : 'hidden',
       };
 
   return (
     <div
-      className={`relative w-full${pending && pendingFill ? ' flex-1 min-h-0' : ''}`}
+      className={`relative w-full bg-background${useDrawerBarPending && pendingFill ? ' h-full min-h-0' : ''}`}
       style={
-        pending && !pendingFill
-          ? { width: pendingPx, height: pendingPx, overflow: 'hidden' }
-          : pending && pendingFill
-            ? { flex: 1, minHeight: 0, width: '100%' }
-            : undefined
+        useSquarePending
+          ? { width: modalPendingPx, height: modalPendingPx, overflow: 'hidden' }
+          : useDrawerBarPending && !pendingFill
+            ? { width: '100%', height: drawerPendingPx, overflow: 'hidden' }
+            : useDrawerBarPending && pendingFill
+              ? { width: '100%', height: '100%', minHeight: drawerPendingPx, overflow: 'hidden' }
+              : undefined
       }
+      aria-busy={pending || undefined}
+      aria-live={pending ? 'polite' : undefined}
     >
-      {pending ? <OverlayPendingSpinner /> : null}
+      {pending && pendingChrome === 'spinner' ? <OverlayPendingSpinner /> : null}
+      {useDrawerBarPending ? <OverlayDrawerPendingBar /> : null}
       <div
         className={pending ? undefined : 'h-full w-full'}
         style={iframeWrapStyle}
@@ -202,6 +213,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const drawerPending =
     isDrawerOpen && (drawerSize.contentSized || drawerDynamic) && !drawerReported;
   const pendingPx = DYNAMIC_OVERLAY_PENDING_PX;
+  const drawerPendingPx = DYNAMIC_DRAWER_PENDING_PX;
 
   // Close modal and drawer when app URL changes (navigation, back button) so overlay content stays url-specific
   const locationKeyRef = useRef(location.pathname + location.search + location.hash);
@@ -309,12 +321,14 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     ...(drawerPending
       ? drawerPosition === 'top' || drawerPosition === 'bottom'
         ? {
-            height: pendingPx,
-            maxHeight: pendingPx,
+            height: drawerPendingPx,
+            maxHeight: drawerPendingPx,
+            minHeight: drawerPendingPx,
           }
         : {
-            width: pendingPx,
-            maxWidth: pendingPx,
+            width: drawerPendingPx,
+            maxWidth: drawerPendingPx,
+            minWidth: drawerPendingPx,
           }
       : drawerReported
         ? drawerPosition === 'top' || drawerPosition === 'bottom'
@@ -403,7 +417,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
                 ? `${drawerReported.height}px`
                 : `${drawerReported.width ?? drawerReported.height}px`
               : drawerPending
-                ? `${pendingPx}px`
+                ? `${drawerPendingPx}px`
                 : drawerSize.drawerSize
           }
           style={drawerContentStyle}
@@ -443,6 +457,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
                 allowInnerScroll={drawerSizeFallback || drawerWasClamped}
                 pending={drawerPending}
                 pendingFill={drawerPosition === 'left' || drawerPosition === 'right'}
+                pendingChrome="bar"
               />
             </>
           ) : (

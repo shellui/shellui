@@ -219,9 +219,9 @@ shellui.overlay.reportSize({ height: 480 });
 - `height` (required): content height in CSS pixels
 - `width` (optional, reported by default from `autoSize`): content width in CSS pixels
 - Parent listens only while a modal/drawer with dynamic sizing is open
-- Clamps to min (~120px) and max (~92% of viewport); scrolls if content exceeds max
+- Clamps to min (~40px) and max (~92% of viewport); scrolls if content exceeds max
 - **Fallback:** if no size messages arrive, uses a viewport-relative height with inner scroll
-- **Pending chrome:** until the first size report, dynamic overlays open as a compact square (dialog) or short strip (drawer/sheet) with a spinner, then **snap** to the reported size (no size tween)
+- **Pending chrome:** until the first size report, dynamic **modals** open as a compact square with a spinner; dynamic **drawers** open as a **40px** full-bleed loading strip. Both then **snap** to the reported size (no size tween)
 - On close, the last size is kept through the exit animation (does not shrink back to the spinner)
 - **Avoid `vh` / `%` height in iframe content** when using dynamic sizing: those units are relative to the iframe viewport. As the shell grows the iframe, content height grows again → stepped “jumping” resize. Prefer fixed `px` / `rem` for tall blocks.
 

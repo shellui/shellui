@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DYNAMIC_DRAWER_PENDING_PX,
   DYNAMIC_OVERLAY_PENDING_PX,
   isOverlaySizePreset,
   resolveDialogSize,
@@ -9,9 +10,10 @@ import {
 } from './overlaySize';
 
 describe('overlaySize', () => {
-  it('exposes a compact pending size for dynamic overlays', () => {
+  it('exposes compact pending sizes for dynamic overlays', () => {
     expect(DYNAMIC_OVERLAY_PENDING_PX).toBeGreaterThan(0);
     expect(DYNAMIC_OVERLAY_PENDING_PX).toBeLessThan(200);
+    expect(DYNAMIC_DRAWER_PENDING_PX).toBe(40);
   });
 
   it('recognizes size presets', () => {

@@ -9,14 +9,19 @@ import type {
 const PRESETS = new Set<string>(['sm', 'md', 'lg', 'xl', 'full', 'content']);
 
 /**
- * Compact square (modal) / strip (drawer) while waiting for the first
- * `SHELLUI_OVERLAY_SIZE` report when `dynamicSizing` / `size: 'content'`.
+ * Compact square while a dynamic modal waits for the first size report.
  */
 export const DYNAMIC_OVERLAY_PENDING_PX = 112;
 
 /**
+ * Full-bleed loading strip height/width for dynamic drawers while pending.
+ * Matches the integrated loading-bar animation.
+ */
+export const DYNAMIC_DRAWER_PENDING_PX = 40;
+
+/**
  * Hidden iframe layout width while pending so content height is measured at a
- * realistic wrap width (not the 112px spinner), avoiding tall→short jumps.
+ * realistic wrap width (not the spinner square), avoiding tall→short jumps.
  */
 export const DYNAMIC_OVERLAY_MEASURE_WIDTH_PX = 420;
 
