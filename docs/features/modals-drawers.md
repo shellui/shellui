@@ -6,7 +6,9 @@ Modals and drawers share one options surface: size presets, optional close chrom
 
 ## Modals
 
-Modals display content in a centered overlay with a backdrop on desktop — perfect for focused interactions like settings or forms. On viewports below 768px, the same `openModal` API renders as a bottom drawer with swipe-to-dismiss.
+Modals display content in a centered overlay with a backdrop on desktop — perfect for focused interactions like settings or forms. On viewports below 768px, the same `openModal` API morphs into a bottom sheet (drag handle + swipe-to-dismiss).
+
+**Content continuity:** resizing across the mobile breakpoint only changes chrome (dialog ↔ sheet). The iframe stays mounted — typed form state is not reloaded.
 
 ### Opening Modals via Navigation
 
@@ -54,7 +56,7 @@ Modals can be closed by:
 - The overlay close (×) control — when `showCloseButton` is true (default)
 - Clicking the backdrop — when `closeOnOverlayClick` is true (default)
 - Pressing Escape — when `dismissible` is true (default)
-- Swipe-to-dismiss on mobile (bottom drawer) — when `dismissible` is true
+- Swipe-to-dismiss on mobile (bottom sheet) — when `dismissible` is true
 - Programmatically:
 
 ```javascript
@@ -62,6 +64,8 @@ shellui.closeModal();
 ```
 
 When `showCloseButton: false`, Escape / backdrop / swipe still follow the flags above; your iframe content should provide its own close action (and typically call `shellui.closeModal()`).
+
+Resizing the window between desktop and mobile while a modal is open keeps the same iframe instance (no remount / no lost input).
 
 ## Drawers
 

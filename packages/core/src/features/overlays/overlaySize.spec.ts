@@ -19,9 +19,10 @@ describe('overlaySize', () => {
     expect(toCssLength('50vh')).toBe('50vh');
   });
 
-  it('defaults dialog to lg', () => {
+  it('defaults dialog to lg with horizontal gutters', () => {
     const resolved = resolveDialogSize(null);
     expect(resolved.className).toContain('max-w-4xl');
+    expect(resolved.className).toContain('calc(100vw-5rem)');
     expect(resolved.contentSized).toBe(false);
   });
 

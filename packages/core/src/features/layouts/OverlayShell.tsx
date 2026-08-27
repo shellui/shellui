@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '../../components/ui/drawer';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
@@ -20,6 +19,7 @@ import {
   resolveDrawerSize,
 } from '../overlays/overlaySize';
 import { useOverlayReportedSize } from '../overlays/useOverlayReportedSize';
+import { ResponsiveModal } from '../overlays/ResponsiveModal';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -110,13 +110,13 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     () => resolveDrawerSize(drawerOptions, drawerPosition),
     [drawerOptions, drawerPosition],
   );
-  // Mobile modal presents as bottom drawer — reuse modal options with bottom direction.
-  const mobileModalDrawerSize = useMemo(
+  // Sheet presentation for mobile — bottom drawer sizing from the same modal options.
+  const sheetSize = useMemo(
     () => resolveDrawerSize({ ...modalOptions, size: modalOptions?.size ?? 'lg' }, 'bottom'),
     [modalOptions],
   );
 
-  const modalContentSized = dialogSize.contentSized || mobileModalDrawerSize.contentSized;
+  const modalContentSized = dialogSize.contentSized || sheetSize.contentSized;
   const { reported: modalReported, usedFallback: modalSizeFallback } = useOverlayReportedSize(
     modalContentSized,
     isOpen && !isDrawerOpen,
@@ -172,17 +172,32 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const modalNavItem = navigationItems.find((item) => item.url === modalUrl) as NavigationItem;
   const drawerNavItem = navigationItems.find((item) => item.url === drawerUrl) as NavigationItem;
 
-  const modalContentStyle: CSSProperties = {
-    ...dialogSize.style,
+  const presentation = isMobile ? 'sheet' : 'dialog';
+
+  const modalChromeClassName =
+    presentation === 'sheet' ? sheetSize.className : dialogSize.className;
+
+  const modalChromeStyle: CSSProperties = {
+    ...(presentation === 'sheet' ? sheetSize.style : dialogSize.style),
     ...(modalReported
-      ? {
-          height: modalReported.height,
-          maxHeight: `min(${modalReported.height}px, 92dvh)`,
-          ...(modalReported.width
-            ? { width: modalReported.width, maxWidth: 'min(92vw, 100%)' }
-            : {}),
-        }
-      : {}),
+      ? presentation === 'sheet'
+        ? {
+            height: modalReported.height,
+            maxHeight: `min(${modalReported.height}px, 92dvh)`,
+          }
+        : {
+            height: modalReported.height,
+            maxHeight: `min(${modalReported.height}px, 92dvh)`,
+            ...(modalReported.width
+              ? { width: modalReported.width, maxWidth: 'min(92vw, 100%)' }
+              : {}),
+          }
+      : presentation === 'sheet' && sheetSize.drawerSize
+        ? {
+            height: sheetSize.drawerSize,
+            maxHeight: `min(${sheetSize.drawerSize}, 100dvh)`,
+          }
+        : {}),
   };
 
   const drawerContentStyle: CSSProperties = {
@@ -197,16 +212,6 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             width: drawerReported.width ?? drawerReported.height,
             maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
           }
-      : {}),
-  };
-
-  const mobileModalStyle: CSSProperties = {
-    ...mobileModalDrawerSize.style,
-    ...(modalReported
-      ? {
-          height: modalReported.height,
-          maxHeight: `min(${modalReported.height}px, 92dvh)`,
-        }
       : {}),
   };
 
@@ -225,103 +230,45 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     }
   };
 
+  const modalTitle =
+    resolveLocalizedString(modalNavItem?.label, currentLanguage) ||
+    (t('modalContent') ?? 'Modal content');
+
   return (
     <>
       {children}
 
-      {/* Desktop modal: centered dialog */}
-      <Dialog
-        open={isOpen && !isMobile}
+      {/*
+        Single host for openModal: presentation morphs dialog ↔ sheet via CSS.
+        One OverlayIframe stays mounted across breakpoint changes (no iframe reload).
+      */}
+      <ResponsiveModal
+        open={isOpen}
         onOpenChange={handleModalOpenChange}
-      >
-        <DialogContent
-          className={dialogSize.className}
-          style={modalContentStyle}
-          showCloseButton={modalDismiss.showCloseButton}
-          onPointerDownOutside={(e) => {
-            if (!modalDismiss.closeOnOverlayClick || !modalDismiss.dismissible) {
-              e.preventDefault();
-            }
-          }}
-          onEscapeKeyDown={(e) => {
-            if (!modalDismiss.dismissible) {
-              e.preventDefault();
-            }
-          }}
-          onInteractOutside={(e) => {
-            if (!modalDismiss.closeOnOverlayClick || !modalDismiss.dismissible) {
-              e.preventDefault();
-            }
-          }}
-        >
-          {modalUrl ? (
-            <>
-              <DialogTitle className="sr-only">
-                {resolveLocalizedString(modalNavItem?.label, currentLanguage)}
-              </DialogTitle>
-              <DialogDescription className="sr-only">
-                {t('modalContent') ?? 'Modal content'}
-              </DialogDescription>
-              <OverlayIframe
-                url={modalUrl}
-                navItem={modalNavItem}
-                contentSized={dialogSize.contentSized}
-                reportedHeight={modalReported?.height ?? null}
-                allowInnerScroll={modalSizeFallback}
-              />
-            </>
-          ) : (
-            <>
-              <DialogTitle className="sr-only">Error: Modal URL is undefined</DialogTitle>
-              <DialogDescription className="sr-only">
-                The openModal function was called without a valid URL parameter.
-              </DialogDescription>
-              <OverlayUrlError kind="modal" />
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Mobile modal: bottom drawer (same openModal API) */}
-      <Drawer
-        open={isOpen && isMobile}
-        onOpenChange={handleModalOpenChange}
-        direction="bottom"
+        presentation={presentation}
+        className={modalChromeClassName}
+        style={modalChromeStyle}
+        title={modalTitle}
+        description={t('modalContent') ?? 'Modal content'}
+        showCloseButton={modalDismiss.showCloseButton}
         dismissible={modalDismiss.dismissible}
+        closeOnOverlayClick={modalDismiss.closeOnOverlayClick}
+        showDragHandle={modalDismiss.showDragHandle && modalDismiss.dismissible}
       >
-        <DrawerContent
-          direction="bottom"
-          size={modalReported ? `${modalReported.height}px` : mobileModalDrawerSize.drawerSize}
-          style={mobileModalStyle}
-          className={mobileModalDrawerSize.className}
-          showCloseButton={modalDismiss.showCloseButton}
-          showDragHandle={modalDismiss.showDragHandle && modalDismiss.dismissible}
-          closeOnOverlayClick={modalDismiss.closeOnOverlayClick}
-        >
-          {modalUrl ? (
-            <>
-              <DrawerTitle className="sr-only">
-                {resolveLocalizedString(modalNavItem?.label, currentLanguage) ||
-                  (t('modalContent') ?? 'Modal content')}
-              </DrawerTitle>
-              <DrawerDescription className="sr-only">
-                {t('modalContent') ?? 'Modal content'}
-              </DrawerDescription>
-              <OverlayIframe
-                url={modalUrl}
-                navItem={modalNavItem}
-                contentSized={mobileModalDrawerSize.contentSized}
-                reportedHeight={modalReported?.height ?? null}
-                allowInnerScroll={modalSizeFallback}
-              />
-            </>
-          ) : (
-            <OverlayUrlError kind="modal" />
-          )}
-        </DrawerContent>
-      </Drawer>
+        {modalUrl ? (
+          <OverlayIframe
+            url={modalUrl}
+            navItem={modalNavItem}
+            contentSized={modalContentSized}
+            reportedHeight={modalReported?.height ?? null}
+            allowInnerScroll={modalSizeFallback}
+          />
+        ) : (
+          <OverlayUrlError kind="modal" />
+        )}
+      </ResponsiveModal>
 
-      {/* Explicit drawers (any edge) */}
+      {/* Explicit drawers (any edge) — separate from responsive modal */}
       <Drawer
         open={isDrawerOpen}
         onOpenChange={handleDrawerOpenChange}

@@ -347,6 +347,24 @@ html.shellui-theme-switching
   top: 50%;
 }
 
+/* Responsive openModal: sheet presentation (mobile) — override centered dialog geometry */
+[data-dialog-content][data-presentation='sheet'] {
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  transform: none;
+}
+
+/* Morph dialog ↔ sheet on resize without remounting iframe content */
+[data-dialog-content][data-presentation] {
+  transition-property:
+    width, height, max-width, max-height, border-radius, left, right, top, bottom, transform,
+    padding;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
+}
+
 @keyframes dialog-overlay-fade-in {
   from {
     opacity: 0;
@@ -384,6 +402,24 @@ html.shellui-theme-switching
   }
 }
 
+/* Opacity-only enter/exit for responsive modal so presentation morph does not re-slide */
+@keyframes responsive-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes responsive-modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 [data-dialog-overlay][data-state='open'] {
   animation: dialog-overlay-fade-in 0.1s ease-out;
 }
@@ -391,11 +427,20 @@ html.shellui-theme-switching
   animation: dialog-overlay-fade-out 0.1s ease-in;
 }
 
-[data-dialog-content][data-state='open'] {
+/* Default dialog (non-responsive / other Dialog usages) */
+[data-dialog-content][data-state='open']:not([data-presentation]) {
   animation: dialog-content-in 0.1s ease-out 0.05s both;
 }
-[data-dialog-content][data-state='closed'] {
+[data-dialog-content][data-state='closed']:not([data-presentation]) {
   animation: dialog-content-out 0.1s ease-in both;
+}
+
+/* openModal ResponsiveModal — same fade for dialog and sheet (stable across resize) */
+[data-dialog-content][data-presentation][data-state='open'] {
+  animation: responsive-modal-fade-in 0.15s ease-out both;
+}
+[data-dialog-content][data-presentation][data-state='closed'] {
+  animation: responsive-modal-fade-out 0.12s ease-in both;
 }
 
 /* Sheet overlay and panel animations (mobile sidebar) */

@@ -19,30 +19,37 @@ export function toCssLength(value: string | number | undefined): string | undefi
   return trimmed || undefined;
 }
 
-/** Dialog (desktop modal) preset → class + inline style hints. */
+/** Dialog (desktop/tablet modal) preset → class + inline style hints.
+ * Width uses `calc(100vw - …)` gutters so tablets never edge-to-edge;
+ * `max-w-*` still caps size on large desktops. */
 const DIALOG_PRESET: Record<
   OverlaySizePreset,
   { className: string; style?: CSSProperties; contentSized?: boolean }
 > = {
   sm: {
-    className: 'max-w-sm w-[calc(100vw-2rem)] h-[min(50dvh,24rem)] max-h-[min(70dvh,28rem)]',
+    className:
+      'max-w-sm w-[min(24rem,calc(100vw-3rem))] h-[min(50dvh,24rem)] max-h-[min(70dvh,28rem)] rounded-lg',
   },
   md: {
-    className: 'max-w-lg w-[calc(100vw-2rem)] h-[min(60dvh,32rem)] max-h-[min(75dvh,36rem)]',
+    className:
+      'max-w-lg w-[min(32rem,calc(100vw-4rem))] h-[min(60dvh,32rem)] max-h-[min(75dvh,36rem)] rounded-lg',
   },
   lg: {
-    className: 'max-w-4xl w-full h-[min(80dvh,42.5rem)] max-h-[min(80dvh,42.5rem)]',
+    // Wider than the 768px mobile breakpoint so iframe apps keep desktop UI
+    className:
+      'max-w-4xl w-[min(56rem,calc(100vw-5rem))] h-[min(80dvh,42.5rem)] max-h-[min(80dvh,42.5rem)] rounded-lg',
   },
   xl: {
-    className: 'max-w-6xl w-full h-[min(85dvh,50rem)] max-h-[min(85dvh,50rem)]',
+    className:
+      'max-w-6xl w-[min(72rem,calc(100vw-5rem))] h-[min(85dvh,50rem)] max-h-[min(85dvh,50rem)] rounded-lg',
   },
   full: {
     className:
-      'max-w-[calc(100vw-1.5rem)] w-[calc(100vw-1.5rem)] h-[calc(100dvh-1.5rem)] max-h-[calc(100dvh-1.5rem)]',
+      'max-w-[calc(100vw-2.5rem)] w-[calc(100vw-2.5rem)] h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] rounded-lg',
   },
   content: {
-    className: 'max-w-4xl w-full',
-    style: { height: 'auto', maxHeight: 'min(90dvh, 100dvh - 1.5rem)' },
+    className: 'max-w-4xl w-[min(56rem,calc(100vw-5rem))] rounded-lg',
+    style: { height: 'auto', maxHeight: 'min(90dvh, 100dvh - 2.5rem)' },
     contentSized: true,
   },
 };
