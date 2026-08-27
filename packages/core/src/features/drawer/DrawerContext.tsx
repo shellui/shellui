@@ -1,5 +1,13 @@
 import { shellui, type OpenDrawerOptions, type ShellUIMessage } from '@shellui/sdk';
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import type { DrawerDirection } from '../../components/ui/drawer';
 import { useModal } from '../modal/ModalContext';
 
@@ -32,6 +40,9 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
 export const DEFAULT_DRAWER_POSITION: DrawerDirection = 'right';
 
+/** Match Vaul exit so content stays mounted through the close animation. */
+const DRAWER_CLOSE_CLEAR_MS = 300;
+
 interface DrawerContextValue {
   isOpen: boolean;
   drawerUrl: string | null;
@@ -63,9 +74,14 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [drawerUrl, setDrawerUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
   const [options, setOptions] = useState<OpenDrawerOptions | null>(null);
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openDrawer = useCallback(
     (openOptions?: OpenDrawerOptions) => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+        clearTimerRef.current = null;
+      }
       closeModal();
       const url = openOptions?.url;
       const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
@@ -79,9 +95,21 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
-    // Do not reset drawerUrl/position here — Vaul's close animation uses the current
-    // direction. Resetting position (e.g. to 'right') mid-animation would make
-    // non-right drawers jump. State is set on next openDrawer().
+    // Keep url/position through Vaul's exit animation, then clear so the next open
+    // remounts ContentView and shows the normal loading bar again (not dynamic sizing).
+    if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    clearTimerRef.current = setTimeout(() => {
+      clearTimerRef.current = null;
+      setDrawerUrl(null);
+      setOptions(null);
+      setPosition(DEFAULT_DRAWER_POSITION);
+    }, DRAWER_CLOSE_CLEAR_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {

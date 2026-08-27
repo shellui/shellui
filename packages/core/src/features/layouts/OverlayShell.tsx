@@ -89,14 +89,17 @@ function OverlayIframe({
       : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
 
   if (!contentSized) {
+    // Fill drawer chrome so ContentView's top loading bar is visible (not a 0-height flex quirk).
     return (
-      <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
-        <ContentView
-          url={url}
-          pathPrefix="settings"
-          ignoreMessages={true}
-          navItem={navItem}
-        />
+      <div className="relative min-h-0 w-full flex-1">
+        <div className="absolute inset-0 overflow-hidden bg-background">
+          <ContentView
+            url={url}
+            pathPrefix="settings"
+            ignoreMessages={true}
+            navItem={navItem}
+          />
+        </div>
       </div>
     );
   }
