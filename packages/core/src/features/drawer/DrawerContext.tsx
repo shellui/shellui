@@ -40,8 +40,8 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
 export const DEFAULT_DRAWER_POSITION: DrawerDirection = 'right';
 
-/** Match Vaul exit so content stays mounted through the close animation. */
-const DRAWER_CLOSE_CLEAR_MS = 300;
+/** Keep content mounted through Vaul exit (typically ~400–500ms). */
+const DRAWER_CLOSE_CLEAR_MS = 500;
 
 interface DrawerContextValue {
   isOpen: boolean;
@@ -95,14 +95,15 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
-    // Keep url/position through Vaul's exit animation, then clear so the next open
-    // remounts ContentView and shows the normal loading bar again (not dynamic sizing).
+    // Keep position through Vaul's exit — resetting to 'right' mid-animation makes a
+    // bottom/left/top drawer look like a right drawer closing. Only clear url/options
+    // after exit so the next open remounts ContentView (loading bar). Position is set
+    // again in openDrawer().
     if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
     clearTimerRef.current = setTimeout(() => {
       clearTimerRef.current = null;
       setDrawerUrl(null);
       setOptions(null);
-      setPosition(DEFAULT_DRAWER_POSITION);
     }, DRAWER_CLOSE_CLEAR_MS);
   }, []);
 
