@@ -85,7 +85,7 @@ const config: ShellUIConfig = {
 **Features:**
 
 - **Taskbar**: Bottom taskbar with app buttons and system clock
-- **Start Menu**: Click the start button to see all navigation items
+- **Start Menu**: Categorized app launcher (navigation groups become sections), polished list with icons, and open-window indicators
 - **Multi-Window**: Each navigation item opens in its own window
 - **Window Management**:
   - Drag windows to reposition
