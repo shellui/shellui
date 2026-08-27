@@ -111,7 +111,7 @@ const config: ShellUIConfig = {
 
 ## App Bar Layout
 
-The app bar layout uses a compact **38px** top bar for navigation. Start destinations open from a single control (9-square icon + current page name) that opens a wrapping icon strip (icon above, title below). End links stay icon-only with a tooltip.
+The app bar layout uses a compact **38px** top bar for navigation. Start destinations open from a single control (9-square icon + current page name). The menu is a wrapping flex row of icon tiles; navigation groups sit in a muted panel with the category title floating on the top edge. End links stay icon-only with a tooltip.
 
 ```typescript
 const config: ShellUIConfig = {
@@ -141,7 +141,7 @@ const config: ShellUIConfig = {
 **Features:**
 
 - **Top bar**: Fixed 38px chrome (aligned with Tauri overlay titlebar height)
-- **Launcher**: 9-square + current page name opens an icon strip (larger icons; auto-fill up to 6 columns; up to 50vw on desktop; scrolls when tall)
+- **Launcher**: 9-square + current page name opens a wrapping flex row of fixed icon tiles (panel shrink-wraps to content, max 50vw); groups use a muted background with a floating category title; scrolls when tall.
 - **Current item**: Page name next to the launcher icon in one clickable control; then Back/Forward on Tauri
 - **End links**: Icon-only (or first letter) with tooltip on hover
 - **Desktop app (Tauri):** traffic-light inset, Back/Forward controls, and window-drag regions on the bar

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState, type ReactNode } from 'react';
+import { useMemo, useEffect, useState, Fragment, type ReactNode } from 'react';
 import { Link, useLocation, Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -154,12 +154,38 @@ function NavItemGlyph({
   item,
   label,
   className,
+  /** Rounded muted tile with a compact icon inside (app-bar launcher). */
+  tiled = false,
 }: {
   item: NavigationItem;
   label: string;
   className?: string;
+  tiled?: boolean;
 }) {
   const iconSrc = itemIconSrc(item);
+  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
+
+  if (tiled) {
+    return (
+      <span
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-sm ring-1 ring-border/60',
+          className,
+        )}
+        aria-hidden
+      >
+        {iconSrc ? (
+          <NavIcon
+            src={iconSrc}
+            className="size-5"
+          />
+        ) : (
+          <span className="text-xs font-semibold">{firstLetter}</span>
+        )}
+      </span>
+    );
+  }
+
   if (iconSrc) {
     return (
       <NavIcon
@@ -168,7 +194,6 @@ function NavItemGlyph({
       />
     );
   }
-  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
   return (
     <span
       className={cn(
@@ -280,6 +305,69 @@ function resolveSelectedDisplay(
   };
 }
 
+function AppBarLauncherTile({
+  item,
+  label,
+  activePathPrefix,
+  onActivate,
+  onNavigate,
+}: {
+  item: NavigationItem;
+  label: string;
+  activePathPrefix: string | null;
+  onActivate: (item: NavigationItem) => void;
+  onNavigate: () => void;
+}) {
+  const isActive = navItemIsActive(item, activePathPrefix);
+  const pathPrefix = getNavPathPrefix(item);
+  const tileClass =
+    'group flex w-[7rem] shrink-0 flex-col items-center justify-start rounded-md px-1 pt-4 pb-2 text-center focus:bg-transparent data-[highlighted]:bg-transparent';
+  const body = (
+    <span
+      className={cn(
+        'flex aspect-square w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-md p-2 transition-colors',
+        'hover:bg-accent/80 hover:text-accent-foreground',
+        'group-data-[highlighted]:bg-accent/80 group-data-[highlighted]:text-accent-foreground',
+        isActive && 'bg-accent/80 text-accent-foreground',
+      )}
+    >
+      <NavItemGlyph
+        item={item}
+        label={label}
+        tiled
+      />
+      <span className="line-clamp-2 w-full text-center text-[11px] leading-snug font-medium break-words">
+        {label}
+      </span>
+    </span>
+  );
+
+  if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
+    return (
+      <DropdownMenuItem
+        className={tileClass}
+        onSelect={() => onActivate(item)}
+      >
+        {body}
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      className={tileClass}
+      asChild
+    >
+      <Link
+        to={pathPrefix}
+        onClick={onNavigate}
+      >
+        {body}
+      </Link>
+    </DropdownMenuItem>
+  );
+}
+
 function AppBarLauncher({
   sections,
   activePathPrefix,
@@ -295,13 +383,26 @@ function AppBarLauncher({
     () => resolveSelectedDisplay(sections, activePathPrefix, currentLanguage),
     [sections, activePathPrefix, currentLanguage],
   );
-  const items = useMemo(() => sections.flatMap((section) => section.items), [sections]);
 
   const activateItem = (item: NavigationItem) => {
     if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
       navigateToItem(item);
       setOpen(false);
     }
+  };
+
+  const renderTile = (item: NavigationItem, index: number) => {
+    const label = resolveNavLabel(item.label, currentLanguage) || item.path || 'Home';
+    return (
+      <AppBarLauncherTile
+        key={`${item.path}-${item.url}-${index}`}
+        item={item}
+        label={label}
+        activePathPrefix={activePathPrefix}
+        onActivate={activateItem}
+        onNavigate={() => setOpen(false)}
+      />
+    );
   };
 
   return (
@@ -329,59 +430,30 @@ function AppBarLauncher({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="start"
-          className="w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] max-h-[min(32rem,var(--radix-dropdown-menu-content-available-height,32rem))] overflow-y-auto p-2 md:w-[50vw] md:max-w-[50vw]"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          className="w-max min-w-0 max-w-[calc(100vw-1.5rem)] max-h-[min(32rem,var(--radix-dropdown-menu-content-available-height,32rem))] overflow-y-auto p-3 pt-4 md:max-w-[50vw]"
         >
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(max(5.25rem,100%/6),1fr))] gap-1">
-            {items.map((item, index) => {
-              const label = resolveNavLabel(item.label, currentLanguage) || item.path || 'Home';
-              const isActive = navItemIsActive(item, activePathPrefix);
-              const pathPrefix = getNavPathPrefix(item);
-              const tileClass = cn(
-                'flex h-auto w-full min-w-0 flex-col items-center justify-start gap-1.5 rounded-md px-1 py-2.5 text-center',
-                isActive && 'bg-accent text-accent-foreground',
-              );
-              const body = (
-                <>
-                  <NavItemGlyph
-                    item={item}
-                    label={label}
-                    className="size-8"
-                  />
-                  <span className="line-clamp-2 w-full text-[11px] leading-tight font-medium">
-                    {label}
-                  </span>
-                </>
-              );
-
-              if (
-                item.openIn === 'modal' ||
-                item.openIn === 'drawer' ||
-                item.openIn === 'external'
-              ) {
+          <div className="flex flex-row flex-wrap items-start gap-x-2 gap-y-4">
+            {sections.map((section, sectionIndex) => {
+              if (section.type === 'group') {
+                const categoryLabel = resolveLocalizedLabel(section.title, currentLanguage);
                 return (
-                  <DropdownMenuItem
-                    key={`${item.path}-${item.url}-${index}`}
-                    className={tileClass}
-                    onSelect={() => activateItem(item)}
+                  <div
+                    key={`group-${categoryLabel}-${sectionIndex}`}
+                    className="relative inline-flex max-w-full flex-row flex-wrap gap-1.5 rounded-xl bg-muted/50 px-1.5 py-0 ring-1 ring-border/50"
                   >
-                    {body}
-                  </DropdownMenuItem>
+                    <span className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 rounded-sm bg-popover px-1.5 text-[10px] font-medium leading-none text-muted-foreground">
+                      {categoryLabel}
+                    </span>
+                    {section.items.map((item, index) => renderTile(item, index))}
+                  </div>
                 );
               }
 
               return (
-                <DropdownMenuItem
-                  key={`${item.path}-${item.url}-${index}`}
-                  className={tileClass}
-                  asChild
-                >
-                  <Link
-                    to={pathPrefix}
-                    onClick={() => setOpen(false)}
-                  >
-                    {body}
-                  </Link>
-                </DropdownMenuItem>
+                <Fragment key={`items-${sectionIndex}`}>
+                  {section.items.map((item, index) => renderTile(item, index))}
+                </Fragment>
               );
             })}
           </div>
