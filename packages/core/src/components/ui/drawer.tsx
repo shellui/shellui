@@ -2,18 +2,26 @@
 
 import {
   forwardRef,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
   type ComponentProps,
   type ComponentPropsWithoutRef,
   type ComponentRef,
   type ReactNode,
   type CSSProperties,
   type HTMLAttributes,
+  type PointerEvent as ReactPointerEvent,
 } from 'react';
 import { Drawer as VaulDrawer } from 'vaul';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
 
 export type DrawerDirection = 'top' | 'bottom' | 'left' | 'right';
+
+const MIN_DRAWER_SIZE = 240;
+const VIEWPORT_MARGIN = 8;
 
 const Drawer = ({
   open,
@@ -75,6 +83,38 @@ const drawerContentByDirection: Record<DrawerDirection, string> = {
     'fixed inset-y-0 right-0 ml-24 flex h-full w-auto flex-col rounded-l-xl border border-border bg-background',
 };
 
+/** Free-edge resize handle (opposite the anchored side). */
+const resizeHandleByDirection: Record<DrawerDirection, { className: string; cursor: string }> = {
+  right: {
+    className: 'absolute left-0 top-3 bottom-3 w-1.5 -translate-x-1/2',
+    cursor: 'ew-resize',
+  },
+  left: {
+    className: 'absolute right-0 top-3 bottom-3 w-1.5 translate-x-1/2',
+    cursor: 'ew-resize',
+  },
+  bottom: {
+    className: 'absolute top-0 left-3 right-3 h-1.5 -translate-y-1/2',
+    cursor: 'ns-resize',
+  },
+  top: {
+    className: 'absolute bottom-0 left-3 right-3 h-1.5 translate-y-1/2',
+    cursor: 'ns-resize',
+  },
+};
+
+function maxPrimarySize(direction: DrawerDirection): number {
+  const isVertical = direction === 'top' || direction === 'bottom';
+  return Math.max(
+    MIN_DRAWER_SIZE,
+    (isVertical ? window.innerHeight : window.innerWidth) - VIEWPORT_MARGIN,
+  );
+}
+
+function clampDrawerSize(px: number, direction: DrawerDirection): number {
+  return Math.min(Math.max(px, MIN_DRAWER_SIZE), maxPrimarySize(direction));
+}
+
 interface DrawerContentProps extends Omit<
   ComponentPropsWithoutRef<typeof VaulDrawer.Content>,
   'direction'
@@ -91,6 +131,13 @@ interface DrawerContentProps extends Omit<
   showDragHandle?: boolean;
   /** Forwarded to overlay — when false, backdrop clicks do not close. */
   closeOnOverlayClick?: boolean;
+  /**
+   * When true (default), show a resize handle on the free edge (desktop).
+   * Drawers are not movable.
+   */
+  resizable?: boolean;
+  /** When the drawer opens, manual resize override is cleared. */
+  open?: boolean;
 }
 
 const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, DrawerContentProps>(
@@ -104,22 +151,123 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
       showCloseButton = true,
       showDragHandle = false,
       closeOnOverlayClick = true,
+      resizable = true,
+      open,
       ...props
     },
     ref,
   ) => {
     const pos: DrawerDirection = direction;
     const isVertical = pos === 'top' || pos === 'bottom';
-    // Set dimension via inline style; use both width/height and max so Vaul/defaults don't override.
-    const effectiveSize = size?.trim() || (isVertical ? '80dvh' : '80vw');
+    const contentRef = useRef<HTMLDivElement | null>(null);
+    const [overridePx, setOverridePx] = useState<number | null>(null);
+    const [isResizing, setIsResizing] = useState(false);
+    const resizeStart = useRef<{ pointer: number; size: number } | null>(null);
+    const wasOpenRef = useRef(false);
+
+    // Each open starts from the requested/default size — ignore prior manual resize
+    useEffect(() => {
+      const justOpened = open === true && !wasOpenRef.current;
+      wasOpenRef.current = open === true;
+      if (justOpened) {
+        setOverridePx(null);
+        resizeStart.current = null;
+        setIsResizing(false);
+      }
+    }, [open]);
+
+    // New size/direction from the open call → drop manual override
+    useEffect(() => {
+      setOverridePx(null);
+    }, [size, direction]);
+
+    // Keep resized drawer within the viewport when the browser shrinks
+    useEffect(() => {
+      if (overridePx === null) return;
+      const onResize = () => {
+        setOverridePx((prev) => (prev === null ? prev : clampDrawerSize(prev, pos)));
+      };
+      window.addEventListener('resize', onResize);
+      return () => window.removeEventListener('resize', onResize);
+    }, [overridePx, pos]);
+
+    const setRefs = useCallback(
+      (node: HTMLDivElement | null) => {
+        contentRef.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref],
+    );
+
+    const beginResize = useCallback(
+      (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (!resizable) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const el = contentRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const current = isVertical ? rect.height : rect.width;
+        resizeStart.current = {
+          pointer: isVertical ? e.clientY : e.clientX,
+          size: overridePx ?? current,
+        };
+        setOverridePx(clampDrawerSize(overridePx ?? current, pos));
+        setIsResizing(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+      },
+      [resizable, isVertical, overridePx, pos],
+    );
+
+    const onResizeMove = useCallback(
+      (e: ReactPointerEvent<HTMLDivElement>) => {
+        const start = resizeStart.current;
+        if (!start) return;
+        const pointer = isVertical ? e.clientY : e.clientX;
+        const delta = pointer - start.pointer;
+        // Dragging the free edge: right drawer grows when pointer moves left
+        let next = start.size;
+        if (pos === 'right') next = start.size - delta;
+        else if (pos === 'left') next = start.size + delta;
+        else if (pos === 'bottom') next = start.size - delta;
+        else next = start.size + delta;
+        setOverridePx(clampDrawerSize(next, pos));
+      },
+      [isVertical, pos],
+    );
+
+    const endResize = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+      if (!resizeStart.current) return;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
+      resizeStart.current = null;
+      setIsResizing(false);
+    }, []);
+
+    const effectiveSize =
+      overridePx !== null ? `${overridePx}px` : size?.trim() || (isVertical ? '80dvh' : '80vw');
     const sizeStyle: CSSProperties =
-      size === null
+      overridePx !== null
         ? isVertical
-          ? { maxHeight: 'min(90dvh, 100dvh)' }
-          : { maxWidth: 'min(90vw, 100%)' }
-        : isVertical
-          ? { height: effectiveSize, maxHeight: `min(${effectiveSize}, 100dvh)` }
-          : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
+          ? {
+              height: effectiveSize,
+              maxHeight: `min(${effectiveSize}, calc(100dvh - ${VIEWPORT_MARGIN}px))`,
+            }
+          : {
+              width: effectiveSize,
+              maxWidth: `min(${effectiveSize}, calc(100vw - ${VIEWPORT_MARGIN}px))`,
+            }
+        : size === null
+          ? isVertical
+            ? { maxHeight: 'min(90dvh, 100dvh)' }
+            : { maxWidth: 'min(90vw, 100%)' }
+          : isVertical
+            ? { height: effectiveSize, maxHeight: `min(${effectiveSize}, 100dvh)` }
+            : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
 
     const handlePositionClass =
       pos === 'bottom'
@@ -130,19 +278,22 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
             ? 'my-auto ml-auto mr-2 h-[100px] w-1.5 absolute right-2 top-1/2 -translate-y-1/2'
             : 'my-auto mr-auto ml-2 h-[100px] w-1.5 absolute left-2 top-1/2 -translate-y-1/2';
 
+    const resizeHandle = resizeHandleByDirection[pos];
+
     return (
       <DrawerPortal>
         <DrawerOverlay closeOnClick={closeOnOverlayClick} />
         <VaulDrawer.Content
-          ref={ref}
+          ref={setRefs}
           data-drawer-content
           data-drawer-direction={pos}
+          data-drawer-resizing={isResizing ? 'true' : undefined}
           className={cn('outline-none', drawerContentByDirection[pos], className)}
           style={{
             backgroundColor: 'var(--background)',
             zIndex: Z_INDEX.DRAWER_CONTENT,
-            transitionProperty: 'height, width, max-height, max-width',
-            transitionDuration: '200ms',
+            transitionProperty: isResizing ? 'none' : 'height, width, max-height, max-width',
+            transitionDuration: isResizing ? '0ms' : '200ms',
             transitionTimingFunction: 'ease',
             ...sizeStyle,
             ...style,
@@ -178,6 +329,20 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
               </svg>
               <span className="sr-only">Close</span>
             </VaulDrawer.Close>
+          )}
+          {resizable && (
+            <div
+              data-drawer-resize-handle
+              className={cn('z-20 touch-none', resizeHandle.className)}
+              style={{ cursor: resizeHandle.cursor }}
+              onPointerDown={beginResize}
+              onPointerMove={onResizeMove}
+              onPointerUp={endResize}
+              onPointerCancel={endResize}
+              role="separator"
+              aria-orientation={isVertical ? 'horizontal' : 'vertical'}
+              aria-label="Resize drawer"
+            />
           )}
         </VaulDrawer.Content>
       </DrawerPortal>

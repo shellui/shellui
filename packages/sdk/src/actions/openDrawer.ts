@@ -24,6 +24,7 @@ export function openDrawer(options?: OpenDrawerOptions): void {
         dismissible: options.dismissible,
         closeOnOverlayClick: options.closeOnOverlayClick,
         showDragHandle: options.showDragHandle,
+        resizable: options.resizable,
       }
     : {};
 

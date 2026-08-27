@@ -254,6 +254,8 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         dismissible={modalDismiss.dismissible}
         closeOnOverlayClick={modalDismiss.closeOnOverlayClick}
         showDragHandle={modalDismiss.showDragHandle && modalDismiss.dismissible}
+        movable={modalOptions?.movable !== false}
+        resizable={modalOptions?.resizable !== false}
       >
         {modalUrl ? (
           <OverlayIframe
@@ -277,6 +279,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
       >
         <DrawerContent
           direction={drawerPosition}
+          open={isDrawerOpen}
           size={
             drawerReported
               ? drawerPosition === 'top' || drawerPosition === 'bottom'
@@ -289,6 +292,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           showCloseButton={drawerDismiss.showCloseButton}
           showDragHandle={drawerDismiss.showDragHandle && drawerDismiss.dismissible}
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
+          resizable={!isMobile && drawerOptions?.resizable !== false}
         >
           {drawerUrl ? (
             <>

@@ -159,6 +159,8 @@ shellui.openModal({
   showCloseButton: true,
   dismissible: true,
   closeOnOverlayClick: true,
+  movable: true, // default — drag top edge (desktop/tablet)
+  resizable: true, // default — resize edges/corners (desktop/tablet)
 });
 
 shellui.closeModal();
@@ -181,6 +183,7 @@ shellui.openDrawer({
   showDragHandle: true,
   dismissible: true,
   closeOnOverlayClick: true,
+  resizable: true, // default on desktop — drag free edge; not movable
 });
 
 shellui.closeDrawer();

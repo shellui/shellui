@@ -46,8 +46,12 @@ shellui.openModal({
   showCloseButton: true, // default true — set false so the app owns dismiss UI
   dismissible: true, // Escape / swipe (default true)
   closeOnOverlayClick: true, // backdrop click (default true)
+  movable: true, // drag top edge on desktop/tablet (default true)
+  resizable: true, // resize from edges/corners (default true)
 });
 ```
+
+On desktop and tablet, modals are **movable** (drag the top edge — grab cursor on the border) and **resizable** (edges and corners) by default. The move hit target sits on the frame edge so content buttons stay clickable. Pass `movable: false` / `resizable: false` to lock them. Mobile sheet presentation ignores these flags.
 
 ### Closing Modals
 
@@ -115,6 +119,7 @@ shellui.openDrawer({
   showDragHandle: true, // default when dismissible
   dismissible: true,
   closeOnOverlayClick: true,
+  resizable: true, // default on desktop — drag free edge; not movable
 });
 
 // Freeform CSS length (backward compatible)
@@ -134,6 +139,8 @@ When `dismissible` is true (default), drawers show a theme-aware drag handle and
 - **Left / right**: drag toward the dismiss edge
 
 Set `showDragHandle: false` to hide the bar while keeping other dismiss paths, or `dismissible: false` to disable swipe / Escape.
+
+On desktop, drawers are **resizable** by default from the free edge (width for left/right, height for top/bottom). They are not movable. Pass `resizable: false` to lock size. Resize is disabled on mobile.
 
 ### Closing Drawers
 

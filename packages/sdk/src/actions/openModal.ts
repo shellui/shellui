@@ -31,6 +31,8 @@ export function openModal(urlOrOptions?: string | OpenModalOptions): void {
       showCloseButton: options.showCloseButton,
       dismissible: options.dismissible,
       closeOnOverlayClick: options.closeOnOverlayClick,
+      movable: options.movable,
+      resizable: options.resizable,
     },
   };
 

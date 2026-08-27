@@ -356,6 +356,23 @@ html.shellui-theme-switching
   transform: none;
 }
 
+/* User-moved / resized dialog — inline left/top/width/height own layout */
+[data-dialog-content][data-geometry='custom'] {
+  left: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  /* Never paint larger than the viewport even if state lags a resize */
+  max-width: calc(100vw - 16px) !important;
+  max-height: calc(100dvh - 16px) !important;
+}
+
+[data-dialog-content][data-window-interacting='true'] {
+  transition: none !important;
+  user-select: none;
+}
+
 /* Morph dialog ↔ sheet on resize without remounting iframe content */
 [data-dialog-content][data-presentation] {
   transition-property:

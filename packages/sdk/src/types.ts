@@ -319,6 +319,16 @@ export interface OverlayOpenOptions {
 
 export interface OpenModalOptions extends OverlayOpenOptions {
   url?: string;
+  /**
+   * When true (default), desktop/tablet dialog can be dragged by its title bar.
+   * Ignored for mobile sheet presentation.
+   */
+  movable?: boolean;
+  /**
+   * When true (default), desktop/tablet dialog can be resized from edges/corners.
+   * Ignored for mobile sheet presentation.
+   */
+  resizable?: boolean;
 }
 
 export interface OpenDrawerOptions extends OverlayOpenOptions {
@@ -329,6 +339,11 @@ export interface OpenDrawerOptions extends OverlayOpenOptions {
    * Defaults to true when `dismissible` is true.
    */
   showDragHandle?: boolean;
+  /**
+   * When true (default), desktop drawers can be resized from the free edge
+   * (left/right width, top/bottom height). Ignored on mobile. Not movable.
+   */
+  resizable?: boolean;
 }
 
 /** Child → parent size report for content-sized overlays. */
