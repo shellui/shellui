@@ -4,6 +4,7 @@ import { useAuth } from '../../features/auth/hooks/useAuth';
 import {
   filterNavigationForAuthState,
   flattenNavigationItems,
+  findMatchingNavigationItem,
   getBaseUrlWithoutHash,
   getHashPathFromUrl,
   getNavPathPrefix,
@@ -27,21 +28,14 @@ export function useNavigationItems() {
     return flattenNavigationItems(authAndDevFilteredNavigation);
   }, [config?.navigation, isAuthenticated, settings.developerFeatures.enabled]);
 
-  const navigationItem = useMemo(() => {
-    return navigationItems.find((item) => {
-      const pathPrefix = getNavPathPrefix(item);
-      return location.pathname === pathPrefix || location.pathname.startsWith(`${pathPrefix}/`);
-    });
-  }, [navigationItems, location.pathname]);
+  const navigationItem = useMemo(
+    () => findMatchingNavigationItem(navigationItems, location.pathname),
+    [navigationItems, location.pathname],
+  );
 
-  // When no nav matches (e.g. /layout on refresh): use root item (path '' or '/') with pathname as hash subpath to avoid 404
   const rootItem = useMemo(
     () => navigationItems.find((item) => item.path === '' || item.path === '/'),
     [navigationItems],
-  );
-  const isRootFallback = useMemo(
-    () => !navigationItem && Boolean(rootItem) && location.pathname !== '/',
-    [navigationItem, rootItem, location.pathname],
   );
 
   /**
@@ -51,49 +45,40 @@ export function useNavigationItems() {
    * If the navigation item is not found, it returns an empty string.
    */
   const url = useMemo(() => {
-    const pathname = location.pathname;
-
-    const useRootFallback = isRootFallback;
-    const actualNavItem = navigationItem ?? (useRootFallback ? rootItem : null);
-
-    if (!actualNavItem) {
+    if (!navigationItem) {
       return '';
     }
-    const actualSubPath = useRootFallback
-      ? pathname.replace(/^\//, '')
-      : actualNavItem
-        ? pathname.length > getNavPathPrefix(actualNavItem).length
-          ? pathname.slice(getNavPathPrefix(actualNavItem).length + 1)
-          : ''
+
+    const pathPrefix = getNavPathPrefix(navigationItem);
+    const subPath =
+      location.pathname.length > pathPrefix.length
+        ? location.pathname.slice(pathPrefix.length).replace(/^\//, '')
         : '';
 
-    const subPath = actualSubPath;
     // Construct the final URL for the iframe (non-hash: base + path; hash app: preserve nav url hash path + subPath)
-    let finalUrl: string;
-    if (isHashRouterNavItem(actualNavItem)) {
-      const base = getBaseUrlWithoutHash(actualNavItem.url).replace(/\/$/, '');
-      const navHashPath = getHashPathFromUrl(actualNavItem.url).replace(/^\/+|\/+$/g, '');
+    if (isHashRouterNavItem(navigationItem)) {
+      const base = getBaseUrlWithoutHash(navigationItem.url).replace(/\/$/, '');
+      const navHashPath = getHashPathFromUrl(navigationItem.url).replace(/^\/+|\/+$/g, '');
       const segments = [navHashPath, subPath].filter(Boolean);
       const fullHashPath = `/${segments.join('/')}`;
-      finalUrl = `${base}#${fullHashPath}`;
-    } else {
-      finalUrl = actualNavItem.url;
-      if (subPath) {
-        const baseUrl = actualNavItem.url.endsWith('/')
-          ? actualNavItem.url
-          : `${actualNavItem.url}/`;
-        finalUrl = `${baseUrl}${subPath}`;
-      }
+      return `${base}#${fullHashPath}`;
+    }
+
+    let finalUrl = navigationItem.url;
+    if (subPath) {
+      const baseUrl = navigationItem.url.endsWith('/')
+        ? navigationItem.url
+        : `${navigationItem.url}/`;
+      finalUrl = `${baseUrl}${subPath}`;
     }
     return finalUrl;
-  }, [navigationItem, rootItem, location.pathname, isRootFallback]);
+  }, [navigationItem, location.pathname]);
 
   return {
-    url: url,
-    rootItem: rootItem,
-    currentItem: navigationItem || rootItem,
-    navigationItem: navigationItem || rootItem,
-    navigationItems: navigationItems,
-    isRootFallback,
+    url,
+    rootItem,
+    currentItem: navigationItem,
+    navigationItem,
+    navigationItems,
   };
 }
