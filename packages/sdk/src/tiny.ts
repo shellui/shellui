@@ -132,17 +132,23 @@ const notifyUrl = () => {
   });
 };
 
-const wrapHistory = (fn: History['pushState']) =>
-  function (this: History, ...args: Parameters<History['pushState']>) {
-    const result = fn.apply(this, args);
-    notifyUrl();
-    return result;
-  };
-
 addEventListener('popstate', notifyUrl);
 addEventListener('hashchange', notifyUrl);
-history.pushState = wrapHistory(history.pushState);
-history.replaceState = wrapHistory(history.replaceState);
+// Embedded: pushState → replaceState so the iframe does not add joint session-history
+// entries; the shell mirrors routes and owns back/forward.
+const originalPush = history.pushState.bind(history);
+const originalReplace = history.replaceState.bind(history);
+const embedded = parent !== window;
+history.replaceState = function (...args: Parameters<History['replaceState']>) {
+  const result = originalReplace(...args);
+  notifyUrl();
+  return result;
+};
+history.pushState = function (...args: Parameters<History['pushState']>) {
+  const result = embedded ? originalReplace(...args) : originalPush(...args);
+  notifyUrl();
+  return result;
+};
 
 addEventListener('message', (event: MessageEvent) => {
   const data = event.data;

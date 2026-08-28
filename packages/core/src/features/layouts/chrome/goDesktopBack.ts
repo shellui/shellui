@@ -14,17 +14,23 @@ export type DesktopBackIframe = {
 export type DesktopBackResult = 'iframe' | 'overlay' | 'router';
 export type DesktopForwardResult = 'iframe' | 'router';
 
+/** Compare iframe locations; keeps hash so hash-router apps can go back/forward in-iframe. */
 export function normalizeHref(href: string, base = 'http://localhost'): string {
   try {
     const url = new URL(href, base);
-    url.hash = '';
-    return url.href.replace(/\/$/, '');
+    const path = url.pathname.replace(/\/$/, '') || '/';
+    return `${url.origin}${path === '/' ? '' : path}${url.search}${url.hash}`;
   } catch {
     return href.replace(/\/$/, '');
   }
 }
 
-export function tryGoBackInIframe(iframe: DesktopBackIframe, baseHref?: string): boolean {
+/**
+ * Only handle foreign-origin navigations (e.g. OAuth). Same-origin SPA / hash routes are
+ * mirrored in the shell URL history — router back/forward + ContentView sync owns those.
+ * Calling iframe history.back() here would fight shell history (duplicate or skipped entries).
+ */
+export function tryGoBackInIframe(iframe: DesktopBackIframe, _baseHref?: string): boolean {
   if (!iframe.isConnected) return false;
 
   if (iframe.getAttribute(IFRAME_FOREIGN_ATTR) === 'true') {
@@ -34,19 +40,6 @@ export function tryGoBackInIframe(iframe: DesktopBackIframe, baseHref?: string):
       iframe.removeAttribute(IFRAME_FOREIGN_ATTR);
       return true;
     }
-  }
-
-  try {
-    const win = iframe.contentWindow;
-    if (!win) return false;
-    const current = win.location.href;
-    const assignedHref = new URL(iframe.src, baseHref || 'http://localhost').href;
-    if (normalizeHref(current, baseHref) !== normalizeHref(assignedHref, baseHref)) {
-      win.history.back();
-      return true;
-    }
-  } catch {
-    // Cross-origin and not flagged as a later navigation — leave the iframe as-is.
   }
 
   return false;
@@ -77,7 +70,10 @@ export function goDesktopBack(options: {
   return 'router';
 }
 
-/** Same-origin iframe forward when location actually changes (SPA navigations). */
+/**
+ * Same-origin iframe forward is disabled for the same reason as back: shell URL history
+ * mirrors the app. Keep the helper for tests / potential foreign-doc use later.
+ */
 export function tryGoForwardInIframe(iframe: DesktopBackIframe, baseHref?: string): boolean {
   if (!iframe.isConnected) return false;
   try {
@@ -92,10 +88,8 @@ export function tryGoForwardInIframe(iframe: DesktopBackIframe, baseHref?: strin
   }
 }
 
-export function goForwardInIframes(iframes: DesktopBackIframe[], baseHref?: string): boolean {
-  for (let index = iframes.length - 1; index >= 0; index -= 1) {
-    if (tryGoForwardInIframe(iframes[index], baseHref)) return true;
-  }
+export function goForwardInIframes(_iframes: DesktopBackIframe[], _baseHref?: string): boolean {
+  // Shell owns mirrored SPA history — do not forward inside content iframes.
   return false;
 }
 

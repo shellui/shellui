@@ -41,8 +41,9 @@ function mockIframe(
 }
 
 describe('normalizeHref', () => {
-  it('strips trailing slashes and hashes', () => {
-    expect(normalizeHref('http://localhost/app/#/foo')).toBe('http://localhost/app');
+  it('strips trailing slashes but keeps hash for hash-router apps', () => {
+    expect(normalizeHref('http://localhost/app/#/foo')).toBe('http://localhost/app#/foo');
+    expect(normalizeHref('http://localhost/app/')).toBe('http://localhost/app');
   });
 });
 
@@ -59,7 +60,7 @@ describe('tryGoBackInIframe', () => {
     expect(iframe.getAttribute(IFRAME_FOREIGN_ATTR)).toBeNull();
   });
 
-  it('calls history.back when the iframe URL differs from its assigned src', () => {
+  it('does not use iframe history for same-origin SPA routes (shell owns history)', () => {
     const back = vi.fn();
     const iframe = mockIframe({
       src: 'http://localhost/app',
@@ -69,26 +70,27 @@ describe('tryGoBackInIframe', () => {
       },
     });
 
-    expect(tryGoBackInIframe(iframe, 'http://localhost')).toBe(true);
-    expect(back).toHaveBeenCalledOnce();
+    expect(tryGoBackInIframe(iframe, 'http://localhost')).toBe(false);
+    expect(back).not.toHaveBeenCalled();
   });
 
-  it('does nothing when the iframe is still on its assigned src', () => {
+  it('does not use iframe history when only the hash differs', () => {
     const back = vi.fn();
     const iframe = mockIframe({
+      src: 'http://localhost:5173/#/',
       contentWindow: {
-        location: { href: 'http://localhost/app' },
+        location: { href: 'http://localhost:5173/#/layout' },
         history: { back, forward: vi.fn() },
       },
     });
 
-    expect(tryGoBackInIframe(iframe, 'http://localhost')).toBe(false);
+    expect(tryGoBackInIframe(iframe, 'http://localhost:5173/')).toBe(false);
     expect(back).not.toHaveBeenCalled();
   });
 });
 
 describe('tryGoForwardInIframe', () => {
-  it('calls history.forward and succeeds when the URL changes', () => {
+  it('still detects whether forward would change the URL', () => {
     const location = { href: 'http://localhost/app' };
     const forward = vi.fn(() => {
       location.href = 'http://localhost/app/login';
@@ -104,34 +106,18 @@ describe('tryGoForwardInIframe', () => {
     expect(tryGoForwardInIframe(iframe, 'http://localhost')).toBe(true);
     expect(forward).toHaveBeenCalledOnce();
   });
-
-  it('returns false when forward does not change the URL', () => {
-    const forward = vi.fn();
-    const iframe = mockIframe({
-      contentWindow: {
-        location: { href: 'http://localhost/app' },
-        history: { back: vi.fn(), forward },
-      },
-    });
-
-    expect(tryGoForwardInIframe(iframe, 'http://localhost')).toBe(false);
-    expect(forward).toHaveBeenCalledOnce();
-  });
 });
 
 describe('goDesktopBack', () => {
-  it('prefers iframe history over closing overlays', () => {
-    const back = vi.fn();
+  it('prefers foreign iframe reset over closing overlays', () => {
     const closeOverlays = vi.fn();
     const iframes = [
       mockIframe({
+        foreign: true,
         src: 'http://localhost/app',
-        contentWindow: {
-          location: { href: 'http://localhost/app/login' },
-          history: { back, forward: vi.fn() },
-        },
       }),
     ];
+    iframes[0].src = 'https://accounts.example/login';
 
     expect(
       goDesktopBack({
@@ -141,7 +127,7 @@ describe('goDesktopBack', () => {
         baseHref: 'http://localhost',
       }),
     ).toBe('iframe');
-    expect(back).toHaveBeenCalledOnce();
+    expect(iframes[0].src).toBe('http://localhost/app');
     expect(closeOverlays).not.toHaveBeenCalled();
   });
 
@@ -158,35 +144,49 @@ describe('goDesktopBack', () => {
     expect(closeOverlays).toHaveBeenCalledOnce();
   });
 
-  it('falls back to router back', () => {
+  it('falls back to router back for mirrored SPA navigations', () => {
+    const goRouterBack = vi.fn();
+    const back = vi.fn();
+    expect(
+      goDesktopBack({
+        iframes: [
+          mockIframe({
+            src: 'http://localhost:5173/#/',
+            contentWindow: {
+              location: { href: 'http://localhost:5173/#/layout' },
+              history: { back, forward: vi.fn() },
+            },
+          }),
+        ],
+        goRouterBack,
+        baseHref: 'http://localhost:5173/',
+      }),
+    ).toBe('router');
+    expect(goRouterBack).toHaveBeenCalledOnce();
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it('falls back to router back when no iframe action applies', () => {
     const goRouterBack = vi.fn();
     expect(goDesktopBack({ iframes: [], goRouterBack })).toBe('router');
     expect(goRouterBack).toHaveBeenCalledOnce();
   });
 
-  it('walks iframes from the topmost (last) entry', () => {
+  it('walks iframes from the topmost (last) entry for foreign resets', () => {
     expect(goBackInIframes([])).toBe(false);
-    const topBack = vi.fn();
-    const result = goBackInIframes(
-      [
-        mockIframe(),
-        mockIframe({
-          src: 'http://localhost/modal',
-          contentWindow: {
-            location: { href: 'http://localhost/modal/login' },
-            history: { back: topBack, forward: vi.fn() },
-          },
-        }),
-      ],
-      'http://localhost',
-    );
+    const top = mockIframe({
+      foreign: true,
+      src: 'http://localhost/modal',
+    });
+    top.src = 'https://accounts.example/login';
+    const result = goBackInIframes([mockIframe(), top], 'http://localhost');
     expect(result).toBe(true);
-    expect(topBack).toHaveBeenCalledOnce();
+    expect(top.src).toBe('http://localhost/modal');
   });
 });
 
 describe('goDesktopForward', () => {
-  it('prefers iframe forward over router', () => {
+  it('uses router forward (shell owns mirrored SPA history)', () => {
     const location = { href: 'http://localhost/app' };
     const forward = vi.fn(() => {
       location.href = 'http://localhost/app/next';
@@ -205,9 +205,9 @@ describe('goDesktopForward', () => {
         goRouterForward,
         baseHref: 'http://localhost',
       }),
-    ).toBe('iframe');
-    expect(forward).toHaveBeenCalledOnce();
-    expect(goRouterForward).not.toHaveBeenCalled();
+    ).toBe('router');
+    expect(goRouterForward).toHaveBeenCalledOnce();
+    expect(forward).not.toHaveBeenCalled();
   });
 
   it('falls back to router forward', () => {

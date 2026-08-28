@@ -39,7 +39,10 @@ export function handleUrlChange(sdk: ShellSDKLike): void {
 }
 
 /**
- * Sets up listeners for various URL change events
+ * Sets up listeners for various URL change events.
+ * When embedded in a shell iframe, pushState is downgraded to replaceState so the
+ * iframe does not add joint session-history entries — the shell mirrors routes and
+ * owns the back/forward stack.
  */
 export function setupUrlMonitoring(sdk: ShellSDKLike): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -49,23 +52,59 @@ export function setupUrlMonitoring(sdk: ShellSDKLike): void {
   window.addEventListener('popstate', () => handleUrlChange(sdk));
   window.addEventListener('hashchange', () => handleUrlChange(sdk));
 
-  const originalPushState = window.history.pushState;
-  const originalReplaceState = window.history.replaceState;
+  const originalPushState = window.history.pushState.bind(window.history);
+  const originalReplaceState = window.history.replaceState.bind(window.history);
+  // Only when embedded: apps that call shellui.init() in a top-level tab keep normal history.
+  const embedded = window.parent !== window;
 
   window.history.pushState = function (...args: Parameters<History['pushState']>) {
-    originalPushState.apply(this, args);
+    if (embedded) {
+      originalReplaceState(...args);
+    } else {
+      originalPushState(...args);
+    }
     handleUrlChange(sdk);
   };
 
   window.history.replaceState = function (...args: Parameters<History['replaceState']>) {
-    originalReplaceState.apply(this, args);
+    originalReplaceState(...args);
     handleUrlChange(sdk);
   };
 
-  document.addEventListener('click', (e: MouseEvent) => {
-    const link = (e.target as Element)?.closest('a');
-    if (link && link.href && new URL(link.href).origin === window.location.origin) {
-      setTimeout(() => handleUrlChange(sdk), 0);
-    }
-  });
+  document.addEventListener(
+    'click',
+    (e: MouseEvent) => {
+      const link = (e.target as Element)?.closest('a');
+      if (!link || !link.href) return;
+      // Don't intercept modified clicks (new tab, etc.)
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+        return;
+      }
+      if (link.target && link.target !== '' && link.target !== '_self') {
+        return;
+      }
+      try {
+        const next = new URL(link.href);
+        if (next.origin !== window.location.origin) return;
+
+        // Same-document hash links normally push joint history; replace instead when embedded.
+        if (
+          embedded &&
+          next.pathname === window.location.pathname &&
+          next.search === window.location.search &&
+          next.hash !== window.location.hash
+        ) {
+          e.preventDefault();
+          originalReplaceState(null, '', `${next.pathname}${next.search}${next.hash || ''}`);
+          handleUrlChange(sdk);
+          return;
+        }
+
+        setTimeout(() => handleUrlChange(sdk), 0);
+      } catch {
+        // ignore invalid URLs
+      }
+    },
+    true,
+  );
 }
