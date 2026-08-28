@@ -18,6 +18,7 @@ export default defineConfig({
       'src/features/overlays/**/*.spec.ts',
       'src/features/theme/**/*.spec.ts',
       'src/features/layouts/chrome/**/*.spec.ts',
+      'src/features/layouts/branding/**/*.spec.ts',
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       '../sdk/src/**/*.spec.ts',
     ],

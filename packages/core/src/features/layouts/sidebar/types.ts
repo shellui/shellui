@@ -1,8 +1,8 @@
-import type { NavigationItem, NavigationGroup } from '../../config/types';
+import type { NavigationItem, NavigationGroup, ThemeAsset } from '../../config/types';
 
 export interface SidebarLayoutProps {
   title?: string;
-  appIcon?: string;
-  logo?: string;
+  appIcon?: ThemeAsset;
+  logo?: ThemeAsset;
   navigation: (NavigationItem | NavigationGroup)[];
 }

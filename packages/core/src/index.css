@@ -304,17 +304,28 @@ html.shellui-theme-switching
     filter: invert(1);
   }
 
-  /* Sidebar app icon - match text color for visibility */
-  /* In light mode: make icon dark to match dark text */
-  [data-sidebar='sidebar'] img.sidebar-app-icon {
+  /* Brand app icon - match chrome text color for visibility.
+   * Single-path assets use filters; paired light/dark files use .app-brand-icon-static (no filter). */
+  img.app-brand-icon,
+  [data-sidebar='sidebar'] img.sidebar-app-icon,
+  [data-layout='app-bar'] img.app-bar-app-icon,
+  img.windows-app-icon {
     filter: brightness(0) saturate(100%);
     opacity: 0.9;
   }
 
-  /* In dark mode: invert to make icon light to match light text */
-  .dark [data-sidebar='sidebar'] img.sidebar-app-icon {
+  .dark img.app-brand-icon,
+  .dark [data-sidebar='sidebar'] img.sidebar-app-icon,
+  .dark [data-layout='app-bar'] img.app-bar-app-icon,
+  .dark img.windows-app-icon {
     filter: brightness(0) invert(1) saturate(100%);
     opacity: 0.9;
+  }
+
+  /* Paired light/dark brand assets — show as authored (wins over layout-specific filters) */
+  img.app-brand-icon-static {
+    filter: none !important;
+    opacity: 1;
   }
 
   /* Sidebar logo - dark in light mode, white in dark mode */

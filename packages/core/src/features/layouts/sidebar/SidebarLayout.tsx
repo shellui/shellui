@@ -60,7 +60,7 @@ function CollapsedTitlebarOffset() {
   return null;
 }
 
-const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
+const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
@@ -118,6 +118,8 @@ const SidebarLayoutContent = ({ title, navigation }: SidebarLayoutProps) => {
           startNav={startNav}
           endItems={endItems}
           showAuthButton={!hasCustomLoginNav || isAuthenticated}
+          title={title}
+          appIcon={appIcon}
         />
         <SidebarRail />
       </Sidebar>

@@ -20,12 +20,12 @@
           "description": "Favicon path (e.g. '/favicon.svg'). Used for the document link rel=\"icon\"."
         },
         "appIcon": {
-          "type": "string",
-          "description": "App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header."
+          "$ref": "#/definitions/ThemeAsset",
+          "description": "Small square app icon (e.g. '/app-icon.svg'). Shown in the sidebar header, app-bar, and windows start menu. Use a string for SVG/mono icons (auto light/dark via CSS), or `{ light, dark }` for paired PNGs."
         },
         "logo": {
-          "type": "string",
-          "description": "Logo path (e.g. '/logo.svg'). If defined, displayed as image in sidebar header instead of text title."
+          "$ref": "#/definitions/ThemeAsset",
+          "description": "Logo path (e.g. '/logo.svg'). Wider wordmark; use a string or `{ light, dark }` pair. Prefer `appIcon` for the small square mark in chrome."
         },
         "language": {
           "anyOf": [
@@ -122,10 +122,31 @@
       },
       "additionalProperties": false
     },
+    "ThemeAsset": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "light": {
+              "type": "string"
+            },
+            "dark": {
+              "type": "string"
+            }
+          },
+          "required": ["light", "dark"],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Brand asset path, or separate light/dark files when CSS theming is not enough (typical for full-color PNGs). A single SVG/PNG is recolored for light/dark via CSS."
+    },
     "LayoutType": {
       "type": "string",
       "enum": ["sidebar", "fullscreen", "windows", "app-bar"],
-      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with select menu for start links and icon-only end links."
+      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links."
     },
     "NavigationItem": {
       "type": "object",
@@ -171,7 +192,7 @@
         },
         "hiddenOnMobile": {
           "type": "boolean",
-          "description": "When true, hide this item on mobile (bottom nav). Has no effect if hidden is true."
+          "description": "When true, hide this item on mobile (sidebar sheet). Has no effect if hidden is true."
         },
         "hiddenOnDesktop": {
           "type": "boolean",

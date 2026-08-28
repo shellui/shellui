@@ -227,9 +227,17 @@ export function resolveTauriCli(projectRoot) {
  * @returns {string}
  */
 export function resolveSourceIconPath(projectRoot, config) {
-  if (config?.appIcon) {
-    const appIconPath = path.join(projectRoot, config.appIcon.replace(/^\//, ''));
+  const appIcon =
+    typeof config?.appIcon === 'string'
+      ? config.appIcon
+      : config?.appIcon?.light || config?.appIcon?.dark;
+
+  if (appIcon) {
+    const appIconPath = path.join(projectRoot, String(appIcon).replace(/^\//, ''));
     if (fs.existsSync(appIconPath)) return appIconPath;
+    // Also try under static/ when config uses a bare filename
+    const staticPath = path.join(projectRoot, 'static', String(appIcon).replace(/^\//, ''));
+    if (fs.existsSync(staticPath)) return staticPath;
   }
 
   const faviconPath = path.join(projectRoot, 'static/favicon.svg');

@@ -2,7 +2,13 @@ import { useMemo, useEffect, useState, Fragment, type ReactNode } from 'react';
 import { Link, useLocation, Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup, LocalizedString } from '../../config/types';
+import type {
+  NavigationItem,
+  NavigationGroup,
+  LocalizedString,
+  ThemeAsset,
+} from '../../config/types';
+import { AppBrandIcon } from '../branding/AppBrandIcon';
 import {
   filterNavigationForAuthState,
   filterNavigationByViewport,
@@ -39,8 +45,8 @@ import {
 
 interface AppBarLayoutProps {
   title?: string;
-  appIcon?: string;
-  logo?: string;
+  appIcon?: ThemeAsset;
+  logo?: ThemeAsset;
   navigation: (NavigationItem | NavigationGroup)[];
 }
 
@@ -553,7 +559,7 @@ function TopBarEndItem({
   );
 }
 
-export function AppBarLayout({ title, navigation }: AppBarLayoutProps) {
+export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
@@ -623,6 +629,16 @@ export function AppBarLayout({ title, navigation }: AppBarLayoutProps) {
         data-layout="app-bar"
         {...(trafficLights ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
       >
+        {appIcon ? (
+          <AppBrandIcon
+            appIcon={appIcon}
+            title={title}
+            data-shellui-no-drag=""
+            className="mr-1"
+            imgClassName="app-bar-app-icon"
+          />
+        ) : null}
+
         {hasStartNav ? (
           <AppBarLauncher
             sections={startSections}

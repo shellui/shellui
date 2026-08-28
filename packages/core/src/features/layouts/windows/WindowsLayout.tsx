@@ -9,7 +9,12 @@ import {
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup, LocalizedString } from '../../config/types';
+import type {
+  NavigationItem,
+  NavigationGroup,
+  LocalizedString,
+  ThemeAsset,
+} from '../../config/types';
 import {
   filterNavigationForAuthState,
   flattenNavigationItems,
@@ -27,11 +32,12 @@ import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
+import { AppBrandIcon } from '../branding/AppBrandIcon';
 
 interface WindowsLayoutProps {
   title?: string;
-  appIcon?: string;
-  logo?: string;
+  appIcon?: ThemeAsset;
+  logo?: ThemeAsset;
   navigation: (NavigationItem | NavigationGroup)[];
 }
 
@@ -522,12 +528,7 @@ function getBrowserTimezone(): string {
   return 'UTC';
 }
 
-export function WindowsLayout({
-  title,
-  appIcon: _appIcon,
-  logo: _logo,
-  navigation,
-}: WindowsLayoutProps) {
+export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
   const location = useLocation();
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -753,7 +754,16 @@ export function WindowsLayout({
             aria-haspopup="true"
             aria-label="Start"
           >
-            <StartIcon className="h-5 w-5" />
+            {appIcon ? (
+              <AppBrandIcon
+                appIcon={appIcon}
+                title={title}
+                linkToHome={false}
+                imgClassName="windows-app-icon size-5"
+              />
+            ) : (
+              <StartIcon className="h-5 w-5" />
+            )}
             <span className="font-semibold text-sm hidden sm:inline">{title || 'Start'}</span>
           </button>
           {/* Start menu panel */}

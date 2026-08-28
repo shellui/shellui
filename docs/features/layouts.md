@@ -31,6 +31,31 @@ const config: ShellUIConfig = {
 - Supports icons, groups, and positioning
 - Works with all navigation features
 - Themed via sidebar CSS variables (`--sidebar-*`) for light and dark modes
+- Optional `appIcon`: small square mark at the top of the expanded sidebar (left of the collapse control); hidden when the sidebar is collapsed
+
+## Branding (`appIcon` / `logo`)
+
+```json
+{
+  "appIcon": "/app-icon.svg",
+  "logo": "/logo.svg"
+}
+```
+
+- **`appIcon`**: Small square brand mark. Shown in the sidebar header (expanded), at the start of the app-bar, and on the windows start button.
+- **Single path** (SVG or mono PNG): Shellui recolors it for light/dark via CSS.
+- **Paired files** (typical for full-color PNGs):
+
+```json
+{
+  "appIcon": {
+    "light": "/app-icon-light.png",
+    "dark": "/app-icon-dark.png"
+  }
+}
+```
+
+- **`logo`**: Wider wordmark asset (optional). Prefer `appIcon` for chrome.
 
 ## Fullscreen Layout
 
@@ -207,7 +232,7 @@ function MyComponent() {
 
 ### App Bar Layout
 
-- **Top bar**: Fixed max height of 42px; logo/title and select stay compact
+- **Top bar**: Fixed max height of 42px; optional `appIcon` before the launcher, then start links stay compact
 - **Start vs end**: Use `position: 'end'` on navigation items to show them as icon-only buttons on the right
 - **Tooltips**: End links show full name on hover via native tooltip
 - **Icons**: Set `icon` on items for end bar; omit for first-letter fallback

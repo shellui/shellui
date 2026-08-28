@@ -192,6 +192,17 @@ export interface AdministrationConfig {
   navigation: NavigationItem[];
 }
 
+/**
+ * Brand asset path, or separate light/dark files when CSS theming is not enough
+ * (typical for full-color PNGs). A single SVG/PNG is recolored for light/dark via CSS.
+ */
+export type ThemeAsset =
+  | string
+  | {
+      light: string;
+      dark: string;
+    };
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -199,10 +210,17 @@ export interface ShellUIConfig {
   version?: string;
   /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */
   favicon?: string;
-  /** App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header. */
-  appIcon?: string;
-  /** Logo path (e.g. '/logo.svg'). If defined, displayed as image in sidebar header instead of text title. */
-  logo?: string;
+  /**
+   * Small square app icon (e.g. '/app-icon.svg').
+   * Shown in the sidebar header, app-bar, and windows start menu.
+   * Use a string for SVG/mono icons (auto light/dark via CSS), or `{ light, dark }` for paired PNGs.
+   */
+  appIcon?: ThemeAsset;
+  /**
+   * Logo path (e.g. '/logo.svg'). Wider wordmark; use a string or `{ light, dark }` pair.
+   * Prefer `appIcon` for the small square mark in chrome.
+   */
+  logo?: ThemeAsset;
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
   layout?: LayoutType;
