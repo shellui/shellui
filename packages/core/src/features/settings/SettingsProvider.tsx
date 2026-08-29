@@ -11,6 +11,7 @@ import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
 import { isAdminFrame } from '../admin/utils';
+import { isFrameForAppUrl } from '../layouts/utils';
 import { defaultTheme } from '../theme/themes';
 import {
   buildSettingsForPropagation,
@@ -28,49 +29,8 @@ const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AUTH_LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
-const toAbsoluteUrl = (url: string): URL | null => {
-  try {
-    return new URL(
-      url,
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-    );
-  } catch {
-    return null;
-  }
-};
-
-const normalizePath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return '/';
-  const withoutTrailing = trimmed.replace(/\/+$/, '');
-  return withoutTrailing || '/';
-};
-
-const normalizeHashPath = (value: string): string => {
-  const hash = value.replace(/^#\/?/, '').replace(/\/+$/, '');
-  return hash;
-};
-
-const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean => {
-  const frame = toAbsoluteUrl(frameSrc);
-  const item = toAbsoluteUrl(itemUrl);
-  if (!frame || !item) return false;
-  if (frame.origin !== item.origin) return false;
-
-  const itemPathname = normalizePath(item.pathname);
-  const framePathname = normalizePath(frame.pathname);
-  if (framePathname !== itemPathname && !framePathname.startsWith(`${itemPathname}/`)) {
-    return false;
-  }
-
-  const itemHashPath = normalizeHashPath(item.hash);
-  if (!itemHashPath) {
-    return true;
-  }
-
-  const frameHashPath = normalizeHashPath(frame.hash);
-  return frameHashPath === itemHashPath || frameHashPath.startsWith(`${itemHashPath}/`);
-};
+const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean =>
+  isFrameForAppUrl(frameSrc, itemUrl);
 
 const stripSensitiveUserFields = (settings: Settings): Settings => {
   return {

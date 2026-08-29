@@ -30,6 +30,10 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 - **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.
 - **App-bar layout:** 38px chrome bar with text start links (left sheet on mobile), title-only brand (no logo), icon end links, and the same Tauri traffic-light / Back/Forward / drag treatment as the sidebar.
 
+### 🐛 Bug Fixes
+
+- **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
+
 ### 🚨 Changed
 
 - CSS variables are full colors (`oklch(...)` / hex) consumed via `var(--token)` (no longer HSL channel triples).
