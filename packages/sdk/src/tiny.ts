@@ -120,9 +120,9 @@ const applySettings = (settings?: {
   emit('region', region);
 };
 
-const notifyUrl = () => {
+const notifyUrl = (force = false) => {
   const fullPath = location.pathname + location.search + location.hash;
-  if (fullPath === path) return;
+  if (!force && fullPath === path) return;
   path = fullPath;
   post('SHELLUI_URL_CHANGED', {
     pathname: location.pathname,
@@ -132,8 +132,15 @@ const notifyUrl = () => {
   });
 };
 
-addEventListener('popstate', notifyUrl);
-addEventListener('hashchange', notifyUrl);
+const postUrlParts = (pathname: string, search: string, hash: string) => {
+  const fullPath = pathname + search + hash;
+  if (fullPath === path) return;
+  path = fullPath;
+  post('SHELLUI_URL_CHANGED', { pathname, search, hash, fullPath });
+};
+
+addEventListener('popstate', () => notifyUrl());
+addEventListener('hashchange', () => notifyUrl());
 // Embedded: pushState → replaceState so the iframe does not add joint session-history
 // entries; the shell mirrors routes and owns back/forward.
 const originalPush = history.pushState.bind(history);
@@ -150,6 +157,46 @@ history.pushState = function (...args: Parameters<History['pushState']>) {
   return result;
 };
 
+// MPA + same-document hash: report destination URLs (History API alone misses full loads).
+document.addEventListener(
+  'click',
+  (event: MouseEvent) => {
+    const link = (event.target as Element | null)?.closest?.('a');
+    if (!link?.href) return;
+    if (
+      event.defaultPrevented ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+    if (link.target && link.target !== '' && link.target !== '_self') return;
+    try {
+      const next = new URL(link.href);
+      if (next.origin !== location.origin) return;
+
+      if (
+        embedded &&
+        next.pathname === location.pathname &&
+        next.search === location.search &&
+        next.hash !== location.hash
+      ) {
+        event.preventDefault();
+        originalReplace(null, '', `${next.pathname}${next.search}${next.hash || ''}`);
+        notifyUrl();
+        return;
+      }
+
+      postUrlParts(next.pathname, next.search, next.hash);
+    } catch {
+      /* ignore invalid hrefs */
+    }
+  },
+  true,
+);
+
 addEventListener('message', (event: MessageEvent) => {
   const data = event.data;
   if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
@@ -164,8 +211,11 @@ addEventListener('message', (event: MessageEvent) => {
   }
 });
 
-if (parent !== window) post('SHELLUI_SETTINGS_REQUESTED');
-else {
+if (embedded) {
+  post('SHELLUI_SETTINGS_REQUESTED');
+  // Share the current path as soon as the script loads (MPA cold starts / deep links).
+  notifyUrl(true);
+} else {
   ready = true;
   resolveReady();
 }
