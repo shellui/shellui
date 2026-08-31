@@ -87,19 +87,10 @@ export function setupUrlMonitoring(sdk: ShellSDKLike): void {
         const next = new URL(link.href);
         if (next.origin !== window.location.origin) return;
 
-        // Same-document hash links normally push joint history; replace instead when embedded.
-        if (
-          embedded &&
-          next.pathname === window.location.pathname &&
-          next.search === window.location.search &&
-          next.hash !== window.location.hash
-        ) {
-          e.preventDefault();
-          originalReplaceState(null, '', `${next.pathname}${next.search}${next.hash || ''}`);
-          handleUrlChange(sdk);
-          return;
-        }
-
+        // Do not preventDefault on same-document hash links. HashRouter / createHashRouter
+        // SPAs own those clicks; stealing them (replaceState without popstate) updates the
+        // shell URL while leaving the SPA on the previous route. Embedded pushState is
+        // already downgraded to replaceState above, which covers SPA joint-history.
         setTimeout(() => handleUrlChange(sdk), 0);
       } catch {
         // ignore invalid URLs

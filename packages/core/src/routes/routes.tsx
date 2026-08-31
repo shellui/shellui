@@ -186,6 +186,8 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
 
   // Root app (/ and /:deep): pathless parent + index/* children so ContentView does not
   // remount when moving between / and /layout (that remount was wiping shell history).
+  // Leaf children need an element (even null) or React Router warns and renders an empty
+  // Outlet — IndexRoute itself paints the iframe; the leaves only keep the parent matched.
   // Without a root nav item, index still uses IndexRoute (HomeView / start_url).
   if (hasRootNavItem) {
     (layoutRoute.children as RouteObject[]).push({
@@ -194,7 +196,10 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           <IndexRoute />
         </Suspense>
       ),
-      children: [{ index: true }, { path: '*' }],
+      children: [
+        { index: true, element: null },
+        { path: '*', element: null },
+      ],
     });
   } else {
     (layoutRoute.children as RouteObject[]).push({

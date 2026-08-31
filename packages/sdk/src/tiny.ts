@@ -177,18 +177,8 @@ document.addEventListener(
       const next = new URL(link.href);
       if (next.origin !== location.origin) return;
 
-      if (
-        embedded &&
-        next.pathname === location.pathname &&
-        next.search === location.search &&
-        next.hash !== location.hash
-      ) {
-        event.preventDefault();
-        originalReplace(null, '', `${next.pathname}${next.search}${next.hash || ''}`);
-        notifyUrl();
-        return;
-      }
-
+      // Do not steal same-document hash clicks — HashRouter SPAs need them. Embedded
+      // pushState → replaceState above already avoids joint history for SPA navigations.
       postUrlParts(next.pathname, next.search, next.hash);
     } catch {
       /* ignore invalid hrefs */
