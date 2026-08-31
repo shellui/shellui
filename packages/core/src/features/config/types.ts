@@ -139,6 +139,10 @@ export interface BackendLoginConfig {
   methods?: BackendLoginMethod[];
   /** OAuth providers used when oauth is enabled (e.g. ["github"]). */
   oauthProviders?: string[];
+  /** Full-bleed iframe URL for the login left panel (wins over panelImage). */
+  panelUrl?: string;
+  /** Centered, ratio-preserving image for the login left panel. */
+  panelImage?: string;
 }
 
 /** Backend API configuration. */

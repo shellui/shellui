@@ -867,6 +867,14 @@
             "type": "string"
           },
           "description": "OAuth providers used when oauth is enabled (e.g. [\"github\"])."
+        },
+        "panelUrl": {
+          "type": "string",
+          "description": "Full-bleed iframe URL for the login left panel. When set, takes precedence over panelImage."
+        },
+        "panelImage": {
+          "type": "string",
+          "description": "Centered, ratio-preserving image path or URL for the login left panel (e.g. \"/login-panel.jpg\")."
         }
       },
       "additionalProperties": false,

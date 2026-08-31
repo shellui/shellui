@@ -69,6 +69,36 @@ Shellui registers fixed auth routes (see `urls` in `@shellui/core`):
 
 You do **not** implement these pages in your microfrontends. They are part of the shell router.
 
+### Login left panel branding
+
+On desktop, `/login` shows a full-height left panel beside the sign-in form. Both branding fields are optional — omit them to keep the default muted panel with the shell `appIcon` in the top left (same mark as the layout chrome).
+
+| Field        | Behavior                                                                             |
+| ------------ | ------------------------------------------------------------------------------------ |
+| `panelUrl`   | Full-bleed iframe filling the left half. Wins when both fields are set.              |
+| `panelImage` | Centered image scaled with `object-contain` (full width or height, ratio preserved). |
+| _(neither)_  | Grey (`bg-muted/40`) panel with clickable `appIcon` top left (links home).           |
+
+On mobile, the same square `appIcon` is pinned top-left while the sign-in form stays vertically centered. Full-screen login also shows discreet language (when multiple languages are configured) and light/dark controls at the top right of the form column.
+
+```typescript
+const config: ShellUIConfig = {
+  backend: {
+    type: 'shellui',
+    url: 'http://localhost:8000',
+    login: {
+      methods: ['oauth'],
+      oauthProviders: ['github'],
+      // Prefer one of:
+      panelUrl: 'http://localhost:5176/login-branding/',
+      // panelImage: '/login-panel.jpg',
+    },
+  },
+};
+```
+
+Relative image paths (e.g. `/login-panel.jpg`) are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
+
 ### `next` query parameter
 
 Protected routes redirect to `/login?next=<encoded-path>`. After a successful sign-in, Shellui navigates to `next` (normalized to an in-app path). Example: `/billing` → `/login?next=%2Fbilling`.

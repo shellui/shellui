@@ -81,16 +81,18 @@ Local Supabase CLI commonly uses `url: 'http://localhost:54321'` and the publish
 
 ## `backend` fields
 
-| Field                  | Required      | Description                                                                                                                                 |
-| ---------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `type`                 | yes           | `'shellui'` or `'supabase'`.                                                                                                                |
-| `url`                  | yes           | API base URL (no trailing slash).                                                                                                           |
-| `publishableKey`       | Supabase      | Public API key sent as `apikey` on auth requests.                                                                                           |
-| `companyId`            | Shellui OAuth | Tenant id sent on OAuth exchange and authorize flows.                                                                                       |
-| `adminPathname`        | no            | Shell route path for the embedded admin panel (default staff entry from the user menu).                                                     |
-| `adminUrl`             | no            | URL loaded inside the admin route (for example a Vite admin app).                                                                           |
-| `login.methods`        | no            | `password` \| `oauth` \| `magic_link` \| `web3` — controls which controls the login page may show after intersecting with backend settings. |
-| `login.oauthProviders` | no            | Provider ids (for example `github`, `google`) used for OAuth buttons and ordering.                                                          |
+| Field                  | Required      | Description                                                                                                                                                       |
+| ---------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | yes           | `'shellui'` or `'supabase'`.                                                                                                                                      |
+| `url`                  | yes           | API base URL (no trailing slash).                                                                                                                                 |
+| `publishableKey`       | Supabase      | Public API key sent as `apikey` on auth requests.                                                                                                                 |
+| `companyId`            | Shellui OAuth | Tenant id sent on OAuth exchange and authorize flows.                                                                                                             |
+| `adminPathname`        | no            | Shell route path for the embedded admin panel (default staff entry from the user menu).                                                                           |
+| `adminUrl`             | no            | URL loaded inside the admin route (for example a Vite admin app).                                                                                                 |
+| `login.methods`        | no            | `password` \| `oauth` \| `magic_link` \| `web3` — controls which controls the login page may show after intersecting with backend settings.                       |
+| `login.oauthProviders` | no            | Provider ids (for example `github`, `google`) used for OAuth buttons and ordering.                                                                                |
+| `login.panelUrl`       | no            | Full-bleed iframe URL for the login page left panel (desktop). Takes precedence over `panelImage`. When neither is set, the muted panel shows `appIcon` top left. |
+| `login.panelImage`     | no            | Centered, ratio-preserving image path or URL for the login page left panel (e.g. `/login-panel.jpg` from `static/`).                                              |
 
 TypeScript types live in `BackendConfig` and `BackendLoginConfig` in `@shellui/core`.
 
