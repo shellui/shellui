@@ -3,6 +3,10 @@ import {flushSync} from 'react-dom';
 import {useColorMode} from '@docusaurus/theme-common';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import IconMenu from '@theme/Icon/Menu';
+import {
+  isShelluiEmbedded,
+  sendColorSchemeToShell,
+} from '../../../lib/shelluiTheme';
 
 const THEME_OPTIONS = [
   {value: 'light', label: 'Light'},
@@ -27,8 +31,12 @@ function applyColorModeWithTransition(setColorMode, nextMode, event) {
     '(prefers-reduced-motion: reduce)',
   ).matches;
 
-  if (!document.startViewTransition || prefersReducedMotion) {
-    setColorMode(nextMode);
+  if (
+    isShelluiEmbedded() ||
+    !document.startViewTransition ||
+    prefersReducedMotion
+  ) {
+    setColorMode(nextMode, {persist: !isShelluiEmbedded()});
     return;
   }
 
@@ -90,11 +98,17 @@ export default function DesktopMenu() {
 
     // Only animate when the visible theme actually changes
     if (nextEffective === colorMode) {
-      setColorMode(nextMode);
+      setColorMode(nextMode, {persist: !isShelluiEmbedded()});
+      if (isShelluiEmbedded()) {
+        sendColorSchemeToShell(optionValue);
+      }
       return;
     }
 
     applyColorModeWithTransition(setColorMode, nextMode, event);
+    if (isShelluiEmbedded()) {
+      sendColorSchemeToShell(optionValue);
+    }
   };
 
   return (
