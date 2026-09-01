@@ -189,6 +189,50 @@ export function stringifyConfigJson(config) {
 }
 
 /**
+ * Whether this directory has a shellui config (main JSON, split, or TS).
+ * @param {string} configDir
+ * @returns {boolean}
+ */
+export function directoryHasShelluiConfig(configDir) {
+  try {
+    return discoverConfigMode(configDir).mode !== 'none';
+  } catch {
+    // Conflict (main + split) still means config lives here
+    return true;
+  }
+}
+
+/**
+ * Walk from startDir upward looking for shellui config.
+ * Stops at the first directory that contains a `.git` entry (file or directory)
+ * after checking that directory, or at the filesystem root.
+ *
+ * @param {string} [startDir]
+ * @returns {string | null} Absolute config directory, or null if none found
+ */
+export function findProjectConfigDir(startDir = process.cwd()) {
+  let dir = path.resolve(startDir);
+  const { root } = path.parse(dir);
+
+  while (true) {
+    if (directoryHasShelluiConfig(dir)) {
+      return dir;
+    }
+    if (fs.existsSync(path.join(dir, '.git'))) {
+      return null;
+    }
+    if (dir === root) {
+      return null;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      return null;
+    }
+    dir = parent;
+  }
+}
+
+/**
  * Resolve where Shellui config files live.
  *
  * `--config` / `SHELLUI_CONFIG` may be:

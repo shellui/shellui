@@ -53,7 +53,7 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-Run the identity service locally (see the `identity-service` package README in the monorepo): configure OAuth env vars, run migrations, and register OAuth apps with callback URL `http://localhost:8000/api/v1/oauth/callback` and shell origin `http://localhost:4000`.
+Run the identity service locally (see the `identity-service` package README in the monorepo). Register each OAuth provider app with a **single** callback URL on the identity host: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company **OAuth redirect allowlist** in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is always allowed for CLI login.
 
 ### Supabase
 

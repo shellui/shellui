@@ -155,6 +155,12 @@ export interface BackendConfig {
   adminPathname?: string;
   /** Admin content URL loaded in the admin route view (e.g. "https://example.com/admin"). */
   adminUrl?: string;
+  /**
+   * Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live.
+   * Used by `shellui login`. Not the iframe admin app (`adminUrl`).
+   * Example: `https://app.example.com` or `http://127.0.0.1:4000`.
+   */
+  loginUrl?: string;
   /** Optional Supabase publishable key (public key). */
   publishableKey?: string;
   /** Optional login capabilities used by frontend for immediate rendering. */

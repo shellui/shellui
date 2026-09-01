@@ -29,6 +29,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 - **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (200–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
 - **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.
 - **App-bar layout:** 38px chrome bar with text start links (left sheet on mobile), title-only brand (no logo), icon end links, and the same Tauri traffic-light / Back/Forward / drag treatment as the sidebar.
+- **Identity-hosted login flow:** shell and CLI clients use identity-service authorize → provider callback → account confirmation → token bounce. Shell `OAuthCallbackView` accepts fragment landings from identity (`hashHasOAuthTokens`); CLI `shellui login` opens authorize without `provider` so identity shows the method picker (`--provider` skips it). Loopback callbacks no longer require a running shell `loginUrl`.
 
 ### 🐛 Bug Fixes
 
@@ -45,6 +46,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 - Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
 - Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com) as the recommended theme designer and note shadcn / other shared-theme platforms.
 - Document sidebar desktop collapse and mobile sheet behavior.
+- Document identity-hosted OAuth login for `shellui login` (method picker, confirmation, loopback callback).
 
 ## [0.4.1] - 2026-08-18
 

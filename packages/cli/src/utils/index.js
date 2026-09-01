@@ -12,6 +12,8 @@ export {
   TS_CONFIG_FILE,
   CONFIG_SCHEMA_REF,
   discoverConfigMode,
+  directoryHasShelluiConfig,
+  findProjectConfigDir,
   listSplitConfigFiles,
   resolveConfigLocation,
   getConfigPathOption,

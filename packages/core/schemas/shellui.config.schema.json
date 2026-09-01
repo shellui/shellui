@@ -829,6 +829,10 @@
           "type": "string",
           "description": "Admin content URL loaded in the admin route view (e.g. \"https://example.com/admin\")."
         },
+        "loginUrl": {
+          "type": "string",
+          "description": "Public origin (or URL) of this shell where /login and OAuth /login/callback live. Used by shellui login. Not the iframe admin app (adminUrl)."
+        },
         "publishableKey": {
           "type": "string",
           "description": "Optional Supabase publishable key (public key)."

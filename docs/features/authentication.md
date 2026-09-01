@@ -190,7 +190,9 @@ function Example() {
 
 `AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (Shellui JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
 
-Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. OAuth returns may deliver tokens in the URL hash; the shell persists them and strips the hash.
+Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. With the Shellui identity service, the provider redirects to identity `/api/v1/oauth/callback`, which then bounces to the shell `/login/callback` with tokens in the URL hash. The shell persists them and strips the hash. Older IdP configs that still send `?code=` to the shell continue to use `POST /oauth/exchange`.
+
+Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
 
 ## Company access and pending accounts
 

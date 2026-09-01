@@ -12,6 +12,7 @@ import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
 import {
   buildAuthUrlWithNext,
+  captureCliCallbackFromSearch,
   formatProviderLabel,
   getOAuthProviderCandidates,
   getPreferredBackendProvider,
@@ -19,6 +20,7 @@ import {
   isAccessPendingErrorCode,
   isLoginMethod,
   normalizeNextPath,
+  redirectToCliCallback,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { AccessPendingView } from './AccessPendingView';
@@ -92,6 +94,7 @@ export const LoginView = () => {
     startWeb3Ethereum,
     getAuthSettings,
     sendMagicLink,
+    session,
   } = useAuth();
   const configuredSettings = useMemo<AuthSettings>(() => {
     const configuredMethods = Array.isArray(config.backend?.login?.methods)
@@ -137,6 +140,10 @@ export const LoginView = () => {
   }, [nextPath]);
 
   useEffect(() => {
+    captureCliCallbackFromSearch(location.search);
+  }, [location.search]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const rawErr = params.get(SHELLUI_OAUTH_ERROR_PARAM);
     if (!rawErr) {
@@ -161,17 +168,19 @@ export const LoginView = () => {
   }, [location.hash, location.pathname, location.search, navigate, t]);
 
   useEffect(() => {
-    if (authEvent === 'oauth_callback' && isAuthenticated) {
+    if (authEvent === 'oauth_callback' && isAuthenticated && session) {
       clearAuthEvent();
+      if (redirectToCliCallback(session)) return;
       navigate(nextPath, { replace: true });
     }
-  }, [authEvent, clearAuthEvent, isAuthenticated, navigate, nextPath]);
+  }, [authEvent, clearAuthEvent, isAuthenticated, navigate, nextPath, session]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && session) {
+      if (redirectToCliCallback(session)) return;
       navigate(nextPath, { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate, nextPath]);
+  }, [authLoading, isAuthenticated, navigate, nextPath, session]);
 
   const supportsOAuth = configuredSettings.methods.includes('oauth');
   const supportsMagicLink = configuredSettings.methods.includes('magic_link');

@@ -183,6 +183,63 @@ shellui build --app
 npx shellui build --app --bundles app,dmg
 ```
 
+### `shellui login [root]`
+
+Sign in via browser OAuth against the identity service and store CLI credentials for later commands (for example publish).
+
+**Usage:**
+
+```bash
+shellui login
+shellui login ./my-project
+shellui login --config ./config
+shellui login --provider github
+```
+
+**Description:**
+
+- Finds `shellui.config.json` (or split config) by walking from the current directory (or `[root]`) up through parent folders, stopping at the nearest `.git`
+- Opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback` (loopback is always allowlisted)
+- Identity shows a sign-in method picker (even when only one provider is enabled), then account confirmation, then completes the provider callback and bounces tokens to the CLI loopback listener in the URL fragment
+- Stores access + refresh tokens in a user credentials file (mode `0600`)
+
+**Required config**
+
+- `backend.type`: `"shellui"`
+- `backend.companyId`
+- `backend.url` — identity API (default `https://id.shellui.com`)
+
+A running shell / `backend.loginUrl` is **not** required. Register the identity callback (`{backend.url}/api/v1/oauth/callback`) on the OAuth provider app.
+
+**Options:**
+
+- `root` (optional): Directory to start the config walk (default: current directory)
+- `--config <path>`: Explicit config file or directory (skips the walk). Also: `SHELLUI_CONFIG`
+- `--provider <name>`: Skip the method picker and go straight to that OAuth provider (e.g. `github`, `google`, `microsoft`)
+
+**Credentials file:**
+
+- macOS / Linux: `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`)
+- Windows: `%APPDATA%\shellui\credentials.json`
+
+Tokens are never printed. No extra OAuth app callback is required beyond the normal shell `/login/callback`.
+
+### `shellui logout`
+
+Remove stored CLI credentials (and best-effort `POST /api/v1/logout` when a token is present).
+
+```bash
+shellui logout
+```
+
+### `shellui whoami`
+
+Show the signed-in profile (`GET /api/v1/user`) using stored credentials. Refreshes the access token when expired.
+
+```bash
+shellui whoami
+```
+
 ## Configuration
 
 Shellui uses a JSON configuration file by default. The CLI looks for config in this order:

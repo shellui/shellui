@@ -3,9 +3,13 @@ import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import {
   buildAuthUrlWithNext,
+  captureCliCallbackFromSearch,
+  hashHasOAuthTokens,
   inferAccessPendingErrorCode,
   isAccessPendingErrorCode,
   normalizeNextPath,
+  redirectCliCallbackError,
+  redirectToCliCallback,
 } from '../utils';
 import { useAuth } from '../hooks/useAuth';
 import { AccessPendingView } from './AccessPendingView';
@@ -78,7 +82,7 @@ const looksLikeUsedOAuthCode = (message: string | null | undefined) => {
 export const OAuthCallbackView = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { completeOAuthCallback, isAuthenticated } = useAuth();
+  const { completeOAuthCallback, isAuthenticated, isLoading, session } = useAuth();
   const [localError, setLocalError] = useState<string | null>(null);
   const [pendingAccess, setPendingAccess] = useState<PendingAccess | null>(null);
   const [isWorking, setIsWorking] = useState(true);
@@ -88,19 +92,47 @@ export const OAuthCallbackView = () => {
     const params = new URLSearchParams(location.search);
     return normalizeNextPath(params.get('next')) ?? '/';
   }, [location.search]);
+  const fragmentHasTokens = useMemo(() => hashHasOAuthTokens(location.hash), [location.hash]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    captureCliCallbackFromSearch(location.search);
+  }, [location.search]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !session) return;
+    if (redirectToCliCallback(session)) return;
     navigate(nextPath, { replace: true });
-  }, [isAuthenticated, navigate, nextPath]);
+  }, [isAuthenticated, navigate, nextPath, session]);
 
   useEffect(() => {
     if (isAuthenticated) return;
+    // Identity bounce lands with tokens in the hash; AuthProvider restores the session.
+    // Stay on "Completing…" while hash is present or auth bootstrap is still running.
+    if (fragmentHasTokens || isLoading) {
+      setIsWorking(true);
+      setLocalError(null);
+      return;
+    }
 
     const params = new URLSearchParams(location.search);
     const oauthError = params.get('error');
     if (oauthError) {
+      if (redirectCliCallbackError(oauthError)) return;
       setLocalError(oauthError);
+      setIsWorking(false);
+      return;
+    }
+
+    const bounceError = params.get(SHELLUI_OAUTH_ERROR_PARAM);
+    if (bounceError) {
+      const bounceCode = params.get(SHELLUI_OAUTH_ERROR_CODE_PARAM) || 'oauth_error';
+      if (redirectCliCallbackError(bounceError, bounceCode)) return;
+      if (isAccessPendingErrorCode(bounceCode)) {
+        setPendingAccess({ message: bounceError, code: bounceCode });
+        setIsWorking(false);
+        return;
+      }
+      setLocalError(bounceError);
       setIsWorking(false);
       return;
     }
@@ -108,7 +140,9 @@ export const OAuthCallbackView = () => {
     const code = params.get('code');
     const provider = params.get('provider');
     if (!code || !provider) {
-      setLocalError('Missing OAuth callback parameters.');
+      const message = 'Missing OAuth callback parameters.';
+      if (redirectCliCallbackError(message)) return;
+      setLocalError(message);
       setIsWorking(false);
       return;
     }
@@ -116,6 +150,7 @@ export const OAuthCallbackView = () => {
     // If a previous attempt already learned this login is pending, show it without re-exchanging.
     const cachedPending = readPendingForCode(code);
     if (cachedPending) {
+      if (redirectCliCallbackError(cachedPending.message, cachedPending.code)) return;
       setPendingAccess(cachedPending);
       setIsWorking(false);
       navigate(buildLoginPendingUrl(nextPath, cachedPending), { replace: true });
@@ -161,6 +196,7 @@ export const OAuthCallbackView = () => {
             code: pendingCode,
           };
           writePendingForCode(code, pending);
+          if (redirectCliCallbackError(pending.message, pending.code)) return;
           setPendingAccess(pending);
           setIsWorking(false);
           if (!cancelled) {
@@ -172,6 +208,7 @@ export const OAuthCallbackView = () => {
         // Code was likely consumed by a cancelled first attempt that already marked pending.
         const recovered = readPendingForCode(code);
         if (recovered && looksLikeUsedOAuthCode(result.error)) {
+          if (redirectCliCallbackError(recovered.message, recovered.code)) return;
           setPendingAccess(recovered);
           setIsWorking(false);
           if (!cancelled) {
@@ -180,15 +217,15 @@ export const OAuthCallbackView = () => {
           return;
         }
 
-        setLocalError(result.error ?? 'Unable to complete OAuth login.');
+        const message = result.error ?? 'Unable to complete OAuth login.';
+        if (redirectCliCallbackError(message, result.errorCode)) return;
+        setLocalError(message);
         setIsWorking(false);
         return;
       }
 
       clearPendingForCode(code);
-      if (!cancelled) {
-        navigate(nextPath, { replace: true });
-      }
+      // Session is set in AuthProvider; the authenticated effect handles CLI bounce / next.
     };
 
     void run();
@@ -197,7 +234,9 @@ export const OAuthCallbackView = () => {
     };
   }, [
     completeOAuthCallback,
+    fragmentHasTokens,
     isAuthenticated,
+    isLoading,
     location.pathname,
     location.search,
     navigate,
