@@ -1,6 +1,6 @@
 {
   "name": "@shellui/cli",
-  "version": "0.5.0-alpha.2",
+  "version": "0.5.0-alpha.3",
   "description": "Shellui CLI - Command-line tool for Shellui",
   "main": "src/cli.js",
   "type": "module",
