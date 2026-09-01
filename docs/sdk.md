@@ -560,3 +560,4 @@ shellui.dialog(dialogOptions);
 - [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
 - [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
 - [Navigation](/features/navigation) - Navigation configuration
+- [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app) - Same-package CLI + Vite app (playground)

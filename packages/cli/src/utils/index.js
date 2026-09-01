@@ -47,6 +47,9 @@ export {
   createShelluiConfigPlugin,
   getShelluiConfigAlias,
   createViteResolveConfig,
+  createIsolatedViteConfig,
+  getShelluiViteCacheDir,
+  SHELLUI_VITE_CACHE_DIR,
   getShelluiTargetDefine,
   resolveShelluiTarget,
 } from './vite.js';

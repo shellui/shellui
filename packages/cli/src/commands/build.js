@@ -7,13 +7,9 @@ import { injectManifest } from 'workbox-build';
 import {
   loadConfig,
   getCoreSrcPath,
-  createResolveAlias,
-  createPostCSSConfig,
   createShelluiConfigPlugin,
-  getShelluiConfigAlias,
-  createViteResolveConfig,
+  createIsolatedViteConfig,
   resolvePackagePath,
-  getShelluiTargetDefine,
   writeGeneratedFrontendConfig,
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
@@ -127,26 +123,21 @@ export async function buildCommand(root = '.', options = {}) {
   // Get core package paths
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
-  const resolveConfig = createViteResolveConfig();
-  const resolveAlias = createResolveAlias();
-  const postcssConfig = createPostCSSConfig();
-  const targetDefine = getShelluiTargetDefine(config);
+  const isolated = createIsolatedViteConfig({
+    projectRoot,
+    coreSrcPath,
+    corePackagePath,
+    shelluiConfig: config,
+  });
   const distPath = getWebDistDir(root, cwd);
 
   try {
     // Build main app
     await build({
-      root: coreSrcPath,
+      ...isolated,
       plugins: [react(), createShelluiConfigPlugin(config)],
-      define: targetDefine,
-      resolve: {
-        ...resolveConfig,
-        alias: { ...resolveAlias, ...getShelluiConfigAlias() },
-      },
-      css: {
-        postcss: postcssConfig,
-      },
       build: {
+        ...isolated.build,
         outDir: distPath,
         emptyOutDir: true,
         sourcemap: true,
@@ -175,14 +166,11 @@ export async function buildCommand(root = '.', options = {}) {
 
     // Build service worker TypeScript to JavaScript
     await build({
-      root: coreSrcPath,
+      ...isolated,
+      publicDir: false,
       plugins: [createShelluiConfigPlugin(config)],
-      define: targetDefine,
-      resolve: {
-        ...resolveConfig,
-        alias: { ...resolveAlias, ...getShelluiConfigAlias() },
-      },
       build: {
+        ...isolated.build,
         outDir: distPath,
         emptyOutDir: false,
         sourcemap: true,

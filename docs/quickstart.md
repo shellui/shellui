@@ -177,6 +177,26 @@ my-shellui-app/
 └── node_modules/
 ```
 
+## Shell plus an embedded app
+
+The CLI only builds the **shell**. Your microfrontend is a normal app (Vite, Next, whatever) with its own scripts. Both can live in the **same package** — one `package.json`, one `pnpm install`.
+
+The [playground](https://github.com/shellui/playground) is that pattern: Shellui CLI for the host, Vite for the iframe demo.
+
+```json
+{
+  "scripts": {
+    "start": "shellui start",
+    "start:app": "vite",
+    "build": "shellui build && vite build"
+  }
+}
+```
+
+`shellui start` / `shellui build` are isolated from your app: they do not load `vite.config.*`, `postcss.config.*`, `tsconfig.json`, or `VITE_*`. Tailwind only scans `@shellui/core`. The shell cache is `node_modules/.vite-shellui`, so a colocated Vite app can keep the default `node_modules/.vite` (or its own `cacheDir`). See [CLI — Tooling isolation](/cli#tooling-isolation).
+
+Point navigation `url`s at the Vite origin in development (for example `http://localhost:5173/#/`) and at the built app path in production (playground writes `dist/web/app/` and sets `PLAYGROUND_APP_URL=/app`). Use [`@shellui/sdk`](/sdk) inside the iframe.
+
 ## Next Steps
 
 - **[Tauri](/tauri)** — Ship as a native desktop app with `shellui dev --app`

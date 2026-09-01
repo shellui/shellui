@@ -151,16 +151,45 @@ export function createResolveAlias() {
   return alias;
 }
 
+/** Vite prebundle cache — never `node_modules/.vite` (the consumer app's default). */
+export const SHELLUI_VITE_CACHE_DIR = '.vite-shellui';
+
+/**
+ * esbuild options that skip walking up to the consumer `tsconfig.json`.
+ * Matches @shellui/core JSX settings.
+ */
+const SHELLUI_ESBUILD_TSCONFIG_RAW = {
+  compilerOptions: {
+    target: 'ES2020',
+    jsx: 'automatic',
+    jsxImportSource: 'react',
+    useDefineForClassFields: true,
+    module: 'ESNext',
+    moduleResolution: 'bundler',
+    skipLibCheck: true,
+  },
+};
+
 /**
  * Create PostCSS configuration for Vite.
  * Provides Tailwind CSS v4 and autoprefixer plugins programmatically so the
- * CLI owns all CSS build dependencies — core doesn't need to ship postcss.config
- * or have CSS tooling in its own dependencies.
+ * CLI owns all CSS build dependencies.
+ * `scanBaseDir` is required — `@tailwindcss/postcss` defaults `base` to cwd,
+ * which would scan the consumer project.
+ * @param {string} scanBaseDir - Tailwind class scan root (core `src/`)
  * @returns {Object} PostCSS configuration for Vite's css.postcss option
  */
-export function createPostCSSConfig() {
+export function createPostCSSConfig(scanBaseDir) {
+  if (!scanBaseDir) {
+    throw new Error(
+      'createPostCSSConfig requires scanBaseDir (core src). Refusing to default Tailwind base to cwd.',
+    );
+  }
   return {
-    plugins: [tailwindcssPlugin(), autoprefixerPlugin()],
+    plugins: [
+      tailwindcssPlugin({ base: scanBaseDir }),
+      autoprefixerPlugin({ overrideBrowserslist: ['defaults'] }),
+    ],
   };
 }
 
@@ -170,4 +199,78 @@ export function createPostCSSConfig() {
  */
 export function createViteResolveConfig() {
   return {};
+}
+
+/**
+ * Vite cache directory for the shell (under the consumer project, not shared with the app).
+ * @param {string} projectRoot
+ * @returns {string}
+ */
+export function getShelluiViteCacheDir(projectRoot) {
+  return path.resolve(projectRoot, 'node_modules', SHELLUI_VITE_CACHE_DIR);
+}
+
+/**
+ * Inline Vite config that never loads the consumer project's tooling:
+ * `vite.config.*`, `postcss.config.*`, `tsconfig.json`, or `.env` / `VITE_*`.
+ * The shell only reads `shellui.config.*` and `static/`.
+ *
+ * @param {object} opts
+ * @param {string} opts.projectRoot
+ * @param {string} opts.coreSrcPath
+ * @param {string} opts.corePackagePath
+ * @param {object} [opts.shelluiConfig]
+ * @returns {import('vite').InlineConfig}
+ */
+export function createIsolatedViteConfig({
+  projectRoot,
+  coreSrcPath,
+  corePackagePath,
+  shelluiConfig,
+}) {
+  const cacheDir = getShelluiViteCacheDir(projectRoot);
+  const staticPath = path.join(projectRoot, 'static');
+  const publicDir = fs.existsSync(staticPath) ? staticPath : false;
+  const nodeModulesDir = path.join(projectRoot, 'node_modules');
+  const fsAllow = [corePackagePath, nodeModulesDir, cacheDir];
+  if (publicDir) fsAllow.push(staticPath);
+  if (shelluiConfig?.__themesDirAbs) fsAllow.push(shelluiConfig.__themesDirAbs);
+
+  return {
+    configFile: false,
+    envDir: false,
+    envPrefix: 'SHELLUI_PUBLIC_',
+    root: coreSrcPath,
+    cacheDir,
+    publicDir,
+    css: {
+      postcss: createPostCSSConfig(coreSrcPath),
+    },
+    esbuild: {
+      tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
+      },
+    },
+    define: getShelluiTargetDefine(shelluiConfig),
+    resolve: {
+      ...createViteResolveConfig(),
+      alias: {
+        ...createResolveAlias(),
+        ...getShelluiConfigAlias(),
+        '@shellui/core': corePackagePath,
+      },
+    },
+    server: {
+      fs: {
+        strict: true,
+        allow: fsAllow,
+      },
+    },
+    build: {
+      cssMinify: 'esbuild',
+    },
+  };
 }

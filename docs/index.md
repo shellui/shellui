@@ -71,3 +71,4 @@ Decision record: [ADR 0001 — Official shellui AI skill](/adr/ai-skill).
 - [Development guide](/development) — Contributing to Shellui
 - [Publishing guide](/publishing) — Releasing packages
 - [ADR 0001](/adr/ai-skill) — AI skill hosting, versioning, and token budget
+- [Playground](https://playground.shellui.com) ([source](https://github.com/shellui/playground)) — live demo; one package with `shellui start` plus a Vite iframe app (`pnpm start:app`)

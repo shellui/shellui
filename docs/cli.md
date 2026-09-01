@@ -112,6 +112,7 @@ shellui dev --app
 - Automatically opens your browser (on first start)
 - Watches for configuration file changes and restarts automatically
 - Uses the port specified in your configuration (default: 3000)
+- Does not load the project’s Vite / PostCSS / TypeScript / Tailwind config (see [Tooling isolation](#tooling-isolation))
 - With `--app`, starts a native desktop development environment (see [Desktop app](/tauri))
 
 **Options:**
@@ -157,6 +158,7 @@ shellui build --app --bundles app,dmg
 - Outputs optimized files to `dist/web/`
 - Minifies and optimizes assets
 - Creates a production-ready static site
+- Uses the same isolated toolchain as `shellui start` (see [Tooling isolation](#tooling-isolation))
 - With `--app`, builds a native desktop app (web assets to `dist/web/`, desktop wrapper and bundles under `dist/app/`)
 
 **Options:**
@@ -539,6 +541,26 @@ my-project/
 ```
 
 Only source files are committed — `dist/` is generated on each machine (`shellui init` adds `dist/` to `.gitignore`).
+
+The CLI does not replace your app toolchain. Put iframe apps in the same package if you want (scripts such as `"start": "shellui start"` and `"start:app": "vite"`), or keep them in another repo. See [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app). The [playground](https://github.com/shellui/playground) uses one pnpm project for both.
+
+## Tooling isolation
+
+`shellui start` and `shellui build` run an **inline** Vite config. They never search for or merge the consumer project’s toolchain. Colocating the shell and an iframe app in one folder is the supported pattern — you should only maintain your app plus `shellui.config.json` and `static/`.
+
+The CLI ignores:
+
+| Consumer file                           | What the shell uses instead                                              |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `vite.config.*`                         | Inline config (`configFile: false`), root = `@shellui/core`              |
+| `postcss.config.*`, `tailwind.config.*` | CLI PostCSS + Tailwind v4, scan limited to `@shellui/core/src`           |
+| `tsconfig.json` / `jsconfig.json`       | Inline `esbuild.tsconfigRaw` (React JSX)                                 |
+| `.env`, `.env.*`, `VITE_*`              | Vite `envDir: false`; `import.meta.env` prefix is `SHELLUI_PUBLIC_` only |
+| `node_modules/.vite`                    | `node_modules/.vite-shellui`                                             |
+
+`${VAR}` in `shellui.config.json` still reads process env (including a project `.env` via `dotenv`) at CLI load time. Those values are for config substitution, not for Vite `import.meta.env`.
+
+The dev server does not serve the project `src/` tree — only `@shellui/core`, `node_modules`, `static/`, and optional `themesDir`.
 
 ## Configuration Reference
 

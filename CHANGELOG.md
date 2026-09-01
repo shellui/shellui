@@ -23,6 +23,10 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ## [v0.5.0] - Work in progress
 
+### 📚 Documentation
+
+- Document running the shell CLI and an iframe Vite app in one package, using the playground as the example.
+
 ### ✨ Feature
 
 - **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
@@ -34,6 +38,8 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### 🐛 Bug Fixes
 
 - **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
+- **CLI isolation:** `shellui start` / `build` use an inline Vite config (`configFile: false`) so a colocated app’s `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` never affect the shell. Tailwind scans only `@shellui/core`. Cache is `node_modules/.vite-shellui` (not `node_modules/.vite`).
+- **Dev cache:** a colocated app Vite (default `node_modules/.vite`) no longer overwrites the shell’s prebundled deps (e.g. Settings failed to load `react-markdown`).
 
 ### 🚨 Changed
 

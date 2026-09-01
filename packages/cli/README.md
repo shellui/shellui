@@ -72,6 +72,8 @@ shellui build --config ./config/shellui.config.json
 
 See the Shellui docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
 
+`shellui start` / `build` ignore the project `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*`. See [tooling isolation](https://docs.shellui.com/cli#tooling-isolation).
+
 ## Project Structure
 
 The CLI is organized for maintainability with a clear separation of concerns:

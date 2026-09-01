@@ -1,6 +1,5 @@
 import { createServer } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import fs from 'fs';
 import pc from 'picocolors';
 import {
@@ -8,12 +7,10 @@ import {
   getWatchableConfigPaths,
   hasAnyConfig,
   getCoreSrcPath,
-  createResolveAlias,
-  createPostCSSConfig,
   createShelluiConfigPlugin,
-  getShelluiConfigAlias,
+  createIsolatedViteConfig,
   resolvePackagePath,
-  getShelluiTargetDefine,
+  getProjectRoot,
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
@@ -51,46 +48,32 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
 
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
-
-  const viteCacheDir = path.resolve(cwd, root, 'node_modules', '.vite');
-
-  const staticPath = path.resolve(cwd, root, 'static');
-  const publicDir = fs.existsSync(staticPath) ? staticPath : false;
-
-  const resolveAlias = createResolveAlias();
+  const projectRoot = getProjectRoot(root, cwd);
+  const isolated = createIsolatedViteConfig({
+    projectRoot,
+    coreSrcPath,
+    corePackagePath,
+    shelluiConfig: config,
+  });
 
   const server = await createServer({
-    root: coreSrcPath,
-    cacheDir: viteCacheDir,
-    define: getShelluiTargetDefine(config),
+    ...isolated,
     plugins: [
       react(),
       createShelluiConfigPlugin(config),
-      serviceWorkerDevPlugin(corePackagePath, coreSrcPath),
+      serviceWorkerDevPlugin(corePackagePath, coreSrcPath, projectRoot),
       sentryTunnelPlugin(),
     ],
-    resolve: {
-      alias: {
-        ...resolveAlias,
-        ...getShelluiConfigAlias(),
-        '@shellui/core': corePackagePath,
-      },
-    },
-    css: {
-      postcss: createPostCSSConfig(),
-    },
-    publicDir: publicDir || false,
     esbuild: {
+      ...isolated.esbuild,
       sourcemap: false,
     },
     server: {
+      ...isolated.server,
       port: config.port || 3000,
       strictPort: true,
       open: shouldOpen,
       host: host ? true : undefined,
-      fs: {
-        allow: [corePackagePath, cwd],
-      },
     },
   });
 
