@@ -38,6 +38,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🐛 Bug Fixes
 
+- **CLI / core Tailwind resolve:** declare `tailwindcss` on `@shellui/cli` and `@shellui/core` so `@import "tailwindcss"` in core CSS resolves under pnpm’s isolated `node_modules` (`shellui build` no longer ENOENT).
 - **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
 - **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
 - **CLI isolation:** `shellui start` / `build` use an inline Vite config (`configFile: false`) so a colocated app’s `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` never affect the shell. Tailwind scans only `@shellui/core`. Cache is `node_modules/.vite-shellui` (not `node_modules/.vite`).
