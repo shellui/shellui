@@ -37,6 +37,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🐛 Bug Fixes
 
+- **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
 - **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
 - **CLI isolation:** `shellui start` / `build` use an inline Vite config (`configFile: false`) so a colocated app’s `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` never affect the shell. Tailwind scans only `@shellui/core`. Cache is `node_modules/.vite-shellui` (not `node_modules/.vite`).
 - **Dev cache:** a colocated app Vite (default `node_modules/.vite`) no longer overwrites the shell’s prebundled deps (e.g. Settings failed to load `react-markdown`).

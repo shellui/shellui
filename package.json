@@ -1,7 +1,7 @@
 {
-  "name": "shellui-monorepo",
+  "name": "shellui",
   "version": "0.5.0-alpha.2",
-  "description": "Shellui monorepo - CLI, Core, and SDK packages",
+  "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
     "shellui": "packages/cli/bin/shellui.js"
