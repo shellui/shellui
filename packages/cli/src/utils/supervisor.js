@@ -192,13 +192,13 @@ export function spawnCompanion({ command, cwd, name = 'app', env = process.env }
 
 /**
  * Resolve companion settings from config.dev plus CLI flags.
- * `--run` / `--follow` override config. `--no-run` (or `run: false`) ignores `dev.run`.
+ * `--run` / `--follow` override config. `--shell-only` (or `run: false`) ignores `dev.run`.
  * @param {{ dev?: { run?: string; url?: string; name?: string } } | null | undefined} config
- * @param {{ run?: string | false; follow?: string; noRun?: boolean }} [options]
+ * @param {{ run?: string | false; follow?: string; noRun?: boolean; shellOnly?: boolean }} [options]
  */
 export function resolveCompanion(config, options = {}) {
   const dev = config?.dev && typeof config.dev === 'object' ? config.dev : {};
-  const noRun = options.noRun === true || options.run === false;
+  const noRun = options.noRun === true || options.shellOnly === true || options.run === false;
   const runFromFlag = typeof options.run === 'string' && options.run ? options.run : undefined;
   const run = noRun
     ? undefined

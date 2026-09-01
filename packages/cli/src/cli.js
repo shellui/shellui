@@ -26,8 +26,13 @@ cli
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option('--run <command>', 'Spawn a companion command (overrides config.dev.run)')
   .option('--follow <url>', 'Wait for / follow a companion URL (overrides config.dev.url)')
-  .option('--no-run', 'Do not spawn a companion even if config.dev.run is set')
-  .action((root, options) => startCommand(root, options));
+  .option('--shell-only', 'Do not spawn a companion even if config.dev.run is set')
+  .action((root, options) =>
+    startCommand(root, {
+      ...options,
+      noRun: options.shellOnly === true,
+    }),
+  );
 
 cli
   .command('build [root]', 'Build the shellui application')

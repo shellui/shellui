@@ -41,7 +41,7 @@ describe('resolveCompanion', () => {
     });
   });
 
-  test('flags override config; --no-run drops spawn', () => {
+  test('flags override config; --shell-only drops spawn', () => {
     const config = { dev: { run: 'vite', url: 'http://localhost:5173' } };
     expect(resolveCompanion(config, { run: 'pnpm start:app' }).run).toBe('pnpm start:app');
     expect(resolveCompanion(config, { follow: 'http://127.0.0.1:9' }).url).toBe(
@@ -52,6 +52,7 @@ describe('resolveCompanion', () => {
       url: 'http://localhost:5173',
       name: 'app',
     });
+    expect(resolveCompanion(config, { shellOnly: true }).run).toBeUndefined();
     expect(resolveCompanion(config, { run: false }).run).toBeUndefined();
   });
 });

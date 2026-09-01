@@ -127,7 +127,7 @@ shellui start --run vite --follow http://localhost:5173
 - `--config <path>`: Config file or directory (default: project root). See [Custom config location](#custom-config-location). Also: `SHELLUI_CONFIG`.
 - `--run <command>`: Spawn a companion in the project root (overrides `dev.run`). Logs are prefixed with `[app]` (or `dev.name`).
 - `--follow <url>`: Wait for this URL before opening the shell (spawn mode), or follow it and exit if it goes down after it was healthy (follow-only). Overrides `dev.url`.
-- `--no-run`: Ignore `dev.run` and do not spawn a companion (shell only).
+- `--shell-only`: Ignore `dev.run` and do not spawn a companion (shell only). Do not use `--no-run` — cac treats that as a negation of `--run <command>` and breaks plain `shellui start`.
 
 **Example:**
 
