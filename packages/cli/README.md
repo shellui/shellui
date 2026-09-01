@@ -17,8 +17,8 @@ npm install --save-dev @shellui/cli
 ## Usage
 
 ```bash
-shellui dev [path/to/project] [--host] [--app]
-shellui start [path/to/project] [--host] [--app]   # alias: dev
+shellui dev [path/to/project] [--host] [--app] [--run <cmd>] [--follow <url>] [--no-run]
+shellui start [path/to/project] [--host] [--app] [--run <cmd>] [--follow <url>] [--no-run]
 shellui build [path/to/project] [--app] [--bundles <targets>]
 shellui init [path/to/project] [--force]
 shellui config migrate [path/to/project]
@@ -39,6 +39,8 @@ shellui build --config ./config/shellui.config.json
   shellui dev ./my-project
   shellui dev --host      # listen on 0.0.0.0 for network access
   shellui dev --app       # desktop development (generates dist/app/)
+  shellui start --run vite --follow http://localhost:5173
+  shellui start --no-run  # shell only, ignore config.dev.run
   ```
 
 - **build** - Build the Shellui application for production

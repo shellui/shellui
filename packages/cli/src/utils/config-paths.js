@@ -46,6 +46,7 @@ export const SECTION_KEYS = [
   'cookieConsent',
   'legalDocuments',
   'sentry',
+  'dev',
 ];
 
 const ROOT_KEY_SET = new Set(ROOT_KEYS);

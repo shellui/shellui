@@ -10,6 +10,7 @@ import './index.css';
 export { default as App } from './app.js';
 export type {
   ShellUIConfig,
+  DevConfig,
   ThemeAsset,
   NavigationItem,
   NavigationGroup,

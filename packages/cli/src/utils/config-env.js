@@ -144,6 +144,7 @@ export function prepareFrontendConfig(config) {
     delete frozen.themesDir;
     delete frozen.__themesDirAbs;
     delete frozen.theme;
+    delete frozen.dev;
   }
 
   const serialized = JSON.stringify(frozen);

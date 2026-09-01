@@ -24,6 +24,9 @@ cli
   .option('--app', 'Start as a desktop app (generates dist/app/ on first run)')
   .option('--target <target>', 'Build target: web or tauri')
   .option('--config <path>', CONFIG_OPTION_HELP)
+  .option('--run <command>', 'Spawn a companion command (overrides config.dev.run)')
+  .option('--follow <url>', 'Wait for / follow a companion URL (overrides config.dev.url)')
+  .option('--no-run', 'Do not spawn a companion even if config.dev.run is set')
   .action((root, options) => startCommand(root, options));
 
 cli

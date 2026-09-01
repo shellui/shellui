@@ -115,9 +115,32 @@
           "$ref": "#/definitions/LegalDocumentsConfig",
           "description": "Legal documents content rendered as markdown."
         },
+        "dev": {
+          "$ref": "#/definitions/DevConfig",
+          "description": "CLI-only companion for `shellui start` (spawn or follow a colocated app). Never shipped to the browser."
+        },
         "$schema": {
           "type": "string",
           "description": "JSON Schema URL for editor autocomplete and validation."
+        }
+      },
+      "additionalProperties": false
+    },
+    "DevConfig": {
+      "type": "object",
+      "description": "CLI-only companion for `shellui start`. Not shipped to the browser.",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Command to spawn in the project root (e.g. `vite`)."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL (or host:port) to wait for before the shell opens, and to follow in follow-only mode."
+        },
+        "name": {
+          "type": "string",
+          "description": "Log prefix for the companion (default: `app`)."
         }
       },
       "additionalProperties": false

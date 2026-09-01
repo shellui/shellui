@@ -80,6 +80,17 @@ describe('loadConfig', () => {
     await expect(loadConfig('.')).rejects.toThrow(/Invalid Shellui configuration/);
   });
 
+  test('should accept CLI-only dev companion', async () => {
+    const jsonConfig = {
+      title: 'with-dev',
+      dev: { run: 'vite', url: 'http://localhost:5173', name: 'web' },
+    };
+    fs.writeFileSync(MAIN_CONFIG_FILE, JSON.stringify(jsonConfig));
+
+    const config = await loadConfig('.');
+    expect(config).toStrictEqual(jsonConfig);
+  });
+
   test('should prefer JSON over TypeScript when both exist', async () => {
     fs.writeFileSync(MAIN_CONFIG_FILE, JSON.stringify({ title: 'from-json' }));
     fs.writeFileSync(

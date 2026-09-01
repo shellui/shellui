@@ -86,6 +86,7 @@ shellui config split ./my-project
 - `shellui.storage.config.json`
 - `shellui.backend.config.json` (authentication / API)
 - `shellui.administration.config.json`
+- `shellui.dev.config.json` (CLI companion for `shellui start`)
 - …and other top-level sections that are present
 
 After a successful split, `shellui.config.json` is removed (single-file and split modes cannot coexist).
@@ -104,6 +105,7 @@ shellui dev
 shellui start ./my-project
 shellui dev --host
 shellui dev --app
+shellui start --run vite --follow http://localhost:5173
 ```
 
 **Description:**
@@ -114,6 +116,7 @@ shellui dev --app
 - Uses the port specified in your configuration (default: 3000)
 - Does not load the project’s Vite / PostCSS / TypeScript / Tailwind config (see [Tooling isolation](#tooling-isolation))
 - With `--app`, starts a native desktop development environment (see [Desktop app](/tauri))
+- Optional **companion**: spawn a colocated app (`dev.run` or `--run`) and exit when that process dies; or follow a URL (`dev.url` / `--follow` without `run`) and exit after it has been up then stays down
 
 **Options:**
 
@@ -122,6 +125,9 @@ shellui dev --app
 - `--app`: Start as a native desktop app. On first run, generates `dist/app/` (desktop wrapper) and installs desktop build tools if needed.
 - `--target <web|tauri>`: Build target injected at compile time (default: `web`). Set to `tauri` for desktop-specific behavior (e.g. disable service worker). Automatically applied when using `--app`.
 - `--config <path>`: Config file or directory (default: project root). See [Custom config location](#custom-config-location). Also: `SHELLUI_CONFIG`.
+- `--run <command>`: Spawn a companion in the project root (overrides `dev.run`). Logs are prefixed with `[app]` (or `dev.name`).
+- `--follow <url>`: Wait for this URL before opening the shell (spawn mode), or follow it and exit if it goes down after it was healthy (follow-only). Overrides `dev.url`.
+- `--no-run`: Ignore `dev.run` and do not spawn a companion (shell only).
 
 **Example:**
 
@@ -137,7 +143,29 @@ shellui dev --host
 
 # Start desktop development (Shellui server + native window)
 shellui dev --app
+
+# Spawn a colocated Vite app, then the shell; Ctrl+C or a Vite crash stops both
+shellui start --run vite --follow http://localhost:5173
 ```
+
+### Companion process
+
+CLI-only. Never sent to the browser. `shellui build` ignores it.
+
+```json
+{
+  "dev": {
+    "run": "vite",
+    "url": "http://localhost:5173",
+    "name": "app"
+  }
+}
+```
+
+- **Spawn** (`run` set): `shellui start` is the parent. If `url` is set, the CLI waits for it before listening. Child process **exit** (not a brief port blip) shuts down the shell.
+- **Follow** (`url` only): start the shell as usual. After the URL has been healthy once, if it stays down (~2s), the CLI exits. A URL that never comes up does not kill the shell.
+- Config-file restarts restart the shell Vite only; the companion keeps running.
+- `--app` does not spawn a companion itself — the nested `shellui start` from Tauri will, if `dev.run` is set.
 
 ### `shellui build [root]`
 
@@ -542,7 +570,7 @@ my-project/
 
 Only source files are committed — `dist/` is generated on each machine (`shellui init` adds `dist/` to `.gitignore`).
 
-The CLI does not replace your app toolchain. Put iframe apps in the same package if you want (scripts such as `"start": "shellui start"` and `"start:app": "vite"`), or keep them in another repo. See [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app). The [playground](https://github.com/shellui/playground) uses one pnpm project for both.
+The CLI does not replace your app toolchain. Put iframe apps in the same package if you want, or keep them in another repo. Set `dev.run` so one `shellui start` (e.g. `"start": "shellui start"`) also runs the app and exits when that process dies. See [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app). The [playground](https://github.com/shellui/playground) uses one pnpm project for both.
 
 ## Tooling isolation
 

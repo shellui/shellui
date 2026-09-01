@@ -282,4 +282,19 @@ export interface ShellUIConfig {
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
   legalDocuments?: LegalDocumentsConfig;
+  /**
+   * CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`.
+   * Stripped before the config is sent to the browser.
+   */
+  dev?: DevConfig;
+}
+
+/** Companion process for local `shellui start` (not used at runtime in the shell). */
+export interface DevConfig {
+  /** Command to spawn in the project root (e.g. `vite`). */
+  run?: string;
+  /** URL (or host:port) to wait for / follow. */
+  url?: string;
+  /** Log prefix name (default: `app`). */
+  name?: string;
 }

@@ -29,6 +29,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
+- **CLI companion:** `shellui start` can spawn (or follow) a colocated app via CLI-only `dev.run` / `dev.url` (or `--run` / `--follow` / `--no-run`). The shell exits when that process or URL dies; config-file restarts keep the companion running.
 - **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
 - **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (200–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
 - **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.

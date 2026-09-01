@@ -181,7 +181,16 @@ my-shellui-app/
 
 The CLI only builds the **shell**. Your microfrontend is a normal app (Vite, Next, whatever) with its own scripts. Both can live in the **same package** — one `package.json`, one `pnpm install`.
 
-The [playground](https://github.com/shellui/playground) is that pattern: Shellui CLI for the host, Vite for the iframe demo.
+The [playground](https://github.com/shellui/playground) is that pattern: Shellui CLI for the host, Vite for the iframe demo. One `pnpm start` runs both:
+
+```json
+{
+  "dev": {
+    "run": "vite",
+    "url": "http://localhost:5173"
+  }
+}
+```
 
 ```json
 {
@@ -192,6 +201,8 @@ The [playground](https://github.com/shellui/playground) is that pattern: Shellui
   }
 }
 ```
+
+`start:app` is an escape hatch. `shellui start --no-run` is shell-only. Flags `--run` / `--follow` override `dev`. See [CLI — Companion process](/cli#companion-process).
 
 `shellui start` / `shellui build` are isolated from your app: they do not load `vite.config.*`, `postcss.config.*`, `tsconfig.json`, or `VITE_*`. Tailwind only scans `@shellui/core`. The shell cache is `node_modules/.vite-shellui`, so a colocated Vite app can keep the default `node_modules/.vite` (or its own `cacheDir`). See [CLI — Tooling isolation](/cli#tooling-isolation).
 

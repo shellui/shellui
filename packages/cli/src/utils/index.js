@@ -22,6 +22,14 @@ export { validateConfig } from './config-validate.js';
 export { splitConfig, unsplitConfig, mergeSplitConfigs } from './config-split.js';
 export { migrateTsConfig } from './migrate-config.js';
 export {
+  resolveCompanion,
+  spawnCompanion,
+  waitForUrl,
+  followUrl,
+  killProcessTree,
+  probeUrl,
+} from './supervisor.js';
+export {
   substituteEnvInConfig,
   substituteEnvInString,
   prepareFrontendConfig,

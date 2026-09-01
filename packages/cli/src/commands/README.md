@@ -6,7 +6,7 @@ This directory contains all CLI commands, each in its own file for better mainta
 
 Each command is a separate file that exports a command function:
 
-- `start.js` - Start the Shellui development server (`dev` alias, `--app` for Tauri)
+- `start.js` - Start the Shellui development server (`dev` alias, `--app` for Tauri, optional companion `--run` / `--follow`)
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.json` boilerplate
 - `config.js` - `config migrate` / `config split` / `config unsplit`
@@ -38,7 +38,7 @@ export { newCommandCommand } from './new-command.js';
 
 ## Available Commands
 
-- **dev** / **start** - Starts the development server (`--app` for Tauri desktop)
+- **dev** / **start** - Starts the development server (`--app` for Tauri desktop; `--run` / `--follow` companion)
 - **build** - Builds the application for production (`--app` for Tauri desktop)
 - **init** - Creates a `shellui.config.json` boilerplate
 - **config migrate** - Evaluates TypeScript config and writes JSON

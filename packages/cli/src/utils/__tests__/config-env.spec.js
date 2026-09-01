@@ -86,10 +86,12 @@ describe('prepareFrontendConfig', () => {
       port: 4000,
       runtime: 'tauri',
       $schema: './x.json',
+      dev: { run: 'vite', url: 'http://localhost:5173' },
     });
     expect(frozen).toEqual({ title: 'App', port: 4000 });
     expect(frozen.runtime).toBeUndefined();
     expect(frozen.$schema).toBeUndefined();
+    expect(frozen.dev).toBeUndefined();
   });
 
   test('rejects unresolved placeholders', async () => {
