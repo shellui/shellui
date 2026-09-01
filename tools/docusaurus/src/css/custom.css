@@ -137,6 +137,40 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Circular theme reveal via View Transitions API (same as website) */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 0;
+}
+
+::view-transition-new(root) {
+  z-index: 1;
+  animation: theme-reveal 0.4s ease-in-out forwards;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+    opacity: 0.7;
+  }
+  to {
+    clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
 /* Navbar — frosted bar, matching website header.
    Do not put backdrop-filter on .navbar itself: it becomes a containing
    block and clips the mobile .navbar-sidebar behind page content. */

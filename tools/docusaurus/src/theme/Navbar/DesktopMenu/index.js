@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {flushSync} from 'react-dom';
 import {useColorMode} from '@docusaurus/theme-common';
 import useBaseUrl from '@docusaurus/useBaseUrl';
 import IconMenu from '@theme/Icon/Menu';
@@ -21,10 +22,32 @@ function GitHubIcon() {
   );
 }
 
+function applyColorModeWithTransition(setColorMode, nextMode, event) {
+  const prefersReducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches;
+
+  if (!document.startViewTransition || prefersReducedMotion) {
+    setColorMode(nextMode);
+    return;
+  }
+
+  if (event) {
+    document.documentElement.style.setProperty('--x', `${event.clientX}px`);
+    document.documentElement.style.setProperty('--y', `${event.clientY}px`);
+  }
+
+  document.startViewTransition(() => {
+    flushSync(() => {
+      setColorMode(nextMode);
+    });
+  });
+}
+
 export default function DesktopMenu() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
-  const {colorModeChoice, setColorMode} = useColorMode();
+  const {colorMode, colorModeChoice, setColorMode} = useColorMode();
   const selected = colorModeChoice === null ? 'system' : colorModeChoice;
   const shelluiIcon = useBaseUrl('/img/shellui-icon.png');
 
@@ -51,6 +74,28 @@ export default function DesktopMenu() {
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open]);
+
+  const onThemeOptionClick = (event, optionValue) => {
+    if (selected === optionValue) {
+      return;
+    }
+
+    const nextMode = optionValue === 'system' ? null : optionValue;
+    const nextEffective =
+      nextMode === null
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        : nextMode;
+
+    // Only animate when the visible theme actually changes
+    if (nextEffective === colorMode) {
+      setColorMode(nextMode);
+      return;
+    }
+
+    applyColorModeWithTransition(setColorMode, nextMode, event);
+  };
 
   return (
     <div className="navbar-desktop-menu" ref={rootRef}>
@@ -105,9 +150,7 @@ export default function DesktopMenu() {
                 className="clean-btn navbar-desktop-menu__link"
                 role="menuitemradio"
                 aria-checked={isSelected}
-                onClick={() =>
-                  setColorMode(option.value === 'system' ? null : option.value)
-                }>
+                onClick={(event) => onThemeOptionClick(event, option.value)}>
                 <span className="navbar-desktop-menu__lead" />
                 <span className="navbar-desktop-menu__label">{option.label}</span>
                 <span
