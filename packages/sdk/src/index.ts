@@ -1,6 +1,6 @@
 /**
- * ShellUI SDK
- * Handles communication between the iframe content and the ShellUI parent frame.
+ * Shellui SDK
+ * Handles communication between the iframe content and the Shellui parent frame.
  */
 
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
@@ -139,7 +139,7 @@ export class ShellUISDK {
     await this._setupInitialSettings();
 
     this.initialized = true;
-    logger.info(`ShellUI SDK ${this.version} initialized`);
+    logger.info(`Shellui SDK ${this.version} initialized`);
 
     this.sendMessageToParent({
       type: 'SHELLUI_INITIALIZED',

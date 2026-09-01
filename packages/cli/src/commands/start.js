@@ -162,7 +162,7 @@ function watchConfig(root, cwd, host = false) {
 }
 
 /**
- * Start command - Starts the ShellUI development server
+ * Start command - Starts the Shellui development server
  * @param {string} root
  * @param {{ host?: boolean; app?: boolean; target?: string; config?: string }} options
  */
@@ -185,7 +185,7 @@ export async function startCommand(root = '.', options = {}) {
     await initCommand(root, { config: activeConfigPath });
   }
 
-  console.log(pc.blue(`Starting ShellUI...`));
+  console.log(pc.blue(`Starting Shellui...`));
 
   try {
     currentServer = await startServer(root, cwd, isFirstStart, host);

@@ -278,14 +278,14 @@
     },
     "logging": {
       "title": "Logging",
-      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",
+      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of Shellui output debug information.",
       "shellsdk": {
         "label": "Show ShellSDK logs",
-        "description": "Enable logging for ShellUI SDK operations"
+        "description": "Enable logging for Shellui SDK operations"
       },
       "shellcore": {
         "label": "Show ShellCore logs",
-        "description": "Enable logging for ShellUI Core operations"
+        "description": "Enable logging for Shellui Core operations"
       }
     },
     "auth": {
@@ -297,7 +297,7 @@
     },
     "testing": {
       "title": "Testing",
-      "description": "Test ShellUI features and functionality.",
+      "description": "Test Shellui features and functionality.",
       "toastNotifications": {
         "title": "Toast Notifications",
         "buttons": {

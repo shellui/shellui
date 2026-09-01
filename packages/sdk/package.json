@@ -1,7 +1,7 @@
 {
   "name": "@shellui/sdk",
   "version": "0.5.0-alpha.2",
-  "description": "ShellUI SDK - TypeScript/JavaScript SDK for ShellUI integration",
+  "description": "Shellui SDK - TypeScript/JavaScript SDK for Shellui integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -35,7 +35,7 @@
     "javascript",
     "microfrontend"
   ],
-  "author": "ShellUI",
+  "author": "Shellui",
   "license": "MIT",
   "dependencies": {
     "roarr": "^7.21.4"

@@ -278,14 +278,14 @@
     },
     "logging": {
       "title": "Journalisation",
-      "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de ShellUI affichent des informations de débogage.",
+      "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de Shellui affichent des informations de débogage.",
       "shellsdk": {
         "label": "Afficher les journaux ShellSDK",
-        "description": "Activez la journalisation pour les opérations ShellUI SDK"
+        "description": "Activez la journalisation pour les opérations Shellui SDK"
       },
       "shellcore": {
         "label": "Afficher les journaux ShellCore",
-        "description": "Activez la journalisation pour les opérations ShellUI Core"
+        "description": "Activez la journalisation pour les opérations Shellui Core"
       }
     },
     "auth": {
@@ -297,7 +297,7 @@
     },
     "testing": {
       "title": "Tests",
-      "description": "Testez les fonctionnalités de ShellUI.",
+      "description": "Testez les fonctionnalités de Shellui.",
       "toastNotifications": {
         "title": "Notifications Toast",
         "buttons": {

@@ -32,7 +32,7 @@ function toErrorPayload(err: unknown): StorageResponsePayload['error'] {
 
 /**
  * Runs a storage upload with toaster progress. Folder placeholders skip the toast.
- * Uploads keep running at ShellUI root regardless of route changes.
+ * Uploads keep running at Shellui root regardless of route changes.
  */
 export async function handleTrackedUpload(
   input: HandleStorageRequestInput,

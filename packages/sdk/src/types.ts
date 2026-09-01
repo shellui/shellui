@@ -1,5 +1,5 @@
 /**
- * ShellUI SDK Type Definitions
+ * Shellui SDK Type Definitions
  */
 
 export interface ShellUIUrlPayload {
@@ -270,7 +270,7 @@ export interface Settings {
    */
   accessToken?: string | null;
   /**
-   * ShellUI-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
+   * Shellui-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
    * Injected for trusted sub-apps (e.g. admin iframe) so they call the same backend as the shell.
    */
   authBackendBaseUrl?: string | null;

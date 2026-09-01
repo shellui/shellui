@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Simple HTTP server for serving ShellUI SPA builds locally.
+ * Simple HTTP server for serving Shellui SPA builds locally.
  * Serves index.html for all routes to support client-side routing.
  */
 

@@ -50,7 +50,7 @@ export function resolveShelluiTarget(config) {
 }
 
 /**
- * Vite define for the ShellUI build target injected into @shellui/core.
+ * Vite define for the Shellui build target injected into @shellui/core.
  * @param {Object} config - Loaded shellui config
  * @returns {Record<string, string>}
  */
@@ -59,7 +59,7 @@ export function getShelluiTargetDefine(config) {
 }
 
 /**
- * Create Vite plugin that provides the ShellUI config as a virtual module.
+ * Create Vite plugin that provides the Shellui config as a virtual module.
  * Injects a frozen snapshot (env already resolved by loadConfig). The browser
  * cannot override env placeholders at runtime.
  * @param {Object} config - Loaded shellui config (will be serialized for the virtual module)
@@ -123,7 +123,7 @@ export default shelluiConfig;
 }
 
 /**
- * Resolve alias for ShellUI config. Use together with createShelluiConfigPlugin so that
+ * Resolve alias for Shellui config. Use together with createShelluiConfigPlugin so that
  * imports like "import shelluiConfig from '@shellui/config'" resolve to the virtual module.
  * @returns {Object} Vite resolve.alias entry for @shellui/config
  */

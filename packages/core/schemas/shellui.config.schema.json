@@ -327,7 +327,7 @@
       },
       "required": ["url"],
       "additionalProperties": false,
-      "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. ShellUI will also use this for the SDK file API (`shellui.storage`)."
+      "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. Shellui will also use this for the SDK file API (`shellui.storage`)."
     },
     "ThemeRef": {
       "anyOf": [

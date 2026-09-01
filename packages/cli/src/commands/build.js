@@ -85,7 +85,7 @@ function applyTargetOption(options = {}) {
 }
 
 /**
- * Build command - Builds the ShellUI application for production
+ * Build command - Builds the Shellui application for production
  * @param {string} root - Root directory (default: '.')
  * @param {{ app?: boolean; target?: string; bundles?: string; config?: string }} options - Command options
  */
@@ -99,7 +99,7 @@ export async function buildCommand(root = '.', options = {}) {
     return;
   }
 
-  console.log(pc.blue(`Building ShellUI...`));
+  console.log(pc.blue(`Building Shellui...`));
 
   // Set environment variable to indicate this is a build
   // This allows shellui.config.ts (advanced) to detect build mode and generate build ID

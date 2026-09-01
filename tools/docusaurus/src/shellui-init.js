@@ -2,7 +2,7 @@ import { shellui } from '@shellui/sdk';
 import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 if (ExecutionEnvironment.canUseDOM) {
-  // Initialize the ShellUI SDK
+  // Initialize the Shellui SDK
   shellui.init();
 }
 

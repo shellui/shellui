@@ -1,6 +1,6 @@
 /**
  * Message Listener Registry
- * Manages message listeners for ShellUI message types
+ * Manages message listeners for Shellui message types
  */
 
 import { getLogger } from '../logger/logger.js';

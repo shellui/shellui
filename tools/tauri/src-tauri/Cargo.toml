@@ -1,8 +1,8 @@
 [package]
 name = "shellui-app"
 version = "0.1.0"
-description = "ShellUI desktop app"
-authors = ["ShellUI"]
+description = "Shellui desktop app"
+authors = ["Shellui"]
 edition = "2021"
 rust-version = "1.70"
 

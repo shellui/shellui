@@ -116,7 +116,7 @@ const AppContent = () => {
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Initialize ShellUI SDK to support recursive nesting
+  // Initialize Shellui SDK to support recursive nesting
   useLayoutEffect(() => {
     shellui.init().then(() => {
       setIsLoading(false);
@@ -136,7 +136,7 @@ const App = () => {
             <I18nProvider>
               <DialogProvider>
                 <SonnerProvider>
-                  {/* Toaster + upload progress live at ShellUI root so they survive navigation. */}
+                  {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
                   <Toaster />
                   <UploadToaster />
                   <AppContent />
