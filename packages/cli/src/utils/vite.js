@@ -240,6 +240,7 @@ export function createIsolatedViteConfig({
     configFile: false,
     envDir: false,
     envPrefix: 'SHELLUI_PUBLIC_',
+    base: '/',
     root: coreSrcPath,
     cacheDir,
     publicDir,

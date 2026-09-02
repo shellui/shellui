@@ -73,6 +73,7 @@ export type {
   SettingsAdministration,
   SettingsAdministrationNavigationItem,
   SettingsStorage,
+  SettingsHosting,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,

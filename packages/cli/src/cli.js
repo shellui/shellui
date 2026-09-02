@@ -8,6 +8,9 @@ import {
   loginCommand,
   logoutCommand,
   whoamiCommand,
+  deployCommand,
+  deployHistoryCommand,
+  deployRollbackCommand,
 } from './commands/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -72,6 +75,27 @@ cli.command('logout', 'Remove stored shellui CLI credentials').action(() => logo
 cli
   .command('whoami', 'Show the profile for the stored CLI credentials')
   .action(() => whoamiCommand());
+
+cli
+  .command('deploy [action] [root]', 'Deploy dist/web to shellui hosting preview (7-day TTL)')
+  .option('--build', 'Run shellui build before deploying')
+  .option('--version <version>', 'App version (default: config.version or package.json)')
+  .option('--slug <slug>', 'Preview site slug to redeploy (overrides hosting.slug)')
+  .option('--app <slug>', 'Deprecated alias for --slug')
+  .option('--dry-run', 'Print deployment plan without uploading')
+  .option('--to <version>', 'Rollback: target app_version to activate')
+  .option('--deployment <uuid>', 'Rollback: target deployment UUID to activate')
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .action((action, root, options) => {
+    if (action === 'history') {
+      return deployHistoryCommand(root, options);
+    }
+    if (action === 'rollback') {
+      return deployRollbackCommand(root, options);
+    }
+    const deployRoot = action ?? root ?? '.';
+    return deployCommand(deployRoot, options);
+  });
 
 // Setup CLI metadata
 cli.help();

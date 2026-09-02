@@ -188,6 +188,32 @@ export interface StorageConfig {
 }
 
 /**
+ * Optional hosting-service wiring for `shellui deploy` preview uploads.
+ * Preview sites expire after 7 days unless redeployed to the same slug.
+ */
+export interface HostingConfig {
+  /** Base URL of hosting-service (e.g. `http://localhost:8002`). */
+  url: string;
+  /**
+   * Optional public base for browsable app URLs when different from `url`
+   * (e.g. CDN or path-style gateway). The deploy API returns `urls` when possible.
+   */
+  publicUrl?: string;
+  /**
+   * Optional preview site slug. When set, `shellui deploy` redeploys to this slug
+   * (must belong to your company and user). When omitted, each deploy gets a new slug.
+   */
+  slug?: string;
+  /** @deprecated Use `slug` instead. */
+  app?: string;
+  /**
+   * When false, hide Admin → Hosting even if `url` is set.
+   * Default: true when `url` is set. Does not affect `shellui deploy`.
+   */
+  showInAdmin?: boolean;
+}
+
+/**
  * Custom navigation section for the staff administration panel.
  * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
  * v1 is a flat list only (no nested groups).
@@ -248,6 +274,11 @@ export interface ShellUIConfig {
    * when `url` is set unless `storage.showInSettings` is false.
    */
   storage?: StorageConfig;
+  /**
+   * Hosting-service connection. Propagated to iframes via SDK settings.
+   * Enables `shellui deploy` when `url` is set.
+   */
+  hosting?: HostingConfig;
   /**
    * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
    * When set without `themes`, only this theme is available in the selector.

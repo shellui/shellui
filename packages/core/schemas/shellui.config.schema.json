@@ -69,6 +69,10 @@
           "$ref": "#/definitions/StorageConfig",
           "description": "Storage-service connection. Propagated to iframes via SDK settings. Enables Admin → Storage when `url` is set. Settings → Storage (quota) is shown when `url` is set unless `storage.showInSettings` is false."
         },
+        "hosting": {
+          "$ref": "#/definitions/HostingConfig",
+          "description": "Hosting-service connection for `shellui deploy`. Propagated to iframes via SDK settings when `url` is set. Admin → Hosting appears when `url` is set unless `showInAdmin` is false."
+        },
         "theme": {
           "$ref": "#/definitions/ThemeRef",
           "description": "Single theme: built-in name, path to a theme JSON/folder, or inline theme object. When set without `themes`, only this theme is available in the selector."
@@ -351,6 +355,35 @@
       "required": ["url"],
       "additionalProperties": false,
       "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. Shellui will also use this for the SDK file API (`shellui.storage`)."
+    },
+    "HostingConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of hosting-service (e.g. `http://localhost:8002`)."
+        },
+        "publicUrl": {
+          "type": "string",
+          "description": "Optional public base for browsable hosted app URLs when it differs from `url` (e.g. CDN or reverse proxy)."
+        },
+        "app": {
+          "type": "string",
+          "deprecated": true,
+          "description": "Deprecated. Use `slug` to redeploy to an existing preview site."
+        },
+        "slug": {
+          "type": "string",
+          "description": "Optional preview site slug. When set, redeploys to that slug (must belong to your company and user). When omitted, a new slug is created for each deploy."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → Hosting even if `url` is set. Default: true when `url` is set. Does not affect `shellui deploy`."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed. Admin shows Hosting when `url` is set, unless `showInAdmin` is false."
     },
     "ThemeRef": {
       "anyOf": [

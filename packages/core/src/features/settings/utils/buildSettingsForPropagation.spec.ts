@@ -218,4 +218,30 @@ describe('buildSettingsForPropagation', () => {
     expect(result.administration).toBeNull();
     expect(result.storage).toBeNull();
   });
+
+  it('propagates showInAdmin false when hosting admin is disabled', () => {
+    const config = {
+      hosting: {
+        url: 'http://localhost:8002/',
+        showInAdmin: false,
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.hosting).toEqual({
+      url: 'http://localhost:8002',
+      showInAdmin: false,
+    });
+  });
+
+  it('omits showInAdmin from propagated hosting by default', () => {
+    const config = {
+      hosting: {
+        url: 'http://localhost:8002',
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.hosting).toEqual({ url: 'http://localhost:8002' });
+  });
 });

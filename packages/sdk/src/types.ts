@@ -104,6 +104,19 @@ export interface SettingsStorage {
   filesUrl?: string | null;
 }
 
+/**
+ * Hosting-service connection from host `hosting` in shellui.config.json.
+ * Used by iframe apps that need the hosting API base URL and default app slug.
+ */
+export interface SettingsHosting {
+  /** Base URL of hosting-service (no trailing slash). */
+  url: string;
+  /** Default hosted app slug or UUID when configured. */
+  app?: string | null;
+  /** When false, admin panel hides Hosting navigation even if `url` is set. */
+  showInAdmin?: boolean;
+}
+
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
 export interface ThemeColorsMode {
   background: string;
@@ -262,6 +275,11 @@ export interface Settings {
    * unset or `showInSettings` is false.
    */
   storage?: SettingsStorage | null;
+  /**
+   * Hosting-service connection (from host `hosting` in shellui.config.json).
+   * Omitted or null when hosting is not configured.
+   */
+  hosting?: SettingsHosting | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**

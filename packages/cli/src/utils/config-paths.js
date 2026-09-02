@@ -41,6 +41,7 @@ export const SECTION_KEYS = [
   'navigation',
   'administration',
   'storage',
+  'hosting',
   'backend',
   'themes',
   'cookieConsent',

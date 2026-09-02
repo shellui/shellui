@@ -84,6 +84,7 @@ shellui config split ./my-project
 - `shellui.root.config.json` — scalars (`port`, `title`, `layout`, …)
 - `shellui.navigation.config.json`
 - `shellui.storage.config.json`
+- `shellui.hosting.config.json`
 - `shellui.backend.config.json` (authentication / API)
 - `shellui.administration.config.json`
 - `shellui.dev.config.json` (CLI companion for `shellui start`)
@@ -270,6 +271,51 @@ Show the signed-in profile (`GET /api/v1/user`) using stored credentials. Refres
 shellui whoami
 ```
 
+### `shellui deploy [root]`
+
+Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service). Requires `shellui login` and `hosting.url` in config.
+
+**Usage:**
+
+```bash
+shellui deploy
+shellui deploy --build
+shellui deploy --version 1.2.0 --app my-app
+shellui deploy --dry-run
+shellui deploy history
+shellui deploy rollback --to 1.1.0
+shellui deploy rollback --deployment <uuid>
+```
+
+**Description:**
+
+- Uses `hosting.url` and `hosting.app` from config (or `--app`)
+- Builds a `tar.gz` of `dist/web/` and uploads via the hosting API (create app if needed → create deployment → upload → finalize)
+- `app_version` from `--version`, `config.version`, or `package.json`
+- `shellui_version` from `@shellui/core` in `package.json`
+- Runs `shellui build` when `dist/web/` is missing or when `--build` is passed
+
+**Required config**
+
+- `hosting.url` — hosting-service base URL (e.g. `http://localhost:8002`)
+- `hosting.app` — default app slug (or pass `--app`)
+
+**Options:**
+
+- `--build` — Run `shellui build` before deploying
+- `--version <version>` — App version string
+- `--app <slug>` — App slug or UUID (overrides `hosting.app`)
+- `--dry-run` — Print the deployment plan without calling the API
+- `--config <path>` — Config file or directory
+
+### `shellui deploy history [root]`
+
+List deployments for the configured app.
+
+### `shellui deploy rollback [root]`
+
+Activate a previous deployment. Pass `--to <app_version>` or `--deployment <uuid>`.
+
 ## Configuration
 
 Shellui uses a JSON configuration file by default. The CLI looks for config in this order:
@@ -451,6 +497,26 @@ Storage-service connection. See [Storage](/features/storage).
 - `url` (`string`, required when `storage` is set): Base URL of storage-service.
 - `filesUrl` (`string`, optional): Files explorer app URL for Admin → Storage.
 - `showInSettings` (`boolean`, optional): When `false`, hide Settings → Storage. Default: `true` when `url` is set.
+
+#### `hosting` (object, optional)
+
+Hosting-service connection for `shellui deploy`. Propagated to iframe apps via SDK `settings.hosting`.
+
+```json
+{
+  "hosting": {
+    "url": "http://localhost:8002",
+    "app": "my-app"
+  }
+}
+```
+
+**Default:** `undefined`
+
+**Properties:**
+
+- `url` (`string`, required when `hosting` is set): Base URL of hosting-service.
+- `app` (`string`, optional): Default app slug or UUID for `shellui deploy`.
 
 #### `navigation` (array, optional)
 
