@@ -1,6 +1,6 @@
 # Legal documents
 
-Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in `shellui.config.ts`. Shellui renders the content in the shell—no separate legal site or navigation item is required.
+Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in your Shellui config. Shellui renders the content in the shell—no separate legal site or navigation item is required.
 
 Legal pages are **public**: they work without sign-in and sit on dedicated routes outside the main app layout (no sidebar). Signed-in users can also open the same content from **Settings**.
 
@@ -16,11 +16,26 @@ If every key is missing or empty, legal routes stay registered but show “not c
 
 ## Configuration
 
-Add `legalDocuments` to `shellui.config.ts` or `shellui.config.json`. Each property is a **markdown string** loaded at config read time (not a URL).
+Add `legalDocuments` to `shellui.config.json` (recommended) or an advanced `shellui.config.ts`. Each property is a **markdown string** loaded at config read time (not a URL).
 
-### TypeScript with files on disk
+### JSON config (recommended)
 
-Keep long text in `legal/*.md` and load it when the config is evaluated:
+Inline markdown strings (or generate the JSON in a small build step):
+
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "title": "My App",
+  "legalDocuments": {
+    "privacyPolicy": "# Privacy Policy\n\n…",
+    "termsOfService": "# Terms of Service\n\n…"
+  }
+}
+```
+
+### Advanced TypeScript with files on disk
+
+Keep long text in `legal/*.md` and load it when the TypeScript config is evaluated (`shellui.config.ts` is used only when no JSON/split config is present):
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -40,20 +55,6 @@ const config: ShellUIConfig = {
 };
 
 export default config;
-```
-
-### JSON config
-
-Inline markdown or load strings in a small build step; the config shape is the same:
-
-```json
-{
-  "title": "My App",
-  "legalDocuments": {
-    "privacyPolicy": "# Privacy Policy\n\n…",
-    "termsOfService": "# Terms of Service\n\n…"
-  }
-}
 ```
 
 ### Supported keys
@@ -115,7 +116,7 @@ Use markdown headings (`#`, `##`, `###`) to structure long policy text. The rend
 
 ```text
 your-app/
-├── shellui.config.ts
+├── shellui.config.json   # or shellui.config.ts for readFileSync loading
 └── legal/
     ├── privacy-policy.md
     ├── terms-of-service.md
@@ -123,7 +124,7 @@ your-app/
     └── data-processing-agreement.md
 ```
 
-After editing markdown, restart or rely on config watch (`shellui start`) so the dev server reloads `shellui.config.ts`.
+After editing markdown or config, restart or rely on config watch (`shellui start`) so the dev server reloads the configuration.
 
 ## Related guides
 

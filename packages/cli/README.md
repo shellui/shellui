@@ -17,10 +17,17 @@ npm install --save-dev @shellui/cli
 ## Usage
 
 ```bash
-shellui dev [path/to/project] [--host] [--app]
-shellui start [path/to/project] [--host] [--app]   # alias: dev
+shellui dev [path/to/project] [--host] [--app] [--run <cmd>] [--follow <url>] [--shell-only]
+shellui start [path/to/project] [--host] [--app] [--run <cmd>] [--follow <url>] [--shell-only]
 shellui build [path/to/project] [--app] [--bundles <targets>]
 shellui init [path/to/project] [--force]
+shellui config migrate [path/to/project]
+shellui config split [path/to/project]
+shellui config unsplit [path/to/project]
+
+# Custom config location (directory or file)
+shellui start --config ./config
+shellui build --config ./config/shellui.config.json
 ```
 
 ### Commands
@@ -32,6 +39,8 @@ shellui init [path/to/project] [--force]
   shellui dev ./my-project
   shellui dev --host      # listen on 0.0.0.0 for network access
   shellui dev --app       # desktop development (generates dist/app/)
+  shellui start --run vite --follow http://localhost:5173
+  shellui start --shell-only  # shell only, ignore config.dev.run
   ```
 
 - **build** - Build the Shellui application for production
@@ -43,14 +52,29 @@ shellui init [path/to/project] [--force]
   shellui build --app --bundles app,dmg   # + macOS DMG installer
   ```
 
-- **init** - Create a `shellui.config.ts` boilerplate
+- **init** - Create a `shellui.config.json` boilerplate
 
   ```bash
   shellui init
   shellui init --force
   ```
 
+- **config migrate** - Evaluate `shellui.config.ts` and write `shellui.config.json`
+
+  ```bash
+  shellui config migrate
+  ```
+
+- **config split** / **config unsplit** - Split or merge JSON configuration files
+
+  ```bash
+  shellui config split
+  shellui config unsplit
+  ```
+
 See the Shellui docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
+
+`shellui start` / `build` ignore the project `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*`. See [tooling isolation](https://docs.shellui.com/cli#tooling-isolation).
 
 ## Project Structure
 

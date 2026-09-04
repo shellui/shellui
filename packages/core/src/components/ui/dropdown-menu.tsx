@@ -12,14 +12,19 @@ const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
 const DropdownMenuContent = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Content>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 6, forceMount, ...props }, ref) => (
+>(({ className, sideOffset = 6, collisionPadding = 8, forceMount, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       forceMount={forceMount}
       sideOffset={sideOffset}
+      collisionPadding={collisionPadding}
+      avoidCollisions
+      sticky="always"
+      data-dropdown-menu-content=""
       className={cn(
-        'z-50 min-w-[12rem] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md',
+        'pointer-events-auto z-50 min-w-[min(12rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md',
+        'max-h-[min(24rem,var(--radix-dropdown-menu-content-available-height,24rem))]',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',

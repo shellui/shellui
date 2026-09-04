@@ -16,7 +16,7 @@ Most users will interact with `@shellui/core` indirectly through the CLI. Howeve
 
 ## Type Definitions
 
-If you're using TypeScript configuration files (`shellui.config.ts`), you can import types from `@shellui/core`:
+If you're using an advanced TypeScript configuration file (`shellui.config.ts`), you can import types from `@shellui/core`:
 
 ```typescript
 import type { ShellUIConfig, NavigationItem } from '@shellui/core';

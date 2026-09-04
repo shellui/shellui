@@ -23,6 +23,41 @@
     "goToLoginAriaLabel": "Aller à la connexion",
     "openAccountMenuAriaLabel": "Ouvrir le menu du compte pour {{name}}"
   },
+  "loginPage": {
+    "welcomeBack": "Bon retour",
+    "descriptionOauthOrWeb3AndMagic": "Continuez avec votre fournisseur d'identité ou demandez un lien de connexion sécurisé par e-mail.",
+    "descriptionOauthOrWeb3": "Continuez avec votre fournisseur d'identité configuré.",
+    "descriptionMagic": "Saisissez votre e-mail pour recevoir un lien de connexion sécurisé.",
+    "descriptionNone": "Aucune méthode de connexion n'est disponible pour le moment.",
+    "lastUsed": "Dernière utilisation",
+    "continueWith": "Continuer avec {{provider}}",
+    "redirectingTo": "Redirection vers {{provider}}...",
+    "sendMagicLink": "Envoyer le lien magique",
+    "sendingMagicLink": "Envoi du lien magique...",
+    "connectingWallet": "Connexion au portefeuille...",
+    "continueWithEthereum": "Continuer avec un portefeuille Ethereum",
+    "hideOtherMethods": "Masquer les autres méthodes",
+    "useAnotherMethod": "Utiliser une autre méthode",
+    "or": "ou",
+    "walletLogin": "Connexion portefeuille",
+    "otherSocialLogins": "Autres connexions sociales",
+    "socialLogin": "Connexion sociale",
+    "emailMagicLink": "Lien magique par e-mail",
+    "emailPlaceholder": "prenom@entreprise.com",
+    "noMethodsEnabled": "Aucune méthode de connexion n'est activée dans les paramètres d'authentification du backend.",
+    "cancel": "Annuler",
+    "brandingIframeTitle": "Image de connexion",
+    "magicLinkSent": "Vérifiez votre boîte de réception pour le lien de connexion.",
+    "enterEmail": "Veuillez saisir votre adresse e-mail.",
+    "couldNotSendMagicLink": "Impossible d'envoyer le lien magique.",
+    "methodUnsupported": "Ce backend ne prend pas en charge la connexion {{method}}.",
+    "oauthUnsupported": "Ce backend ne prend pas en charge OAuth avec {{provider}}.",
+    "couldNotVerifyCapabilities": "Impossible de vérifier les capacités de connexion du backend.",
+    "walletLoginFailed": "Impossible de terminer la connexion au portefeuille Ethereum.",
+    "signInCouldNotContinue": "La connexion n'a pas pu se poursuivre.",
+    "magicLinkMethod": "lien magique",
+    "redirectNotAllowedHint": " Ajoutez cette origine dans shellui-auth (admin Django ou shellui-admin → Company → Login redirect URLs), par exemple : {{origin}}."
+  },
   "errorBoundary": {
     "titleChunk": "La page n'a pas pu être chargée",
     "titleGeneric": "Une erreur s'est produite",
@@ -64,5 +99,11 @@
   "storagePicker": {
     "title": "Sélectionner des fichiers ou dossiers",
     "description": "Choisissez des éléments, puis confirmez."
+  },
+  "desktopChrome": {
+    "back": "Retour",
+    "forward": "Suivant",
+    "navigation": "Navigation",
+    "openNavigation": "Ouvrir la navigation"
   }
 }

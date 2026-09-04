@@ -23,6 +23,41 @@
     "goToLoginAriaLabel": "Go to login",
     "openAccountMenuAriaLabel": "Open account menu for {{name}}"
   },
+  "loginPage": {
+    "welcomeBack": "Welcome back",
+    "descriptionOauthOrWeb3AndMagic": "Continue with your identity provider or request a secure sign-in link by email.",
+    "descriptionOauthOrWeb3": "Continue with your configured identity provider.",
+    "descriptionMagic": "Enter your email to receive a secure sign-in link.",
+    "descriptionNone": "No sign-in method is currently available.",
+    "lastUsed": "Last used",
+    "continueWith": "Continue with {{provider}}",
+    "redirectingTo": "Redirecting to {{provider}}...",
+    "sendMagicLink": "Send magic link",
+    "sendingMagicLink": "Sending magic link...",
+    "connectingWallet": "Connecting wallet...",
+    "continueWithEthereum": "Continue with Ethereum wallet",
+    "hideOtherMethods": "Hide other methods",
+    "useAnotherMethod": "Use another method",
+    "or": "or",
+    "walletLogin": "Wallet login",
+    "otherSocialLogins": "Other social logins",
+    "socialLogin": "Social login",
+    "emailMagicLink": "Email magic link",
+    "emailPlaceholder": "name@company.com",
+    "noMethodsEnabled": "No login method is currently enabled in backend auth settings.",
+    "cancel": "Cancel",
+    "brandingIframeTitle": "Login branding",
+    "magicLinkSent": "Check your inbox for a magic login link.",
+    "enterEmail": "Please enter your email address.",
+    "couldNotSendMagicLink": "Could not send magic link.",
+    "methodUnsupported": "This backend does not support {{method}} login.",
+    "oauthUnsupported": "This backend does not support OAuth with {{provider}}.",
+    "couldNotVerifyCapabilities": "Could not verify backend login capabilities.",
+    "walletLoginFailed": "Unable to complete Ethereum wallet login.",
+    "signInCouldNotContinue": "Sign-in could not continue.",
+    "magicLinkMethod": "magic link",
+    "redirectNotAllowedHint": " Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: {{origin}}."
+  },
   "errorBoundary": {
     "titleChunk": "Page couldn't be loaded",
     "titleGeneric": "Something went wrong",
@@ -64,5 +99,11 @@
   "storagePicker": {
     "title": "Select files or folders",
     "description": "Choose items, then confirm."
+  },
+  "desktopChrome": {
+    "back": "Back",
+    "forward": "Forward",
+    "navigation": "Navigation",
+    "openNavigation": "Open navigation"
   }
 }

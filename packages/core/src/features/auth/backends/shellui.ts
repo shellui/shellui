@@ -69,7 +69,7 @@ export const createShellUIAuthBackend = ({
     },
     exchangeOAuthCode: async ({ provider, code, redirectUri, oauthClientId, nowSeconds }) => {
       if (!backendUrl) {
-        throw new Error('Missing ShellUI backend URL.');
+        throw new Error('Missing Shellui backend URL.');
       }
       const selectedCompanyId = getShellUILoginCompanyId(companyId);
       if (!selectedCompanyId) {
@@ -135,7 +135,7 @@ export const createShellUIAuthBackend = ({
     },
     startOAuth: (provider, redirectPath, oauthClientId) => {
       if (!backendUrl) {
-        throw new Error('Missing ShellUI backend URL.');
+        throw new Error('Missing Shellui backend URL.');
       }
       const redirectToUrl = new URL(
         `${window.location.origin}${normalizeRedirectPath(redirectPath)}`,
@@ -213,7 +213,7 @@ export const createShellUIAuthBackend = ({
     },
     sendMagicLink: async (email, redirectPath) => {
       if (!backendUrl) {
-        throw new Error('Missing ShellUI backend URL.');
+        throw new Error('Missing Shellui backend URL.');
       }
       const emailRedirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
       const response = await fetch(`${backendUrl}/api/v1/otp`, {

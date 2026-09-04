@@ -21,11 +21,41 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [v0.5.0] - Work in progress
+
+### 📚 Documentation
+
+- Document running the shell CLI and an iframe Vite app in one package, using the playground as the example.
+
+### ✨ Feature
+
+- **CLI companion:** `shellui start` can spawn (or follow) a colocated app via CLI-only `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`). The shell exits when that process or URL dies; config-file restarts keep the companion running. (`--no-run` is avoided: cac treats it as a negation of `--run <command>` and breaks plain `shellui start`.)
+- **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
+- **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (200–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
+- **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.
+- **App-bar layout:** 38px chrome bar with text start links (left sheet on mobile), title-only brand (no logo), icon end links, and the same Tauri traffic-light / Back/Forward / drag treatment as the sidebar.
+- **Identity-hosted login flow:** shell and CLI clients use identity-service authorize → provider callback → account confirmation → token bounce. Shell `OAuthCallbackView` accepts fragment landings from identity (`hashHasOAuthTokens`); CLI `shellui login` opens authorize without `provider` so identity shows the method picker (`--provider` skips it). Loopback callbacks no longer require a running shell `loginUrl`.
+
+### 🐛 Bug Fixes
+
+- **CLI / core Tailwind resolve:** declare `tailwindcss` on `@shellui/cli` and `@shellui/core` so `@import "tailwindcss"` in core CSS resolves under pnpm’s isolated `node_modules` (`shellui build` no longer ENOENT).
+- **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
+- **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
+- **CLI isolation:** `shellui start` / `build` use an inline Vite config (`configFile: false`) so a colocated app’s `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` never affect the shell. Tailwind scans only `@shellui/core`. Cache is `node_modules/.vite-shellui` (not `node_modules/.vite`).
+- **Dev cache:** a colocated app Vite (default `node_modules/.vite`) no longer overwrites the shell’s prebundled deps (e.g. Settings failed to load `react-markdown`).
+
+### 🚨 Changed
+
+- CSS variables are full colors (`oklch(...)` / hex) consumed via `var(--token)` (no longer HSL channel triples).
+- Official default theme is **shellui** (gold brand). AI-generated zinc/slate/… palettes removed.
+- `shellui init` injects `theme: "shellui"`.
 
 ### 📚 Documentation
 
 - Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
+- Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com) as the recommended theme designer and note shadcn / other shared-theme platforms.
+- Document sidebar desktop collapse and mobile sheet behavior.
+- Document identity-hosted OAuth login for `shellui login` (method picker, confirmation, loopback callback).
 
 ## [0.4.1] - 2026-08-18
 
@@ -77,7 +107,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### ✨ Feature
 
 - **Application settings:** navigation items can define a `settings` URL to display their own settings panel in Settings > Applications.
-- **Layout:** new **app-bar** layout with compact top bar, select menu for start links, and icon-only end links with tooltips
+- **Layout:** new **app-bar** layout with a 38px top bar: 9-square + current page name launcher (wrapping icon strip), Back/Forward on Tauri, and icon-only end links
 - **CLI:** `shellui init [root]` command to create a `shellui.config.ts` boilerplate (use `--force` to overwrite)
 
 ### 🛠 Improvements

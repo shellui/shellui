@@ -2,7 +2,7 @@ import { useContext } from 'react';
 import { ConfigContext, type ConfigContextValue } from './ConfigProvider';
 
 /**
- * Hook to access ShellUI configuration from ConfigProvider context.
+ * Hook to access Shellui configuration from ConfigProvider context.
  * Must be used within a ConfigProvider.
  * @returns {ConfigContextValue} Configuration object and loading state
  */
@@ -16,7 +16,7 @@ export function useConfig(): ConfigContextValue {
     );
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
-      console.error('[ShellUI] ConfigProvider error:', error);
+      console.error('[Shellui] ConfigProvider error:', error);
     }
     throw error;
   }

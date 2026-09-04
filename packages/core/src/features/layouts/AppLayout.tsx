@@ -1,5 +1,5 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
-import type { LayoutType, NavigationItem, NavigationGroup } from '../config/types';
+import type { LayoutType, NavigationItem, NavigationGroup, ThemeAsset } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
@@ -23,8 +23,8 @@ const AppBarLayout = lazy(() =>
 interface AppLayoutProps {
   layout?: LayoutType;
   title?: string;
-  appIcon?: string;
-  logo?: string;
+  appIcon?: ThemeAsset;
+  logo?: ThemeAsset;
   navigation?: (NavigationItem | NavigationGroup)[];
   children?: React.ReactNode;
 }

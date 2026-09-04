@@ -2,7 +2,15 @@ import { shellui } from '@shellui/sdk';
 import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 
 if (ExecutionEnvironment.canUseDOM) {
-  // Initialize the ShellUI SDK
+  if (window.parent !== window) {
+    try {
+      localStorage.removeItem('theme');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Initialize the Shellui SDK
   shellui.init();
 }
 

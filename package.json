@@ -1,7 +1,7 @@
 {
-  "name": "shellui-monorepo",
-  "version": "0.4.1",
-  "description": "ShellUI monorepo - CLI, Core, and SDK packages",
+  "name": "shellui",
+  "version": "0.5.0-alpha.5",
+  "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
     "shellui": "packages/cli/bin/shellui.js"
@@ -40,7 +40,7 @@
     "shellui",
     "microfrontend"
   ],
-  "author": "ShellUI",
+  "author": "Shellui",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

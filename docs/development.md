@@ -13,6 +13,8 @@ Guide for developing Shellui packages.
 └── package.json       # Root workspace configuration
 ```
 
+AI skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When changing public CLI, SDK, or config behavior, update the matching skill there and keep it small (see [ADR 0001](/adr/ai-skill)).
+
 ## Development Workflow
 
 ### Prerequisites
@@ -60,6 +62,6 @@ pnpm test
 ## Workspace Dependencies
 
 - `@shellui/cli` depends on `@shellui/core`
-- `@shellui/sdk` depends on `@shellui/core`
+- `@shellui/core` depends on `@shellui/sdk`
 
-These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` and `sdk` during development.
+These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` during development.

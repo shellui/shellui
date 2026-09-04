@@ -23,10 +23,39 @@ const config: ShellUIConfig = {
 
 **Features:**
 
-- Persistent sidebar navigation
-- Responsive design (collapses to bottom navigation on mobile)
+- Persistent sidebar navigation built on the shadcn/ui sidebar primitives
+- Desktop: collapsible icon rail (click the trigger, rail, or press `⌘B` / `Ctrl+B`)
+- Desktop: drag the expanded sidebar border to resize (200–480px; persisted for the tab session)
+- Mobile: sheet/drawer sidebar opened from the top header trigger
+- **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 38px chrome). When the sidebar is collapsed, a full-width 38px top bar holds Back/Forward + open-sidebar (nav icons stay in the rail); when expanded, those controls sit in the sidebar header. A full-width invisible 38px top drag strip is mounted at the app root (all layouts and pages, including error screens). **Back** / **Forward** leave iframe login pages (there is no browser chrome).
 - Supports icons, groups, and positioning
 - Works with all navigation features
+- Themed via sidebar CSS variables (`--sidebar-*`) for light and dark modes
+- Optional `appIcon`: small square mark at the top of the expanded sidebar (left of the collapse control); hidden when the sidebar is collapsed
+
+## Branding (`appIcon` / `logo`)
+
+```json
+{
+  "appIcon": "/app-icon.svg",
+  "logo": "/logo.svg"
+}
+```
+
+- **`appIcon`**: Small square brand mark. Shown in the sidebar header (expanded), at the start of the app-bar, and on the windows start button.
+- **Single path** (SVG or mono PNG): Shellui recolors it for light/dark via CSS.
+- **Paired files** (typical for full-color PNGs):
+
+```json
+{
+  "appIcon": {
+    "light": "/app-icon-light.png",
+    "dark": "/app-icon-dark.png"
+  }
+}
+```
+
+- **`logo`**: Wider wordmark asset (optional). Prefer `appIcon` for chrome.
 
 ## Fullscreen Layout
 
@@ -81,14 +110,14 @@ const config: ShellUIConfig = {
 **Features:**
 
 - **Taskbar**: Bottom taskbar with app buttons and system clock
-- **Start Menu**: Click the start button to see all navigation items
+- **Start Menu**: Categorized app launcher (navigation groups become sections), polished list with icons, and open-window indicators
 - **Multi-Window**: Each navigation item opens in its own window
 - **Window Management**:
   - Drag windows to reposition
   - Resize windows by dragging edges
   - Minimize, maximize, and close windows
   - Focus windows by clicking them or their taskbar button
-- **Desktop Background**: Customizable desktop area
+- **Desktop Background**: Full-bleed primary color wash behind open windows (follows the active theme)
 
 **Window Controls:**
 
@@ -107,17 +136,22 @@ const config: ShellUIConfig = {
 
 ## App Bar Layout
 
-The app bar layout uses a compact top bar (max height 42px) for navigation. Start links are shown in a select menu; end links are shown as icon-only buttons (or a first-letter badge when no icon is set), with a tooltip on hover showing the full name.
+The app bar layout uses a compact **38px** top bar for navigation. Start destinations open from a single control (9-square icon + current page name). The menu is a wrapping flex row of icon tiles; navigation groups sit in a muted panel with the category title floating on the top edge. End links stay icon-only with a tooltip.
 
 ```typescript
 const config: ShellUIConfig = {
   layout: 'app-bar',
   navigation: [
     {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: '/',
-      icon: '/icons/dashboard.svg',
+      title: 'Apps',
+      items: [
+        {
+          label: 'Dashboard',
+          path: 'dashboard',
+          url: '/',
+          icon: '/icons/dashboard.svg',
+        },
+      ],
     },
     {
       label: 'Settings',
@@ -131,16 +165,17 @@ const config: ShellUIConfig = {
 
 **Features:**
 
-- **Top bar**: Compact bar (max 42px) with logo/title on the left
-- **Start links**: Displayed in a select dropdown for space-efficient navigation
-- **End links**: Icon-only (or first letter) with tooltip on hover for full name
-- **Responsive**: Single row layout suitable for app-style UIs
+- **Top bar**: Fixed 38px chrome (aligned with Tauri overlay titlebar height)
+- **Launcher**: 9-square + current page name opens a wrapping flex row of fixed icon tiles (panel shrink-wraps to content, max 50vw); groups use a muted background with a floating category title; scrolls when tall.
+- **Current item**: Page name next to the launcher icon in one clickable control; then Back/Forward on Tauri
+- **End links**: Icon-only (or first letter) with tooltip on hover
+- **Desktop app (Tauri):** traffic-light inset, Back/Forward controls, and window-drag regions on the bar
 
 **Use cases:**
 
 - Apps that prefer a top bar over a sidebar
 - Dense UIs where vertical space is limited
-- When you want main nav in a dropdown and utility links (e.g. Settings) as icons on the right
+- Many start destinations behind a compact launcher; utility links as icons on the right
 
 ## Changing Layouts
 
@@ -174,8 +209,9 @@ function MyComponent() {
 
 ### Sidebar Layout
 
-- **Mobile**: Automatically switches to bottom navigation bar
-- **Desktop**: Sidebar can be collapsed/expanded
+- **Mobile**: Sheet/drawer sidebar opened from the top header trigger
+- **Desktop app**: On macOS Tauri, the native title bar is hidden; window controls overlay the sidebar. Drag the top of the sidebar or the transparent content strip to move the window. Use **Back** / **Forward** in the sidebar header for browser-like history (including iframe navigations such as a login screen).
+- **Desktop**: Sidebar can be collapsed to icons (trigger, rail, or `⌘B` / `Ctrl+B`)
 - **Groups**: Navigation groups appear as sections in the sidebar
 - **Positioning**: Use `position: 'end'` to place items in sidebar footer
 
@@ -196,7 +232,7 @@ function MyComponent() {
 
 ### App Bar Layout
 
-- **Top bar**: Fixed max height of 42px; logo/title and select stay compact
+- **Top bar**: Fixed max height of 42px; optional `appIcon` before the launcher, then start links stay compact
 - **Start vs end**: Use `position: 'end'` on navigation items to show them as icon-only buttons on the right
 - **Tooltips**: End links show full name on hover via native tooltip
 - **Icons**: Set `icon` on items for end bar; omit for first-letter fallback
@@ -234,7 +270,7 @@ export default config;
    - Use `sidebar` for most web applications
    - Use `fullscreen` for embedded or kiosk applications
    - Use `windows` only for testing or proof-of-concept (experimental; not recommended for production)
-   - Use `app-bar` for a compact top bar with select menu and icon-only end links
+   - Use `app-bar` for a compact 38px top bar with a 9-square launcher and icon-only end links
 
 2. **Navigation items**: All layouts support the same navigation features, but visibility varies:
    - Sidebar: All items visible in sidebar
@@ -242,7 +278,7 @@ export default config;
    - Windows: Items accessible via start menu
    - App bar: Start items in a select; end items as icons with tooltips
 
-3. **Mobile considerations**: Sidebar layout automatically adapts to mobile with bottom navigation
+3. **Mobile considerations**: Sidebar layout opens as a sheet from the top header on small screens
 
 4. **Testing**: Test your application in all layout modes to ensure compatibility
 

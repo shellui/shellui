@@ -93,7 +93,7 @@ For Tauri desktop builds, the service worker is disabled automatically when you 
 
 ### Tauri Desktop Builds
 
-When building or developing with `--app`, the CLI injects a Tauri build target at compile time. The service worker stays enabled for normal web builds (`shellui dev`, `shellui build`) using the same `shellui.config.ts`.
+When building or developing with `--app`, the CLI injects a Tauri build target at compile time. The service worker stays enabled for normal web builds (`shellui dev`, `shellui build`) using the same `shellui.config.json`.
 
 Tauri uses its own caching system, so the service worker is not needed in desktop builds.
 

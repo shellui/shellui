@@ -6,7 +6,7 @@ The picker UI lives in the files app (`storage.filesUrl`). The root shell opens 
 
 ## Setup
 
-Set `storage.url` and `storage.filesUrl` in `shellui.config.ts`:
+Set `storage.url` and `storage.filesUrl` in `shellui.config.json`:
 
 ```typescript
 storage: {

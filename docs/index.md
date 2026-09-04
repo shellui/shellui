@@ -2,18 +2,18 @@
 
 Welcome to the Shellui documentation.
 
-Shellui is a lightweight microfrontend shell: one host app, many embedded URLs, shared navigation, themes, and settings. When you need sign-in, you connect a **backend** (Supabase, the Shellui identity service, or no backend for public shells) and configure **authentication** in `shellui.config.ts`—login routes, sessions, and guarded navigation are built into the shell.
+Shellui is a lightweight microfrontend shell: one host app, many embedded URLs, shared navigation, themes, and settings. When you need sign-in, you connect a **backend** (Supabase, the Shellui identity service, or no backend for public shells) and configure **authentication** in `shellui.config.json`—login routes, sessions, and guarded navigation are built into the shell.
 
 Use the sections below as a map, or follow the recommended path in order.
 
 ## Recommended path
 
 1. **[Installation](/installation)** — Install the Shellui CLI and verify your environment.
-2. **[Quick Start](/quickstart)** — Create `shellui.config.ts`, run the dev server, and build for production.
+2. **[Quick Start](/quickstart)** — Create `shellui.config.json`, run the dev server, and build for production.
 3. **[Backend](/backend)** — Choose a provider (`shellui`, `supabase`, or none), set `backend.url`, and optional tenant or Supabase keys.
 4. **[Authentication](/features/authentication)** — Enable login methods, use `/login` and `/login/callback`, and protect routes with `requiresAuth`.
 5. **[Navigation](/features/navigation)** — Define sidebar items, groups, and auth-aware visibility (`hideWhenLoggedOut`).
-6. **[SDK](/sdk)** — Read user and settings from embedded apps; call `shellui.login()` for iframe-safe OAuth.
+6. **[SDK](/sdk)** — Read user and settings from embedded apps; call `shellui.login()` for iframe-safe OAuth. For a tiny CDN drop-in (theme / language / navigation only), see the [tiny injectable](/sdk#tiny-injectable-external-sites) in the SDK docs.
 
 From there, pick layout, themes, i18n, and advanced features as your product needs them.
 
@@ -50,10 +50,25 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 
 - **[CLI](/cli)** — Commands, config file shape, and `backend` fields
 - **[Core package](/core)** — React runtime and exports such as `useAuth`
-- **[SDK](/sdk)** — JavaScript SDK API
+- **[SDK](/sdk)** — JavaScript SDK API (including the tiny CDN script)
 - **[Tauri](/tauri)** — Desktop packaging
+
+## For AI agents
+
+Official skills: [shellui/skills](https://github.com/shellui/skills).
+
+```bash
+npx skills add shellui/skills --skill shellui
+# many local apps: add -g
+```
+
+Update with `npx skills update`.
+
+Decision record: [ADR 0001 — Official shellui AI skill](/adr/ai-skill).
 
 ## Developer resources
 
 - [Development guide](/development) — Contributing to Shellui
 - [Publishing guide](/publishing) — Releasing packages
+- [ADR 0001](/adr/ai-skill) — AI skill hosting, versioning, and token budget
+- [Playground](https://playground.shellui.com) ([source](https://github.com/shellui/playground)) — live demo; one package, `pnpm start` runs `shellui start` plus the Vite iframe app

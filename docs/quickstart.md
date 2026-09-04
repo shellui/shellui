@@ -48,39 +48,38 @@ From your project directory, run:
 shellui init
 ```
 
-This creates a `shellui.config.ts` with sensible defaults (port, title, layout, and sample navigation including Home and Settings). To overwrite an existing config, use `shellui init --force`.
+This creates a `shellui.config.json` with sensible defaults (port, title, layout, and sample navigation including Home and Settings), plus a `$schema` reference for editor autocomplete. To overwrite an existing config, use `shellui init --force`.
+
+If you still have a TypeScript config from an older project, run `shellui config migrate` to convert it.
 
 Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/icons/home.svg`, `static/icons/settings.svg`) to customize assets, then skip to [Step 4: Start the Development Server](#step-4-start-the-development-server).
 
-### Option B: Create shellui.config.ts manually
+### Option B: Create shellui.config.json manually
 
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  port: 4000,
-  title: 'My Shellui App',
-  backend: {
-    type: 'supabase',
-    url: 'http://localhost:54321',
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "port": 4000,
+  "title": "My Shellui App",
+  "backend": {
+    "type": "supabase",
+    "url": "http://localhost:54321"
   },
-  navigation: [
+  "navigation": [
     {
-      label: 'Home',
-      path: 'home',
-      url: 'http://localhost:4000/',
-      icon: 'Home',
+      "label": "Home",
+      "path": "home",
+      "url": "http://localhost:4000/",
+      "icon": "/icons/home.svg"
     },
     {
-      label: 'About',
-      path: 'about',
-      url: 'https://example.com/about',
-      icon: 'Info',
-    },
-  ],
-};
-
-export default config;
+      "label": "About",
+      "path": "about",
+      "url": "https://example.com/about",
+      "icon": "/icons/info.svg"
+    }
+  ]
+}
 ```
 
 ### Configuration Options
@@ -100,6 +99,10 @@ export default config;
   - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
 - **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
 - **storage** (object, optional): Storage-service URL. Settings → Storage is shown only when this is configured. See [Storage](/features/storage).
+
+String values may use `${VAR}` or `${VAR:-default}` for environment overrides (resolved at load time). See [CLI — Environment variable substitution](/cli#environment-variable-substitution).
+
+Store config outside the project root with `--config ./config` (or `SHELLUI_CONFIG`). See [CLI — Custom config location](/cli#custom-config-location).
 
 ## Step 4: Start the Development Server
 
@@ -132,8 +135,8 @@ You should see output like:
 
 ```
 Starting Shellui...
-Loaded TypeScript config from /path/to/shellui.config.ts
-👀 Watching config file: /path/to/shellui.config.ts
+Loaded JSON config from /path/to/shellui.config.json
+👀 Watching config file: /path/to/shellui.config.json
 
   VITE v7.x.x  ready in xxx ms
 
@@ -152,6 +155,8 @@ shellui build
 This will:
 
 - Build your Shellui application
+- Resolve `${ENV}` placeholders at build time and embed a frozen config in the bundle
+- Write `dist/web/shellui.config.json` (resolved values only — public, not overridable at runtime)
 - Output the production files to the `dist/web/` directory
 - Optimize assets for production
 
@@ -163,7 +168,7 @@ A typical Shellui project structure looks like:
 
 ```
 my-shellui-app/
-├── shellui.config.ts
+├── shellui.config.json
 ├── package.json
 ├── static/                # Optional static assets
 ├── dist/                  # Generated build output (gitignored)
@@ -171,6 +176,37 @@ my-shellui-app/
 │   └── app/               # Desktop wrapper (--app)
 └── node_modules/
 ```
+
+## Shell plus an embedded app
+
+The CLI only builds the **shell**. Your microfrontend is a normal app (Vite, Next, whatever) with its own scripts. Both can live in the **same package** — one `package.json`, one `pnpm install`.
+
+The [playground](https://github.com/shellui/playground) is that pattern: Shellui CLI for the host, Vite for the iframe demo. One `pnpm start` runs both:
+
+```json
+{
+  "dev": {
+    "run": "vite",
+    "url": "http://localhost:5173"
+  }
+}
+```
+
+```json
+{
+  "scripts": {
+    "start": "shellui start",
+    "start:app": "vite",
+    "build": "shellui build && vite build"
+  }
+}
+```
+
+`start:app` is an escape hatch. `shellui start --shell-only` is shell-only. Flags `--run` / `--follow` override `dev`. See [CLI — Companion process](/cli#companion-process).
+
+`shellui start` / `shellui build` are isolated from your app: they do not load `vite.config.*`, `postcss.config.*`, `tsconfig.json`, or `VITE_*`. Tailwind only scans `@shellui/core`. The shell cache is `node_modules/.vite-shellui`, so a colocated Vite app can keep the default `node_modules/.vite` (or its own `cacheDir`). See [CLI — Tooling isolation](/cli#tooling-isolation).
+
+Point navigation `url`s at the Vite origin in development (for example `http://localhost:5173/#/`) and at the built app path in production (playground writes `dist/web/app/` and sets `PLAYGROUND_APP_URL=/app`). Use [`@shellui/sdk`](/sdk) inside the iframe.
 
 ## Next Steps
 
@@ -194,8 +230,9 @@ If the default port is already in use, change it in your configuration:
 
 ### Configuration Not Loading
 
-- Ensure `shellui.config.ts` is in your project root
-- Ensure TypeScript is installed: `npm install -D typescript`
+- Ensure `shellui.config.json` is in your project root (or run `shellui init`)
+- Check that the file is valid JSON and matches the schema (`$schema` in the file)
+- If you still use TypeScript config, ensure no JSON/split files take precedence and that the export is serializable
 
 ### Build Errors
 

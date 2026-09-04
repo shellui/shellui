@@ -80,6 +80,21 @@ export const buildSettingsForPropagation = (
     result = { ...result, storage: null };
   }
 
+  const hostingUrl = config?.hosting?.url?.trim().replace(/\/+$/, '') || null;
+  if (hostingUrl) {
+    const app = config.hosting?.app?.trim() || null;
+    result = {
+      ...result,
+      hosting: {
+        url: hostingUrl,
+        ...(app ? { app } : {}),
+        ...(config.hosting?.showInAdmin === false ? { showInAdmin: false } : {}),
+      },
+    };
+  } else {
+    result = { ...result, hosting: null };
+  }
+
   const authBackendBaseUrl =
     config?.backend?.type === 'shellui' && config.backend.url?.trim()
       ? config.backend.url.trim().replace(/\/+$/, '')

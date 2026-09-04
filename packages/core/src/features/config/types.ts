@@ -10,7 +10,7 @@ export type LocalizedString =
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with select menu for start links and icon-only end links. */
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links. */
 export type LayoutType = 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
 
 export interface NavigationItem {
@@ -28,7 +28,7 @@ export interface NavigationItem {
   requiresDevMode?: boolean;
   /** When true, this item is available only to staff users (`isStaff`). */
   requiresStaff?: boolean;
-  /** When true, hide this item on mobile (bottom nav). Has no effect if hidden is true. */
+  /** When true, hide this item on mobile (sidebar sheet). Has no effect if hidden is true. */
   hiddenOnMobile?: boolean;
   /** When true, hide this item on desktop (sidebar). Has no effect if hidden is true. */
   hiddenOnDesktop?: boolean;
@@ -57,81 +57,17 @@ export interface NavigationGroup {
   position?: 'start' | 'end';
 }
 
-export interface ThemeColors {
-  light: {
-    background: string;
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
-    ring: string;
-    radius: string;
-    sidebarBackground: string;
-    sidebarForeground: string;
-    sidebarPrimary: string;
-    sidebarPrimaryForeground: string;
-    sidebarAccent: string;
-    sidebarAccentForeground: string;
-    sidebarBorder: string;
-    sidebarRing: string;
-  };
-  dark: {
-    background: string;
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
-    ring: string;
-    radius: string;
-    sidebarBackground: string;
-    sidebarForeground: string;
-    sidebarPrimary: string;
-    sidebarPrimaryForeground: string;
-    sidebarAccent: string;
-    sidebarAccentForeground: string;
-    sidebarBorder: string;
-    sidebarRing: string;
-  };
-}
+export type {
+  ThemeColors,
+  ThemeColorsMode,
+  ThemeDefinition,
+  ThemeFonts,
+  ThemeInput,
+  ThemeRef,
+  ThemesConfig,
+} from '../theme/types';
 
-export interface ThemeDefinition {
-  name: string;
-  displayName: string;
-  colors: ThemeColors;
-  fontFamily?: string; // Optional custom font family (backward compatible)
-  headingFontFamily?: string; // Optional font family for headings (h1-h6)
-  bodyFontFamily?: string; // Optional font family for body text
-  fontFiles?: string[]; // Optional array of font file URLs or paths to load (e.g., Google Fonts links or local paths)
-  letterSpacing?: string; // Optional custom letter spacing (e.g., "0.02em")
-  textShadow?: string; // Optional custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
-  lineHeight?: string; // Optional custom line height (e.g., "1.6")
-}
+import type { ThemeDefinition, ThemeRef, ThemesConfig } from '../theme/types';
 
 /** Sentry error reporting configuration. Only used in production; ignored in dev. */
 export interface SentryConfig {
@@ -203,6 +139,10 @@ export interface BackendLoginConfig {
   methods?: BackendLoginMethod[];
   /** OAuth providers used when oauth is enabled (e.g. ["github"]). */
   oauthProviders?: string[];
+  /** Full-bleed iframe URL for the login left panel (wins over panelImage). */
+  panelUrl?: string;
+  /** Centered, ratio-preserving image for the login left panel. */
+  panelImage?: string;
 }
 
 /** Backend API configuration. */
@@ -215,6 +155,12 @@ export interface BackendConfig {
   adminPathname?: string;
   /** Admin content URL loaded in the admin route view (e.g. "https://example.com/admin"). */
   adminUrl?: string;
+  /**
+   * Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live.
+   * Used by `shellui login`. Not the iframe admin app (`adminUrl`).
+   * Example: `https://app.example.com` or `http://127.0.0.1:4000`.
+   */
+  loginUrl?: string;
   /** Optional Supabase publishable key (public key). */
   publishableKey?: string;
   /** Optional login capabilities used by frontend for immediate rendering. */
@@ -227,7 +173,7 @@ export interface BackendConfig {
  * Optional storage-service wiring for the shell and admin panel.
  * When set, admin shows the Storage sidebar (files explorer, statistics, Django admin).
  * Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false.
- * ShellUI will also use this for the SDK file API (`shellui.storage`).
+ * Shellui will also use this for the SDK file API (`shellui.storage`).
  */
 export interface StorageConfig {
   /** Base URL of storage-service (e.g. `http://localhost:8001`). */
@@ -239,6 +185,32 @@ export interface StorageConfig {
    * Admin Storage is unaffected. Default: true.
    */
   showInSettings?: boolean;
+}
+
+/**
+ * Optional hosting-service wiring for `shellui deploy` preview uploads.
+ * Preview sites expire after 7 days unless redeployed to the same slug.
+ */
+export interface HostingConfig {
+  /** Base URL of hosting-service (e.g. `http://localhost:8002`). */
+  url: string;
+  /**
+   * Optional public base for browsable app URLs when different from `url`
+   * (e.g. CDN or path-style gateway). The deploy API returns `urls` when possible.
+   */
+  publicUrl?: string;
+  /**
+   * Optional preview site slug. When set, `shellui deploy` redeploys to this slug
+   * (must belong to your company and user). When omitted, each deploy gets a new slug.
+   */
+  slug?: string;
+  /** @deprecated Use `slug` instead. */
+  app?: string;
+  /**
+   * When false, hide Admin → Hosting even if `url` is set.
+   * Default: true when `url` is set. Does not affect `shellui deploy`.
+   */
+  showInAdmin?: boolean;
 }
 
 /**
@@ -256,6 +228,17 @@ export interface AdministrationConfig {
   navigation: NavigationItem[];
 }
 
+/**
+ * Brand asset path, or separate light/dark files when CSS theming is not enough
+ * (typical for full-color PNGs). A single SVG/PNG is recolored for light/dark via CSS.
+ */
+export type ThemeAsset =
+  | string
+  | {
+      light: string;
+      dark: string;
+    };
+
 export interface ShellUIConfig {
   port?: number;
   title?: string;
@@ -263,10 +246,17 @@ export interface ShellUIConfig {
   version?: string;
   /** Favicon path (e.g. '/favicon.svg'). Used for the document link rel="icon". */
   favicon?: string;
-  /** App icon path (e.g. '/favicon.svg'). Displayed before title/logo in sidebar header. */
-  appIcon?: string;
-  /** Logo path (e.g. '/logo.svg'). If defined, displayed as image in sidebar header instead of text title. */
-  logo?: string;
+  /**
+   * Small square app icon (e.g. '/app-icon.svg').
+   * Shown in the sidebar header, app-bar, and windows start menu.
+   * Use a string for SVG/mono icons (auto light/dark via CSS), or `{ light, dark }` for paired PNGs.
+   */
+  appIcon?: ThemeAsset;
+  /**
+   * Logo path (e.g. '/logo.svg'). Wider wordmark; use a string or `{ light, dark }` pair.
+   * Prefer `appIcon` for the small square mark in chrome.
+   */
+  logo?: ThemeAsset;
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
   layout?: LayoutType;
@@ -284,8 +274,37 @@ export interface ShellUIConfig {
    * when `url` is set unless `storage.showInSettings` is false.
    */
   storage?: StorageConfig;
-  themes?: ThemeDefinition[]; // Custom themes to register
-  defaultTheme?: string; // Default theme name to use
+  /**
+   * Hosting-service connection. Propagated to iframes via SDK settings.
+   * Enables `shellui deploy` when `url` is set.
+   */
+  hosting?: HostingConfig;
+  /**
+   * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
+   * When set without `themes`, only this theme is available in the selector.
+   */
+  theme?: ThemeRef;
+  /**
+   * Available themes for the app.
+   * - Array of built-in names, paths, or inline objects
+   * - Map of id → name | path | object
+   * After CLI load, resolved to a `ThemeDefinition[]` for the runtime.
+   */
+  themes?: ThemesConfig | ThemeDefinition[];
+  /**
+   * Directory of theme JSON files (one `.json` per theme) with optional sibling
+   * `<name>/fonts/` folders. Resolved by the CLI at load/build time.
+   */
+  themesDir?: string;
+  /**
+   * Active theme name on first visit (and when no user preference is stored).
+   * Prefer this over `defaultTheme`.
+   */
+  activeTheme?: string;
+  /**
+   * Default theme name. Alias of `activeTheme` (kept for backward compatibility).
+   */
+  defaultTheme?: string;
   /** Sentry error reporting. Load from env (e.g. SENTRY_DSN). Only active in production builds. */
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */
@@ -294,4 +313,19 @@ export interface ShellUIConfig {
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
   legalDocuments?: LegalDocumentsConfig;
+  /**
+   * CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`.
+   * Stripped before the config is sent to the browser.
+   */
+  dev?: DevConfig;
+}
+
+/** Companion process for local `shellui start` (not used at runtime in the shell). */
+export interface DevConfig {
+  /** Command to spawn in the project root (e.g. `vite`). */
+  run?: string;
+  /** URL (or host:port) to wait for / follow. */
+  url?: string;
+  /** Log prefix name (default: `app`). */
+  name?: string;
 }

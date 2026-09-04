@@ -396,7 +396,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
               bottom: 16,
               left: 16,
               zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
-              backgroundColor: 'hsl(var(--background))',
+              backgroundColor: 'var(--background)',
               top: 'auto',
               right: 'auto',
               transform: 'none',

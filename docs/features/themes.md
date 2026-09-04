@@ -1,361 +1,292 @@
 # Themes
 
-Shellui supports custom themes with light/dark mode variants, custom fonts, and extensive color customization.
+Shellui theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (light under `:root`, dark under `.dark`). Tokens are **full CSS colors** — prefer **OKLCH** (`oklch(...)`). Configuration lives in `shellui.config` (no live theme editor yet).
 
-## Default Themes
+## Designing your own theme
 
-Shellui comes with built-in light and dark themes. Users can switch between them in Settings > Appearance.
+Most curated themes below come from the excellent [tweakcn](https://tweakcn.com) — a perfect tool to create or customize a theme and export shadcn-compatible CSS variables. We highly encourage a [tweakcn Pro](https://tweakcn.com) subscription to support that project.
 
-## Custom Themes
+Any theme built for [shadcn/ui](https://ui.shadcn.com/themes) works beautifully with Shellui: paste `:root` / `.dark` variables into theme JSON (`light` / `dark`), or map a registry-style export the same way. Many other platforms also share ready-made shadcn themes you can adapt the same way.
 
-Create custom themes by defining them in your configuration:
+When you are happy with a palette, save it as versioned theme JSON under `themesDir` (or inline in config) — see [Theme JSON shape](#theme-json-shape-version-1).
 
-```typescript
+## Quick start
+
+`shellui init` injects the official Shellui theme:
+
+```json
+{
+  "theme": "shellui"
+}
+```
+
+## Built-in themes
+
+Curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`. Community and brand palettes are adapted from [tweakcn](https://tweakcn.com) and [shadcn/ui](https://ui.shadcn.com/) unless noted otherwise:
+
+| Name              | Label           | Description                                                                               |
+| ----------------- | --------------- | ----------------------------------------------------------------------------------------- |
+| `shellui`         | Shellui         | Official Shellui theme — gold brand from shellui.com                                      |
+| `claude`          | Claude          | Warm terracotta theme with Outfit and Geist Mono                                          |
+| `light-green`     | Light Green     | Bright lime primary on cool neutrals (Inter + JetBrains Mono)                             |
+| `zen-inspired`    | Zen Inspired    | Warm parchment neutrals with charcoal primary (Inter + Playfair Display + JetBrains Mono) |
+| `astro-vista`     | Astro Vista     | Soft cool neutrals with warm orange primary (Outfit + Merriweather + Fira Code)           |
+| `shadcn`          | shadcn          | Default shadcn/ui neutral palette with system fonts                                       |
+| `amber-minimal`   | Amber Minimal   | Clean white neutrals with amber primary (Inter + Source Serif 4 + JetBrains Mono)         |
+| `amethyst-haze`   | Amethyst Haze   | Soft lavender neutrals with muted purple primary (Geist + Lora + Fira Code)               |
+| `bold-tech`       | Bold Tech       | Vivid violet primary on cool lilac neutrals (Roboto + Playfair Display + Fira Code)       |
+| `bubblegum`       | Bubblegum       | Playful pink primary with candy pastels (Poppins + Lora + Fira Code)                      |
+| `caffeine`        | Caffeine        | Warm coffee browns with soft cream accents (system fonts)                                 |
+| `candyland`       | Candyland       | Soft pastel pink, blue, and lime accents (Poppins + Roboto Mono)                          |
+| `catppuccin`      | Catppuccin      | Mauve primary with cool lavender neutrals (Montserrat + Fira Code)                        |
+| `claymorphism`    | Claymorphism    | Soft clay surfaces with violet primary (Plus Jakarta Sans + Lora + Roboto Mono)           |
+| `clean-slate`     | Clean Slate     | Cool slate neutrals with violet primary (Inter + Merriweather + JetBrains Mono)           |
+| `cosmic-night`    | Cosmic Night    | Soft violet cosmic palette (Inter + JetBrains Mono)                                       |
+| `cyberpunk`       | Cyberpunk       | Neon magenta and cyan accents (Outfit + Fira Code)                                        |
+| `darkmatter`      | Darkmatter      | Amber primary with mono-first UI (Geist Mono + JetBrains Mono)                            |
+| `doom-64`         | Doom 64         | Hard-edged retro game palette (Oxanium + Source Code Pro)                                 |
+| `elegant-luxury`  | Elegant Luxury  | Warm burgundy luxury palette (Poppins + Libre Baskerville + IBM Plex Mono)                |
+| `graphite`        | Graphite        | Neutral graphite greyscale (Montserrat + Fira Code)                                       |
+| `kodama-grove`    | Kodama Grove    | Earthy moss greens on warm parchment (Merriweather + Source Serif 4)                      |
+| `midnight-bloom`  | Midnight Bloom  | Violet bloom accents (Montserrat + Playfair Display + Source Code Pro)                    |
+| `mocha-mousse`    | Mocha Mousse    | Soft mocha browns (DM Sans + Georgia)                                                     |
+| `modern-minimal`  | Modern Minimal  | Clean blue primary on crisp neutrals (Inter + Source Serif 4 + JetBrains Mono)            |
+| `mono`            | Mono            | Strict monochrome UI with Geist Mono throughout                                           |
+| `nature`          | Nature          | Forest green primary on warm earth tones (Montserrat + Merriweather)                      |
+| `neo-brutalism`   | Neo Brutalism   | Hard edges, bold color blocks (DM Sans + Space Mono)                                      |
+| `northern-lights` | Northern Lights | Aurora green with cool blues (Plus Jakarta Sans + JetBrains Mono)                         |
+| `notebook`        | Notebook        | Handwritten notebook feel (Architects Daughter)                                           |
+| `ocean-breeze`    | Ocean Breeze    | Fresh teal primary on airy blues (DM Sans + Lora + IBM Plex Mono)                         |
+| `pastel-dreams`   | Pastel Dreams   | Soft lavender pastels with large radius (Open Sans + Source Serif 4)                      |
+| `perpetuity`      | Perpetuity      | Teal terminal aesthetic (Source Code Pro)                                                 |
+| `quantum-rose`    | Quantum Rose    | Vivid rose primary on soft pinks (Quicksand + Playfair Display)                           |
+| `retro-arcade`    | Retro Arcade    | Playful arcade magenta and teal (Outfit + Space Mono)                                     |
+| `sage-garden`     | Sage Garden     | Muted sage greens on warm paper (Antic + JetBrains Mono)                                  |
+| `soft-pop`        | Soft Pop        | Playful violet and teal soft-pop accents (DM Sans + Space Mono)                           |
+| `solar-dusk`      | Solar Dusk      | Warm dusk oranges on parchment (Oxanium + Merriweather + Fira Code)                       |
+| `starry-night`    | Starry Night    | Painterly night blues with gold accents (Libre Baskerville)                               |
+| `sunset-horizon`  | Sunset Horizon  | Warm sunset oranges (Montserrat + Merriweather + Ubuntu Mono)                             |
+| `supabase`        | Supabase        | Supabase green brand palette (Outfit)                                                     |
+| `t3-chat`         | T3 Chat         | Magenta-rose chat aesthetic with system fonts                                             |
+| `tangerine`       | Tangerine       | Bright tangerine primary on cool slate (Inter + Source Serif 4)                           |
+| `twitter`         | Twitter         | Sky-blue social palette (Open Sans)                                                       |
+| `vercel`          | Vercel          | Stark black-and-white Vercel aesthetic (Geist + Geist Mono)                               |
+| `vintage-paper`   | Vintage Paper   | Aged paper browns (Libre Baskerville + Lora + IBM Plex Mono)                              |
+| `violet-bloom`    | Violet Bloom    | Bold violet bloom with tight tracking (Plus Jakarta Sans + Lora)                          |
+
+```ts
+import {
+  defaultTheme,
+  themes,
+  themeNames,
+  shelluiTheme,
+  claudeTheme,
+  lightGreenTheme,
+  zenInspiredTheme,
+  astroVistaTheme,
+  shadcnTheme,
+  amberMinimalTheme,
+  amethystHazeTheme,
+  boldTechTheme,
+  bubblegumTheme,
+  caffeineTheme,
+  candylandTheme,
+  catppuccinTheme,
+  claymorphismTheme,
+  cleanSlateTheme,
+  cosmicNightTheme,
+  cyberpunkTheme,
+  darkmatterTheme,
+  doom64Theme,
+  elegantLuxuryTheme,
+  graphiteTheme,
+  kodamaGroveTheme,
+  midnightBloomTheme,
+  mochaMousseTheme,
+  modernMinimalTheme,
+  monoTheme,
+  natureTheme,
+  neoBrutalismTheme,
+  northernLightsTheme,
+  notebookTheme,
+  oceanBreezeTheme,
+  pastelDreamsTheme,
+  perpetuityTheme,
+  quantumRoseTheme,
+  retroArcadeTheme,
+  sageGardenTheme,
+  softPopTheme,
+  solarDuskTheme,
+  starryNightTheme,
+  sunsetHorizonTheme,
+  supabaseTheme,
+  t3ChatTheme,
+  tangerineTheme,
+  twitterTheme,
+  vercelTheme,
+  vintagePaperTheme,
+  violetBloomTheme,
+} from '@shellui/core';
+```
+
+JSON sources live under `packages/core/src/features/theme/curated/*.json` and are validated against `@shellui/core/schemas/shellui.theme.schema.json`.
+
+## Config API
+
+### 1) Single built-in theme by name
+
+```json
+{
+  "theme": "shellui"
+}
+```
+
+### 2) Inline theme object (full or partial override)
+
+Partial `light` / `dark` tokens merge onto the Shellui theme. CamelCase or CSS-variable kebab-case keys are accepted (`primary-foreground`, `sidebar`, …):
+
+```ts
 import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
-  themes: [
-    {
-      name: 'my-theme',
-      displayName: 'My Custom Theme',
-      colors: {
-        light: {
-          // Light mode colors
-          background: '#ffffff',
-          foreground: '#000000',
-          // ... more colors
-        },
-        dark: {
-          // Dark mode colors
-          background: '#000000',
-          foreground: '#ffffff',
-          // ... more colors
-        },
-      },
+  theme: {
+    name: 'brand',
+    label: 'Brand',
+    radius: '0.5rem',
+    fonts: { sans: 'Inter, system-ui, sans-serif' },
+    light: {
+      primary: 'oklch(0.55 0.15 250)',
+      'primary-foreground': 'oklch(1 0 0)',
     },
-  ],
-  defaultTheme: 'my-theme', // Optional: set as default
+    dark: {
+      primary: 'oklch(0.7 0.12 250)',
+    },
+  },
 };
 ```
 
-## Theme Structure
+### 3) Theme folder (`themesDir`)
 
-A theme definition includes:
-
-- **`name`** (string, required): Unique identifier for the theme
-- **`displayName`** (string, required): Human-readable name shown in settings
-- **`colors`** (ThemeColors, required): Color definitions for light and dark modes
-- **`fontFamily`** (string, optional): Global font family (backward compatible)
-- **`headingFontFamily`** (string, optional): Font family for headings (h1-h6)
-- **`bodyFontFamily`** (string, optional): Font family for body text
-- **`fontFiles`** (string[], optional): URLs or paths to load fonts. Can be a Google Fonts CSS URL, a path to a local CSS file that defines `@font-face` rules, or direct paths to font files (e.g. `.woff2`)
-- **`letterSpacing`** (string, optional): Custom letter spacing (e.g., "0.02em")
-- **`textShadow`** (string, optional): Custom text shadow (e.g., "1px 1px 2px rgba(0, 0, 0, 0.1)")
-- **`lineHeight`** (string, optional): Custom line height (e.g., "1.6")
-
-## Color Palette
-
-Each theme defines colors for both light and dark modes. Here's the complete color structure:
-
-```typescript
-colors: {
-  light: {
-    background: string;           // Main background color
-    foreground: string;           // Main text color
-    card: string;               // Card/surface background
-    cardForeground: string;      // Card text color
-    popover: string;            // Popover background
-    popoverForeground: string;  // Popover text
-    primary: string;            // Primary brand color
-    primaryForeground: string;  // Text on primary
-    secondary: string;          // Secondary color
-    secondaryForeground: string; // Text on secondary
-    muted: string;              // Muted background
-    mutedForeground: string;    // Muted text
-    accent: string;            // Accent color
-    accentForeground: string;  // Text on accent
-    destructive: string;       // Error/destructive color
-    destructiveForeground: string; // Text on destructive
-    border: string;            // Border color
-    input: string;             // Input border color
-    ring: string;              // Focus ring color
-    radius: string;            // Border radius (e.g., "0.5rem")
-    // Sidebar-specific colors
-    sidebarBackground: string;
-    sidebarForeground: string;
-    sidebarPrimary: string;
-    sidebarPrimaryForeground: string;
-    sidebarAccent: string;
-    sidebarAccentForeground: string;
-    sidebarBorder: string;
-    sidebarRing: string;
-  },
-  dark: {
-    // Same structure as light mode
-  },
+```json
+{
+  "themesDir": "./themes",
+  "theme": "acme"
 }
 ```
 
-## Custom Fonts
-
-### Local fonts (recommended)
-
-Serve fonts from your own app for better privacy and performance. Put font files in a folder your app serves as static assets (e.g. `static/fonts/`), then add a CSS file that declares them with `@font-face` and reference that CSS in `fontFiles`.
-
-**1. Add font files**  
-Place your `.ttf`, `.woff2`, or other font files in e.g. `static/fonts/`.
-
-**2. Create a CSS file** (e.g. `static/fonts/fonts.css`) that defines the font families:
-
-```css
-/* Open Sans variable font */
-@font-face {
-  font-family: 'Open Sans';
-  src: url('./OpenSans-VariableFont_wdth,wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-stretch: 75% 100%;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Open Sans';
-  src: url('./OpenSans-Italic-VariableFont_wdth,wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-stretch: 75% 100%;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* Source Serif 4 variable font */
-@font-face {
-  font-family: 'Source Serif 4';
-  src: url('./SourceSerif4-VariableFont_opsz,wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
+```
+themes/
+  acme.json
+  acme/
+    fonts/
+      Inter-Regular.woff2
 ```
 
-Use relative URLs (e.g. `./filename.ttf`) so the CSS works regardless of where your app is deployed. Ensure your static folder is served at the site root so `/fonts/fonts.css` and `/fonts/*.ttf` are available.
+Theme JSON must include `"version": 1` and pass the theme schema.
 
-**3. Reference the CSS in your theme:**
+### 4) Multiple themes
 
-```typescript
-themes: [
-  {
-    name: 'local-fonts',
-    displayName: 'Local Fonts Theme',
-    fontFiles: ['/fonts/fonts.css'],
-    headingFontFamily: '"Source Serif 4", Georgia, serif',
-    bodyFontFamily: '"Open Sans", system-ui, sans-serif',
-    colors: {
-      // ... colors
-    },
-  },
-];
-```
-
-Using a single CSS file with `@font-face` keeps correct font-family names (e.g. `"Open Sans"`, `"Source Serif 4"`) so `headingFontFamily` and `bodyFontFamily` match.
-
-### Google Fonts
-
-Load fonts from Google Fonts by passing the stylesheet URL:
-
-```typescript
-themes: [
-  {
-    name: 'google-fonts',
-    displayName: 'Google Fonts Theme',
-    fontFiles: [
-      'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@700&display=swap',
-    ],
-    headingFontFamily: '"Playfair Display", serif',
-    bodyFontFamily: '"Inter", system-ui, sans-serif',
-    colors: {
-      // ... colors
-    },
-  },
-];
-```
-
-### Single font file
-
-You can also pass a direct path to one font file (e.g. `.woff2`). The theme loader will create a single `@font-face` with a generated font-family name, so you must set `fontFamily` (or `headingFontFamily`/`bodyFontFamily`) to that generated name for it to apply. Prefer the local CSS approach above when using multiple fonts or specific family names.
-
-```typescript
-themes: [
-  {
-    name: 'single-font',
-    displayName: 'Single Font Theme',
-    fontFiles: ['/fonts/custom-font.woff2'],
-    fontFamily: '"ThemeFont-single-font-0", sans-serif',
-    colors: {
-      // ... colors
-    },
-  },
-];
-```
-
-### Typography Settings
-
-Customize typography beyond fonts:
-
-```typescript
-themes: [
-  {
-    name: 'typography-theme',
-    displayName: 'Typography Theme',
-    headingFontFamily: '"Georgia", serif',
-    bodyFontFamily: '"Helvetica", sans-serif',
-    lineHeight: '1.6',
-    letterSpacing: '0.01em',
-    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.1)',
-    colors: {
-      // ... colors
-    },
-  },
-];
-```
-
-## Complete Theme Example
-
-Here's a complete example with all theme features, using local fonts (see [Local fonts](#local-fonts-recommended) above):
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  themes: [
-    {
-      name: 'brand-theme',
-      displayName: 'Brand Theme',
-      // Local fonts from static/fonts/ (fonts.css defines @font-face for Open Sans & Source Serif 4)
-      fontFiles: ['/fonts/fonts.css'],
-      headingFontFamily: '"Source Serif 4", Georgia, serif',
-      bodyFontFamily: '"Open Sans", system-ui, sans-serif',
-      lineHeight: '1.6',
-      letterSpacing: '0.01em',
-      colors: {
-        light: {
-          background: '#F8F5F2',
-          foreground: '#202124',
-          card: '#F2EDEA',
-          cardForeground: '#202124',
-          popover: '#F2EDEA',
-          popoverForeground: '#202124',
-          primary: '#1F1D1D',
-          primaryForeground: '#E8EAED',
-          secondary: '#A37200',
-          secondaryForeground: '#FFF9EB',
-          muted: '#F2EDEA',
-          mutedForeground: '#5F5959',
-          accent: '#DBB778',
-          accentForeground: '#202124',
-          destructive: '#DC2626',
-          destructiveForeground: '#FFFFFF',
-          border: '#D7D5D5',
-          input: '#D7D5D5',
-          ring: '#A37200',
-          radius: '0.375rem',
-          sidebarBackground: '#F2EDEA',
-          sidebarForeground: '#202124',
-          sidebarPrimary: '#1F1D1D',
-          sidebarPrimaryForeground: '#E8EAED',
-          sidebarAccent: '#F8F5F2',
-          sidebarAccentForeground: '#202124',
-          sidebarBorder: '#D7D5D5',
-          sidebarRing: '#A37200',
-        },
-        dark: {
-          background: '#1F1D1D',
-          foreground: '#E8EAED',
-          card: '#2A2828',
-          cardForeground: '#E8EAED',
-          popover: '#2A2828',
-          popoverForeground: '#E8EAED',
-          primary: '#DBB778',
-          primaryForeground: '#202124',
-          secondary: '#A37200',
-          secondaryForeground: '#FFF9EB',
-          muted: '#2A2828',
-          mutedForeground: '#9C9696',
-          accent: '#A37200',
-          accentForeground: '#FFF9EB',
-          destructive: '#EF4444',
-          destructiveForeground: '#FFFFFF',
-          border: '#3F3B3B',
-          input: '#3F3B3B',
-          ring: '#DBB778',
-          radius: '0.375rem',
-          sidebarBackground: '#1F1D1D',
-          sidebarForeground: '#E8EAED',
-          sidebarPrimary: '#DBB778',
-          sidebarPrimaryForeground: '#202124',
-          sidebarAccent: '#2A2828',
-          sidebarAccentForeground: '#E8EAED',
-          sidebarBorder: '#2A2828',
-          sidebarRing: '#DBB778',
-        },
-      },
-    },
+```json
+{
+  "themes": [
+    "shellui",
+    "claude",
+    "light-green",
+    "zen-inspired",
+    "astro-vista",
+    "shadcn",
+    "amber-minimal",
+    "amethyst-haze",
+    "bold-tech",
+    "bubblegum",
+    "caffeine",
+    "candyland",
+    "catppuccin",
+    "claymorphism",
+    "clean-slate",
+    "cosmic-night",
+    "cyberpunk",
+    "darkmatter",
+    "doom-64",
+    "elegant-luxury",
+    "graphite",
+    "kodama-grove",
+    "midnight-bloom",
+    "mocha-mousse",
+    "modern-minimal",
+    "mono",
+    "nature",
+    "neo-brutalism",
+    "northern-lights",
+    "notebook",
+    "ocean-breeze",
+    "pastel-dreams",
+    "perpetuity",
+    "quantum-rose",
+    "retro-arcade",
+    "sage-garden",
+    "soft-pop",
+    "solar-dusk",
+    "starry-night",
+    "sunset-horizon",
+    "supabase",
+    "t3-chat",
+    "tangerine",
+    "twitter",
+    "vercel",
+    "vintage-paper",
+    "violet-bloom"
   ],
-  defaultTheme: 'brand-theme', // Set as default theme
-};
+  "activeTheme": "shellui"
+}
 ```
 
-## Setting Default Theme
+Or a map of id → name | path | object. `defaultTheme` remains an alias of `activeTheme`. Legacy `theme: "default"` resolves to `shellui`.
 
-Set a default theme that users see on first visit:
+## Theme JSON shape (version 1)
 
-```typescript
-const config: ShellUIConfig = {
-  themes: [
-    // ... theme definitions
-  ],
-  defaultTheme: 'my-theme', // Theme name to use as default
-};
+```json
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.theme.schema.json",
+  "version": 1,
+  "name": "acme",
+  "label": "Acme",
+  "description": "Acme brand theme",
+  "recommended": false,
+  "radius": "0.5rem",
+  "fonts": {
+    "sans": "Outfit, sans-serif",
+    "mono": "Geist Mono, monospace",
+    "files": ["https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"]
+  },
+  "light": {
+    "background": "oklch(0.98 0.005 95)",
+    "foreground": "oklch(0.34 0.027 96)",
+    "primary": "oklch(0.62 0.14 39)",
+    "sidebarBackground": "oklch(0.97 0.008 99)"
+  },
+  "dark": {
+    "background": "oklch(0.27 0.004 107)",
+    "foreground": "oklch(0.96 0.003 106)",
+    "primary": "oklch(0.67 0.13 39)"
+  }
+}
 ```
 
-If `defaultTheme` is not specified, Shellui uses the built-in default theme.
+Paste from shadcn or [tweakcn](https://tweakcn.com) CSS by mapping `:root` / `.dark` variables into `light` / `dark` (kebab-case keys work). Registry JSON from tweakcn (`cssVars.light` / `cssVars.dark`) maps the same way.
 
-## User Theme Selection
+## How colors apply
 
-Users can change themes in Settings > Appearance. The selected theme is stored in user settings and persists across sessions.
+The shell sets CSS variables as **full colors** on `:root`. Tailwind consumes them with `var(--background)` (not `hsl(var(--background))`). Hex and legacy HSL channel triples are still accepted and normalized.
 
-## Color Guidelines
+## Theme selector UI
 
-### Light Mode
+Settings → Appearance scales with the number of available themes (1 / few / many). The picker uses a responsive `auto-fill` grid so cards keep a readable size and more columns appear as the panel widens. Recommended themes sort first. Each preview uses the theme’s color swatches, typography, and `radius` so sharp vs soft corners are visible before you switch. Fonts from a theme’s `fonts.files` apply when that theme is active.
 
-- **Background**: Use light, neutral colors (e.g., white, light gray, beige)
-- **Foreground**: Use dark colors for good contrast (e.g., dark gray, black)
-- **Primary**: Your brand's primary color
-- **Secondary**: Complementary accent color
-- **Muted**: Subtle colors for less important elements
+## Related
 
-### Dark Mode
-
-- **Background**: Use dark colors (e.g., dark gray, black)
-- **Foreground**: Use light colors for contrast (e.g., light gray, white)
-- **Primary**: Often lighter version of brand color for visibility
-- **Secondary**: Maintains brand identity while being visible on dark backgrounds
-
-### Accessibility
-
-- Ensure sufficient contrast ratios (WCAG AA minimum: 4.5:1 for text, 3:1 for UI components)
-- Test both light and dark modes
-- Consider colorblind users when choosing color palettes
-
-## Best Practices
-
-1. **Define both modes**: Always provide both light and dark color definitions
-2. **Use semantic colors**: Use `destructive` for errors, `primary` for actions, etc.
-3. **Consistent spacing**: Use consistent `radius` values across your theme
-4. **Font loading**: Use `fontFiles` so fonts load with the theme. Prefer local fonts (a CSS file with `@font-face` in e.g. `static/fonts/`) for privacy and performance over Google Fonts when possible.
-5. **Fallback fonts**: Always include fallback fonts in font family declarations (e.g. `"Open Sans", system-ui, sans-serif`)
-6. **Test thoroughly**: Test your theme in both light and dark modes
-
-## Related Guides
-
-- [Layouts](/features/layouts) - Learn how themes work with different layouts
-- [Internationalization](/features/internationalization) - Combine themes with multi-language support
+- [tweakcn](https://tweakcn.com) — design and customize shadcn themes
+- [shadcn/ui themes](https://ui.shadcn.com/themes)
+- [Layouts](/features/layouts)
+- [Application settings](/features/application-settings)
+- [CLI](/cli)

@@ -8,6 +8,48 @@ The Shellui SDK provides programmatic access to Shellui features from your JavaS
 npm install @shellui/sdk
 ```
 
+## Tiny injectable (external sites)
+
+For pages that only need **theme**, **language/region**, and **navigation sync**, use the tiny CDN script (`shellui.tiny.js`, ~2 KB min / ~1 KB gzip). It auto-handshakes on load — no `init()` required.
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@shellui/sdk/dist/shellui.tiny.js"
+  async
+></script>
+<script>
+  shellui.ready.then(() => {
+    console.log(shellui.theme?.mode, shellui.language, shellui.region?.timezone);
+    shellui.applyTheme();
+  });
+
+  shellui.on('theme', () => shellui.applyTheme());
+  shellui.navigate('/dashboard');
+</script>
+```
+
+Or via the package subpath:
+
+```js
+import shellui from '@shellui/sdk/tiny';
+
+await shellui.ready;
+shellui.applyTheme();
+```
+
+| Member            | Description                                                          |
+| ----------------- | -------------------------------------------------------------------- |
+| `ready`           | Promise resolved after handshake (or immediately outside an iframe)  |
+| `initialized`     | `boolean`                                                            |
+| `theme`           | Theme snapshot (`mode`, `colorScheme`, `colors`, fonts, …) or `null` |
+| `language`        | Language code (e.g. `"en"`) or `null`                                |
+| `region`          | `{ timezone }` or `null`                                             |
+| `on(event, cb)`   | `'ready'`, `'theme'`, `'language'`, `'region'` — returns unsubscribe |
+| `navigate(url)`   | Ask the shell to navigate                                            |
+| `applyTheme(el?)` | Write CSS variables on `el` (default `<html>`) and toggle `dark`     |
+
+URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** included — use the full SDK below for those.
+
 ## Quick Start
 
 ```javascript
@@ -104,14 +146,25 @@ See the [Alert Dialogs guide](/features/dialogs) for complete details.
 
 ### Modals
 
-Open URLs in modal overlays:
+Open URLs in modal overlays (desktop: centered dialog; mobile: bottom drawer):
 
 ```javascript
-// Open modal
+// Simple
 shellui.openModal('/settings');
 
-// Open external URL in modal
-shellui.openModal('https://example.com/form');
+// Options
+shellui.openModal({
+  url: 'https://example.com/form',
+  size: 'lg', // sm | md | lg | xl | full | content
+  dynamicSizing: false, // true → height follows iframe; disables manual resize
+  showCloseButton: true,
+  dismissible: true,
+  closeOnOverlayClick: true,
+  movable: true, // default — drag top edge (desktop/tablet)
+  resizable: true, // default — off when dynamicSizing
+});
+
+shellui.closeModal();
 ```
 
 ### Drawers
@@ -119,23 +172,40 @@ shellui.openModal('https://example.com/form');
 Open URLs in drawer panels:
 
 ```javascript
-// Open drawer (default: right, auto size)
 shellui.openDrawer({
   url: '/sidebar',
 });
 
-// Open drawer with custom position and size
 shellui.openDrawer({
   url: '/filters',
   position: 'left',
-  size: '400px',
+  size: 'md', // preset or CSS length e.g. '400px'
+  showCloseButton: true,
+  showDragHandle: true,
+  dismissible: true,
+  closeOnOverlayClick: true,
+  resizable: true, // default on desktop — off when dynamicSizing
 });
 
-// Close drawer
 shellui.closeDrawer();
 ```
 
-See the [Modals & Drawers guide](/features/modals-drawers) for complete details.
+### Overlay auto-size (iframe → shell)
+
+When the overlay is opened with `dynamicSizing: true` (or `size: 'content'`), the iframe reports its height over the message bus:
+
+```javascript
+await shellui.init();
+
+// Observe document size and report (ResizeObserver; immediate by default)
+shellui.overlay.autoSize({ observe: true });
+
+// Or one-shot
+shellui.overlay.reportSize({ height: 420 });
+```
+
+Message type: `SHELLUI_OVERLAY_SIZE` with payload `{ version: 1, height, width?, overlayId? }`.
+See the [Modals & Drawers guide](/features/modals-drawers) for the full contract and fallback behavior.
 
 ### Navigation
 
@@ -165,7 +235,7 @@ shellui.login({
 
 ### Storage (files)
 
-Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.ts`. See [Storage](/features/storage) for the full API.
+Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.json`. See [Storage](/features/storage) for the full API.
 
 ```javascript
 import { shellui } from '@shellui/sdk';
@@ -247,6 +317,7 @@ Common Shellui message types:
 - `SHELLUI_CLOSE_MODAL` - Modal closed
 - `SHELLUI_OPEN_DRAWER` - Drawer opened
 - `SHELLUI_CLOSE_DRAWER` - Drawer closed
+- `SHELLUI_OVERLAY_SIZE` - Iframe content size report for content-sized overlays
 - `SHELLUI_NAVIGATE` - Navigation requested
 - `SHELLUI_LOGIN` - Login requested from iframe (minimal payload: method, provider, optional redirectPath)
 - `SHELLUI_INITIALIZED` - SDK initialized
@@ -442,9 +513,12 @@ shellui.dialog(dialogOptions);
 - `shellui.getVersion()` - Get SDK version
 - `shellui.toast(options)` - Show toast notification
 - `shellui.dialog(options)` - Show alert dialog
-- `shellui.openModal(url)` - Open modal
+- `shellui.openModal(url | options)` - Open modal (responsive dialog / mobile drawer)
+- `shellui.closeModal()` - Close modal
 - `shellui.openDrawer(options)` - Open drawer
 - `shellui.closeDrawer()` - Close drawer
+- `shellui.overlay.reportSize({ height })` - Report iframe content size
+- `shellui.overlay.autoSize({ observe })` - Observe and report content size
 - `shellui.navigate(url)` - Navigate programmatically
 - `shellui.login(options)` - Request root-shell login
 - `shellui.storage` - File API (`from(bucket).upload`, `download`, `list`, `move`, `rename`, …)
@@ -486,3 +560,4 @@ shellui.dialog(dialogOptions);
 - [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
 - [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
 - [Navigation](/features/navigation) - Navigation configuration
+- [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app) - Same-package CLI + Vite app (playground)

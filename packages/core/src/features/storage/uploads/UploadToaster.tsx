@@ -10,7 +10,7 @@ function isShellUiRoot(): boolean {
 }
 
 /**
- * Custom upload toast at the outermost ShellUI window. Nested iframes never
+ * Custom upload toast at the outermost Shellui window. Nested iframes never
  * render it — they post uploads / demo requests up so the root can show this
  * panel above modals and keep it while the user navigates.
  */

@@ -11,6 +11,7 @@ import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
 import { isAdminFrame } from '../admin/utils';
+import { isFrameForAppUrl } from '../layouts/utils';
 import { defaultTheme } from '../theme/themes';
 import {
   buildSettingsForPropagation,
@@ -28,49 +29,8 @@ const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AUTH_LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
-const toAbsoluteUrl = (url: string): URL | null => {
-  try {
-    return new URL(
-      url,
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-    );
-  } catch {
-    return null;
-  }
-};
-
-const normalizePath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return '/';
-  const withoutTrailing = trimmed.replace(/\/+$/, '');
-  return withoutTrailing || '/';
-};
-
-const normalizeHashPath = (value: string): string => {
-  const hash = value.replace(/^#\/?/, '').replace(/\/+$/, '');
-  return hash;
-};
-
-const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean => {
-  const frame = toAbsoluteUrl(frameSrc);
-  const item = toAbsoluteUrl(itemUrl);
-  if (!frame || !item) return false;
-  if (frame.origin !== item.origin) return false;
-
-  const itemPathname = normalizePath(item.pathname);
-  const framePathname = normalizePath(frame.pathname);
-  if (framePathname !== itemPathname && !framePathname.startsWith(`${itemPathname}/`)) {
-    return false;
-  }
-
-  const itemHashPath = normalizeHashPath(item.hash);
-  if (!itemHashPath) {
-    return true;
-  }
-
-  const frameHashPath = normalizeHashPath(frame.hash);
-  return frameHashPath === itemHashPath || frameHashPath.startsWith(`${itemHashPath}/`);
-};
+const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean =>
+  isFrameForAppUrl(frameSrc, itemUrl);
 
 const stripSensitiveUserFields = (settings: Settings): Settings => {
   return {
@@ -124,6 +84,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user: authUser, session, syncUserPreferences, loadUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
+  const settingsHydratedFromStorageRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
   const settingsRef = useRef<Settings | null>(null);
   const [settings, setSettings] = useState<Settings>(() => {
@@ -132,6 +93,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (shellui.initialSettings) {
       initialSettings = shellui.initialSettings;
       settingsRef.current = initialSettings;
+      settingsHydratedFromStorageRef.current = true;
       return initialSettings;
     }
 
@@ -140,6 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
+          settingsHydratedFromStorageRef.current = true;
           const parsed = JSON.parse(stored);
           // Deep merge with defaults to handle new settings
           initialSettings = {
@@ -302,6 +265,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   syncUserPreferencesRef.current = syncUserPreferences;
   const propagateSettingsToIframesRef = useRef(propagateSettingsToIframes);
   propagateSettingsToIframesRef.current = propagateSettingsToIframes;
+
+  // Trailing-debounce iframe settings pushes during rapid theme spam so
+  // children only apply the final theme after switching settles.
+  const pendingIframeSettingsRef = useRef<Settings | null>(null);
+  const iframePropagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedulePropagateSettingsToIframes = useCallback((next: Settings) => {
+    pendingIframeSettingsRef.current = next;
+    if (iframePropagateTimerRef.current !== null) {
+      clearTimeout(iframePropagateTimerRef.current);
+    }
+    iframePropagateTimerRef.current = setTimeout(() => {
+      iframePropagateTimerRef.current = null;
+      const pending = pendingIframeSettingsRef.current;
+      pendingIframeSettingsRef.current = null;
+      if (pending) {
+        propagateSettingsToIframesRef.current(pending);
+      }
+    }, 100);
+  }, []);
 
   // Keep ref in sync with state for message listeners
   useEffect(() => {
@@ -541,6 +523,44 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, pushSettingsToFrame]);
 
+  // Apply config activeTheme / defaultTheme on first visit (no localStorage preference yet)
+  useEffect(() => {
+    if (settingsHydratedFromStorageRef.current) return;
+    const desired = config?.activeTheme || config?.defaultTheme;
+    if (!desired) return;
+    setSettings((prev) => {
+      if (prev.appearance?.name === desired) return prev;
+      const themeFromConfig = Array.isArray(config?.themes)
+        ? config.themes.find(
+            (t) =>
+              t && typeof t === 'object' && 'name' in t && (t as { name: string }).name === desired,
+          )
+        : undefined;
+      const typed =
+        themeFromConfig && typeof themeFromConfig === 'object' && 'displayName' in themeFromConfig
+          ? (themeFromConfig as {
+              displayName: string;
+              colors: Appearance['colors'];
+            })
+          : undefined;
+      const next: Settings = {
+        ...prev,
+        appearance: {
+          ...prev.appearance,
+          name: desired,
+          ...(typed
+            ? {
+                displayName: typed.displayName,
+                colors: typed.colors,
+              }
+            : {}),
+        },
+      };
+      settingsRef.current = next;
+      return next;
+    });
+  }, [config?.activeTheme, config?.defaultTheme, config?.themes]);
+
   useEffect(() => {
     if (
       typeof window === 'undefined' ||
@@ -587,8 +607,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
           settingsRef.current = newSettings;
           setSettings(newSettings);
-          // Propagate to child iframes (sendMessageToParent does nothing in root)
-          propagateSettingsToIframes(newSettings);
+          // Trailing coalesce: spam theme switches only push the latest to iframes
+          schedulePropagateSettingsToIframes(newSettings);
         } catch (error) {
           logger.error('Failed to update settings in localStorage:', { error });
         }
@@ -604,7 +624,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         payload: { settings: stripSensitiveUserFields(nextSettings) },
       });
     },
-    [settings, propagateSettingsToIframes],
+    [settings, schedulePropagateSettingsToIframes],
   );
 
   const updateSetting = useCallback(

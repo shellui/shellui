@@ -86,6 +86,8 @@
     "modeDescription": "Choisissez le mode clair, sombre ou automatique.",
     "colorTheme": "Thème de couleur",
     "colorThemeDescription": "Sélectionnez un thème de couleur. Chaque thème a des variantes claires et sombres.",
+    "colorThemeDescriptionSingle": "Thème de votre application. Les variantes claire et sombre suivent le mode ci-dessus.",
+    "recommended": "Recommandé",
     "themes": {
       "light": "Clair",
       "dark": "Sombre",
@@ -276,14 +278,14 @@
     },
     "logging": {
       "title": "Journalisation",
-      "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de ShellUI affichent des informations de débogage.",
+      "description": "Activez ou désactivez la journalisation pour des espaces de noms spécifiques. Cela vous aide à contrôler quelles parties de Shellui affichent des informations de débogage.",
       "shellsdk": {
         "label": "Afficher les journaux ShellSDK",
-        "description": "Activez la journalisation pour les opérations ShellUI SDK"
+        "description": "Activez la journalisation pour les opérations Shellui SDK"
       },
       "shellcore": {
         "label": "Afficher les journaux ShellCore",
-        "description": "Activez la journalisation pour les opérations ShellUI Core"
+        "description": "Activez la journalisation pour les opérations Shellui Core"
       }
     },
     "auth": {
@@ -295,7 +297,7 @@
     },
     "testing": {
       "title": "Tests",
-      "description": "Testez les fonctionnalités de ShellUI.",
+      "description": "Testez les fonctionnalités de Shellui.",
       "toastNotifications": {
         "title": "Notifications Toast",
         "buttons": {
@@ -420,9 +422,13 @@
       },
       "modalTesting": {
         "title": "Tests du modal",
-        "description": "Ouvre les paramètres dans un modal. Fermez avec le bouton × ou en cliquant à l'extérieur.",
+        "description": "Ouvre les paramètres dans un modal (dialogue bureau / tiroir bas mobile). Le dimensionnement dynamique épouse le contenu compact. Fermez avec ×, le fond, Échap, ou un balayage sur mobile.",
         "buttons": {
-          "openModal": "Ouvrir le modal (paramètres)"
+          "openModal": "Ouvrir le modal (paramètres)",
+          "openModalSm": "Ouvrir le modal (sm)",
+          "openModalContent": "Ouvrir le modal (contenu, sans ×)",
+          "openModalDynamic": "Ouvrir le modal (taille dynamique)",
+          "closeModal": "Fermer le modal"
         }
       },
       "drawerTesting": {
@@ -434,6 +440,8 @@
           "drawerBottom": "Tiroir depuis le bas",
           "drawerRightNarrow": "Tiroir droite (400px)",
           "drawerBottomHalf": "Tiroir bas (60vh)",
+          "drawerBottomDynamic": "Tiroir bas (taille dynamique)",
+          "drawerNoClose": "Tiroir bas (sans ×)",
           "closeDrawer": "Fermer le tiroir"
         }
       },

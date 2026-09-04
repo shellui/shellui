@@ -1,29 +1,76 @@
-import { Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sidebar } from '../../../components/ui/sidebar';
-import { cn } from '../../../lib/utils';
+import {
+  Sidebar,
+  SidebarInset,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from '../../../components/ui/sidebar';
 import {
   filterNavigationForAuthState,
   filterNavigationByViewport,
   filterNavigationForSidebar,
-  flattenNavigationItems,
   hasLoginNavigationItem,
   resolveLocalizedString as resolveLocalizedLabel,
   splitNavigationByPosition,
 } from '../utils';
 import { SidebarInner } from './SidebarInner';
-import { MobileBottomNav } from './MobileBottomNav';
 import type { SidebarLayoutProps } from './types';
 import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
+import { useIsMobile } from '../../../hooks/use-mobile';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
+import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
+import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
+import {
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+} from '../chrome/constants';
 
-const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) => {
+/** Close the mobile sheet when the route changes. */
+function CloseMobileSidebarOnNavigate() {
+  const location = useLocation();
+  const { setOpenMobile } = useSidebar();
+
+  useEffect(() => {
+    setOpenMobile(false);
+  }, [location.pathname, setOpenMobile]);
+
+  return null;
+}
+
+/** Sync collapsed-titlebar layout offset onto <html> for CSS. */
+function CollapsedTitlebarOffset() {
+  const overlay = useMacOverlayChrome();
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === 'collapsed' && !isMobile;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (overlay && collapsed) root.setAttribute('data-shellui-collapsed-titlebar', '');
+    else root.removeAttribute('data-shellui-collapsed-titlebar');
+    return () => root.removeAttribute('data-shellui-collapsed-titlebar');
+  }, [overlay, collapsed]);
+
+  return null;
+}
+
+const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
-  const { navigationItem, rootItem } = useNavigationItems();
+  const { navigationItem } = useNavigationItems();
+  const isMobile = useIsMobile();
+  const isTauriEnv = useIsTauriClient();
+  const trafficLights = useMacTrafficLights();
+  const mobileTrafficInset = trafficLights
+    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
+    : undefined;
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -35,18 +82,18 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
       filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
     [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
-  const { startNav, endItems, mobileNavItems } = useMemo(() => {
-    const desktopNav = filterNavigationByViewport(authAwareNavigation, 'desktop');
-    const mobileNav = filterNavigationByViewport(authAwareNavigation, 'mobile');
-    const { start, end } = splitNavigationByPosition(desktopNav);
-    const mobileFlat = flattenNavigationItems(mobileNav);
+  const { startNav, endItems } = useMemo(() => {
+    const viewportNav = filterNavigationByViewport(
+      authAwareNavigation,
+      isMobile ? 'mobile' : 'desktop',
+    );
+    const { start, end } = splitNavigationByPosition(viewportNav);
 
     return {
       startNav: filterNavigationForSidebar(start),
       endItems: end,
-      mobileNavItems: mobileFlat,
     };
-  }, [authAwareNavigation]);
+  }, [authAwareNavigation, isMobile]);
 
   useEffect(() => {
     if (!title) return;
@@ -59,31 +106,47 @@ const SidebarLayoutContent = ({ title, logo, navigation }: SidebarLayoutProps) =
   }, [navigationItem, title, currentLanguage]);
 
   return (
-    <div>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar className={cn('hidden md:flex shrink-0')}>
-          <SidebarInner
-            title={title}
-            logo={logo}
-            startNav={startNav}
-            endItems={endItems}
-            showAuthButton={!hasCustomLoginNav || isAuthenticated}
+    <SidebarProvider className="h-svh overflow-hidden">
+      <CloseMobileSidebarOnNavigate />
+      <CollapsedTitlebarOffset />
+      <CollapsedDesktopTitlebar />
+      <Sidebar
+        collapsible="icon"
+        className="border-sidebar-border"
+      >
+        <SidebarInner
+          startNav={startNav}
+          endItems={endItems}
+          showAuthButton={!hasCustomLoginNav || isAuthenticated}
+          title={title}
+          appIcon={appIcon}
+        />
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset className="relative min-w-0 overflow-hidden">
+        <header
+          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
+          style={{
+            height: DESKTOP_TITLEBAR_HEIGHT_PX,
+            ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
+          }}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
+        >
+          <SidebarTrigger
+            data-shellui-no-drag=""
+            className="relative size-8 touch-manipulation text-foreground"
           />
-        </Sidebar>
+          {isTauriEnv ? <DesktopHistoryButtons /> : null}
+        </header>
 
-        <main className="flex-1 flex flex-col overflow-hidden bg-background relative min-w-0">
-          <div className="flex-1 flex flex-col overflow-auto pb-16 md:pb-0">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      <MobileBottomNav
-        items={mobileNavItems}
-        currentLanguage={currentLanguage}
-        showHomeButton={!rootItem}
-      />
-    </div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+          <Outlet />
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

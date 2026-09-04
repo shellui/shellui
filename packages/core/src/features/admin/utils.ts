@@ -1,53 +1,10 @@
 import type { ShellUIConfig } from '../config/types';
-import { getBaseUrlWithoutHash, getHashPathFromUrl } from '../layouts/utils';
+import { getBaseUrlWithoutHash, isFrameForAppUrl } from '../layouts/utils';
 import { getAdminContentUrl, getAdminPath } from './config';
-
-const toAbsoluteUrl = (url: string): URL | null => {
-  try {
-    return new URL(
-      url,
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-    );
-  } catch {
-    return null;
-  }
-};
-
-const normalizePath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return '/';
-  const withoutTrailing = trimmed.replace(/\/+$/, '');
-  return withoutTrailing || '/';
-};
-
-const normalizeHashPath = (value: string): string => {
-  return value.replace(/^#\/?/, '').replace(/\/+$/, '');
-};
-
-const isFrameForIframeUrl = (frameSrc: string, itemUrl: string): boolean => {
-  const frame = toAbsoluteUrl(frameSrc);
-  const item = toAbsoluteUrl(itemUrl);
-  if (!frame || !item) return false;
-  if (frame.origin !== item.origin) return false;
-
-  const itemPathname = normalizePath(item.pathname);
-  const framePathname = normalizePath(frame.pathname);
-  if (framePathname !== itemPathname && !framePathname.startsWith(`${itemPathname}/`)) {
-    return false;
-  }
-
-  const itemHashPath = normalizeHashPath(item.hash || getHashPathFromUrl(itemUrl));
-  if (!itemHashPath) {
-    return true;
-  }
-
-  const frameHashPath = normalizeHashPath(frame.hash);
-  return frameHashPath === itemHashPath || frameHashPath.startsWith(`${itemHashPath}/`);
-};
 
 /** Whether an iframe src belongs to the embedded admin microfrontend. */
 export function isAdminFrame(frameSrc: string, config?: ShellUIConfig): boolean {
-  return isFrameForIframeUrl(frameSrc, getAdminContentUrl(config));
+  return isFrameForAppUrl(frameSrc, getAdminContentUrl(config));
 }
 
 /** Admin microfrontend uses hash routes (e.g. createHashRouter); sync shell `/admin/...` with iframe `#/...`. */

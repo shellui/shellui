@@ -2,12 +2,12 @@ import { build } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
-import { createResolveAlias } from './vite.js';
+import { createIsolatedViteConfig } from './vite.js';
 
 /**
  * Vite plugin to build and serve service worker in dev mode
  */
-export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath) {
+export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, projectRoot = process.cwd()) {
   let swCode = null;
   let isBuilding = false;
   let buildError = null;
@@ -30,13 +30,18 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath) {
     try {
       // Use Vite's build API to properly resolve imports and bundle dependencies
       // Use same root and resolve config as the main Vite server for consistent resolution
+      const isolated = createIsolatedViteConfig({
+        projectRoot,
+        coreSrcPath,
+        corePackagePath,
+        shelluiConfig: {},
+      });
       const result = await build({
-        root: coreSrcPath,
+        ...isolated,
+        publicDir: false,
         plugins: [react()],
-        resolve: {
-          alias: createResolveAlias(),
-        },
         build: {
+          ...isolated.build,
           write: false,
           sourcemap: false, // Disable source maps for service worker in dev mode
           rollupOptions: {

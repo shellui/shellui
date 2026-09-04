@@ -98,6 +98,7 @@ const sidebars = {
       items: [
         'development',
         'publishing',
+        'adr/ai-skill',
       ],
     },
   ],

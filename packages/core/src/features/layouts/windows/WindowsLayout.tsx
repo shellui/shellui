@@ -9,7 +9,12 @@ import {
 import { useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem, NavigationGroup } from '../../config/types';
+import type {
+  NavigationItem,
+  NavigationGroup,
+  LocalizedString,
+  ThemeAsset,
+} from '../../config/types';
 import {
   filterNavigationForAuthState,
   flattenNavigationItems,
@@ -25,27 +30,45 @@ import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
+import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
+import { AppBrandIcon } from '../branding/AppBrandIcon';
 
 interface WindowsLayoutProps {
   title?: string;
-  appIcon?: string;
-  logo?: string;
+  appIcon?: ThemeAsset;
+  logo?: ThemeAsset;
   navigation: (NavigationItem | NavigationGroup)[];
 }
 
-const getExternalFaviconUrl = (url: string): string | null => {
-  try {
-    const parsed = new URL(url);
-    const hostname = parsed.hostname;
-    if (!hostname) return null;
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
-  } catch {
-    return null;
-  }
-};
+type StartSection =
+  | { type: 'group'; title: string | LocalizedString; items: NavigationItem[] }
+  | { type: 'items'; items: NavigationItem[] };
 
-/** True when the icon is a local app icon (/icons/); apply theme (dark invert) so it matches foreground. */
-const isAppIcon = (src: string) => src.startsWith('/icons/');
+const isNavigationGroup = (item: NavigationItem | NavigationGroup): item is NavigationGroup =>
+  'title' in item && 'items' in item;
+
+/** Keep navigation groups as labeled categories; consecutive loose items share one untitled section. */
+function buildStartSections(start: (NavigationItem | NavigationGroup)[]): StartSection[] {
+  const sections: StartSection[] = [];
+  for (const entry of start) {
+    if (isNavigationGroup(entry)) {
+      const items = entry.items.filter((i) => !i.hidden);
+      if (items.length > 0) {
+        sections.push({ type: 'group', title: entry.title, items });
+      }
+      continue;
+    }
+    if (entry.hidden) continue;
+    const last = sections[sections.length - 1];
+    if (last?.type === 'items') {
+      last.items.push(entry);
+    } else {
+      sections.push({ type: 'items', items: [entry] });
+    }
+  }
+  return sections;
+}
 
 const genId = () => `win-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -505,12 +528,7 @@ function getBrowserTimezone(): string {
   return 'UTC';
 }
 
-export function WindowsLayout({
-  title,
-  appIcon: _appIcon,
-  logo: _logo,
-  navigation,
-}: WindowsLayoutProps) {
+export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
   const location = useLocation();
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -523,10 +541,10 @@ export function WindowsLayout({
     [navigation, isAuthenticated, settings.developerFeatures.enabled],
   );
   const timeZone = settings.region?.timezone ?? getBrowserTimezone();
-  const { startNavItems, endNavItems, navigationItems } = useMemo(() => {
+  const { startSections, endNavItems, navigationItems } = useMemo(() => {
     const { start, end } = splitNavigationByPosition(authAwareNavigation);
     return {
-      startNavItems: flattenNavigationItems(start),
+      startSections: buildStartSections(start),
       endNavItems: end,
       navigationItems: flattenNavigationItems(authAwareNavigation),
     };
@@ -539,6 +557,7 @@ export function WindowsLayout({
   const [now, setNow] = useState(() => new Date());
   const startPanelRef = useRef<HTMLDivElement>(null);
   const initialOpenFromUrlDoneRef = useRef(false);
+  const openPaths = useMemo(() => new Set(windows.map((w) => w.path)), [windows]);
 
   // Update date/time every second for taskbar clock
   useEffect(() => {
@@ -653,17 +672,38 @@ export function WindowsLayout({
         setStartMenuOpen(false);
         return;
       }
+      const existing = windows.find((w) => w.path === item.path);
+      if (existing) {
+        focusWindow(existing.id);
+        setStartMenuOpen(false);
+        return;
+      }
       openWindow(item);
     },
-    [openWindow],
+    [openWindow, windows, focusWindow],
   );
 
   return (
     <>
       <div
-        className="fixed inset-0 bg-muted/30"
+        className="fixed inset-0 overflow-hidden bg-background"
         style={{ paddingBottom: TASKBAR_HEIGHT }}
       >
+        {/* Organic primary wash behind windows — follows --primary with the active theme. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: [
+              'radial-gradient(ellipse 95% 70% at 18% 108%, color-mix(in oklch, var(--primary) 32%, transparent), transparent 58%)',
+              'radial-gradient(ellipse 70% 55% at 78% 118%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 62%)',
+              'radial-gradient(ellipse 55% 40% at 52% 92%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 70%)',
+              'radial-gradient(ellipse 40% 30% at 92% 78%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 68%)',
+              'radial-gradient(ellipse 35% 28% at 8% 72%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 65%)',
+            ].join(', '),
+          }}
+        />
+
         {/* Desktop area: windows */}
         {windows.map((win, index) => {
           const navItem = navigationItems.find((n) => n.path === win.path);
@@ -714,54 +754,126 @@ export function WindowsLayout({
             aria-haspopup="true"
             aria-label="Start"
           >
-            <StartIcon className="h-5 w-5" />
+            {appIcon ? (
+              <AppBrandIcon
+                appIcon={appIcon}
+                title={title}
+                linkToHome={false}
+                imgClassName="windows-app-icon size-5"
+              />
+            ) : (
+              <StartIcon className="h-5 w-5" />
+            )}
             <span className="font-semibold text-sm hidden sm:inline">{title || 'Start'}</span>
           </button>
           {/* Start menu panel */}
           {startMenuOpen && (
             <div
-              className="absolute bottom-full left-0 mb-1 w-64 max-h-[70vh] overflow-y-auto rounded-lg border border-border bg-popover shadow-lg py-2 z-[10001]"
+              className="absolute bottom-full left-0 mb-2 flex w-[22rem] max-h-[min(72vh,34rem)] flex-col overflow-hidden rounded-xl border border-border/80 bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-md"
               style={{ zIndex: Z_INDEX.MODAL_CONTENT }}
+              role="menu"
+              aria-label={title || 'Applications'}
             >
-              <div className="px-2 pb-2 border-b border-border mb-2">
-                <span className="text-sm font-semibold text-popover-foreground">
+              <div className="shrink-0 border-b border-border/60 px-4 py-3">
+                <p
+                  className="text-sm font-semibold tracking-tight"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
                   {title || 'Applications'}
-                </span>
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Choose an app to open in a window
+                </p>
               </div>
-              <div className="grid gap-0.5">
-                {startNavItems
-                  .filter((item) => !item.hidden)
-                  .map((item) => {
-                    const label =
-                      typeof item.label === 'string'
-                        ? item.label
-                        : resolveNavLabel(item.label, currentLanguage);
-                    const icon =
-                      item.icon ??
-                      (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
+
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-3">
+                {startSections.length === 0 ? (
+                  <p className="px-2 py-6 text-center text-sm text-muted-foreground">
+                    No applications available
+                  </p>
+                ) : (
+                  startSections.map((section, sectionIndex) => {
+                    const categoryLabel =
+                      section.type === 'group'
+                        ? resolveNavLabel(section.title, currentLanguage)
+                        : null;
                     return (
-                      <button
-                        key={item.path}
-                        type="button"
-                        onClick={() => handleNavClick(item)}
-                        className="flex items-center gap-3 w-full px-3 py-2 text-left text-sm cursor-pointer text-popover-foreground hover:bg-accent hover:text-accent-foreground rounded-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      <section
+                        key={
+                          section.type === 'group'
+                            ? `group-${categoryLabel}-${sectionIndex}`
+                            : `items-${sectionIndex}`
+                        }
+                        className="space-y-1.5"
                       >
-                        {icon ? (
-                          <img
-                            src={icon}
-                            alt=""
-                            className={cn(
-                              'h-5 w-5 shrink-0 rounded-sm object-cover',
-                              isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                            )}
-                          />
-                        ) : (
-                          <span className="h-5 w-5 shrink-0 rounded-sm bg-muted" />
-                        )}
-                        <span className="truncate">{label}</span>
-                      </button>
+                        {categoryLabel ? (
+                          <h2
+                            className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                          >
+                            {categoryLabel}
+                          </h2>
+                        ) : null}
+                        <div className="space-y-0.5">
+                          {section.items.map((item) => {
+                            const label = resolveNavLabel(item.label, currentLanguage);
+                            const isExternal = item.openIn === 'external';
+                            const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
+                            const icon =
+                              item.icon ?? (isExternal ? getExternalFaviconUrl(item.url) : null);
+                            const isOpen = openPaths.has(item.path);
+                            return (
+                              <button
+                                key={item.path}
+                                type="button"
+                                role="menuitem"
+                                onClick={() => handleNavClick(item)}
+                                className={cn(
+                                  'group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors',
+                                  'cursor-pointer text-popover-foreground',
+                                  'hover:bg-accent hover:text-accent-foreground',
+                                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover',
+                                  isOpen && 'bg-accent/50',
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    'flex size-9 shrink-0 items-center justify-center rounded-md',
+                                    'bg-muted/70 text-foreground ring-1 ring-border/50',
+                                    'group-hover:bg-background/80 group-hover:ring-border',
+                                  )}
+                                >
+                                  <NavIcon
+                                    src={icon}
+                                    className="size-4"
+                                  />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate text-sm font-medium leading-tight">
+                                    {label}
+                                  </span>
+                                  {isOpen && !isOverlay && !isExternal ? (
+                                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                      Open
+                                    </span>
+                                  ) : null}
+                                </span>
+                                {isExternal ? (
+                                  <ExternalLinkIcon className="size-3.5 shrink-0 opacity-50 group-hover:opacity-80" />
+                                ) : isOpen && !isOverlay ? (
+                                  <span
+                                    className="size-1.5 shrink-0 rounded-full bg-primary"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
                     );
-                  })}
+                  })
+                )}
               </div>
             </div>
           )}

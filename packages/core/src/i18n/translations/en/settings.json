@@ -86,6 +86,8 @@
     "modeDescription": "Choose light, dark, or automatic mode.",
     "colorTheme": "Color Theme",
     "colorThemeDescription": "Select a color theme. Each theme has light and dark variants.",
+    "colorThemeDescriptionSingle": "Your app theme. Light and dark variants follow the mode above.",
+    "recommended": "Recommended",
     "themes": {
       "light": "Light",
       "dark": "Dark",
@@ -276,14 +278,14 @@
     },
     "logging": {
       "title": "Logging",
-      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",
+      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of Shellui output debug information.",
       "shellsdk": {
         "label": "Show ShellSDK logs",
-        "description": "Enable logging for ShellUI SDK operations"
+        "description": "Enable logging for Shellui SDK operations"
       },
       "shellcore": {
         "label": "Show ShellCore logs",
-        "description": "Enable logging for ShellUI Core operations"
+        "description": "Enable logging for Shellui Core operations"
       }
     },
     "auth": {
@@ -295,7 +297,7 @@
     },
     "testing": {
       "title": "Testing",
-      "description": "Test ShellUI features and functionality.",
+      "description": "Test Shellui features and functionality.",
       "toastNotifications": {
         "title": "Toast Notifications",
         "buttons": {
@@ -420,9 +422,13 @@
       },
       "modalTesting": {
         "title": "Modal Testing",
-        "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",
+        "description": "Opens settings in a modal (desktop dialog / mobile bottom drawer). Dynamic sizing hugs compact iframe content. Close with ×, backdrop, Escape, or swipe on mobile.",
         "buttons": {
-          "openModal": "Open modal (settings)"
+          "openModal": "Open modal (settings)",
+          "openModalSm": "Open modal (sm)",
+          "openModalContent": "Open modal (content, no ×)",
+          "openModalDynamic": "Open modal (dynamic sizing)",
+          "closeModal": "Close modal"
         }
       },
       "drawerTesting": {
@@ -434,6 +440,8 @@
           "drawerBottom": "Drawer from bottom",
           "drawerRightNarrow": "Drawer right (400px)",
           "drawerBottomHalf": "Drawer bottom (60vh)",
+          "drawerBottomDynamic": "Drawer bottom (dynamic sizing)",
+          "drawerNoClose": "Drawer bottom (no ×)",
           "closeDrawer": "Close drawer"
         }
       },

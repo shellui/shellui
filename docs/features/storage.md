@@ -18,7 +18,7 @@ Embedded apps do not call storage-service themselves for file operations. They u
 
 ## Configuration
 
-Add `storage` to `shellui.config.ts`:
+Add `storage` to `shellui.config.json`:
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';

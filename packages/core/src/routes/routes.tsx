@@ -17,6 +17,11 @@ const CookiePreferencesView = lazy(() =>
     default: m.CookiePreferencesView,
   })),
 );
+const OverlayDynamicDemoView = lazy(() =>
+  import('../features/overlays/OverlayDynamicDemoView').then((m) => ({
+    default: m.OverlayDynamicDemoView,
+  })),
+);
 const LoginView = lazy(() =>
   import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView })),
 );
@@ -65,6 +70,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <CookiePreferencesView />
+            </Suspense>
+          ),
+        },
+        {
+          // Compact overlay demo (develop → dynamicSizing)
+          path: urls.overlayDemo.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <OverlayDynamicDemoView />
             </Suspense>
           ),
         },
@@ -151,43 +165,65 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         navigation={config.navigation || []}
       />
     ),
-    children: [
-      {
-        path: '/',
-        element: (
-          <Suspense fallback={<RouteFallback />}>
-            <IndexRoute />
-          </Suspense>
-        ),
-      },
-    ],
+    children: [],
   };
 
-  // Add navigation routes (skip items with path '' or '/' — they are shown at "/" via IndexRoute)
-  if (config.navigation && config.navigation.length > 0) {
-    const navigationItems = flattenNavigationItems(config.navigation);
-    navigationItems.forEach((item) => {
-      if (item.path === '' || item.path === '/') return;
-      (layoutRoute.children as RouteObject[]).push({
-        path: `/${item.path}/*`,
-        element: (
-          <Suspense fallback={<RouteFallback />}>
-            <NavigationItemRoute />
-          </Suspense>
-        ),
-      });
-    });
-    // Catch-all: no nav match (e.g. /layout) → NavigationItemRoute can use root item with pathname as hash subpath to avoid 404
+  const navigationItems = flattenNavigationItems(config.navigation || []);
+  const hasRootNavItem = navigationItems.some((item) => item.path === '' || item.path === '/');
+
+  // Non-root nav items: /home/*, /docs/*, … — one route match keeps ContentView mounted
+  navigationItems.forEach((item) => {
+    if (item.path === '' || item.path === '/') return;
     (layoutRoute.children as RouteObject[]).push({
-      path: '*',
+      path: `/${item.path}/*`,
       element: (
         <Suspense fallback={<RouteFallback />}>
           <NavigationItemRoute />
         </Suspense>
       ),
     });
+  });
+
+  // Root app (/ and /:deep): pathless parent + index/* children so ContentView does not
+  // remount when moving between / and /layout (that remount was wiping shell history).
+  // Leaf children need an element (even null) or React Router warns and renders an empty
+  // Outlet — IndexRoute itself paints the iframe; the leaves only keep the parent matched.
+  // Without a root nav item, index still uses IndexRoute (HomeView / start_url).
+  if (hasRootNavItem) {
+    (layoutRoute.children as RouteObject[]).push({
+      element: (
+        <Suspense fallback={<RouteFallback />}>
+          <IndexRoute />
+        </Suspense>
+      ),
+      children: [
+        { index: true, element: null },
+        { path: '*', element: null },
+      ],
+    });
+  } else {
+    (layoutRoute.children as RouteObject[]).push({
+      index: true,
+      element: (
+        <Suspense fallback={<RouteFallback />}>
+          <IndexRoute />
+        </Suspense>
+      ),
+    });
+    if (navigationItems.length > 0) {
+      (layoutRoute.children as RouteObject[]).push({
+        path: '*',
+        element: (
+          <Suspense fallback={<RouteFallback />}>
+            <NavigationItemRoute />
+          </Suspense>
+        ),
+      });
+    }
   }
-  // Layout must be before the catch-all (*) so paths like /layout are handled by layout → NavigationItemRoute (root fallback), not 404
+
+  // Layout must be before the top-level catch-all (*) so paths like /layout are handled
+  // by layout → root IndexRoute, not the global NotFoundView
   (routes[0].children as RouteObject[]).unshift(layoutRoute);
 
   return routes;

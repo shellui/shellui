@@ -34,16 +34,84 @@ export function getHashPathFromUrl(url: string): string {
   return hash.startsWith('/') ? hash : `/${hash}`;
 }
 
+const toAbsoluteUrl = (url: string): URL | null => {
+  try {
+    return new URL(
+      url,
+      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
+    );
+  } catch {
+    return null;
+  }
+};
+
+const normalizePathname = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return '/';
+  const withoutTrailing = trimmed.replace(/\/+$/, '');
+  return withoutTrailing || '/';
+};
+
+const normalizeHashPath = (value: string): string => {
+  return value.replace(/^#\/?/, '').replace(/\/+$/, '');
+};
+
+/**
+ * Whether an iframe `src` belongs to an embedded app URL (same origin + path/hash prefix).
+ * Site-root apps (`https://files.example/`) also match deep links (`…/company/docs`).
+ */
+export function isFrameForAppUrl(frameSrc: string, appUrl: string): boolean {
+  const frame = toAbsoluteUrl(frameSrc);
+  const app = toAbsoluteUrl(appUrl);
+  if (!frame || !app) return false;
+  if (frame.origin !== app.origin) return false;
+
+  const appPathname = normalizePathname(app.pathname);
+  const framePathname = normalizePathname(frame.pathname);
+  // Root app URL: `${appPathname}/` would be `//` and wrongly reject `/company/…`.
+  const pathMatches =
+    appPathname === '/'
+      ? true
+      : framePathname === appPathname || framePathname.startsWith(`${appPathname}/`);
+  if (!pathMatches) return false;
+
+  const appHashPath = normalizeHashPath(app.hash || getHashPathFromUrl(appUrl));
+  if (!appHashPath) return true;
+
+  const frameHashPath = normalizeHashPath(frame.hash);
+  return frameHashPath === appHashPath || frameHashPath.startsWith(`${appHashPath}/`);
+}
+
+/**
+ * Match a nav item for routing: root (`/` / path '') matches any pathname so in-app
+ * deep links from `/` stay on the root app; more specific prefixes win (e.g. `/home`).
+ */
+export function findMatchingNavigationItem(
+  items: NavigationItem[],
+  pathname: string,
+): NavigationItem | undefined {
+  const matching = items.filter((item) => {
+    const pathPrefix = getNavPathPrefix(item);
+    if (pathPrefix === '/') {
+      return true;
+    }
+    return pathname === pathPrefix || pathname.startsWith(`${pathPrefix}/`);
+  });
+  if (matching.length === 0) {
+    return undefined;
+  }
+  return matching.reduce((best, item) =>
+    getNavPathPrefix(item).length > getNavPathPrefix(best).length ? item : best,
+  );
+}
+
 /** Among items that match the current pathname, return the longest path prefix. Used so only one nav item is active when URLs nest (e.g. /foo and /foo/bar). */
 export function getActivePathPrefix(pathname: string, items: NavigationItem[]): string | null {
   const linkItems = items.filter(
     (i) => i.openIn !== 'modal' && i.openIn !== 'drawer' && i.openIn !== 'external',
   );
-  const matching = linkItems
-    .map((i) => getNavPathPrefix(i))
-    .filter((p) => pathname === p || pathname.startsWith(p === '/' ? '/' : `${p}/`));
-  if (matching.length === 0) return null;
-  return matching.reduce((a, b) => (a.length >= b.length ? a : b));
+  const matched = findMatchingNavigationItem(linkItems, pathname);
+  return matched ? getNavPathPrefix(matched) : null;
 }
 
 /** Resolve a localized string to a single string for the given language. */

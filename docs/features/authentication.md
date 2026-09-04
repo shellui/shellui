@@ -2,7 +2,7 @@
 
 This guide follows [Backend](/backend) in the getting-started path. It covers sign-in configuration, built-in login routes, and navigation guards for developers hosting their own shell.
 
-Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.ts`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
+Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.json`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Configure a backend provider first. See [Backend](/backend) for Shellui identity
 
 ## Enable authentication
 
-Add a `backend` block to `shellui.config.ts` (or `shellui.config.json`). Without it, `useAuth()` reports signed out and login actions are unavailable.
+Add a `backend` block to `shellui.config.json`. Without it, `useAuth()` reports signed out and login actions are unavailable.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -68,6 +68,36 @@ Shellui registers fixed auth routes (see `urls` in `@shellui/core`):
 | `/login/callback` | OAuth callback handler (authorization code exchange)                       |
 
 You do **not** implement these pages in your microfrontends. They are part of the shell router.
+
+### Login left panel branding
+
+On desktop, `/login` shows a full-height left panel beside the sign-in form. Both branding fields are optional — omit them to keep the default muted panel with the shell `appIcon` in the top left (same mark as the layout chrome).
+
+| Field        | Behavior                                                                             |
+| ------------ | ------------------------------------------------------------------------------------ |
+| `panelUrl`   | Full-bleed iframe filling the left half. Wins when both fields are set.              |
+| `panelImage` | Centered image scaled with `object-contain` (full width or height, ratio preserved). |
+| _(neither)_  | Grey (`bg-muted/40`) panel with clickable `appIcon` top left (links home).           |
+
+On mobile, the same square `appIcon` is pinned top-left while the sign-in form stays vertically centered. Full-screen login also shows discreet language (when multiple languages are configured) and light/dark controls at the top right of the form column.
+
+```typescript
+const config: ShellUIConfig = {
+  backend: {
+    type: 'shellui',
+    url: 'http://localhost:8000',
+    login: {
+      methods: ['oauth'],
+      oauthProviders: ['github'],
+      // Prefer one of:
+      panelUrl: 'http://localhost:5176/login-branding/',
+      // panelImage: '/login-panel.jpg',
+    },
+  },
+};
+```
+
+Relative image paths (e.g. `/login-panel.jpg`) are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
 
 ### `next` query parameter
 
@@ -160,7 +190,9 @@ function Example() {
 
 `AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (Shellui JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
 
-Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. OAuth returns may deliver tokens in the URL hash; the shell persists them and strips the hash.
+Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. With the Shellui identity service, the provider redirects to identity `/api/v1/oauth/callback`, which then bounces to the shell `/login/callback` with tokens in the URL hash. The shell persists them and strips the hash. Older IdP configs that still send `?code=` to the shell continue to use `POST /oauth/exchange`.
+
+Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
 
 ## Company access and pending accounts
 
@@ -197,7 +229,7 @@ Legal document links on the login page come from `legalDocuments` in config; see
 ## Checklist
 
 1. Choose [Backend](/backend) provider and run it (identity service or Supabase).
-2. Set `backend.type`, `url`, and provider-specific keys in `shellui.config.ts`.
+2. Set `backend.type`, `url`, and provider-specific keys in `shellui.config.json`.
 3. Set `backend.login.methods` and `oauthProviders` to match what the backend enables.
 4. Mark sensitive nav items with `requiresAuth` and optionally `hideWhenLoggedOut`.
 5. Test deep links while signed out (`/billing` → login → return).
