@@ -307,17 +307,24 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
                 data-drawer-handle-overlay
                 className={cn(
                   'pointer-events-none absolute inset-x-0 z-20 flex justify-center bg-transparent',
-                  pos === 'bottom' ? 'top-0 pt-3' : 'bottom-0 pb-3',
+                  pos === 'bottom' ? 'top-0' : 'bottom-0',
                 )}
               >
-                <DrawerHandle className="pointer-events-auto !mt-0" />
+                {/* Centered tall hit target only — rest of the strip is click-through (close button, etc.) */}
+                <DrawerHandle
+                  className={cn(
+                    'pointer-events-auto !mt-0 h-11 w-28 shrink-0 rounded-none bg-transparent',
+                    "relative after:absolute after:left-1/2 after:h-1 after:w-10 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/40 after:content-['']",
+                    pos === 'bottom' ? 'after:top-1' : 'after:bottom-1',
+                  )}
+                />
               </div>
             ) : (
               <DrawerHandle className={cn('rounded-full', sideHandleClass)} />
             ))}
           {showCloseButton && (
             <VaulDrawer.Close
-              className="absolute right-4 top-4 z-10 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"
+              className="absolute right-4 top-4 z-30 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"
               aria-label="Close"
               onPointerDown={(e) => e.currentTarget.click()}
             >
@@ -419,7 +426,7 @@ const DrawerHandle = forwardRef<
     ref={ref}
     data-drawer-handle
     className={cn(
-      'mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground/40',
+      'mx-auto mt-1.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/40',
       className,
     )}
     {...props}

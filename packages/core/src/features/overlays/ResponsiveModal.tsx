@@ -451,11 +451,12 @@ export function ResponsiveModal({
         {isSheet && showDragHandle && dismissible && (
           <div
             data-responsive-modal-handle
-            className="pointer-events-none absolute inset-x-0 top-0 z-20 flex touch-none items-center justify-center bg-transparent py-3"
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 flex touch-none items-start justify-center bg-transparent"
             role="presentation"
           >
+            {/* Centered tall hit target only — rest of the strip is click-through */}
             <div
-              className="pointer-events-auto h-1.5 w-12 cursor-grab rounded-full bg-muted-foreground/40 active:cursor-grabbing"
+              className="pointer-events-auto relative h-11 w-28 shrink-0 cursor-grab touch-none active:cursor-grabbing after:absolute after:left-1/2 after:top-1 after:h-1 after:w-10 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/40 after:content-['']"
               onPointerDown={handleSheetPointerDown}
               onPointerMove={handleSheetPointerMove}
               onPointerUp={handleSheetPointerUp}
