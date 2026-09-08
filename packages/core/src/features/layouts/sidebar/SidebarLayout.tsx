@@ -23,6 +23,8 @@ import { useNavigationItems } from '../../../routes/hooks/useNavigationItems';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { useModal } from '../../modal/ModalContext';
+import { useDrawer } from '../../drawer/DrawerContext';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
@@ -40,6 +42,19 @@ function CloseMobileSidebarOnNavigate() {
   useEffect(() => {
     setOpenMobile(false);
   }, [location.pathname, setOpenMobile]);
+
+  return null;
+}
+
+/** Close the mobile sheet when a modal or drawer opens. */
+function CloseMobileSidebarOnOverlay() {
+  const { setOpenMobile } = useSidebar();
+  const { isOpen: modalOpen } = useModal();
+  const { isOpen: drawerOpen } = useDrawer();
+
+  useEffect(() => {
+    if (modalOpen || drawerOpen) setOpenMobile(false);
+  }, [modalOpen, drawerOpen, setOpenMobile]);
 
   return null;
 }
@@ -108,6 +123,7 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   return (
     <SidebarProvider className="h-full max-h-full overflow-hidden">
       <CloseMobileSidebarOnNavigate />
+      <CloseMobileSidebarOnOverlay />
       <CollapsedTitlebarOffset />
       <CollapsedDesktopTitlebar />
       <Sidebar
