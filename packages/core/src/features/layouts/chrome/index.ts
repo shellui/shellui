@@ -24,3 +24,4 @@ export { DesktopHistoryButtons } from './DesktopHistoryButtons';
 export { ContentDragOverlay } from './ContentDragOverlay';
 export { DesktopChrome } from './DesktopChrome';
 export { CollapsedDesktopTitlebar } from './CollapsedDesktopTitlebar';
+export { isShellUiRootWindow, SafeAreaTopbarOffset, SafeAreaTopbarStrip } from './SafeAreaTopbar';

@@ -46,6 +46,11 @@ import { useSettings } from '../../settings/hooks/useSettings';
 import { NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
+import {
+  isShellUiRootWindow,
+  SafeAreaTopbarOffset,
+  SafeAreaTopbarStrip,
+} from '../chrome/SafeAreaTopbar';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
@@ -203,19 +208,19 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
   if (iconSrc) {
     return (
       <span
-        className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60"
+        className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted/60 p-1"
         aria-hidden
       >
         <NavIcon
           src={iconSrc}
-          className="size-5"
+          className="size-3.5"
         />
       </span>
     );
   }
   return (
     <span
-      className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-semibold leading-none text-muted-foreground"
+      className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted p-1 text-[10px] font-semibold leading-none text-muted-foreground"
       aria-hidden
     >
       {firstLetter}
@@ -478,7 +483,7 @@ function AppBarNavMeasureChip({
     >
       {withIcon ? (
         <span
-          className="size-7 shrink-0"
+          className="size-6 shrink-0"
           aria-hidden
         />
       ) : null}
@@ -787,18 +792,30 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
     : undefined;
 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
-
-  return (
-    <div className="flex h-full max-h-full flex-col overflow-hidden bg-background">
-      {/* Header background extends into the status-bar band; controls sit below it. */}
-      <header
-        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
-        style={{
+  // Nested shell-in-iframe must not repeat the root safe-area top band.
+  const showSafeAreaTopbar = isShellUiRootWindow();
+  // md+: strip owns the inset; mobile pads the header into the status band.
+  const headerStyle = {
+    paddingLeft: chromeInset ?? 12,
+    paddingRight: 8,
+    ...(isMobile && showSafeAreaTopbar
+      ? {
           paddingTop: 'var(--shellui-safe-area-top)',
           height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
-          paddingLeft: chromeInset ?? 12,
-          paddingRight: 8,
-        }}
+        }
+      : { height: APP_BAR_HEIGHT_PX }),
+  } as const;
+
+  return (
+    <div
+      data-shellui-app-bar-layout=""
+      className="flex h-full max-h-full flex-col overflow-hidden bg-background"
+    >
+      <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
+      <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
+      <header
+        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
+        style={headerStyle}
         data-layout="app-bar"
         {...(trafficLights ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
       >

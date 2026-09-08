@@ -800,8 +800,10 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
 
 /*
  * Tablet / desktop: fixed shell sidebar sits below the layout safe-area strip.
- * Only when the root (non-iframe) sidebar layout advertised the topbar.
- * Drawer overlay stays full-bleed (topbar dims behind it); panels clear the inset.
+ * Only when the root (non-iframe) layout advertised the topbar via
+ * data-shellui-safe-area-topbar. Drawer overlay stays full-bleed (topbar dims
+ * behind it); left/right/top drawer panels clear the inset so they never cover
+ * the strip. Height is 0 when env(safe-area-inset-top) is 0.
  */
 @media (min-width: 768px) {
   html[data-shellui-safe-area-topbar]
@@ -817,6 +819,7 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='left'],
   html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='right'] {
     top: var(--shellui-safe-area-top);
+    bottom: 0;
     height: auto;
   }
 

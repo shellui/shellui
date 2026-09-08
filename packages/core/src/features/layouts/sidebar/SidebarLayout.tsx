@@ -27,6 +27,11 @@ import { useModal } from '../../modal/ModalContext';
 import { useDrawer } from '../../drawer/DrawerContext';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
+import {
+  isShellUiRootWindow,
+  SafeAreaTopbarOffset,
+  SafeAreaTopbarStrip,
+} from '../chrome/SafeAreaTopbar';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   MAC_TRAFFIC_LIGHTS_GAP_PX,
@@ -71,26 +76,6 @@ function CollapsedTitlebarOffset() {
     else root.removeAttribute('data-shellui-collapsed-titlebar');
     return () => root.removeAttribute('data-shellui-collapsed-titlebar');
   }, [overlay, collapsed]);
-
-  return null;
-}
-
-/** True when this window is the outermost shell (not nested in an iframe). */
-function isShellUiRootWindow(): boolean {
-  return typeof window !== 'undefined' && window.parent === window;
-}
-
-/**
- * Root sidebar only: advertise the safe-area topbar on <html> so fixed chrome
- * (sidebar container, drawers) can clear it. Nested iframe shells skip this.
- */
-function SafeAreaTopbarOffset({ enabled }: { enabled: boolean }) {
-  useEffect(() => {
-    if (!enabled) return;
-    const root = document.documentElement;
-    root.setAttribute('data-shellui-safe-area-topbar', '');
-    return () => root.removeAttribute('data-shellui-safe-area-topbar');
-  }, [enabled]);
 
   return null;
 }
@@ -153,16 +138,7 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
         top safe-area, painted with sidebar background. Height is 0 when the inset
         is 0; overflow clips the border so no stray hairline.
       */}
-      {showSafeAreaTopbar ? (
-        <div
-          aria-hidden
-          data-slot="sidebar-safe-area-top"
-          className="relative z-0 hidden shrink-0 overflow-hidden md:block"
-          style={{ height: 'var(--shellui-safe-area-top)' }}
-        >
-          <div className="box-border h-full border-b border-sidebar-border bg-sidebar" />
-        </div>
-      ) : null}
+      <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
       <SidebarProvider className="min-h-0 flex-1 overflow-hidden">
         <CloseMobileSidebarOnNavigate />
         <CloseMobileSidebarOnOverlay />
