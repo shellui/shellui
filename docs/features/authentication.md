@@ -79,7 +79,7 @@ On desktop, `/login` shows a full-height left panel beside the sign-in form. Bot
 | `panelImage` | Centered image scaled with `object-contain` (full width or height, ratio preserved). |
 | _(neither)_  | Grey (`bg-muted/40`) panel with clickable `appIcon` top left (links home).           |
 
-On mobile, the same square `appIcon` is pinned top-left while the sign-in form stays vertically centered. Full-screen login also shows discreet language (when multiple languages are configured) and light/dark controls at the top right of the form column.
+On mobile, the same square `appIcon` is pinned top-left while the sign-in form stays vertically centered. Full-screen login also shows discreet language (when multiple languages are configured) and light/dark controls at the top right of the form column. The form column uses safe-area padding (`.shellui-safe-pad`) so controls clear the notch and home indicator under iOS `black-translucent` fullscreen.
 
 ```typescript
 const config: ShellUIConfig = {

@@ -76,11 +76,11 @@ DrawerOverlay.displayName = VaulDrawer.Overlay.displayName;
 /** Base layout classes per direction — max dimension is applied via style so size prop can override. */
 const drawerContentByDirection: Record<DrawerDirection, string> = {
   bottom:
-    'fixed inset-x-0 bottom-0 mt-24 flex h-auto flex-col rounded-t-xl border border-border bg-background',
-  top: 'fixed inset-x-0 top-0 mb-24 flex h-auto flex-col rounded-b-xl border border-border bg-background',
-  left: 'fixed inset-y-0 left-0 mr-24 flex h-full w-auto flex-col rounded-r-xl border border-border bg-background',
+    'fixed inset-x-0 bottom-0 mt-24 flex h-auto flex-col rounded-t-xl border border-border bg-background pb-[var(--shellui-safe-area-bottom)]',
+  top: 'fixed inset-x-0 top-0 mb-24 flex h-auto flex-col rounded-b-xl border border-border bg-background pt-[var(--shellui-safe-area-top)]',
+  left: 'fixed inset-y-0 left-0 mr-24 flex h-full w-auto flex-col rounded-r-xl border border-border bg-background pl-[var(--shellui-safe-area-left)]',
   right:
-    'fixed inset-y-0 right-0 ml-24 flex h-full w-auto flex-col rounded-l-xl border border-border bg-background',
+    'fixed inset-y-0 right-0 ml-24 flex h-full w-auto flex-col rounded-l-xl border border-border bg-background pr-[var(--shellui-safe-area-right)]',
 };
 
 /** Free-edge resize handle (opposite the anchored side). */
@@ -249,13 +249,15 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
     }, []);
 
     const effectiveSize =
-      overridePx !== null ? `${overridePx}px` : size?.trim() || (isVertical ? '80dvh' : '80vw');
+      overridePx !== null
+        ? `${overridePx}px`
+        : size?.trim() || (isVertical ? 'calc(var(--shellui-overlay-max-height) * 0.8)' : '80vw');
     const sizeStyle: CSSProperties =
       overridePx !== null
         ? isVertical
           ? {
               height: effectiveSize,
-              maxHeight: `min(${effectiveSize}, calc(100dvh - ${VIEWPORT_MARGIN}px))`,
+              maxHeight: `min(${effectiveSize}, calc(var(--shellui-overlay-max-height) - ${VIEWPORT_MARGIN}px))`,
             }
           : {
               width: effectiveSize,
@@ -263,10 +265,13 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
             }
         : size === null
           ? isVertical
-            ? { maxHeight: 'min(90dvh, 100dvh)' }
+            ? { maxHeight: 'var(--shellui-overlay-max-height)' }
             : { maxWidth: 'min(90vw, 100%)' }
           : isVertical
-            ? { height: effectiveSize, maxHeight: `min(${effectiveSize}, 100dvh)` }
+            ? {
+                height: effectiveSize,
+                maxHeight: `min(${effectiveSize}, var(--shellui-overlay-max-height))`,
+              }
             : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
 
     const sideHandleClass =
@@ -385,7 +390,7 @@ DrawerHeader.displayName = 'DrawerHeader';
 const DrawerFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'mt-auto flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end',
+      'mt-auto flex flex-col-reverse gap-2 border-t border-border px-6 pt-4 pb-[max(1rem,var(--shellui-safe-area-bottom))] sm:flex-row sm:justify-end',
       className,
     )}
     {...props}

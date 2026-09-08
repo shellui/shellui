@@ -29,6 +29,9 @@ import { ResponsiveModal } from '../overlays/ResponsiveModal';
 import { OverlayPendingSpinner } from '../overlays/OverlayPendingSpinner';
 import { OverlayDrawerPendingBar } from '../overlays/OverlayDrawerPendingBar';
 
+/** Matches --shellui-overlay-max-height in index.css */
+const OVERLAY_MAX_H = 'var(--shellui-overlay-max-height)';
+
 interface OverlayShellProps {
   children: ReactNode;
 }
@@ -122,15 +125,19 @@ function OverlayIframe({
         overflow: 'hidden',
       }
     : {
-        height: reportedHeight ?? modalPendingPx,
-        minHeight: reportedHeight ?? modalPendingPx,
+        // Fill the chrome. Do NOT set an absolute pixel height here — the chrome
+        // owns height/maxHeight; a taller iframe would paint past the visible sheet.
+        height: '100%',
+        minHeight: 0,
         width: forceFullWidth ? '100%' : (reportedWidth ?? '100%'),
         overflow: scroll ? 'auto' : 'hidden',
       };
 
   return (
     <div
-      className={`relative w-full bg-background${useDrawerBarPending && pendingFill ? ' h-full min-h-0' : ''}`}
+      className={`relative w-full min-h-0 bg-background${
+        pending ? '' : ' h-full'
+      }${useDrawerBarPending && pendingFill ? ' h-full min-h-0' : ''}`}
       style={
         useSquarePending
           ? { width: modalPendingPx, height: modalPendingPx, overflow: 'hidden' }
@@ -288,6 +295,8 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         : sheetSize.className
       : dialogSize.className;
 
+  const overlayMaxH = OVERLAY_MAX_H;
+
   const modalChromeStyle: CSSProperties = {
     // Dynamic overlays snap to reported size — no height/width tween (avoids multi-step jumps)
     ...(modalContentSized ? { transition: 'none' } : {}),
@@ -314,21 +323,21 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             ? presentation === 'sheet'
               ? {
                   height: modalReported.height,
-                  maxHeight: `min(${modalReported.height}px, 92dvh)`,
+                  maxHeight: `min(${modalReported.height}px, ${overlayMaxH})`,
                   // Phone sheets: always full width (dynamic sizing only drives height)
                   width: '100%',
                   maxWidth: '100%',
                 }
               : {
                   height: modalReported.height,
-                  maxHeight: `min(${modalReported.height}px, 92dvh)`,
+                  maxHeight: `min(${modalReported.height}px, ${overlayMaxH})`,
                   width: modalReported.width ?? DYNAMIC_OVERLAY_MEASURE_WIDTH_PX,
                   maxWidth: 'min(92vw, 100%)',
                 }
             : presentation === 'sheet' && sheetSize.drawerSize
               ? {
                   height: sheetSize.drawerSize,
-                  maxHeight: `min(${sheetSize.drawerSize}, 100dvh)`,
+                  maxHeight: `min(${sheetSize.drawerSize}, ${overlayMaxH})`,
                   width: '100%',
                   maxWidth: '100%',
                 }
@@ -357,7 +366,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         ? drawerIsVertical
           ? {
               height: drawerReported.height,
-              maxHeight: `min(${drawerReported.height}px, 92dvh)`,
+              maxHeight: `min(${drawerReported.height}px, ${overlayMaxH})`,
             }
           : {
               width: drawerReported.width ?? drawerReported.height,

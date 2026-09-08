@@ -48,7 +48,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
   return (
-    <main className="relative flex flex-col w-full h-screen overflow-hidden bg-background">
+    <main className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background">
       {isTauriEnv ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"

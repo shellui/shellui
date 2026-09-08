@@ -143,7 +143,7 @@ Set `showDragHandle: false` to hide the bar while keeping other dismiss paths, o
 
 On desktop, drawers are **resizable** by default from the free edge (width for left/right, height for top/bottom). They are not movable. Pass `resizable: false` to lock size. Resize is disabled on mobile.
 
-**Mobile sizing:** left/right freeform widths (e.g. `"60vw"`, `"400px"`) map to the default bottom-sheet height (`80dvh`). Presets (`sm`–`xl`) and top/bottom heights keep their vertical meaning.
+**Mobile sizing:** left/right freeform widths (e.g. `"60vw"`, `"400px"`) map to the default bottom-sheet height (80% of `--shellui-overlay-max-height`). Presets (`sm`–`xl`) and top/bottom heights keep their vertical meaning.
 
 ### Closing Drawers
 
@@ -156,16 +156,16 @@ On desktop, drawers are **resizable** by default from the free edge (width for l
 
 ### Presets
 
-| Preset    | Modal (desktop)                 | Drawer (vertical) | Drawer (horizontal) |
-| --------- | ------------------------------- | ----------------- | ------------------- |
-| `sm`      | narrow                          | ~40dvh            | ~20rem              |
-| `md`      | medium                          | ~55dvh            | ~28rem              |
-| `lg`      | default (previous modal chrome) | ~75dvh            | ~36rem              |
-| `xl`      | large                           | ~90dvh            | ~48rem              |
-| `full`    | near-viewport                   | 100dvh            | 100%                |
-| `content` | grows with iframe size reports  | auto height/width | auto                |
+| Preset    | Modal (desktop)                 | Drawer (vertical)              | Drawer (horizontal) |
+| --------- | ------------------------------- | ------------------------------ | ------------------- |
+| `sm`      | narrow                          | ~40% of overlay max            | ~20rem              |
+| `md`      | medium                          | ~55% of overlay max            | ~28rem              |
+| `lg`      | default (previous modal chrome) | ~75% of overlay max            | ~36rem              |
+| `xl`      | large                           | ~90% of overlay max            | ~48rem              |
+| `full`    | near-viewport                   | `--shellui-overlay-max-height` | 100%                |
+| `content` | grows with iframe size reports  | auto height/width              | auto                |
 
-All sizes are clamped to the viewport (`dvh` / safe max). You can also pass explicit `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number).
+All sizes are clamped to `--shellui-overlay-max-height` (CSS `--shellui-app-height` minus top safe area). Bottom sheets also pad the home-indicator inset on chrome (footer / sheet edge). You can also pass explicit `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number).
 
 Drawers still accept freeform CSS lengths (`"400px"`, `"50vw"`) for the primary dimension.
 

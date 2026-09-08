@@ -234,7 +234,8 @@ function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            // Prefer dvh so the shell fills the visible phone screen (svh can leave a bottom gap)
+            // #root owns the screen height (see index.html); fill it rather than
+            // re-deriving it from a viewport unit.
             'group/sidebar-wrapper flex h-full min-h-0 w-full has-data-[variant=inset]:bg-sidebar',
             className,
           )}
@@ -307,7 +308,7 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col pt-[env(safe-area-inset-top,0px)] pl-[env(safe-area-inset-left,0px)]">
+          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden pt-[var(--shellui-safe-area-top)] pr-[var(--shellui-safe-area-right)] pb-[var(--shellui-safe-area-bottom)] pl-[var(--shellui-safe-area-left)]">
             {children}
           </div>
         </SheetContent>
@@ -339,7 +340,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear group-data-[resizing]/sidebar-wrapper:transition-none md:flex',
+          'fixed inset-y-0 z-10 hidden h-[var(--shellui-app-height,100dvh)] w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear group-data-[resizing]/sidebar-wrapper:transition-none md:flex',
           side === 'left'
             ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
             : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
@@ -354,7 +355,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className="flex h-full w-full flex-col bg-sidebar pb-[var(--shellui-safe-area-bottom)] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
         >
           {children}
         </div>
@@ -531,10 +532,7 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="sidebar-footer"
       data-sidebar="footer"
-      className={cn(
-        'flex flex-col gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]',
-        className,
-      )}
+      className={cn('flex flex-col gap-2 p-2', className)}
       {...props}
     />
   );

@@ -72,7 +72,7 @@ const AlertDialogContent = forwardRef<
           // Content-sized height (never stretch to viewport)
           height: 'auto',
           maxHeight:
-            'min(90dvh, calc(100dvh - max(0.75rem, env(safe-area-inset-top, 0px)) - max(0.75rem, env(safe-area-inset-bottom, 0px))))',
+            'calc(var(--shellui-app-height, 100dvh) - max(0.75rem, var(--shellui-safe-area-top)) - max(0.75rem, var(--shellui-safe-area-bottom)))',
           width: ALERT_DIALOG_MAX_WIDTH[resolvedSize],
           maxWidth: ALERT_DIALOG_MAX_WIDTH[resolvedSize],
           margin: 0,

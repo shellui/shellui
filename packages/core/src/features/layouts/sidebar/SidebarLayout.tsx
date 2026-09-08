@@ -106,7 +106,7 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   }, [navigationItem, title, currentLanguage]);
 
   return (
-    <SidebarProvider className="h-dvh max-h-dvh overflow-hidden">
+    <SidebarProvider className="h-full max-h-full overflow-hidden">
       <CloseMobileSidebarOnNavigate />
       <CollapsedTitlebarOffset />
       <CollapsedDesktopTitlebar />
@@ -125,12 +125,16 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
       </Sidebar>
 
       <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/*
+          Mobile top chrome: extend the header background into the status-bar band
+          so there is no empty strip. Interactive controls stay below the inset via
+          padding. Overlays are fixed full-screen and still cover this band.
+        */}
         <header
-          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 pt-[env(safe-area-inset-top,0px)] select-none md:hidden"
+          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
           style={{
-            // Content row height + notch/Dynamic Island inset
-            minHeight: DESKTOP_TITLEBAR_HEIGHT_PX,
-            height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + env(safe-area-inset-top, 0px))`,
+            paddingTop: 'var(--shellui-safe-area-top)',
+            height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
             ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
           }}
           {...(trafficLights

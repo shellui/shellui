@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { shellui, type OverlaySizePayload, type ShellUIMessage } from '@shellui/sdk';
+import { overlayMaxHeightPx, readAppHeightPx } from '../layouts/chrome/viewport';
 
 const MIN_CONTENT_HEIGHT = 40;
 const MAX_VIEWPORT_RATIO = 0.92;
@@ -66,7 +67,9 @@ export function useOverlayReportedSize(enabled: boolean, active: boolean) {
       const height = Number(payload?.height);
       if (!Number.isFinite(height) || height <= 0) return;
 
-      const maxH = Math.floor(window.innerHeight * MAX_VIEWPORT_RATIO);
+      // Clamp against the shell height (not raw innerHeight / dvh), so standalone
+      // iOS overlays cannot outgrow the visible screen.
+      const maxH = overlayMaxHeightPx(MAX_VIEWPORT_RATIO);
       const rawH = Math.ceil(height);
       const clampedH = Math.min(Math.max(rawH, MIN_CONTENT_HEIGHT), maxH);
       const wasClamped = rawH > maxH;
@@ -114,9 +117,7 @@ export function useOverlayReportedSize(enabled: boolean, active: boolean) {
     reported ??
     (fallback && enabled
       ? {
-          height: Math.floor(
-            (typeof window !== 'undefined' ? window.innerHeight : 600) * FALLBACK_HEIGHT_RATIO,
-          ),
+          height: Math.floor(readAppHeightPx() * FALLBACK_HEIGHT_RATIO),
           wasClamped: true,
         }
       : null);

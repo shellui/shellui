@@ -49,7 +49,7 @@ export function RouteErrorBoundary() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12"
+      className="shellui-safe-pad flex h-full min-h-full flex-col items-center justify-center bg-background [--shellui-safe-pad-x:1rem] [--shellui-safe-pad-y:3rem]"
       style={{ fontFamily: 'var(--heading-font-family, system-ui, sans-serif)' }}
     >
       <div className="w-full max-w-md space-y-6 text-center">

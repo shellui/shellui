@@ -618,11 +618,13 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
 
   return (
-    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
+    <div className="flex h-full max-h-full flex-col overflow-hidden bg-background">
+      {/* Header background extends into the status-bar band; controls sit below it. */}
       <header
-        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none pt-[env(safe-area-inset-top,0px)]"
+        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
         style={{
-          height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + env(safe-area-inset-top, 0px))`,
+          paddingTop: 'var(--shellui-safe-area-top)',
+          height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
           paddingLeft: chromeInset ?? 12,
           paddingRight: 8,
         }}

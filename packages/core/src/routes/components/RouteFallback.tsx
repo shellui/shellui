@@ -1,7 +1,7 @@
 export function RouteFallback() {
   return (
     <div
-      className="min-h-screen bg-background"
+      className="h-full min-h-full bg-background"
       aria-hidden
     />
   );

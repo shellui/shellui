@@ -399,7 +399,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
               right: 'max(1rem, env(safe-area-inset-right, 0px))',
               top: 'auto',
               maxHeight:
-                'calc(100dvh - max(1rem, env(safe-area-inset-top, 0px)) - max(1rem, env(safe-area-inset-bottom, 0px)))',
+                'calc(var(--shellui-app-height, 100dvh) - max(1rem, var(--shellui-safe-area-top)) - max(1rem, var(--shellui-safe-area-bottom)))',
               zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
               backgroundColor: 'var(--background)',
               transform: 'none',

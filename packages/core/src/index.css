@@ -77,6 +77,49 @@
   --sidebar: var(--sidebar-background);
 }
 
+/*
+ * Padding only — never fold these into shell height. Use for chrome clearance
+ * (titlebar, sheet edges, home indicator). The shell itself is sized by
+ * --shellui-app-height (100dvh in CSS).
+ */
+:root {
+  --shellui-app-height: 100dvh;
+  --shellui-safe-area-top: env(safe-area-inset-top, 0px);
+  --shellui-safe-area-right: env(safe-area-inset-right, 0px);
+  --shellui-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --shellui-safe-area-left: env(safe-area-inset-left, 0px);
+  /*
+   * Max height for sheets / modals / drawers. Leaves the top safe area clear.
+   */
+  --shellui-overlay-max-height: calc(
+    var(--shellui-app-height) - var(--shellui-safe-area-top) - 0.5rem
+  );
+}
+
+/*
+ * Content padding that clears the notch / home indicator while keeping a minimum
+ * inset. Override mins with --shellui-safe-pad-x / --shellui-safe-pad-y.
+ */
+.shellui-safe-pad {
+  padding-top: max(var(--shellui-safe-pad-y, 1.5rem), var(--shellui-safe-area-top));
+  padding-right: max(var(--shellui-safe-pad-x, 1.5rem), var(--shellui-safe-area-right));
+  padding-bottom: max(var(--shellui-safe-pad-y, 1.5rem), var(--shellui-safe-area-bottom));
+  padding-left: max(var(--shellui-safe-pad-x, 1.5rem), var(--shellui-safe-area-left));
+}
+
+/*
+ * Installed web app: make <body> the containing block for fixed descendants
+ * (overlays, sheets, toasts). Pure CSS via display-mode — no JS attributes.
+ */
+@media (display-mode: standalone) {
+  body {
+    position: fixed;
+    inset: 0;
+    height: var(--shellui-app-height, 100dvh);
+    contain: layout paint;
+  }
+}
+
 @layer base {
   * {
     border-color: var(--border);
@@ -370,7 +413,7 @@ html.shellui-theme-switching
   transform: none;
   /* Never paint larger than the viewport even if state lags a resize */
   max-width: calc(100vw - 16px) !important;
-  max-height: calc(100dvh - 16px) !important;
+  max-height: calc(var(--shellui-app-height, 100dvh) - 16px) !important;
 }
 
 [data-dialog-content][data-window-interacting='true'] {
@@ -474,12 +517,9 @@ html.shellui-theme-switching
 }
 [data-dialog-content][data-alert-dialog] {
   height: auto !important;
-  max-height: min(
-    90dvh,
-    calc(
-      100dvh - max(0.75rem, env(safe-area-inset-top, 0px)) -
-        max(0.75rem, env(safe-area-inset-bottom, 0px))
-    )
+  max-height: calc(
+    var(--shellui-app-height, 100dvh) - max(0.75rem, var(--shellui-safe-area-top)) -
+      max(0.75rem, var(--shellui-safe-area-bottom))
   ) !important;
 }
 [data-dialog-content][data-alert-dialog][data-state='open'] {

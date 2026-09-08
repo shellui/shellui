@@ -207,6 +207,13 @@ function MyComponent() {
 
 ## Layout-Specific Considerations
 
+### Mobile / iOS fullscreen (all layouts)
+
+- Shell height uses `--shellui-app-height` (`100dvh` in CSS). Safe-area insets are padding only. Installed / standalone apps use `@media (display-mode: standalone)` for body layout — no JS display-mode attributes or measured heights.
+- Safe-area insets are **padding only** (titlebars, sheets, login). The main content iframe fills to the physical bottom — do not pad the outlet with bottom safe-area or the iframe looks cut off.
+- **Iframe apps:** size to `100%` of the iframe (avoid `100vh` / `h-screen` / `min-h-screen`), and pad your own bottom chrome with `env(safe-area-inset-*)` when UI sits on the home-indicator band.
+- Shell-owned pages (login, access pending, errors) use `.shellui-safe-pad` so content clears the notch and home indicator.
+
 ### Sidebar Layout
 
 - **Mobile**: Sheet/drawer sidebar opened from the top header trigger
@@ -221,6 +228,7 @@ function MyComponent() {
 - **Direct URLs**: Users can still navigate via direct URLs
 - **Embedding**: Perfect for embedding Shellui in other applications
 - **Kiosk Mode**: Ideal for kiosk or single-purpose applications
+- **Height**: Fills `#root` (`h-full`), same as sidebar / app-bar — not raw `100vh`
 
 ### Windows Layout
 

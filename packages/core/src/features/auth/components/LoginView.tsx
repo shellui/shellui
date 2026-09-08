@@ -435,10 +435,10 @@ export const LoginView = () => {
             <iframe
               src={panelUrl}
               title={t('loginPage.brandingIframeTitle')}
-              className="h-full min-h-svh w-full border-0"
+              className="h-full w-full border-0"
             />
           ) : panelImage ? (
-            <div className="flex h-full min-h-svh w-full items-center justify-center overflow-hidden">
+            <div className="flex h-full w-full items-center justify-center overflow-hidden">
               <img
                 src={panelImage}
                 alt=""
@@ -446,7 +446,7 @@ export const LoginView = () => {
               />
             </div>
           ) : (
-            <div className="flex h-full min-h-svh w-full items-start justify-start p-6">
+            <div className="flex h-full w-full items-start justify-start p-6">
               <AppBrandIcon
                 appIcon={config.appIcon}
                 title={config.title}
@@ -459,7 +459,8 @@ export const LoginView = () => {
 
       <section
         className={cn(
-          'relative flex min-h-svh w-full flex-col px-6 py-6 md:py-10',
+          'relative flex min-h-full w-full flex-col',
+          isIframeView ? 'px-6 py-6' : 'shellui-safe-pad md:[--shellui-safe-pad-y:2.5rem]',
           !isIframeView && 'md:w-1/2',
         )}
       >

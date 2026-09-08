@@ -1,6 +1,5 @@
 import { toCssVarValue } from './color';
 import type { ThemeColorsMode, ThemeDefinition } from './types';
-
 const COLOR_VAR_MAP: Array<[keyof ThemeColorsMode, string]> = [
   ['background', '--background'],
   ['foreground', '--foreground'],
@@ -36,6 +35,22 @@ const COLOR_VAR_MAP: Array<[keyof ThemeColorsMode, string]> = [
   ['chart5', '--chart-5'],
 ];
 
+/** Update <meta name="theme-color"> so PWA / browser chrome matches the active surface. */
+function syncThemeColorMeta(cssColor: string): void {
+  if (typeof document === 'undefined' || !cssColor) return;
+  const head = document.head || document.getElementsByTagName('head')[0];
+  if (!head) return;
+
+  // Prefer a single unconditional theme-color (iOS reads this; media variants are flaky standalone)
+  let meta = head.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    head.appendChild(meta);
+  }
+  meta.setAttribute('content', cssColor);
+}
+
 /**
  * Apply theme colors to the document.
  * Sets full CSS colors (OKLCH / hex / hsl()) on :root for Tailwind `var(--*)` consumption.
@@ -60,6 +75,10 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   }
 
   root.style.setProperty('--radius', colors.radius);
+
+  // Keep browser chrome in sync. theme-color coexists with black-translucent — it
+  // does not paint the iOS status-bar slab, sizing the shell with dvh does.
+  syncThemeColorMeta(toCssVarValue(colors.background) || (isDark ? '#000000' : '#ffffff'));
 
   const head = document.head || document.getElementsByTagName('head')[0];
   const existingFontLinks = head.querySelectorAll('link[data-theme-font], style[data-theme-font]');

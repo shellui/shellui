@@ -38,12 +38,14 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🐛 Bug Fixes
 
+- **Mobile / iOS fullscreen height:** layout shells, overlays, alerts, and login use CSS `--shellui-app-height` (`100dvh`) / `--shellui-overlay-max-height` instead of leftover `h-screen` / `min-h-svh` / raw viewport hacks. Bottom sheets pad the home indicator; login and access-pending use `.shellui-safe-pad`. No JS `data-shellui-display-mode` or measured height overrides — standalone uses `@media (display-mode: standalone)`. Iframe apps should still size to `100%` of the iframe (not `100vh`) and pad their own chrome.
 - **Mobile drawers:** `openDrawer` with `left` / `right` / `top` now presents as a bottom sheet below 768px (same chrome as mobile `openModal`). Horizontal freeform sizes such as `60vw` map to the default sheet height instead of an unusable side panel.
 - **Drawer drag handle:** remove the stacked Vaul default pill + custom `after:` bar so only one themed handle shows.
 - **Alert dialogs (mobile):** OK / confirm / delete / cancel dialogs are geometrically centered (modal center = screen center) with edge spacing and safe-area-aware width/max-height; height hugs content.
 - **Mobile openModal sheets:** dynamic-sizing modals always use full viewport width; only height follows content reports.
 - **Safe areas (iPhone):** cookie consent, alert dialogs, sidebar sheet/footer, mobile titlebar, toasts, and upload toaster respect `env(safe-area-inset-*)` (requires `viewport-fit=cover`).
 - **Sidebar / app-bar iframe fill:** shell uses `h-dvh` and no bottom safe-area padding around the outlet so the iframe reaches the screen edge (safe insets stay inside app content).
+- **iOS home-screen status bar:** the shell is a fixed `#root` sized by CSS `--shellui-app-height: 100dvh` (no JS height measurement). Safe-area env() is padding only: titlebars fold the top inset into the header background, the mobile sidebar sheet clears the notch, footers clear the home indicator. Overlay max heights use `--shellui-overlay-max-height`; overlay iframes fill their chrome with `height: 100%`. Standalone installs pin `<body>` via `@media (display-mode: standalone)`.
 - **CLI / core Tailwind resolve:** declare `tailwindcss` on `@shellui/cli` and `@shellui/core` so `@import "tailwindcss"` in core CSS resolves under pnpm’s isolated `node_modules` (`shellui build` no longer ENOENT).
 - **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
 - **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.

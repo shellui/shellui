@@ -396,7 +396,7 @@ export function ResponsiveModal({
         className={cn(
           'gap-0 p-0 overflow-hidden flex flex-col',
           isSheet
-            ? 'left-0 right-0 top-auto bottom-0 max-w-none w-full translate-x-0 translate-y-0 rounded-t-xl rounded-b-none border-x-0 border-b-0'
+            ? 'left-0 right-0 top-auto bottom-0 max-w-none w-full translate-x-0 translate-y-0 rounded-t-xl rounded-b-none border-x-0 border-b-0 pb-[var(--shellui-safe-area-bottom)]'
             : cn('rounded-lg', hasCustomGeometry && 'translate-x-0 translate-y-0 max-w-none'),
           className,
         )}

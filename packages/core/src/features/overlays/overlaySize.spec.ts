@@ -52,7 +52,9 @@ describe('overlaySize', () => {
   });
 
   it('resolves drawer presets by direction', () => {
-    expect(resolveDrawerSize({ size: 'sm' }, 'bottom').drawerSize).toBe('40dvh');
+    expect(resolveDrawerSize({ size: 'sm' }, 'bottom').drawerSize).toBe(
+      'calc(var(--shellui-overlay-max-height) * 0.4)',
+    );
     expect(resolveDrawerSize({ size: 'sm' }, 'left').drawerSize).toBe('20rem');
   });
 
@@ -69,10 +71,10 @@ describe('overlaySize', () => {
     expect(desktop.drawerSize).toBe('60vw');
 
     const mobile = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', true);
-    expect(mobile.drawerSize).toBe('80dvh');
+    expect(mobile.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.8)');
 
     const preset = resolveDrawerSizeForViewport({ size: 'md' }, 'right', true);
-    expect(preset.drawerSize).toBe('55dvh');
+    expect(preset.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.55)');
 
     const fromTop = resolveDrawerSizeForViewport({ size: '60vh' }, 'top', true);
     expect(fromTop.drawerSize).toBe('60vh');

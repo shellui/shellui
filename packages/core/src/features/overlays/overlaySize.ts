@@ -6,6 +6,14 @@ import type {
   DrawerPosition,
 } from '@shellui/sdk';
 
+/** CSS max-height for overlays — matches --shellui-overlay-max-height in index.css. */
+const OVERLAY_MAX_HEIGHT_CSS = 'var(--shellui-overlay-max-height)';
+
+/** Fraction of overlay max height — avoids raw dvh which disagrees with iOS standalone measure. */
+function overlayHeightFrac(fraction: number): string {
+  return `calc(${OVERLAY_MAX_HEIGHT_CSS} * ${fraction})`;
+}
+
 const PRESETS = new Set<string>(['sm', 'md', 'lg', 'xl', 'full', 'content']);
 
 /**
@@ -38,48 +46,49 @@ export function toCssLength(value: string | number | undefined): string | undefi
 
 /** Dialog (desktop/tablet modal) preset → class + inline style hints.
  * Width uses `calc(100vw - …)` gutters so tablets never edge-to-edge;
- * `max-w-*` still caps size on large desktops. */
+ * `max-w-*` still caps size on large desktops.
+ * Heights derive from `--shellui-overlay-max-height` (not raw dvh). */
 const DIALOG_PRESET: Record<
   OverlaySizePreset,
   { className: string; style?: CSSProperties; contentSized?: boolean }
 > = {
   sm: {
     className:
-      'max-w-sm w-[min(24rem,calc(100vw-3rem))] h-[min(50dvh,24rem)] max-h-[min(70dvh,28rem)] rounded-lg',
+      'max-w-sm w-[min(24rem,calc(100vw-3rem))] h-[min(calc(var(--shellui-overlay-max-height)*0.5),24rem)] max-h-[min(calc(var(--shellui-overlay-max-height)*0.7),28rem)] rounded-lg',
   },
   md: {
     className:
-      'max-w-lg w-[min(32rem,calc(100vw-4rem))] h-[min(60dvh,32rem)] max-h-[min(75dvh,36rem)] rounded-lg',
+      'max-w-lg w-[min(32rem,calc(100vw-4rem))] h-[min(calc(var(--shellui-overlay-max-height)*0.6),32rem)] max-h-[min(calc(var(--shellui-overlay-max-height)*0.75),36rem)] rounded-lg',
   },
   lg: {
     // Wider than the 768px mobile breakpoint so iframe apps keep desktop UI
     className:
-      'max-w-4xl w-[min(56rem,calc(100vw-5rem))] h-[min(80dvh,42.5rem)] max-h-[min(80dvh,42.5rem)] rounded-lg',
+      'max-w-4xl w-[min(56rem,calc(100vw-5rem))] h-[min(calc(var(--shellui-overlay-max-height)*0.8),42.5rem)] max-h-[min(calc(var(--shellui-overlay-max-height)*0.8),42.5rem)] rounded-lg',
   },
   xl: {
     className:
-      'max-w-6xl w-[min(72rem,calc(100vw-5rem))] h-[min(85dvh,50rem)] max-h-[min(85dvh,50rem)] rounded-lg',
+      'max-w-6xl w-[min(72rem,calc(100vw-5rem))] h-[min(calc(var(--shellui-overlay-max-height)*0.85),50rem)] max-h-[min(calc(var(--shellui-overlay-max-height)*0.85),50rem)] rounded-lg',
   },
   full: {
     className:
-      'max-w-[calc(100vw-2.5rem)] w-[calc(100vw-2.5rem)] h-[calc(100dvh-2.5rem)] max-h-[calc(100dvh-2.5rem)] rounded-lg',
+      'max-w-[calc(100vw-2.5rem)] w-[calc(100vw-2.5rem)] h-[var(--shellui-overlay-max-height)] max-h-[var(--shellui-overlay-max-height)] rounded-lg',
   },
   content: {
     // Width comes from SHELLUI_OVERLAY_SIZE; max-w only caps. Avoid forcing 56rem
     // (that caused reflow: narrow measure → tall report → wide chrome → shorter report).
     className: 'max-w-4xl w-max rounded-lg',
-    style: { height: 'auto', width: 'auto', maxHeight: 'min(90dvh, 100dvh - 2.5rem)' },
+    style: { height: 'auto', width: 'auto', maxHeight: OVERLAY_MAX_HEIGHT_CSS },
     contentSized: true,
   },
 };
 
 /** Drawer primary dimension presets (height for top/bottom, width for left/right). */
 const DRAWER_PRESET_VERTICAL: Record<OverlaySizePreset, string> = {
-  sm: '40dvh',
-  md: '55dvh',
-  lg: '75dvh',
-  xl: '90dvh',
-  full: '100dvh',
+  sm: overlayHeightFrac(0.4),
+  md: overlayHeightFrac(0.55),
+  lg: overlayHeightFrac(0.75),
+  xl: overlayHeightFrac(0.9),
+  full: OVERLAY_MAX_HEIGHT_CSS,
   content: 'auto',
 };
 
@@ -91,6 +100,8 @@ const DRAWER_PRESET_HORIZONTAL: Record<OverlaySizePreset, string> = {
   full: '100%',
   content: 'auto',
 };
+
+const DEFAULT_VERTICAL_DRAWER = overlayHeightFrac(0.8);
 
 export interface ResolvedOverlaySize {
   className: string;
@@ -113,7 +124,7 @@ function applyExplicitDimensions(
   if (width) next.width = width;
   if (height) next.height = height;
   if (maxWidth) next.maxWidth = `min(${maxWidth}, 100vw)`;
-  if (maxHeight) next.maxHeight = `min(${maxHeight}, 100dvh)`;
+  if (maxHeight) next.maxHeight = `min(${maxHeight}, ${OVERLAY_MAX_HEIGHT_CSS})`;
   return next;
 }
 
@@ -139,7 +150,7 @@ export function resolveDialogSize(options?: OverlayOpenOptions | null): Resolved
   };
   if (freeform) {
     style.height = freeform;
-    style.maxHeight = `min(${freeform}, 100dvh)`;
+    style.maxHeight = `min(${freeform}, ${OVERLAY_MAX_HEIGHT_CSS})`;
   }
   style = applyExplicitDimensions(style, options ?? {});
 
@@ -164,7 +175,7 @@ export function resolveEffectiveDrawerPosition(
 
 /**
  * Resolve drawer sizing from open options + direction.
- * Default: 80dvh / 80vw (previous behavior).
+ * Default: 80% of overlay max / 80vw (previous 80dvh / 80vw behavior).
  */
 export function resolveDrawerSize(
   options?: OverlayOpenOptions | null,
@@ -177,11 +188,11 @@ export function resolveDrawerSize(
 
   let drawerSize: string;
   if (!size) {
-    drawerSize = isVertical ? '80dvh' : '80vw';
+    drawerSize = isVertical ? DEFAULT_VERTICAL_DRAWER : '80vw';
   } else if (isOverlaySizePreset(size)) {
     drawerSize = isVertical ? DRAWER_PRESET_VERTICAL[size] : DRAWER_PRESET_HORIZONTAL[size];
   } else {
-    drawerSize = toCssLength(size) ?? (isVertical ? '80dvh' : '80vw');
+    drawerSize = toCssLength(size) ?? (isVertical ? DEFAULT_VERTICAL_DRAWER : '80vw');
   }
 
   let style: CSSProperties = {
@@ -201,7 +212,7 @@ export function resolveDrawerSize(
   if (contentSized) {
     drawerSize = 'auto';
     if (isVertical) {
-      style.maxHeight = style.maxHeight ?? 'min(90dvh, 100dvh)';
+      style.maxHeight = style.maxHeight ?? OVERLAY_MAX_HEIGHT_CSS;
       style.height = style.height ?? 'auto';
     } else {
       style.maxWidth = style.maxWidth ?? 'min(90vw, 100%)';
