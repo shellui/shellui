@@ -112,7 +112,7 @@ AlertDialogMedia.displayName = 'AlertDialogMedia';
 const AlertDialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex w-full min-w-full flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
+      'flex w-full min-w-full flex-col-reverse max-sm:gap-2 sm:flex-row sm:justify-end sm:space-x-2',
       '-mb-6 mt-2 border-t border-border bg-muted/50 px-6 py-3 rounded-b-xl sm:rounded-b-lg',
       '[&_button]:h-8 [&_button]:text-xs [&_button]:px-3',
       'group-data-[size=sm]:flex-row group-data-[size=sm]:gap-2',

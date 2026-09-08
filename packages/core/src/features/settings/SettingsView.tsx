@@ -344,7 +344,14 @@ export const SettingsView = () => {
               </Button>
               <h1 className="text-lg font-semibold">{selectedItem?.name}</h1>
             </header>
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+            <div
+              className={cn(
+                'flex flex-1 flex-col overflow-hidden',
+                selectedItem?.path?.startsWith('app-')
+                  ? 'min-h-0'
+                  : 'gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]',
+              )}
+            >
               <Routes>
                 <Route
                   index
