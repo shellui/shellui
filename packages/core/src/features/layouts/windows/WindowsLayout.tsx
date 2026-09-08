@@ -33,6 +33,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
+import { useIsMobile } from '../../../hooks/use-mobile';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -88,13 +89,51 @@ const DEFAULT_WIDTH = 720;
 const DEFAULT_HEIGHT = 480;
 const TASKBAR_HEIGHT = 48;
 
-function getMaximizedBounds(): WindowState['bounds'] {
+type WindowBounds = WindowState['bounds'];
+
+function getDesktopSize(): { width: number; height: number } {
+  if (typeof window === 'undefined') return { width: 800, height: 600 };
   return {
-    x: 0,
-    y: 0,
-    w: typeof window !== 'undefined' ? window.innerWidth : 800,
-    h: typeof window !== 'undefined' ? window.innerHeight - TASKBAR_HEIGHT : 600,
+    width: window.innerWidth,
+    height: Math.max(0, window.innerHeight - TASKBAR_HEIGHT),
   };
+}
+
+function getMaximizedBounds(): WindowBounds {
+  const { width, height } = getDesktopSize();
+  return { x: 0, y: 0, w: width, h: height };
+}
+
+/** Keep a window fully inside the desktop (never larger than the viewport). */
+function clampBounds(bounds: WindowBounds): WindowBounds {
+  const { width: maxW, height: maxH } = getDesktopSize();
+  const minW = Math.min(MIN_WIDTH, maxW);
+  const minH = Math.min(MIN_HEIGHT, maxH);
+  const w = Math.min(Math.max(bounds.w, minW), maxW);
+  const h = Math.min(Math.max(bounds.h, minH), maxH);
+  const x = Math.min(Math.max(0, bounds.x), Math.max(0, maxW - w));
+  const y = Math.min(Math.max(0, bounds.y), Math.max(0, maxH - h));
+  return { x, y, w, h };
+}
+
+/** Default open size: cascade on desktop; fill the screen on phones / small viewports. */
+function getDefaultOpenBounds(cascadeIndex: number): WindowBounds {
+  const desktop = getDesktopSize();
+  if (desktop.width < DEFAULT_WIDTH || desktop.height < DEFAULT_HEIGHT) {
+    return getMaximizedBounds();
+  }
+  const cascade = cascadeIndex * 24;
+  return clampBounds({
+    x: 60 + cascade,
+    y: 60 + cascade,
+    w: DEFAULT_WIDTH,
+    h: DEFAULT_HEIGHT,
+  });
+}
+
+function isCompactDesktop(): boolean {
+  const { width, height } = getDesktopSize();
+  return width < DEFAULT_WIDTH || height < DEFAULT_HEIGHT;
 }
 
 function buildFinalUrl(baseUrl: string, path: string, pathname: string): string {
@@ -128,14 +167,44 @@ function AppWindow({
   zIndex: number;
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
-  const [bounds, setBounds] = useState(win.bounds);
-  const [isMaximized, setIsMaximized] = useState(false);
-  const boundsBeforeMaximizeRef = useRef<WindowState['bounds']>(bounds);
+  const [isMaximized, setIsMaximized] = useState(() => {
+    if (isCompactDesktop()) return true;
+    const desktop = getDesktopSize();
+    return (
+      win.bounds.x === 0 &&
+      win.bounds.y === 0 &&
+      win.bounds.w >= desktop.width &&
+      win.bounds.h >= desktop.height
+    );
+  });
+  const [bounds, setBounds] = useState(() => {
+    if (isCompactDesktop()) return getMaximizedBounds();
+    const desktop = getDesktopSize();
+    if (
+      win.bounds.x === 0 &&
+      win.bounds.y === 0 &&
+      win.bounds.w >= desktop.width &&
+      win.bounds.h >= desktop.height
+    ) {
+      return getMaximizedBounds();
+    }
+    return clampBounds(win.bounds);
+  });
+  const boundsBeforeMaximizeRef = useRef<WindowBounds>(
+    isCompactDesktop()
+      ? clampBounds({
+          x: 8,
+          y: 8,
+          w: Math.min(DEFAULT_WIDTH, Math.max(0, getDesktopSize().width - 16)),
+          h: Math.min(DEFAULT_HEIGHT, Math.max(0, getDesktopSize().height - 16)),
+        })
+      : clampBounds(win.bounds),
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     startX: number;
     startY: number;
-    startBounds: WindowState['bounds'];
+    startBounds: WindowBounds;
     lastDx: number;
     lastDy: number;
   } | null>(null);
@@ -143,10 +212,10 @@ function AppWindow({
     edge: string;
     startX: number;
     startY: number;
-    startBounds: WindowState['bounds'];
+    startBounds: WindowBounds;
   } | null>(null);
   const resizeRafRef = useRef<number | null>(null);
-  const pendingResizeBoundsRef = useRef<WindowState['bounds'] | null>(null);
+  const pendingResizeBoundsRef = useRef<WindowBounds | null>(null);
 
   // Use a ref for onBoundsChange to avoid it in effect deps (prevents infinite render loop).
   // The parent creates a new callback reference on every render (inline arrow), so including
@@ -159,10 +228,15 @@ function AppWindow({
     onBoundsChangeRef.current(bounds);
   }, [bounds]);
 
-  // When maximized, keep filling the viewport on window resize
+  // Keep windows inside the viewport on browser / orientation resize
   useEffect(() => {
-    if (!isMaximized) return;
-    const onResize = () => setBounds(getMaximizedBounds());
+    const onResize = () => {
+      if (isMaximized) {
+        setBounds(getMaximizedBounds());
+        return;
+      }
+      setBounds((prev) => clampBounds(prev));
+    };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [isMaximized]);
@@ -195,11 +269,11 @@ function AppWindow({
           el.style.transform = '';
           el.style.willChange = '';
         }
-        const finalBounds: WindowState['bounds'] = {
+        const finalBounds = clampBounds({
           ...d.startBounds,
-          x: Math.max(0, d.startBounds.x + d.lastDx),
-          y: Math.max(0, d.startBounds.y + d.lastDy),
-        };
+          x: d.startBounds.x + d.lastDx,
+          y: d.startBounds.y + d.lastDy,
+        });
         setBounds(finalBounds);
         dragRef.current = null;
       }
@@ -233,7 +307,7 @@ function AppWindow({
 
   const handleMaximizeToggle = useCallback(() => {
     if (isMaximized) {
-      setBounds(boundsBeforeMaximizeRef.current);
+      setBounds(clampBounds(boundsBeforeMaximizeRef.current));
       setIsMaximized(false);
     } else {
       boundsBeforeMaximizeRef.current = { ...bounds };
@@ -247,20 +321,31 @@ function AppWindow({
     const { edge, startX, startY, startBounds } = resizeRef.current;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    const next: WindowState['bounds'] = { ...startBounds };
-    if (edge.includes('e')) next.w = Math.max(MIN_WIDTH, startBounds.w + dx);
+    const desktop = getDesktopSize();
+    const minW = Math.min(MIN_WIDTH, desktop.width);
+    const minH = Math.min(MIN_HEIGHT, desktop.height);
+    const next: WindowBounds = { ...startBounds };
+    if (edge.includes('e')) {
+      next.w = Math.min(Math.max(minW, startBounds.w + dx), desktop.width - startBounds.x);
+    }
     if (edge.includes('w')) {
-      const newW = Math.max(MIN_WIDTH, startBounds.w - dx);
-      next.x = startBounds.x + startBounds.w - newW;
-      next.w = newW;
+      const newW = Math.max(minW, startBounds.w - dx);
+      const maxW = startBounds.x + startBounds.w;
+      const w = Math.min(newW, maxW);
+      next.x = startBounds.x + startBounds.w - w;
+      next.w = w;
     }
-    if (edge.includes('s')) next.h = Math.max(MIN_HEIGHT, startBounds.h + dy);
+    if (edge.includes('s')) {
+      next.h = Math.min(Math.max(minH, startBounds.h + dy), desktop.height - startBounds.y);
+    }
     if (edge.includes('n')) {
-      const newH = Math.max(MIN_HEIGHT, startBounds.h - dy);
-      next.y = startBounds.y + startBounds.h - newH;
-      next.h = newH;
+      const newH = Math.max(minH, startBounds.h - dy);
+      const maxH = startBounds.y + startBounds.h;
+      const h = Math.min(newH, maxH);
+      next.y = startBounds.y + startBounds.h - h;
+      next.h = h;
     }
-    pendingResizeBoundsRef.current = next;
+    pendingResizeBoundsRef.current = clampBounds(next);
     if (resizeRafRef.current === null) {
       resizeRafRef.current = requestAnimationFrame(() => {
         const pending = pendingResizeBoundsRef.current;
@@ -533,6 +618,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
+  const isMobile = useIsMobile();
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -549,6 +635,11 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
       navigationItems: flattenNavigationItems(authAwareNavigation),
     };
   }, [authAwareNavigation]);
+  /** On mobile, end (taskbar) links live in the start menu — the bar is too narrow. */
+  const menuSections = useMemo((): StartSection[] => {
+    if (!isMobile || endNavItems.length === 0) return startSections;
+    return [...startSections, { type: 'items', items: endNavItems }];
+  }, [startSections, endNavItems, isMobile]);
 
   const [windows, setWindows] = useState<WindowState[]>([]);
   /** Id of the window that is on top (first plan). Clicking a window or its taskbar button sets this. */
@@ -579,12 +670,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
       const icon = item.icon ?? faviconUrl ?? null;
       const id = genId();
-      const bounds = {
-        x: 60 + windows.length * 24,
-        y: 60 + windows.length * 24,
-        w: DEFAULT_WIDTH,
-        h: DEFAULT_HEIGHT,
-      };
+      const bounds = getDefaultOpenBounds(windows.length);
       setWindows((prev) => [
         ...prev,
         {
@@ -733,7 +819,6 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         style={{
           height: TASKBAR_HEIGHT,
           zIndex: Z_INDEX.WINDOWS_TASKBAR,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         {/* Start button */}
@@ -787,24 +872,35 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
               </div>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-3">
-                {startSections.length === 0 ? (
+                {menuSections.length === 0 ? (
                   <p className="px-2 py-6 text-center text-sm text-muted-foreground">
                     No applications available
                   </p>
                 ) : (
-                  startSections.map((section, sectionIndex) => {
+                  menuSections.map((section, sectionIndex) => {
                     const categoryLabel =
                       section.type === 'group'
                         ? resolveNavLabel(section.title, currentLanguage)
                         : null;
+                    const isEndSection =
+                      isMobile &&
+                      endNavItems.length > 0 &&
+                      sectionIndex === menuSections.length - 1 &&
+                      section.type === 'items' &&
+                      section.items === endNavItems;
                     return (
                       <section
                         key={
                           section.type === 'group'
                             ? `group-${categoryLabel}-${sectionIndex}`
-                            : `items-${sectionIndex}`
+                            : isEndSection
+                              ? 'end-items'
+                              : `items-${sectionIndex}`
                         }
-                        className="space-y-1.5"
+                        className={cn(
+                          'space-y-1.5',
+                          isEndSection && 'border-t border-border/60 pt-3',
+                        )}
                       >
                         {categoryLabel ? (
                           <h2
@@ -922,8 +1018,8 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
           })}
         </div>
 
-        {/* End navigation items (right side of taskbar) */}
-        {endNavItems.length > 0 && (
+        {/* End navigation items (right side of taskbar) — desktop only; mobile uses start menu */}
+        {!isMobile && endNavItems.length > 0 && (
           <div className="flex items-center gap-0.5 shrink-0 border-l border-sidebar-border pl-2 ml-1">
             {endNavItems.map((item) => {
               const label =
