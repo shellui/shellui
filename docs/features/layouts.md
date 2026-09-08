@@ -136,7 +136,7 @@ const config: ShellUIConfig = {
 
 ## App Bar Layout
 
-The app bar layout uses a compact **38px** top bar for navigation. Start destinations open from a single control (9-square icon + current page name). The menu is a wrapping flex row of icon tiles; navigation groups sit in a muted panel with the category title floating on the top edge. End links stay icon-only with a tooltip.
+The app bar layout uses a compact top bar (~52px) for navigation. Start destinations are shown as a horizontal row of text links with icons. Navigation groups appear as a label with a caret; clicking opens a dropdown of child links (the category looks selected when one of its children is active). When the bar runs out of space, remaining items move into a **More** menu. End links stay icon-only with a tooltip.
 
 ```typescript
 const config: ShellUIConfig = {
@@ -165,9 +165,10 @@ const config: ShellUIConfig = {
 
 **Features:**
 
-- **Top bar**: Fixed 38px chrome (aligned with Tauri overlay titlebar height)
-- **Launcher**: 9-square + current page name opens a wrapping flex row of fixed icon tiles (panel shrink-wraps to content, max 50vw); groups use a muted background with a floating category title; scrolls when tall.
-- **Current item**: Page name next to the launcher icon in one clickable control; then Back/Forward on Tauri
+- **Top bar**: ~52px chrome with larger click targets (aligned under the Tauri safe-area / traffic-light band)
+- **Start links**: Horizontal icon + label links; groups use a caret dropdown
+- **Active state**: Matching link is highlighted; a category is highlighted when any child link is active
+- **More**: Overflow menu at the end of the row on narrow viewports
 - **End links**: Icon-only (or first letter) with tooltip on hover
 - **Desktop app (Tauri):** traffic-light inset, Back/Forward controls, and window-drag regions on the bar
 
@@ -175,7 +176,7 @@ const config: ShellUIConfig = {
 
 - Apps that prefer a top bar over a sidebar
 - Dense UIs where vertical space is limited
-- Many start destinations behind a compact launcher; utility links as icons on the right
+- Primary destinations as top links; utility links as icons on the right
 
 ## Changing Layouts
 
@@ -240,10 +241,12 @@ function MyComponent() {
 
 ### App Bar Layout
 
-- **Top bar**: Fixed max height of 42px; optional `appIcon` before the launcher, then start links stay compact
+- **Top bar**: ~52px chrome with icon + label start links and larger hit targets
+- **Categories**: Group title + caret opens a dropdown; category is selected when a child is active
+- **More**: Overflow menu holds links that do not fit
 - **Start vs end**: Use `position: 'end'` on navigation items to show them as icon-only buttons on the right
 - **Tooltips**: End links show full name on hover via native tooltip
-- **Icons**: Set `icon` on items for end bar; omit for first-letter fallback
+- **Icons**: Set `icon` on start and end items; omit for first-letter fallback
 
 ## Complete Example
 
@@ -278,13 +281,13 @@ export default config;
    - Use `sidebar` for most web applications
    - Use `fullscreen` for embedded or kiosk applications
    - Use `windows` only for testing or proof-of-concept (experimental; not recommended for production)
-   - Use `app-bar` for a compact 38px top bar with a 9-square launcher and icon-only end links
+   - Use `app-bar` for a compact top bar with horizontal start links (and icon-only end links)
 
 2. **Navigation items**: All layouts support the same navigation features, but visibility varies:
    - Sidebar: All items visible in sidebar
    - Fullscreen: No visible navigation, but routes work
    - Windows: Items accessible via start menu
-   - App bar: Start items in a select; end items as icons with tooltips
+   - App bar: Start items as horizontal links / category dropdowns (with More overflow); end items as icons with tooltips
 
 3. **Mobile considerations**: Sidebar layout opens as a sheet from the top header on small screens
 

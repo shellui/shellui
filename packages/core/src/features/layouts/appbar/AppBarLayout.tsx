@@ -1,4 +1,12 @@
-import { useMemo, useEffect, useState, Fragment, type ReactNode } from 'react';
+import {
+  useMemo,
+  useEffect,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation, Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -25,6 +33,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
 import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
@@ -37,11 +47,10 @@ import { NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import {
-  DESKTOP_TITLEBAR_HEIGHT_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
-} from '../chrome/constants';
+import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+
+/** App-bar chrome height — taller than the 38px Tauri titlebar strip for easier hit targets. */
+const APP_BAR_HEIGHT_PX = 52;
 
 interface AppBarLayoutProps {
   title?: string;
@@ -53,6 +62,14 @@ interface AppBarLayoutProps {
 type NavSection =
   | { type: 'group'; title: LocalizedString; items: NavigationItem[] }
   | { type: 'items'; items: NavigationItem[] };
+
+type NavEntry =
+  | { type: 'link'; key: string; item: NavigationItem }
+  | { type: 'category'; key: string; title: LocalizedString; items: NavigationItem[] };
+
+const NAV_GAP_PX = 4;
+/** Reserved width guess before More is measured; kept close to the real control. */
+const MORE_FALLBACK_PX = 72;
 
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
@@ -66,151 +83,14 @@ function isNavigationGroup(item: NavigationItem | NavigationGroup): item is Navi
   return 'title' in item && 'items' in item;
 }
 
-function AppsGridIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden
-    >
-      <rect
-        x="3"
-        y="3"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="9.75"
-        y="3"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="16.5"
-        y="3"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="3"
-        y="9.75"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="9.75"
-        y="9.75"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="16.5"
-        y="9.75"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="3"
-        y="16.5"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="9.75"
-        y="16.5"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-      <rect
-        x="16.5"
-        y="16.5"
-        width="4.5"
-        height="4.5"
-        rx="0.75"
-      />
-    </svg>
-  );
-}
-
 function navItemIsActive(item: NavigationItem, activePathPrefix: string | null): boolean {
   const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
   const isExternal = item.openIn === 'external';
   return !isOverlay && !isExternal && getNavPathPrefix(item) === activePathPrefix;
 }
 
-function itemIconSrc(item: NavigationItem): string | null {
-  if (item.icon) return item.icon;
-  if (item.openIn === 'external') return getExternalFaviconUrl(item.url);
-  return null;
-}
-
-function NavItemGlyph({
-  item,
-  label,
-  className,
-  /** Rounded muted tile with a compact icon inside (app-bar launcher). */
-  tiled = false,
-}: {
-  item: NavigationItem;
-  label: string;
-  className?: string;
-  tiled?: boolean;
-}) {
-  const iconSrc = itemIconSrc(item);
-  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
-
-  if (tiled) {
-    return (
-      <span
-        className={cn(
-          'flex size-10 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-sm ring-1 ring-border/60',
-          className,
-        )}
-        aria-hidden
-      >
-        {iconSrc ? (
-          <NavIcon
-            src={iconSrc}
-            className="size-5"
-          />
-        ) : (
-          <span className="text-xs font-semibold">{firstLetter}</span>
-        )}
-      </span>
-    );
-  }
-
-  if (iconSrc) {
-    return (
-      <NavIcon
-        src={iconSrc}
-        className={cn('size-4', className)}
-      />
-    );
-  }
-  return (
-    <span
-      className={cn(
-        'flex size-5 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold text-muted-foreground',
-        className,
-      )}
-      aria-hidden
-    >
-      {firstLetter}
-    </span>
-  );
+function categoryIsActive(items: NavigationItem[], activePathPrefix: string | null): boolean {
+  return items.some((item) => navItemIsActive(item, activePathPrefix));
 }
 
 function navigateToItem(item: NavigationItem): void {
@@ -224,9 +104,7 @@ function navigateToItem(item: NavigationItem): void {
   }
   if (item.openIn === 'external') {
     window.open(item.url, '_blank', 'noopener,noreferrer');
-    return;
   }
-  // Link navigation handled by callers that render <Link>
 }
 
 function buildStartSections(start: (NavigationItem | NavigationGroup)[]): NavSection[] {
@@ -269,112 +147,351 @@ function buildStartSections(start: (NavigationItem | NavigationGroup)[]): NavSec
   return sections;
 }
 
-/** Resolve selected item + localized category for the current path. */
-function resolveSelectedDisplay(
-  sections: NavSection[],
-  activePathPrefix: string | null,
-  lang: string,
-): { item: NavigationItem; label: string; category: string | null } | null {
-  for (const section of sections) {
-    const category = section.type === 'group' ? resolveLocalizedLabel(section.title, lang) : null;
-    for (const item of section.items) {
-      if (navItemIsActive(item, activePathPrefix)) {
-        return {
-          item,
-          label: resolveNavLabel(item.label, lang) || item.path || 'Home',
-          category,
-        };
-      }
+function sectionsToEntries(sections: NavSection[]): NavEntry[] {
+  const entries: NavEntry[] = [];
+  sections.forEach((section, sectionIndex) => {
+    if (section.type === 'group') {
+      entries.push({
+        type: 'category',
+        key: `category-${sectionIndex}`,
+        title: section.title,
+        items: section.items,
+      });
+      return;
     }
-  }
-  for (const section of sections) {
-    const category = section.type === 'group' ? resolveLocalizedLabel(section.title, lang) : null;
-    for (const item of section.items) {
-      if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
-        continue;
-      }
-      return {
+    section.items.forEach((item, itemIndex) => {
+      entries.push({
+        type: 'link',
+        key: `link-${sectionIndex}-${item.path}-${itemIndex}`,
         item,
-        label: resolveNavLabel(item.label, lang) || item.path || 'Home',
-        category,
-      };
-    }
-  }
-  const firstSection = sections[0];
-  const first = firstSection?.items[0];
-  if (!first) return null;
-  return {
-    item: first,
-    label: resolveNavLabel(first.label, lang) || first.path || 'Home',
-    category:
-      firstSection.type === 'group' ? resolveLocalizedLabel(firstSection.title, lang) : null,
-  };
+      });
+    });
+  });
+  return entries;
 }
 
-function AppBarLauncherTile({
+function CaretDownIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function itemIconSrc(item: NavigationItem): string | null {
+  if (item.icon) return item.icon;
+  if (item.openIn === 'external') return getExternalFaviconUrl(item.url);
+  return null;
+}
+
+/** Compact icon (or first-letter fallback) for start-nav links. */
+function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }) {
+  const iconSrc = itemIconSrc(item);
+  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
+  if (iconSrc) {
+    return (
+      <span
+        className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted/60"
+        aria-hidden
+      >
+        <NavIcon
+          src={iconSrc}
+          className="size-5"
+        />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-semibold leading-none text-muted-foreground"
+      aria-hidden
+    >
+      {firstLetter}
+    </span>
+  );
+}
+
+const navTriggerClass = (active: boolean) =>
+  cn(
+    'inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 pr-3 text-sm font-medium transition-colors',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    active
+      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+      : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+  );
+
+/** Text link / action used in the bar (not inside a dropdown). */
+function AppBarNavLink({
   item,
   label,
   activePathPrefix,
-  onActivate,
+}: {
+  item: NavigationItem;
+  label: string;
+  activePathPrefix: string | null;
+}) {
+  const isActive = navItemIsActive(item, activePathPrefix);
+  const pathPrefix = getNavPathPrefix(item);
+  const className = navTriggerClass(isActive);
+  const content = (
+    <>
+      <AppBarItemIcon
+        item={item}
+        label={label}
+      />
+      <span className="truncate">{label}</span>
+    </>
+  );
+
+  if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => navigateToItem(item)}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      to={pathPrefix}
+      className={className}
+    >
+      {content}
+    </Link>
+  );
+}
+
+function AppBarNavMenuItem({
+  item,
+  label,
+  activePathPrefix,
   onNavigate,
 }: {
   item: NavigationItem;
   label: string;
   activePathPrefix: string | null;
-  onActivate: (item: NavigationItem) => void;
-  onNavigate: () => void;
+  onNavigate?: () => void;
 }) {
   const isActive = navItemIsActive(item, activePathPrefix);
   const pathPrefix = getNavPathPrefix(item);
-  const tileClass =
-    'group flex w-[7rem] shrink-0 flex-col items-center justify-start rounded-md px-1 pt-4 pb-2 text-center focus:bg-transparent data-[highlighted]:bg-transparent';
-  const body = (
-    <span
-      className={cn(
-        'flex aspect-square w-full flex-col items-center justify-center gap-1.5 overflow-hidden rounded-md p-2 transition-colors',
-        'hover:bg-accent/80 hover:text-accent-foreground',
-        'group-data-[highlighted]:bg-accent/80 group-data-[highlighted]:text-accent-foreground',
-        isActive && 'bg-accent/80 text-accent-foreground',
-      )}
-    >
-      <NavItemGlyph
+  const itemClass = cn('gap-2 text-sm', isActive && 'bg-accent text-accent-foreground');
+  const content = (
+    <>
+      <AppBarItemIcon
         item={item}
         label={label}
-        tiled
       />
-      <span className="line-clamp-2 w-full text-center text-[11px] leading-snug font-medium break-words">
-        {label}
-      </span>
-    </span>
+      <span className="truncate">{label}</span>
+    </>
   );
 
   if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
     return (
       <DropdownMenuItem
-        className={tileClass}
-        onSelect={() => onActivate(item)}
+        className={itemClass}
+        onSelect={() => {
+          navigateToItem(item);
+          onNavigate?.();
+        }}
       >
-        {body}
+        {content}
       </DropdownMenuItem>
     );
   }
 
   return (
     <DropdownMenuItem
-      className={tileClass}
+      className={itemClass}
       asChild
     >
       <Link
         to={pathPrefix}
         onClick={onNavigate}
       >
-        {body}
+        {content}
       </Link>
     </DropdownMenuItem>
   );
 }
 
-function AppBarLauncher({
+function AppBarNavCategory({
+  title,
+  items,
+  activePathPrefix,
+  currentLanguage,
+}: {
+  title: LocalizedString;
+  items: NavigationItem[];
+  activePathPrefix: string | null;
+  currentLanguage: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const label = resolveLocalizedLabel(title, currentLanguage);
+  const active = categoryIsActive(items, activePathPrefix);
+
+  return (
+    <DropdownMenu
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(navTriggerClass(active), 'hover:bg-sidebar-accent/50')}
+          aria-expanded={open}
+        >
+          <span className="truncate">{label}</span>
+          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+      >
+        {items.map((item, index) => (
+          <AppBarNavMenuItem
+            key={`${item.path}-${item.url}-${index}`}
+            item={item}
+            label={resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
+            activePathPrefix={activePathPrefix}
+            onNavigate={() => setOpen(false)}
+          />
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AppBarNavMore({
+  entries,
+  activePathPrefix,
+  currentLanguage,
+}: {
+  entries: NavEntry[];
+  activePathPrefix: string | null;
+  currentLanguage: string;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const moreActive = entries.some((entry) =>
+    entry.type === 'link'
+      ? navItemIsActive(entry.item, activePathPrefix)
+      : categoryIsActive(entry.items, activePathPrefix),
+  );
+
+  return (
+    <DropdownMenu
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(navTriggerClass(moreActive), 'hover:bg-sidebar-accent/50')}
+          aria-label={t('desktopChrome.more')}
+          aria-expanded={open}
+        >
+          <span>{t('desktopChrome.more')}</span>
+          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="start"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        className="min-w-[12rem]"
+      >
+        {entries.map((entry, entryIndex) => {
+          if (entry.type === 'link') {
+            return (
+              <AppBarNavMenuItem
+                key={entry.key}
+                item={entry.item}
+                label={
+                  resolveNavLabel(entry.item.label, currentLanguage) || entry.item.path || 'Home'
+                }
+                activePathPrefix={activePathPrefix}
+                onNavigate={() => setOpen(false)}
+              />
+            );
+          }
+
+          const categoryLabel = resolveLocalizedLabel(entry.title, currentLanguage);
+          return (
+            <div key={entry.key}>
+              {entryIndex > 0 ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                {categoryLabel}
+              </DropdownMenuLabel>
+              {entry.items.map((item, index) => (
+                <AppBarNavMenuItem
+                  key={`${item.path}-${item.url}-${index}`}
+                  item={item}
+                  label={resolveNavLabel(item.label, currentLanguage) || item.path || 'Home'}
+                  activePathPrefix={activePathPrefix}
+                  onNavigate={() => setOpen(false)}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Lightweight width probe — same padding/type as real triggers, no dropdown portals. */
+function AppBarNavMeasureChip({
+  label,
+  withCaret,
+  withIcon,
+  measureRef,
+}: {
+  label: string;
+  withCaret?: boolean;
+  withIcon?: boolean;
+  measureRef: (node: HTMLElement | null) => void;
+}) {
+  return (
+    <span
+      ref={measureRef}
+      className={cn(navTriggerClass(false), 'whitespace-nowrap')}
+    >
+      {withIcon ? (
+        <span
+          className="size-7 shrink-0"
+          aria-hidden
+        />
+      ) : null}
+      {label}
+      {withCaret ? <CaretDownIcon className="size-3.5 shrink-0 opacity-70" /> : null}
+    </span>
+  );
+}
+
+/**
+ * Horizontal start nav: inline links, category caret dropdowns, and a More overflow menu.
+ */
+function AppBarNav({
   sections,
   activePathPrefix,
   currentLanguage,
@@ -384,87 +501,141 @@ function AppBarLauncher({
   currentLanguage: string;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const selected = useMemo(
-    () => resolveSelectedDisplay(sections, activePathPrefix, currentLanguage),
-    [sections, activePathPrefix, currentLanguage],
-  );
+  const entries = useMemo(() => sectionsToEntries(sections), [sections]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const measureRefs = useRef<(HTMLElement | null)[]>([]);
+  const moreMeasureRef = useRef<HTMLElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(entries.length);
 
-  const activateItem = (item: NavigationItem) => {
-    if (item.openIn === 'modal' || item.openIn === 'drawer' || item.openIn === 'external') {
-      navigateToItem(item);
-      setOpen(false);
+  const setMeasureRef = useCallback((index: number, node: HTMLElement | null) => {
+    measureRefs.current[index] = node;
+  }, []);
+
+  const recompute = useCallback(() => {
+    const container = containerRef.current;
+    if (!container || entries.length === 0) {
+      setVisibleCount(entries.length);
+      return;
     }
-  };
 
-  const renderTile = (item: NavigationItem, index: number) => {
-    const label = resolveNavLabel(item.label, currentLanguage) || item.path || 'Home';
-    return (
-      <AppBarLauncherTile
-        key={`${item.path}-${item.url}-${index}`}
-        item={item}
-        label={label}
-        activePathPrefix={activePathPrefix}
-        onActivate={activateItem}
-        onNavigate={() => setOpen(false)}
-      />
-    );
-  };
+    const available = container.clientWidth;
+    const widths = entries.map((_, i) => measureRefs.current[i]?.offsetWidth ?? 0);
+    if (widths.some((w) => w <= 0)) return;
+
+    const moreWidth = moreMeasureRef.current?.offsetWidth || MORE_FALLBACK_PX;
+
+    let total = 0;
+    for (let i = 0; i < widths.length; i++) {
+      total += widths[i] + (i > 0 ? NAV_GAP_PX : 0);
+    }
+    if (total <= available) {
+      setVisibleCount(entries.length);
+      return;
+    }
+
+    let used = 0;
+    let count = 0;
+    for (let i = 0; i < widths.length; i++) {
+      const gap = count > 0 ? NAV_GAP_PX : 0;
+      const nextUsed = used + gap + widths[i];
+      const needed = nextUsed + NAV_GAP_PX + moreWidth;
+      if (needed > available) break;
+      used = nextUsed;
+      count += 1;
+    }
+    setVisibleCount(count);
+  }, [entries]);
+
+  useLayoutEffect(() => {
+    measureRefs.current = measureRefs.current.slice(0, entries.length);
+    recompute();
+  }, [entries, currentLanguage, t, recompute]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => recompute());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [recompute]);
+
+  const visible = entries.slice(0, visibleCount);
+  const overflow = entries.slice(visibleCount);
+  const showMore = overflow.length > 0;
+  const moreLabel = t('desktopChrome.more');
 
   return (
     <div
       data-shellui-no-drag=""
-      className="flex min-w-0 items-center"
+      ref={containerRef}
+      className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
     >
-      <DropdownMenu
-        open={open}
-        onOpenChange={setOpen}
+      {/* Off-screen width probes (no DropdownMenu — avoids portal noise). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-0 -z-10 flex items-center gap-0.5 whitespace-nowrap opacity-0"
       >
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 max-w-[16rem] shrink gap-2 px-2 text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-            aria-label={t('desktopChrome.openNavigation')}
-          >
-            <AppsGridIcon className="size-4 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 truncate text-xs font-medium">
-              {selected?.label ?? t('desktopChrome.navigation')}
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          onCloseAutoFocus={(event) => event.preventDefault()}
-          className="w-max min-w-0 max-w-[calc(100vw-1.5rem)] max-h-[min(32rem,var(--radix-dropdown-menu-content-available-height,32rem))] overflow-y-auto p-3 pt-4 md:max-w-[50vw]"
-        >
-          <div className="flex flex-row flex-wrap items-start gap-x-2 gap-y-4">
-            {sections.map((section, sectionIndex) => {
-              if (section.type === 'group') {
-                const categoryLabel = resolveLocalizedLabel(section.title, currentLanguage);
-                return (
-                  <div
-                    key={`group-${categoryLabel}-${sectionIndex}`}
-                    className="relative inline-flex max-w-full flex-row flex-wrap gap-1.5 rounded-xl bg-muted/50 px-1.5 py-0 ring-1 ring-border/50"
-                  >
-                    <span className="pointer-events-none absolute left-2.5 top-0 z-10 -translate-y-1/2 rounded-sm bg-popover px-1.5 text-[10px] font-medium leading-none text-muted-foreground">
-                      {categoryLabel}
-                    </span>
-                    {section.items.map((item, index) => renderTile(item, index))}
-                  </div>
-                );
-              }
+        {entries.map((entry, index) => {
+          if (entry.type === 'link') {
+            return (
+              <AppBarNavMeasureChip
+                key={`measure-${entry.key}`}
+                label={
+                  resolveNavLabel(entry.item.label, currentLanguage) || entry.item.path || 'Home'
+                }
+                withIcon
+                measureRef={(node) => setMeasureRef(index, node)}
+              />
+            );
+          }
+          return (
+            <AppBarNavMeasureChip
+              key={`measure-${entry.key}`}
+              label={resolveLocalizedLabel(entry.title, currentLanguage)}
+              withCaret
+              measureRef={(node) => setMeasureRef(index, node)}
+            />
+          );
+        })}
+        <AppBarNavMeasureChip
+          label={moreLabel}
+          withCaret
+          measureRef={(node) => {
+            moreMeasureRef.current = node;
+          }}
+        />
+      </div>
 
-              return (
-                <Fragment key={`items-${sectionIndex}`}>
-                  {section.items.map((item, index) => renderTile(item, index))}
-                </Fragment>
-              );
-            })}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {visible.map((entry) => {
+        if (entry.type === 'link') {
+          return (
+            <AppBarNavLink
+              key={entry.key}
+              item={entry.item}
+              label={
+                resolveNavLabel(entry.item.label, currentLanguage) || entry.item.path || 'Home'
+              }
+              activePathPrefix={activePathPrefix}
+            />
+          );
+        }
+        return (
+          <AppBarNavCategory
+            key={entry.key}
+            title={entry.title}
+            items={entry.items}
+            activePathPrefix={activePathPrefix}
+            currentLanguage={currentLanguage}
+          />
+        );
+      })}
+      {showMore ? (
+        <AppBarNavMore
+          entries={overflow}
+          activePathPrefix={activePathPrefix}
+          currentLanguage={currentLanguage}
+        />
+      ) : null}
     </div>
   );
 }
@@ -503,7 +674,7 @@ function TopBarEndItem({
   );
 
   const buttonClass = cn(
-    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'flex size-9 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
       : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -624,7 +795,7 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
         className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
         style={{
           paddingTop: 'var(--shellui-safe-area-top)',
-          height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
+          height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
           paddingLeft: chromeInset ?? 12,
           paddingRight: 8,
         }}
@@ -636,24 +807,33 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
             appIcon={appIcon}
             title={title}
             data-shellui-no-drag=""
-            className="mr-1"
+            className="mr-1 shrink-0"
             imgClassName="app-bar-app-icon"
           />
         ) : null}
 
         {hasStartNav ? (
-          <AppBarLauncher
+          <AppBarNav
             sections={startSections}
             activePathPrefix={activePathPrefix}
             currentLanguage={currentLanguage}
           />
-        ) : null}
+        ) : (
+          <div className="min-w-0 flex-1" />
+        )}
 
-        {isTauriEnv ? <DesktopHistoryButtons /> : null}
+        {isTauriEnv ? (
+          <div
+            data-shellui-no-drag=""
+            className="shrink-0"
+          >
+            <DesktopHistoryButtons />
+          </div>
+        ) : null}
 
         <div
           aria-hidden
-          className="min-h-full min-w-[8px] flex-1"
+          className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
           {...(trafficLights || overlay
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
             : {})}
