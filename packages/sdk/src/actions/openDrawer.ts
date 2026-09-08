@@ -4,6 +4,7 @@ import type { OpenDrawerOptions } from '../types.js';
  * Opens the drawer with optional url, position, size, and dismiss options.
  * Size may be a preset (`sm` | `md` | `lg` | `xl` | `full` | `content`) or a CSS length
  * (height for top/bottom, width for left/right).
+ * On mobile, every position presents as a bottom sheet (side widths map to default height).
  * If inside an iframe, sends a message to the parent to open the drawer.
  */
 export function openDrawer(options?: OpenDrawerOptions): void {

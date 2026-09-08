@@ -2,7 +2,7 @@
 
 Shellui supports opening content in modal overlays and side drawer panels, providing flexible ways to display content without navigating away from the current page.
 
-Modals and drawers share one options surface: size presets, optional close chrome, and dismiss behavior. On mobile, `openModal` presents as a bottom drawer automatically.
+Modals and drawers share one options surface: size presets, optional close chrome, and dismiss behavior. On mobile, both `openModal` and `openDrawer` present as a bottom drawer automatically.
 
 ## Modals
 
@@ -74,7 +74,7 @@ Resizing the window between desktop and mobile while a modal is open keeps the s
 
 ## Drawers
 
-Drawers slide in from the edges of the screen, perfect for sidebars, panels, or secondary content. Side drawers remain available on all viewports (`left` / `right` / `top` / `bottom`).
+Drawers slide in from the edges of the screen, perfect for sidebars, panels, or secondary content. On desktop and tablet, `left` / `right` / `top` / `bottom` open from that edge. On viewports below 768px, every drawer presents as a **bottom sheet** (same chrome as mobile `openModal`) so side panels stay usable on phones.
 
 ### Opening Drawers via Navigation
 
@@ -135,13 +135,15 @@ shellui.openDrawer({
 
 When `dismissible` is true (default), drawers show a theme-aware drag handle and support swipe-to-dismiss:
 
-- **Bottom**: drag down
-- **Top**: drag up
-- **Left / right**: drag toward the dismiss edge
+- **Bottom** (and all drawers on mobile): drag down
+- **Top** (desktop/tablet): drag up
+- **Left / right** (desktop/tablet): drag toward the dismiss edge
 
 Set `showDragHandle: false` to hide the bar while keeping other dismiss paths, or `dismissible: false` to disable swipe / Escape.
 
 On desktop, drawers are **resizable** by default from the free edge (width for left/right, height for top/bottom). They are not movable. Pass `resizable: false` to lock size. Resize is disabled on mobile.
+
+**Mobile sizing:** left/right freeform widths (e.g. `"60vw"`, `"400px"`) map to the default bottom-sheet height (`80dvh`). Presets (`sm`–`xl`) and top/bottom heights keep their vertical meaning.
 
 ### Closing Drawers
 
@@ -239,7 +241,7 @@ Overlay chrome uses existing design tokens (`--background`, `--border`, `--muted
 ### Drawers
 
 - Sidebars, filters, persistent panels
-- Use an explicit `position` when you need a side edge on mobile too
+- On mobile, side/top drawers automatically use the bottom sheet — no special `position` needed for phones
 
 ## Best Practices
 

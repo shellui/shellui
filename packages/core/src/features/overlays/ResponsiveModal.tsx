@@ -468,7 +468,7 @@ export function ResponsiveModal({
           >
             {/* Centered tall hit target only — rest of the strip is click-through */}
             <div
-              className="pointer-events-auto relative h-11 w-28 shrink-0 cursor-grab touch-none active:cursor-grabbing after:absolute after:left-1/2 after:top-1 after:h-1 after:w-10 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/40 after:content-['']"
+              className="pointer-events-auto relative h-11 w-28 shrink-0 cursor-grab touch-none active:cursor-grabbing after:absolute after:left-1/2 after:top-1.5 after:h-[3px] after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/70 after:content-['']"
               onPointerDown={handleSheetPointerDown}
               onPointerMove={handleSheetPointerMove}
               onPointerUp={handleSheetPointerUp}

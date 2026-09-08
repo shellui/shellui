@@ -169,7 +169,7 @@ shellui.closeModal();
 
 ### Drawers
 
-Open URLs in drawer panels:
+Open URLs in drawer panels (desktop/tablet: requested edge; mobile: bottom sheet):
 
 ```javascript
 shellui.openDrawer({
@@ -189,6 +189,8 @@ shellui.openDrawer({
 
 shellui.closeDrawer();
 ```
+
+On viewports below 768px, every `position` presents as a bottom sheet (same as mobile `openModal`).
 
 ### Overlay auto-size (iframe → shell)
 
@@ -515,7 +517,7 @@ shellui.dialog(dialogOptions);
 - `shellui.dialog(options)` - Show alert dialog
 - `shellui.openModal(url | options)` - Open modal (responsive dialog / mobile drawer)
 - `shellui.closeModal()` - Close modal
-- `shellui.openDrawer(options)` - Open drawer
+- `shellui.openDrawer(options)` - Open drawer (responsive edge / mobile bottom sheet)
 - `shellui.closeDrawer()` - Close drawer
 - `shellui.overlay.reportSize({ height })` - Report iframe content size
 - `shellui.overlay.autoSize({ observe })` - Observe and report content size

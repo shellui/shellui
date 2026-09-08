@@ -152,6 +152,17 @@ export function resolveDialogSize(options?: OverlayOpenOptions | null): Resolved
 }
 
 /**
+ * On viewports below the mobile breakpoint, every drawer edge presents as a
+ * bottom sheet (same chrome as mobile `openModal`).
+ */
+export function resolveEffectiveDrawerPosition(
+  position: DrawerPosition = 'right',
+  isMobile = false,
+): DrawerPosition {
+  return isMobile ? 'bottom' : position;
+}
+
+/**
  * Resolve drawer sizing from open options + direction.
  * Default: 80dvh / 80vw (previous behavior).
  */
@@ -204,6 +215,39 @@ export function resolveDrawerSize(
     contentSized,
     drawerSize: drawerSize === 'auto' ? null : drawerSize,
   };
+}
+
+/**
+ * Resolve drawer size for the active viewport.
+ * Mobile always uses bottom-sheet chrome; horizontal freeform widths (`60vw`,
+ * `400px`, explicit `width`) are dropped so they are not applied as height.
+ */
+export function resolveDrawerSizeForViewport(
+  options?: OverlayOpenOptions | null,
+  position: DrawerPosition = 'right',
+  isMobile = false,
+): ResolvedOverlaySize {
+  const effective = resolveEffectiveDrawerPosition(position, isMobile);
+  if (!isMobile) {
+    return resolveDrawerSize(options, effective);
+  }
+
+  // left/right → bottom: width-oriented sizes must not become sheet height
+  if (position === 'left' || position === 'right') {
+    const dynamic = isDynamicSizing(options);
+    const size = options?.size;
+    const dropFreeformWidth =
+      !dynamic && size !== undefined && size !== null && !isOverlaySizePreset(size);
+    const nextOptions: OverlayOpenOptions | null | undefined = dropFreeformWidth
+      ? { ...options, size: undefined, width: undefined }
+      : options?.width !== undefined
+        ? { ...options, width: undefined }
+        : options;
+    return resolveDrawerSize(nextOptions, 'bottom');
+  }
+
+  // top → bottom (or already bottom): keep height-oriented size
+  return resolveDrawerSize(options, 'bottom');
 }
 
 export type OverlayDismissOptions = {

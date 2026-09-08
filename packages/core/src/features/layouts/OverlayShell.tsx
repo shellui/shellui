@@ -20,6 +20,8 @@ import {
   resolveDialogSize,
   resolveDismissOptions,
   resolveDrawerSize,
+  resolveDrawerSizeForViewport,
+  resolveEffectiveDrawerPosition,
   isDynamicSizing,
 } from '../overlays/overlaySize';
 import { useOverlayReportedSize } from '../overlays/useOverlayReportedSize';
@@ -182,9 +184,11 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const drawerDynamic = isDynamicSizing(drawerOptions);
 
   const dialogSize = useMemo(() => resolveDialogSize(modalOptions), [modalOptions]);
+  // Mobile: every drawer edge uses bottom-sheet chrome (consistent with openModal).
+  const effectiveDrawerPosition = resolveEffectiveDrawerPosition(drawerPosition, isMobile);
   const drawerSize = useMemo(
-    () => resolveDrawerSize(drawerOptions, drawerPosition),
-    [drawerOptions, drawerPosition],
+    () => resolveDrawerSizeForViewport(drawerOptions, drawerPosition, isMobile),
+    [drawerOptions, drawerPosition, isMobile],
   );
   // Sheet presentation for mobile — bottom drawer sizing from the same modal options.
   const sheetSize = useMemo(
@@ -199,6 +203,8 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
       ),
     [modalOptions, modalDynamic],
   );
+  const drawerIsVertical =
+    effectiveDrawerPosition === 'top' || effectiveDrawerPosition === 'bottom';
 
   const modalContentSized = dialogSize.contentSized || sheetSize.contentSized || modalDynamic;
   const {
@@ -322,7 +328,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     ...drawerSize.style,
     ...(drawerSize.contentSized || drawerDynamic ? { transition: 'none' } : {}),
     ...(drawerPending
-      ? drawerPosition === 'top' || drawerPosition === 'bottom'
+      ? drawerIsVertical
         ? {
             height: drawerPendingPx,
             maxHeight: drawerPendingPx,
@@ -334,7 +340,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             minWidth: drawerPendingPx,
           }
       : drawerReported
-        ? drawerPosition === 'top' || drawerPosition === 'bottom'
+        ? drawerIsVertical
           ? {
               height: drawerReported.height,
               maxHeight: `min(${drawerReported.height}px, 92dvh)`,
@@ -404,19 +410,22 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         )}
       </ResponsiveModal>
 
-      {/* Explicit drawers (any edge) — separate from responsive modal */}
+      {/*
+        Explicit drawers — on mobile every edge presents as a bottom sheet
+        (same chrome as openModal sheet), so side panels stay usable.
+      */}
       <Drawer
         open={isDrawerOpen}
         onOpenChange={handleDrawerOpenChange}
-        direction={drawerPosition}
+        direction={effectiveDrawerPosition}
         dismissible={drawerDismiss.dismissible}
       >
         <DrawerContent
-          direction={drawerPosition}
+          direction={effectiveDrawerPosition}
           open={isDrawerOpen}
           size={
             drawerReported
-              ? drawerPosition === 'top' || drawerPosition === 'bottom'
+              ? drawerIsVertical
                 ? `${drawerReported.height}px`
                 : `${drawerReported.width ?? drawerReported.height}px`
               : drawerPending
@@ -448,18 +457,14 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
                 navItem={drawerNavItem}
                 contentSized={drawerSize.contentSized}
                 reportedHeight={
-                  drawerPosition === 'top' || drawerPosition === 'bottom'
+                  drawerIsVertical
                     ? (drawerReported?.height ?? null)
                     : (drawerReported?.width ?? drawerReported?.height ?? null)
                 }
-                reportedWidth={
-                  drawerPosition === 'left' || drawerPosition === 'right'
-                    ? (drawerReported?.width ?? null)
-                    : null
-                }
+                reportedWidth={!drawerIsVertical ? (drawerReported?.width ?? null) : null}
                 allowInnerScroll={drawerSizeFallback || drawerWasClamped}
                 pending={drawerPending}
-                pendingFill={drawerPosition === 'left' || drawerPosition === 'right'}
+                pendingFill={!drawerIsVertical}
                 pendingChrome="bar"
               />
             </>

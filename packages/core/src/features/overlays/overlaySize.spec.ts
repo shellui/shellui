@@ -6,6 +6,8 @@ import {
   resolveDialogSize,
   resolveDismissOptions,
   resolveDrawerSize,
+  resolveDrawerSizeForViewport,
+  resolveEffectiveDrawerPosition,
   toCssLength,
 } from './overlaySize';
 
@@ -52,6 +54,28 @@ describe('overlaySize', () => {
   it('resolves drawer presets by direction', () => {
     expect(resolveDrawerSize({ size: 'sm' }, 'bottom').drawerSize).toBe('40dvh');
     expect(resolveDrawerSize({ size: 'sm' }, 'left').drawerSize).toBe('20rem');
+  });
+
+  it('forces bottom position on mobile', () => {
+    expect(resolveEffectiveDrawerPosition('right', true)).toBe('bottom');
+    expect(resolveEffectiveDrawerPosition('left', true)).toBe('bottom');
+    expect(resolveEffectiveDrawerPosition('top', true)).toBe('bottom');
+    expect(resolveEffectiveDrawerPosition('bottom', true)).toBe('bottom');
+    expect(resolveEffectiveDrawerPosition('right', false)).toBe('right');
+  });
+
+  it('remaps horizontal freeform size to default height on mobile', () => {
+    const desktop = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', false);
+    expect(desktop.drawerSize).toBe('60vw');
+
+    const mobile = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', true);
+    expect(mobile.drawerSize).toBe('80dvh');
+
+    const preset = resolveDrawerSizeForViewport({ size: 'md' }, 'right', true);
+    expect(preset.drawerSize).toBe('55dvh');
+
+    const fromTop = resolveDrawerSizeForViewport({ size: '60vh' }, 'top', true);
+    expect(fromTop.drawerSize).toBe('60vh');
   });
 
   it('defaults dismiss options', () => {

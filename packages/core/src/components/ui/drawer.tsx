@@ -306,21 +306,21 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
               <div
                 data-drawer-handle-overlay
                 className={cn(
-                  'pointer-events-none absolute inset-x-0 z-20 flex justify-center bg-transparent',
-                  pos === 'bottom' ? 'top-0' : 'bottom-0',
+                  'pointer-events-none absolute inset-x-0 z-20 flex justify-center',
+                  pos === 'bottom' ? 'top-0 pt-1.5' : 'bottom-0 pb-1.5',
                 )}
               >
-                {/* Centered tall hit target only — rest of the strip is click-through (close button, etc.) */}
-                <DrawerHandle
-                  className={cn(
-                    'pointer-events-auto !mt-0 h-11 w-28 shrink-0 rounded-none bg-transparent',
-                    "relative after:absolute after:left-1/2 after:h-1 after:w-10 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/40 after:content-['']",
-                    pos === 'bottom' ? 'after:top-1' : 'after:bottom-1',
-                  )}
-                />
+                {/*
+                  Single visual pill — Vaul Handle already includes a 44px hitarea.
+                  Do not add an after: bar (that stacked on Vaul's default #e2e2e4 chrome).
+                */}
+                <DrawerHandle className="pointer-events-auto !mt-0" />
               </div>
             ) : (
-              <DrawerHandle className={cn('rounded-full', sideHandleClass)} />
+              <DrawerHandle
+                className={cn('rounded-full', sideHandleClass)}
+                style={{ height: '100px', width: '6px' }}
+              />
             ))}
           {showCloseButton && (
             <VaulDrawer.Close
@@ -421,14 +421,22 @@ DrawerDescription.displayName = VaulDrawer.Description.displayName;
 const DrawerHandle = forwardRef<
   ComponentRef<typeof VaulDrawer.Handle>,
   ComponentPropsWithoutRef<typeof VaulDrawer.Handle>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <VaulDrawer.Handle
     ref={ref}
     data-drawer-handle
     className={cn(
-      'mx-auto mt-1.5 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/40',
+      // !important overrides Vaul's injected `background: #e2e2e4` + 5px height
+      'mx-auto mt-1.5 h-[3px] w-8 shrink-0 rounded-full !bg-muted-foreground/70 !opacity-100',
       className,
     )}
+    style={{
+      // Inline wins over Vaul stylesheet `background` / size when utilities lose the race
+      background: 'color-mix(in oklch, var(--muted-foreground) 70%, transparent)',
+      height: '3px',
+      borderRadius: '9999px',
+      ...style,
+    }}
     {...props}
   />
 ));
