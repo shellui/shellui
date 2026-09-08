@@ -303,12 +303,15 @@ export function ResponsiveModal({
     }
   }, []);
 
-  const resetSheetDrag = useCallback(() => {
-    dragStartY.current = null;
-    dragCurrentY.current = 0;
-    setSheetDragOffset(0);
-    setIsSheetDragging(false);
-  }, []);
+  // Fresh open always starts at rest (clears any mid-dismiss translate)
+  useEffect(() => {
+    if (open) {
+      dragStartY.current = null;
+      dragCurrentY.current = 0;
+      setSheetDragOffset(0);
+      setIsSheetDragging(false);
+    }
+  }, [open]);
 
   const handleSheetPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -339,20 +342,29 @@ export function ResponsiveModal({
       const delta = dragCurrentY.current;
       const height = contentRef.current?.offsetHeight ?? window.innerHeight;
       const shouldDismiss = delta >= SWIPE_DISMISS_PX || delta >= height * SWIPE_DISMISS_RATIO;
-      resetSheetDrag();
+
+      dragStartY.current = null;
+      dragCurrentY.current = 0;
+      setIsSheetDragging(false);
+
       if (shouldDismiss && dismissible) {
+        // Keep the dragged translate and continue off-screen — no snap-back before close
+        setSheetDragOffset(Math.max(delta, height));
         onOpenChange(false);
+        return;
       }
+
+      // Not far enough — ease back to rest from the dragged position
+      setSheetDragOffset(0);
     },
-    [dismissible, onOpenChange, resetSheetDrag],
+    [dismissible, onOpenChange],
   );
 
   const canMove = movable && !isSheet;
   const canResize = resizable && !isSheet;
   const hasCustomGeometry = !isSheet && geometry !== null;
 
-  const sheetTransform =
-    isSheet && sheetDragOffset > 0 ? `translateY(${sheetDragOffset}px)` : undefined;
+  const sheetExitTransition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
 
   const geometryStyle: CSSProperties | undefined = hasCustomGeometry
     ? {
@@ -391,10 +403,10 @@ export function ResponsiveModal({
         style={{
           ...style,
           ...geometryStyle,
-          ...(sheetTransform
+          ...(isSheet
             ? {
-                transform: sheetTransform,
-                transition: isSheetDragging ? 'none' : style?.transition,
+                transform: `translateY(${sheetDragOffset}px)`,
+                transition: isSheetDragging ? 'none' : sheetExitTransition,
               }
             : {}),
           ...((isSheetDragging || isWindowInteracting) && { transition: 'none' }),
@@ -460,7 +472,13 @@ export function ResponsiveModal({
               onPointerDown={handleSheetPointerDown}
               onPointerMove={handleSheetPointerMove}
               onPointerUp={handleSheetPointerUp}
-              onPointerCancel={resetSheetDrag}
+              onPointerCancel={() => {
+                // Cancel mid-drag — ease back to rest (not a dismiss)
+                dragStartY.current = null;
+                dragCurrentY.current = 0;
+                setIsSheetDragging(false);
+                setSheetDragOffset(0);
+              }}
             />
           </div>
         )}

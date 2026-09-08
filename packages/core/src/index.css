@@ -468,6 +468,10 @@ html.shellui-theme-switching
 [data-dialog-content][data-presentation][data-state='closed'] {
   animation: responsive-modal-fade-out 0.12s ease-in both;
 }
+/* Sheet swipe-dismiss continues from the dragged translate; keep mounted for the slide */
+[data-dialog-content][data-presentation='sheet'][data-state='closed'] {
+  animation: responsive-modal-fade-out 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
 
 /* Sheet overlay and panel animations (mobile sidebar) */
 @keyframes sheet-overlay-fade-in {
