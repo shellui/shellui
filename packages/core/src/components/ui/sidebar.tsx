@@ -234,7 +234,8 @@ function SidebarProvider({
             } as React.CSSProperties
           }
           className={cn(
-            'group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar',
+            // Prefer dvh so the shell fills the visible phone screen (svh can leave a bottom gap)
+            'group/sidebar-wrapper flex h-full min-h-0 w-full has-data-[variant=inset]:bg-sidebar',
             className,
           )}
           {...props}
@@ -306,7 +307,9 @@ function Sidebar({
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Displays the mobile sidebar.</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          <div className="flex h-full w-full flex-col pt-[env(safe-area-inset-top,0px)] pl-[env(safe-area-inset-left,0px)]">
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -528,7 +531,10 @@ function SidebarFooter({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="sidebar-footer"
       data-sidebar="footer"
-      className={cn('flex flex-col gap-2 p-2', className)}
+      className={cn(
+        'flex flex-col gap-2 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]',
+        className,
+      )}
       {...props}
     />
   );

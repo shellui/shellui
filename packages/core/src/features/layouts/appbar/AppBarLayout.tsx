@@ -618,11 +618,11 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-background">
       <header
-        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
+        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none pt-[env(safe-area-inset-top,0px)]"
         style={{
-          height: DESKTOP_TITLEBAR_HEIGHT_PX,
+          height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + env(safe-area-inset-top, 0px))`,
           paddingLeft: chromeInset ?? 12,
           paddingRight: 8,
         }}
@@ -685,7 +685,7 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
     </div>

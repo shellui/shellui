@@ -391,15 +391,21 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
         <AlertDialogPortal>
           <AlertDialogOverlay style={{ zIndex: Z_INDEX.COOKIE_CONSENT_OVERLAY }} />
           <AlertDialogPrimitive.Content
-            className="fixed w-[calc(100%-32px)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
+            className="fixed w-[calc(100%-2rem)] max-w-[520px] rounded-xl border border-border bg-background text-foreground shadow-lg sm:w-full"
             style={{
-              bottom: 16,
-              left: 16,
+              // Inset from edges + iOS safe-area (home indicator / notch / landscape)
+              bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+              left: 'max(1rem, env(safe-area-inset-left, 0px))',
+              right: 'max(1rem, env(safe-area-inset-right, 0px))',
+              top: 'auto',
+              maxHeight:
+                'calc(100dvh - max(1rem, env(safe-area-inset-top, 0px)) - max(1rem, env(safe-area-inset-bottom, 0px)))',
               zIndex: Z_INDEX.COOKIE_CONSENT_CONTENT,
               backgroundColor: 'var(--background)',
-              top: 'auto',
-              right: 'auto',
               transform: 'none',
+              width:
+                'min(520px, calc(100% - max(1rem, env(safe-area-inset-left, 0px)) - max(1rem, env(safe-area-inset-right, 0px))))',
+              marginRight: 'auto',
             }}
             data-dialog-content
             data-cookie-consent

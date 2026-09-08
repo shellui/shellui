@@ -67,6 +67,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
         // Re-enable pointer events so toasts stay clickable when a Radix modal is open
         // (Radix sets body.style.pointerEvents = 'none' and only the dialog content gets 'auto')
         pointerEvents: 'auto',
+        // Clear iPhone notch / Dynamic Island when toasts are top-center
+        top: 'max(1rem, env(safe-area-inset-top, 0px))',
+      }}
+      offset={{
+        top: 'max(1rem, env(safe-area-inset-top, 0px))',
+        bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        left: 'max(1rem, env(safe-area-inset-left, 0px))',
+        right: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+      mobileOffset={{
+        top: 'max(1rem, env(safe-area-inset-top, 0px))',
+        bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
+        left: 'max(1rem, env(safe-area-inset-left, 0px))',
+        right: 'max(1rem, env(safe-area-inset-right, 0px))',
       }}
       toastOptions={{
         classNames: {

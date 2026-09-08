@@ -279,7 +279,7 @@ export const SettingsView = () => {
             <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
               <h1 className="text-lg font-semibold">{t('title')}</h1>
             </header>
-            <div className="flex flex-1 flex-col p-4 gap-6">
+            <div className="flex flex-1 flex-col gap-6 p-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
               {groupedRoutes.map((group) => (
                 <div
                   key={group.title}
@@ -344,7 +344,7 @@ export const SettingsView = () => {
               </Button>
               <h1 className="text-lg font-semibold">{selectedItem?.name}</h1>
             </header>
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
+            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
               <Routes>
                 <Route
                   index

@@ -339,7 +339,7 @@ export const ContentView = ({
   return (
     <div
       style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}
-      className="bg-background"
+      className="min-h-0 flex-1 bg-background"
     >
       {/* Note: allow-same-origin is required for same-origin iframe content (e.g., Vite dev server, cookies, localStorage).
           While this allows the iframe to remove its own sandboxing, it's acceptable here because the iframe content

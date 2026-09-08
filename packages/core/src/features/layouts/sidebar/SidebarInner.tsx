@@ -155,7 +155,7 @@ export function SidebarInner({
       <SidebarContent className="gap-1">
         <NavigationContent navigation={startNav} />
       </SidebarContent>
-      <SidebarFooter className="gap-0 border-t border-sidebar-border p-0">
+      <SidebarFooter className="gap-0 border-t border-sidebar-border p-0 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
         {(endItems.length > 0 || showAuthButton) && (
           <NavigationContent
             navigation={endItems}

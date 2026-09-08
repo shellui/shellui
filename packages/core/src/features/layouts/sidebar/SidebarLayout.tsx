@@ -106,7 +106,7 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   }, [navigationItem, title, currentLanguage]);
 
   return (
-    <SidebarProvider className="h-svh overflow-hidden">
+    <SidebarProvider className="h-dvh max-h-dvh overflow-hidden">
       <CloseMobileSidebarOnNavigate />
       <CollapsedTitlebarOffset />
       <CollapsedDesktopTitlebar />
@@ -124,11 +124,13 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="relative min-w-0 overflow-hidden">
+      <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <header
-          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
+          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 pt-[env(safe-area-inset-top,0px)] select-none md:hidden"
           style={{
-            height: DESKTOP_TITLEBAR_HEIGHT_PX,
+            // Content row height + notch/Dynamic Island inset
+            minHeight: DESKTOP_TITLEBAR_HEIGHT_PX,
+            height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + env(safe-area-inset-top, 0px))`,
             ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
           }}
           {...(trafficLights
@@ -142,7 +144,11 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
           {isTauriEnv ? <DesktopHistoryButtons /> : null}
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-auto">
+        {/*
+          Fill to the physical bottom — do not pad safe-area here or the iframe
+          looks cut off. In-app content (settings, etc.) owns bottom safe insets.
+        */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <Outlet />
         </div>
       </SidebarInset>

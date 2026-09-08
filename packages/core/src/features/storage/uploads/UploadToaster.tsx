@@ -30,7 +30,7 @@ export function UploadToaster() {
   return (
     <div
       id={UPLOAD_TOAST_ID}
-      className="pointer-events-none fixed right-3 bottom-20 md:right-4 md:bottom-4"
+      className="pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right,0px))] bottom-[max(5rem,calc(5rem+env(safe-area-inset-bottom,0px)))] md:right-[max(1rem,env(safe-area-inset-right,0px))] md:bottom-[max(1rem,env(safe-area-inset-bottom,0px))]"
       style={{ zIndex: Z_INDEX.TOAST }}
     >
       <div className="pointer-events-auto origin-bottom animate-in fade-in-0 slide-in-from-bottom-2 duration-200">

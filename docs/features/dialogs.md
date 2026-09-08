@@ -2,7 +2,7 @@
 
 Shellui provides alert dialogs through the SDK for displaying important messages, confirmations, and user prompts with various button configurations.
 
-On viewports below the `sm` breakpoint, dialogs sit near the **bottom** of the screen with a small inset from the edges (including the safe-area). On larger screens they remain centered.
+On all viewports, dialogs are **geometrically centered** (modal center = screen center) with edge spacing and safe-area insets. Height hugs content.
 
 ## Basic Usage
 
