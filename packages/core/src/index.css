@@ -777,14 +777,69 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   z-index: 46;
 }
 
-/* Collapsed Tauri: full-width 38px titlebar; push sidebar + content below it. */
-html[data-shellui-collapsed-titlebar] [data-slot='sidebar-container'] {
-  top: var(--shellui-titlebar-height, 38px);
-  height: calc(100svh - var(--shellui-titlebar-height, 38px));
+/*
+ * Tablet / desktop: fixed shell sidebar sits below the layout safe-area strip.
+ * Only when the root (non-iframe) sidebar layout advertised the topbar.
+ * Drawer overlay stays full-bleed (topbar dims behind it); panels clear the inset.
+ */
+@media (min-width: 768px) {
+  html[data-shellui-safe-area-topbar]
+    [data-shellui-sidebar-layout]
+    > [data-slot='sidebar-wrapper']
+    > [data-slot='sidebar']
+    > [data-slot='sidebar-container'] {
+    top: var(--shellui-safe-area-top);
+    bottom: auto;
+    height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top));
+  }
+
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='left'],
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='right'] {
+    top: var(--shellui-safe-area-top);
+    height: auto;
+  }
+
+  /* Top drawer: sit below the safe-area band (no extra pt — offset replaces it). */
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='top'] {
+    top: var(--shellui-safe-area-top);
+    padding-top: 0;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+  }
 }
 
-html[data-shellui-collapsed-titlebar] [data-slot='sidebar-inset'] {
+/* Collapsed Tauri: full-width 38px titlebar; push sidebar + content below it. */
+html[data-shellui-collapsed-titlebar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar']
+  > [data-slot='sidebar-container'] {
+  top: var(--shellui-titlebar-height, 38px);
+  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 38px));
+}
+
+html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar']
+  > [data-slot='sidebar-container'] {
+  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 38px));
+  height: calc(
+    var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top) -
+      var(--shellui-titlebar-height, 38px)
+  );
+}
+
+html[data-shellui-collapsed-titlebar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar-inset'] {
   padding-top: var(--shellui-titlebar-height, 38px);
+}
+
+/* Root safe-area topbar: collapsed chrome sits below the status band. */
+html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
+  top: var(--shellui-safe-area-top);
 }
 
 /* Avoid iframe stealing pointer events while dragging the sidebar border. */

@@ -75,6 +75,26 @@ function CollapsedTitlebarOffset() {
   return null;
 }
 
+/** True when this window is the outermost shell (not nested in an iframe). */
+function isShellUiRootWindow(): boolean {
+  return typeof window !== 'undefined' && window.parent === window;
+}
+
+/**
+ * Root sidebar only: advertise the safe-area topbar on <html> so fixed chrome
+ * (sidebar container, drawers) can clear it. Nested iframe shells skip this.
+ */
+function SafeAreaTopbarOffset({ enabled }: { enabled: boolean }) {
+  useEffect(() => {
+    if (!enabled) return;
+    const root = document.documentElement;
+    root.setAttribute('data-shellui-safe-area-topbar', '');
+    return () => root.removeAttribute('data-shellui-safe-area-topbar');
+  }, [enabled]);
+
+  return null;
+}
+
 const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -86,6 +106,8 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   const mobileTrafficInset = trafficLights
     ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
     : undefined;
+  // Nested shell-in-iframe must not repeat the root safe-area top band.
+  const showSafeAreaTopbar = isShellUiRootWindow();
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -121,58 +143,82 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   }, [navigationItem, title, currentLanguage]);
 
   return (
-    <SidebarProvider className="h-full max-h-full overflow-hidden">
-      <CloseMobileSidebarOnNavigate />
-      <CloseMobileSidebarOnOverlay />
-      <CollapsedTitlebarOffset />
-      <CollapsedDesktopTitlebar />
-      <Sidebar
-        collapsible="icon"
-        className="border-sidebar-border"
-      >
-        <SidebarInner
-          startNav={startNav}
-          endItems={endItems}
-          showAuthButton={!hasCustomLoginNav || isAuthenticated}
-          title={title}
-          appIcon={appIcon}
-        />
-        <SidebarRail />
-      </Sidebar>
-
-      <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/*
-          Mobile top chrome: extend the header background into the status-bar band
-          so there is no empty strip. Interactive controls stay below the inset via
-          padding. Overlays are fixed full-screen and still cover this band.
-        */}
-        <header
-          className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
-          style={{
-            paddingTop: 'var(--shellui-safe-area-top)',
-            height: `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
-            ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
-          }}
-          {...(trafficLights
-            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-            : {})}
+    <div
+      data-shellui-sidebar-layout=""
+      className="flex h-full max-h-full flex-col overflow-hidden"
+    >
+      <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
+      {/*
+        Root shell only (not when nested in an iframe): tablet / desktop band for
+        top safe-area, painted with sidebar background. Height is 0 when the inset
+        is 0; overflow clips the border so no stray hairline.
+      */}
+      {showSafeAreaTopbar ? (
+        <div
+          aria-hidden
+          data-slot="sidebar-safe-area-top"
+          className="relative z-0 hidden shrink-0 overflow-hidden md:block"
+          style={{ height: 'var(--shellui-safe-area-top)' }}
         >
-          <SidebarTrigger
-            data-shellui-no-drag=""
-            className="relative size-8 touch-manipulation text-foreground"
-          />
-          {isTauriEnv ? <DesktopHistoryButtons /> : null}
-        </header>
-
-        {/*
-          Fill to the physical bottom — do not pad safe-area here or the iframe
-          looks cut off. In-app content (settings, etc.) owns bottom safe insets.
-        */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <Outlet />
+          <div className="box-border h-full border-b border-sidebar-border bg-sidebar" />
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      ) : null}
+      <SidebarProvider className="min-h-0 flex-1 overflow-hidden">
+        <CloseMobileSidebarOnNavigate />
+        <CloseMobileSidebarOnOverlay />
+        <CollapsedTitlebarOffset />
+        <CollapsedDesktopTitlebar />
+        <Sidebar
+          collapsible="icon"
+          className="border-sidebar-border"
+        >
+          <SidebarInner
+            startNav={startNav}
+            endItems={endItems}
+            showAuthButton={!hasCustomLoginNav || isAuthenticated}
+            title={title}
+            appIcon={appIcon}
+          />
+          <SidebarRail />
+        </Sidebar>
+
+        <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {/*
+            Mobile top chrome: extend the header background into the status-bar band
+            so there is no empty strip. Interactive controls stay below the inset via
+            padding. Overlays are fixed full-screen and still cover this band.
+            Nested iframe shells skip top safe-area — the host already cleared it.
+          */}
+          <header
+            className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
+            style={{
+              paddingTop: showSafeAreaTopbar ? 'var(--shellui-safe-area-top)' : undefined,
+              height: showSafeAreaTopbar
+                ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
+                : DESKTOP_TITLEBAR_HEIGHT_PX,
+              ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
+            }}
+            {...(trafficLights
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
+          >
+            <SidebarTrigger
+              data-shellui-no-drag=""
+              className="relative size-8 touch-manipulation text-foreground"
+            />
+            {isTauriEnv ? <DesktopHistoryButtons /> : null}
+          </header>
+
+          {/*
+            Fill to the physical bottom — do not pad safe-area here or the iframe
+            looks cut off. In-app content (settings, etc.) owns bottom safe insets.
+          */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <Outlet />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 };
 
