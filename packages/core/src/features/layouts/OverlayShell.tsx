@@ -99,7 +99,7 @@ function OverlayIframe({
   if (!contentSized) {
     // Fill drawer chrome so ContentView's top loading bar is visible (not a 0-height flex quirk).
     return (
-      <div className="relative min-h-0 w-full flex-1">
+      <div className="relative h-full min-h-0 w-full flex-1">
         <div className="absolute inset-0 overflow-hidden bg-background">
           <ContentView
             url={url}
@@ -460,7 +460,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           className={drawerSize.className}
           showCloseButton={!drawerPending && drawerDismiss.showCloseButton}
           showDragHandle={
-            !drawerPending && drawerDismiss.showDragHandle && drawerDismiss.dismissible
+            !drawerPending &&
+            drawerIsVertical &&
+            drawerDismiss.showDragHandle &&
+            drawerDismiss.dismissible
           }
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
           resizable={

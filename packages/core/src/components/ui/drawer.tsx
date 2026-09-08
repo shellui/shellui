@@ -28,18 +28,25 @@ const Drawer = ({
   onOpenChange,
   direction = 'right',
   dismissible = true,
+  handleOnly,
   ...props
 }: ComponentProps<typeof VaulDrawer.Root> & {
   direction?: DrawerDirection;
-}) => (
-  <VaulDrawer.Root
-    open={open}
-    onOpenChange={onOpenChange}
-    direction={direction}
-    dismissible={dismissible}
-    {...props}
-  />
-);
+}) => {
+  // Left/right: no Vaul drag handle on large screens — dismiss via × / backdrop / Escape.
+  // handleOnly avoids content-drag swipe fighting the iframe. Top/bottom keep swipe chrome.
+  const isSide = direction === 'left' || direction === 'right';
+  return (
+    <VaulDrawer.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      direction={direction}
+      dismissible={dismissible}
+      handleOnly={handleOnly ?? isSide}
+      {...props}
+    />
+  );
+};
 Drawer.displayName = 'Drawer';
 
 const DrawerTrigger = VaulDrawer.Trigger;
@@ -274,11 +281,6 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
               }
             : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
 
-    const sideHandleClass =
-      pos === 'left'
-        ? 'absolute right-2 top-1/2 z-20 my-0 h-[100px] w-1.5 -translate-y-1/2 rounded-full'
-        : 'absolute left-2 top-1/2 z-20 my-0 h-[100px] w-1.5 -translate-y-1/2 rounded-full';
-
     const resizeHandle = resizeHandleByDirection[pos];
 
     return (
@@ -306,27 +308,22 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
           {...props}
         >
           {children}
-          {showDragHandle &&
-            (pos === 'bottom' || pos === 'top' ? (
-              <div
-                data-drawer-handle-overlay
-                className={cn(
-                  'pointer-events-none absolute inset-x-0 z-20 flex justify-center',
-                  pos === 'bottom' ? 'top-0 pt-1.5' : 'bottom-0 pb-1.5',
-                )}
-              >
-                {/*
-                  Single visual pill — Vaul Handle already includes a 44px hitarea.
-                  Do not add an after: bar (that stacked on Vaul's default #e2e2e4 chrome).
-                */}
-                <DrawerHandle className="pointer-events-auto !mt-0" />
-              </div>
-            ) : (
-              <DrawerHandle
-                className={cn('rounded-full', sideHandleClass)}
-                style={{ height: '100px', width: '6px' }}
-              />
-            ))}
+          {/* Vaul drag handle only for top/bottom sheets — side panels use × / backdrop. */}
+          {showDragHandle && isVertical && (
+            <div
+              data-drawer-handle-overlay
+              className={cn(
+                'pointer-events-none absolute inset-x-0 z-20 flex justify-center',
+                pos === 'bottom' ? 'top-0 pt-1.5' : 'bottom-0 pb-1.5',
+              )}
+            >
+              {/*
+                Single visual pill — Vaul Handle already includes a 44px hitarea.
+                Do not add an after: bar (that stacked on Vaul's default #e2e2e4 chrome).
+              */}
+              <DrawerHandle className="pointer-events-auto !mt-0" />
+            </div>
+          )}
           {showCloseButton && (
             <VaulDrawer.Close
               className="absolute right-4 top-4 z-30 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground cursor-pointer"

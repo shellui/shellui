@@ -133,13 +133,13 @@ shellui.openDrawer({
 
 ### Drawer Gestures
 
-When `dismissible` is true (default), drawers show a theme-aware drag handle and support swipe-to-dismiss:
+When `dismissible` is true (default), **top/bottom** drawers show a theme-aware drag handle and support swipe-to-dismiss:
 
 - **Bottom** (and all drawers on mobile): drag down
 - **Top** (desktop/tablet): drag up
-- **Left / right** (desktop/tablet): drag toward the dismiss edge
+- **Left / right** (desktop/tablet): no Vaul drag handle — dismiss with ×, backdrop, or Escape
 
-Set `showDragHandle: false` to hide the bar while keeping other dismiss paths, or `dismissible: false` to disable swipe / Escape.
+Set `showDragHandle: false` to hide the bar on top/bottom while keeping other dismiss paths, or `dismissible: false` to disable swipe / Escape.
 
 On desktop, drawers are **resizable** by default from the free edge (width for left/right, height for top/bottom). They are not movable. Pass `resizable: false` to lock size. Resize is disabled on mobile.
 
@@ -149,7 +149,7 @@ On desktop, drawers are **resizable** by default from the free edge (width for l
 
 - Overlay close (×) when `showCloseButton` is true
 - Backdrop click when `closeOnOverlayClick` is true
-- Escape / swipe when `dismissible` is true
+- Escape when `dismissible` is true (plus swipe on top/bottom sheets)
 - Programmatically: `shellui.closeDrawer()`
 
 ## Size
