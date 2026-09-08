@@ -350,11 +350,7 @@ html.shellui-theme-switching
   }
 }
 
-/* Dialog / modal overlay and content animations */
-[data-dialog-content] {
-  left: 50%;
-  top: 50%;
-}
+/* Dialog / modal — sheet & custom geometry overrides (base left/top come from component classes) */
 
 /* Responsive openModal: sheet presentation (mobile) — override centered dialog geometry */
 [data-dialog-content][data-presentation='sheet'] {
@@ -453,12 +449,85 @@ html.shellui-theme-switching
   animation: dialog-overlay-fade-out 0.1s ease-in;
 }
 
-/* Default dialog (non-responsive / other Dialog usages) */
-[data-dialog-content][data-state='open']:not([data-presentation]) {
+/* Alert dialogs: content-sized; respect safe-area on all sides (iPhone notch / home indicator) */
+[data-dialog-content][data-alert-dialog] {
+  height: auto;
+  max-height: min(
+    90dvh,
+    calc(
+      100dvh - max(0.75rem, env(safe-area-inset-top, 0px)) -
+        max(0.75rem, env(safe-area-inset-bottom, 0px))
+    )
+  );
+}
+
+@media (max-width: 639px) {
+  [data-dialog-content][data-alert-dialog] {
+    left: max(0.75rem, env(safe-area-inset-left, 0px));
+    right: max(0.75rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Default dialog enter/exit — exclude alert dialogs (scale() would clobber translate centering) */
+[data-dialog-content][data-state='open']:not([data-presentation]):not([data-alert-dialog]) {
   animation: dialog-content-in 0.1s ease-out 0.05s both;
 }
-[data-dialog-content][data-state='closed']:not([data-presentation]) {
+[data-dialog-content][data-state='closed']:not([data-presentation]):not([data-alert-dialog]) {
   animation: dialog-content-out 0.1s ease-in both;
+}
+
+/* Alert dialogs: opacity-only on desktop; slide up on mobile (inset layout, no translateX) */
+@keyframes alert-dialog-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes alert-dialog-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+[data-dialog-content][data-alert-dialog][data-state='open'] {
+  animation: alert-dialog-fade-in 0.15s ease-out both;
+}
+[data-dialog-content][data-alert-dialog][data-state='closed'] {
+  animation: alert-dialog-fade-out 0.12s ease-in both;
+}
+
+@media (max-width: 639px) {
+  @keyframes alert-dialog-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes alert-dialog-slide-out {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+  }
+  [data-dialog-content][data-alert-dialog][data-state='open'] {
+    animation: alert-dialog-slide-in 0.18s ease-out both;
+  }
+  [data-dialog-content][data-alert-dialog][data-state='closed'] {
+    animation: alert-dialog-slide-out 0.14s ease-in both;
+  }
 }
 
 /* openModal ResponsiveModal — same fade for dialog and sheet (stable across resize) */

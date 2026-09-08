@@ -31,12 +31,18 @@ const AlertDialogOverlay = forwardRef<
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 const alertDialogContentVariants = cva(
-  'fixed left-[50%] top-[50%] grid w-full min-w-0 max-w-[calc(100vw-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden sm:rounded-lg',
+  [
+    'fixed grid h-auto min-w-0 gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden',
+    // Mobile: inset from screen edges, honoring iOS safe-area (notch / home indicator)
+    'left-[max(0.75rem,env(safe-area-inset-left,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))] top-auto bottom-[max(0.75rem,env(safe-area-inset-bottom,0px))] w-auto max-w-none translate-x-0 translate-y-0 rounded-xl',
+    // Desktop/tablet: centered
+    'sm:left-1/2 sm:right-auto sm:bottom-auto sm:top-1/2 sm:w-full sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg',
+  ].join(' '),
   {
     variants: {
       size: {
-        default: 'max-w-lg',
-        sm: 'max-w-sm',
+        default: 'sm:max-w-lg',
+        sm: 'sm:max-w-sm',
       },
     },
     defaultVariants: {
@@ -59,6 +65,7 @@ const AlertDialogContent = forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       data-dialog-content
+      data-alert-dialog
       className={cn(alertDialogContentVariants({ size }), 'group', className)}
       data-size={size}
       style={{ zIndex: Z_INDEX.ALERT_DIALOG_CONTENT, ...style }}
@@ -96,7 +103,7 @@ const AlertDialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElemen
   <div
     className={cn(
       'flex w-full min-w-full flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
-      '-mb-6 mt-2 border-t border-border bg-muted/50 px-6 py-3 sm:rounded-b-lg',
+      '-mb-6 mt-2 border-t border-border bg-muted/50 px-6 py-3 rounded-b-xl sm:rounded-b-lg',
       '[&_button]:h-8 [&_button]:text-xs [&_button]:px-3',
       'group-data-[size=sm]:flex-row group-data-[size=sm]:gap-2',
       'group-data-[size=sm]:[&>*:not(:only-child)]:min-w-0 group-data-[size=sm]:[&>*:not(:only-child)]:flex-1',

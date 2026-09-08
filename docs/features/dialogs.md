@@ -2,6 +2,8 @@
 
 Shellui provides alert dialogs through the SDK for displaying important messages, confirmations, and user prompts with various button configurations.
 
+On viewports below the `sm` breakpoint, dialogs sit near the **bottom** of the screen with a small inset from the edges (including the safe-area). On larger screens they remain centered.
+
 ## Basic Usage
 
 Import and use the dialog function from the Shellui SDK:
