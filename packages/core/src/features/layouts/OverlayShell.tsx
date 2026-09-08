@@ -60,6 +60,8 @@ function OverlayIframe({
   pending,
   pendingFill,
   pendingChrome = 'spinner',
+  /** Mobile sheet: measure and lay out at full viewport width (ignore reported width). */
+  forceFullWidth = false,
 }: {
   url: string;
   navItem: NavigationItem;
@@ -74,21 +76,22 @@ function OverlayIframe({
   pendingFill?: boolean;
   /** Modal: centered spinner. Drawer: full-bleed 40px loading bar. */
   pendingChrome?: 'spinner' | 'bar';
+  forceFullWidth?: boolean;
 }) {
   // Content-sized: iframe tracks reported content. While pending, chrome is a square/strip
   // but the iframe lays out at a realistic width (opacity 0) so the first report matches
-  // final wrap — drawers use viewport width; modals use a compact measure width.
+  // final wrap — drawers / mobile sheets use viewport width; desktop modals use compact measure.
   const scroll = allowInnerScroll || !contentSized;
   const modalPendingPx = DYNAMIC_OVERLAY_PENDING_PX;
   const drawerPendingPx = DYNAMIC_DRAWER_PENDING_PX;
-  const useSquarePending = pending && !pendingFill && pendingChrome === 'spinner';
+  const useSquarePending =
+    pending && !pendingFill && pendingChrome === 'spinner' && !forceFullWidth;
   const useDrawerBarPending = pending && pendingChrome === 'bar';
+  const useFullWidthPending = pending && forceFullWidth && pendingChrome === 'spinner';
+  const viewportW =
+    typeof window !== 'undefined' ? window.innerWidth : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
   const measureW =
-    pendingChrome === 'bar'
-      ? typeof window !== 'undefined'
-        ? window.innerWidth
-        : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX
-      : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
+    forceFullWidth || pendingChrome === 'bar' ? viewportW : DYNAMIC_OVERLAY_MEASURE_WIDTH_PX;
 
   if (!contentSized) {
     // Fill drawer chrome so ContentView's top loading bar is visible (not a 0-height flex quirk).
@@ -121,7 +124,7 @@ function OverlayIframe({
     : {
         height: reportedHeight ?? modalPendingPx,
         minHeight: reportedHeight ?? modalPendingPx,
-        width: reportedWidth ?? '100%',
+        width: forceFullWidth ? '100%' : (reportedWidth ?? '100%'),
         overflow: scroll ? 'auto' : 'hidden',
       };
 
@@ -131,11 +134,13 @@ function OverlayIframe({
       style={
         useSquarePending
           ? { width: modalPendingPx, height: modalPendingPx, overflow: 'hidden' }
-          : useDrawerBarPending && !pendingFill
-            ? { width: '100%', height: drawerPendingPx, overflow: 'hidden' }
-            : useDrawerBarPending && pendingFill
-              ? { width: '100%', height: '100%', minHeight: drawerPendingPx, overflow: 'hidden' }
-              : undefined
+          : useFullWidthPending
+            ? { width: '100%', height: modalPendingPx, overflow: 'hidden' }
+            : useDrawerBarPending && !pendingFill
+              ? { width: '100%', height: drawerPendingPx, overflow: 'hidden' }
+              : useDrawerBarPending && pendingFill
+                ? { width: '100%', height: '100%', minHeight: drawerPendingPx, overflow: 'hidden' }
+                : undefined
       }
       aria-busy={pending || undefined}
       aria-live={pending ? 'polite' : undefined}
@@ -274,10 +279,13 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
 
   const modalChromeClassName = modalPending
     ? presentation === 'sheet'
-      ? 'w-full p-0 overflow-hidden flex flex-col'
+      ? 'w-full max-w-none p-0 overflow-hidden flex flex-col'
       : 'rounded-lg p-0 overflow-hidden flex flex-col !w-auto !max-w-none'
     : presentation === 'sheet'
-      ? sheetSize.className
+      ? // Dynamic mobile sheets always fill width; height still follows content reports
+        modalContentSized
+        ? 'w-full max-w-none p-0 overflow-hidden flex flex-col'
+        : sheetSize.className
       : dialogSize.className;
 
   const modalChromeStyle: CSSProperties = {
@@ -286,6 +294,8 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     ...(modalPending
       ? presentation === 'sheet'
         ? {
+            width: '100%',
+            maxWidth: '100%',
             height: pendingPx,
             minHeight: pendingPx,
             maxHeight: pendingPx,
@@ -305,9 +315,9 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
               ? {
                   height: modalReported.height,
                   maxHeight: `min(${modalReported.height}px, 92dvh)`,
-                  ...(modalReported.width
-                    ? { width: modalReported.width, maxWidth: 'min(92vw, 100%)' }
-                    : {}),
+                  // Phone sheets: always full width (dynamic sizing only drives height)
+                  width: '100%',
+                  maxWidth: '100%',
                 }
               : {
                   height: modalReported.height,
@@ -319,8 +329,12 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
               ? {
                   height: sheetSize.drawerSize,
                   maxHeight: `min(${sheetSize.drawerSize}, 100dvh)`,
+                  width: '100%',
+                  maxWidth: '100%',
                 }
-              : {}),
+              : presentation === 'sheet'
+                ? { width: '100%', maxWidth: '100%' }
+                : {}),
         }),
   };
 
@@ -401,9 +415,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             navItem={modalNavItem}
             contentSized={modalContentSized}
             reportedHeight={modalReported?.height ?? null}
-            reportedWidth={modalReported?.width ?? null}
+            reportedWidth={presentation === 'sheet' ? null : (modalReported?.width ?? null)}
             allowInnerScroll={modalSizeFallback || modalWasClamped}
             pending={modalPending}
+            forceFullWidth={presentation === 'sheet'}
           />
         ) : (
           <OverlayUrlError kind="modal" />

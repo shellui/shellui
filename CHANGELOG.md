@@ -41,6 +41,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 - **Mobile drawers:** `openDrawer` with `left` / `right` / `top` now presents as a bottom sheet below 768px (same chrome as mobile `openModal`). Horizontal freeform sizes such as `60vw` map to the default sheet height instead of an unusable side panel.
 - **Drawer drag handle:** remove the stacked Vaul default pill + custom `after:` bar so only one themed handle shows.
 - **Alert dialogs (mobile):** OK / confirm / delete / cancel dialogs sit near the bottom with inset from the screen edges (and safe-area), height hugs content (no half-viewport stretch).
+- **Mobile openModal sheets:** dynamic-sizing modals always use full viewport width; only height follows content reports.
 - **CLI / core Tailwind resolve:** declare `tailwindcss` on `@shellui/cli` and `@shellui/core` so `@import "tailwindcss"` in core CSS resolves under pnpm’s isolated `node_modules` (`shellui build` no longer ENOENT).
 - **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
 - **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
