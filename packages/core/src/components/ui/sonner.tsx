@@ -1,4 +1,5 @@
 import { useEffect, type ComponentProps } from 'react';
+import { createPortal } from 'react-dom';
 import { useSettings } from '../../features/settings/hooks/useSettings';
 import { Toaster as Sonner } from 'sonner';
 import { Z_INDEX } from '../../lib/z-index';
@@ -57,7 +58,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   useToastButtonPointerFix();
 
-  return (
+  // Portal to body so z-index competes with Radix/Vaul overlays (also on body).
+  // Inside #root (position:fixed) the toaster is trapped below portaled modals/drawers.
+  return createPortal(
     <Sonner
       position="top-center"
       theme={settings.appearance.colorScheme as 'light' | 'dark' | 'system'}
@@ -95,7 +98,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
         },
       }}
       {...props}
-    />
+    />,
+    document.body,
   );
 };
 

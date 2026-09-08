@@ -320,6 +320,27 @@ html.shellui-theme-switching
     background-color: color-mix(in oklch, var(--muted) 80%, transparent) !important;
   }
 
+  /* Group cancel + action on the right. Sonner's unlayered CSS sets margin-auto on
+   * every button; !important beats it from @layer base. Target [data-cancel] — the
+   * close control is also a <button>, so :first-of-type is wrong. */
+  [data-sonner-toast][data-styled='true'] [data-button] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  [data-sonner-toast][data-styled='true'] [data-cancel],
+  [data-sonner-toast][data-styled='true']:not(:has([data-cancel])) [data-action] {
+    margin-left: auto !important;
+  }
+
+  [data-sonner-toaster][dir='rtl'] [data-sonner-toast][data-styled='true'] [data-cancel],
+  [data-sonner-toaster][dir='rtl']
+    [data-sonner-toast][data-styled='true']:not(:has([data-cancel]))
+    [data-action] {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+
   /* Success toast icon uses text color (no separate icon color) */
   [data-sonner-toast][data-type='success'] [data-icon],
   [data-sonner-toast][data-type='success'] [data-icon] svg {
