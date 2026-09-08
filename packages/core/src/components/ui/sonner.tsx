@@ -67,20 +67,20 @@ const Toaster = ({ ...props }: ToasterProps) => {
         // Re-enable pointer events so toasts stay clickable when a Radix modal is open
         // (Radix sets body.style.pointerEvents = 'none' and only the dialog content gets 'auto')
         pointerEvents: 'auto',
-        // Clear iPhone notch / Dynamic Island when toasts are top-center
-        top: 'max(1rem, env(safe-area-inset-top, 0px))',
+        // Clear the safe-area topbar / notch, then keep a 1rem gap below it
+        top: 'calc(var(--shellui-safe-area-top, env(safe-area-inset-top, 0px)) + 1rem)',
       }}
       offset={{
-        top: 'max(1rem, env(safe-area-inset-top, 0px))',
-        bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
-        left: 'max(1rem, env(safe-area-inset-left, 0px))',
-        right: 'max(1rem, env(safe-area-inset-right, 0px))',
+        top: 'calc(var(--shellui-safe-area-top, env(safe-area-inset-top, 0px)) + 1rem)',
+        bottom: 'max(1rem, var(--shellui-safe-area-bottom, env(safe-area-inset-bottom, 0px)))',
+        left: 'max(1rem, var(--shellui-safe-area-left, env(safe-area-inset-left, 0px)))',
+        right: 'max(1rem, var(--shellui-safe-area-right, env(safe-area-inset-right, 0px)))',
       }}
       mobileOffset={{
-        top: 'max(1rem, env(safe-area-inset-top, 0px))',
-        bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))',
-        left: 'max(1rem, env(safe-area-inset-left, 0px))',
-        right: 'max(1rem, env(safe-area-inset-right, 0px))',
+        top: 'calc(var(--shellui-safe-area-top, env(safe-area-inset-top, 0px)) + 1rem)',
+        bottom: 'max(1rem, var(--shellui-safe-area-bottom, env(safe-area-inset-bottom, 0px)))',
+        left: 'max(1rem, var(--shellui-safe-area-left, env(safe-area-inset-left, 0px)))',
+        right: 'max(1rem, var(--shellui-safe-area-right, env(safe-area-inset-right, 0px)))',
       }}
       toastOptions={{
         classNames: {
