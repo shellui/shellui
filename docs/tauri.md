@@ -149,9 +149,11 @@ See [Bundle targets](#bundle-targets) for details and other platforms.
 
 Icon setup runs automatically during sync:
 
-1. Copies your icon from `appIcon` or `static/favicon.svg`
-2. Generates platform-specific icons when the source is SVG
+1. Prefers an opaque desktop mark: `static/icon.png`, then `favicon` / `static/favicon.svg` (not the transparent `appIcon` chrome glyph)
+2. Generates platform-specific icons (PNG / ICNS / ICO) via `tauri icon`
 3. Falls back to bundled defaults if no icon is configured
+
+Use a solid-background square for the dock / taskbar. Keep `appIcon` as the mono mark for sidebar / app-bar chrome.
 
 ## Project layout
 

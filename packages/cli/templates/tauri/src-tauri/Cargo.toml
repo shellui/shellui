@@ -1,5 +1,5 @@
 [package]
-name = "shellui-app"
+name = "Shellui"
 version = "0.1.0"
 description = "Shellui desktop app"
 authors = ["Shellui"]

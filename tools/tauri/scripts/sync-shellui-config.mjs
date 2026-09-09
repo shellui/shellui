@@ -119,11 +119,19 @@ if (config) {
   }
 }
 
-// Copy app icon: config appIcon, or static/favicon.svg
-const iconPath = config?.appIcon
-  ? path.join(rootDir, config.appIcon.replace(/^\//, ''))
-  : path.join(staticDir, 'favicon.svg');
-if (fs.existsSync(iconPath)) {
+// Prefer opaque desktop mark (static/icon.png / favicon) over transparent appIcon chrome glyph.
+const iconCandidates = [
+  path.join(staticDir, 'icon.png'),
+  config?.favicon
+    ? path.join(rootDir, String(config.favicon).replace(/^\//, ''))
+    : null,
+  path.join(staticDir, 'favicon.svg'),
+  config?.appIcon
+    ? path.join(rootDir, String(config.appIcon).replace(/^\//, ''))
+    : null,
+].filter(Boolean);
+const iconPath = iconCandidates.find((p) => fs.existsSync(p));
+if (iconPath) {
   if (!fs.existsSync(iconsDir)) {
     fs.mkdirSync(iconsDir, { recursive: true });
   }
@@ -133,36 +141,32 @@ if (fs.existsSync(iconPath)) {
   fs.copyFileSync(iconPath, destPath);
 
   tauriConf.bundle = tauriConf.bundle || {};
-  if (ext === '.svg') {
-    // Tauri bundle icons require PNG/ICO/ICNS, not SVG
-    // Automatically generate platform icons from SVG using 'tauri icon'
-    console.log('Generating platform icons from SVG...');
-    const iconResult = spawnSync('pnpm', ['exec', 'tauri', 'icon', destPath], {
-      cwd: pkgDir,
-      encoding: 'utf8',
-      shell: true,
-    });
+  // Tauri bundle icons require PNG/ICO/ICNS — always regenerate platform set from source
+  console.log(`Generating platform icons from ${path.basename(iconPath)}...`);
+  const iconResult = spawnSync('pnpm', ['exec', 'tauri', 'icon', destPath], {
+    cwd: pkgDir,
+    encoding: 'utf8',
+    shell: true,
+  });
 
-    if (iconResult.status === 0) {
-      // Set bundle.icon to the generated platform icons
-      // tauri icon generates: 32x32.png, 128x128.png, 128x128@2x.png, icon.icns, icon.ico
-      tauriConf.bundle.icon = [
-        'icons/32x32.png',
-        'icons/128x128.png',
-        'icons/128x128@2x.png',
-        'icons/icon.icns',
-        'icons/icon.ico',
-      ];
-      console.log('✓ Platform icons generated successfully');
+  if (iconResult.status === 0) {
+    // tauri icon generates: 32x32.png, 128x128.png, 128x128@2x.png, icon.icns, icon.ico, icon.png
+    tauriConf.bundle.icon = [
+      'icons/32x32.png',
+      'icons/128x128.png',
+      'icons/128x128@2x.png',
+      'icons/icon.icns',
+      'icons/icon.ico',
+    ];
+    console.log('✓ Platform icons generated successfully');
+  } else {
+    console.warn('⚠ Could not generate icons (tauri CLI may not be installed yet)');
+    console.warn(`  Run: pnpm exec tauri icon src-tauri/icons/${destName}`);
+    if (ext !== '.svg') {
+      tauriConf.bundle.icon = [`icons/${destName}`];
     } else {
-      // If tauri icon fails (e.g., CLI not installed yet), remove icon to avoid compile errors
-      console.warn('⚠ Could not generate icons (tauri CLI may not be installed yet)');
-      console.warn('  Run: pnpm exec tauri icon src-tauri/icons/icon.svg');
       delete tauriConf.bundle.icon;
     }
-  } else {
-    // PNG/ICO/ICNS can be used directly
-    tauriConf.bundle.icon = [`icons/${destName}`];
   }
 }
 

@@ -23,6 +23,10 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ## [v0.5.0] - Work in progress
 
+### 🛠 Improvements
+
+- **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from Icon Composer (`static/icon.png`), padded to Apple’s ~824/1024 icon grid so it matches native dock sizing, instead of the transparent `appIcon` chrome glyph.
+
 ### 📚 Documentation
 
 - Document running the shell CLI and an iframe Vite app in one package, using the playground as the example.

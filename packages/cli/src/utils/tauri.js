@@ -222,11 +222,26 @@ export function resolveTauriCli(projectRoot) {
 
 /**
  * Resolve the source icon path from config, static assets, or bundled defaults.
+ * Prefer an opaque desktop mark (`static/icon.png` / favicon) over `appIcon`,
+ * which is often a transparent mono glyph for sidebar chrome and looks wrong in the macOS dock.
  * @param {string} projectRoot
  * @param {Object} config
  * @returns {string}
  */
 export function resolveSourceIconPath(projectRoot, config) {
+  const candidates = [];
+
+  const favicon =
+    typeof config?.favicon === 'string' ? config.favicon.replace(/^\//, '') : 'favicon.svg';
+  candidates.push(path.join(projectRoot, 'static', 'icon.png'));
+  candidates.push(path.join(projectRoot, 'static', path.basename(favicon)));
+  candidates.push(path.join(projectRoot, favicon));
+  candidates.push(path.join(projectRoot, 'static/favicon.svg'));
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+
   const appIcon =
     typeof config?.appIcon === 'string'
       ? config.appIcon
@@ -235,20 +250,14 @@ export function resolveSourceIconPath(projectRoot, config) {
   if (appIcon) {
     const appIconPath = path.join(projectRoot, String(appIcon).replace(/^\//, ''));
     if (fs.existsSync(appIconPath)) return appIconPath;
-    // Also try under static/ when config uses a bare filename
     const staticPath = path.join(projectRoot, 'static', String(appIcon).replace(/^\//, ''));
     if (fs.existsSync(staticPath)) return staticPath;
   }
 
-  const faviconPath = path.join(projectRoot, 'static/favicon.svg');
-  if (fs.existsSync(faviconPath)) return faviconPath;
-
   const defaultIcon = path.join(getTauriTemplateDir(), 'src-tauri/icons/icon.svg');
   if (fs.existsSync(defaultIcon)) return defaultIcon;
 
-  throw new Error(
-    'No icon source found for Tauri (add static/favicon.svg or appIcon in shellui.config.json)',
-  );
+  throw new Error('No icon source found for Tauri (add static/icon.png or static/favicon.svg)');
 }
 
 /**
