@@ -23,8 +23,15 @@ import {
   redirectToCliCallback,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
+import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
+import { useMacTrafficLights } from '../../layouts/chrome/runtime';
 import { AccessPendingView } from './AccessPendingView';
 import { LoginPreferencesControls } from './LoginPreferencesControls';
+
+/** Shared top inset for login chrome when traffic lights are absent. */
+const LOGIN_CHROME_PAD_Y = '2rem';
+/** Gap below the macOS titlebar before the brand icon. */
+const LOGIN_BRAND_BELOW_TITLEBAR_GAP = '0.75rem';
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
@@ -84,6 +91,7 @@ export const LoginView = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
+  const trafficLights = useMacTrafficLights();
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -142,6 +150,11 @@ export const LoginView = () => {
   useEffect(() => {
     captureCliCallbackFromSearch(location.search);
   }, [location.search]);
+
+  useEffect(() => {
+    const loginLabel = t('authMenu.login');
+    document.title = config?.title ? `${loginLabel} | ${config.title}` : loginLabel;
+  }, [config?.title, t]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -405,6 +418,7 @@ export const LoginView = () => {
 
   const panelUrl = config.backend?.login?.panelUrl?.trim() || null;
   const panelImage = config.backend?.login?.panelImage?.trim() || null;
+  const hasCustomPanel = Boolean(panelUrl || panelImage);
   const legalDocuments = useMemo(() => getLegalDocuments(config), [config]);
 
   if (isAuthenticated) {
@@ -424,8 +438,52 @@ export const LoginView = () => {
     );
   }
 
+  const chromePadTop = `calc(${LOGIN_CHROME_PAD_Y} + var(--shellui-safe-area-top))`;
+  // Clear traffic-light titlebar, then keep a small gap — only when native lights are shown.
+  const brandPadTop = trafficLights
+    ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_HEIGHT_PX}px + ${LOGIN_BRAND_BELOW_TITLEBAR_GAP})`
+    : chromePadTop;
+  const contentPadTop = trafficLights
+    ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_HEIGHT_PX}px + ${LOGIN_BRAND_BELOW_TITLEBAR_GAP} + 2rem)`
+    : `calc(4rem + var(--shellui-safe-area-top))`;
+
   return (
-    <main className="flex min-h-full w-full bg-background">
+    <main className="relative flex min-h-full w-full bg-background">
+      {!isIframeView ? (
+        <>
+          <div
+            className={cn(
+              'pointer-events-none absolute top-0 left-0 z-10 pl-[calc(1.5rem+var(--shellui-safe-area-left))]',
+              hasCustomPanel && 'md:invisible',
+            )}
+            style={{ paddingTop: brandPadTop }}
+          >
+            <div className="pointer-events-auto">
+              {config.appIcon ? (
+                <AppBrandIcon
+                  appIcon={config.appIcon}
+                  title={config.title}
+                  imgClassName="size-8"
+                />
+              ) : (
+                <span
+                  className="block size-8"
+                  aria-hidden
+                />
+              )}
+            </div>
+          </div>
+          <div
+            className="pointer-events-none absolute top-0 right-0 z-10 pr-[calc(1.5rem+var(--shellui-safe-area-right))]"
+            style={{ paddingTop: chromePadTop }}
+          >
+            <div className="pointer-events-auto">
+              <LoginPreferencesControls />
+            </div>
+          </div>
+        </>
+      ) : null}
+
       {!isIframeView && (
         <section
           className="relative hidden min-h-full w-1/2 overflow-hidden bg-muted/40 md:block"
@@ -445,41 +503,24 @@ export const LoginView = () => {
                 className="max-h-full max-w-full object-contain"
               />
             </div>
-          ) : (
-            <div className="flex h-full w-full items-start justify-start p-6">
-              <AppBrandIcon
-                appIcon={config.appIcon}
-                title={config.title}
-                imgClassName="size-8"
-              />
-            </div>
-          )}
+          ) : null}
         </section>
       )}
 
       <section
         className={cn(
           'relative flex min-h-full w-full flex-col',
-          isIframeView ? 'px-6 py-6' : 'shellui-safe-pad md:[--shellui-safe-pad-y:2.5rem]',
+          isIframeView
+            ? 'px-6 py-6'
+            : [
+                'pr-[calc(1.5rem+var(--shellui-safe-area-right))]',
+                'pb-[calc(1.5rem+var(--shellui-safe-area-bottom))] md:pb-[calc(2.5rem+var(--shellui-safe-area-bottom))]',
+                'pl-[calc(1.5rem+var(--shellui-safe-area-left))]',
+              ],
           !isIframeView && 'md:w-1/2',
         )}
+        style={!isIframeView ? { paddingTop: contentPadTop } : undefined}
       >
-        {!isIframeView ? (
-          <div className="flex shrink-0 items-center gap-4 pb-6 md:pb-2">
-            {config.appIcon ? (
-              <div className="md:hidden">
-                <AppBrandIcon
-                  appIcon={config.appIcon}
-                  title={config.title}
-                  imgClassName="size-8"
-                />
-              </div>
-            ) : null}
-            <div className="ml-auto">
-              <LoginPreferencesControls />
-            </div>
-          </div>
-        ) : null}
         <div className="flex w-full min-h-0 flex-1 items-center justify-center">
           <div
             className={cn(

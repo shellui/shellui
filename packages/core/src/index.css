@@ -97,14 +97,14 @@
 }
 
 /*
- * Content padding that clears the notch / home indicator while keeping a minimum
- * inset. Override mins with --shellui-safe-pad-x / --shellui-safe-pad-y.
+ * Content padding that clears the notch / home indicator, then keeps the
+ * configured inset beyond that edge. Override with --shellui-safe-pad-x / -y.
  */
 .shellui-safe-pad {
-  padding-top: max(var(--shellui-safe-pad-y, 1.5rem), var(--shellui-safe-area-top));
-  padding-right: max(var(--shellui-safe-pad-x, 1.5rem), var(--shellui-safe-area-right));
-  padding-bottom: max(var(--shellui-safe-pad-y, 1.5rem), var(--shellui-safe-area-bottom));
-  padding-left: max(var(--shellui-safe-pad-x, 1.5rem), var(--shellui-safe-area-left));
+  padding-top: calc(var(--shellui-safe-pad-y, 1.5rem) + var(--shellui-safe-area-top));
+  padding-right: calc(var(--shellui-safe-pad-x, 1.5rem) + var(--shellui-safe-area-right));
+  padding-bottom: calc(var(--shellui-safe-pad-y, 1.5rem) + var(--shellui-safe-area-bottom));
+  padding-left: calc(var(--shellui-safe-pad-x, 1.5rem) + var(--shellui-safe-area-left));
 }
 
 /*
