@@ -3,7 +3,7 @@ import { ContentDragOverlay } from './ContentDragOverlay';
 import { useIsTauriClient, useMacTrafficLights } from './runtime';
 
 /**
- * Global Tauri desktop chrome: document flags + the 38px top drag strip.
+ * Global Tauri desktop chrome: document flags + the 42px top drag strip.
  * Mounted at the app root so it stays available on every page (layouts, login,
  * settings, route error boundary, empty config) — including narrow/mobile widths.
  */

@@ -789,7 +789,7 @@ html.shellui-theme-switching
 }
 
 html[data-shellui-overlay-chrome] {
-  --shellui-titlebar-height: 38px;
+  --shellui-titlebar-height: 42px;
   --shellui-traffic-lights-width: 78px;
 }
 
@@ -832,14 +832,14 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   }
 }
 
-/* Collapsed Tauri: full-width 38px titlebar; push sidebar + content below it. */
+/* Collapsed Tauri: full-width 42px titlebar; push sidebar + content below it. */
 html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: var(--shellui-titlebar-height, 38px);
-  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 38px));
+  top: var(--shellui-titlebar-height, 42px);
+  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 42px));
 }
 
 html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
@@ -847,10 +847,10 @@ html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 38px));
+  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 42px));
   height: calc(
     var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top) -
-      var(--shellui-titlebar-height, 38px)
+      var(--shellui-titlebar-height, 42px)
   );
 }
 
@@ -858,7 +858,7 @@ html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
-  padding-top: var(--shellui-titlebar-height, 38px);
+  padding-top: var(--shellui-titlebar-height, 42px);
 }
 
 /* Root safe-area topbar: collapsed chrome sits below the status band. */

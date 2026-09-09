@@ -5,7 +5,11 @@ import type { NavigationItem, NavigationGroup } from '../../config/types';
 import { flattenNavigationItems } from '../utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
-import { DESKTOP_TITLEBAR_HEIGHT_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 
 interface FullscreenLayoutProps {
   title?: string;
@@ -54,6 +58,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
           style={{
             height: DESKTOP_TITLEBAR_HEIGHT_PX,
+            paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
             paddingLeft: overlay ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
         >

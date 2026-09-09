@@ -15,6 +15,12 @@ importers:
       '@shellui/core':
         specifier: workspace:*
         version: link:packages/core
+      '@tauri-apps/api':
+        specifier: ^2.10.1
+        version: 2.10.1
+      '@tauri-apps/cli':
+        specifier: ^2.10.0
+        version: 2.10.0
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.56.0
         version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@10.0.0(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.0(jiti@2.6.1))(typescript@5.9.3)

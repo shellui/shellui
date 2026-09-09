@@ -52,10 +52,15 @@ import {
   SafeAreaTopbarStrip,
 } from '../chrome/SafeAreaTopbar';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 
-/** App-bar chrome height — taller than the 38px Tauri titlebar strip for easier hit targets. */
-const APP_BAR_HEIGHT_PX = 52;
+/** App-bar chrome height — matches the Tauri / sidebar titlebar strip. */
+const APP_BAR_HEIGHT_PX = DESKTOP_TITLEBAR_HEIGHT_PX;
 
 interface AppBarLayoutProps {
   title?: string;
@@ -208,19 +213,19 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
   if (iconSrc) {
     return (
       <span
-        className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted/60 p-1"
+        className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted/60 p-0.5"
         aria-hidden
       >
         <NavIcon
           src={iconSrc}
-          className="size-3.5"
+          className="size-3"
         />
       </span>
     );
   }
   return (
     <span
-      className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted p-1 text-[10px] font-semibold leading-none text-muted-foreground"
+      className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted p-0.5 text-[9px] font-semibold leading-none text-muted-foreground"
       aria-hidden
     >
       {firstLetter}
@@ -230,7 +235,8 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
 
 const navTriggerClass = (active: boolean) =>
   cn(
-    'inline-flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 pr-3 text-sm font-medium transition-colors',
+    // h-7 leaves air in the 42px chrome after the 2px top pad.
+    'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     active
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
@@ -364,7 +370,7 @@ function AppBarNavCategory({
           aria-expanded={open}
         >
           <span className="truncate">{label}</span>
-          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
+          <CaretDownIcon className="size-3 shrink-0 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -417,7 +423,7 @@ function AppBarNavMore({
           aria-expanded={open}
         >
           <span>{t('desktopChrome.more')}</span>
-          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
+          <CaretDownIcon className="size-3 shrink-0 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -483,12 +489,12 @@ function AppBarNavMeasureChip({
     >
       {withIcon ? (
         <span
-          className="size-6 shrink-0"
+          className="size-5 shrink-0"
           aria-hidden
         />
       ) : null}
       {label}
-      {withCaret ? <CaretDownIcon className="size-3.5 shrink-0 opacity-70" /> : null}
+      {withCaret ? <CaretDownIcon className="size-3 shrink-0 opacity-70" /> : null}
     </span>
   );
 }
@@ -667,11 +673,11 @@ function TopBarEndItem({
   const iconEl = iconSrc ? (
     <NavIcon
       src={iconSrc}
-      className="size-4"
+      className="size-3.5"
     />
   ) : (
     <span
-      className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-semibold text-muted-foreground"
+      className="flex size-4 shrink-0 items-center justify-center rounded-md bg-muted text-[9px] font-semibold text-muted-foreground"
       aria-hidden
     >
       {firstLetter}
@@ -679,7 +685,7 @@ function TopBarEndItem({
   );
 
   const buttonClass = cn(
-    'flex size-9 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
       : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
@@ -800,10 +806,13 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
     paddingRight: 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
-          paddingTop: 'var(--shellui-safe-area-top)',
+          paddingTop: `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`,
           height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
         }
-      : { height: APP_BAR_HEIGHT_PX }),
+      : {
+          height: APP_BAR_HEIGHT_PX,
+          paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+        }),
   } as const;
 
   return (

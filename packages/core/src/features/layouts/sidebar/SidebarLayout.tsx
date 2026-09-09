@@ -37,6 +37,7 @@ import {
   MAC_TRAFFIC_LIGHTS_GAP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
   DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
 } from '../chrome/constants';
 
 /** Close the mobile sheet when the route changes. */
@@ -168,7 +169,9 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
           <header
             className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
             style={{
-              paddingTop: showSafeAreaTopbar ? 'var(--shellui-safe-area-top)' : undefined,
+              paddingTop: showSafeAreaTopbar
+                ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
+                : DESKTOP_TITLEBAR_PAD_TOP_PX,
               height: showSafeAreaTopbar
                 ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
                 : DESKTOP_TITLEBAR_HEIGHT_PX,

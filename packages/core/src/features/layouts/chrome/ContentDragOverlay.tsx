@@ -1,7 +1,7 @@
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from './constants';
 
 /**
- * Full-width invisible 38px strip at the top of the Tauri window.
+ * Full-width invisible 42px strip at the top of the Tauri window.
  *
  * Uses Tauri's official `data-tauri-drag-region` (requires
  * `core:window:allow-start-dragging` in capabilities). Shell controls must sit

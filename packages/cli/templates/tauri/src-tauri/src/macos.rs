@@ -3,7 +3,7 @@
 //! Wry reapplies `trafficLightPosition` in `WryWebViewParent::drawRect` and
 //! never sets the buttons' vertical origin, so one-shot positioning is
 //! overwritten on the next paint. We patch that `drawRect:` and then center
-//! the lights in the 38px chrome row.
+//! the lights in the 42px chrome row.
 
 #![cfg(target_os = "macos")]
 
@@ -18,7 +18,7 @@ use objc2_foundation::NSRect;
 use tauri::WebviewWindow;
 
 /// Keep in sync with `DESKTOP_TITLEBAR_HEIGHT_PX` in the sidebar chrome.
-pub const TITLEBAR_HEIGHT: f64 = 38.0;
+pub const TITLEBAR_HEIGHT: f64 = 42.0;
 pub const INSET_X: f64 = 16.0;
 
 static ORIGINAL_DRAW_RECT: OnceLock<Imp> = OnceLock::new();

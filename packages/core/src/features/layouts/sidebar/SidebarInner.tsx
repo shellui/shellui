@@ -13,6 +13,7 @@ import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
   MAC_TRAFFIC_LIGHTS_GAP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from '../chrome/constants';
@@ -76,27 +77,24 @@ export function SidebarInner({
     <>
       <SidebarHeader
         className={cn(
-          'border-b border-sidebar-border select-none',
-          showOverlayHeader && 'gap-0 p-0',
+          // Always pin to titlebar height — default SidebarHeader p-2 is taller on web.
+          'gap-0 border-b border-sidebar-border select-none',
+          showOverlayHeader || mobileSheetHeader ? 'p-0' : 'px-2 py-0',
           showCollapsedTopBar && 'hidden',
-          mobileSheetHeader && 'gap-0 p-0',
         )}
-        style={
-          mobileSheetHeader
-            ? {
-                height: DESKTOP_TITLEBAR_HEIGHT_PX,
-                paddingLeft: mobileTrafficInset,
-              }
-            : undefined
-        }
+        style={{
+          height: DESKTOP_TITLEBAR_HEIGHT_PX,
+          // Nudge controls down so they optically match centered traffic lights.
+          paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+          ...(mobileSheetHeader ? { paddingLeft: mobileTrafficInset } : {}),
+        }}
         {...(showOverlayHeader
           ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
           : {})}
       >
         {showOverlayHeader ? (
           <div
-            className="flex w-full shrink-0 items-stretch"
-            style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX }}
+            className="flex h-full w-full shrink-0 items-stretch"
             data-shellui-drag-region=""
             data-tauri-drag-region=""
           >
@@ -113,7 +111,7 @@ export function SidebarInner({
               {!hasAppIcon ? (
                 <SidebarTrigger
                   data-shellui-no-drag=""
-                  className="size-8 shrink-0 touch-manipulation"
+                  className="size-7 shrink-0 touch-manipulation"
                 />
               ) : null}
               <div
@@ -126,20 +124,14 @@ export function SidebarInner({
               {hasAppIcon ? (
                 <SidebarTrigger
                   data-shellui-no-drag=""
-                  className="size-8 shrink-0 touch-manipulation"
+                  className="size-7 shrink-0 touch-manipulation"
                 />
               ) : null}
               {hasAppIcon ? trailingInset : null}
             </div>
           </div>
         ) : (
-          <div
-            className={cn(
-              'flex w-full items-center',
-              hasAppIcon ? 'gap-0' : 'gap-0.5',
-              mobileSheetHeader && 'h-full',
-            )}
-          >
+          <div className={cn('flex h-full w-full items-center', hasAppIcon ? 'gap-0' : 'gap-0.5')}>
             {brandIcon}
             {hasAppIcon ? (
               <div
@@ -147,7 +139,7 @@ export function SidebarInner({
                 className="min-w-0 flex-1"
               />
             ) : null}
-            <SidebarTrigger className="size-8 shrink-0 touch-manipulation" />
+            <SidebarTrigger className="size-7 shrink-0 touch-manipulation" />
             {trailingInset}
           </div>
         )}
