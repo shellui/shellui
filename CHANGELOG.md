@@ -26,6 +26,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 ### 🛠 Improvements
 
 - **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from Icon Composer (`static/icon.png`), padded to Apple’s ~824/1024 icon grid so it matches native dock sizing, instead of the transparent `appIcon` chrome glyph.
+- **Desktop config:** optional root `tauri.conf.json` sets `productName`, `identifier`, and icon source; default product name is `package.json` `name` with the first letter capitalized. Cargo package name is kept in sync so macOS Dock / Cmd-Tab show the right name during `tauri dev` (not a leftover `shellui-app` binary).
 
 ### 📚 Documentation
 

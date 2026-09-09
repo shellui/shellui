@@ -2858,7 +2858,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "shellui-app"
+name = "shellui"
 version = "0.1.0"
 dependencies = [
  "objc2",

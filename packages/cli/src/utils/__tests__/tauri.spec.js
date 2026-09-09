@@ -13,6 +13,14 @@ import {
   getShelluiHookCommand,
   ensureDefaultTauriIcons,
   TAURI_BUNDLE_ICONS,
+  capitalizePackageName,
+  resolveDefaultProductName,
+  mergeProjectTauriOverrides,
+  resolveIconFromProjectTauriConf,
+  toCargoPackageName,
+  toCargoBinName,
+  toRustCrateIdent,
+  syncCargoPackageName,
 } from '../tauri.js';
 import { getProjectRoot } from '../paths.js';
 
@@ -125,5 +133,95 @@ describe('tauri utilities', () => {
   test('tauri template ships default icon.png', () => {
     const iconPng = path.join(getTauriTemplateDir(), 'src-tauri/icons/icon.png');
     expect(fs.existsSync(iconPng)).toBe(true);
+  });
+
+  test('capitalizePackageName strips scope and uppercases first letter', () => {
+    expect(capitalizePackageName('shellui')).toBe('Shellui');
+    expect(capitalizePackageName('@shellui/tauri')).toBe('Tauri');
+    expect(capitalizePackageName('my-app')).toBe('My-app');
+  });
+
+  test('resolveDefaultProductName prefers package.json name', () => {
+    fs.writeFileSync(
+      path.join(testDir, 'package.json'),
+      JSON.stringify({ name: 'acme-shell' }),
+      'utf-8',
+    );
+    expect(resolveDefaultProductName(testDir, { title: 'Ignored Title' })).toBe('Acme-shell');
+  });
+
+  test('resolveDefaultProductName falls back to shellui title', () => {
+    expect(resolveDefaultProductName(testDir, { title: 'My App' })).toBe('My App');
+  });
+
+  test('mergeProjectTauriOverrides applies productName and window fields', () => {
+    const conf = {
+      productName: 'Default',
+      identifier: 'com.shellui.default',
+      app: { windows: [{ title: 'Default', width: 800 }] },
+      bundle: { targets: ['app'] },
+    };
+    mergeProjectTauriOverrides(conf, {
+      productName: 'Custom',
+      identifier: 'com.example.custom',
+      app: { windows: [{ width: 1200 }] },
+      bundle: { targets: ['app', 'dmg'], icon: ['static/icon.png'] },
+    });
+    expect(conf.productName).toBe('Custom');
+    expect(conf.identifier).toBe('com.example.custom');
+    expect(conf.app.windows[0]).toEqual({ title: 'Default', width: 1200 });
+    expect(conf.bundle.targets).toEqual(['app', 'dmg']);
+    expect(conf.bundle.icon).toBeUndefined();
+  });
+
+  test('resolveIconFromProjectTauriConf reads project-relative source icons', () => {
+    fs.mkdirSync(path.join(testDir, 'static'), { recursive: true });
+    const iconPath = path.join(testDir, 'static', 'icon.png');
+    fs.writeFileSync(iconPath, 'fake');
+    expect(
+      resolveIconFromProjectTauriConf(testDir, { bundle: { icon: ['static/icon.png'] } }),
+    ).toBe(iconPath);
+    expect(
+      resolveIconFromProjectTauriConf(testDir, { bundle: { icon: ['icons/icon.png'] } }),
+    ).toBeNull();
+  });
+
+  test('toCargoPackageName uses snake/kebab case for rustc', () => {
+    expect(toCargoPackageName('Shellui')).toBe('shellui');
+    expect(toCargoPackageName('My App')).toBe('my-app');
+    expect(toCargoPackageName('123')).toBe('app-123');
+    expect(toRustCrateIdent('my-app')).toBe('my_app');
+    expect(toCargoBinName('Shellui')).toBe('Shellui');
+  });
+
+  test('syncCargoPackageName rewrites Cargo.toml package name', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    fs.mkdirSync(path.join(srcTauri, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(srcTauri, 'Cargo.toml'),
+      '[package]\nname = "shellui-app"\nversion = "0.1.0"\n',
+      'utf-8',
+    );
+    fs.writeFileSync(
+      path.join(srcTauri, 'src', 'main.rs'),
+      'fn main() {\n    shellui_app::run()\n}\n',
+      'utf-8',
+    );
+    fs.writeFileSync(
+      path.join(srcTauri, 'Cargo.lock'),
+      '# lock\n\n[[package]]\nname = "shellui-app"\nversion = "0.1.0"\n',
+      'utf-8',
+    );
+    syncCargoPackageName(srcTauri, 'Shellui');
+    const cargoToml = fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf-8');
+    expect(cargoToml).toContain('name = "shellui"');
+    expect(cargoToml).toContain('name = "Shellui"');
+    expect(cargoToml).toContain('default-run = "Shellui"');
+    expect(fs.readFileSync(path.join(srcTauri, 'src', 'main.rs'), 'utf-8')).toContain(
+      'shellui::run()',
+    );
+    expect(fs.readFileSync(path.join(srcTauri, 'Cargo.lock'), 'utf-8')).toContain(
+      'name = "shellui"',
+    );
   });
 });

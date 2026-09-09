@@ -108,12 +108,235 @@ function ensurePackageJson(projectRoot) {
   const packageJsonPath = path.join(projectRoot, 'package.json');
   if (fs.existsSync(packageJsonPath)) return;
 
+  const folderName = path.basename(projectRoot) || 'shellui';
   fs.writeFileSync(
     packageJsonPath,
-    JSON.stringify({ name: 'shellui-app', private: true, version: '0.1.0' }, null, 2) + '\n',
+    JSON.stringify({ name: folderName, private: true, version: '0.1.0' }, null, 2) + '\n',
     'utf-8',
   );
   console.log(pc.green(`Created ${packageJsonPath}`));
+}
+
+/**
+ * Capitalize the first letter of a package name (strip npm scope).
+ * `shellui` → `Shellui`, `@acme/my-app` → `My-app`
+ * @param {string} name
+ * @returns {string}
+ */
+export function capitalizePackageName(name) {
+  const base = String(name || '')
+    .trim()
+    .replace(/^@[^/]+\//, '');
+  if (!base) return '';
+  return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
+/**
+ * Cargo package name (must be snake/kebab case for rustc).
+ * `Shellui` → `shellui`, `My App` → `my-app`
+ * @param {string} productName
+ * @returns {string}
+ */
+export function toCargoPackageName(productName) {
+  const cleaned = String(productName || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!cleaned) return 'shellui';
+  if (/^[0-9]/.test(cleaned)) return `app-${cleaned}`;
+  return cleaned;
+}
+
+/**
+ * Rust crate identifier used in `main.rs` (`my-app` → `my_app`).
+ * @param {string} cargoPackageName
+ * @returns {string}
+ */
+export function toRustCrateIdent(cargoPackageName) {
+  return toCargoPackageName(cargoPackageName).replace(/-/g, '_');
+}
+
+/**
+ * Executable / Dock name during `tauri dev` (may keep capitals).
+ * `Shellui` → `Shellui`, `My App` → `My-App`
+ * @param {string} productName
+ * @returns {string}
+ */
+export function toCargoBinName(productName) {
+  const cleaned = String(productName || '')
+    .trim()
+    .replace(/[^A-Za-z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  if (!cleaned) return 'Shellui';
+  if (/^[0-9]/.test(cleaned)) return `App-${cleaned}`;
+  return cleaned;
+}
+
+/**
+ * Keep src-tauri Cargo package + main.rs crate path in sync with productName.
+ * On macOS, `tauri dev` shows the binary name in the Dock / app switcher
+ * (productName applies to bundled .app builds via Info.plist).
+ * @param {string} appSrcTauriDir path to …/src-tauri
+ * @param {string} productName
+ */
+export function syncCargoPackageName(appSrcTauriDir, productName) {
+  const cargoTomlPath = path.join(appSrcTauriDir, 'Cargo.toml');
+  if (!fs.existsSync(cargoTomlPath)) return;
+
+  const cargoName = toCargoPackageName(productName);
+  const binName = toCargoBinName(productName);
+  const crateIdent = toRustCrateIdent(cargoName);
+  const original = fs.readFileSync(cargoTomlPath, 'utf8');
+  const currentMatch = original.match(/^name\s*=\s*"([^"]*)"/m);
+  const previousName = currentMatch?.[1];
+
+  let next = original.replace(/^name\s*=\s*"[^"]*"/m, `name = "${cargoName}"`);
+
+  // Prefer a display binary name (Dock) separate from the snake_case package/lib.
+  if (/^\[\[bin\]\]/m.test(next)) {
+    next = next.replace(
+      /(\[\[bin\]\]\s*\n(?:(?!\[\[)[^\n]*\n)*?name\s*=\s*")[^"]*(")/m,
+      `$1${binName}$2`,
+    );
+    if (!/^default-run\s*=/m.test(next)) {
+      next = next.replace(/^(version\s*=\s*"[^"]*")/m, `$1\ndefault-run = "${binName}"`);
+    } else {
+      next = next.replace(/^default-run\s*=\s*"[^"]*"/m, `default-run = "${binName}"`);
+    }
+  } else {
+    if (!/^default-run\s*=/m.test(next)) {
+      next = next.replace(/^(version\s*=\s*"[^"]*")/m, `$1\ndefault-run = "${binName}"`);
+    } else {
+      next = next.replace(/^default-run\s*=\s*"[^"]*"/m, `default-run = "${binName}"`);
+    }
+    next = `${next.trimEnd()}\n\n[[bin]]\nname = "${binName}"\npath = "src/main.rs"\n`;
+  }
+
+  if (next !== original) {
+    fs.writeFileSync(cargoTomlPath, next, 'utf8');
+    console.log(pc.green(`Synced Cargo package/bin -> ${cargoName} / ${binName}`));
+  }
+
+  const mainRsPath = path.join(appSrcTauriDir, 'src', 'main.rs');
+  if (fs.existsSync(mainRsPath)) {
+    const mainOriginal = fs.readFileSync(mainRsPath, 'utf8');
+    const mainNext = mainOriginal.replace(
+      /\b[A-Za-z_][A-Za-z0-9_]*::run\s*\(\s*\)/g,
+      `${crateIdent}::run()`,
+    );
+    if (mainNext !== mainOriginal) {
+      fs.writeFileSync(mainRsPath, mainNext, 'utf8');
+      console.log(pc.green(`Synced main.rs crate path -> ${crateIdent}::run()`));
+    }
+  }
+
+  const lockPath = path.join(appSrcTauriDir, 'Cargo.lock');
+  if (!previousName || previousName === cargoName || !fs.existsSync(lockPath)) return;
+  const lockOriginal = fs.readFileSync(lockPath, 'utf8');
+  const lockNext = lockOriginal
+    .replaceAll(`name = "${previousName}"`, `name = "${cargoName}"`)
+    .replaceAll(`"${previousName} `, `"${cargoName} `);
+  if (lockNext !== lockOriginal) {
+    fs.writeFileSync(lockPath, lockNext, 'utf8');
+  }
+}
+
+/**
+ * Default desktop product name: package.json name (capitalized), then shellui title.
+ * @param {string} projectRoot
+ * @param {Object} [shelluiConfig]
+ * @returns {string}
+ */
+export function resolveDefaultProductName(projectRoot, shelluiConfig) {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (fs.existsSync(packageJsonPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      const fromPkg = capitalizePackageName(pkg.name);
+      if (fromPkg) return fromPkg;
+    } catch {
+      // ignore malformed package.json
+    }
+  }
+  if (typeof shelluiConfig?.title === 'string' && shelluiConfig.title.trim()) {
+    return shelluiConfig.title.trim();
+  }
+  return 'Shellui';
+}
+
+/**
+ * Load optional project-root tauri.conf.json overrides.
+ * @param {string} projectRoot
+ * @returns {Record<string, any> | null}
+ */
+export function loadProjectTauriConf(projectRoot) {
+  const projectTauriConfPath = path.join(projectRoot, 'tauri.conf.json');
+  if (!fs.existsSync(projectTauriConfPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(projectTauriConfPath, 'utf8'));
+  } catch (error) {
+    throw new Error(`Invalid tauri.conf.json at ${projectTauriConfPath}: ${error.message}`);
+  }
+}
+
+/**
+ * Merge project-level tauri.conf.json overrides into the generated config.
+ * Icon paths are resolved separately (source asset → generated bundle set).
+ * @param {Record<string, any>} tauriConf
+ * @param {Record<string, any>} overrides
+ */
+export function mergeProjectTauriOverrides(tauriConf, overrides) {
+  if (!overrides || typeof overrides !== 'object') return;
+
+  for (const key of ['productName', 'identifier', 'version', 'mainBinaryName']) {
+    if (overrides[key] != null && overrides[key] !== '') {
+      tauriConf[key] = overrides[key];
+    }
+  }
+
+  if (overrides.app && typeof overrides.app === 'object') {
+    tauriConf.app = tauriConf.app || {};
+    if (overrides.app.windows?.[0] && tauriConf.app.windows?.[0]) {
+      Object.assign(tauriConf.app.windows[0], overrides.app.windows[0]);
+    }
+    for (const [k, v] of Object.entries(overrides.app)) {
+      if (k === 'windows') continue;
+      tauriConf.app[k] = v;
+    }
+  }
+
+  if (overrides.bundle && typeof overrides.bundle === 'object') {
+    tauriConf.bundle = tauriConf.bundle || {};
+    for (const [k, v] of Object.entries(overrides.bundle)) {
+      if (k === 'icon') continue; // applied after icon generation
+      tauriConf.bundle[k] = v;
+    }
+  }
+}
+
+/**
+ * Resolve a source icon path declared in root tauri.conf.json bundle.icon.
+ * @param {string} projectRoot
+ * @param {Record<string, any> | null} projectTauriConf
+ * @returns {string | null}
+ */
+export function resolveIconFromProjectTauriConf(projectRoot, projectTauriConf) {
+  const icons = projectTauriConf?.bundle?.icon;
+  if (!icons) return null;
+  const list = Array.isArray(icons) ? icons : [icons];
+  for (const entry of list) {
+    if (typeof entry !== 'string' || !entry.trim()) continue;
+    const rel = entry.replace(/^\.\//, '').replace(/^\//, '');
+    const abs = path.isAbsolute(entry) ? entry : path.join(projectRoot, rel);
+    if (!fs.existsSync(abs)) continue;
+    // Prefer project source assets; skip already-generated template icon paths.
+    if (/^icons\//.test(rel.replace(/\\/g, '/'))) continue;
+    if (/\.(png|svg|jpe?g|ico|icns)$/i.test(abs)) return abs;
+  }
+  return null;
 }
 
 /**
@@ -226,9 +449,13 @@ export function resolveTauriCli(projectRoot) {
  * which is often a transparent mono glyph for sidebar chrome and looks wrong in the macOS dock.
  * @param {string} projectRoot
  * @param {Object} config
+ * @param {Record<string, any> | null} [projectTauriConf]
  * @returns {string}
  */
-export function resolveSourceIconPath(projectRoot, config) {
+export function resolveSourceIconPath(projectRoot, config, projectTauriConf = null) {
+  const fromTauriConf = resolveIconFromProjectTauriConf(projectRoot, projectTauriConf);
+  if (fromTauriConf) return fromTauriConf;
+
   const candidates = [];
 
   const favicon =
@@ -329,29 +556,19 @@ export function generateTauriIcons(projectRoot, appDir, sourceIconPath) {
  * @param {string} projectRoot
  * @param {string} appDir
  * @param {Object} config
+ * @param {Record<string, any> | null} [projectTauriConf]
  */
-export function ensureTauriIcons(projectRoot, appDir, config) {
+export function ensureTauriIcons(projectRoot, appDir, config, projectTauriConf = null) {
   ensureDefaultTauriIcons(appDir);
 
   try {
-    const sourceIconPath = resolveSourceIconPath(projectRoot, config);
+    const sourceIconPath = resolveSourceIconPath(projectRoot, config, projectTauriConf);
     generateTauriIcons(projectRoot, appDir, sourceIconPath);
   } catch (error) {
     if (!fs.existsSync(path.join(appDir, 'src-tauri/icons/icon.png'))) {
       throw error;
     }
     console.warn(pc.yellow(`Using bundled default icons: ${error.message}`));
-  }
-}
-
-/**
- * Merge project-level tauri.conf.json overrides into the generated config.
- * @param {Record<string, unknown>} tauriConf
- * @param {Record<string, unknown>} overrides
- */
-function mergeProjectTauriOverrides(tauriConf, overrides) {
-  if (overrides.app?.windows?.[0] && tauriConf.app?.windows?.[0]) {
-    Object.assign(tauriConf.app.windows[0], overrides.app.windows[0]);
   }
 }
 
@@ -371,21 +588,42 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   }
 
   const config = await loadConfig(root, { config: options.config });
+  const projectTauriConf = loadProjectTauriConf(projectRoot);
   const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
 
-  const title = config.title || 'shellui';
-  const identifier = `com.shellui.${title.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'app'}`;
+  const productName = resolveDefaultProductName(projectRoot, config);
+  const identifierSlug =
+    productName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .replace(/^-+|-+$/g, '') || 'app';
 
-  tauriConf.productName = title;
-  tauriConf.identifier = identifier;
+  tauriConf.productName = productName;
+  tauriConf.identifier = `com.shellui.${identifierSlug}`;
   if (tauriConf.app?.windows?.[0]) {
-    tauriConf.app.windows[0].title = title;
+    tauriConf.app.windows[0].title = productName;
     tauriConf.app.windows[0].hiddenTitle = true;
     tauriConf.app.windows[0].titleBarStyle = 'Overlay';
     tauriConf.app.windows[0].decorations = true;
     tauriConf.app.windows[0].acceptFirstMouse = true;
     tauriConf.app.windows[0].trafficLightPosition = { x: 16, y: 24 };
   }
+
+  // Root tauri.conf.json wins for name / identifier / window / bundle extras.
+  if (projectTauriConf) {
+    mergeProjectTauriOverrides(tauriConf, projectTauriConf);
+  }
+
+  // Keep window title aligned with productName unless the root config set it explicitly.
+  if (
+    tauriConf.app?.windows?.[0] &&
+    !(projectTauriConf?.app?.windows?.[0] && 'title' in projectTauriConf.app.windows[0])
+  ) {
+    tauriConf.app.windows[0].title = tauriConf.productName;
+  }
+
+  // macOS Dock / Cmd-Tab in `tauri dev` use the Cargo binary name, not productName.
+  syncCargoPackageName(path.join(appDir, 'src-tauri'), tauriConf.productName);
 
   const port = config.port ?? 3000;
   tauriConf.build.devUrl = `http://localhost:${port}`;
@@ -400,21 +638,15 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   };
   tauriConf.build.frontendDist = DESKTOP_WEB_DIST;
 
-  ensureTauriIcons(projectRoot, appDir, config);
+  ensureTauriIcons(projectRoot, appDir, config, projectTauriConf);
   tauriConf.bundle = tauriConf.bundle || {};
   tauriConf.bundle.targets = options.bundles
     ? options.bundles
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean)
-    : ['app'];
+    : tauriConf.bundle.targets || ['app'];
   tauriConf.bundle.icon = [...TAURI_BUNDLE_ICONS];
-
-  const projectTauriConfPath = path.join(projectRoot, 'tauri.conf.json');
-  if (fs.existsSync(projectTauriConfPath)) {
-    const projectTauriConf = JSON.parse(fs.readFileSync(projectTauriConfPath, 'utf8'));
-    mergeProjectTauriOverrides(tauriConf, projectTauriConf);
-  }
 
   fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
   console.log(pc.green(`Synced shellui config -> ${DESKTOP_APP_DIR}/`));

@@ -50,7 +50,7 @@ On first run, the CLI:
 
 1. Generates `dist/app/` with the desktop wrapper (implementation-specific project files)
 2. Installs desktop build dependencies (e.g. `@tauri-apps/cli`) if not already present
-3. Syncs `shellui.config.json` (title, icon, port) into the generated wrapper
+3. Syncs root `tauri.conf.json` (product name, icon) plus `shellui.config.json` (port) into the generated wrapper
 
 `shellui start --app` works the same as `shellui dev --app`.
 
@@ -66,15 +66,35 @@ Everything under `dist/` is generated locally and gitignored — nothing to comm
 
 ## Configuration
 
-The CLI syncs these fields from `shellui.config.json`:
+Desktop branding is controlled by an optional **`tauri.conf.json`** at the project root (same folder as `shellui.config.json` / `package.json`):
 
-| Config field | Use in desktop app                         |
-| ------------ | ------------------------------------------ |
-| `title`      | Window title and app name                  |
-| `appIcon`    | App icon                                   |
-| `port`       | Dev server URL (`http://localhost:<port>`) |
+```json
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Shellui",
+  "identifier": "com.shellui.app",
+  "bundle": {
+    "icon": ["static/icon.png"]
+  }
+}
+```
 
-No extra config is needed for desktop vs web. The CLI sets the build target automatically when you use `--app`. Your `shellui.config.json` stays the same for both.
+| Field            | Use                                                                                                                                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `productName`    | Dock / installer / window name for **bundled** apps. Defaults to `package.json` `name` with the first letter capitalized (`shellui` → `Shellui`). During `tauri dev`, macOS uses the Cargo package name (kept in sync from `productName`). |
+| `identifier`     | Bundle id (e.g. `com.shellui.app`). Defaults from the product name.                                                                                                                                                                        |
+| `bundle.icon`    | Source icon path(s) relative to the project root (prefer an opaque `static/icon.png`). The CLI runs `tauri icon` and writes the generated set into the desktop wrapper.                                                                    |
+| `app.windows[0]` | Optional window overrides (size, title, etc.). Overlay titlebar defaults stay applied unless you override them.                                                                                                                            |
+
+The CLI also syncs these fields from `shellui.config.json`:
+
+| Config field          | Use in desktop app                                                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `port`                | Dev server URL (`http://localhost:<port>`)                                                                              |
+| `title`               | Fallback product name if `package.json` has no `name` and root `tauri.conf.json` omits `productName`                    |
+| `favicon` / `appIcon` | Icon fallbacks when `bundle.icon` / `static/icon.png` are absent (`appIcon` is last — often a transparent chrome glyph) |
+
+No extra config is required for desktop vs web. Prefer root `tauri.conf.json` for the **app display name** and **dock icon**; keep `shellui.config.json` `title` / `appIcon` for the in-app UI chrome.
 
 On **macOS**, the desktop window uses an overlay titlebar: no native title bar. Close / minimize / zoom are **system traffic lights** drawn by macOS (not the web UI). Tauri only hosts them; Shellui vertically centers them in the 42px sidebar chrome, and web controls get a 2px top pad so icons line up optically (JSON `trafficLightPosition.y` only grows the titlebar, it does not move the buttons). A full-width invisible 42px top strip (`data-tauri-drag-region`; requires `core:window:allow-start-dragging`) is mounted at the app root so it works on every page — layouts, login, settings, and route error screens. Buttons and other controls sit above that strip so they stay clickable. A **Back** control in the sidebar goes back in the embedded app iframe — including out of a login page — since there is no browser chrome.
 
@@ -149,11 +169,11 @@ See [Bundle targets](#bundle-targets) for details and other platforms.
 
 Icon setup runs automatically during sync:
 
-1. Prefers an opaque desktop mark: `static/icon.png`, then `favicon` / `static/favicon.svg` (not the transparent `appIcon` chrome glyph)
+1. Prefers `tauri.conf.json` → `bundle.icon` (e.g. `static/icon.png`), then `static/icon.png`, then `favicon` / `static/favicon.svg` (not the transparent `appIcon` chrome glyph)
 2. Generates platform-specific icons (PNG / ICNS / ICO) via `tauri icon`
 3. Falls back to bundled defaults if no icon is configured
 
-Use a solid-background square for the dock / taskbar. Keep `appIcon` as the mono mark for sidebar / app-bar chrome.
+Use a solid-background square for the dock / taskbar, padded to Apple’s ~824/1024 grid on macOS. Keep `appIcon` as the mono mark for sidebar / app-bar chrome.
 
 ## Project layout
 

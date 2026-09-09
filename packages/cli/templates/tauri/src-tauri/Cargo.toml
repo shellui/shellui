@@ -1,6 +1,7 @@
 [package]
-name = "Shellui"
+name = "shellui"
 version = "0.1.0"
+default-run = "Shellui"
 description = "Shellui desktop app"
 authors = ["Shellui"]
 edition = "2021"
@@ -20,3 +21,7 @@ objc2-foundation = { version = "0.3", features = ["NSGeometry"] }
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "Shellui"
+path = "src/main.rs"
