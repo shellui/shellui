@@ -15,9 +15,12 @@ export {
 } from './goDesktopBack';
 export {
   useIsTauriClient,
+  useIsTauriRuntime,
+  useIsTauriFullscreen,
   useMacOverlayChrome,
   useMacTrafficLights,
   isMacOSDesktop,
+  isTauriRuntime,
 } from './runtime';
 export { DesktopBackButton } from './DesktopBackButton';
 export { DesktopForwardButton } from './DesktopForwardButton';

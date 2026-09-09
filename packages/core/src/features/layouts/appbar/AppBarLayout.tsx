@@ -51,7 +51,7 @@ import {
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
 } from '../chrome/SafeAreaTopbar';
-import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
+import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
@@ -747,7 +747,7 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   const { settings } = useSettings();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const isTauriEnv = useIsTauriClient();
+  const isTauriRuntime = useIsTauriRuntime();
   const overlay = useMacOverlayChrome();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
@@ -848,7 +848,7 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
           <div className="min-w-0 flex-1" />
         )}
 
-        {isTauriEnv ? (
+        {isTauriRuntime ? (
           <div
             data-shellui-no-drag=""
             className="shrink-0"

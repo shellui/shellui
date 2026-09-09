@@ -98,14 +98,18 @@ export function SidebarInner({
             data-shellui-drag-region=""
             data-tauri-drag-region=""
           >
-            <div
-              className="h-full shrink-0"
-              style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
-              aria-hidden
-            />
+            {trafficLights ? (
+              <div
+                className="h-full shrink-0"
+                style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
+                aria-hidden
+              />
+            ) : null}
             <div
               className="flex h-full min-w-0 flex-1 items-center gap-1"
-              style={{ paddingLeft: MAC_TRAFFIC_LIGHTS_GAP_PX }}
+              style={{
+                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_GAP_PX : 8,
+              }}
             >
               {hasAppIcon ? brandIcon : null}
               {!hasAppIcon ? (

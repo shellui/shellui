@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import { flattenNavigationItems } from '../utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useMacOverlayChrome } from '../chrome/runtime';
+import { useIsTauriClient, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
@@ -30,7 +30,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
   const location = useLocation();
   const { i18n } = useTranslation();
   const isTauriEnv = useIsTauriClient();
-  const overlay = useMacOverlayChrome();
+  const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
@@ -59,7 +59,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
           style={{
             height: DESKTOP_TITLEBAR_HEIGHT_PX,
             paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
-            paddingLeft: overlay ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
+            paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
         >
           <DesktopHistoryButtons />
