@@ -27,7 +27,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from Icon Composer (`static/icon.png`), padded to Apple’s ~824/1024 icon grid so it matches native dock sizing, instead of the transparent `appIcon` chrome glyph.
 - **Desktop config:** optional root `tauri.conf.json` sets `productName`, `identifier`, and icon source; default product name is `package.json` `name` with the first letter capitalized. Cargo package name is kept in sync so macOS Dock / Cmd-Tab show the right name during `tauri dev` (not a leftover `shellui-app` binary).
-- **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview and **not** native fullscreen (`is_fullscreen` / `tauri://resize`). Browser tabs (even against a `--target tauri` build) and fullscreen no longer keep that gap.
+- **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview and **not** native fullscreen (`is_fullscreen` / `tauri://resize`). Applies at any viewport width (narrow/mobile sidebar + app-bar headers included). Browser tabs (even against a `--target tauri` build) and fullscreen no longer keep that gap.
 - **Desktop history buttons:** back/forward stay available in Tauri native fullscreen (sidebar, app-bar, collapsed titlebar); only the traffic-light inset is cleared. App-bar shows them only in a live Tauri webview (not a browser tab), matching sidebar.
 
 ### 📚 Documentation

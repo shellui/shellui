@@ -162,7 +162,8 @@ export function useIsTauriFullscreen(): boolean {
 
 /**
  * macOS Tauri desktop chrome (history buttons, collapsed titlebar, drag regions).
- * Stays on in native fullscreen — only the traffic-light *inset* goes away there.
+ * Desktop viewport only — narrow/mobile layouts use the sheet / top header instead.
+ * Stays on in native fullscreen; only the traffic-light *inset* goes away there.
  */
 export function useMacOverlayChrome(): boolean {
   const tauriRuntime = useIsTauriRuntime();
@@ -179,9 +180,16 @@ export function useMacOverlayChrome(): boolean {
 /**
  * Native macOS traffic lights that need chrome inset: live Tauri webview on
  * macOS, windowed (not native fullscreen — lights are hidden there).
+ * Applies at any viewport width (narrow window / mobile layout included).
  */
 export function useMacTrafficLights(): boolean {
-  const overlay = useMacOverlayChrome();
+  const tauriRuntime = useIsTauriRuntime();
   const fullscreen = useIsTauriFullscreen();
-  return overlay && !fullscreen;
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(isMacOSDesktop());
+  }, []);
+
+  return tauriRuntime && isMac && !fullscreen;
 }
