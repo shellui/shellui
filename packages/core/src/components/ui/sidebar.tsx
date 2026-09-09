@@ -43,7 +43,7 @@ const SIDEBAR_STORAGE_KEY = 'shellui:sidebar:open';
 const SIDEBAR_WIDTH_STORAGE_KEY = 'shellui:sidebar:width';
 /** Default expanded width (matches previous 16rem). */
 const SIDEBAR_WIDTH_DEFAULT_PX = 256;
-const SIDEBAR_WIDTH_MIN_PX = 200;
+const SIDEBAR_WIDTH_MIN_PX = 230;
 const SIDEBAR_WIDTH_MAX_PX = 480;
 /** Cap at the viewport so a phone narrower than 18rem still gets a full-width sheet. */
 const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%)';

@@ -25,7 +25,7 @@ const config: ShellUIConfig = {
 
 - Persistent sidebar navigation built on the shadcn/ui sidebar primitives
 - Desktop: collapsible icon rail (click the trigger, rail, or press `⌘B` / `Ctrl+B`)
-- Desktop: drag the expanded sidebar border to resize (200–480px; persisted for the tab session)
+- Desktop: drag the expanded sidebar border to resize (230–480px; persisted for the tab session)
 - Mobile: sheet/drawer sidebar opened from the top header trigger
 - **Desktop app (Tauri):** overlay titlebar on macOS (traffic lights vertically centered in the 42px chrome; web controls get a 2px top pad for optical alignment). When the sidebar is collapsed, a full-width 42px top bar holds Back/Forward + open-sidebar (nav icons stay in the rail); when expanded, those controls sit in the sidebar header. A full-width invisible 42px top drag strip is mounted at the app root (all layouts and pages, including error screens). **Back** / **Forward** leave iframe login pages (there is no browser chrome).
 - Supports icons, groups, and positioning
