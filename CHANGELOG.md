@@ -25,52 +25,48 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🛠 Improvements
 
-- **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from Icon Composer (`static/icon.png`), padded to Apple’s ~824/1024 icon grid so it matches native dock sizing, instead of the transparent `appIcon` chrome glyph.
-- **Desktop config:** optional root `tauri.conf.json` sets `productName`, `identifier`, and icon source; default product name is `package.json` `name` with the first letter capitalized. Cargo package name is kept in sync so macOS Dock / Cmd-Tab show the right name during `tauri dev` (not a leftover `shellui-app` binary).
-- **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview and **not** native fullscreen (`is_fullscreen` / `tauri://resize`). Applies at any viewport width (narrow/mobile sidebar + app-bar headers included). Browser tabs (even against a `--target tauri` build) and fullscreen no longer keep that gap.
-- **Desktop history buttons:** back/forward stay available in Tauri native fullscreen (sidebar, app-bar, collapsed titlebar); only the traffic-light inset is cleared. App-bar shows them only in a live Tauri webview (not a browser tab), matching sidebar.
-
-### 📚 Documentation
-
-- Document running the shell CLI and an iframe Vite app in one package, using the playground as the example.
+- **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from `static/icon.png`, padded for native dock sizing.
+- **Desktop config:** optional root `tauri.conf.json` for `productName`, `identifier`, and icon; Cargo name stays in sync for Dock / Cmd-Tab.
+- **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview, not fullscreen or browser tabs.
+- **Desktop history buttons:** back/forward stay available in Tauri fullscreen; app-bar shows them only in a live Tauri webview.
 
 ### ✨ Feature
 
-- **CLI companion:** `shellui start` can spawn (or follow) a colocated app via CLI-only `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`). The shell exits when that process or URL dies; config-file restarts keep the companion running. (`--no-run` is avoided: cac treats it as a negation of `--run <command>` and breaks plain `shellui start`.)
-- **Theming v1:** curated themes as versioned OKLCH JSON (47 themes including Shellui brand, shadcn defaults, and [tweakcn](https://tweakcn.com) community palettes), flexible config (`theme` / `themes` / `themesDir` / `activeTheme`), shadcn-compatible tokens, and a scaled Appearance theme selector.
-- **Sidebar layout:** rebuild on the current shadcn/ui sidebar primitives — desktop icon-collapse + rail (`⌘B` / `Ctrl+B`), drag-to-resize when expanded (230–480px), mobile sheet, and themed CSS variables. Custom mobile bottom navigation removed.
-- **Desktop app chrome:** macOS Tauri windows use an overlay titlebar (traffic lights vertically centered in the 42px chrome; web controls get a 2px top pad for optical alignment). When the sidebar is collapsed, a full-width 42px top bar holds Back/Forward + open-sidebar; when expanded, those controls stay in the sidebar header. A full-width invisible 42px top drag strip is mounted at the app root so it works on every page (including error screens). Back/Forward restore iframe and shell history so login pages in embedded apps are not a dead end.
-- **App-bar layout:** 42px chrome bar with text start links (left sheet on mobile), title-only brand (no logo), icon end links, and the same Tauri traffic-light / Back/Forward / drag treatment as the sidebar.
-- **Identity-hosted login flow:** shell and CLI clients use identity-service authorize → provider callback → account confirmation → token bounce. Shell `OAuthCallbackView` accepts fragment landings from identity (`hashHasOAuthTokens`); CLI `shellui login` opens authorize without `provider` so identity shows the method picker (`--provider` skips it). Loopback callbacks no longer require a running shell `loginUrl`.
+- **CLI companion:** `shellui start` can spawn or follow a colocated app via `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`).
+- **Theming v1:** curated OKLCH JSON themes (47 including Shellui, shadcn, and [tweakcn](https://tweakcn.com)), flexible config, and Appearance theme selector.
+- **Sidebar layout:** rebuild on shadcn sidebar — icon-collapse + rail (`⌘B`), drag-to-resize, mobile sheet; custom mobile bottom nav removed.
+- **Desktop app chrome:** macOS overlay titlebar, collapsed top bar with Back/Forward, full-width drag strip, and iframe/shell history restore.
+- **App-bar layout:** 42px chrome with text start links, title-only brand, icon end links, and the same Tauri treatment as sidebar.
+- **Identity-hosted login:** authorize → callback → confirmation → token bounce; CLI `shellui login` opens the identity method picker (`--provider` skips it).
 
 ### 🐛 Bug Fixes
 
-- **Mobile / iOS fullscreen height:** layout shells, overlays, alerts, and login use CSS `--shellui-app-height` (`100dvh`) / `--shellui-overlay-max-height` instead of leftover `h-screen` / `min-h-svh` / raw viewport hacks. Bottom sheets pad the home indicator; login and access-pending use `.shellui-safe-pad`. No JS `data-shellui-display-mode` or measured height overrides — standalone uses `@media (display-mode: standalone)`. Iframe apps should still size to `100%` of the iframe (not `100vh`) and pad their own chrome.
-- **Mobile drawers:** `openDrawer` with `left` / `right` / `top` now presents as a bottom sheet below 768px (same chrome as mobile `openModal`). Horizontal freeform sizes such as `60vw` map to the default sheet height instead of an unusable side panel.
-- **Drawer drag handle:** remove the stacked Vaul default pill + custom `after:` bar so only one themed handle shows.
-- **Alert dialogs (mobile):** OK / confirm / delete / cancel dialogs are geometrically centered (modal center = screen center) with edge spacing and safe-area-aware width/max-height; height hugs content.
-- **Mobile openModal sheets:** dynamic-sizing modals always use full viewport width; only height follows content reports.
-- **Safe areas (iPhone):** cookie consent, alert dialogs, sidebar sheet/footer, mobile titlebar, toasts, and upload toaster respect `env(safe-area-inset-*)` (requires `viewport-fit=cover`).
-- **Sidebar / app-bar iframe fill:** shell uses `h-dvh` and no bottom safe-area padding around the outlet so the iframe reaches the screen edge (safe insets stay inside app content).
-- **iOS home-screen status bar:** the shell is a fixed `#root` sized by CSS `--shellui-app-height: 100dvh` (no JS height measurement). Safe-area env() is padding only: titlebars fold the top inset into the header background, the mobile sidebar sheet clears the notch, footers clear the home indicator. Overlay max heights use `--shellui-overlay-max-height`; overlay iframes fill their chrome with `height: 100%`. Standalone installs pin `<body>` via `@media (display-mode: standalone)`.
-- **CLI / core Tailwind resolve:** declare `tailwindcss` on `@shellui/cli` and `@shellui/core` so `@import "tailwindcss"` in core CSS resolves under pnpm’s isolated `node_modules` (`shellui build` no longer ENOENT).
-- **Docs build:** declare `@docusaurus/theme-common` on the docs site so swizzled theme files resolve under pnpm’s isolated `node_modules` (CI docs deploy).
-- **Auth token on deep links:** site-root embedded apps (e.g. Files at `http://localhost:5175/`) still receive the JWT when the iframe loads a path deep link (`/company/…`), so refresh on `/files/company/…` stays signed in.
-- **CLI isolation:** `shellui start` / `build` use an inline Vite config (`configFile: false`) so a colocated app’s `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` never affect the shell. Tailwind scans only `@shellui/core`. Cache is `node_modules/.vite-shellui` (not `node_modules/.vite`).
-- **Dev cache:** a colocated app Vite (default `node_modules/.vite`) no longer overwrites the shell’s prebundled deps (e.g. Settings failed to load `react-markdown`).
+- **Mobile / iOS height:** shells and overlays use `--shellui-app-height` (`100dvh`) instead of `h-screen` / viewport hacks; standalone via `@media (display-mode: standalone)`.
+- **Mobile drawers:** `openDrawer` left/right/top presents as a bottom sheet below 768px.
+- **Drawer drag handle:** remove stacked Vaul default + custom bar so only one themed handle shows.
+- **Alert dialogs (mobile):** OK/confirm/delete/cancel dialogs geometrically centered with safe-area-aware sizing.
+- **Mobile openModal sheets:** dynamic-sizing modals always use full viewport width.
+- **Safe areas (iPhone):** cookie consent, alerts, sidebar, titlebar, toasts, and upload toaster respect `env(safe-area-inset-*)`.
+- **Sidebar / app-bar iframe fill:** shell uses `h-dvh` so the iframe reaches the screen edge.
+- **CLI / core Tailwind:** declare `tailwindcss` on cli and core so `@import "tailwindcss"` resolves under pnpm.
+- **Docs build:** declare `@docusaurus/theme-common` so swizzled theme files resolve under pnpm.
+- **Auth token on deep links:** site-root embedded apps still receive the JWT on path deep links.
+- **CLI isolation:** `shellui start` / `build` use inline Vite config so colocated app tooling never affects the shell.
+- **Dev cache:** shell cache is `node_modules/.vite-shellui` so colocated Vite no longer overwrites shell deps.
 
 ### 🚨 Changed
 
-- CSS variables are full colors (`oklch(...)` / hex) consumed via `var(--token)` (no longer HSL channel triples).
-- Official default theme is **shellui** (gold brand). AI-generated zinc/slate/… palettes removed.
+- CSS variables are full colors (`oklch(...)` / hex) via `var(--token)` (no longer HSL channel triples).
+- Official default theme is **shellui** (gold brand); AI-generated zinc/slate/… palettes removed.
 - `shellui init` injects `theme: "shellui"`.
 
 ### 📚 Documentation
 
-- Add Shellui brand favicon (ICO + PNG sizes) to the Docusaurus docs site.
-- Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com) as the recommended theme designer and note shadcn / other shared-theme platforms.
+- Document running the shell CLI and an iframe Vite app in one package (playground example).
+- Add Shellui brand favicon to the Docusaurus docs site.
+- Rewrite themes docs for OKLCH JSON themes and the config API; credit [tweakcn](https://tweakcn.com).
 - Document sidebar desktop collapse and mobile sheet behavior.
-- Document identity-hosted OAuth login for `shellui login` (method picker, confirmation, loopback callback).
+- Document identity-hosted OAuth login for `shellui login`.
 
 ## [0.4.1] - 2026-08-18
 
