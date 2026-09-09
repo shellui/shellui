@@ -753,7 +753,12 @@ export const LoginView = () => {
                             ? t('loginPage.otherSocialLogins')
                             : t('loginPage.socialLogin')}
                         </p>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div
+                          className={cn(
+                            'grid gap-2',
+                            otherOAuthProviders.length > 1 && 'sm:grid-cols-2',
+                          )}
+                        >
                           {otherOAuthProviders.map((provider) => {
                             const visual = getProviderVisual(provider);
                             const label = formatProviderLabel(provider);
