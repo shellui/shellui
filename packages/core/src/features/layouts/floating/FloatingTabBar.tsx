@@ -305,7 +305,11 @@ export function FloatingTabBar({
         key={itemKey(item)}
         to={pathPrefix}
         className={rowClass}
-        onClick={close}
+        onClick={() => {
+          // Keep moreOpen until the route updates so the tab pill stays on More
+          // instead of animating back to the previous primary tab mid-navigation.
+          if (pathPrefix === activePathPrefix) close();
+        }}
         aria-current={isActive ? 'page' : undefined}
       >
         {iconEl}
@@ -315,93 +319,113 @@ export function FloatingTabBar({
   };
 
   return (
-    <div
-      data-shellui-floating-tabbar={placement}
-      data-chrome-visible={chromeVisible ? 'true' : 'false'}
-      className={cn(
-        'pointer-events-none absolute z-[45] flex justify-center',
-        placement === 'bottom' ? 'inset-x-0 bottom-0' : 'inset-x-0 top-0',
-      )}
-      style={{
-        paddingLeft: `calc(20px + var(--shellui-safe-area-left, 0px))`,
-        paddingRight: `calc(20px + var(--shellui-safe-area-right, 0px))`,
-        paddingBottom:
-          placement === 'bottom'
-            ? viewport === 'mobile'
-              ? // Half margin+safe so the bar sits lower on iPhone.
-                `calc((${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px)) / 2)`
-              : `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`
-            : undefined,
-        paddingTop:
-          placement === 'top'
-            ? `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`
-            : undefined,
-      }}
-    >
-      <nav
-        ref={navRef}
-        aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
-        className={cn(
-          'shellui-floating-glass pointer-events-auto relative flex max-w-lg items-stretch gap-1 rounded-full px-2 py-1.5',
-          placement === 'top' && 'w-auto min-w-[min(100%,28rem)] max-w-2xl scale-105',
-          placement === 'bottom' && 'w-full',
-        )}
-        style={{ height: FLOATING_TAB_BAR_HEIGHT }}
-      >
-        <FloatingTabIndicator
-          navRef={navRef}
-          activeEl={activeEl}
+    <>
+      {/*
+        Full-screen dismiss above iframe content. Document listeners never see
+        taps inside cross-origin iframes (common on iPhone), so catch them here.
+      */}
+      {moreOpen ? (
+        <div
+          aria-hidden
+          data-shellui-floating-more-dismiss=""
+          className="fixed inset-0 z-[44] cursor-pointer touch-manipulation"
+          style={{ backgroundColor: 'rgba(0,0,0,0.001)' }}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            setMoreOpen(false);
+          }}
         />
-        {primary.map(renderItem)}
-        {showMore ? (
-          <div
-            ref={(node) => setTabEl(MORE_TAB_KEY, node)}
-            className="relative z-[1] flex min-w-0 flex-1 basis-0"
-          >
-            <button
-              type="button"
-              className={cn(
-                tabClassName,
-                moreOpen || moreActive ? 'text-foreground' : 'text-muted-foreground',
-              )}
-              aria-expanded={moreOpen}
-              aria-haspopup="menu"
-              onClick={() => setMoreOpen((v) => !v)}
+      ) : null}
+      <div
+        data-shellui-floating-tabbar={placement}
+        data-chrome-visible={chromeVisible ? 'true' : 'false'}
+        className={cn(
+          'pointer-events-none absolute z-[45] flex justify-center',
+          placement === 'bottom' ? 'inset-x-0 bottom-0' : 'inset-x-0 top-0',
+        )}
+        style={{
+          paddingLeft: `calc(20px + var(--shellui-safe-area-left, 0px))`,
+          paddingRight: `calc(20px + var(--shellui-safe-area-right, 0px))`,
+          paddingBottom:
+            placement === 'bottom'
+              ? viewport === 'mobile'
+                ? // Half margin+safe so the bar sits lower on iPhone.
+                  `calc((${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px)) / 2)`
+                : `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`
+              : undefined,
+          paddingTop:
+            placement === 'top'
+              ? `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`
+              : undefined,
+        }}
+      >
+        <nav
+          ref={navRef}
+          aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
+          className={cn(
+            'shellui-floating-glass pointer-events-auto relative flex max-w-lg items-stretch gap-1 rounded-full px-2 py-1.5',
+            placement === 'top' && 'w-auto min-w-[min(100%,28rem)] max-w-2xl scale-105',
+            placement === 'bottom' && 'w-full',
+          )}
+          style={{ height: FLOATING_TAB_BAR_HEIGHT }}
+        >
+          <FloatingTabIndicator
+            navRef={navRef}
+            activeEl={activeEl}
+          />
+          {primary.map(renderItem)}
+          {showMore ? (
+            <div
+              ref={(node) => setTabEl(MORE_TAB_KEY, node)}
+              className="relative z-[1] flex min-w-0 flex-1 basis-0"
             >
-              <span className="flex size-6 shrink-0 items-center justify-center text-xl leading-none">
-                …
-              </span>
-              <span className="w-full truncate text-center leading-tight">
-                {t('develop.layout.more', { defaultValue: 'More' })}
-              </span>
-            </button>
-            {moreOpen ? (
-              <div
-                role="menu"
+              <button
+                type="button"
                 className={cn(
-                  // First child sits nearest the More control (bottom → top).
-                  'shellui-floating-glass shellui-floating-glass-menu absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col-reverse gap-0.5 overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg',
-                  placement === 'bottom' ? 'bottom-[calc(100%+0.5rem)]' : 'top-[calc(100%+0.5rem)]',
+                  tabClassName,
+                  moreOpen || moreActive ? 'text-foreground' : 'text-muted-foreground',
                 )}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+                onClick={() => setMoreOpen((v) => !v)}
               >
-                {moreOverflowItems.map(renderMoreRow)}
-                {moreOverflowItems.length > 0 && (moreEndItems.length > 0 || showAuthButton) ? (
-                  <div
-                    role="separator"
-                    className="my-1 border-t border-foreground/10"
-                  />
-                ) : null}
-                {moreEndItems.map(renderMoreRow)}
-                {showAuthButton ? (
-                  <div className="px-1 pt-1">
-                    <LoginButton variant="sidebar" />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </nav>
-    </div>
+                <span className="flex size-6 shrink-0 items-center justify-center text-xl leading-none">
+                  …
+                </span>
+                <span className="w-full truncate text-center leading-tight">
+                  {t('develop.layout.more', { defaultValue: 'More' })}
+                </span>
+              </button>
+              {moreOpen ? (
+                <div
+                  role="menu"
+                  className={cn(
+                    // First child sits nearest the More control (bottom → top).
+                    'shellui-floating-glass shellui-floating-glass-menu absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col-reverse gap-0.5 overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg',
+                    placement === 'bottom'
+                      ? 'bottom-[calc(100%+0.5rem)]'
+                      : 'top-[calc(100%+0.5rem)]',
+                  )}
+                >
+                  {moreOverflowItems.map(renderMoreRow)}
+                  {moreOverflowItems.length > 0 && (moreEndItems.length > 0 || showAuthButton) ? (
+                    <div
+                      role="separator"
+                      className="my-1 border-t border-foreground/10"
+                    />
+                  ) : null}
+                  {moreEndItems.map(renderMoreRow)}
+                  {showAuthButton ? (
+                    <div className="px-1 pt-1">
+                      <LoginButton variant="sidebar" />
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </nav>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,18 @@ import { useLayoutEffect, useRef } from 'react';
 
 type IndicatorBox = { left: number; width: number; top: number; height: number };
 
+/** Baseline travel speed for a typical adjacent hop (px / ms). */
+const INDICATOR_SPEED_PX_PER_MS = 0.85;
+/**
+ * Distance → time exponent. 1 = fully linear; lower = long hops stay relatively faster.
+ * e.g. 0.75 → 4× distance ≈ 2.8× duration instead of 4×.
+ */
+const INDICATOR_DISTANCE_EXPONENT = 0.75;
+/** Reference distance (px) where travel time matches pure linear speed. */
+const INDICATOR_DISTANCE_REF_PX = 90;
+/** Fixed settle after arrival — not mixed into travel. */
+const INDICATOR_SETTLE_MS = 80;
+
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24,10 +36,32 @@ function applyBox(pill: HTMLElement, box: IndicatorBox) {
   pill.style.height = `${box.height}px`;
 }
 
+function centerX(box: IndicatorBox): number {
+  return box.left + box.width / 2;
+}
+
+/** Sub-linear travel time: longer hops take longer, but less than 1:1 with distance. */
+function travelMsForDistance(dist: number): number {
+  if (dist < 0.5) return 0;
+  const linearRefMs = INDICATOR_DISTANCE_REF_PX / INDICATOR_SPEED_PX_PER_MS;
+  return linearRefMs * Math.pow(dist / INDICATOR_DISTANCE_REF_PX, INDICATOR_DISTANCE_EXPONENT);
+}
+
 /**
- * Shared selection pill that morphs between tabs with a stretchy bounce.
- * Mid-travel it expands to span old→new (liquid distortion), then settles
- * with a soft overshoot.
+ * Travel time grows with distance (sub-linear); settle is appended after.
+ * Keyframe offsets scale so morph timing tracks that travel window.
+ */
+function timingForDistance(dist: number): { duration: number; tMid: number; tArrive: number } {
+  const travelMs = travelMsForDistance(dist);
+  const duration = Math.round(travelMs + INDICATOR_SETTLE_MS);
+  const tArrive = travelMs <= 0 ? 0.55 : travelMs / duration;
+  return { duration, tMid: tArrive * 0.5, tArrive };
+}
+
+/**
+ * Shared selection pill that slides between tabs.
+ * Mid-travel it widens and squashes (shape morph) while the center still
+ * covers the full gap; then a short settle.
  */
 export function FloatingTabIndicator({
   navRef,
@@ -62,7 +96,9 @@ export function FloatingTabIndicator({
       return;
     }
 
-    const dx = to.left - from.left;
+    const fromCx = centerX(from);
+    const toCx = centerX(to);
+    const dx = toCx - fromCx;
     const dist = Math.abs(dx);
     if (dist < 0.5 && Math.abs(to.width - from.width) < 0.5) {
       applyBox(pill, to);
@@ -70,14 +106,16 @@ export function FloatingTabIndicator({
       return;
     }
 
-    // Union of old + new frames — the pill “smears” across the gap.
+    // Stretch toward the span while the center still travels halfway — full slide, visible morph.
     const spanLeft = Math.min(from.left, to.left);
     const spanRight = Math.max(from.left + from.width, to.left + to.width);
     const spanWidth = spanRight - spanLeft;
-    const jelly = Math.min(1.12, 1 + dist / Math.max(spanWidth * 8, 1));
-    const midWidth = spanWidth * jelly;
-    const midLeft = spanLeft - (midWidth - spanWidth) / 2;
-    const overshoot = Math.min(10, dist * 0.08) * Math.sign(dx || 1);
+    const baseMidWidth = (from.width + to.width) / 2;
+    const midWidth = baseMidWidth + (spanWidth - baseMidWidth) * 0.35;
+    const midCx = fromCx + dx * 0.5;
+    const midLeft = midCx - midWidth / 2;
+    const overshoot = Math.min(4, dist * 0.03) * Math.sign(dx || 1);
+    const { duration, tMid, tArrive } = timingForDistance(dist);
 
     animRef.current?.cancel();
 
@@ -91,20 +129,18 @@ export function FloatingTabIndicator({
           offset: 0,
         },
         {
-          // Peak liquid stretch + vertical squash.
-          transform: `translate3d(${midLeft}px, ${to.top + to.height * 0.06}px, 0) scaleY(0.82)`,
+          transform: `translate3d(${midLeft}px, ${to.top + to.height * 0.05}px, 0) scaleY(0.84)`,
           width: `${midWidth}px`,
           height: `${to.height}px`,
-          borderRadius: '1.65rem',
-          offset: 0.4,
+          borderRadius: '1.5rem',
+          offset: tMid,
         },
         {
-          // Bounce past the target, recover height.
-          transform: `translate3d(${to.left + overshoot}px, ${to.top}px, 0) scaleY(1.06)`,
-          width: `${to.width * 0.96}px`,
+          transform: `translate3d(${to.left + overshoot}px, ${to.top}px, 0) scaleY(1.05)`,
+          width: `${to.width}px`,
           height: `${to.height}px`,
           borderRadius: '9999px',
-          offset: 0.72,
+          offset: Math.min(tArrive, 0.98),
         },
         {
           transform: `translate3d(${to.left}px, ${to.top}px, 0) scaleY(1)`,
@@ -115,8 +151,9 @@ export function FloatingTabIndicator({
         },
       ],
       {
-        duration: 540,
-        easing: 'cubic-bezier(0.22, 1.4, 0.36, 1)',
+        duration,
+        // Linear timing so distance maps 1:1 to travel time (bounce lives in keyframes).
+        easing: 'linear',
         fill: 'forwards',
       },
     );
