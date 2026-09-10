@@ -62,11 +62,15 @@ import {
 /** App-bar chrome height — matches the Tauri / sidebar titlebar strip. */
 const APP_BAR_HEIGHT_PX = DESKTOP_TITLEBAR_HEIGHT_PX;
 
+export type AppBarChromeVariant = 'app-bar' | 'inset';
+
 interface AppBarLayoutProps {
   title?: string;
   appIcon?: ThemeAsset;
   logo?: ThemeAsset;
   navigation: (NavigationItem | NavigationGroup)[];
+  /** Visual chrome: default flush app-bar, or inset padded/rounded main frame. */
+  variant?: AppBarChromeVariant;
 }
 
 type NavSection =
@@ -240,7 +244,7 @@ const navTriggerClass = (active: boolean) =>
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     active
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-      : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      : 'text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground',
   );
 
 /** Text link / action used in the bar (not inside a dropdown). */
@@ -366,7 +370,7 @@ function AppBarNavCategory({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn(navTriggerClass(active), 'hover:bg-sidebar-accent/50')}
+          className={cn(navTriggerClass(active))}
           aria-expanded={open}
         >
           <span className="truncate">{label}</span>
@@ -418,7 +422,7 @@ function AppBarNavMore({
           type="button"
           variant="ghost"
           size="sm"
-          className={cn(navTriggerClass(moreActive), 'hover:bg-sidebar-accent/50')}
+          className={cn(navTriggerClass(moreActive))}
           aria-label={t('desktopChrome.more')}
           aria-expanded={open}
         >
@@ -688,7 +692,7 @@ function TopBarEndItem({
     'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-      : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground',
   );
 
   const wrap = (node: ReactNode) => <AppBarTooltip label={label}>{node}</AppBarTooltip>;
@@ -741,7 +745,12 @@ function TopBarEndItem({
   );
 }
 
-export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) {
+export function AppBarLayout({
+  title,
+  appIcon,
+  navigation,
+  variant = 'app-bar',
+}: AppBarLayoutProps) {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
@@ -751,6 +760,7 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   const overlay = useMacOverlayChrome();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
+  const isInset = variant === 'inset';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
     () =>
@@ -800,10 +810,17 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
+  // Keep in sync with <main> `md:mx-3` — bar content aligns to the inset card border.
+  // Extra inset from the frame edge: 20px left (brand/nav), 10px right (end links already have control padding).
+  const insetFramePadPx = 12;
+  const insetBarContentOffsetLeftPx = 20;
+  const insetBarContentOffsetRightPx = 10;
   // md+: strip owns the inset; mobile pads the header into the status band.
   const headerStyle = {
-    paddingLeft: chromeInset ?? 12,
-    paddingRight: 8,
+    paddingLeft: isInset
+      ? (chromeInset ?? insetFramePadPx) + insetBarContentOffsetLeftPx
+      : (chromeInset ?? 12),
+    paddingRight: isInset ? insetFramePadPx + insetBarContentOffsetRightPx : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
           paddingTop: `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`,
@@ -818,14 +835,28 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
   return (
     <div
       data-shellui-app-bar-layout=""
-      className="flex h-full max-h-full flex-col overflow-hidden bg-background"
+      data-shellui-layout-variant={variant}
+      className={cn(
+        'flex h-full max-h-full flex-col overflow-hidden',
+        isInset ? 'bg-shellui-inset-chrome' : 'bg-background',
+      )}
     >
       <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
-      <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
+      <SafeAreaTopbarStrip
+        enabled={showSafeAreaTopbar}
+        className={
+          isInset ? '[&>div]:border-transparent [&>div]:bg-shellui-inset-chrome' : undefined
+        }
+      />
       <header
-        className="relative z-[46] flex w-full shrink-0 items-center gap-1.5 border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none"
+        className={cn(
+          'relative z-[46] flex w-full shrink-0 items-center gap-1.5 text-sidebar-foreground select-none',
+          isInset
+            ? 'border-b border-transparent bg-transparent'
+            : 'border-b border-sidebar-border bg-sidebar',
+        )}
         style={headerStyle}
-        data-layout="app-bar"
+        data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
         {...(trafficLights ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
       >
         {appIcon ? (
@@ -893,7 +924,15 @@ export function AppBarLayout({ title, appIcon, navigation }: AppBarLayoutProps) 
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <main
+        className={cn(
+          'flex min-h-0 flex-1 flex-col overflow-hidden',
+          // Desktop inset: float the content frame on the chrome tray (same as sidebar-inset).
+          // `md:mx-3` (12px) must match `insetFramePadPx` on the header above.
+          isInset &&
+            'bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
+        )}
+      >
         <Outlet />
       </main>
     </div>

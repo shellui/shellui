@@ -172,8 +172,8 @@
     },
     "LayoutType": {
       "type": "string",
-      "enum": ["sidebar", "fullscreen", "windows", "app-bar"],
-      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links."
+      "enum": ["sidebar", "sidebar-inset", "fullscreen", "windows", "app-bar", "app-bar-inset"],
+      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame that reveals the chrome background; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset."
     },
     "NavigationItem": {
       "type": "object",

@@ -10,6 +10,9 @@ import { LayoutFallback } from './LayoutFallback';
 const SidebarLayout = lazy(() =>
   import('./sidebar/SidebarLayout').then((m) => ({ default: m.SidebarLayout })),
 );
+const SidebarInsetLayout = lazy(() =>
+  import('./sidebar-inset/SidebarInsetLayout').then((m) => ({ default: m.SidebarInsetLayout })),
+);
 const FullscreenLayout = lazy(() =>
   import('./fullscreen/FullscreenLayout').then((m) => ({ default: m.FullscreenLayout })),
 );
@@ -18,6 +21,9 @@ const WindowsLayout = lazy(() =>
 );
 const AppBarLayout = lazy(() =>
   import('./appbar/AppBarLayout').then((m) => ({ default: m.AppBarLayout })),
+);
+const AppBarInsetLayout = lazy(() =>
+  import('./app-bar-inset/AppBarInsetLayout').then((m) => ({ default: m.AppBarInsetLayout })),
 );
 
 interface AppLayoutProps {
@@ -29,7 +35,7 @@ interface AppLayoutProps {
   children?: React.ReactNode;
 }
 
-/** Renders the layout based on settings.layout (override) or config.layout: 'sidebar' (default), 'fullscreen', or 'windows'. Lazy-loads only the active layout. */
+/** Renders the layout based on settings.layout (override) or config.layout. Lazy-loads only the active layout. */
 export function AppLayout({
   layout = 'sidebar',
   title,
@@ -53,6 +59,12 @@ export function AppLayout({
     layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   } else if (effectiveLayout === 'app-bar') {
     LayoutComponent = AppBarLayout;
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
+  } else if (effectiveLayout === 'app-bar-inset') {
+    LayoutComponent = AppBarInsetLayout;
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
+  } else if (effectiveLayout === 'sidebar-inset') {
+    LayoutComponent = SidebarInsetLayout;
     layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   } else {
     LayoutComponent = SidebarLayout;

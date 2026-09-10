@@ -32,6 +32,8 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
+- **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
+- **App-bar inset layout:** app-bar twin with the same inset chrome tray and rounded content frame (`layout: "app-bar-inset"`).
 - **CLI companion:** `shellui start` can spawn or follow a colocated app via `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`).
 - **Theming v1:** curated OKLCH JSON themes (47 including Shellui, shadcn, and [tweakcn](https://tweakcn.com)), flexible config, and Appearance theme selector.
 - **Sidebar layout:** rebuild on shadcn sidebar — icon-collapse + rail (`⌘B`), drag-to-resize, mobile sheet; custom mobile bottom nav removed.

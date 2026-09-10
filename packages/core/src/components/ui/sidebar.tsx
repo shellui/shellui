@@ -236,7 +236,7 @@ function SidebarProvider({
           className={cn(
             // #root owns the screen height (see index.html); fill it rather than
             // re-deriving it from a viewport unit.
-            'group/sidebar-wrapper flex h-full min-h-0 w-full has-data-[variant=inset]:bg-sidebar',
+            'group/sidebar-wrapper flex h-full min-h-0 w-full has-data-[variant=inset]:bg-shellui-inset-chrome',
             className,
           )}
           {...props}
@@ -332,9 +332,12 @@ function Sidebar({
           'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear group-data-[resizing]/sidebar-wrapper:transition-none',
           'group-data-[collapsible=offcanvas]:w-0',
           'group-data-[side=right]:rotate-180',
-          variant === 'floating' || variant === 'inset'
+          variant === 'floating'
             ? 'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
-            : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
+            : variant === 'inset'
+              ? // Collapsed: only left chrome pad — inset ml provides the gap before the card (keeps L/R even).
+                'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(3)))]'
+              : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
         )}
       />
       <div
@@ -345,9 +348,12 @@ function Sidebar({
             ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
             : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
           // Adjust the padding for floating and inset variants.
-          variant === 'floating' || variant === 'inset'
+          variant === 'floating'
             ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
-            : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l',
+            : variant === 'inset'
+              ? // Expanded: pad all sides. Collapsed: drop right pad so card ml-3 matches right gutter.
+                'p-3 group-data-[collapsible=icon]:pr-0 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(3)))]'
+              : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l',
           className,
         )}
         {...props}
@@ -355,7 +361,11 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm"
+          className={cn(
+            'flex h-full w-full flex-col bg-sidebar',
+            'group-data-[variant=inset]:bg-transparent',
+            'group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow-sm',
+          )}
         >
           {children}
         </div>
@@ -391,7 +401,17 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
   );
 }
 
-function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
+function SidebarRail({
+  className,
+  placement = 'sidebar',
+  side: sideProp = 'left',
+  ...props
+}: React.ComponentProps<'button'> & {
+  /** Where the rail attaches. `inset` sits on the main frame edge (sidebar-inset layout). */
+  placement?: 'sidebar' | 'inset';
+  /** Used when `placement="inset"` (no `[data-side]` ancestor). */
+  side?: 'left' | 'right';
+}) {
   const { toggleSidebar, state, width, setWidth, setIsResizing } = useSidebar();
   const dragRef = React.useRef<{
     startX: number;
@@ -403,21 +423,24 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
   const widthRef = React.useRef(width);
   widthRef.current = width;
 
+  const resolveSide = (event: React.PointerEvent<HTMLButtonElement>): 'left' | 'right' => {
+    if (placement === 'inset') return sideProp;
+    return (event.currentTarget.closest('[data-side]') as HTMLElement | null)?.dataset.side ===
+      'right'
+      ? 'right'
+      : 'left';
+  };
+
   const onPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
     // Collapsed rail keeps click-to-expand; only resize when expanded.
     if (state !== 'expanded') return;
 
-    const side =
-      (event.currentTarget.closest('[data-side]') as HTMLElement | null)?.dataset.side === 'right'
-        ? 'right'
-        : 'left';
-
     didDragRef.current = false;
     dragRef.current = {
       startX: event.clientX,
       startWidth: width,
-      side,
+      side: resolveSide(event),
       pointerId: event.pointerId,
     };
     setIsResizing(true);
@@ -462,6 +485,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
       data-sidebar="rail"
       data-slot="sidebar-rail"
       data-shellui-no-drag=""
+      data-placement={placement}
       aria-label={state === 'expanded' ? 'Resize Sidebar' : 'Toggle Sidebar'}
       tabIndex={-1}
       title={state === 'expanded' ? 'Drag to resize' : 'Toggle Sidebar'}
@@ -478,12 +502,25 @@ function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
       className={cn(
-        'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex',
-        'in-data-[side=left]:cursor-col-resize in-data-[side=right]:cursor-col-resize',
-        '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
-        'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
-        '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
-        '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+        placement === 'inset'
+          ? cn(
+              // Sit on the inset frame edge so the hover line follows the rounded card,
+              // instead of cutting through the chrome gap from the sidebar.
+              'absolute inset-y-0 z-20 hidden w-3 md:flex',
+              sideProp === 'left' ? 'left-0 cursor-col-resize' : 'right-0 cursor-col-resize',
+              'after:absolute after:inset-y-0 after:w-[2px] hover:after:bg-border',
+              sideProp === 'left' ? 'after:left-0' : 'after:right-0',
+              state === 'collapsed' &&
+                (sideProp === 'left' ? 'cursor-e-resize' : 'cursor-w-resize'),
+            )
+          : cn(
+              'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex',
+              'in-data-[side=left]:cursor-col-resize in-data-[side=right]:cursor-col-resize',
+              '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
+              'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
+              '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
+              '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+            ),
         className,
       )}
       {...props}
@@ -497,7 +534,9 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
       data-slot="sidebar-inset"
       className={cn(
         'relative flex w-full flex-1 flex-col bg-background',
-        'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
+        // Inset layout: float the main frame on a darkened chrome tray.
+        // Expanded: ml-0 — sidebar's own right pad is the gap. Collapsed: ml-3 matches right/top/bottom.
+        'md:peer-data-[variant=inset]:m-3 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-2xl md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-border md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-3',
         className,
       )}
       {...props}

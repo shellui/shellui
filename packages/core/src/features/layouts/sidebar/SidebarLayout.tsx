@@ -39,6 +39,7 @@ import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
 } from '../chrome/constants';
+import { cn } from '../../../lib/utils';
 
 /** Close the mobile sheet when the route changes. */
 function CloseMobileSidebarOnNavigate() {
@@ -81,7 +82,12 @@ function CollapsedTitlebarOffset() {
   return null;
 }
 
-const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps) => {
+const SidebarLayoutContent = ({
+  title,
+  appIcon,
+  navigation,
+  variant = 'sidebar',
+}: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
@@ -131,7 +137,12 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   return (
     <div
       data-shellui-sidebar-layout=""
-      className="flex h-full max-h-full flex-col overflow-hidden"
+      data-shellui-layout-variant={variant}
+      className={cn(
+        'flex h-full max-h-full flex-col overflow-hidden',
+        // Inset chrome: darkened tray so the main frame (and in-app sidebars) separate cleanly.
+        variant === 'inset' && 'bg-shellui-inset-chrome',
+      )}
     >
       <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
       {/*
@@ -139,7 +150,14 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
         top safe-area, painted with sidebar background. Height is 0 when the inset
         is 0; overflow clips the border so no stray hairline.
       */}
-      <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
+      <SafeAreaTopbarStrip
+        enabled={showSafeAreaTopbar}
+        className={
+          variant === 'inset'
+            ? '[&>div]:border-transparent [&>div]:bg-shellui-inset-chrome'
+            : undefined
+        }
+      />
       <SidebarProvider className="min-h-0 flex-1 overflow-hidden">
         <CloseMobileSidebarOnNavigate />
         <CloseMobileSidebarOnOverlay />
@@ -147,6 +165,7 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
         <CollapsedDesktopTitlebar />
         <Sidebar
           collapsible="icon"
+          variant={variant}
           className="border-sidebar-border"
         >
           <SidebarInner
@@ -156,10 +175,11 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
             title={title}
             appIcon={appIcon}
           />
-          <SidebarRail />
+          {variant !== 'inset' ? <SidebarRail /> : null}
         </Sidebar>
 
         <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {variant === 'inset' ? <SidebarRail placement="inset" /> : null}{' '}
           {/*
             Mobile top chrome: extend the header background into the status-bar band
             so there is no empty strip. Interactive controls stay below the inset via
@@ -187,7 +207,6 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
             />
             {isTauriEnv ? <DesktopHistoryButtons /> : null}
           </header>
-
           {/*
             Fill to the physical bottom — do not pad safe-area here or the iframe
             looks cut off. In-app content (settings, etc.) owns bottom safe insets.
@@ -201,13 +220,20 @@ const SidebarLayoutContent = ({ title, appIcon, navigation }: SidebarLayoutProps
   );
 };
 
-export function SidebarLayout({ title, appIcon, logo, navigation }: SidebarLayoutProps) {
+export function SidebarLayout({
+  title,
+  appIcon,
+  logo,
+  navigation,
+  variant = 'sidebar',
+}: SidebarLayoutProps) {
   return (
     <SidebarLayoutContent
       title={title}
       appIcon={appIcon}
       logo={logo}
       navigation={navigation}
+      variant={variant}
     />
   );
 }

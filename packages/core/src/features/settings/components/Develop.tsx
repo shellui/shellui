@@ -151,17 +151,34 @@ export const Develop = () => {
         >
           {t('develop.layout.title')}
         </h3>
-        <div className="flex flex-wrap gap-2">
-          {(['sidebar', 'app-bar', 'windows'] as const).map((layoutMode) => (
-            <Button
-              key={layoutMode}
-              variant={effectiveLayout === layoutMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => updateSetting('layout', layoutMode as LayoutType)}
-            >
-              {t(`develop.layout.${layoutMode}`)}
-            </Button>
-          ))}
+        <p className="mb-3 text-sm text-muted-foreground">{t('develop.layout.description')}</p>
+        <div
+          role="group"
+          aria-label={t('develop.layout.title')}
+          className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-border/70 bg-muted/40 p-1"
+        >
+          {(['sidebar', 'sidebar-inset', 'app-bar', 'app-bar-inset', 'windows'] as const).map(
+            (layoutMode) => {
+              const active = effectiveLayout === layoutMode;
+              return (
+                <Button
+                  key={layoutMode}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-pressed={active}
+                  className={
+                    active
+                      ? 'bg-background text-foreground shadow-sm hover:bg-background'
+                      : 'text-muted-foreground hover:bg-transparent hover:text-foreground'
+                  }
+                  onClick={() => updateSetting('layout', layoutMode as LayoutType)}
+                >
+                  {t(`develop.layout.${layoutMode}`)}
+                </Button>
+              );
+            },
+          )}
         </div>
       </div>
 

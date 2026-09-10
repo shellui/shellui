@@ -271,10 +271,12 @@
     },
     "layout": {
       "title": "Disposition",
-      "description": "Basculer entre la disposition avec barre latérale et la disposition fenêtres (barre des tâches). Remplace la config de l'app pour cette session.",
+      "description": "Basculer entre barre latérale, encadrés, barre d'app et fenêtres. Remplace la config de l'app pour cette session.",
       "sidebar": "Barre latérale",
+      "sidebar-inset": "Barre latérale encadrée",
       "windows": "Fenêtres (expérimental)",
-      "app-bar": "Barre d'app"
+      "app-bar": "Barre d'app",
+      "app-bar-inset": "Barre d'app encadrée"
     },
     "logging": {
       "title": "Journalisation",

@@ -43,6 +43,15 @@
   --sidebar-border: oklch(0.9276 0.0059 264.5182);
   --sidebar-ring: oklch(0.6894 0.1397 83.6763);
   --sidebar: var(--sidebar-background);
+  /* Tray behind inset content — slight darken of sidebar for edge contrast. */
+  --shellui-inset-chrome: color-mix(in oklch, var(--sidebar) 97%, black);
+  /* Hover / selected chips on the inset tray — subtle contrast against chrome. */
+  --shellui-inset-accent: color-mix(
+    in oklch,
+    var(--shellui-inset-chrome) 90%,
+    var(--sidebar-foreground)
+  );
+  --shellui-inset-accent-foreground: var(--sidebar-foreground);
 }
 
 .dark {
@@ -75,6 +84,15 @@
   --sidebar-border: oklch(0.2781 0.0296 256.8577);
   --sidebar-ring: oklch(0.8061 0.1364 84.8895);
   --sidebar: var(--sidebar-background);
+  /* Dark: lift the tray slightly — sidebar is already lighter than background, so darkening hides the edge. */
+  --shellui-inset-chrome: color-mix(in oklch, var(--sidebar) 88%, white);
+  /* Hover / selected chips on the inset tray — subtle contrast against chrome. */
+  --shellui-inset-accent: color-mix(
+    in oklch,
+    var(--shellui-inset-chrome) 88%,
+    var(--sidebar-foreground)
+  );
+  --shellui-inset-accent-foreground: var(--sidebar-foreground);
 }
 
 /*
@@ -185,6 +203,16 @@
     filter: brightness(0.95);
   }
 
+  /* Shell chrome nav uses its own accent hover — don't stack the global brightness. */
+  [data-shellui-sidebar-layout] button:hover,
+  [data-shellui-sidebar-layout] [role='button']:hover,
+  [data-shellui-app-bar-layout] button:hover,
+  [data-shellui-app-bar-layout] [role='button']:hover,
+  [data-shellui-collapsed-titlebar] button:hover,
+  [data-shellui-collapsed-titlebar] [role='button']:hover {
+    filter: none;
+  }
+
   /* Playful input styling */
   input,
   textarea,
@@ -246,11 +274,29 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar: var(--sidebar);
+  --color-shellui-inset-chrome: var(--shellui-inset-chrome);
 
   /* Border radius tokens */
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+}
+
+/* Inset layouts: keep Tauri collapsed titlebar on the chrome tray. */
+[data-shellui-layout-variant='inset'] [data-shellui-collapsed-titlebar] {
+  background-color: var(--shellui-inset-chrome);
+  border-bottom-color: transparent;
+}
+
+/*
+ * Inset layouts: remap sidebar accent tokens so hover / selected nav chips
+ * contrast against --shellui-inset-chrome (transparent sidebar / app-bar).
+ */
+[data-shellui-layout-variant='inset'] {
+  --sidebar-accent: var(--shellui-inset-accent);
+  --sidebar-accent-foreground: var(--shellui-inset-accent-foreground);
+  --color-sidebar-accent: var(--shellui-inset-accent);
+  --color-sidebar-accent-foreground: var(--shellui-inset-accent-foreground);
 }
 
 /*

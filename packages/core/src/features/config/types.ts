@@ -10,8 +10,14 @@ export type LocalizedString =
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links. */
-export type LayoutType = 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset. */
+export type LayoutType =
+  | 'sidebar'
+  | 'sidebar-inset'
+  | 'fullscreen'
+  | 'windows'
+  | 'app-bar'
+  | 'app-bar-inset';
 
 export interface NavigationItem {
   label: string | LocalizedString;

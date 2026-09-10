@@ -257,8 +257,8 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
-  /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'. When set, overrides config.layout (e.g. from Develop settings). */
-  layout?: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
+  /** Override layout at runtime: 'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset'. When set, overrides config.layout (e.g. from Develop settings). */
+  layout?: 'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset';
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
     items: SettingsNavigationItem[];
