@@ -319,24 +319,25 @@ export function FloatingTabBar({
                 role="menu"
                 className={cn(
                   // Anchor to the More control’s right edge and grow left so the sheet
-                  // stays inside the viewport on narrow phones.
-                  'shellui-floating-glass absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col gap-0.5 overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg',
+                  // stays inside the viewport on narrow phones. flex-col-reverse stacks
+                  // items from the tab bar upward (bottom → top).
+                  'shellui-floating-glass absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col-reverse gap-0.5 overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg',
                   placement === 'bottom' ? 'bottom-[calc(100%+0.5rem)]' : 'top-[calc(100%+0.5rem)]',
                 )}
               >
-                {overflow.map(renderMoreRow)}
+                {showAuthButton ? (
+                  <div className="px-1 pb-1">
+                    <LoginButton variant="sidebar" />
+                  </div>
+                ) : null}
+                {endItems.map(renderMoreRow)}
                 {overflow.length > 0 && (endItems.length > 0 || showAuthButton) ? (
                   <div
                     role="separator"
                     className="my-1 border-t border-foreground/10"
                   />
                 ) : null}
-                {endItems.map(renderMoreRow)}
-                {showAuthButton ? (
-                  <div className="px-1 pt-1">
-                    <LoginButton variant="sidebar" />
-                  </div>
-                ) : null}
+                {overflow.map(renderMoreRow)}
               </div>
             ) : null}
           </div>
