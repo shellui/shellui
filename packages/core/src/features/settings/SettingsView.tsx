@@ -230,7 +230,7 @@ export const SettingsView = () => {
   }, [navigate]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden items-start">
+    <div className="flex h-full w-full overflow-hidden items-start md:pr-[var(--shellui-inset-right,0px)] md:pb-[var(--shellui-inset-bottom,0px)] md:pl-[var(--shellui-inset-left,0px)]">
       {/* Desktop settings nav — local provider so this works outside the shell sidebar layout */}
       <SidebarProvider className="hidden h-full min-h-0 w-auto shrink-0 md:flex">
         <Sidebar
@@ -276,10 +276,10 @@ export const SettingsView = () => {
         {isSettingsRoot ? (
           // Show list of settings pages
           <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-            <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
+            <header className="flex min-h-16 shrink-0 items-center justify-center border-b px-4 pt-[var(--shellui-inset-top,0px)]">
               <h1 className="text-lg font-semibold">{t('title')}</h1>
             </header>
-            <div className="flex flex-1 flex-col gap-6 p-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]">
+            <div className="flex flex-1 flex-col gap-6 p-4 pb-[max(1.5rem,calc(1rem+max(var(--shellui-inset-bottom,0px),env(safe-area-inset-bottom,0px))))] pl-[max(1rem,max(var(--shellui-inset-left,0px),env(safe-area-inset-left,0px)))] pr-[max(1rem,max(var(--shellui-inset-right,0px),env(safe-area-inset-right,0px)))]">
               {groupedRoutes.map((group) => (
                 <div
                   key={group.title}
@@ -333,7 +333,7 @@ export const SettingsView = () => {
         ) : (
           // Show selected settings page with back button
           <div className="flex h-full flex-1 flex-col overflow-hidden">
-            <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+            <header className="flex min-h-16 shrink-0 items-center gap-2 border-b px-4 pt-[var(--shellui-inset-top,0px)]">
               <Button
                 variant="ghost"
                 size="icon"
@@ -349,7 +349,7 @@ export const SettingsView = () => {
                 'flex flex-1 flex-col overflow-hidden',
                 selectedItem?.path?.startsWith('app-')
                   ? 'min-h-0'
-                  : 'gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+env(safe-area-inset-bottom,0px)))] pl-[max(1rem,env(safe-area-inset-left,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))]',
+                  : 'gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+max(var(--shellui-inset-bottom,0px),env(safe-area-inset-bottom,0px))))] pl-[max(1rem,max(var(--shellui-inset-left,0px),env(safe-area-inset-left,0px)))] pr-[max(1rem,max(var(--shellui-inset-right,0px),env(safe-area-inset-right,0px)))]',
               )}
             >
               <Routes>
@@ -380,7 +380,7 @@ export const SettingsView = () => {
       {/* Desktop Main Content */}
       <main className="hidden md:flex h-full flex-1 flex-col overflow-hidden">
         {selectedItem && (
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+          <header className="flex min-h-16 shrink-0 items-center gap-2 pt-[var(--shellui-inset-top,0px)] transition-[width,height] ease-linear">
             <div className="flex items-center gap-2 px-4">
               <Breadcrumb>
                 <BreadcrumbList>

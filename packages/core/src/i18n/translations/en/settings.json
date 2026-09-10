@@ -271,12 +271,14 @@
     },
     "layout": {
       "title": "Layout",
-      "description": "Switch between sidebar, inset, app bar, and windows layouts. This overrides the app config for this session.",
+      "description": "Switch between sidebar, inset, app bar, floating, and windows layouts. This overrides the app config for this session.",
       "sidebar": "Sidebar",
       "sidebar-inset": "Sidebar inset",
       "windows": "Windows (experimental)",
       "app-bar": "App bar",
-      "app-bar-inset": "App bar inset"
+      "app-bar-inset": "App bar inset",
+      "floating": "Floating",
+      "more": "More"
     },
     "logging": {
       "title": "Logging",

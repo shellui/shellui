@@ -19,13 +19,15 @@ import { StoragePickerTestButtons } from './develop/StoragePickerTestButtons';
 import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
 import type { LayoutType } from '../../config/types';
+import { normalizeLayoutType } from '../../config/types';
 
 export const Develop = () => {
   const { t } = useTranslation('settings');
   const { settings, updateSetting } = useSettings();
   const { config } = useConfig();
   const currentLanguage = settings.language?.code || 'en';
-  const effectiveLayout: LayoutType = settings.layout ?? config?.layout ?? 'sidebar';
+  const effectiveLayout: LayoutType =
+    normalizeLayoutType(settings.layout ?? config?.layout) ?? 'sidebar';
   const navItems = config?.navigation?.length
     ? flattenNavigationItems(config?.navigation ?? []).filter(
         (item, index, self) => index === self.findIndex((i) => i.path === item.path),
@@ -157,28 +159,28 @@ export const Develop = () => {
           aria-label={t('develop.layout.title')}
           className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-border/70 bg-muted/40 p-1"
         >
-          {(['sidebar', 'sidebar-inset', 'app-bar', 'app-bar-inset', 'windows'] as const).map(
-            (layoutMode) => {
-              const active = effectiveLayout === layoutMode;
-              return (
-                <Button
-                  key={layoutMode}
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-pressed={active}
-                  className={
-                    active
-                      ? 'bg-background text-foreground shadow-sm hover:bg-background'
-                      : 'text-muted-foreground hover:bg-transparent hover:text-foreground'
-                  }
-                  onClick={() => updateSetting('layout', layoutMode as LayoutType)}
-                >
-                  {t(`develop.layout.${layoutMode}`)}
-                </Button>
-              );
-            },
-          )}
+          {(
+            ['sidebar', 'sidebar-inset', 'app-bar', 'app-bar-inset', 'floating', 'windows'] as const
+          ).map((layoutMode) => {
+            const active = effectiveLayout === layoutMode;
+            return (
+              <Button
+                key={layoutMode}
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-pressed={active}
+                className={
+                  active
+                    ? 'bg-background text-foreground shadow-sm hover:bg-background'
+                    : 'text-muted-foreground hover:bg-transparent hover:text-foreground'
+                }
+                onClick={() => updateSetting('layout', layoutMode as LayoutType)}
+              >
+                {t(`develop.layout.${layoutMode}`)}
+              </Button>
+            );
+          })}
         </div>
       </div>
 

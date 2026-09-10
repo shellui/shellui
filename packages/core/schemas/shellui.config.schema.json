@@ -172,8 +172,16 @@
     },
     "LayoutType": {
       "type": "string",
-      "enum": ["sidebar", "sidebar-inset", "fullscreen", "windows", "app-bar", "app-bar-inset"],
-      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame that reveals the chrome background; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset."
+      "enum": [
+        "sidebar",
+        "sidebar-inset",
+        "fullscreen",
+        "windows",
+        "app-bar",
+        "app-bar-inset",
+        "floating"
+      ],
+      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame that reveals the chrome background; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass navigation over full-bleed content (bottom-centered tabs on phone and tablet, floating sidebar on desktop) with layout-chrome safe insets for iframe apps."
     },
     "NavigationItem": {
       "type": "object",

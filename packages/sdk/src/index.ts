@@ -34,9 +34,16 @@ import type {
   LoginOptions,
   StorageSelectOptions,
   StorageSelectResult,
+  LayoutChrome,
+  ContentScrollPayload,
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
+import {
+  applyLayoutChromeStyles,
+  getScrollMetrics,
+  scrollDirectionFromDelta,
+} from './layoutChrome.js';
 
 import packageJson from '../package.json';
 
@@ -79,7 +86,24 @@ export type {
   SettingsTheme,
   SettingsAvailableTheme,
   Appearance,
+  LayoutChrome,
+  LayoutChromeInsets,
+  LayoutChromeViewport,
+  LayoutChromePayload,
+  ContentScrollPayload,
 } from './types.js';
+
+export {
+  applyLayoutChromeStyles,
+  ensureLayoutChromePadStyles,
+  getScrollMetrics,
+  reduceScrollChromeVisibility,
+  scrollDirectionFromDelta,
+  LAYOUT_CHROME_CSS_VARS,
+  LAYOUT_CHROME_PAD_CLASS,
+} from './layoutChrome.js';
+
+export type { ScrollChromeState, ScrollMetrics, ContentScrollDirection } from './layoutChrome.js';
 
 /** Iframe helpers for content-sized modal/drawer overlays. */
 export const overlay = {
@@ -116,6 +140,10 @@ export class ShellUISDK {
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
   storage: StorageClient;
+  /** Cached layout chrome from settings / SHELLUI_LAYOUT_CHROME. */
+  layoutChrome: LayoutChrome | null = null;
+  private _autoLayoutPadding = true;
+  private _lastReportedScrollY = 0;
 
   constructor() {
     this.currentPath =
@@ -130,14 +158,21 @@ export class ShellUISDK {
     this.storage = new StorageClient(createPostMessageTransport(this));
   }
 
-  async init(): Promise<this> {
+  async init(options?: { autoLayoutPadding?: boolean }): Promise<this> {
     if (this.initialized) return this;
+
+    if (options?.autoLayoutPadding === false) {
+      this._autoLayoutPadding = false;
+    }
 
     await setupUrlMonitoring(this);
     await this.messageListenerRegistry.setupGlobalListener();
     await setupKeyListener();
     await this._setupCallbackListeners();
     await this._setupInitialSettings();
+    this._setupLayoutChromeListeners();
+    this._applyChromeFromSettings(this.initialSettings ?? undefined);
+    this._setupContentScrollReporting();
 
     this.initialized = true;
     logger.info(`Shellui SDK ${this.version} initialized`);
@@ -149,6 +184,94 @@ export class ShellUISDK {
     return Promise.resolve(this);
   }
 
+  getLayoutChrome(): LayoutChrome | null {
+    return this.layoutChrome ?? this.initialSettings?.layoutChrome ?? null;
+  }
+
+  /**
+   * Apply layout chrome CSS variables. When autoPadding is on, adds
+   * `shellui-apply-layout-chrome-pad` on `document.body` so the app content
+   * clears floating chrome (iframe stays 100% — padding is inside the app).
+   */
+  applyLayoutChrome(options?: { autoPadding?: boolean; el?: HTMLElement }): void {
+    const chrome = this.getLayoutChrome();
+    const autoPadding =
+      options?.autoPadding ?? this._autoLayoutPadding ?? chrome?.autoPadding ?? true;
+    applyLayoutChromeStyles(chrome, {
+      el: options?.el,
+      autoPadding,
+    });
+  }
+
+  /** Report iframe scroll so the shell can hide/show floating chrome (floating). */
+  reportContentScroll(payload: ContentScrollPayload): void {
+    this.sendMessageToParent({
+      type: 'SHELLUI_CONTENT_SCROLL',
+      payload,
+    });
+  }
+
+  private _applyChromeFromSettings(settings: Settings | undefined): void {
+    if (settings?.layoutChrome) {
+      this.layoutChrome = settings.layoutChrome;
+      if (this._autoLayoutPadding !== false && settings.layoutChrome.autoPadding !== false) {
+        this.applyLayoutChrome();
+      } else if (settings.layoutChrome) {
+        this.applyLayoutChrome({ autoPadding: false });
+      }
+    }
+  }
+
+  private _setupLayoutChromeListeners(): void {
+    const onChrome = (data: ShellUIMessage) => {
+      const payload = data.payload as { layoutChrome?: LayoutChrome } | undefined;
+      if (payload?.layoutChrome) {
+        this.layoutChrome = payload.layoutChrome;
+        if (this.initialSettings) {
+          this.initialSettings = { ...this.initialSettings, layoutChrome: payload.layoutChrome };
+        }
+        if (this._autoLayoutPadding !== false && payload.layoutChrome.autoPadding !== false) {
+          this.applyLayoutChrome();
+        } else {
+          this.applyLayoutChrome({ autoPadding: false });
+        }
+      }
+    };
+
+    this.addMessageListener('SHELLUI_LAYOUT_CHROME', onChrome);
+
+    const onSettings = (data: ShellUIMessage) => {
+      const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
+      this._applyChromeFromSettings(settings);
+    };
+    this.addMessageListener('SHELLUI_SETTINGS', onSettings);
+    this.addMessageListener('SHELLUI_SETTINGS_UPDATED', onSettings);
+  }
+
+  private _setupContentScrollReporting(): void {
+    if (typeof window === 'undefined' || window.parent === window) return;
+
+    let raf = 0;
+    const onScroll = (event: Event) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const metrics = getScrollMetrics(event.target);
+        if (!metrics) return;
+        const direction = scrollDirectionFromDelta(metrics.scrollY - this._lastReportedScrollY);
+        this._lastReportedScrollY = metrics.scrollY;
+        this.reportContentScroll({
+          scrollY: metrics.scrollY,
+          direction,
+          distanceFromBottom: metrics.distanceFromBottom,
+        });
+      });
+    };
+
+    // Capture nested overflow scrollers (Settings panels, etc.) — scroll does not bubble.
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+  }
+
   private async _setupInitialSettings(): Promise<void> {
     if (window.parent === window) {
       return;
@@ -158,6 +281,9 @@ export class ShellUISDK {
       const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
       if (settings) {
         this.initialSettings = settings;
+        if (settings.layoutChrome) {
+          this.layoutChrome = settings.layoutChrome;
+        }
       }
     };
 
@@ -346,7 +472,8 @@ export class ShellUISDK {
 
 const sdk = new ShellUISDK();
 
-export const init = async (): Promise<ShellUISDK> => await sdk.init();
+export const init = async (options?: { autoLayoutPadding?: boolean }): Promise<ShellUISDK> =>
+  await sdk.init(options);
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (urlOrOptions?: string | OpenModalOptions): void =>
   openModalAction(urlOrOptions);

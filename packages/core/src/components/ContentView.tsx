@@ -73,6 +73,11 @@ interface ContentViewProps {
   pathPrefix: string;
   ignoreMessages?: boolean;
   navItem: NavigationItem;
+  /**
+   * When true (default), this iframe is a main layout content frame and receives
+   * floating layout-chrome insets. Modal / drawer / picker frames set false.
+   */
+  layoutChrome?: boolean;
 }
 
 export const ContentView = ({
@@ -80,6 +85,7 @@ export const ContentView = ({
   pathPrefix,
   ignoreMessages = false,
   navItem,
+  layoutChrome = true,
 }: ContentViewProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -354,6 +360,7 @@ export const ContentView = ({
         src={iframeUrl}
         key={`${navItem?.path ?? ''}:${frameGeneration}`}
         loading="eager"
+        data-shellui-frame={layoutChrome ? 'main' : 'overlay'}
         style={{
           width: '100%',
           height: '100%',

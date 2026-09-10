@@ -1,6 +1,6 @@
 /**
  * Tiny injectable Shellui client (`dist/shellui.tiny.js`).
- * Browser-only: handshake + URL sync + theme / language / region.
+ * Browser-only: handshake + URL sync + theme / language / region / layout chrome.
  */
 
 export interface ThemeColorsMode {
@@ -32,11 +32,27 @@ export interface RegionSnapshot {
   timezone: string;
 }
 
+export interface LayoutChromeInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export interface LayoutChromeSnapshot {
+  layout: string;
+  viewport: 'mobile' | 'tablet' | 'desktop';
+  insets: LayoutChromeInsets;
+  chromeVisible: boolean;
+  autoPadding: boolean;
+}
+
 export type TinyEventMap = {
   ready: ShellUITiny;
   theme: ThemeSnapshot | null;
   language: string | null;
   region: RegionSnapshot | null;
+  chrome: LayoutChromeSnapshot | null;
 };
 
 export type TinyEvent = keyof TinyEventMap;
@@ -49,9 +65,16 @@ export interface ShellUITiny {
   readonly theme: ThemeSnapshot | null;
   readonly language: string | null;
   readonly region: RegionSnapshot | null;
+  readonly layoutChrome: LayoutChromeSnapshot | null;
   on<E extends TinyEvent>(event: E, cb: Fn<E>): () => void;
   navigate(url: string): void;
   applyTheme(el?: HTMLElement): void;
+  applyLayoutChrome(options?: { autoPadding?: boolean; el?: HTMLElement }): void;
+  reportContentScroll(payload: {
+    scrollY: number;
+    direction: 'up' | 'down' | 'none';
+    distanceFromBottom?: number;
+  }): void;
 }
 
 type Appearance = {
@@ -73,6 +96,8 @@ let path = location.pathname + location.search + location.hash;
 let theme: ThemeSnapshot | null = null;
 let language: string | null = null;
 let region: RegionSnapshot | null = null;
+let layoutChrome: LayoutChromeSnapshot | null = null;
+let autoLayoutPadding = true;
 let ready = false;
 let resolveReady!: () => void;
 const readyPromise = new Promise<void>((r) => {
@@ -95,10 +120,50 @@ const emit = (event: string, data: unknown) => {
   }
 };
 
+const LAYOUT_CHROME_PAD_CLASS = 'shellui-apply-layout-chrome-pad';
+const LAYOUT_CHROME_PAD_STYLE_ID = 'shellui-layout-chrome-pad-styles';
+
+const ensurePadStyles = () => {
+  if (document.getElementById(LAYOUT_CHROME_PAD_STYLE_ID)) return;
+  const style = document.createElement('style');
+  style.id = LAYOUT_CHROME_PAD_STYLE_ID;
+  style.textContent = `.${LAYOUT_CHROME_PAD_CLASS}{padding-top:var(--shellui-inset-top,0px);padding-right:var(--shellui-inset-right,0px);padding-bottom:var(--shellui-inset-bottom,0px);padding-left:var(--shellui-inset-left,0px);box-sizing:border-box}`;
+  (document.head || document.documentElement).appendChild(style);
+};
+
+const setChromeVars = (chrome: LayoutChromeSnapshot | null, withPadding: boolean) => {
+  ensurePadStyles();
+  const el = document.documentElement;
+  const insets = chrome?.insets ?? { top: 0, right: 0, bottom: 0, left: 0 };
+  el.style.setProperty('--shellui-inset-top', `${insets.top}px`);
+  el.style.setProperty('--shellui-inset-right', `${insets.right}px`);
+  el.style.setProperty('--shellui-inset-bottom', `${insets.bottom}px`);
+  el.style.setProperty('--shellui-inset-left', `${insets.left}px`);
+
+  const active = Boolean(
+    chrome &&
+    chrome.layout !== 'none' &&
+    (insets.top > 0 || insets.right > 0 || insets.bottom > 0 || insets.left > 0),
+  );
+  if (active) el.setAttribute('data-shellui-layout-chrome', '');
+  else el.removeAttribute('data-shellui-layout-chrome');
+
+  // Iframe stays 100%×100%; padding is inside the app via CSS class / inset vars.
+  const shouldPad = withPadding && active;
+  if (shouldPad) el.setAttribute('data-shellui-layout-chrome-pad', '');
+  else el.removeAttribute('data-shellui-layout-chrome-pad');
+
+  const body = document.body;
+  if (!body) return;
+  if (shouldPad) body.classList.add(LAYOUT_CHROME_PAD_CLASS);
+  else body.classList.remove(LAYOUT_CHROME_PAD_CLASS);
+};
+
 const applySettings = (settings?: {
   appearance?: Appearance;
   language?: { code?: string };
   region?: { timezone?: string };
+  layoutChrome?: LayoutChromeSnapshot;
 }) => {
   if (!settings) return;
   const a = settings.appearance;
@@ -115,6 +180,12 @@ const applySettings = (settings?: {
   }
   language = settings.language?.code ?? null;
   region = settings.region?.timezone ? { timezone: settings.region.timezone } : null;
+  if (settings.layoutChrome) {
+    layoutChrome = settings.layoutChrome;
+    const pad = autoLayoutPadding && settings.layoutChrome.autoPadding !== false;
+    setChromeVars(layoutChrome, pad);
+    emit('chrome', layoutChrome);
+  }
   emit('theme', theme);
   emit('language', language);
   emit('region', region);
@@ -191,13 +262,25 @@ addEventListener('message', (event: MessageEvent) => {
   const data = event.data;
   if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
   const type = data.type as string;
-  if (type !== 'SHELLUI_SETTINGS' && type !== 'SHELLUI_SETTINGS_UPDATED') return;
-  applySettings(data.payload?.settings);
-  if (!ready && type === 'SHELLUI_SETTINGS') {
-    ready = true;
-    post('SHELLUI_INITIALIZED');
-    resolveReady();
-    emit('ready', api);
+
+  if (type === 'SHELLUI_SETTINGS' || type === 'SHELLUI_SETTINGS_UPDATED') {
+    applySettings(data.payload?.settings);
+    if (!ready && type === 'SHELLUI_SETTINGS') {
+      ready = true;
+      post('SHELLUI_INITIALIZED');
+      resolveReady();
+      emit('ready', api);
+    }
+  }
+
+  if (type === 'SHELLUI_LAYOUT_CHROME') {
+    const next = data.payload?.layoutChrome as LayoutChromeSnapshot | undefined;
+    if (next) {
+      layoutChrome = next;
+      const pad = autoLayoutPadding && next.autoPadding !== false;
+      setChromeVars(layoutChrome, pad);
+      emit('chrome', layoutChrome);
+    }
   }
 });
 
@@ -205,6 +288,43 @@ if (embedded) {
   post('SHELLUI_SETTINGS_REQUESTED');
   // Share the current path as soon as the script loads (MPA cold starts / deep links).
   notifyUrl(true);
+
+  let lastY = 0;
+  let raf = 0;
+  document.addEventListener(
+    'scroll',
+    (event: Event) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const target = event.target;
+        let scrollY = 0;
+        let distanceFromBottom = 0;
+        if (
+          target === document ||
+          target === document.documentElement ||
+          target === document.body
+        ) {
+          const el = document.documentElement;
+          scrollY = window.scrollY || el.scrollTop || document.body.scrollTop || 0;
+          distanceFromBottom = Math.max(0, el.scrollHeight - window.innerHeight - scrollY);
+        } else if (target instanceof HTMLElement) {
+          scrollY = target.scrollTop;
+          distanceFromBottom = Math.max(
+            0,
+            target.scrollHeight - target.clientHeight - target.scrollTop,
+          );
+        } else {
+          return;
+        }
+        const delta = scrollY - lastY;
+        lastY = scrollY;
+        const direction = Math.abs(delta) < 8 ? 'none' : delta > 0 ? 'down' : 'up';
+        post('SHELLUI_CONTENT_SCROLL', { scrollY, direction, distanceFromBottom });
+      });
+    },
+    { capture: true, passive: true },
+  );
 } else {
   ready = true;
   resolveReady();
@@ -235,6 +355,9 @@ const api: ShellUITiny = {
   get region() {
     return region;
   },
+  get layoutChrome() {
+    return layoutChrome;
+  },
   on(event, cb) {
     (listeners[event] ??= []).push(cb as Fn<TinyEvent>);
     return () => {
@@ -262,6 +385,14 @@ const api: ShellUITiny = {
       const value = theme[prop];
       if (typeof value === 'string') el.style.setProperty(css, value);
     }
+  },
+  applyLayoutChrome(options) {
+    if (options?.autoPadding === false) autoLayoutPadding = false;
+    const pad = options?.autoPadding ?? autoLayoutPadding;
+    setChromeVars(layoutChrome, pad !== false);
+  },
+  reportContentScroll(payload) {
+    post('SHELLUI_CONTENT_SCROLL', payload);
   },
 };
 

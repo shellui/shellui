@@ -4,6 +4,7 @@ import { flattenNavigationItems } from './flattenNavigationItems';
 import { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 import { getResolvedAppearanceForSettings } from './getResolvedAppearanceForSettings';
 import { resolveLabel } from './resolveLabel';
+import { getPublishedLayoutChrome } from '../../layouts/floating/layoutChromeStore';
 
 /**
  * Build settings for propagation to iframes: inject navigation, full theme object,
@@ -16,6 +17,8 @@ export const buildSettingsForPropagation = (
   options?: {
     includeAuthAccessToken?: boolean;
     accessToken?: string | null;
+    /** When false, omit layoutChrome (modal / drawer frames). Default true. */
+    includeLayoutChrome?: boolean;
   },
 ): Settings => {
   const appearance = getResolvedAppearanceForSettings(settings, config);
@@ -23,6 +26,19 @@ export const buildSettingsForPropagation = (
     ...settings,
     appearance: appearance ?? settings.appearance,
   };
+
+  if (options?.includeLayoutChrome !== false) {
+    const layoutChrome = getPublishedLayoutChrome();
+    if (layoutChrome) {
+      result = { ...result, layoutChrome };
+    } else if ('layoutChrome' in result) {
+      const { layoutChrome: _removed, ...rest } = result;
+      result = rest;
+    }
+  } else if ('layoutChrome' in result) {
+    const { layoutChrome: _removed, ...rest } = result;
+    result = rest;
+  }
 
   // Inject available themes when we have a resolved appearance (themes are already registered above)
   if (result.appearance && typeof window !== 'undefined') {

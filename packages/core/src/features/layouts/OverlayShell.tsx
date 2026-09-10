@@ -105,6 +105,7 @@ function OverlayIframe({
             url={url}
             pathPrefix="settings"
             ignoreMessages={true}
+            layoutChrome={false}
             navItem={navItem}
           />
         </div>
@@ -163,6 +164,7 @@ function OverlayIframe({
           url={url}
           pathPrefix="settings"
           ignoreMessages={true}
+          layoutChrome={false}
           navItem={navItem}
         />
       </div>

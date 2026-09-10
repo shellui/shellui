@@ -10,14 +10,22 @@ export type LocalizedString =
 /** Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer'). */
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset. */
+/** Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass chrome over full-bleed content (bottom tabs on phone/tablet, floating sidebar on desktop). */
 export type LayoutType =
   | 'sidebar'
   | 'sidebar-inset'
   | 'fullscreen'
   | 'windows'
   | 'app-bar'
-  | 'app-bar-inset';
+  | 'app-bar-inset'
+  | 'floating';
+
+/** Map legacy layout ids (e.g. early `cupertino`) onto current LayoutType. */
+export function normalizeLayoutType(layout: string | null | undefined): LayoutType | undefined {
+  if (!layout) return undefined;
+  if (layout === 'cupertino') return 'floating';
+  return layout as LayoutType;
+}
 
 export interface NavigationItem {
   label: string | LocalizedString;

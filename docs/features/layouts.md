@@ -1,6 +1,6 @@
 # Layouts
 
-Shellui supports four layout modes: sidebar (default), fullscreen, windows desktop (experimental), and app bar. Choose the layout that best fits your application's needs.
+Shellui supports sidebar (default), fullscreen, windows desktop (experimental), app bar, and **floating** (glass chrome over full-bleed content). Choose the layout that best fits your application's needs.
 
 ## Sidebar Layout (Default)
 
@@ -33,6 +33,73 @@ const config: ShellUIConfig = {
 - Themed via sidebar CSS variables (`--sidebar-*`) for light and dark modes
 - Optional `appIcon`: small square mark at the top of the expanded sidebar (left of the collapse control); hidden when the sidebar is collapsed
 
+## Floating Layout
+
+Adaptive floating glass chrome over full-bleed content. Ideal as a demo / product shell across phone, tablet, and desktop.
+
+```typescript
+const config: ShellUIConfig = {
+  layout: 'floating',
+  navigation: [
+    { label: 'Home', path: 'home', url: '/', icon: '/icons/home.svg' },
+    { label: 'Search', path: 'search', url: '/search', icon: '/icons/search.svg' },
+  ],
+};
+```
+
+**Responsive chrome**
+
+| Viewport | Width        | Chrome                                 |
+| -------- | ------------ | -------------------------------------- |
+| Mobile   | `<768px`     | Floating bottom-centered glass tab bar |
+| Tablet   | `768–1023px` | Same bottom-centered glass tab bar     |
+| Desktop  | `≥1024px`    | Floating glass sidebar                 |
+
+**Features**
+
+- Content is edge-to-edge; chrome never shrinks the iframe frame
+- Soft top/bottom fade masks on phone/tablet hint at scrollable content
+- Selected tab / sidebar item uses a raised translucent pill
+- Hide-on-scroll: shell-owned pages (Settings, etc.) and iframe apps both drive chrome visibility; scrolling up, near the top, or near the bottom restores it
+- Switch at runtime via **Settings → Develop → Layout → Floating**
+
+### Layout chrome (safe insets)
+
+Floating publishes `layoutChrome` on `SHELLUI_SETTINGS` and updates via `SHELLUI_LAYOUT_CHROME` when the viewport, chrome visibility, or window size changes. Only the **main layout** content iframe receives it (modal / drawer / picker frames are excluded). The host never shrinks the iframe — it stays **100% × 100%** under the glass; apps apply insets **inside** their UI.
+
+```ts
+{
+  layout: 'floating',
+  viewport: 'mobile' | 'tablet' | 'desktop',
+  insets: { top, right, bottom, left }, // CSS px
+  chromeVisible: boolean,
+  autoPadding: boolean // default true
+}
+```
+
+Embedded apps using `@shellui/sdk` apply this automatically after `init()`:
+
+```js
+import { shellui } from '@shellui/sdk';
+
+await shellui.init(); // sets --shellui-inset-* and body.shellui-apply-layout-chrome-pad
+// Opt out for a fully custom layout:
+await shellui.init({ autoLayoutPadding: false });
+// Or apply manually / listen for updates:
+shellui.applyLayoutChrome();
+shellui.getLayoutChrome(); // snapshot
+```
+
+CSS variables are always written on `<html>`: `--shellui-inset-top|right|bottom|left`. Prefer these for scroll-content padding (so content can still paint under translucent chrome while the last lines clear the nav).
+
+**Inner scroll containers:** the SDK watches `window` scroll. If your app scrolls inside a nested overflow element, call:
+
+```js
+shellui.reportContentScroll({ scrollY: el.scrollTop, direction: 'down' });
+```
+
+Tiny CDN clients get the same chrome snapshot (`shellui.layoutChrome`), `applyLayoutChrome()`, `reportContentScroll()`, and a `chrome` event.
+
 ## Branding (`appIcon` / `logo`)
 
 ```json
@@ -42,7 +109,7 @@ const config: ShellUIConfig = {
 }
 ```
 
-- **`appIcon`**: Small square brand mark. Shown in the sidebar header (expanded), at the start of the app-bar, and on the windows start button.
+- **`appIcon`**: Small square brand mark. Shown in the sidebar header (expanded), at the start of the app-bar, on the windows start button, and in the floating desktop sidebar.
 - **Single path** (SVG or mono PNG): Shellui recolors it for light/dark via CSS.
 - **Paired files** (typical for full-color PNGs):
 
@@ -186,7 +253,7 @@ Set the layout in your configuration file:
 
 ```typescript
 const config: ShellUIConfig = {
-  layout: 'windows', // 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
+  layout: 'windows', // 'sidebar' | 'fullscreen' | 'windows' | 'app-bar' | 'floating'
   // ... rest of config
 };
 ```
@@ -202,7 +269,7 @@ import { useSettings } from '@shellui/core';
 function MyComponent() {
   const { settings } = useSettings();
   const effectiveLayout = settings.layout ?? config.layout;
-  // effectiveLayout will be 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
+  // effectiveLayout will be 'sidebar' | 'fullscreen' | 'windows' | 'app-bar' | 'floating' | …
 }
 ```
 
@@ -248,13 +315,20 @@ function MyComponent() {
 - **Tooltips**: End links show full name on hover via native tooltip
 - **Icons**: Set `icon` on start and end items; omit for first-letter fallback
 
+### Floating Layout
+
+- **Phone / tablet**: Floating bottom-centered glass tabs over content. Iframe stays full-bleed; apps apply `--shellui-inset-*` inside their UI (bottom tab clearance)
+- **Desktop**: Floating glass sidebar; content remains full-bleed underneath for iframes; shell pages get left inset padding
+- **Scroll**: Chrome hides when shell panels or embedded apps scroll down; insets update automatically
+- **Tabs**: Prefer a small set of top-level start items (about five); extra items go under More
+
 ## Complete Example
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
-  layout: 'sidebar', // or 'fullscreen', 'windows', or 'app-bar'
+  layout: 'sidebar', // or 'fullscreen', 'windows', 'app-bar', or 'floating'
   title: 'My App',
   navigation: [
     {
@@ -282,14 +356,16 @@ export default config;
    - Use `fullscreen` for embedded or kiosk applications
    - Use `windows` only for testing or proof-of-concept (experimental; not recommended for production)
    - Use `app-bar` for a compact top bar with horizontal start links (and icon-only end links)
+   - Use `floating` for a glass chrome shell over full-bleed content
 
 2. **Navigation items**: All layouts support the same navigation features, but visibility varies:
    - Sidebar: All items visible in sidebar
    - Fullscreen: No visible navigation, but routes work
    - Windows: Items accessible via start menu
    - App bar: Start items as horizontal links / category dropdowns (with More overflow); end items as icons with tooltips
+   - Floating: Start items as floating tabs (phone/tablet) or sidebar rows (desktop)
 
-3. **Mobile considerations**: Sidebar layout opens as a sheet from the top header on small screens
+3. **Mobile considerations**: Sidebar layout opens as a sheet from the top header on small screens; floating uses a floating bottom tab bar
 
 4. **Testing**: Test your application in all layout modes to ensure compatibility
 

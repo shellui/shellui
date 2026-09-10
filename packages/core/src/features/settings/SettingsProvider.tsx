@@ -12,6 +12,7 @@ import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
 import { isAdminFrame } from '../admin/utils';
 import { isFrameForAppUrl } from '../layouts/utils';
+import { isMainLayoutFrame } from '../layouts/floating/layoutChromeStore';
 import { defaultTheme } from '../theme/themes';
 import {
   buildSettingsForPropagation,
@@ -220,6 +221,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
           includeAuthAccessToken,
           accessToken,
+          includeLayoutChrome: isMainLayoutFrame(iframe),
         });
         shellui.sendMessage({
           type: 'SHELLUI_SETTINGS',
@@ -235,9 +237,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (iframeUuid: string, frameSrc: string, baseSettings: Settings) => {
       const lang = baseSettings.language?.code || 'en';
       const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+      const iframe = shellui.frameRegistry
+        .getAllIframes()
+        .find(([uuid]) => uuid === iframeUuid)?.[1];
       const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
         includeAuthAccessToken,
         accessToken: accessTokenRef.current,
+        includeLayoutChrome: isMainLayoutFrame(iframe),
       });
       shellui.sendMessage({
         type: 'SHELLUI_SETTINGS',
@@ -459,6 +465,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
             includeAuthAccessToken,
             accessToken: accessTokenRef.current,
+            includeLayoutChrome: isMainLayoutFrame(frame),
           });
 
           // Route through the full parent -> child -> ... -> requester path so deep descendants

@@ -37,16 +37,19 @@ await shellui.ready;
 shellui.applyTheme();
 ```
 
-| Member            | Description                                                          |
-| ----------------- | -------------------------------------------------------------------- |
-| `ready`           | Promise resolved after handshake (or immediately outside an iframe)  |
-| `initialized`     | `boolean`                                                            |
-| `theme`           | Theme snapshot (`mode`, `colorScheme`, `colors`, fonts, …) or `null` |
-| `language`        | Language code (e.g. `"en"`) or `null`                                |
-| `region`          | `{ timezone }` or `null`                                             |
-| `on(event, cb)`   | `'ready'`, `'theme'`, `'language'`, `'region'` — returns unsubscribe |
-| `navigate(url)`   | Ask the shell to navigate                                            |
-| `applyTheme(el?)` | Write CSS variables on `el` (default `<html>`) and toggle `dark`     |
+| Member                     | Description                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `ready`                    | Promise resolved after handshake (or immediately outside an iframe)              |
+| `initialized`              | `boolean`                                                                        |
+| `theme`                    | Theme snapshot (`mode`, `colorScheme`, `colors`, fonts, …) or `null`             |
+| `language`                 | Language code (e.g. `"en"`) or `null`                                            |
+| `region`                   | `{ timezone }` or `null`                                                         |
+| `layoutChrome`             | Safe-inset snapshot from the shell (`insets`, `viewport`, …) or `null`           |
+| `on(event, cb)`            | `'ready'`, `'theme'`, `'language'`, `'region'`, `'chrome'` — unsubscribe         |
+| `navigate(url)`            | Ask the shell to navigate                                                        |
+| `applyTheme(el?)`          | Write CSS variables on `el` (default `<html>`) and toggle `dark`                 |
+| `applyLayoutChrome(opts?)` | Write `--shellui-inset-*`; optional `.shellui-apply-layout-chrome-pad` on `body` |
+| `reportContentScroll(p)`   | Tell the shell about scroll (hide-on-scroll for floating)                        |
 
 URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** included — use the full SDK below for those.
 
@@ -74,9 +77,31 @@ import { shellui } from '@shellui/sdk';
 
 // Initialize SDK (required before using other features)
 await shellui.init();
+
+// Opt out of automatic body padding from layout chrome (floating safe insets):
+await shellui.init({ autoLayoutPadding: false });
 ```
 
 The SDK automatically detects if it's running in an iframe (sub-app) or the root window and handles communication accordingly.
+
+### Layout chrome (safe insets)
+
+When the shell uses a floating layout (e.g. `floating`), it publishes safe insets to the **main layout** content iframe only (not modals / drawers). The iframe stays **100% × 100%**; padding is applied **inside** the app:
+
+```javascript
+await shellui.init(); // auto-applies when layoutChrome.autoPadding is true
+
+const chrome = shellui.getLayoutChrome();
+// { layout, viewport, insets: { top, right, bottom, left }, chromeVisible, autoPadding }
+
+shellui.applyLayoutChrome(); // CSS vars + `.shellui-apply-layout-chrome-pad` on `body`
+shellui.applyLayoutChrome({ autoPadding: false }); // vars only
+
+// Nested overflow scroller (capture-phase window/document scroll is watched automatically):
+shellui.reportContentScroll({ scrollY: scroller.scrollTop, direction: 'down' });
+```
+
+CSS custom properties on `<html>`: `--shellui-inset-top`, `--shellui-inset-right`, `--shellui-inset-bottom`, `--shellui-inset-left`. Auto-padding adds the class `shellui-apply-layout-chrome-pad` on `document.body` (padding via those vars). Apps with a fixed `#root` should put that class on their scroll content (or read the vars) so the frame stays full-bleed under translucent chrome.
 
 ### Check Initialization Status
 
@@ -325,6 +350,8 @@ Common Shellui message types:
 - `SHELLUI_INITIALIZED` - SDK initialized
 - `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE` - File API (handled by the root shell)
 - `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT` - Storage picker (handled by the root shell)
+- `SHELLUI_LAYOUT_CHROME` - Shell → iframe layout chrome / safe insets update
+- `SHELLUI_CONTENT_SCROLL` - Iframe → shell scroll report (hide-on-scroll floating chrome)
 
 ## Settings Access
 

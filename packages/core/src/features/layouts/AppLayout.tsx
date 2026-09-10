@@ -1,11 +1,13 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
 import type { LayoutType, NavigationItem, NavigationGroup, ThemeAsset } from '../config/types';
+import { normalizeLayoutType } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
 import { StoragePickerProvider } from '../storage/StoragePickerContext';
 import { LayoutFallback } from './LayoutFallback';
+import { isShellUiRootWindow } from './chrome/SafeAreaTopbar';
 
 const SidebarLayout = lazy(() =>
   import('./sidebar/SidebarLayout').then((m) => ({ default: m.SidebarLayout })),
@@ -18,6 +20,9 @@ const FullscreenLayout = lazy(() =>
 );
 const WindowsLayout = lazy(() =>
   import('./windows/WindowsLayout').then((m) => ({ default: m.WindowsLayout })),
+);
+const FloatingLayout = lazy(() =>
+  import('./floating/FloatingLayout').then((m) => ({ default: m.FloatingLayout })),
 );
 const AppBarLayout = lazy(() =>
   import('./appbar/AppBarLayout').then((m) => ({ default: m.AppBarLayout })),
@@ -45,7 +50,9 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   const { settings } = useSettings();
-  const effectiveLayout: LayoutType = settings.layout ?? layout;
+  // Nested shell-in-iframe (e.g. nav → `/__settings`): parent already owns chrome — use fullscreen.
+  const configuredLayout = normalizeLayoutType(settings.layout ?? layout) ?? 'sidebar';
+  const effectiveLayout: LayoutType = !isShellUiRootWindow() ? 'fullscreen' : configuredLayout;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let LayoutComponent: LazyExoticComponent<ComponentType<any>>;
@@ -56,6 +63,9 @@ export function AppLayout({
     layoutProps = { title, navigation: navigation || [], children };
   } else if (effectiveLayout === 'windows') {
     LayoutComponent = WindowsLayout;
+    layoutProps = { title, appIcon, logo, navigation: navigation || [] };
+  } else if (effectiveLayout === 'floating') {
+    LayoutComponent = FloatingLayout;
     layoutProps = { title, appIcon, logo, navigation: navigation || [] };
   } else if (effectiveLayout === 'app-bar') {
     LayoutComponent = AppBarLayout;

@@ -126,6 +126,120 @@
 }
 
 /*
+ * Floating layout glass chrome (frosted blur + translucent fill).
+ * Uses backdrop blur + translucent fill + hairline border + soft specular.
+ */
+:root {
+  --shellui-inset-top: 0px;
+  --shellui-inset-right: 0px;
+  --shellui-inset-bottom: 0px;
+  --shellui-inset-left: 0px;
+}
+
+.shellui-floating-glass {
+  color: var(--foreground);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 40%, transparent) 0%,
+      color-mix(in oklch, white 10%, transparent) 42%,
+      color-mix(in oklch, white 16%, transparent) 100%
+    ),
+    /* Safety frost — keeps labels readable over dark scrolling content */
+    color-mix(in oklch, var(--background) 78%, transparent);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid color-mix(in oklch, white 45%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 40%, transparent) inset,
+    0 -1px 0 color-mix(in oklch, black 6%, transparent) inset,
+    0 10px 32px color-mix(in oklch, black 14%, transparent),
+    0 2px 6px color-mix(in oklch, black 6%, transparent);
+}
+
+.dark .shellui-floating-glass {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 16%, transparent) 0%,
+      color-mix(in oklch, white 4%, transparent) 45%,
+      color-mix(in oklch, white 9%, transparent) 100%
+    ),
+    color-mix(in oklch, var(--background) 72%, transparent);
+  border-color: color-mix(in oklch, white 16%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 12%, transparent) inset,
+    0 -1px 0 color-mix(in oklch, black 30%, transparent) inset,
+    0 14px 40px color-mix(in oklch, black 40%, transparent),
+    0 2px 8px color-mix(in oklch, black 22%, transparent);
+}
+
+/*
+ * Floating layout edge fades: soft mid-grey tint + backdrop blur that
+ * itself fades out via mask-image (blur can’t taper without a mask).
+ */
+.shellui-floating-fade {
+  pointer-events: none;
+  position: absolute;
+  inset-inline: 0;
+  z-index: 40;
+  background: linear-gradient(
+    var(--shellui-floating-fade-dir, to bottom),
+    rgb(128 128 128 / 0.22) 0%,
+    rgb(128 128 128 / 0.08) 50%,
+    transparent 100%
+  );
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  -webkit-mask-image: linear-gradient(
+    var(--shellui-floating-fade-dir, to bottom),
+    #000 0%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    var(--shellui-floating-fade-dir, to bottom),
+    #000 0%,
+    transparent 100%
+  );
+}
+
+.shellui-floating-fade-top {
+  top: 0;
+  height: 3rem; /* 48px */
+  --shellui-floating-fade-dir: to bottom;
+}
+
+.shellui-floating-fade-bottom {
+  bottom: 0;
+  height: 4.5rem; /* 72px */
+  --shellui-floating-fade-dir: to top;
+}
+
+/*
+ * Layout chrome safe insets — applied INSIDE the iframe app, never by shrinking
+ * the host iframe (main layout content stays 100%×100% under floating chrome).
+ * SDK auto-padding toggles `.shellui-apply-layout-chrome-pad` on `document.body`
+ * (and apps may put the class on their own scroll root).
+ */
+.shellui-apply-layout-chrome-pad {
+  padding-top: var(--shellui-inset-top, 0px);
+  padding-right: var(--shellui-inset-right, 0px);
+  padding-bottom: var(--shellui-inset-bottom, 0px);
+  padding-left: var(--shellui-inset-left, 0px);
+  box-sizing: border-box;
+}
+
+/* Scroll clearance so anchors/focus land clear of floating chrome. */
+html[data-shellui-layout-chrome-pad] .overflow-y-auto,
+html[data-shellui-layout-chrome-pad] .overflow-auto,
+html[data-shellui-layout-chrome-pad] [data-shellui-chrome-scroll] {
+  scroll-padding-top: var(--shellui-inset-top, 0px);
+  scroll-padding-bottom: var(--shellui-inset-bottom, 0px);
+  scroll-padding-left: var(--shellui-inset-left, 0px);
+  scroll-padding-right: var(--shellui-inset-right, 0px);
+}
+
+/*
  * Installed web app: make <body> the containing block for fixed descendants
  * (overlays, sheets, toasts). Pure CSS via display-mode — no JS attributes.
  */

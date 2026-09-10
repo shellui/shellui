@@ -19,6 +19,7 @@ export default defineConfig({
       'src/features/theme/**/*.spec.ts',
       'src/features/layouts/chrome/**/*.spec.ts',
       'src/features/layouts/branding/**/*.spec.ts',
+      'src/features/layouts/floating/**/*.spec.ts',
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       '../sdk/src/**/*.spec.ts',

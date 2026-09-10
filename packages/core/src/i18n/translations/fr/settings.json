@@ -271,12 +271,14 @@
     },
     "layout": {
       "title": "Disposition",
-      "description": "Basculer entre barre latérale, encadrés, barre d'app et fenêtres. Remplace la config de l'app pour cette session.",
+      "description": "Basculer entre barre latérale, encadrés, barre d'app, flottante et fenêtres. Remplace la config de l'app pour cette session.",
       "sidebar": "Barre latérale",
       "sidebar-inset": "Barre latérale encadrée",
       "windows": "Fenêtres (expérimental)",
       "app-bar": "Barre d'app",
-      "app-bar-inset": "Barre d'app encadrée"
+      "app-bar-inset": "Barre d'app encadrée",
+      "floating": "Flottante",
+      "more": "Plus"
     },
     "logging": {
       "title": "Journalisation",

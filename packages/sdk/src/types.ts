@@ -215,6 +215,43 @@ export interface SettingsUser {
   isCompanyOwner?: boolean;
 }
 
+/** Viewport tier used by adaptive layouts (e.g. floating). */
+export type LayoutChromeViewport = 'mobile' | 'tablet' | 'desktop';
+
+/** CSS-pixel insets the shell chrome occupies over full-bleed content. */
+export interface LayoutChromeInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Layout chrome snapshot for embedded apps.
+ * Keep content clear of floating nav by applying these insets (auto or manually).
+ */
+export interface LayoutChrome {
+  layout: string;
+  viewport: LayoutChromeViewport;
+  insets: LayoutChromeInsets;
+  chromeVisible: boolean;
+  /** When true (default), SDK applies body padding from insets after init / chrome updates. */
+  autoPadding: boolean;
+}
+
+/** Payload for `SHELLUI_LAYOUT_CHROME` (shell → iframe). */
+export type LayoutChromePayload = {
+  layoutChrome: LayoutChrome;
+};
+
+/** Payload for `SHELLUI_CONTENT_SCROLL` (iframe → shell). */
+export type ContentScrollPayload = {
+  scrollY: number;
+  direction: 'up' | 'down' | 'none';
+  /** Pixels remaining until bottom of the scroller; used to re-show floating chrome. */
+  distanceFromBottom?: number;
+};
+
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
@@ -257,8 +294,20 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
-  /** Override layout at runtime: 'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset'. When set, overrides config.layout (e.g. from Develop settings). */
-  layout?: 'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset';
+  /** Override layout at runtime. When set, overrides config.layout (e.g. from Develop settings). */
+  layout?:
+    | 'sidebar'
+    | 'sidebar-inset'
+    | 'fullscreen'
+    | 'windows'
+    | 'app-bar'
+    | 'app-bar-inset'
+    | 'floating';
+  /**
+   * Floating chrome safe-area for iframe content (layout + viewport dependent).
+   * Published by the shell (e.g. floating); apps apply via `shellui.applyLayoutChrome()`.
+   */
+  layoutChrome?: LayoutChrome;
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
     items: SettingsNavigationItem[];
@@ -498,7 +547,9 @@ export type ShellUIMessageType =
   | 'SHELLUI_STORAGE_RESPONSE'
   | 'SHELLUI_SELECT_STORAGE'
   | 'SHELLUI_SELECT_STORAGE_RESULT'
-  | 'SHELLUI_UPLOAD_TOAST_DEMO';
+  | 'SHELLUI_UPLOAD_TOAST_DEMO'
+  | 'SHELLUI_LAYOUT_CHROME'
+  | 'SHELLUI_CONTENT_SCROLL';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;
