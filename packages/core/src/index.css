@@ -215,6 +215,14 @@
   --shellui-floating-fade-dir: to top;
 }
 
+/* Floating desktop sidebar collapse — transform/opacity only; respect reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .shellui-floating-sidebar-panel .shellui-floating-glass,
+  .shellui-floating-sidebar-chip .shellui-floating-glass {
+    transition: none !important;
+  }
+}
+
 /*
  * Layout chrome safe insets — applied INSIDE the iframe app, never by shrinking
  * the host iframe (main layout content stays 100%×100% under floating chrome).
@@ -255,6 +263,38 @@ html[data-shellui-layout-chrome-pad] [data-shellui-chrome-scroll] {
 @layer base {
   * {
     border-color: var(--border);
+  }
+  /*
+   * Interactive controls: pointer everywhere for consistency (raw <button>/links
+   * in layouts often omit Tailwind `cursor-pointer`; native UA default varies).
+   */
+  button:not(:disabled):not([disabled]),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem'],
+  [role='tab'],
+  [role='option'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='link'],
+  a[href],
+  summary,
+  label[for],
+  input[type='button']:not(:disabled),
+  input[type='submit']:not(:disabled),
+  input[type='reset']:not(:disabled),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  input[type='file']:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  button[disabled],
+  [role='button'][aria-disabled='true'],
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
   }
   body {
     background-color: var(--background);

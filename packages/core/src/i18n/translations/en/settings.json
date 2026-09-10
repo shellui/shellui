@@ -278,7 +278,9 @@
       "app-bar": "App bar",
       "app-bar-inset": "App bar inset",
       "floating": "Floating",
-      "more": "More"
+      "more": "More",
+      "hideSidebar": "Hide sidebar",
+      "showSidebar": "Show sidebar"
     },
     "logging": {
       "title": "Logging",

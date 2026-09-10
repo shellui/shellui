@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   computeFloatingInsets,
   FLOATING_CHROME_MARGIN,
+  FLOATING_COLLAPSED_TOP_INSET,
   FLOATING_CONTENT_CLEARANCE,
   FLOATING_SIDEBAR_WIDTH,
   FLOATING_TAB_BAR_HEIGHT,
@@ -54,6 +55,22 @@ describe('computeFloatingInsets', () => {
       right: 2,
       bottom: 20,
       left: 3 + FLOATING_SIDEBAR_WIDTH + FLOATING_CHROME_MARGIN * 2 + FLOATING_CONTENT_CLEARANCE,
+    });
+  });
+
+  it('drops left sidebar inset when desktop sidebar is collapsed', () => {
+    expect(
+      computeFloatingInsets({
+        viewport: 'desktop',
+        chromeVisible: true,
+        sidebarCollapsed: true,
+        safeArea: safe,
+      }),
+    ).toEqual({
+      top: 10 + FLOATING_COLLAPSED_TOP_INSET,
+      right: 2,
+      bottom: 20,
+      left: 3,
     });
   });
 });

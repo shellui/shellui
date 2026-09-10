@@ -6,6 +6,7 @@ import {
   filterNavigationForAuthState,
   filterNavigationByViewport,
   flattenNavigationItems,
+  hasLoginNavigationItem,
   resolveLocalizedString,
   splitNavigationByPosition,
 } from '../utils';
@@ -39,10 +40,14 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
-  const { chromeVisible } = useFloatingChrome(viewport);
+  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed } = useFloatingChrome(viewport);
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
+
+  const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  // Same rule as sidebar / app-bar: show account menu when logged in (login nav item is filtered out).
+  const showAuthButton = !hasCustomLoginNav || isAuthenticated;
 
   const authAwareNavigation = useMemo(
     () =>
@@ -107,6 +112,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
         <FloatingTabBar
           items={tabItems}
           endItems={endItems}
+          showAuthButton={showAuthButton}
           placement="bottom"
           chromeVisible={chromeVisible}
         />
@@ -118,6 +124,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
           appIcon={appIcon}
           navigation={startNav}
           endItems={endItems}
+          showAuthButton={showAuthButton}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={toggleSidebarCollapsed}
         />
       ) : null}
     </div>

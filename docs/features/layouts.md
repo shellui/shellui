@@ -318,7 +318,7 @@ function MyComponent() {
 ### Floating Layout
 
 - **Phone / tablet**: Floating bottom-centered glass tabs over content. Iframe stays full-bleed; apps apply `--shellui-inset-*` inside their UI (bottom tab clearance)
-- **Desktop**: Floating glass sidebar; content remains full-bleed underneath for iframes; shell pages get left inset padding
+- **Desktop**: Floating glass sidebar (collapsible); when collapsed the sidebar is removed, left iframe inset goes to safe-area only, and a glass expand chip stays top-left with a small top inset so content clears it
 - **Scroll**: Chrome hides when shell panels or embedded apps scroll down; insets update automatically
 - **Tabs**: Prefer a small set of top-level start items (about five); extra items go under More
 

@@ -11,6 +11,7 @@ import {
 } from '../utils';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { NavIcon } from '../sidebar/SidebarIcons';
+import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import {
   FLOATING_CHROME_MARGIN,
@@ -51,12 +52,15 @@ function itemKey(item: NavigationItem): string {
 export function FloatingTabBar({
   items,
   endItems = [],
+  showAuthButton = false,
   placement,
   chromeVisible,
 }: {
   items: NavigationItem[];
   /** `position: 'end'` links (settings, login, …) — shown in the More sheet. */
   endItems?: NavigationItem[];
+  /** Account / login control when the login nav item is hidden (logged in). */
+  showAuthButton?: boolean;
   placement: TabPlacement;
   chromeVisible: boolean;
 }) {
@@ -69,7 +73,7 @@ export function FloatingTabBar({
   const primary = flat.slice(0, FLOATING_MAX_TAB_ITEMS);
   const overflow = flat.slice(FLOATING_MAX_TAB_ITEMS);
   const moreItems = useMemo(() => [...overflow, ...endItems], [overflow, endItems]);
-  const showMore = moreItems.length > 0;
+  const showMore = moreItems.length > 0 || showAuthButton;
 
   const activePathPrefix = useMemo(
     () => getActivePathPrefix(location.pathname, [...flat, ...endItems]),
@@ -321,13 +325,18 @@ export function FloatingTabBar({
                 )}
               >
                 {overflow.map(renderMoreRow)}
-                {overflow.length > 0 && endItems.length > 0 ? (
+                {overflow.length > 0 && (endItems.length > 0 || showAuthButton) ? (
                   <div
                     role="separator"
                     className="my-1 border-t border-foreground/10"
                   />
                 ) : null}
                 {endItems.map(renderMoreRow)}
+                {showAuthButton ? (
+                  <div className="px-1 pt-1">
+                    <LoginButton variant="sidebar" />
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>

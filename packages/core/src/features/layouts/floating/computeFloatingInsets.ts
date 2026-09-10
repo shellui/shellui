@@ -10,12 +10,22 @@ export const FLOATING_CONTENT_CLEARANCE = 12;
 export const FLOATING_SIDEBAR_WIDTH = 240;
 /** Max primary tab items before “More”. */
 export const FLOATING_MAX_TAB_ITEMS = 5;
+/** Collapsed desktop toggle control size (glass chip). */
+export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
+/**
+ * Top inset when the desktop sidebar is collapsed — clears the floating
+ * expand chip so content does not sit under it.
+ */
+export const FLOATING_COLLAPSED_TOP_INSET =
+  FLOATING_CHROME_MARGIN + FLOATING_SIDEBAR_TOGGLE_SIZE + FLOATING_CONTENT_CLEARANCE;
 
 export type FloatingSafeArea = LayoutChromeInsets;
 
 export function computeFloatingInsets(options: {
   viewport: LayoutChromeViewport;
   chromeVisible: boolean;
+  /** Desktop only: sidebar fully hidden; left inset drops to safe-area. */
+  sidebarCollapsed?: boolean;
   safeArea?: Partial<FloatingSafeArea>;
 }): LayoutChromeInsets {
   const safe: FloatingSafeArea = {
@@ -39,6 +49,15 @@ export function computeFloatingInsets(options: {
         FLOATING_TAB_BAR_HEIGHT +
         FLOATING_CHROME_MARGIN * 2 +
         FLOATING_CONTENT_CLEARANCE,
+      left: safe.left,
+    };
+  }
+
+  if (options.sidebarCollapsed) {
+    return {
+      top: safe.top + FLOATING_COLLAPSED_TOP_INSET,
+      right: safe.right,
+      bottom: safe.bottom,
       left: safe.left,
     };
   }

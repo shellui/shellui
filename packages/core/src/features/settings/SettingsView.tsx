@@ -230,7 +230,7 @@ export const SettingsView = () => {
   }, [navigate]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden items-start md:pr-[var(--shellui-inset-right,0px)] md:pb-[var(--shellui-inset-bottom,0px)] md:pl-[var(--shellui-inset-left,0px)]">
+    <div className="flex h-full w-full overflow-hidden items-start md:pt-[var(--shellui-inset-top,0px)] md:pr-[var(--shellui-inset-right,0px)] md:pb-[var(--shellui-inset-bottom,0px)] md:pl-[var(--shellui-inset-left,0px)]">
       {/* Desktop settings nav — local provider so this works outside the shell sidebar layout */}
       <SidebarProvider className="hidden h-full min-h-0 w-auto shrink-0 md:flex">
         <Sidebar

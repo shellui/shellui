@@ -278,7 +278,9 @@
       "app-bar": "Barre d'app",
       "app-bar-inset": "Barre d'app encadrée",
       "floating": "Flottante",
-      "more": "Plus"
+      "more": "Plus",
+      "hideSidebar": "Masquer la barre latérale",
+      "showSidebar": "Afficher la barre latérale"
     },
     "logging": {
       "title": "Journalisation",

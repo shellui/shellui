@@ -12,43 +12,83 @@ import {
 import { computeFloatingInsets, readShellSafeAreaPx } from './computeFloatingInsets';
 import { publishLayoutChrome } from './layoutChromeStore';
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shellui:floating-sidebar:collapsed';
+
+function readSidebarCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function writeSidebarCollapsed(collapsed: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(collapsed));
+  } catch {
+    // Ignore quota / privacy mode errors.
+  }
+}
+
 function buildChrome(
   viewport: LayoutChromeViewport,
   chromeVisible: boolean,
+  sidebarCollapsed: boolean,
   autoPadding = true,
 ): LayoutChrome {
   const safeArea =
     typeof document !== 'undefined'
       ? readShellSafeAreaPx()
       : { top: 0, right: 0, bottom: 0, left: 0 };
+  const desktopCollapsed = viewport === 'desktop' && sidebarCollapsed;
   return {
     layout: 'floating',
     viewport,
-    chromeVisible,
+    chromeVisible: viewport === 'desktop' ? !desktopCollapsed : chromeVisible,
     autoPadding,
-    // Always reserve chrome-sized insets so iframe padding does not jump when
-    // floating chrome hides on scroll (visibility is separate from insets).
-    insets: computeFloatingInsets({ viewport, chromeVisible: true, safeArea }),
+    // Phone/tablet: keep tab-bar-sized insets even when chrome hides on scroll
+    // so padding does not jump. Desktop: insets follow sidebar collapsed state.
+    insets: computeFloatingInsets({
+      viewport,
+      chromeVisible: true,
+      sidebarCollapsed: desktopCollapsed,
+      safeArea,
+    }),
   };
 }
 
 /**
- * Owns floating chrome visibility (hide-on-scroll on phone/tablet only),
- * publishes layoutChrome to iframes, and listens for scroll from iframe / shell pages.
- * Desktop sidebar stays visible. Chrome reappears near top and bottom of content.
+ * Owns floating chrome visibility (hide-on-scroll on phone/tablet),
+ * desktop sidebar collapse, publishes layoutChrome to iframes.
  */
 export function useFloatingChrome(viewport: LayoutChromeViewport) {
   const location = useLocation();
   const [chromeVisible, setChromeVisible] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsedState] = useState(readSidebarCollapsed);
   const scrollStateRef = useRef<ScrollChromeState>({ visible: true, lastY: 0 });
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+  const sidebarCollapsedRef = useRef(sidebarCollapsed);
+  sidebarCollapsedRef.current = sidebarCollapsed;
   const hideOnScroll = viewport !== 'desktop';
 
-  const pushChrome = useCallback((visible: boolean, vp: LayoutChromeViewport) => {
-    const chrome = buildChrome(vp, visible);
-    publishLayoutChrome(chrome);
+  const pushChrome = useCallback(
+    (visible: boolean, vp: LayoutChromeViewport, collapsed: boolean) => {
+      publishLayoutChrome(buildChrome(vp, visible, collapsed));
+    },
+    [],
+  );
+
+  const setSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setSidebarCollapsedState(collapsed);
+    writeSidebarCollapsed(collapsed);
   }, []);
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed(!sidebarCollapsedRef.current);
+  }, [setSidebarCollapsed]);
 
   const applyScrollMetrics = useCallback((scrollY: number, distanceFromBottom?: number) => {
     if (viewportRef.current === 'desktop') return;
@@ -63,19 +103,18 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
   useEffect(() => {
     setChromeVisible(true);
     scrollStateRef.current = { visible: true, lastY: 0 };
-    pushChrome(true, viewport);
+    pushChrome(true, viewport, sidebarCollapsedRef.current);
   }, [viewport, location.pathname, pushChrome]);
 
   useEffect(() => {
-    // Desktop never hides; keep published insets for a visible sidebar.
     const visible = viewport === 'desktop' ? true : chromeVisible;
-    pushChrome(visible, viewport);
-  }, [chromeVisible, viewport, pushChrome]);
+    pushChrome(visible, viewport, sidebarCollapsed);
+  }, [chromeVisible, viewport, sidebarCollapsed, pushChrome]);
 
   useEffect(() => {
     const onResize = () => {
       const visible = viewportRef.current === 'desktop' ? true : scrollStateRef.current.visible;
-      pushChrome(visible, viewportRef.current);
+      pushChrome(visible, viewportRef.current, sidebarCollapsedRef.current);
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -131,9 +170,17 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
     return computeFloatingInsets({
       viewport,
       chromeVisible: true,
+      sidebarCollapsed: viewport === 'desktop' && sidebarCollapsed,
       safeArea,
     });
-  }, [viewport]);
+  }, [viewport, sidebarCollapsed]);
 
-  return { chromeVisible: effectiveVisible, setChromeVisible, insets };
+  return {
+    chromeVisible: effectiveVisible,
+    setChromeVisible,
+    sidebarCollapsed: viewport === 'desktop' ? sidebarCollapsed : false,
+    setSidebarCollapsed,
+    toggleSidebarCollapsed,
+    insets,
+  };
 }
