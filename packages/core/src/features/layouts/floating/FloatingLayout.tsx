@@ -115,6 +115,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
           showAuthButton={showAuthButton}
           placement="bottom"
           chromeVisible={chromeVisible}
+          viewport={viewport}
         />
       ) : null}
 

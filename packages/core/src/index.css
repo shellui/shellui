@@ -175,6 +175,32 @@
 }
 
 /*
+ * Floating More / popover sheet — denser frost than the tab bar so labels stay
+ * readable over busy page content (tab bar already sits over the edge fade).
+ */
+.shellui-floating-glass-menu {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 40%, transparent) 0%,
+      color-mix(in oklch, white 10%, transparent) 42%,
+      color-mix(in oklch, white 16%, transparent) 100%
+    ),
+    color-mix(in oklch, var(--background) 94%, transparent);
+}
+
+.dark .shellui-floating-glass-menu {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 16%, transparent) 0%,
+      color-mix(in oklch, white 4%, transparent) 45%,
+      color-mix(in oklch, white 9%, transparent) 100%
+    ),
+    color-mix(in oklch, var(--background) 92%, transparent);
+}
+
+/*
  * Floating layout edge fades: soft mid-grey tint + backdrop blur that
  * itself fades out via mask-image (blur can’t taper without a mask).
  */
@@ -218,9 +244,53 @@
 /* Floating desktop sidebar collapse — transform/opacity only; respect reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .shellui-floating-sidebar-panel .shellui-floating-glass,
-  .shellui-floating-sidebar-chip .shellui-floating-glass {
+  .shellui-floating-sidebar-chip .shellui-floating-glass,
+  [data-shellui-floating-tabbar],
+  [data-shellui-floating-tabbar] > .shellui-floating-glass,
+  .shellui-floating-tab-indicator {
     transition: none !important;
+    animation: none !important;
   }
+}
+
+/*
+ * Floating tab bar hide-on-scroll.
+ * Slide the wrapper; fade the glass child. Parent opacity + backdrop-filter
+ * does not interpolate — the frost pops in at the end of the slide.
+ * Appear is slower; dismiss is faster.
+ */
+[data-shellui-floating-tabbar] {
+  translate: 0 0;
+  transition-property: translate;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-floating-tabbar][data-chrome-visible='false'] {
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+[data-shellui-floating-tabbar='bottom'][data-chrome-visible='false'] {
+  translate: 0 120%;
+}
+
+[data-shellui-floating-tabbar='top'][data-chrome-visible='false'] {
+  translate: 0 -120%;
+}
+
+[data-shellui-floating-tabbar] > .shellui-floating-glass {
+  opacity: 1;
+  transition-property: opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-floating-tabbar][data-chrome-visible='false'] > .shellui-floating-glass {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
 }
 
 /*

@@ -1,15 +1,30 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
 
 /** Floating tab bar content height (icon + label). */
-export const FLOATING_TAB_BAR_HEIGHT = 56;
+export const FLOATING_TAB_BAR_HEIGHT = 64;
 /** Gap between floating chrome and screen edge. */
 export const FLOATING_CHROME_MARGIN = 12;
 /** Extra clearance so the last content row clears the floating chrome comfortably. */
 export const FLOATING_CONTENT_CLEARANCE = 12;
 /** Desktop floating sidebar width. */
 export const FLOATING_SIDEBAR_WIDTH = 240;
-/** Max primary tab items before “More”. */
-export const FLOATING_MAX_TAB_ITEMS = 5;
+/**
+ * Max visible slots in the floating tab bar (primary tabs + optional More).
+ * Matches a compact pill tab bar (e.g. 4 icons, or 3 + More).
+ */
+export const FLOATING_MAX_TAB_SLOTS = 4;
+
+/**
+ * Padding under the floating tab bar (chrome margin + safe-area).
+ * Phone uses half so the bar sits lower on iPhone home-indicator devices.
+ */
+export function floatingTabBarBottomPadPx(
+  safeBottom: number,
+  viewport: LayoutChromeViewport,
+): number {
+  const full = FLOATING_CHROME_MARGIN + safeBottom;
+  return viewport === 'mobile' ? full / 2 : full;
+}
 /** Collapsed desktop toggle control size (glass chip). */
 export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
 /**
@@ -45,9 +60,9 @@ export function computeFloatingInsets(options: {
       top: safe.top,
       right: safe.right,
       bottom:
-        safe.bottom +
+        floatingTabBarBottomPadPx(safe.bottom, viewport) +
         FLOATING_TAB_BAR_HEIGHT +
-        FLOATING_CHROME_MARGIN * 2 +
+        FLOATING_CHROME_MARGIN +
         FLOATING_CONTENT_CLEARANCE,
       left: safe.left,
     };

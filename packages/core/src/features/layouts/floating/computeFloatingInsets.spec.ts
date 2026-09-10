@@ -23,26 +23,33 @@ describe('computeFloatingInsets', () => {
     ).toEqual(safe);
   });
 
-  it('adds bottom tab bar on mobile when visible', () => {
+  it('adds bottom tab bar on mobile when visible (half bottom pad)', () => {
     expect(
       computeFloatingInsets({ viewport: 'mobile', chromeVisible: true, safeArea: safe }),
     ).toEqual({
       top: 10,
       right: 2,
       bottom:
-        20 + FLOATING_TAB_BAR_HEIGHT + FLOATING_CHROME_MARGIN * 2 + FLOATING_CONTENT_CLEARANCE,
+        (20 + FLOATING_CHROME_MARGIN) / 2 +
+        FLOATING_TAB_BAR_HEIGHT +
+        FLOATING_CHROME_MARGIN +
+        FLOATING_CONTENT_CLEARANCE,
       left: 3,
     });
   });
 
-  it('adds bottom tab bar on tablet when visible (same as mobile)', () => {
+  it('adds bottom tab bar on tablet when visible (full bottom pad)', () => {
     expect(
       computeFloatingInsets({ viewport: 'tablet', chromeVisible: true, safeArea: safe }),
     ).toEqual({
       top: 10,
       right: 2,
       bottom:
-        20 + FLOATING_TAB_BAR_HEIGHT + FLOATING_CHROME_MARGIN * 2 + FLOATING_CONTENT_CLEARANCE,
+        20 +
+        FLOATING_CHROME_MARGIN +
+        FLOATING_TAB_BAR_HEIGHT +
+        FLOATING_CHROME_MARGIN +
+        FLOATING_CONTENT_CLEARANCE,
       left: 3,
     });
   });

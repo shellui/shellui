@@ -266,16 +266,7 @@ export function FloatingSidebar({
                 className="size-7 shrink-0"
               />
             ) : null}
-            {title ? (
-              <span
-                className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {title}
-              </span>
-            ) : (
-              <span className="min-w-0 flex-1" />
-            )}
+            <span className="min-w-0 flex-1" />
             <button
               type="button"
               tabIndex={collapsed ? -1 : 0}
