@@ -13,10 +13,28 @@ const INDICATOR_DISTANCE_EXPONENT = 0.75;
 const INDICATOR_DISTANCE_REF_PX = 90;
 /** Fixed settle after arrival — not mixed into travel. */
 const INDICATOR_SETTLE_MS = 80;
+/** Short press-scale on the whole floating nav — runs with the pill travel. */
+const NAV_CLICK_SCALE = 0.96;
+const NAV_CLICK_SCALE_MS = 200;
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Brief scale pulse on the glass bar so a tab change feels like a tap. */
+function playNavClickScale(nav: HTMLElement): Animation {
+  return nav.animate(
+    [
+      { transform: 'scale(1)' },
+      { transform: `scale(${NAV_CLICK_SCALE})`, offset: 0.35 },
+      { transform: 'scale(1)' },
+    ],
+    {
+      duration: NAV_CLICK_SCALE_MS,
+      easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+    },
+  );
 }
 
 function readBox(nav: HTMLElement, tab: HTMLElement): IndicatorBox {
@@ -61,7 +79,8 @@ function timingForDistance(dist: number): { duration: number; tMid: number; tArr
 /**
  * Shared selection pill that slides between tabs.
  * Mid-travel it widens and squashes (shape morph) while the center still
- * covers the full gap; then a short settle.
+ * covers the full gap; then a short settle. The whole floating nav gets a
+ * short press-scale in parallel so the change reads as a tap.
  */
 export function FloatingTabIndicator({
   navRef,
@@ -73,6 +92,7 @@ export function FloatingTabIndicator({
   const pillRef = useRef<HTMLDivElement>(null);
   const fromRef = useRef<IndicatorBox | null>(null);
   const animRef = useRef<Animation | null>(null);
+  const clickAnimRef = useRef<Animation | null>(null);
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -91,6 +111,7 @@ export function FloatingTabIndicator({
 
     if (!from || prefersReducedMotion()) {
       animRef.current?.cancel();
+      clickAnimRef.current?.cancel();
       applyBox(pill, to);
       fromRef.current = to;
       return;
@@ -118,6 +139,8 @@ export function FloatingTabIndicator({
     const { duration, tMid, tArrive } = timingForDistance(dist);
 
     animRef.current?.cancel();
+    clickAnimRef.current?.cancel();
+    clickAnimRef.current = playNavClickScale(nav);
 
     const animation = pill.animate(
       [

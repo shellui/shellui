@@ -363,7 +363,7 @@ export function FloatingTabBar({
           ref={navRef}
           aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
           className={cn(
-            'shellui-floating-glass pointer-events-auto relative flex max-w-lg items-stretch gap-1 rounded-full px-2 py-1.5',
+            'shellui-floating-glass pointer-events-auto relative flex origin-center max-w-lg items-stretch gap-1 rounded-full px-2 py-1.5',
             placement === 'top' && 'w-auto min-w-[min(100%,28rem)] max-w-2xl scale-105',
             placement === 'bottom' && 'w-full',
           )}
