@@ -291,40 +291,48 @@ if (embedded) {
 
   let lastY = 0;
   let raf = 0;
+  const postScroll = (scrollY: number, distanceFromBottom: number) => {
+    const delta = scrollY - lastY;
+    lastY = scrollY;
+    const direction = Math.abs(delta) < 8 ? 'none' : delta > 0 ? 'down' : 'up';
+    post('SHELLUI_CONTENT_SCROLL', { scrollY, direction, distanceFromBottom });
+  };
+  const readAndPostScroll = (target: EventTarget | null) => {
+    let scrollY = 0;
+    let distanceFromBottom = 0;
+    if (
+      target === document ||
+      target === document.documentElement ||
+      target === document.body ||
+      target == null
+    ) {
+      const el = document.documentElement;
+      scrollY = window.scrollY || el.scrollTop || document.body.scrollTop || 0;
+      distanceFromBottom = Math.max(0, el.scrollHeight - window.innerHeight - scrollY);
+    } else if (target instanceof HTMLElement) {
+      scrollY = target.scrollTop;
+      distanceFromBottom = Math.max(
+        0,
+        target.scrollHeight - target.clientHeight - target.scrollTop,
+      );
+    } else {
+      return;
+    }
+    postScroll(scrollY, distanceFromBottom);
+  };
   document.addEventListener(
     'scroll',
     (event: Event) => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const target = event.target;
-        let scrollY = 0;
-        let distanceFromBottom = 0;
-        if (
-          target === document ||
-          target === document.documentElement ||
-          target === document.body
-        ) {
-          const el = document.documentElement;
-          scrollY = window.scrollY || el.scrollTop || document.body.scrollTop || 0;
-          distanceFromBottom = Math.max(0, el.scrollHeight - window.innerHeight - scrollY);
-        } else if (target instanceof HTMLElement) {
-          scrollY = target.scrollTop;
-          distanceFromBottom = Math.max(
-            0,
-            target.scrollHeight - target.clientHeight - target.scrollTop,
-          );
-        } else {
-          return;
-        }
-        const delta = scrollY - lastY;
-        lastY = scrollY;
-        const direction = Math.abs(delta) < 8 ? 'none' : delta > 0 ? 'down' : 'up';
-        post('SHELLUI_CONTENT_SCROLL', { scrollY, direction, distanceFromBottom });
+        readAndPostScroll(event.target);
       });
     },
     { capture: true, passive: true },
   );
+  // Initial edge state for host fades / chrome (before any user scroll).
+  requestAnimationFrame(() => readAndPostScroll(document));
 } else {
   ready = true;
   resolveReady();

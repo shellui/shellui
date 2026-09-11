@@ -252,24 +252,30 @@ export class ShellUISDK {
     if (typeof window === 'undefined' || window.parent === window) return;
 
     let raf = 0;
+    const report = (target: EventTarget | null) => {
+      const metrics = getScrollMetrics(target ?? document);
+      if (!metrics) return;
+      const direction = scrollDirectionFromDelta(metrics.scrollY - this._lastReportedScrollY);
+      this._lastReportedScrollY = metrics.scrollY;
+      this.reportContentScroll({
+        scrollY: metrics.scrollY,
+        direction,
+        distanceFromBottom: metrics.distanceFromBottom,
+      });
+    };
+
     const onScroll = (event: Event) => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        const metrics = getScrollMetrics(event.target);
-        if (!metrics) return;
-        const direction = scrollDirectionFromDelta(metrics.scrollY - this._lastReportedScrollY);
-        this._lastReportedScrollY = metrics.scrollY;
-        this.reportContentScroll({
-          scrollY: metrics.scrollY,
-          direction,
-          distanceFromBottom: metrics.distanceFromBottom,
-        });
+        report(event.target);
       });
     };
 
     // Capture nested overflow scrollers (Settings panels, etc.) — scroll does not bubble.
     document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    // Initial edge state for host fades / chrome (before any user scroll).
+    requestAnimationFrame(() => report(document));
   }
 
   private async _setupInitialSettings(): Promise<void> {

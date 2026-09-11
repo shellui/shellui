@@ -40,7 +40,8 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
-  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed } = useFloatingChrome(viewport);
+  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed, scrollEdges } =
+    useFloatingChrome(viewport);
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
@@ -103,8 +104,14 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
       {showFades ? (
         <>
-          <FloatingFadeMask placement="top" />
-          <FloatingFadeMask placement="bottom" />
+          <FloatingFadeMask
+            placement="top"
+            visible={!scrollEdges.atTop}
+          />
+          <FloatingFadeMask
+            placement="bottom"
+            visible={!scrollEdges.atBottom}
+          />
         </>
       ) : null}
 
