@@ -148,28 +148,24 @@ export function FloatingTabIndicator({
           transform: `translate3d(${from.left}px, ${from.top}px, 0) scaleY(1)`,
           width: `${from.width}px`,
           height: `${from.height}px`,
-          borderRadius: '9999px',
           offset: 0,
         },
         {
           transform: `translate3d(${midLeft}px, ${to.top + to.height * 0.05}px, 0) scaleY(0.84)`,
           width: `${midWidth}px`,
           height: `${to.height}px`,
-          borderRadius: '1.5rem',
           offset: tMid,
         },
         {
           transform: `translate3d(${to.left + overshoot}px, ${to.top}px, 0) scaleY(1.05)`,
           width: `${to.width}px`,
           height: `${to.height}px`,
-          borderRadius: '9999px',
           offset: Math.min(tArrive, 0.98),
         },
         {
           transform: `translate3d(${to.left}px, ${to.top}px, 0) scaleY(1)`,
           width: `${to.width}px`,
           height: `${to.height}px`,
-          borderRadius: '9999px',
           offset: 1,
         },
       ],
@@ -213,7 +209,7 @@ export function FloatingTabIndicator({
     <div
       ref={pillRef}
       aria-hidden
-      className="shellui-floating-tab-indicator pointer-events-none absolute top-0 left-0 z-0 rounded-full bg-foreground/15 will-change-transform"
+      className="shellui-floating-tab-indicator pointer-events-none absolute top-0 left-0 z-0 will-change-transform"
       style={{ opacity: 0, width: 0, height: 0 }}
     />
   );

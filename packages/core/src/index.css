@@ -127,17 +127,24 @@
 
 /*
  * Floating layout glass chrome (frosted blur + translucent fill).
- * Uses backdrop blur + translucent fill + hairline border + soft specular.
+ * Colors follow sidebar tokens so themes restyle chrome with the rest of nav.
+ *
+ * Radius:
+ * - Desktop sidebar: theme radius, capped at 0.5rem
+ * - Mobile tab bar: binary — 0 when theme radius is 0, else full pill (50%)
  */
 :root {
   --shellui-inset-top: 0px;
   --shellui-inset-right: 0px;
   --shellui-inset-bottom: 0px;
   --shellui-inset-left: 0px;
+  --shellui-floating-sidebar-radius: min(var(--radius), 5rem);
+  /* Any positive --radius → huge radius (pill); 0 → square. */
+  --shellui-floating-mobile-radius: calc(var(--radius) * 999);
 }
 
 .shellui-floating-glass {
-  color: var(--foreground);
+  color: var(--sidebar-foreground);
   background:
     linear-gradient(
       145deg,
@@ -145,16 +152,25 @@
       color-mix(in oklch, white 10%, transparent) 42%,
       color-mix(in oklch, white 16%, transparent) 100%
     ),
-    /* Safety frost — keeps labels readable over dark scrolling content */
-    color-mix(in oklch, var(--background) 78%, transparent);
+    /* Frost from sidebar surface so chrome tracks theme, not raw background grey */
+    color-mix(in oklch, var(--sidebar) 82%, transparent);
   backdrop-filter: blur(40px) saturate(160%);
   -webkit-backdrop-filter: blur(40px) saturate(160%);
-  border: 1px solid color-mix(in oklch, white 45%, transparent);
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
   box-shadow:
     0 1px 0 color-mix(in oklch, white 40%, transparent) inset,
     0 -1px 0 color-mix(in oklch, black 6%, transparent) inset,
     0 10px 32px color-mix(in oklch, black 14%, transparent),
     0 2px 6px color-mix(in oklch, black 6%, transparent);
+}
+
+.shellui-floating-sidebar-panel .shellui-floating-glass,
+.shellui-floating-sidebar-chip .shellui-floating-glass {
+  border-radius: var(--shellui-floating-sidebar-radius);
+}
+
+[data-shellui-floating-tabbar] > .shellui-floating-glass {
+  border-radius: var(--shellui-floating-mobile-radius);
 }
 
 .dark .shellui-floating-glass {
@@ -165,8 +181,8 @@
       color-mix(in oklch, white 4%, transparent) 45%,
       color-mix(in oklch, white 9%, transparent) 100%
     ),
-    color-mix(in oklch, var(--background) 72%, transparent);
-  border-color: color-mix(in oklch, white 16%, transparent);
+    color-mix(in oklch, var(--sidebar) 78%, transparent);
+  border-color: color-mix(in oklch, var(--sidebar-border) 90%, transparent);
   box-shadow:
     0 1px 0 color-mix(in oklch, white 12%, transparent) inset,
     0 -1px 0 color-mix(in oklch, black 30%, transparent) inset,
@@ -175,34 +191,69 @@
 }
 
 /*
- * Floating More / popover sheet — denser frost than the tab bar so labels stay
- * readable over busy page content (tab bar already sits over the edge fade).
+ * Floating More sheet — mostly opaque sidebar fill.
+ * backdrop-filter cannot blur cross-origin / iframe content behind the shell,
+ * so readability comes from density, not real frost of the page.
  */
 .shellui-floating-glass-menu {
+  border-radius: min(var(--radius), 0.5rem);
   background:
     linear-gradient(
       145deg,
-      color-mix(in oklch, white 40%, transparent) 0%,
-      color-mix(in oklch, white 10%, transparent) 42%,
-      color-mix(in oklch, white 16%, transparent) 100%
+      color-mix(in oklch, white 28%, transparent) 0%,
+      color-mix(in oklch, white 6%, transparent) 42%,
+      color-mix(in oklch, white 12%, transparent) 100%
     ),
-    color-mix(in oklch, var(--background) 94%, transparent);
+    color-mix(in oklch, var(--sidebar) 96%, transparent);
+  /* No backdrop-filter: parent shell cannot blur iframe pixels underneath. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 35%, transparent) inset,
+    0 12px 40px color-mix(in oklch, black 22%, transparent),
+    0 2px 8px color-mix(in oklch, black 10%, transparent);
 }
 
 .dark .shellui-floating-glass-menu {
   background:
     linear-gradient(
       145deg,
-      color-mix(in oklch, white 16%, transparent) 0%,
-      color-mix(in oklch, white 4%, transparent) 45%,
-      color-mix(in oklch, white 9%, transparent) 100%
+      color-mix(in oklch, white 12%, transparent) 0%,
+      color-mix(in oklch, white 3%, transparent) 45%,
+      color-mix(in oklch, white 7%, transparent) 100%
     ),
-    color-mix(in oklch, var(--background) 92%, transparent);
+    color-mix(in oklch, var(--sidebar) 96%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 10%, transparent) inset,
+    0 14px 44px color-mix(in oklch, black 45%, transparent),
+    0 2px 8px color-mix(in oklch, black 25%, transparent);
+}
+
+/* Selected tab chip + tabs: same binary radius as the mobile bar. */
+.shellui-floating-tab-indicator,
+.shellui-floating-tab {
+  border-radius: var(--shellui-floating-mobile-radius);
+}
+
+.shellui-floating-tab-indicator {
+  background: var(--sidebar-primary);
+  color: var(--sidebar-primary-foreground);
+}
+
+/* Desktop floating nav rows / chrome controls: match capped sidebar radius. */
+.shellui-floating-sidebar-panel .shellui-floating-nav-item,
+.shellui-floating-sidebar-panel .shellui-floating-nav-control {
+  border-radius: var(--shellui-floating-sidebar-radius);
+}
+
+/* More sheet rows: same small capped radius as the sheet. */
+.shellui-floating-glass-menu .shellui-floating-nav-item {
+  border-radius: min(var(--radius), 0.5rem);
 }
 
 /*
- * Floating layout edge fades: content softens toward chrome via mask-tapered
- * backdrop blur — no solid grey wash. Shown only when scroll is past that edge.
+ * Floating layout edge fades: soft transparent dissolve (no backdrop blur).
+ * Shown only when scroll is past that edge.
  */
 .shellui-floating-fade {
   pointer-events: none;
@@ -211,20 +262,10 @@
   z-index: 40;
   opacity: 0;
   transition: opacity 220ms ease;
-  /* Transparent fill — dissolve is the blur + mask, not a tinted overlay. */
-  background: transparent;
-  backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
-  -webkit-mask-image: linear-gradient(
+  background: linear-gradient(
     var(--shellui-floating-fade-dir, to bottom),
-    #000 0%,
-    rgb(0 0 0 / 0.55) 35%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    var(--shellui-floating-fade-dir, to bottom),
-    #000 0%,
-    rgb(0 0 0 / 0.55) 35%,
+    color-mix(in oklch, var(--background) 45%, transparent) 0%,
+    color-mix(in oklch, var(--background) 18%, transparent) 45%,
     transparent 100%
   );
 }

@@ -53,7 +53,7 @@ function itemKey(item: NavigationItem): string {
 }
 
 const tabClassName =
-  'shellui-floating-tab relative z-[1] flex h-full min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 rounded-full px-1.5 py-1 text-[10px] font-medium transition-colors duration-200';
+  'shellui-floating-tab relative z-[1] flex h-full min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-0.5 px-1.5 py-1 text-[10px] font-medium transition-colors duration-200';
 
 /** Floating glass tab bar — bottom-centered on phone and tablet. */
 export function FloatingTabBar({
@@ -151,10 +151,14 @@ export function FloatingTabBar({
     const isExternal = navItem.openIn === 'external';
     const isActive = !isOverlay && !isExternal && pathPrefix === activePathPrefix;
     const key = itemKey(navItem);
+    // Match the sliding pill: when More is open, primary tabs lose selected text.
+    const isPillSelected = activeTabKey === key;
 
     const className = cn(
       tabClassName,
-      isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+      isPillSelected
+        ? 'text-sidebar-primary-foreground'
+        : 'text-sidebar-foreground/70 hover:text-sidebar-accent-foreground',
     );
 
     const body = (
@@ -237,8 +241,9 @@ export function FloatingTabBar({
       item.openIn !== 'external' &&
       pathPrefix === activePathPrefix;
     const rowClass = cn(
-      'flex w-full min-w-0 items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-foreground/10',
-      isActive && 'bg-foreground/10 font-medium',
+      'shellui-floating-nav-item flex w-full min-w-0 items-center gap-2 px-3 py-2.5 text-left text-sm text-sidebar-foreground',
+      'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+      isActive && 'bg-sidebar-accent font-medium text-sidebar-accent-foreground',
     );
     const close = () => setMoreOpen(false);
     const labelEl = <span className="min-w-0 flex-1 truncate">{label}</span>;
@@ -363,7 +368,7 @@ export function FloatingTabBar({
           ref={navRef}
           aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
           className={cn(
-            'shellui-floating-glass pointer-events-auto relative flex origin-center max-w-lg items-stretch gap-1 rounded-full px-2 py-1.5',
+            'shellui-floating-glass pointer-events-auto relative flex origin-center max-w-lg items-stretch gap-1 px-2 py-1.5',
             placement === 'top' && 'w-auto min-w-[min(100%,28rem)] max-w-2xl scale-105',
             placement === 'bottom' && 'w-full',
           )}
@@ -383,7 +388,9 @@ export function FloatingTabBar({
                 type="button"
                 className={cn(
                   tabClassName,
-                  moreOpen || moreActive ? 'text-foreground' : 'text-muted-foreground',
+                  activeTabKey === MORE_TAB_KEY
+                    ? 'text-sidebar-primary-foreground'
+                    : 'text-sidebar-foreground/70 hover:text-sidebar-accent-foreground',
                 )}
                 aria-expanded={moreOpen}
                 aria-haspopup="menu"
@@ -400,8 +407,7 @@ export function FloatingTabBar({
                 <div
                   role="menu"
                   className={cn(
-                    // First child sits nearest the More control (bottom → top).
-                    'shellui-floating-glass shellui-floating-glass-menu absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col-reverse gap-0.5 overflow-y-auto overscroll-contain rounded-2xl p-2 shadow-lg',
+                    'shellui-floating-glass shellui-floating-glass-menu absolute right-0 z-50 flex max-h-[min(70vh,24rem)] w-max min-w-[11rem] max-w-[min(18rem,calc(100vw-1.5rem))] flex-col-reverse gap-0.5 overflow-y-auto overscroll-contain p-2 shadow-lg',
                     placement === 'bottom'
                       ? 'bottom-[calc(100%+0.5rem)]'
                       : 'top-[calc(100%+0.5rem)]',
@@ -411,7 +417,7 @@ export function FloatingTabBar({
                   {moreOverflowItems.length > 0 && (moreEndItems.length > 0 || showAuthButton) ? (
                     <div
                       role="separator"
-                      className="my-1 border-t border-foreground/10"
+                      className="my-1 border-t border-sidebar-border"
                     />
                   ) : null}
                   {moreEndItems.map(renderMoreRow)}

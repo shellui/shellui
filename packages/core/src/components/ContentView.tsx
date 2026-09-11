@@ -97,11 +97,9 @@ export const ContentView = ({
   const skipInitialShellSyncRef = useRef(true);
   const prevNavPathRef = useRef(navItem?.path ?? '');
 
-  const [isLoading, setIsLoading] = useState(() => {
-    // Skip overlay when same app URL was just loaded (e.g. switching App ↔ Root with same url)
-    if (!ignoreMessages) return false;
-    return true;
-  });
+  // Always start covered: remounts (e.g. /layout → /) create a fresh iframe that would
+  // otherwise flash blank/white at opacity 1 before SHELLUI_INITIALIZED.
+  const [isLoading, setIsLoading] = useState(true);
 
   const [iframeUrl, setIframeUrl] = useState(url);
   /** Bumped only when the iframe element must remount (nav item / app change). */
@@ -162,6 +160,8 @@ export const ContentView = ({
     if (iframe && isSameOriginAsNavItem(url, navItem) && replaceIframeLocation(iframe, url)) {
       // Do not update the src prop — React would re-navigate the iframe and can
       // push a joint session-history entry, wiping intermediate shell routes.
+      // Loading stays as-is: same-document (e.g. hash) hops do not re-send
+      // SHELLUI_INITIALIZED, and blanking for the fallback timeout would feel stuck.
       return;
     }
 
