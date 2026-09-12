@@ -57,7 +57,7 @@ function OverlayIframe({
   url,
   navItem,
   contentSized,
-  reportedHeight,
+  reportedHeight: _reportedHeight,
   reportedWidth,
   allowInnerScroll,
   pending,
