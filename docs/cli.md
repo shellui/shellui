@@ -43,7 +43,8 @@ The `init` command creates a new Shellui project with:
    - **Empty shell**: Minimal `shellui.config.json` with placeholder static assets
    - **React/Vue/Angular**: Full starter with SDK integration, fetched on-demand from GitHub
    - Templates are NOT bundled in the npm package - they are fetched from the repository tag matching the CLI version
-   - Framework starters also wire `dev.run` / `dev.url` (and Home navigation to that URL) so `shellui start` launches the framework companion beside the shell. Empty stays shell-only (`Home` at `/`, no `dev` block).
+   - Framework starters also wire `dev.run` / `dev.url` (and Home at shell `/` pointing at that URL) so `shellui start` launches the framework companion beside the shell. Empty stays shell-only (`Home` at `/`, no `dev` block).
+   - After scaffolding a framework with `package.json`, init detects the package manager and runs install automatically (unless `--no-install`). `dev.run` matches the detected manager (e.g. `pnpm run dev`).
 
 3. **Backend configuration**:
    - Automatically writes `backend` section to `shellui.config.json` based on your choices
@@ -57,6 +58,7 @@ The `init` command creates a new Shellui project with:
 - `--company-id <id>`: Shellui company ID (required when `--backend shellui`)
 - `--supabase-url <url>`: Supabase project URL (required when `--backend supabase`)
 - `--force`: Overwrite existing `shellui.config.json`
+- `--no-install`: Skip dependency install after scaffolding (framework starters only)
 - `--config <path>`: Config file or directory location
 
 **Examples:**

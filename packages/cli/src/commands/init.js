@@ -16,12 +16,27 @@ import {
 } from '../init/build-config.js';
 import { createEmptyShell, ensureDistGitignore } from '../init/scaffold.js';
 import { resolveFrameworkTemplate } from '../init/templates.js';
+import {
+  detectPackageManager,
+  formatInstallCommand,
+  hasPackageJson,
+  installDependencies,
+} from '../init/package-manager.js';
 
 /**
  * Check if stdin is a TTY (interactive terminal).
  */
 function isInteractive() {
   return process.stdin.isTTY === true;
+}
+
+/**
+ * cac maps `--no-install` to `install: false` (negated boolean).
+ * @param {{ install?: boolean, noInstall?: boolean }} options
+ * @returns {boolean}
+ */
+function shouldSkipInstall(options) {
+  return options.install === false || options.noInstall === true;
 }
 
 /**
@@ -33,7 +48,9 @@ function isInteractive() {
  *   framework?: string,
  *   backend?: string,
  *   companyId?: string | number,
- *   supabaseUrl?: string
+ *   supabaseUrl?: string,
+ *   install?: boolean,
+ *   noInstall?: boolean,
  * }} options - Optional flags
  */
 export async function initCommand(frameworkOrRoot, options = {}) {
@@ -131,14 +148,17 @@ export async function initCommand(frameworkOrRoot, options = {}) {
   const s = p.spinner();
   s.start('Creating project...');
 
+  /** @type {string | null} */
+  let installCommand = null;
+  /** @type {'ok' | 'failed' | 'skipped' | 'instructions' | null} */
+  let installStatus = null;
+
   try {
     if (!fs.existsSync(configDir)) {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
-    const config = buildInitConfig({ framework, backend, companyId, supabaseUrl });
-    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
-
+    // Scaffold first so package.json / lockfiles exist for package-manager detection.
     const frameworkDef = getFramework(framework);
     if (frameworkDef?.scaffold === 'empty' || frameworkDef?.scaffold === 'skip') {
       const { created } = createEmptyShell(projectRoot);
@@ -162,6 +182,17 @@ export async function initCommand(frameworkOrRoot, options = {}) {
 
     ensureDistGitignore(projectRoot);
 
+    const packageManager = hasPackageJson(projectRoot) ? detectPackageManager(projectRoot) : null;
+
+    const config = buildInitConfig({
+      framework,
+      backend,
+      companyId,
+      supabaseUrl,
+      packageManager,
+    });
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
+
     if (fs.existsSync(tsPath)) {
       console.log(
         pc.yellow(
@@ -172,10 +203,80 @@ export async function initCommand(frameworkOrRoot, options = {}) {
 
     s.stop(pc.green('Project created!'));
 
+    // Post-init dependency install for frameworks with package.json.
+    // Empty / other (no package.json): skip quietly.
+    if (hasPackageJson(projectRoot)) {
+      if (shouldSkipInstall(options)) {
+        installStatus = 'skipped';
+        if (packageManager) {
+          installCommand = formatInstallCommand(packageManager);
+        }
+      } else if (packageManager) {
+        installCommand = formatInstallCommand(packageManager);
+        const installSpinner = p.spinner();
+        if (isInteractive()) {
+          installSpinner.start(`Running ${installCommand}...`);
+        } else {
+          console.log(pc.dim(`Running ${installCommand}...`));
+        }
+
+        try {
+          await installDependencies(projectRoot, packageManager);
+          installStatus = 'ok';
+          if (isInteractive()) {
+            installSpinner.stop(pc.green(`Ran ${installCommand}`));
+          } else {
+            console.log(pc.green(`Ran ${installCommand}`));
+          }
+        } catch (installErr) {
+          installStatus = 'failed';
+          if (isInteractive()) {
+            installSpinner.stop(pc.yellow(`Could not run ${installCommand}`));
+          }
+          console.log(
+            pc.yellow(
+              `Warning: dependency install failed (${installErr.message}). Project was still created.`,
+            ),
+          );
+          console.log(
+            pc.dim(`Run ${pc.cyan(installCommand)} manually, then ${pc.cyan('shellui start')}.`),
+          );
+        }
+      } else {
+        // No usable package manager — do not fail init; print instructions.
+        installStatus = 'instructions';
+        console.log(
+          pc.yellow(
+            'Dependencies were not installed (no package manager detected). Run npm install (or pnpm / yarn), then shellui start.',
+          ),
+        );
+      }
+    }
+
     if (isInteractive()) {
-      p.outro(`${pc.green('✓')} Run ${pc.cyan('shellui start')} to begin development`);
+      const parts = [`${pc.green('✓')} Project ready`];
+      if (installStatus === 'ok' && installCommand) {
+        parts.push(`Ran ${pc.cyan(installCommand)}`);
+      } else if (installStatus === 'skipped' && installCommand) {
+        parts.push(`Skipped install — run ${pc.cyan(installCommand)} when ready`);
+      } else if (installStatus === 'failed' && installCommand) {
+        parts.push(`Install manually with ${pc.cyan(installCommand)}`);
+      } else if (installStatus === 'instructions') {
+        parts.push('Install dependencies, then continue');
+      }
+      parts.push(`Next: ${pc.cyan('shellui start')}`);
+      p.outro(parts.join('\n'));
     } else {
       console.log(pc.green(`Created ${configPath}`));
+      if (installStatus === 'ok' && installCommand) {
+        console.log(pc.dim(`Ran ${pc.cyan(installCommand)}`));
+      } else if (installStatus === 'skipped' && installCommand) {
+        console.log(
+          pc.dim(
+            `Skipped install (${pc.cyan('--no-install')}). Run ${pc.cyan(installCommand)} when ready.`,
+          ),
+        );
+      }
       console.log(pc.dim(`Run ${pc.cyan('shellui start')} to begin development`));
     }
   } catch (err) {
@@ -204,3 +305,9 @@ export {
 } from '../init/registry.js';
 export { resolveFrameworkTemplate, resolveLocalTemplatePath } from '../init/templates.js';
 export { createEmptyShell, ensureDistGitignore } from '../init/scaffold.js';
+export {
+  detectPackageManager,
+  formatDevRun,
+  formatInstallCommand,
+  installDependencies,
+} from '../init/package-manager.js';

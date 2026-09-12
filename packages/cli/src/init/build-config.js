@@ -6,6 +6,7 @@ import {
   getFramework,
   getPositionalFrameworkIds,
 } from './registry.js';
+import { formatDevRun } from './package-manager.js';
 import { CONFIG_SCHEMA_REF } from '../utils/config-paths.js';
 
 /**
@@ -15,6 +16,7 @@ import { CONFIG_SCHEMA_REF } from '../utils/config-paths.js';
  *   companyId?: string | number | null,
  *   supabaseUrl?: string | null,
  *   force?: boolean,
+ *   noInstall?: boolean,
  * }} InitOptions
  */
 
@@ -108,8 +110,10 @@ export function buildBaseConfig() {
     theme: 'shellui',
     navigation: [
       {
+        // Empty path = shell root (`/`). Core treats '' and '/' as the root nav item
+        // (see useNavigationItems); '' avoids a /home route that hides the companion.
         label: 'Home',
-        path: 'home',
+        path: '',
         url: '/',
       },
       {
@@ -155,23 +159,39 @@ export function applyBackendConfig(config, { backend, companyId, supabaseUrl }) 
 }
 
 /**
+ * Whether a nav item is the shell Home / root entry.
+ * @param {unknown} item
+ * @returns {boolean}
+ */
+function isHomeNavItem(item) {
+  return (
+    !!item &&
+    typeof item === 'object' &&
+    /** @type {{ path?: unknown }} */ ((item).path === '' ||
+      /** @type {{ path?: unknown }} */ (item).path === '/')
+  );
+}
+
+/**
  * Wire `dev.run` / `dev.url` and Home nav so `shellui start` launches the
- * framework companion and embeds it in the shell iframe.
+ * framework companion and embeds it in the shell iframe at shell `/`.
  * Empty / other frameworks leave Home at `/` and omit `dev`.
  * @param {Record<string, unknown>} config
  * @param {string} framework
+ * @param {{ packageManager?: string | null }} [opts]
  * @returns {Record<string, unknown>}
  */
-export function applyCompanionConfig(config, framework) {
+export function applyCompanionConfig(config, framework, opts = {}) {
   const companion = FRAMEWORK_COMPANIONS[framework];
   if (!companion) {
     return config;
   }
 
+  const packageManager = opts.packageManager || 'npm';
   const next = {
     ...config,
     dev: {
-      run: companion.run,
+      run: formatDevRun(packageManager),
       url: companion.url,
       name: companion.name,
     },
@@ -179,7 +199,7 @@ export function applyCompanionConfig(config, framework) {
 
   const navigation = Array.isArray(config.navigation) ? [...config.navigation] : [];
   next.navigation = navigation.map((item) => {
-    if (item && typeof item === 'object' && item.path === 'home') {
+    if (isHomeNavItem(item)) {
       return { ...item, url: `${companion.url}/` };
     }
     return item;
@@ -195,9 +215,12 @@ export function applyCompanionConfig(config, framework) {
  *   backend: string,
  *   companyId?: string | number | null,
  *   supabaseUrl?: string | null,
+ *   packageManager?: string | null,
  * }} opts
  */
 export function buildInitConfig(opts) {
-  const { framework = 'empty', ...backendOpts } = opts;
-  return applyCompanionConfig(applyBackendConfig(buildBaseConfig(), backendOpts), framework);
+  const { framework = 'empty', packageManager, ...backendOpts } = opts;
+  return applyCompanionConfig(applyBackendConfig(buildBaseConfig(), backendOpts), framework, {
+    packageManager,
+  });
 }

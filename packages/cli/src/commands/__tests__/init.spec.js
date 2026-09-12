@@ -45,7 +45,7 @@ describe('initCommand (non-interactive)', () => {
     expect(config.backend).toBeUndefined();
     expect(config.dev).toBeUndefined();
     expect(config.port).toBe(4000);
-    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe('/');
     expect(fs.existsSync(path.join(projectDir, 'static', 'favicon.svg'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'static', 'logo.svg'))).toBe(true);
     expect(fs.readFileSync(path.join(projectDir, '.gitignore'), 'utf-8')).toContain('dist/');
@@ -151,7 +151,8 @@ describe('initCommand (non-interactive)', () => {
     const cwd = process.cwd();
     process.chdir(repoRoot);
     try {
-      await initCommand(projectDir, { framework: 'react', backend: 'none' });
+      // --no-install keeps this unit test fast (install covered separately).
+      await initCommand(projectDir, { framework: 'react', backend: 'none', install: false });
     } finally {
       process.chdir(cwd);
     }
@@ -166,13 +167,22 @@ describe('initCommand (non-interactive)', () => {
     expect(app).toMatch(/Count is/);
     expect(app).not.toMatch(/Welcome to Shellui/);
 
+    const { detectPackageManager, formatDevRun } = await import('../../init/package-manager.js');
+    const pm = detectPackageManager(projectDir);
+    expect(pm).toBeTruthy();
+
     const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
     expect(config.dev).toEqual({
-      run: 'npm run dev',
+      run: formatDevRun(pm),
       url: 'http://localhost:5173',
       name: 'react',
     });
-    expect(config.navigation.find((n) => n.path === 'home').url).toBe('http://localhost:5173/');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+      'http://localhost:5173/',
+    );
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
     expect(config.port).toBe(4000);
+    // --no-install must not create node_modules
+    expect(fs.existsSync(path.join(projectDir, 'node_modules'))).toBe(false);
   });
 });

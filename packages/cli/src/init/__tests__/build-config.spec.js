@@ -99,7 +99,7 @@ describe('buildInitConfig / backend wiring', () => {
     expect(config.$schema).toBeTruthy();
     expect(config.navigation).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: 'home' }),
+        expect.objectContaining({ label: 'Home', path: '', url: '/' }),
         expect.objectContaining({ path: 'settings', openIn: 'modal' }),
       ]),
     );
@@ -135,17 +135,17 @@ describe('buildInitConfig / backend wiring', () => {
 });
 
 describe('buildInitConfig / companion wiring', () => {
-  test('empty omits dev and keeps Home at /', () => {
+  test('empty omits dev and keeps Home at shell root', () => {
     const config = buildInitConfig({ framework: 'empty', backend: 'none' });
     expect(config.dev).toBeUndefined();
     expect(config.port).toBe(4000);
-    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe('/');
   });
 
   test('other omits companion like empty', () => {
     const config = buildInitConfig({ framework: 'other', backend: 'none' });
     expect(config.dev).toBeUndefined();
-    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe('/');
   });
 
   test.each([
@@ -160,11 +160,23 @@ describe('buildInitConfig / companion wiring', () => {
       url: companionUrl,
       name: framework,
     });
-    expect(config.navigation.find((n) => n.path === 'home').url).toBe(`${companionUrl}/`);
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+      `${companionUrl}/`,
+    );
     expect(config.navigation.find((n) => n.path === 'settings').url).toBe('/__settings');
 
     const shellPort = new URL(`http://localhost:${config.port}`).port;
     const companionPort = new URL(companionUrl).port;
     expect(companionPort).not.toBe(shellPort);
+  });
+
+  test('dev.run uses detected package manager when provided', () => {
+    const config = buildInitConfig({
+      framework: 'react',
+      backend: 'none',
+      packageManager: 'pnpm',
+    });
+    expect(config.dev.run).toBe('pnpm run dev');
+    expect(config.navigation.find((n) => n.path === '').path).toBe('');
   });
 });

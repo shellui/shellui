@@ -94,6 +94,8 @@ export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 
 /**
  * Companion `dev` + Home iframe URL for framework starters.
  * Shell stays on port 4000; Vite apps use 5173, Angular uses 4200.
+ * `run` is the npm default; init rewrites it to `{detectedPm} run dev` when a
+ * package manager is detected (see package-manager.js).
  * @type {Record<'react' | 'vue' | 'angular', { run: string, url: string, name: string }>}
  */
 export const FRAMEWORK_COMPANIONS = {
