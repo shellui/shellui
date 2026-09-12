@@ -164,13 +164,9 @@ export function applyBackendConfig(config, { backend, companyId, supabaseUrl }) 
  * @returns {boolean}
  */
 function isHomeNavItem(item) {
-  return (
-    !!item &&
-    typeof item === 'object' &&
-    /** @type {{ path?: unknown }} */ (
-      item.path === '' || /** @type {{ path?: unknown }} */ (item).path === '/'
-    )
-  );
+  if (!item || typeof item !== 'object') return false;
+  const path = /** @type {{ path?: unknown }} */ (item).path;
+  return path === '' || path === '/';
 }
 
 /**
