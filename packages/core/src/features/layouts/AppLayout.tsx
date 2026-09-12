@@ -1,6 +1,11 @@
 import { lazy, Suspense, type LazyExoticComponent, type ComponentType } from 'react';
-import type { LayoutType, NavigationItem, NavigationGroup, ThemeAsset } from '../config/types';
-import { normalizeLayoutType } from '../config/types';
+import {
+  normalizeLayoutType,
+  type LayoutType,
+  type NavigationItem,
+  type NavigationGroup,
+  type ThemeAsset,
+} from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
