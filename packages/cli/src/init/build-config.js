@@ -167,8 +167,9 @@ function isHomeNavItem(item) {
   return (
     !!item &&
     typeof item === 'object' &&
-    /** @type {{ path?: unknown }} */ ((item).path === '' ||
-      /** @type {{ path?: unknown }} */ (item).path === '/')
+    /** @type {{ path?: unknown }} */ (
+      item.path === '' || /** @type {{ path?: unknown }} */ (item).path === '/'
+    )
   );
 }
 
