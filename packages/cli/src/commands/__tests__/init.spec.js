@@ -43,7 +43,9 @@ describe('initCommand (non-interactive)', () => {
     const configPath = path.join(projectDir, MAIN_CONFIG_FILE);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     expect(config.backend).toBeUndefined();
+    expect(config.dev).toBeUndefined();
     expect(config.port).toBe(4000);
+    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
     expect(fs.existsSync(path.join(projectDir, 'static', 'favicon.svg'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'static', 'logo.svg'))).toBe(true);
     expect(fs.readFileSync(path.join(projectDir, '.gitignore'), 'utf-8')).toContain('dist/');
@@ -163,5 +165,14 @@ describe('initCommand (non-interactive)', () => {
     expect(app).toMatch(/Get started/);
     expect(app).toMatch(/Count is/);
     expect(app).not.toMatch(/Welcome to Shellui/);
+
+    const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
+    expect(config.dev).toEqual({
+      run: 'npm run dev',
+      url: 'http://localhost:5173',
+      name: 'react',
+    });
+    expect(config.navigation.find((n) => n.path === 'home').url).toBe('http://localhost:5173/');
+    expect(config.port).toBe(4000);
   });
 });

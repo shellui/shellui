@@ -92,6 +92,28 @@ export const DEFAULT_SHELLUI_BACKEND_URL = 'https://id.shellui.com';
 export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 'oauth']);
 
 /**
+ * Companion `dev` + Home iframe URL for framework starters.
+ * Shell stays on port 4000; Vite apps use 5173, Angular uses 4200.
+ * @type {Record<'react' | 'vue' | 'angular', { run: string, url: string, name: string }>}
+ */
+export const FRAMEWORK_COMPANIONS = {
+  react: {
+    run: 'npm run dev',
+    url: 'http://localhost:5173',
+    name: 'react',
+  },
+  vue: {
+    run: 'npm run dev',
+    url: 'http://localhost:5173',
+    name: 'vue',
+  },
+  angular: {
+    run: 'npm run dev',
+    url: 'http://localhost:4200',
+    name: 'angular',
+  },
+};
+/**
  * Framework IDs accepted as a positional `shellui init <framework>` shortcut.
  * @returns {FrameworkId[]}
  */

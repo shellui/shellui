@@ -1,6 +1,7 @@
 import {
   DEFAULT_SHELLUI_BACKEND_URL,
   DEFAULT_SHELLUI_LOGIN_METHODS,
+  FRAMEWORK_COMPANIONS,
   getBackend,
   getFramework,
   getPositionalFrameworkIds,
@@ -154,13 +155,49 @@ export function applyBackendConfig(config, { backend, companyId, supabaseUrl }) 
 }
 
 /**
+ * Wire `dev.run` / `dev.url` and Home nav so `shellui start` launches the
+ * framework companion and embeds it in the shell iframe.
+ * Empty / other frameworks leave Home at `/` and omit `dev`.
+ * @param {Record<string, unknown>} config
+ * @param {string} framework
+ * @returns {Record<string, unknown>}
+ */
+export function applyCompanionConfig(config, framework) {
+  const companion = FRAMEWORK_COMPANIONS[framework];
+  if (!companion) {
+    return config;
+  }
+
+  const next = {
+    ...config,
+    dev: {
+      run: companion.run,
+      url: companion.url,
+      name: companion.name,
+    },
+  };
+
+  const navigation = Array.isArray(config.navigation) ? [...config.navigation] : [];
+  next.navigation = navigation.map((item) => {
+    if (item && typeof item === 'object' && item.path === 'home') {
+      return { ...item, url: `${companion.url}/` };
+    }
+    return item;
+  });
+
+  return next;
+}
+
+/**
  * Full config object for the resolved wizard / flag answers.
  * @param {{
+ *   framework?: string,
  *   backend: string,
  *   companyId?: string | number | null,
  *   supabaseUrl?: string | null,
  * }} opts
  */
 export function buildInitConfig(opts) {
-  return applyBackendConfig(buildBaseConfig(), opts);
+  const { framework = 'empty', ...backendOpts } = opts;
+  return applyCompanionConfig(applyBackendConfig(buildBaseConfig(), backendOpts), framework);
 }

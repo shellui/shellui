@@ -133,3 +133,38 @@ describe('buildInitConfig / backend wiring', () => {
     expect(base.backend).toBeUndefined();
   });
 });
+
+describe('buildInitConfig / companion wiring', () => {
+  test('empty omits dev and keeps Home at /', () => {
+    const config = buildInitConfig({ framework: 'empty', backend: 'none' });
+    expect(config.dev).toBeUndefined();
+    expect(config.port).toBe(4000);
+    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
+  });
+
+  test('other omits companion like empty', () => {
+    const config = buildInitConfig({ framework: 'other', backend: 'none' });
+    expect(config.dev).toBeUndefined();
+    expect(config.navigation.find((n) => n.path === 'home').url).toBe('/');
+  });
+
+  test.each([
+    ['react', 'http://localhost:5173'],
+    ['vue', 'http://localhost:5173'],
+    ['angular', 'http://localhost:4200'],
+  ])('%s wires dev.run/url/name and Home to companion origin', (framework, companionUrl) => {
+    const config = buildInitConfig({ framework, backend: 'none' });
+    expect(config.port).toBe(4000);
+    expect(config.dev).toEqual({
+      run: 'npm run dev',
+      url: companionUrl,
+      name: framework,
+    });
+    expect(config.navigation.find((n) => n.path === 'home').url).toBe(`${companionUrl}/`);
+    expect(config.navigation.find((n) => n.path === 'settings').url).toBe('/__settings');
+
+    const shellPort = new URL(`http://localhost:${config.port}`).port;
+    const companionPort = new URL(companionUrl).port;
+    expect(companionPort).not.toBe(shellPort);
+  });
+});

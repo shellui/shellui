@@ -136,7 +136,7 @@ export async function initCommand(frameworkOrRoot, options = {}) {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
-    const config = buildInitConfig({ backend, companyId, supabaseUrl });
+    const config = buildInitConfig({ framework, backend, companyId, supabaseUrl });
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
 
     const frameworkDef = getFramework(framework);
