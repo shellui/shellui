@@ -1,0 +1,31 @@
+<div class="app">
+  <h1>Welcome to Shellui + Angular</h1>
+
+  <div class="section">
+    <h2>Getting Started</h2>
+    <p>This is a minimal Angular starter integrated with the Shellui SDK.</p>
+
+    <button
+      (click)="handleShowToast()"
+      class="button"
+    >
+      Show Toast
+    </button>
+  </div>
+
+  <div
+    *ngIf="settings"
+    class="section"
+  >
+    <h3>Shell Settings</h3>
+    <pre class="code-block">{{ stringify(settings) }}</pre>
+  </div>
+
+  <div
+    *ngIf="user"
+    class="section"
+  >
+    <h3>Current User</h3>
+    <pre class="code-block">{{ stringify(user) }}</pre>
+  </div>
+</div>

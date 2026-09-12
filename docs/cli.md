@@ -8,43 +8,83 @@ See the [Installation Guide](/installation) for detailed installation instructio
 
 ## Commands
 
-### `shellui init [root]`
+### `shellui init [framework]`
 
-Create a `shellui.config.json` boilerplate to get started quickly.
+Create a Shellui project with an interactive wizard or using command-line flags.
 
 **Usage:**
 
 ```bash
+# Interactive wizard (recommended)
 shellui init
-shellui init ./my-project
-shellui init --force
+
+# Framework shortcuts
+shellui init react
+shellui init vue
+shellui init angular
+shellui init empty
+
+# Non-interactive (CI/automation)
+shellui init --framework react --backend shellui --company-id 123
+shellui init --framework vue --backend supabase --supabase-url https://xxx.supabase.co
+shellui init --framework empty --backend none
 ```
 
 **Description:**
 
-- Creates a minimal `shellui.config.json` in the project root (or the given directory)
-- Includes `$schema` for editor autocomplete, port, title, layout, language, and sample navigation (Home + Settings)
-- Does not overwrite an existing config unless `--force` is used
+The `init` command creates a new Shellui project with:
+
+1. **Interactive wizard** (when no flags are provided):
+   - Framework selection: empty shell, React, Vue, Angular, or other (coming soon)
+   - Backend integration: no backend, Shellui, or Supabase
+   - Prompts for backend-specific settings (company ID, Supabase URL)
+
+2. **Framework scaffolding**:
+   - **Empty shell**: Minimal `shellui.config.json` with placeholder static assets
+   - **React/Vue/Angular**: Full starter with SDK integration, fetched on-demand from GitHub
+   - Templates are NOT bundled in the npm package - they are fetched from the repository tag matching the CLI version
+
+3. **Backend configuration**:
+   - Automatically writes `backend` section to `shellui.config.json` based on your choices
+   - Supports Shellui backend (with company ID) and Supabase (with project URL)
 
 **Options:**
 
-- `root` (optional): Directory where to create the config (default: current directory)
+- `framework` (positional): Framework shortcut - `empty`, `react`, `vue`, or `angular`
+- `--framework <type>`: Framework type (same values as positional argument)
+- `--backend <type>`: Backend type - `none`, `shellui`, or `supabase`
+- `--company-id <id>`: Shellui company ID (required when `--backend shellui`)
+- `--supabase-url <url>`: Supabase project URL (required when `--backend supabase`)
 - `--force`: Overwrite existing `shellui.config.json`
+- `--config <path>`: Config file or directory location
 
-**Example:**
+**Examples:**
 
 ```bash
-# Create config in current directory
+# Interactive wizard - choose framework and backend
 shellui init
 
-# Create config in a subdirectory
-shellui init ./my-app
+# Quick start with React (interactive backend prompt)
+shellui init react
 
-# Overwrite existing config
+# Full non-interactive setup for CI
+shellui init --framework react --backend shellui --company-id 123
+
+# Empty shell with Supabase backend
+shellui init empty --backend supabase --supabase-url https://xxx.supabase.co
+
+# Create in specific directory
+shellui init react ./my-project
+
+# Force overwrite existing config
 shellui init --force
 ```
 
-After running `shellui init`, add a `static/` folder with `favicon.svg`, `logo.svg`, and `icons/` (e.g. `home.svg`, `settings.svg`) to customize assets, then run `shellui dev` to begin development.
+After running `shellui init`, you can:
+
+- Run `shellui start` to begin development
+- Customize assets in the `static/` folder
+- Edit `shellui.config.json` to configure your app
 
 ### `shellui config migrate [root]`
 
