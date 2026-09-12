@@ -63,9 +63,13 @@ describe('template helpers', () => {
   test('fetchTemplateFiles writes only successful responses', async () => {
     const fetchImpl = vi.fn(async (url) => {
       if (String(url).endsWith('package.json')) {
-        return { ok: true, text: async () => '{"name":"x"}' };
+        return {
+          ok: true,
+          text: async () => '{"name":"x"}',
+          arrayBuffer: async () => new TextEncoder().encode('{"name":"x"}').buffer,
+        };
       }
-      return { ok: false, text: async () => '' };
+      return { ok: false, text: async () => '', arrayBuffer: async () => new ArrayBuffer(0) };
     });
 
     const result = await fetchTemplateFiles('https://example.test/react', testDir, 'react', {
@@ -108,17 +112,51 @@ describe('template helpers', () => {
     ).rejects.toThrow(/Could not fetch vue template/);
   });
 
+  test('fetchTemplateFiles writes binary assets via arrayBuffer', async () => {
+    const bytes = Uint8Array.from([137, 80, 78, 71]);
+    const fetchImpl = vi.fn(async (url) => {
+      if (String(url).endsWith('src/assets/hero.png')) {
+        return {
+          ok: true,
+          arrayBuffer: async () => bytes.buffer,
+          text: async () => {
+            throw new Error('should not text-decode png');
+          },
+        };
+      }
+      return { ok: false, text: async () => '', arrayBuffer: async () => new ArrayBuffer(0) };
+    });
+
+    const result = await fetchTemplateFiles('https://example.test/react', testDir, 'react', {
+      fetchImpl,
+    });
+
+    expect(result.fetched).toContain('src/assets/hero.png');
+    expect(fs.readFileSync(path.join(testDir, 'src/assets/hero.png'))).toEqual(
+      Buffer.from(bytes.buffer),
+    );
+  });
+
   test('resolveFrameworkTemplate uses github-tag when manifest ok', async () => {
     const target = path.join(testDir, 'tagged');
     const fetchImpl = vi.fn(async (url) => {
       const u = String(url);
       if (u.includes('/v1.2.3/') && u.endsWith('package.json')) {
-        return { ok: true, text: async () => '{"name":"vue-starter"}' };
+        return {
+          ok: true,
+          text: async () => '{"name":"vue-starter"}',
+          arrayBuffer: async () => new TextEncoder().encode('{"name":"vue-starter"}').buffer,
+        };
       }
       if (u.includes('/v1.2.3/')) {
-        return { ok: true, text: async () => 'file-body' };
+        const body = 'file-body';
+        return {
+          ok: true,
+          text: async () => body,
+          arrayBuffer: async () => new TextEncoder().encode(body).buffer,
+        };
       }
-      return { ok: false, text: async () => '' };
+      return { ok: false, text: async () => '', arrayBuffer: async () => new ArrayBuffer(0) };
     });
 
     const result = await resolveFrameworkTemplate('vue', target, '1.2.3', {

@@ -142,7 +142,7 @@ describe('initCommand (non-interactive)', () => {
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
   });
 
-  test('positional/flag react scaffolding copies local template when in monorepo', async () => {
+  test('positional/flag react scaffolding copies local official Vite template', async () => {
     const projectDir = path.join(testRoot, 'react-local');
     fs.mkdirSync(projectDir);
 
@@ -156,5 +156,12 @@ describe('initCommand (non-interactive)', () => {
 
     expect(fs.existsSync(path.join(projectDir, MAIN_CONFIG_FILE))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'package.json'))).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, 'public', 'favicon.svg'))).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'react.svg'))).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'hero.png'))).toBe(true);
+    const app = fs.readFileSync(path.join(projectDir, 'src', 'App.jsx'), 'utf-8');
+    expect(app).toMatch(/Get started/);
+    expect(app).toMatch(/Count is/);
+    expect(app).not.toMatch(/Welcome to Shellui/);
   });
 });

@@ -1,10 +1,14 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './App.css';
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { shellui } from '@shellui/sdk/tiny'
+import './index.css'
+import App from './App.jsx'
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+// Light Shellui host handshake when embedded (no-op outside the shell).
+void shellui.ready
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>,
-);
+  </StrictMode>,
+)

@@ -1,4 +1,9 @@
-import { createApp } from 'vue';
-import App from './App.vue';
+import { createApp } from 'vue'
+import { shellui } from '@shellui/sdk/tiny'
+import './style.css'
+import App from './App.vue'
 
-createApp(App).mount('#app');
+// Light Shellui host handshake when embedded (no-op outside the shell).
+void shellui.ready
+
+createApp(App).mount('#app')

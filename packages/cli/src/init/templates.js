@@ -71,6 +71,27 @@ export function cliVersionToTag(cliVersion) {
   return cliVersion.startsWith('v') ? cliVersion : `v${cliVersion}`;
 }
 
+const BINARY_TEMPLATE_EXTENSIONS = new Set([
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.ico',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.eot',
+]);
+
+/**
+ * @param {string} filePath
+ * @returns {boolean}
+ */
+function isBinaryTemplateFile(filePath) {
+  return BINARY_TEMPLATE_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
 /**
  * Fetch template files from a raw.githubusercontent.com base URL.
  * @param {string} baseUrl
@@ -93,10 +114,15 @@ export async function fetchTemplateFiles(baseUrl, targetDir, framework, opts = {
         missing.push(file);
         continue;
       }
-      const content = await response.text();
       const targetPath = path.join(targetDir, file);
       fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-      fs.writeFileSync(targetPath, content, 'utf-8');
+      if (isBinaryTemplateFile(file)) {
+        const buffer = Buffer.from(await response.arrayBuffer());
+        fs.writeFileSync(targetPath, buffer);
+      } else {
+        const content = await response.text();
+        fs.writeFileSync(targetPath, content, 'utf-8');
+      }
       fetched.push(file);
     } catch {
       missing.push(file);
