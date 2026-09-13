@@ -6,5 +6,9 @@ pnpm-lock.yaml
 package-lock.json
 tools/docusaurus/
 tools/tauri/
+# Official create-vite / ng new starters — keep upstream formatting
+packages/cli/templates/react/
+packages/cli/templates/vue/
+packages/cli/templates/angular/
 *.log
 .DS_Store

@@ -304,7 +304,7 @@ if (embedded) {
       target === document ||
       target === document.documentElement ||
       target === document.body ||
-      target == null
+      target === null
     ) {
       const el = document.documentElement;
       scrollY = window.scrollY || el.scrollTop || document.body.scrollTop || 0;

@@ -18,8 +18,7 @@ import { DrawerTestButtons } from './develop/DrawerTestButtons';
 import { StoragePickerTestButtons } from './develop/StoragePickerTestButtons';
 import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
-import type { LayoutType } from '../../config/types';
-import { normalizeLayoutType } from '../../config/types';
+import { normalizeLayoutType, type LayoutType } from '../../config/types';
 
 export const Develop = () => {
   const { t } = useTranslation('settings');

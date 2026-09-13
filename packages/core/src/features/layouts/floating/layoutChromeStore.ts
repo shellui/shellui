@@ -1,5 +1,4 @@
-import type { LayoutChrome } from '@shellui/sdk';
-import { applyLayoutChromeStyles, shellui } from '@shellui/sdk';
+import { applyLayoutChromeStyles, shellui, type LayoutChrome } from '@shellui/sdk';
 
 let currentChrome: LayoutChrome | null = null;
 

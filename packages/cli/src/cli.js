@@ -49,10 +49,15 @@ cli
   .action((root, options) => buildCommand(root, options));
 
 cli
-  .command('init [root]', 'Create a shellui.config.json boilerplate')
+  .command('init [framework]', 'Create a shellui project with interactive wizard')
   .option('--force', 'Overwrite existing config file')
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .action((root, options) => initCommand(root, options));
+  .option('--framework <type>', 'Framework type: empty, react, vue, angular')
+  .option('--backend <type>', 'Backend type: none, shellui, supabase')
+  .option('--company-id <id>', 'Shellui company ID (required for shellui backend)')
+  .option('--supabase-url <url>', 'Supabase project URL (required for supabase backend)')
+  .option('--no-install', 'Skip installing dependencies after scaffold')
+  .action((framework, options) => initCommand(framework, options));
 
 cli
   .command('config <action> [root]', 'Config tools: migrate | split | unsplit')
