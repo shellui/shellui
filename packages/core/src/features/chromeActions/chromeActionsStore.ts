@@ -15,8 +15,15 @@ type Listener = () => void;
 
 const actionsByFrame = new Map<string, FrameChromeActions>();
 const listeners = new Set<Listener>();
+/** Stable snapshot for useSyncExternalStore — must keep referential identity until emit. */
+let cachedSnapshot: FrameChromeActions[] = [];
+
+function rebuildSnapshot(): void {
+  cachedSnapshot = Array.from(actionsByFrame.values());
+}
 
 function emit(): void {
+  rebuildSnapshot();
   for (const listener of listeners) {
     try {
       listener();
@@ -31,7 +38,7 @@ export function getChromeActionsForFrame(frameUuid: string): FrameChromeActions 
 }
 
 export function getAllChromeActions(): FrameChromeActions[] {
-  return Array.from(actionsByFrame.values());
+  return cachedSnapshot;
 }
 
 export function setChromeActionsForFrame(frameUuid: string, payload: ChromeActionsPayload): void {

@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import {
   clearAllChromeActions,
   clearChromeActionsForFrame,
+  getAllChromeActions,
   getChromeActionsForFrame,
   setChromeActionsForFrame,
   subscribeChromeActions,
@@ -10,6 +11,18 @@ import {
 describe('chrome actions clear-on-shell-nav (store)', () => {
   beforeEach(() => {
     clearAllChromeActions();
+  });
+
+  it('keeps getAllChromeActions referentially stable between emits', () => {
+    const emptyA = getAllChromeActions();
+    const emptyB = getAllChromeActions();
+    expect(emptyA).toBe(emptyB);
+
+    setChromeActionsForFrame('frame-a', { title: 'A' });
+    const withA = getAllChromeActions();
+    expect(withA).not.toBe(emptyA);
+    expect(getAllChromeActions()).toBe(withA);
+    expect(withA).toHaveLength(1);
   });
 
   it('notifies subscribers when a frame is cleared (iframe remove / shell nav)', () => {
