@@ -71,6 +71,7 @@ export function buildFrameLayoutChrome(
     topInTitleBar: options?.topInTitleBar,
     existingBottomInset: base.insets.bottom,
     primaryInDock,
+    viewport: base.viewport,
   });
   const insets = mergeInsets(base.insets, extra);
   const hasActions = flags.hasTop || flags.hasPrimary;
@@ -106,7 +107,7 @@ function chromePayloadForOverlayFrame(
 ): LayoutChrome {
   const actions = getChromeActionsForFrame(uuid);
   const flags = actionChromeFlags(actions);
-  const insets = computeActionInsets(flags, { topInTitleBar: false });
+  const insets = computeActionInsets(flags, { topInTitleBar: false, viewport });
   const hasActions = flags.hasTop || flags.hasPrimary;
   return {
     layout: hasActions ? 'actions' : 'none',

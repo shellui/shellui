@@ -16,10 +16,15 @@ export const FLOATING_SIDEBAR_WIDTH = 240;
 /**
  * Soft cap used as the initial slot guess before ResizeObserver measures.
  * Actual visible count is derived from available width / min slot width.
+ * iPhone 15 (~393px) fits 5 with FAB after side insets + FAB reserve.
  */
-export const FLOATING_MAX_TAB_SLOTS = 4;
+export const FLOATING_MAX_TAB_SLOTS = 5;
+/** Cap when the corner FAB is present — keeps the bar from feeling crowded. */
+export const FLOATING_MAX_TAB_SLOTS_WITH_FAB = 4;
 /** Minimum equal-width slot for a bottom-nav tab (icon + readable label). */
-export const FLOATING_MIN_TAB_SLOT_WIDTH = 76;
+export const FLOATING_MIN_TAB_SLOT_WIDTH = 56;
+/** Gap between the phone nav bar and the corner FAB (keep tight). */
+export const FLOATING_FAB_NAV_GAP = 6;
 
 /**
  * Padding under the floating tab bar (chrome margin + safe-area).

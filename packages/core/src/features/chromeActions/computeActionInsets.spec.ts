@@ -57,6 +57,16 @@ describe('computeActionInsets', () => {
     ).toBe(0);
   });
 
+  it('uses zero top margin on mobile', () => {
+    const desktop = computeActionInsets(
+      { hasTop: true, hasPrimary: false },
+      { viewport: 'desktop' },
+    );
+    const mobile = computeActionInsets({ hasTop: true, hasPrimary: false }, { viewport: 'mobile' });
+    expect(mobile.top).toBeLessThan(desktop.top);
+    expect(mobile.top).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT + 12);
+  });
+
   it('stacks FAB above existing bottom inset', () => {
     const alone = computeActionInsets({ hasTop: false, hasPrimary: true });
     const stacked = computeActionInsets(

@@ -139,6 +139,8 @@
   --shellui-inset-bottom: 0px;
   --shellui-inset-left: 0px;
   --shellui-floating-sidebar-radius: min(var(--radius), 5rem);
+  /* Any positive --radius → huge radius (pill); 0 → square. */
+  --shellui-floating-mobile-radius: calc(var(--radius) * 999);
 }
 
 .shellui-floating-glass {
@@ -188,6 +190,13 @@
 .shellui-floating-sidebar-panel .shellui-floating-nav-item,
 .shellui-floating-sidebar-panel .shellui-floating-nav-control {
   border-radius: var(--shellui-floating-sidebar-radius);
+}
+
+/* Phone/tablet floating dock + FAB: binary radius (square theme → rectangle). */
+[data-shellui-floating-dock-list],
+[data-shellui-floating-dock-tab],
+[data-shellui-chrome-actions-fab][data-shellui-floating-fab='true'] {
+  border-radius: var(--shellui-floating-mobile-radius) !important;
 }
 
 /* Floating desktop sidebar collapse — transform/opacity only; respect reduced motion. */

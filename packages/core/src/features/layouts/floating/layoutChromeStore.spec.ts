@@ -5,6 +5,7 @@ import {
   CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_MARGIN,
+  CHROME_ACTIONS_TOP_MARGIN_MOBILE,
 } from '../../chromeActions/computeActionInsets';
 import { FLOATING_CHROME_MARGIN, FLOATING_CONTENT_CLEARANCE } from './computeFloatingInsets';
 
@@ -57,7 +58,7 @@ describe('buildFrameLayoutChrome', () => {
     const chrome = buildFrameLayoutChrome(mobileFloating, { hasTop: true, hasPrimary: true });
     expect(chrome.insets.bottom).toBe(88);
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_TOP_MARGIN_MOBILE + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
   });
 

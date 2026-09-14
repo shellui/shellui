@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup, ThemeAsset } from '../../config/types';
 import {
   filterNavigationForAuthState,
@@ -23,7 +24,12 @@ import {
 } from '../chrome/constants';
 import { FloatingBottomDock } from './FloatingBottomDock';
 import { FloatingSidebar } from './FloatingSidebar';
+import { FloatingStatusScrim } from './FloatingStatusScrim';
 import { useFloatingChrome } from './useFloatingChrome';
+import { SafeAreaTopbarOffset, isShellUiRootWindow } from '../chrome/SafeAreaTopbar';
+import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvider';
+import { actionChromeFlags } from '../../chromeActions/computeActionInsets';
+import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME } from '../../chromeActions/chromeActionsStore';
 
 export interface FloatingLayoutProps {
   title?: string;
@@ -63,6 +69,21 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const tabItems = useMemo(() => flattenNavigationItems(startNav), [startNav]);
 
+  const chromeActions = useChromeActionsSnapshot();
+  const hasMainTopActions = useMemo(() => {
+    for (const actions of chromeActions) {
+      if (!actionChromeFlags(actions).hasTop) continue;
+      if (actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) continue;
+      for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
+        if (uuid !== actions.frameUuid || !iframe.isConnected) continue;
+        if (iframe.dataset.shelluiFrame === 'overlay') continue;
+        if (iframe.closest('[data-shellui-windows-layout]')) continue;
+        return true;
+      }
+    }
+    return false;
+  }, [chromeActions]);
+
   useEffect(() => {
     if (!title) return;
     if (navigationItem) {
@@ -75,6 +96,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const showTabBar = viewport === 'mobile' || viewport === 'tablet';
   const showSidebar = viewport === 'desktop';
+  const showSafeAreaTopbar = showTabBar && isShellUiRootWindow();
+  // Status scrim only when there’s no top action chrome (that bar paints its own fade).
+  const showStatusScrim = showSafeAreaTopbar && !hasMainTopActions;
 
   return (
     <div
@@ -82,6 +106,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       data-viewport={viewport}
       className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background"
     >
+      <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
+      <FloatingStatusScrim enabled={showStatusScrim} />
+
       {isTauriEnv ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"

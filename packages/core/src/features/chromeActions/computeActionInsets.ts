@@ -12,6 +12,8 @@ export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 32;
  * Slightly roomier than general floating chrome margin so controls aren’t cramped.
  */
 export const CHROME_ACTIONS_TOP_MARGIN = 20;
+/** Mobile: no extra top pad — safe-area alone; vertical space is tighter. */
+export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = 0;
 /**
  * Extra scrim height below the action row. With `from-80%`, this ~20% band
  * fades background → transparent so content eases in under the chrome.
@@ -19,10 +21,14 @@ export const CHROME_ACTIONS_TOP_MARGIN = 20;
 export const CHROME_ACTIONS_TOP_SCRIM_FADE = 16;
 /** Bottom primary action button size (default shadcn icon). */
 export const CHROME_ACTIONS_FAB_SIZE = 40;
-/** Floating phone/tablet FAB — matches `FLOATING_TAB_BAR_HEIGHT`. */
+/** Floating phone/tablet FAB — keep equal to `FLOATING_TAB_BAR_HEIGHT` (56). */
 export const CHROME_ACTIONS_FAB_SIZE_FLOATING = 56;
 /** Gap between primary FAB and floating tab bar (corner FAB uses FLOATING_CHROME_MARGIN). */
 export const CHROME_ACTIONS_FAB_GAP = 12;
+
+export function chromeActionsTopMargin(viewport?: 'mobile' | 'tablet' | 'desktop'): number {
+  return viewport === 'mobile' ? CHROME_ACTIONS_TOP_MARGIN_MOBILE : CHROME_ACTIONS_TOP_MARGIN;
+}
 
 export type ActionChromeFlags = {
   hasTop: boolean;
@@ -54,11 +60,14 @@ export function computeActionInsets(
      * no extra bottom inset beyond the dock height.
      */
     primaryInDock?: boolean;
+    /** Viewport for top margin (mobile drops the extra pad). */
+    viewport?: 'mobile' | 'tablet' | 'desktop';
   },
 ): LayoutChromeInsets {
+  const topMargin = chromeActionsTopMargin(options?.viewport);
   const top =
     flags.hasTop && !options?.topInTitleBar
-      ? CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE
+      ? topMargin + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE
       : 0;
 
   let bottom = 0;

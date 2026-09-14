@@ -36,6 +36,7 @@ import { useViewport } from '../../hooks/use-viewport';
 import { useSettings } from '../settings/hooks/useSettings';
 import {
   FLOATING_CHROME_MARGIN,
+  FLOATING_TAB_BAR_HEIGHT,
   floatingTabBarBottomPadCss,
 } from '../layouts/floating/computeFloatingInsets';
 import {
@@ -46,9 +47,9 @@ import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
-  CHROME_ACTIONS_TOP_MARGIN,
   CHROME_ACTIONS_TOP_SCRIM_FADE,
   actionChromeFlags,
+  chromeActionsTopMargin,
 } from './computeActionInsets';
 import {
   ChevronLeftIcon,
@@ -791,6 +792,7 @@ function TopActionBar({
   const viewport = useViewport();
   const narrow = viewport === 'mobile' || viewport === 'tablet';
   const trailing = actions.trailing ?? [];
+  const topMargin = chromeActionsTopMargin(viewport);
 
   const flags = actionChromeFlags(actions);
   if (!flags.hasTop) return null;
@@ -830,10 +832,10 @@ function TopActionBar({
         {isOverlay ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background/90 from-80% to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background/50 from-90% to-transparent"
             style={{
-              // Opaque through the action row (~80%), then fade the remaining ~20%.
-              height: `calc(${CHROME_ACTIONS_TOP_MARGIN}px + ${CHROME_ACTIONS_TOP_BAR_HEIGHT}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px + var(--shellui-safe-area-top, 0px))`,
+              // Light tint through the action row, then fade — no blur (animates poorly).
+              height: `calc(${topMargin}px + ${CHROME_ACTIONS_TOP_BAR_HEIGHT}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px + var(--shellui-safe-area-top, 0px))`,
             }}
           />
         ) : null}
@@ -848,7 +850,7 @@ function TopActionBar({
           style={
             isOverlay
               ? {
-                  top: `calc(${CHROME_ACTIONS_TOP_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
+                  top: `calc(${topMargin}px + var(--shellui-safe-area-top, 0px))`,
                   height: CHROME_ACTIONS_TOP_BAR_HEIGHT,
                   ...inlinePad,
                 }
@@ -940,61 +942,57 @@ function PrimaryFab({
     ? `calc(var(--shellui-inset-right, 0px) + ${FLOATING_CHROME_MARGIN}px)`
     : `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-right, 0px))`;
 
-  const tip = item.label || item.icon || 'Primary action';
-  const showTip = Boolean(item.icon) || !item.label;
+  const ariaLabel = item.label || item.icon || 'Primary action';
   const shown = visible && itemVisible && !scrollHidden;
 
   return (
-    <TooltipProvider delayDuration={250}>
-      <FadePresence
-        visible={visible && itemVisible}
-        scrollHidden={scrollHidden}
-        className="pointer-events-auto absolute z-[46]"
-        style={{
-          right,
-          bottom: bottomOffset,
+    <FadePresence
+      visible={visible && itemVisible}
+      scrollHidden={scrollHidden}
+      className="pointer-events-auto absolute z-[46]"
+      style={{
+        right,
+        bottom: bottomOffset,
+      }}
+    >
+      <Button
+        type="button"
+        variant="default"
+        size="icon"
+        disabled={Boolean(item.disabled)}
+        data-shellui-chrome-actions-fab=""
+        data-shellui-chrome-actions-hit=""
+        data-shellui-floating-fab={large ? 'true' : undefined}
+        className={cn('shadow-sm', large ? undefined : 'size-10')}
+        style={
+          large ? { width: FLOATING_TAB_BAR_HEIGHT, height: FLOATING_TAB_BAR_HEIGHT } : undefined
+        }
+        aria-label={ariaLabel}
+        tabIndex={shown ? undefined : -1}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (item.disabled) return;
+          fireAction(actions.frameUuid, item.id);
         }}
       >
-        <ChromeActionTooltip
-          label={showTip ? tip : undefined}
-          side="left"
-        >
-          <Button
-            type="button"
-            variant="default"
-            size="icon"
-            disabled={Boolean(item.disabled)}
-            data-shellui-chrome-actions-fab=""
-            data-shellui-chrome-actions-hit=""
-            className={cn('shadow-sm', large ? 'size-14 rounded-xl' : 'size-10')}
-            aria-label={tip}
-            tabIndex={shown ? undefined : -1}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (item.disabled) return;
-              fireAction(actions.frameUuid, item.id);
-            }}
-          >
-            {item.icon ? (
-              <ChromeActionGlyph
-                icon={item.icon}
-                label={item.label}
-                animate={item.animate}
-              />
-            ) : item.label ? (
-              <span className="px-1 text-sm font-semibold">{item.label}</span>
-            ) : (
-              <PlusIcon
-                className={item.animate === 'icon-rotate' ? 'animate-spin' : undefined}
-                {...(item.animate === 'icon-rotate'
-                  ? { 'data-shellui-chrome-action-animate': 'icon-rotate' }
-                  : {})}
-              />
-            )}
-          </Button>
-        </ChromeActionTooltip>
-      </FadePresence>
-    </TooltipProvider>
+        {item.icon ? (
+          <ChromeActionGlyph
+            icon={item.icon}
+            label={item.label}
+            animate={item.animate}
+          />
+        ) : item.label ? (
+          <span className="px-1 text-sm font-semibold">{item.label}</span>
+        ) : (
+          <PlusIcon
+            className={item.animate === 'icon-rotate' ? 'animate-spin' : undefined}
+            {...(item.animate === 'icon-rotate'
+              ? { 'data-shellui-chrome-action-animate': 'icon-rotate' }
+              : {})}
+          />
+        )}
+      </Button>
+    </FadePresence>
   );
 }
 
