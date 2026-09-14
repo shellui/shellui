@@ -65,13 +65,15 @@ Clicking a chrome control posts `SHELLUI_ACTION` with `{ id }` into **only** the
 
 ## Try it locally
 
+Minimal smoke harness (not a product demo):
+
 1. Run a Shellui app (`shellui start`).
 2. Open **Settings → Develop**.
 3. Use **Chrome actions** → Set / Update / Clear.
 
 Clicks show toasts. Narrow the viewport to exercise the `···` overflow menu.
 
-The primary product showcase will live in [shellui/playground](https://github.com/shellui/playground).
+**Clickable showcase (code sample + triggers):** separate PR on [shellui/playground](https://github.com/shellui/playground) (coming) — preferred place for the UX demo.
 
 ## Out of scope (v2+)
 

@@ -137,7 +137,28 @@ shellui.actions.set({
 shellui.actions.clear();
 ```
 
-See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop test buttons.
+#### `ChromeActionsSpec`
+
+| Field      | Type                                     | Notes                                                           |
+| ---------- | ---------------------------------------- | --------------------------------------------------------------- |
+| `back`     | `{ id, label?, icon?, onClick? }`        | Optional; max 1. Prefer caret UI (`icon: 'back'` or omit icon). |
+| `title`    | `string` \| `{ text: string }`           | Optional; max 1.                                                |
+| `trailing` | `Array<{ id, label?, icon?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`).                  |
+| `primary`  | `{ id, label?, icon?, onClick? }`        | Optional; max 1 bottom FAB (`icon: 'plus'` is common).          |
+
+Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`).
+
+#### Protocol (for shell / playground integrators)
+
+| Direction        | Message                 | Payload                                        |
+| ---------------- | ----------------------- | ---------------------------------------------- |
+| App → shell      | `SHELLUI_ACTIONS_SET`   | `ChromeActionsPayload` (no functions)          |
+| App → shell      | `SHELLUI_ACTIONS_CLEAR` | `{}`                                           |
+| Shell → app only | `SHELLUI_ACTION`        | `{ id: string }` → SDK runs matching `onClick` |
+
+Types exported from `@shellui/sdk`: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`, plus `CHROME_ACTIONS_MAX_TRAILING` / `CHROME_ACTIONS_VISIBLE_TRAILING`.
+
+See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons. The clickable product showcase belongs in [shellui/playground](https://github.com/shellui/playground).
 
 ### Toast Notifications
 
