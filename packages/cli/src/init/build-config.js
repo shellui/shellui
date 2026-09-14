@@ -4,6 +4,7 @@ import {
   FRAMEWORK_COMPANIONS,
   getBackend,
   getFramework,
+  getFrameworkIdsList,
   getPositionalFrameworkIds,
 } from './registry.js';
 import { formatDevRun } from './package-manager.js';
@@ -73,7 +74,7 @@ export function applyInitDefaults({ framework, backend }) {
  */
 export function validateInitOptions({ framework, backend, companyId, supabaseUrl }) {
   if (!getFramework(framework)) {
-    throw new Error(`Unknown framework "${framework}". Use empty, react, vue, angular, or other.`);
+    throw new Error(`Unknown framework "${framework}". Use ${getFrameworkIdsList()}.`);
   }
   if (!getBackend(backend)) {
     throw new Error(`Unknown backend "${backend}". Use none, shellui, or supabase.`);
@@ -185,10 +186,11 @@ export function applyCompanionConfig(config, framework, opts = {}) {
   }
 
   const packageManager = opts.packageManager || 'npm';
+  const run = companion.fixedRun ? companion.run : formatDevRun(packageManager || 'npm');
   const next = {
     ...config,
     dev: {
-      run: formatDevRun(packageManager),
+      run,
       url: companion.url,
       name: companion.name,
     },

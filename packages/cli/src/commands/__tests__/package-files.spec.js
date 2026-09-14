@@ -13,6 +13,10 @@ describe('@shellui/cli package files list', () => {
     expect(pkg.files).not.toContain('templates/react');
     expect(pkg.files).not.toContain('templates/vue');
     expect(pkg.files).not.toContain('templates/angular');
+    expect(pkg.files).not.toContain('templates/next');
+    expect(pkg.files).not.toContain('templates/nuxt');
+    expect(pkg.files).not.toContain('templates/svelte');
+    expect(pkg.files).not.toContain('templates/flutter');
   });
 
   test('still ships bin and src', () => {

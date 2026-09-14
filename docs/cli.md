@@ -22,6 +22,10 @@ shellui init
 shellui init react
 shellui init vue
 shellui init angular
+shellui init next
+shellui init nuxt
+shellui init svelte
+shellui init flutter
 shellui init empty
 
 # Non-interactive (CI/automation)
@@ -35,16 +39,17 @@ shellui init --framework empty --backend none
 The `init` command creates a new Shellui project with:
 
 1. **Interactive wizard** (when no flags are provided):
-   - Framework selection: empty shell, React, Vue, Angular, or other (coming soon)
+   - Framework selection: empty shell, React, Vue, Angular, Next.js, Nuxt, SvelteKit, Flutter Web, or other (coming soon)
    - Backend integration: no backend, Shellui, or Supabase
    - Prompts for backend-specific settings (company ID, Supabase URL)
 
 2. **Framework scaffolding**:
    - **Empty shell**: Minimal `shellui.config.json` with placeholder static assets
-   - **React/Vue/Angular**: Full starter with SDK integration, fetched on-demand from GitHub
+   - **React / Vue / Angular / Next.js / Nuxt / SvelteKit**: Official (or create-vite / ng new) starters with light `@shellui/sdk` wiring, fetched on-demand from GitHub
+   - **Flutter Web**: Official `flutter create --platforms=web` starter (**Web only** — not iOS/Android). Requires the Flutter SDK on PATH; init runs `flutter pub get` instead of npm
    - Templates are NOT bundled in the npm package - they are fetched from the repository tag matching the CLI version
    - Framework starters also wire `dev.run` / `dev.url` (and Home at shell `/` pointing at that URL) so `shellui start` launches the framework companion beside the shell. Empty stays shell-only (`Home` at `/`, no `dev` block).
-   - After scaffolding a framework with `package.json`, init detects the package manager and runs install automatically (unless `--no-install`). `dev.run` matches the detected manager (e.g. `pnpm run dev`).
+   - After scaffolding a JS framework with `package.json`, init detects the package manager and runs install automatically (unless `--no-install`). `dev.run` matches the detected manager (e.g. `pnpm run dev`). Flutter uses a fixed `flutter run -d web-server ...` companion command.
 
 3. **Backend configuration**:
    - Automatically writes `backend` section to `shellui.config.json` based on your choices
@@ -52,7 +57,7 @@ The `init` command creates a new Shellui project with:
 
 **Options:**
 
-- `framework` (positional): Framework shortcut - `empty`, `react`, `vue`, or `angular`
+- `framework` (positional): Framework shortcut - `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, or `flutter`
 - `--framework <type>`: Framework type (same values as positional argument)
 - `--backend <type>`: Backend type - `none`, `shellui`, or `supabase`
 - `--company-id <id>`: Shellui company ID (required when `--backend shellui`)
@@ -60,6 +65,17 @@ The `init` command creates a new Shellui project with:
 - `--force`: Overwrite existing `shellui.config.json`
 - `--no-install`: Skip dependency install after scaffolding (framework starters only)
 - `--config <path>`: Config file or directory location
+
+**Companion ports** (shell stays on **4000**):
+
+| Framework               | `dev.run` (default)                                                  | `dev.url`               |
+| ----------------------- | -------------------------------------------------------------------- | ----------------------- |
+| React / Vue / SvelteKit | `{pm} run dev`                                                       | `http://localhost:5173` |
+| Angular                 | `{pm} run dev`                                                       | `http://localhost:4200` |
+| Next.js / Nuxt          | `{pm} run dev`                                                       | `http://localhost:3000` |
+| Flutter Web             | `flutter run -d web-server --web-hostname=localhost --web-port=8080` | `http://localhost:8080` |
+
+**Prerequisites:** Node.js for JS frameworks (Nuxt 4 currently expects a recent Node 22.x / 24.x). Flutter Web also needs the [Flutter SDK](https://docs.flutter.dev/get-started/install) on PATH.
 
 **Examples:**
 

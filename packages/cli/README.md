@@ -52,12 +52,19 @@ shellui build --config ./config/shellui.config.json
   shellui build --app --bundles app,dmg   # + macOS DMG installer
   ```
 
-- **init** - Create a `shellui.config.json` boilerplate
+- **init** - Create a Shellui project (wizard or flags)
 
   ```bash
   shellui init
+  shellui init react
+  shellui init next
+  shellui init nuxt
+  shellui init svelte
+  shellui init flutter
   shellui init --force
   ```
+
+  Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `flutter` (Flutter **Web only**; requires Flutter SDK).
 
 - **config migrate** - Evaluate `shellui.config.ts` and write `shellui.config.json`
 
