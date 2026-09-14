@@ -1,0 +1,29 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "title": "Chrome Actions Demo",
+  "layout": "floating",
+  "port": 3100,
+  "dev": {
+    "run": "pnpm run dev:app",
+    "url": "http://localhost:5174",
+    "name": "actions-demo-app"
+  },
+  "navigation": [
+    {
+      "path": "/",
+      "label": "Home",
+      "url": "http://localhost:5174/"
+    },
+    {
+      "path": "second",
+      "label": "Second view",
+      "url": "http://localhost:5174/second.html"
+    },
+    {
+      "path": "settings",
+      "label": "Settings",
+      "url": "/__settings",
+      "position": "end"
+    }
+  ]
+}

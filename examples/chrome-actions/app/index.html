@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>Chrome actions — Home</title>
+    <link
+      rel="stylesheet"
+      href="/styles.css"
+    />
+  </head>
+  <body>
+    <main class="page">
+      <h1>Chrome actions demo</h1>
+      <p class="lead">
+        This iframe drives floating chrome via <code>shellui.actions.set()</code> /
+        <code>clear()</code>. Re-set or clear on your own SPA navigations — the shell does not infer
+        routes.
+      </p>
+      <p
+        id="log"
+        class="log"
+        aria-live="polite"
+      >
+        Waiting for SDK…
+      </p>
+      <div class="row">
+        <button
+          type="button"
+          id="btn-set"
+        >
+          Set actions
+        </button>
+        <button
+          type="button"
+          id="btn-update"
+        >
+          Update actions
+        </button>
+        <button
+          type="button"
+          id="btn-clear"
+        >
+          Clear actions
+        </button>
+      </div>
+      <ul class="hints">
+        <li>Narrow the viewport to see trailing actions collapse into <strong>···</strong>.</li>
+        <li>Use shell nav → <strong>Second view</strong> to verify clear-on-shell-nav.</li>
+        <li>Bottom FAB sits above the floating tab bar with safe padding.</li>
+      </ul>
+    </main>
+    <script
+      type="module"
+      src="/home.js"
+    ></script>
+  </body>
+</html>

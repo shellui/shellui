@@ -13,6 +13,7 @@ import { reportSize as overlayReportSize, autoSize as overlayAutoSize } from './
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
+import { actions as chromeActionsApi } from './actions/chromeActions.js';
 import {
   selectStorage as selectStorageAction,
   selectFolders as selectFoldersAction,
@@ -36,6 +37,7 @@ import type {
   StorageSelectResult,
   LayoutChrome,
   ContentScrollPayload,
+  ChromeActionsSpec,
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
@@ -73,6 +75,9 @@ export type {
   StorageSelectMode,
   StorageSelectRequestPayload,
   StorageSelectResponsePayload,
+  ChromeActionItem,
+  ChromeActionsSpec,
+  ChromeActionsPayload,
   LoggerInstance,
   Settings,
   SettingsUser,
@@ -93,6 +98,10 @@ export type {
   ContentScrollPayload,
 } from './types.js';
 
+export { CHROME_ACTIONS_MAX_TRAILING, CHROME_ACTIONS_VISIBLE_TRAILING } from './types.js';
+
+export { clampChromeActions } from './actions/clampChromeActions.js';
+
 export {
   applyLayoutChromeStyles,
   ensureLayoutChromePadStyles,
@@ -110,6 +119,9 @@ export const overlay = {
   reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
   autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
 };
+
+/** Floating action chrome (back / title / trailing / primary FAB). */
+export const actions = chromeActionsApi;
 
 export { StorageError } from './storage/types.js';
 export type {
@@ -370,6 +382,16 @@ export class ShellUISDK {
       }
     });
 
+    // Sticky chrome actions — do not clear callbacks on click (until set/clear).
+    this.addMessageListener('SHELLUI_ACTION', (data) => {
+      const { id } = (data.payload as { id?: string }) ?? {};
+      if (id) {
+        this.callbackRegistry.triggerAction(id);
+      } else {
+        logger.warn('SHELLUI_ACTION message missing id');
+      }
+    });
+
     this.addMessageListener('SHELLUI_REFRESH_PAGE', () => {
       if (typeof window !== 'undefined' && window.parent === window) {
         window.location.reload();
@@ -381,6 +403,15 @@ export class ShellUISDK {
   overlay = {
     reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
     autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+  };
+
+  /**
+   * Floating action chrome. Re-`set` / `clear` on in-app SPA navigations —
+   * the shell does not infer actions from the iframe URL.
+   */
+  actions = {
+    set: (spec: ChromeActionsSpec): void => chromeActionsApi.set(spec),
+    clear: (): void => chromeActionsApi.clear(),
   };
 
   openModal(urlOrOptions?: string | OpenModalOptions): void {

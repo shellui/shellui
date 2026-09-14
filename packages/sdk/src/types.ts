@@ -518,6 +518,46 @@ export type StorageSelectResponsePayload = {
   error?: { message: string; status?: number };
 };
 
+/** Single chrome action button declared by an embedded app. */
+export type ChromeActionItem = {
+  /** Stable id used for click round-trip (`SHELLUI_ACTION`). Required. */
+  id: string;
+  /** Visible label (optional when `icon` is set). */
+  label?: string;
+  /**
+   * Icon URL, or a built-in name the shell recognizes (`back`, `plus`, `more`,
+   * `edit`, `share`, `settings`). Optional when `label` is set.
+   */
+  icon?: string;
+  /** Invoked in the declaring iframe when the shell posts `SHELLUI_ACTION`. */
+  onClick?: () => void;
+};
+
+/**
+ * Declarative floating action chrome for one contentView / iframe.
+ * Apps must re-`set` or `clear` on their own SPA navigations — the shell does
+ * not infer routes from the iframe URL.
+ */
+export type ChromeActionsSpec = {
+  back?: ChromeActionItem;
+  title?: string | { text: string };
+  trailing?: ChromeActionItem[];
+  primary?: ChromeActionItem;
+};
+
+/** Serializable payload sent to the shell (callbacks stripped). */
+export type ChromeActionsPayload = {
+  back?: { id: string; label?: string; icon?: string };
+  title?: string;
+  trailing?: Array<{ id: string; label?: string; icon?: string }>;
+  primary?: { id: string; label?: string; icon?: string };
+};
+
+/** Max trailing actions kept after clamp (extras dropped with a warning). */
+export const CHROME_ACTIONS_MAX_TRAILING = 8;
+/** Trailing actions shown before the mobile / narrow `···` overflow menu. */
+export const CHROME_ACTIONS_VISIBLE_TRAILING = 3;
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -549,7 +589,10 @@ export type ShellUIMessageType =
   | 'SHELLUI_SELECT_STORAGE_RESULT'
   | 'SHELLUI_UPLOAD_TOAST_DEMO'
   | 'SHELLUI_LAYOUT_CHROME'
-  | 'SHELLUI_CONTENT_SCROLL';
+  | 'SHELLUI_CONTENT_SCROLL'
+  | 'SHELLUI_ACTIONS_SET'
+  | 'SHELLUI_ACTIONS_CLEAR'
+  | 'SHELLUI_ACTION';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;
@@ -563,6 +606,8 @@ export interface ShellUIMessage {
     | OverlaySizePayload
     | ToastOptions
     | DialogOptions
+    | ChromeActionsPayload
+    | { id: string }
     | { [key: string]: unknown };
   from?: string[];
   to?: string[];

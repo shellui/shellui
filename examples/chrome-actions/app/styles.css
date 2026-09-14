@@ -1,0 +1,105 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f4f6f8;
+  --fg: #1a1f24;
+  --muted: #5c6670;
+  --card: #ffffffcc;
+  --accent: #0b6e4f;
+  --border: #d0d7de;
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151a;
+    --fg: #e8eef4;
+    --muted: #9aa7b5;
+    --card: #1c222acc;
+    --accent: #3dd68c;
+    --border: #2c3640;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 10% 0%,
+      color-mix(in srgb, var(--accent) 18%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 40% at 90% 100%,
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 50%
+    ),
+    var(--bg);
+  color: var(--fg);
+}
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 6rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.lead {
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.log {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  min-height: 2.75rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--fg);
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.hints {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  padding-left: 1.1rem;
+}
+
+code {
+  font-size: 0.85em;
+}

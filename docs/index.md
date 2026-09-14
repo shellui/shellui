@@ -34,6 +34,7 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 
 - **[Toast notifications](/features/toasts)** — Toasts with actions and styles
 - **[Alert dialogs](/features/dialogs)** — Confirm and alert patterns
+- **[Floating chrome actions](/features/chrome-actions)** — Back / title / trailing / primary FAB via the SDK
 
 ### Advanced
 

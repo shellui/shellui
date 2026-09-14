@@ -1,4 +1,10 @@
 import { applyLayoutChromeStyles, shellui, type LayoutChrome } from '@shellui/sdk';
+import { getChromeActionsForFrame } from '../../chromeActions/chromeActionsStore';
+import {
+  actionChromeFlags,
+  computeActionInsets,
+  mergeInsets,
+} from '../../chromeActions/computeActionInsets';
 
 let currentChrome: LayoutChrome | null = null;
 
@@ -21,10 +27,26 @@ const CLEARED_CHROME: LayoutChrome = {
   autoPadding: true,
 };
 
+function isWindowsLayout(): boolean {
+  if (typeof document === 'undefined') return false;
+  return Boolean(document.querySelector('[data-shellui-windows-layout]'));
+}
+
+function chromePayloadForFrame(uuid: string, base: LayoutChrome): LayoutChrome {
+  const actions = getChromeActionsForFrame(uuid);
+  const flags = actionChromeFlags(actions);
+  const extra = computeActionInsets(flags, {
+    topInTitleBar: isWindowsLayout(),
+    existingBottomInset: base.insets.bottom,
+  });
+  return { ...base, insets: mergeInsets(base.insets, extra) };
+}
+
 /**
  * Publish layout chrome to main layout content frames only.
  * Overlay iframes (modal / drawer) are skipped. Apps apply insets inside their UI
  * via CSS vars / `shellui-apply-layout-chrome-pad` — the iframe stays 100%×100%.
+ * Per-frame floating action insets are merged when actions are set for that frame.
  */
 export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   currentChrome = chrome;
@@ -39,8 +61,16 @@ export function publishLayoutChrome(chrome: LayoutChrome | null): void {
     if (!isMainLayoutFrame(iframe)) continue;
     shellui.sendMessage({
       type: 'SHELLUI_LAYOUT_CHROME',
-      payload: { layoutChrome: payload },
+      payload: { layoutChrome: chromePayloadForFrame(uuid, payload) },
       to: [uuid],
     });
   }
+}
+
+/**
+ * Re-apply the current published chrome (with fresh per-frame action insets).
+ * Call after chrome actions set/clear/frame removal.
+ */
+export function republishLayoutChromeWithActions(): void {
+  publishLayoutChrome(currentChrome);
 }

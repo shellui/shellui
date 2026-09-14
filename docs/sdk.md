@@ -114,6 +114,31 @@ if (shellui.initialized) {
 
 ## Core Functions
 
+### Floating chrome actions
+
+Declare optional top/bottom action chrome owned by the shell (back, title, trailing, primary FAB):
+
+```javascript
+import { shellui } from '@shellui/sdk';
+
+await shellui.init();
+
+shellui.actions.set({
+  back: { id: 'back', onClick: () => history.back() },
+  title: 'Inbox',
+  trailing: [
+    { id: 'edit', label: 'Edit', onClick: () => {} },
+    { id: 'share', label: 'Share', onClick: () => {} },
+  ],
+  primary: { id: 'compose', icon: 'plus', onClick: () => {} },
+});
+
+// Re-set or clear on your own SPA navigations — the shell does not infer routes.
+shellui.actions.clear();
+```
+
+See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and the local demo.
+
 ### Toast Notifications
 
 Show toast notifications:
@@ -540,6 +565,7 @@ shellui.dialog(dialogOptions);
 
 - `shellui.init()` - Initialize the SDK
 - `shellui.getVersion()` - Get SDK version
+- `shellui.actions.set(spec)` / `shellui.actions.clear()` - Floating chrome actions (back / title / trailing / primary FAB)
 - `shellui.toast(options)` - Show toast notification
 - `shellui.dialog(options)` - Show alert dialog
 - `shellui.openModal(url | options)` - Open modal (responsive dialog / mobile drawer)

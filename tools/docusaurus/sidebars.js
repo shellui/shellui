@@ -62,6 +62,7 @@ const sidebars = {
           items: [
             'features/toasts',
             'features/dialogs',
+            'features/chrome-actions',
           ],
         },
         {

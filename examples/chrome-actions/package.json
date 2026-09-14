@@ -1,0 +1,20 @@
+{
+  "name": "@shellui/example-chrome-actions",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local demo for Shellui floating chrome actions (issue #41)",
+  "type": "module",
+  "scripts": {
+    "start": "node ../../packages/cli/bin/shellui.js start --host",
+    "dev": "pnpm start",
+    "dev:app": "vite --config app/vite.config.js"
+  },
+  "dependencies": {
+    "@shellui/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@shellui/cli": "workspace:*",
+    "@shellui/core": "workspace:*",
+    "vite": "^6.0.0"
+  }
+}
