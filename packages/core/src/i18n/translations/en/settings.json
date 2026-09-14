@@ -465,31 +465,11 @@
       },
       "chromeActions": {
         "title": "Chrome actions",
-        "description": "Set / update / clear floating action chrome (back, title, trailing, primary FAB). Narrow the viewport to see trailing collapse into ···. Clicks show a toast.",
+        "description": "Opens a shell-owned demo page inside a modal or drawer iframe. That iframe calls shellui.actions.set/clear so chrome and click round-trips use the real postMessage path. Use Set / Update / Clear inside the demo; narrow the viewport for ··· overflow.",
         "buttons": {
-          "set": "Set actions",
-          "update": "Update actions",
-          "clear": "Clear actions"
-        },
-        "titles": {
-          "default": "Inbox",
-          "updated": "Inbox · updated"
-        },
-        "trailing": {
-          "edit": "Edit",
-          "rename": "Rename",
-          "share": "Share",
-          "filter": "Filter",
-          "archive": "Archive"
-        },
-        "primary": "Compose",
-        "toasts": {
-          "back": "Back clicked",
-          "edit": "Edit clicked",
-          "share": "Share clicked",
-          "filter": "Filter clicked",
-          "archive": "Archive clicked",
-          "primary": "Primary FAB clicked"
+          "openModal": "Open demo (modal iframe)",
+          "openDrawer": "Open demo (drawer iframe)",
+          "close": "Close demo"
         }
       }
     }

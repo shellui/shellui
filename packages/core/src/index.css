@@ -608,6 +608,11 @@ html.shellui-theme-switching
     pointer-events: auto !important;
   }
 
+  /* Chrome-action controls portaled above overlay iframes (modal/drawer). */
+  [data-shellui-chrome-actions] [data-shellui-chrome-actions-hit] {
+    pointer-events: auto !important;
+  }
+
   /* Ensure Sonner toasts use theme variables - override Sonner defaults */
   [data-sonner-toast] {
     background-color: var(--background) !important;

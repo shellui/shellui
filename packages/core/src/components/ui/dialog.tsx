@@ -74,7 +74,11 @@ const DialogContent = forwardRef<ElementRef<typeof DialogPrimitive.Content>, Dia
         >[0],
       ) => {
         const target = event?.target as Element | null;
-        if (target?.closest?.('[data-sonner-toaster], [data-upload-toast]')) {
+        if (
+          target?.closest?.(
+            '[data-sonner-toaster], [data-upload-toast], [data-shellui-chrome-actions]',
+          )
+        ) {
           event.preventDefault();
         }
         onPointerDownOutside?.(event);

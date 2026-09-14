@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CHROME_ACTIONS_VISIBLE_TRAILING, shellui, type ChromeActionsPayload } from '@shellui/sdk';
 import { cn } from '../../lib/utils';
 import { useViewport } from '../../hooks/use-viewport';
@@ -23,6 +24,8 @@ import {
   PlusIcon,
 } from './ChromeActionIcons';
 
+type FrameSurface = 'main' | 'overlay' | 'develop';
+
 function fireAction(frameUuid: string, id: string): void {
   // Develop buttons run in the shell window — trigger callbacks locally.
   if (frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) {
@@ -36,16 +39,31 @@ function fireAction(frameUuid: string, id: string): void {
   });
 }
 
-function frameRect(frameUuid: string): DOMRect | null {
+function resolveFrameSurface(frameUuid: string): {
+  rect: DOMRect | null;
+  surface: FrameSurface;
+  /** Overlay frames portal into the ContentView root (inside modal/drawer). */
+  portalParent: HTMLElement | null;
+} {
   if (frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) {
-    return new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+    return {
+      rect: new DOMRect(0, 0, window.innerWidth, window.innerHeight),
+      surface: 'develop',
+      portalParent: null,
+    };
   }
   for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
     if (uuid === frameUuid && iframe.isConnected) {
-      return iframe.getBoundingClientRect();
+      const surface: FrameSurface =
+        iframe.getAttribute('data-shellui-frame') === 'overlay' ? 'overlay' : 'main';
+      return {
+        rect: iframe.getBoundingClientRect(),
+        surface,
+        portalParent: surface === 'overlay' ? iframe.parentElement : null,
+      };
     }
   }
-  return null;
+  return { rect: null, surface: 'main', portalParent: null };
 }
 
 function ActionButton({
@@ -62,6 +80,7 @@ function ActionButton({
   return (
     <button
       type="button"
+      data-shellui-chrome-actions-hit=""
       className={cn(
         'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-foreground transition-colors',
         'hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
@@ -120,6 +139,7 @@ function TopActionBar({
   return (
     <div
       data-shellui-chrome-actions-top={placement}
+      data-shellui-chrome-actions-hit=""
       className={cn(
         'pointer-events-auto flex items-center gap-1',
         placement === 'overlay' && 'shellui-floating-glass absolute left-3 right-3 z-[46] px-1.5',
@@ -199,6 +219,7 @@ function TopActionBar({
               <>
                 <div
                   aria-hidden
+                  data-shellui-chrome-actions-hit=""
                   className="fixed inset-0 z-[47] cursor-pointer"
                   style={{ backgroundColor: 'rgba(0,0,0,0.001)' }}
                   onPointerDown={(e) => {
@@ -208,6 +229,7 @@ function TopActionBar({
                 />
                 <div
                   role="menu"
+                  data-shellui-chrome-actions-hit=""
                   className="shellui-floating-glass shellui-floating-glass-menu absolute right-0 top-[calc(100%+0.35rem)] z-[48] flex min-w-[10rem] max-w-[min(16rem,calc(100vw-1.5rem))] flex-col gap-0.5 p-1.5 shadow-lg"
                 >
                   {moreItems.map((item) => (
@@ -254,6 +276,7 @@ function PrimaryFab({
     <button
       type="button"
       data-shellui-chrome-actions-fab=""
+      data-shellui-chrome-actions-hit=""
       className={cn(
         'shellui-floating-glass pointer-events-auto absolute z-[46] inline-flex items-center justify-center rounded-full text-sidebar-primary-foreground',
         'bg-sidebar-primary text-sidebar-primary-foreground shadow-md',
@@ -295,10 +318,12 @@ function FrameActionsOverlay({
   showTop: boolean;
   fabBottomOffset: number;
 }) {
-  const [rect, setRect] = useState<DOMRect | null>(() => frameRect(actions.frameUuid));
+  const [{ rect, surface, portalParent }, setFrame] = useState(() =>
+    resolveFrameSurface(actions.frameUuid),
+  );
 
   const refresh = useCallback(() => {
-    setRect(frameRect(actions.frameUuid));
+    setFrame(resolveFrameSurface(actions.frameUuid));
   }, [actions.frameUuid]);
 
   useEffect(() => {
@@ -312,11 +337,44 @@ function FrameActionsOverlay({
     };
   }, [refresh]);
 
+  const isOverlaySurface = surface === 'overlay';
+  const overlayFabOffset = isOverlaySurface
+    ? FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_GAP
+    : fabBottomOffset;
+
+  // Overlay iframes: portal into ContentView root so chrome stays inside modal/drawer DOM
+  // (correct stacking + no outside-click dismiss). Main frames: fixed over the iframe rect.
+  if (isOverlaySurface) {
+    if (!portalParent) return null;
+    return createPortal(
+      <div
+        data-shellui-chrome-actions=""
+        data-shellui-chrome-actions-frame={actions.frameUuid}
+        data-shellui-chrome-actions-surface={surface}
+        className="pointer-events-none absolute inset-0 z-10"
+      >
+        {showTop ? (
+          <TopActionBar
+            actions={actions}
+            placement="overlay"
+          />
+        ) : null}
+        <PrimaryFab
+          actions={actions}
+          bottomOffset={overlayFabOffset}
+        />
+      </div>,
+      portalParent,
+    );
+  }
+
   if (!rect || rect.width < 8 || rect.height < 8) return null;
 
   return (
     <div
+      data-shellui-chrome-actions=""
       data-shellui-chrome-actions-frame={actions.frameUuid}
+      data-shellui-chrome-actions-surface={surface}
       className="pointer-events-none fixed z-[46]"
       style={{
         top: rect.top,
@@ -333,7 +391,7 @@ function FrameActionsOverlay({
       ) : null}
       <PrimaryFab
         actions={actions}
-        bottomOffset={fabBottomOffset}
+        bottomOffset={overlayFabOffset}
       />
     </div>
   );

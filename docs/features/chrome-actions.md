@@ -69,9 +69,10 @@ Minimal smoke harness (not a product demo):
 
 1. Run a Shellui app (`shellui start`).
 2. Open **Settings → Develop**.
-3. Use **Chrome actions** → Set / Update / Clear.
+3. Use **Chrome actions** → **Open demo (modal iframe)** or **Open demo (drawer iframe)**.
+4. Inside the demo iframe, use Set / Update / Clear. Clicks toast via the real `SHELLUI_ACTION` round-trip.
 
-Clicks show toasts. Narrow the viewport to exercise the `···` overflow menu.
+Narrow the viewport to exercise the `···` overflow menu.
 
 **Clickable showcase (code sample + triggers):** separate PR on [shellui/playground](https://github.com/shellui/playground) (coming) — preferred place for the UX demo.
 

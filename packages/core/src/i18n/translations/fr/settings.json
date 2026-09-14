@@ -465,31 +465,11 @@
       },
       "chromeActions": {
         "title": "Actions chrome",
-        "description": "Définir / mettre à jour / effacer le chrome d’actions flottant (retour, titre, trailing, FAB). Réduisez la fenêtre pour voir le menu ···. Les clics affichent un toast.",
+        "description": "Ouvre une page démo Shellui dans un modal ou un tiroir (iframe). Cette iframe appelle shellui.actions.set/clear pour exercer le chrome et le round-trip postMessage. Utilisez Set / Update / Clear dans la démo ; réduisez la fenêtre pour le menu ···.",
         "buttons": {
-          "set": "Définir les actions",
-          "update": "Mettre à jour",
-          "clear": "Effacer"
-        },
-        "titles": {
-          "default": "Boîte de réception",
-          "updated": "Boîte · mise à jour"
-        },
-        "trailing": {
-          "edit": "Modifier",
-          "rename": "Renommer",
-          "share": "Partager",
-          "filter": "Filtrer",
-          "archive": "Archiver"
-        },
-        "primary": "Composer",
-        "toasts": {
-          "back": "Retour cliqué",
-          "edit": "Modifier cliqué",
-          "share": "Partager cliqué",
-          "filter": "Filtrer cliqué",
-          "archive": "Archiver cliqué",
-          "primary": "FAB principal cliqué"
+          "openModal": "Ouvrir la démo (modal iframe)",
+          "openDrawer": "Ouvrir la démo (tiroir iframe)",
+          "close": "Fermer la démo"
         }
       }
     }
