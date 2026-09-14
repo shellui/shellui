@@ -160,7 +160,7 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
     const onScroll = (event: Event) => {
       const el = event.target;
       if (el instanceof Element) {
-        if (el.closest('[data-shellui-floating-tabbar], [data-shellui-floating-sidebar]')) {
+        if (el.closest('[data-shellui-floating-dock], [data-shellui-floating-sidebar]')) {
           return;
         }
       }

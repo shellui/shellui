@@ -21,7 +21,7 @@ import {
   DESKTOP_TITLEBAR_PAD_TOP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from '../chrome/constants';
-import { FloatingTabBar } from './FloatingTabBar';
+import { FloatingBottomDock } from './FloatingBottomDock';
 import { FloatingSidebar } from './FloatingSidebar';
 import { useFloatingChrome } from './useFloatingChrome';
 
@@ -32,7 +32,7 @@ export interface FloatingLayoutProps {
   navigation?: (NavigationItem | NavigationGroup)[];
 }
 
-/** Adaptive layout: floating glass tabs / sidebar over full-bleed content. */
+/** Adaptive layout: floating glass chrome over full-bleed content (tabs/dock + sidebar). */
 export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayoutProps) {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -100,11 +100,10 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       </main>
 
       {showTabBar ? (
-        <FloatingTabBar
+        <FloatingBottomDock
           items={tabItems}
           endItems={endItems}
           showAuthButton={showAuthButton}
-          placement="bottom"
           chromeVisible={chromeVisible}
           viewport={viewport}
         />

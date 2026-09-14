@@ -44,8 +44,21 @@ describe('buildFrameLayoutChrome', () => {
     expect(chrome.insets.top).toBe(
       CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
-    // FAB sits above existing tab-bar bottom inset.
+    // Desktop floating: FAB still sits above existing bottom inset (corner FAB).
     expect(chrome.insets.bottom).toBe(72 + CHROME_ACTIONS_FAB_SIZE + CHROME_ACTIONS_FAB_GAP);
+  });
+
+  it('does not stack FAB inset when floating phone/tablet docks the primary', () => {
+    const mobileFloating = {
+      ...FLOATING,
+      viewport: 'mobile' as const,
+      insets: { top: 0, right: 0, bottom: 88, left: 0 },
+    };
+    const chrome = buildFrameLayoutChrome(mobileFloating, { hasTop: true, hasPrimary: true });
+    expect(chrome.insets.bottom).toBe(88);
+    expect(chrome.insets.top).toBe(
+      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+    );
   });
 
   it('leaves cleared chrome unchanged when no actions', () => {

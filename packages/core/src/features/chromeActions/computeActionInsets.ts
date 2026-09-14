@@ -19,6 +19,8 @@ export const CHROME_ACTIONS_TOP_MARGIN = 20;
 export const CHROME_ACTIONS_TOP_SCRIM_FADE = 16;
 /** Bottom primary action button size (default shadcn icon). */
 export const CHROME_ACTIONS_FAB_SIZE = 40;
+/** Floating phone/tablet FAB — matches `FLOATING_TAB_BAR_HEIGHT`. */
+export const CHROME_ACTIONS_FAB_SIZE_FLOATING = 56;
 /** Gap between primary FAB and floating tab bar (corner FAB uses FLOATING_CHROME_MARGIN). */
 export const CHROME_ACTIONS_FAB_GAP = 12;
 
@@ -47,6 +49,11 @@ export function computeActionInsets(
     topInTitleBar?: boolean;
     /** Existing bottom inset (e.g. floating tab bar) so FAB sits above it. */
     existingBottomInset?: number;
+    /**
+     * Primary FAB shares the floating bottom band (corner, beside the nav) —
+     * no extra bottom inset beyond the dock height.
+     */
+    primaryInDock?: boolean;
   },
 ): LayoutChromeInsets {
   const top =
@@ -55,7 +62,7 @@ export function computeActionInsets(
       : 0;
 
   let bottom = 0;
-  if (flags.hasPrimary) {
+  if (flags.hasPrimary && !options?.primaryInDock) {
     const aboveNav = options?.existingBottomInset ?? 0;
     // When a tab bar already reserved bottom space, only add FAB height + gap.
     // Otherwise reserve FAB + margin + clearance from the screen edge.

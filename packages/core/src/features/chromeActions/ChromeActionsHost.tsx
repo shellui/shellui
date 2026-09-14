@@ -36,8 +36,7 @@ import { useViewport } from '../../hooks/use-viewport';
 import { useSettings } from '../settings/hooks/useSettings';
 import {
   FLOATING_CHROME_MARGIN,
-  FLOATING_TAB_BAR_HEIGHT,
-  floatingTabBarBottomPadPx,
+  floatingTabBarBottomPadCss,
 } from '../layouts/floating/computeFloatingInsets';
 import {
   getPublishedLayoutChrome,
@@ -46,7 +45,6 @@ import {
 import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
-  CHROME_ACTIONS_FAB_GAP,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_MARGIN,
   CHROME_ACTIONS_TOP_SCRIM_FADE,
@@ -603,21 +601,19 @@ function TrailingActionsRow({
       ))}
       {snapshot.moreItems ? (
         <DropdownMenu>
-          <ChromeActionTooltip label="More actions">
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant={titlebar ? 'ghost' : resolveActionVariant(undefined, setVariant)}
-                size="icon"
-                disabled={disabled}
-                className={iconClassName}
-                aria-label="More actions"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontalIcon />
-              </Button>
-            </DropdownMenuTrigger>
-          </ChromeActionTooltip>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant={titlebar ? 'ghost' : resolveActionVariant(undefined, setVariant)}
+              size="icon"
+              disabled={disabled}
+              className={iconClassName}
+              aria-label="More actions"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontalIcon />
+            </Button>
+          </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
             onClick={(e) => e.stopPropagation()}
@@ -925,12 +921,16 @@ function PrimaryFab({
   visible = true,
   useLayoutInsets = false,
   scrollHidden = false,
+  /** Match floating bottom nav height (56). Default shadcn icon size otherwise. */
+  large = false,
 }: {
   actions: FrameChromeActions;
-  bottomOffset: number;
+  /** Pixel number or CSS length (e.g. calc with safe-area). */
+  bottomOffset: number | string;
   visible?: boolean;
   useLayoutInsets?: boolean;
   scrollHidden?: boolean;
+  large?: boolean;
 }) {
   const primary = actions.primary ?? null;
   const { item, visible: itemVisible } = useOptionalPresence(primary);
@@ -966,7 +966,7 @@ function PrimaryFab({
             disabled={Boolean(item.disabled)}
             data-shellui-chrome-actions-fab=""
             data-shellui-chrome-actions-hit=""
-            className="size-10 shadow-sm"
+            className={cn('shadow-sm', large ? 'size-14 rounded-xl' : 'size-10')}
             aria-label={tip}
             tabIndex={shown ? undefined : -1}
             onClick={(e) => {
@@ -1004,13 +1004,16 @@ function FrameActionsOverlay({
   fabBottomOffset,
   visible,
   scrollHidden = false,
+  largeFab = false,
 }: {
   actions: FrameChromeActions;
   showTop: boolean;
-  fabBottomOffset: number;
+  fabBottomOffset: number | string;
   visible: boolean;
   /** Floating phone/tablet: hide with nav on scroll. */
   scrollHidden?: boolean;
+  /** Match floating bottom nav height. */
+  largeFab?: boolean;
 }) {
   const [{ rect, surface, portalParent, borderRadius }, setFrame] = useState(() =>
     resolveFrameSurface(actions.frameUuid),
@@ -1135,6 +1138,7 @@ function FrameActionsOverlay({
         visible={visible}
         scrollHidden={hideWithNav}
         useLayoutInsets={useLayoutInsets}
+        large={largeFab && surface === 'main'}
       />
     </>
   );
@@ -1190,23 +1194,18 @@ export function ChromeActionsHost() {
   const windowsLayout = settings.layout === 'windows';
   const layoutChrome = usePublishedLayoutChrome();
 
-  const fabBottomOffset = useMemo(() => {
-    const safeBottom = 0; // CSS var applied in style; numeric pad for tab bar
-    const floating =
-      settings.layout === 'floating' && (viewport === 'mobile' || viewport === 'tablet');
-    if (floating) {
-      // Sit above the tab bar with a small gap (not corner-aligned).
-      return (
-        floatingTabBarBottomPadPx(safeBottom, viewport) +
-        FLOATING_TAB_BAR_HEIGHT +
-        CHROME_ACTIONS_FAB_GAP
-      );
-    }
-    // Match right inset: equal corner padding (FLOATING_CHROME_MARGIN).
-    return FLOATING_CHROME_MARGIN;
-  }, [settings.layout, viewport]);
+  const floatingDock =
+    settings.layout === 'floating' && (viewport === 'mobile' || viewport === 'tablet');
 
-  // Same hide-on-scroll signal as FloatingTabBar (phone/tablet floating only).
+  const fabBottomOffset = useMemo(() => {
+    if (floatingDock) {
+      // Match FloatingBottomDock paddingBottom (includes safe-area CSS var).
+      return floatingTabBarBottomPadCss(viewport);
+    }
+    return FLOATING_CHROME_MARGIN;
+  }, [floatingDock, viewport]);
+
+  // Same hide-on-scroll signal as FloatingBottomDock (phone/tablet floating only).
   const scrollHidden = Boolean(
     layoutChrome && scrollHideApplies(layoutChrome, 'main') && layoutChrome.chromeVisible === false,
   );
@@ -1221,6 +1220,7 @@ export function ChromeActionsHost() {
           actions={actions}
           visible={visible}
           scrollHidden={scrollHidden}
+          largeFab={floatingDock}
           showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
           fabBottomOffset={windowsLayout ? FLOATING_CHROME_MARGIN : fabBottomOffset}
         />

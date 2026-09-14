@@ -65,9 +65,12 @@ export function buildFrameLayoutChrome(
   flags: ActionChromeFlags,
   options?: { topInTitleBar?: boolean },
 ): LayoutChrome {
+  const primaryInDock =
+    base.layout === 'floating' && (base.viewport === 'mobile' || base.viewport === 'tablet');
   const extra = computeActionInsets(flags, {
     topInTitleBar: options?.topInTitleBar,
     existingBottomInset: base.insets.bottom,
+    primaryInDock,
   });
   const insets = mergeInsets(base.insets, extra);
   const hasActions = flags.hasTop || flags.hasPrimary;

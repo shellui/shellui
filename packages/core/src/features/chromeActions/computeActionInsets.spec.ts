@@ -67,6 +67,15 @@ describe('computeActionInsets', () => {
     expect(alone.bottom).toBeGreaterThan(stacked.bottom);
   });
 
+  it('skips FAB bottom inset when primary is in the floating dock', () => {
+    expect(
+      computeActionInsets(
+        { hasTop: false, hasPrimary: true },
+        { existingBottomInset: 88, primaryInDock: true },
+      ).bottom,
+    ).toBe(0);
+  });
+
   it('merges insets additively', () => {
     expect(
       mergeInsets(

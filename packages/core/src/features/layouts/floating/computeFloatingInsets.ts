@@ -1,18 +1,25 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
 
-/** Floating tab bar content height (icon + label). */
-export const FLOATING_TAB_BAR_HEIGHT = 64;
+/** Floating tab bar content height (icon + short label). */
+export const FLOATING_TAB_BAR_HEIGHT = 56;
 /** Gap between floating chrome and screen edge. */
 export const FLOATING_CHROME_MARGIN = 12;
+/**
+ * Extra horizontal inset for the bottom nav so it doesn’t hug the window edge.
+ * Applied on top of FLOATING_CHROME_MARGIN + safe-area.
+ */
+export const FLOATING_DOCK_SIDE_INSET = 8;
 /** Extra clearance so the last content row clears the floating chrome comfortably. */
 export const FLOATING_CONTENT_CLEARANCE = 12;
 /** Desktop floating sidebar width. */
 export const FLOATING_SIDEBAR_WIDTH = 240;
 /**
- * Max visible slots in the floating tab bar (primary tabs + optional More).
- * Matches a compact pill tab bar (e.g. 4 icons, or 3 + More).
+ * Soft cap used as the initial slot guess before ResizeObserver measures.
+ * Actual visible count is derived from available width / min slot width.
  */
 export const FLOATING_MAX_TAB_SLOTS = 4;
+/** Minimum equal-width slot for a bottom-nav tab (icon + readable label). */
+export const FLOATING_MIN_TAB_SLOT_WIDTH = 76;
 
 /**
  * Padding under the floating tab bar (chrome margin + safe-area).
@@ -24,6 +31,17 @@ export function floatingTabBarBottomPadPx(
 ): number {
   const full = FLOATING_CHROME_MARGIN + safeBottom;
   return viewport === 'mobile' ? full / 2 : full;
+}
+
+/**
+ * Same bottom pad as the floating dock, as a CSS value so
+ * `--shellui-safe-area-bottom` / env() apply on iPhone (not a snapped 0px number).
+ */
+export function floatingTabBarBottomPadCss(viewport: LayoutChromeViewport): string {
+  if (viewport === 'mobile') {
+    return `calc((${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px)) / 2)`;
+  }
+  return `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`;
 }
 /** Collapsed desktop toggle control size (glass chip). */
 export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
