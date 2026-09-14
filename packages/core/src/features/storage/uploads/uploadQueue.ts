@@ -2,6 +2,8 @@ import type { UploadItem, UploadItemStatus, UploadQueueSummary } from './types';
 
 export const UPLOAD_TOAST_ID = 'shellui-upload-progress';
 export const UPLOAD_TOAST_DEMO_MESSAGE = 'SHELLUI_UPLOAD_TOAST_DEMO';
+/** Brief pause so the success state is visible before the toaster hides. */
+export const UPLOAD_TOAST_AUTO_DISMISS_MS = 2500;
 
 type UploadListener = () => void;
 
@@ -21,6 +23,33 @@ const demoStartTimeouts: ReturnType<typeof setTimeout>[] = [];
 
 let items: UploadItem[] = [];
 let expanded = false;
+let autoDismissTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function clearAutoDismissTimeout(): void {
+  if (autoDismissTimeout === null) return;
+  clearTimeout(autoDismissTimeout);
+  autoDismissTimeout = null;
+}
+
+/**
+ * Hide the toaster a few seconds after every upload finishes successfully.
+ * Errors and in-progress uploads keep the panel open; cancelled-only queues stay too.
+ */
+function scheduleAutoDismissIfNeeded(): void {
+  clearAutoDismissTimeout();
+  const summary = getUploadSummary();
+  if (summary.uploading > 0 || summary.error > 0 || summary.success === 0) {
+    return;
+  }
+  autoDismissTimeout = setTimeout(() => {
+    autoDismissTimeout = null;
+    const current = getUploadSummary();
+    if (current.uploading > 0 || current.error > 0 || current.success === 0) {
+      return;
+    }
+    resetUploadQueue();
+  }, UPLOAD_TOAST_AUTO_DISMISS_MS);
+}
 
 function emit(): void {
   listeners.forEach((listener) => listener());
@@ -115,6 +144,7 @@ export function getItemPercent(item: UploadItem): number {
 }
 
 export function addUpload(input: AddUploadInput): { id: string; signal: AbortSignal } {
+  clearAutoDismissTimeout();
   const id = input.id ?? createId();
   const existing = abortControllers.get(id);
   existing?.abort();
@@ -159,6 +189,7 @@ export function completeUpload(id: string): void {
     bytesUploaded: item.size || item.bytesUploaded,
     error: undefined,
   });
+  scheduleAutoDismissIfNeeded();
 }
 
 export function failUpload(id: string, message: string): void {
@@ -167,6 +198,7 @@ export function failUpload(id: string, message: string): void {
   abortControllers.delete(id);
   clearDemoTimer(id);
   patchItem(id, { status: 'error', error: message });
+  clearAutoDismissTimeout();
 }
 
 export function markUploadCancelled(id: string): void {
@@ -174,6 +206,7 @@ export function markUploadCancelled(id: string): void {
   abortControllers.delete(id);
   clearDemoTimer(id);
   patchItem(id, { status: 'cancelled' });
+  scheduleAutoDismissIfNeeded();
 }
 
 /** Abort an in-progress upload and keep it visible as cancelled. */
@@ -196,11 +229,18 @@ export function removeUpload(id: string): void {
   const next = items.filter((entry) => entry.id !== id);
   if (next.length === items.length) return;
   items = next;
-  if (items.length === 0) expanded = false;
+  if (items.length === 0) {
+    expanded = false;
+    clearAutoDismissTimeout();
+  }
   emit();
+  if (items.length > 0) {
+    scheduleAutoDismissIfNeeded();
+  }
 }
 
 export function dismissFinishedUploads(): void {
+  clearAutoDismissTimeout();
   const keep = items.filter((item) => item.status === 'uploading');
   items.forEach((item) => {
     if (item.status === 'uploading') return;
@@ -228,6 +268,7 @@ export function closeUploadToaster(): void {
 }
 
 export function resetUploadQueue(): void {
+  clearAutoDismissTimeout();
   abortControllers.forEach((controller) => controller.abort());
   abortControllers.clear();
   demoTimers.forEach((timer) => clearInterval(timer));
