@@ -229,6 +229,48 @@ describe('initCommand (non-interactive)', () => {
       } else {
         expect(config.dev.run).toMatch(/run dev$/);
       }
+
+      if (framework === 'svelte') {
+        expect(fs.existsSync(path.join(projectDir, 'svelte.config.js'))).toBe(true);
+        const vite = fs.readFileSync(path.join(projectDir, 'vite.config.js'), 'utf-8');
+        expect(vite).not.toMatch(/adapter\s*:/);
+        expect(vite).toMatch(/strictPort:\s*true/);
+      }
+
+      if (framework === 'next') {
+        expect(fs.existsSync(path.join(projectDir, 'scripts', 'ensure-port.mjs'))).toBe(true);
+        const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
+        expect(pkg.scripts.dev).toMatch(/ensure-port\.mjs/);
+      }
+
+      if (framework === 'nuxt') {
+        const nuxtCfg = fs.readFileSync(path.join(projectDir, 'nuxt.config.ts'), 'utf-8');
+        expect(nuxtCfg).toMatch(/strictPort:\s*true/);
+      }
     },
   );
+
+  test('react init is not hijacked by a pre-existing pubspec.yaml', async () => {
+    const projectDir = path.join(testRoot, 'react-with-pubspec');
+    fs.mkdirSync(projectDir);
+    fs.writeFileSync(
+      path.join(projectDir, 'pubspec.yaml'),
+      "name: leftover\nenvironment:\n  sdk: '>=3.0.0 <4.0.0'\n",
+    );
+
+    const cwd = process.cwd();
+    process.chdir(repoRoot);
+    try {
+      await initCommand(projectDir, { framework: 'react', backend: 'none', install: false });
+    } finally {
+      process.chdir(cwd);
+    }
+
+    const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
+    expect(config.dev.name).toBe('react');
+    expect(config.dev.url).toBe('http://localhost:5173');
+    expect(config.dev.run).toMatch(/run dev$/);
+    expect(config.dev.run).not.toMatch(/flutter/);
+    expect(fs.existsSync(path.join(projectDir, 'package.json'))).toBe(true);
+  });
 });

@@ -188,7 +188,9 @@ export async function initCommand(frameworkOrRoot, options = {}) {
     ensureDistGitignore(projectRoot);
 
     const companion = FRAMEWORK_COMPANIONS[framework];
-    const isFlutter = companion?.install === 'flutter' || hasPubspec(projectRoot);
+    // Only trust the registry companion — do not infer Flutter from a pre-existing
+    // pubspec.yaml (that would hijack react/empty/etc. inits in mixed directories).
+    const isFlutter = companion?.install === 'flutter';
     const packageManager =
       !isFlutter && hasPackageJson(projectRoot) ? detectPackageManager(projectRoot) : null;
 

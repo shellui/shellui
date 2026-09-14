@@ -77,6 +77,8 @@ The `init` command creates a new Shellui project with:
 
 **Prerequisites:** Node.js for JS frameworks (Nuxt 4 currently expects a recent Node 22.x / 24.x). Flutter Web also needs the [Flutter SDK](https://docs.flutter.dev/get-started/install) on PATH.
 
+Next.js and Nuxt companions are pinned to **port 3000** (fail if busy, like Vite `strictPort`) so `dev.url` always matches the running server. Flutter’s first web compile can exceed the default 60s companion wait — see the Flutter template README.
+
 **Examples:**
 
 ```bash

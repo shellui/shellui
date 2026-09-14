@@ -101,4 +101,14 @@ describe('init registry', () => {
   test('flutter hint documents Web-only', () => {
     expect(getFramework('flutter')?.hint).toMatch(/Web only/i);
   });
+
+  test('svelte TEMPLATE_FILES includes svelte.config.js and vscode extensions', () => {
+    expect(TEMPLATE_FILES.svelte).toEqual(
+      expect.arrayContaining(['svelte.config.js', '.vscode/extensions.json', 'vite.config.js']),
+    );
+  });
+
+  test('next TEMPLATE_FILES includes ensure-port script', () => {
+    expect(TEMPLATE_FILES.next).toContain('scripts/ensure-port.mjs');
+  });
 });
