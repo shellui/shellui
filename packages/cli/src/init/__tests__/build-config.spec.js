@@ -11,10 +11,14 @@ import {
 import { DEFAULT_SHELLUI_BACKEND_URL } from '../registry.js';
 
 describe('parseInitArgs', () => {
-  test('treats react/vue/angular/empty as framework shortcuts', () => {
+  test('treats framework ids as shortcuts including next/nuxt/svelte/flutter', () => {
     expect(parseInitArgs('react')).toEqual({ root: '.', frameworkShortcut: 'react' });
     expect(parseInitArgs('vue')).toEqual({ root: '.', frameworkShortcut: 'vue' });
     expect(parseInitArgs('angular')).toEqual({ root: '.', frameworkShortcut: 'angular' });
+    expect(parseInitArgs('next')).toEqual({ root: '.', frameworkShortcut: 'next' });
+    expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
+    expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
+    expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
   });
 
@@ -42,7 +46,7 @@ describe('applyInitDefaults', () => {
 
 describe('validateInitOptions', () => {
   test('rejects unknown framework/backend', () => {
-    expect(() => validateInitOptions({ framework: 'svelte', backend: 'none' })).toThrow(
+    expect(() => validateInitOptions({ framework: 'ember', backend: 'none' })).toThrow(
       /Unknown framework/,
     );
     expect(() => validateInitOptions({ framework: 'empty', backend: 'firebase' })).toThrow(
@@ -152,6 +156,9 @@ describe('buildInitConfig / companion wiring', () => {
     ['react', 'http://localhost:5173'],
     ['vue', 'http://localhost:5173'],
     ['angular', 'http://localhost:4200'],
+    ['next', 'http://localhost:3000'],
+    ['nuxt', 'http://localhost:3000'],
+    ['svelte', 'http://localhost:5173'],
   ])('%s wires dev.run/url/name and Home to companion origin', (framework, companionUrl) => {
     const config = buildInitConfig({ framework, backend: 'none' });
     expect(config.port).toBe(4000);
@@ -168,6 +175,30 @@ describe('buildInitConfig / companion wiring', () => {
     const shellPort = new URL(`http://localhost:${config.port}`).port;
     const companionPort = new URL(companionUrl).port;
     expect(companionPort).not.toBe(shellPort);
+  });
+
+  test('flutter uses fixed web-server run command and Home at companion origin', () => {
+    const config = buildInitConfig({ framework: 'flutter', backend: 'none' });
+    expect(config.dev).toEqual({
+      run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
+      url: 'http://localhost:8080',
+      name: 'flutter',
+    });
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+      'http://localhost:8080/',
+    );
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
+  });
+
+  test('flutter ignores packageManager for fixedRun companion', () => {
+    const config = buildInitConfig({
+      framework: 'flutter',
+      backend: 'none',
+      packageManager: 'pnpm',
+    });
+    expect(config.dev.run).toBe(
+      'flutter run -d web-server --web-hostname=localhost --web-port=8080',
+    );
   });
 
   test('dev.run uses detected package manager when provided', () => {

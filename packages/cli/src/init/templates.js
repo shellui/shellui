@@ -1,7 +1,16 @@
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { TEMPLATE_FILES, getFramework } from './registry.js';
+import { TEMPLATE_FILES, FRAMEWORK_COMPANIONS, getFramework } from './registry.js';
+
+/**
+ * Manifest file used to probe GitHub template availability (package.json or pubspec.yaml).
+ * @param {string} framework
+ * @returns {string}
+ */
+export function getTemplateManifestFile(framework) {
+  return FRAMEWORK_COMPANIONS[framework]?.manifest || 'package.json';
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -166,12 +175,13 @@ export async function resolveFrameworkTemplate(framework, targetDir, cliVersion,
 
   const tagName = cliVersionToTag(cliVersion);
   const tagBaseUrl = buildTemplateBaseUrl(framework, tagName);
+  const manifestFile = getTemplateManifestFile(framework);
   onInfo(`Fetching ${framework} template from GitHub (${tagName})...`);
 
   const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
 
   try {
-    const manifestResponse = await fetchImpl(`${tagBaseUrl}/package.json`);
+    const manifestResponse = await fetchImpl(`${tagBaseUrl}/${manifestFile}`);
     if (manifestResponse.ok) {
       const result = await fetchTemplateFiles(tagBaseUrl, targetDir, framework, { fetchImpl });
       if (!result.ok) {
@@ -184,7 +194,7 @@ export async function resolveFrameworkTemplate(framework, targetDir, cliVersion,
 
     onInfo(`Tag ${tagName} not found, trying main branch...`);
     const mainBaseUrl = buildTemplateBaseUrl(framework, 'main');
-    const mainManifest = await fetchImpl(`${mainBaseUrl}/package.json`);
+    const mainManifest = await fetchImpl(`${mainBaseUrl}/${manifestFile}`);
     if (!mainManifest.ok) {
       throw new Error(
         `Could not fetch ${framework} template: GitHub tag ${tagName} and main branch are unavailable. ` +

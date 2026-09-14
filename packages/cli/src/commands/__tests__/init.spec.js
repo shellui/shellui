@@ -141,6 +141,10 @@ describe('initCommand (non-interactive)', () => {
     expect(parseInitArgs('react')).toEqual({ root: '.', frameworkShortcut: 'react' });
     expect(parseInitArgs('vue')).toEqual({ root: '.', frameworkShortcut: 'vue' });
     expect(parseInitArgs('angular')).toEqual({ root: '.', frameworkShortcut: 'angular' });
+    expect(parseInitArgs('next')).toEqual({ root: '.', frameworkShortcut: 'next' });
+    expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
+    expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
+    expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
   });
 
@@ -184,5 +188,89 @@ describe('initCommand (non-interactive)', () => {
     expect(config.port).toBe(4000);
     // --no-install must not create node_modules
     expect(fs.existsSync(path.join(projectDir, 'node_modules'))).toBe(false);
+  });
+
+  test.each([
+    ['next', 'http://localhost:3000', 'package.json'],
+    ['nuxt', 'http://localhost:3000', 'package.json'],
+    ['svelte', 'http://localhost:5173', 'package.json'],
+    ['flutter', 'http://localhost:8080', 'pubspec.yaml'],
+  ])(
+    '%s scaffolding copies local template and wires companion',
+    async (framework, companionUrl, manifest) => {
+      const projectDir = path.join(testRoot, `${framework}-local`);
+      fs.mkdirSync(projectDir);
+
+      const cwd = process.cwd();
+      process.chdir(repoRoot);
+      try {
+        await initCommand(projectDir, { framework, backend: 'none', install: false });
+      } finally {
+        process.chdir(cwd);
+      }
+
+      expect(fs.existsSync(path.join(projectDir, MAIN_CONFIG_FILE))).toBe(true);
+      expect(fs.existsSync(path.join(projectDir, manifest))).toBe(true);
+      expect(fs.existsSync(path.join(projectDir, 'static', 'favicon.svg'))).toBe(true);
+
+      const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
+      expect(config.dev.url).toBe(companionUrl);
+      expect(config.dev.name).toBe(framework);
+      expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+        `${companionUrl}/`,
+      );
+      expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
+      expect(config.port).toBe(4000);
+
+      if (framework === 'flutter') {
+        expect(config.dev.run).toBe(
+          'flutter run -d web-server --web-hostname=localhost --web-port=8080',
+        );
+      } else {
+        expect(config.dev.run).toMatch(/run dev$/);
+      }
+
+      if (framework === 'svelte') {
+        expect(fs.existsSync(path.join(projectDir, 'svelte.config.js'))).toBe(true);
+        const vite = fs.readFileSync(path.join(projectDir, 'vite.config.js'), 'utf-8');
+        expect(vite).not.toMatch(/adapter\s*:/);
+        expect(vite).toMatch(/strictPort:\s*true/);
+      }
+
+      if (framework === 'next') {
+        expect(fs.existsSync(path.join(projectDir, 'scripts', 'ensure-port.mjs'))).toBe(true);
+        const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
+        expect(pkg.scripts.dev).toMatch(/ensure-port\.mjs/);
+      }
+
+      if (framework === 'nuxt') {
+        const nuxtCfg = fs.readFileSync(path.join(projectDir, 'nuxt.config.ts'), 'utf-8');
+        expect(nuxtCfg).toMatch(/strictPort:\s*true/);
+      }
+    },
+  );
+
+  test('react init is not hijacked by a pre-existing pubspec.yaml', async () => {
+    const projectDir = path.join(testRoot, 'react-with-pubspec');
+    fs.mkdirSync(projectDir);
+    fs.writeFileSync(
+      path.join(projectDir, 'pubspec.yaml'),
+      "name: leftover\nenvironment:\n  sdk: '>=3.0.0 <4.0.0'\n",
+    );
+
+    const cwd = process.cwd();
+    process.chdir(repoRoot);
+    try {
+      await initCommand(projectDir, { framework: 'react', backend: 'none', install: false });
+    } finally {
+      process.chdir(cwd);
+    }
+
+    const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
+    expect(config.dev.name).toBe('react');
+    expect(config.dev.url).toBe('http://localhost:5173');
+    expect(config.dev.run).toMatch(/run dev$/);
+    expect(config.dev.run).not.toMatch(/flutter/);
+    expect(fs.existsSync(path.join(projectDir, 'package.json'))).toBe(true);
   });
 });

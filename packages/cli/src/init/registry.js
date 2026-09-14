@@ -3,7 +3,7 @@
  * Add new starters / backends here — the wizard, flags, and tests all read this registry.
  */
 
-/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'other'} FrameworkId */
+/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter' | 'other'} FrameworkId */
 /** @typedef {'none' | 'shellui' | 'supabase'} BackendId */
 
 /**
@@ -23,6 +23,17 @@
  *   hint: string,
  *   requires?: 'companyId' | 'supabaseUrl',
  * }} BackendDefinition
+ */
+
+/**
+ * @typedef {{
+ *   run: string,
+ *   url: string,
+ *   name: string,
+ *   fixedRun?: boolean,
+ *   install?: 'npm' | 'flutter',
+ *   manifest?: string,
+ * }} FrameworkCompanion
  */
 
 /** @type {FrameworkDefinition[]} */
@@ -52,6 +63,34 @@ export const FRAMEWORKS = [
     id: 'angular',
     label: 'Angular',
     hint: 'Full Angular starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
+    id: 'next',
+    label: 'Next.js (App Router)',
+    hint: 'Official create-next-app starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
+    id: 'nuxt',
+    label: 'Nuxt',
+    hint: 'Official Nuxt minimal starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
+    id: 'svelte',
+    label: 'SvelteKit',
+    hint: 'Official sv create minimal starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
+    id: 'flutter',
+    label: 'Flutter Web',
+    hint: 'Web only (not iOS/Android) — requires Flutter SDK',
     scaffold: 'fetch',
     positional: true,
   },
@@ -93,34 +132,77 @@ export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 
 
 /**
  * Companion `dev` + Home iframe URL for framework starters.
- * Shell stays on port 4000; Vite apps use 5173, Angular uses 4200.
- * `run` is the npm default; init rewrites it to `{detectedPm} run dev` when a
- * package manager is detected (see package-manager.js).
- * @type {Record<'react' | 'vue' | 'angular', { run: string, url: string, name: string }>}
+ * Shell stays on port 4000; Vite apps use 5173, Angular 4200, Next/Nuxt 3000, Flutter Web 8080.
+ * For npm-based frameworks, `run` is rewritten to `{detectedPm} run dev` unless `fixedRun`.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', FrameworkCompanion>}
  */
 export const FRAMEWORK_COMPANIONS = {
   react: {
     run: 'npm run dev',
     url: 'http://localhost:5173',
     name: 'react',
+    install: 'npm',
+    manifest: 'package.json',
   },
   vue: {
     run: 'npm run dev',
     url: 'http://localhost:5173',
     name: 'vue',
+    install: 'npm',
+    manifest: 'package.json',
   },
   angular: {
     run: 'npm run dev',
     url: 'http://localhost:4200',
     name: 'angular',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  next: {
+    run: 'npm run dev',
+    url: 'http://localhost:3000',
+    name: 'next',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  nuxt: {
+    run: 'npm run dev',
+    url: 'http://localhost:3000',
+    name: 'nuxt',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  svelte: {
+    run: 'npm run dev',
+    url: 'http://localhost:5173',
+    name: 'svelte',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  flutter: {
+    run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
+    url: 'http://localhost:8080',
+    name: 'flutter',
+    fixedRun: true,
+    install: 'flutter',
+    manifest: 'pubspec.yaml',
   },
 };
+
 /**
  * Framework IDs accepted as a positional `shellui init <framework>` shortcut.
  * @returns {FrameworkId[]}
  */
 export function getPositionalFrameworkIds() {
   return FRAMEWORKS.filter((f) => f.positional).map((f) => f.id);
+}
+
+/**
+ * Human-readable list of known framework ids for error messages.
+ * @returns {string}
+ */
+export function getFrameworkIdsList() {
+  return FRAMEWORKS.map((f) => f.id).join(', ');
 }
 
 /**
@@ -158,8 +240,8 @@ export function getBackendPromptOptions() {
 /**
  * Relative paths fetched for each on-demand framework template.
  * Kept here so registry + fetch layer stay aligned.
- * Sources: official `create-vite` react/vue templates and `ng new` Angular defaults.
- * @type {Record<'react' | 'vue' | 'angular', string[]>}
+ * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / flutter create.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', string[]>}
  */
 export const TEMPLATE_FILES = {
   react: [
@@ -217,6 +299,76 @@ export const TEMPLATE_FILES = {
     'src/app/app.component.css',
     'src/app/app.component.spec.ts',
     'static/favicon.ico',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  next: [
+    'package.json',
+    'next.config.mjs',
+    'jsconfig.json',
+    'eslint.config.mjs',
+    'README.md',
+    '.gitignore',
+    'scripts/ensure-port.mjs',
+    'app/layout.js',
+    'app/page.js',
+    'app/page.module.css',
+    'app/globals.css',
+    'app/favicon.ico',
+    'app/shellui-client.js',
+    'public/next.svg',
+    'public/vercel.svg',
+    'public/file.svg',
+    'public/globe.svg',
+    'public/window.svg',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  nuxt: [
+    'package.json',
+    'nuxt.config.ts',
+    'tsconfig.json',
+    'README.md',
+    '.gitignore',
+    'app/app.vue',
+    'app/plugins/shellui.client.ts',
+    'public/favicon.ico',
+    'public/robots.txt',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  svelte: [
+    'package.json',
+    'svelte.config.js',
+    'vite.config.js',
+    'jsconfig.json',
+    '.npmrc',
+    'README.md',
+    '.gitignore',
+    '.vscode/extensions.json',
+    'src/app.html',
+    'src/app.d.ts',
+    'src/lib/index.js',
+    'src/lib/assets/favicon.svg',
+    'src/routes/+layout.svelte',
+    'src/routes/+page.svelte',
+    'static/robots.txt',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  flutter: [
+    'pubspec.yaml',
+    'analysis_options.yaml',
+    'README.md',
+    '.gitignore',
+    'lib/main.dart',
+    'web/index.html',
+    'web/favicon.png',
+    'web/manifest.json',
+    'web/icons/Icon-192.png',
+    'web/icons/Icon-512.png',
+    'web/icons/Icon-maskable-192.png',
+    'web/icons/Icon-maskable-512.png',
     'static/favicon.svg',
     'static/logo.svg',
   ],

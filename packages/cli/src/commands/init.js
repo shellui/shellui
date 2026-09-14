@@ -19,9 +19,14 @@ import { resolveFrameworkTemplate } from '../init/templates.js';
 import {
   detectPackageManager,
   formatInstallCommand,
+  formatFlutterInstallCommand,
   hasPackageJson,
+  hasPubspec,
   installDependencies,
+  installFlutterDependencies,
+  commandExists,
 } from '../init/package-manager.js';
+import { FRAMEWORK_COMPANIONS } from '../init/registry.js';
 
 /**
  * Check if stdin is a TTY (interactive terminal).
@@ -41,7 +46,7 @@ function shouldSkipInstall(options) {
 
 /**
  * Init command - Creates a shellui project with interactive wizard or flags.
- * @param {string|undefined} frameworkOrRoot - Framework shortcut (react/vue/angular/empty) or root directory
+ * @param {string|undefined} frameworkOrRoot - Framework shortcut (react/vue/angular/next/nuxt/svelte/flutter/empty) or root directory
  * @param {{
  *   force?: boolean,
  *   config?: string,
@@ -182,14 +187,19 @@ export async function initCommand(frameworkOrRoot, options = {}) {
 
     ensureDistGitignore(projectRoot);
 
-    const packageManager = hasPackageJson(projectRoot) ? detectPackageManager(projectRoot) : null;
+    const companion = FRAMEWORK_COMPANIONS[framework];
+    // Only trust the registry companion — do not infer Flutter from a pre-existing
+    // pubspec.yaml (that would hijack react/empty/etc. inits in mixed directories).
+    const isFlutter = companion?.install === 'flutter';
+    const packageManager =
+      !isFlutter && hasPackageJson(projectRoot) ? detectPackageManager(projectRoot) : null;
 
     const config = buildInitConfig({
       framework,
       backend,
       companyId,
       supabaseUrl,
-      packageManager,
+      packageManager: isFlutter ? null : packageManager,
     });
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
 
@@ -203,9 +213,56 @@ export async function initCommand(frameworkOrRoot, options = {}) {
 
     s.stop(pc.green('Project created!'));
 
-    // Post-init dependency install for frameworks with package.json.
-    // Empty / other (no package.json): skip quietly.
-    if (hasPackageJson(projectRoot)) {
+    // Post-init dependency install for JS (package.json) or Flutter (pubspec.yaml).
+    // Empty / other (neither): skip quietly.
+    if (isFlutter && hasPubspec(projectRoot)) {
+      installCommand = formatFlutterInstallCommand();
+      if (shouldSkipInstall(options)) {
+        installStatus = 'skipped';
+      } else if (!commandExists('flutter')) {
+        installStatus = 'instructions';
+        console.log(
+          pc.yellow(
+            'Dependencies were not installed (Flutter SDK not found on PATH). Install Flutter, run flutter pub get, then shellui start.',
+          ),
+        );
+        console.log(
+          pc.dim(
+            'Flutter Web only — iOS/Android are out of scope for shellui init. See https://docs.flutter.dev/get-started/install',
+          ),
+        );
+      } else {
+        const installSpinner = p.spinner();
+        if (isInteractive()) {
+          installSpinner.start(`Running ${installCommand}...`);
+        } else {
+          console.log(pc.dim(`Running ${installCommand}...`));
+        }
+
+        try {
+          await installFlutterDependencies(projectRoot);
+          installStatus = 'ok';
+          if (isInteractive()) {
+            installSpinner.stop(pc.green(`Ran ${installCommand}`));
+          } else {
+            console.log(pc.green(`Ran ${installCommand}`));
+          }
+        } catch (installErr) {
+          installStatus = 'failed';
+          if (isInteractive()) {
+            installSpinner.stop(pc.yellow(`Could not run ${installCommand}`));
+          }
+          console.log(
+            pc.yellow(
+              `Warning: dependency install failed (${installErr.message}). Project was still created.`,
+            ),
+          );
+          console.log(
+            pc.dim(`Run ${pc.cyan(installCommand)} manually, then ${pc.cyan('shellui start')}.`),
+          );
+        }
+      }
+    } else if (hasPackageJson(projectRoot)) {
       if (shouldSkipInstall(options)) {
         installStatus = 'skipped';
         if (packageManager) {
@@ -309,5 +366,8 @@ export {
   detectPackageManager,
   formatDevRun,
   formatInstallCommand,
+  formatFlutterInstallCommand,
   installDependencies,
+  installFlutterDependencies,
+  hasPubspec,
 } from '../init/package-manager.js';

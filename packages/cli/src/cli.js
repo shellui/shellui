@@ -52,7 +52,10 @@ cli
   .command('init [framework]', 'Create a shellui project with interactive wizard')
   .option('--force', 'Overwrite existing config file')
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--framework <type>', 'Framework type: empty, react, vue, angular')
+  .option(
+    '--framework <type>',
+    'Framework type: empty, react, vue, angular, next, nuxt, svelte, flutter',
+  )
   .option('--backend <type>', 'Backend type: none, shellui, supabase')
   .option('--company-id <id>', 'Shellui company ID (required for shellui backend)')
   .option('--supabase-url <url>', 'Supabase project URL (required for supabase backend)')

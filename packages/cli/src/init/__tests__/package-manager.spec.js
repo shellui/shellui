@@ -121,9 +121,14 @@ describe('format helpers / hasPackageJson', () => {
     expect(formatInstallCommand('yarn')).toBe('yarn install');
   });
 
-  test('hasPackageJson', () => {
+  test('hasPackageJson and hasPubspec', async () => {
+    const { hasPubspec, formatFlutterInstallCommand } = await import('../package-manager.js');
     expect(hasPackageJson(testRoot)).toBe(false);
+    expect(hasPubspec(testRoot)).toBe(false);
     fs.writeFileSync(path.join(testRoot, 'package.json'), '{}');
     expect(hasPackageJson(testRoot)).toBe(true);
+    fs.writeFileSync(path.join(testRoot, 'pubspec.yaml'), 'name: x\n');
+    expect(hasPubspec(testRoot)).toBe(true);
+    expect(formatFlutterInstallCommand()).toBe('flutter pub get');
   });
 });

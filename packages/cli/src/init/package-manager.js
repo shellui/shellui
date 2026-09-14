@@ -101,12 +101,71 @@ export function formatInstallCommand(packageManager) {
 }
 
 /**
- * Whether the project root has a package.json (framework scaffolds do; empty does not).
+ * Whether the project root has a package.json (JS framework scaffolds do; empty does not).
  * @param {string} projectRoot
  * @returns {boolean}
  */
 export function hasPackageJson(projectRoot) {
   return fs.existsSync(path.join(projectRoot, 'package.json'));
+}
+
+/**
+ * Whether the project root has a Flutter pubspec.yaml.
+ * @param {string} projectRoot
+ * @returns {boolean}
+ */
+export function hasPubspec(projectRoot) {
+  return fs.existsSync(path.join(projectRoot, 'pubspec.yaml'));
+}
+
+/**
+ * Install command for Flutter projects.
+ * @returns {string}
+ */
+export function formatFlutterInstallCommand() {
+  return 'flutter pub get';
+}
+
+/**
+ * Run `flutter pub get` in projectRoot.
+ * @param {string} projectRoot
+ * @returns {Promise<void>}
+ */
+export function installFlutterDependencies(projectRoot) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('flutter', ['pub', 'get'], {
+      cwd: projectRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+      env: process.env,
+    });
+
+    let stderr = '';
+    if (child.stderr) {
+      child.stderr.on('data', (chunk) => {
+        stderr += chunk.toString();
+      });
+    }
+
+    child.on('error', (err) => {
+      reject(err);
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      const detail = stderr.trim();
+      reject(
+        new Error(
+          detail
+            ? `${formatFlutterInstallCommand()} failed: ${detail}`
+            : `${formatFlutterInstallCommand()} failed with exit code ${code}`,
+        ),
+      );
+    });
+  });
 }
 
 /**
