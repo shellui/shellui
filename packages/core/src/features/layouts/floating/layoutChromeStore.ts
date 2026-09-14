@@ -4,6 +4,7 @@ import {
   actionChromeFlags,
   computeActionInsets,
   mergeInsets,
+  type ActionChromeFlags,
 } from '../../chromeActions/computeActionInsets';
 
 let currentChrome: LayoutChrome | null = null;
@@ -32,21 +33,74 @@ function isWindowsLayout(): boolean {
   return Boolean(document.querySelector('[data-shellui-windows-layout]'));
 }
 
-function chromePayloadForFrame(uuid: string, base: LayoutChrome): LayoutChrome {
-  const actions = getChromeActionsForFrame(uuid);
-  const flags = actionChromeFlags(actions);
+/**
+ * Merge per-frame action-button insets into a base layout-chrome snapshot.
+ * Sidebar / app-bar / fullscreen never publish floating chrome (`layout: 'none'`);
+ * when actions are present we promote to `layout: 'actions'` so the SDK treats
+ * insets as active and applies safe padding (same as overlay frames).
+ */
+export function buildFrameLayoutChrome(
+  base: LayoutChrome,
+  flags: ActionChromeFlags,
+  options?: { topInTitleBar?: boolean },
+): LayoutChrome {
   const extra = computeActionInsets(flags, {
-    topInTitleBar: isWindowsLayout(),
+    topInTitleBar: options?.topInTitleBar,
     existingBottomInset: base.insets.bottom,
   });
-  return { ...base, insets: mergeInsets(base.insets, extra) };
+  const insets = mergeInsets(base.insets, extra);
+  const hasActions = flags.hasTop || flags.hasPrimary;
+  if (!hasActions) {
+    return { ...base, insets };
+  }
+  if (base.layout === 'none') {
+    return {
+      ...base,
+      layout: 'actions',
+      chromeVisible: true,
+      insets,
+    };
+  }
+  return { ...base, insets };
+}
+
+function chromePayloadForFrame(uuid: string, base: LayoutChrome): LayoutChrome {
+  const actions = getChromeActionsForFrame(uuid);
+  return buildFrameLayoutChrome(base, actionChromeFlags(actions), {
+    topInTitleBar: isWindowsLayout(),
+  });
 }
 
 /**
- * Publish layout chrome to main layout content frames only.
- * Overlay iframes (modal / drawer) are skipped. Apps apply insets inside their UI
- * via CSS vars / `shellui-apply-layout-chrome-pad` — the iframe stays 100%×100%.
- * Per-frame floating action insets are merged when actions are set for that frame.
+ * Overlay / modal / drawer frames do not get floating sidebar / tab-bar insets.
+ * They only receive padding for shellui.actions chrome (top bar + primary FAB)
+ * so iframe content can clear those controls — and animate when set/clear.
+ */
+function chromePayloadForOverlayFrame(
+  uuid: string,
+  viewport: LayoutChrome['viewport'],
+): LayoutChrome {
+  const actions = getChromeActionsForFrame(uuid);
+  const flags = actionChromeFlags(actions);
+  const insets = computeActionInsets(flags, { topInTitleBar: false });
+  const hasActions = flags.hasTop || flags.hasPrimary;
+  return {
+    layout: hasActions ? 'actions' : 'none',
+    viewport,
+    chromeVisible: hasActions,
+    autoPadding: true,
+    insets,
+  };
+}
+
+/**
+ * Publish layout chrome to iframes.
+ * - Main frames: floating/nav insets + per-frame action chrome extras.
+ * - Overlay frames: action chrome insets only (so set/clear animates content pad).
+ * Apps apply insets via CSS vars / `shellui-apply-layout-chrome-pad`.
+ *
+ * Works for every shell layout (floating, sidebar, app-bar, …): when the base
+ * chrome is cleared/`none`, action insets alone still activate padding.
  */
 export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   currentChrome = chrome;
@@ -58,10 +112,20 @@ export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   applyLayoutChromeStyles(payload, { autoPadding: false });
 
   for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
-    if (!isMainLayoutFrame(iframe)) continue;
+    if (isMainLayoutFrame(iframe)) {
+      shellui.sendMessage({
+        type: 'SHELLUI_LAYOUT_CHROME',
+        payload: { layoutChrome: chromePayloadForFrame(uuid, payload) },
+        to: [uuid],
+      });
+      continue;
+    }
+
     shellui.sendMessage({
       type: 'SHELLUI_LAYOUT_CHROME',
-      payload: { layoutChrome: chromePayloadForFrame(uuid, payload) },
+      payload: {
+        layoutChrome: chromePayloadForOverlayFrame(uuid, payload.viewport),
+      },
       to: [uuid],
     });
   }

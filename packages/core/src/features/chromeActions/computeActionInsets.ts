@@ -5,11 +5,21 @@ import {
 } from '../layouts/floating/computeFloatingInsets';
 import type { FrameChromeActions } from './chromeActionsStore';
 
-/** Top floating action bar height (back + title + trailing). */
-export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 44;
-/** Bottom primary FAB diameter. */
-export const CHROME_ACTIONS_FAB_SIZE = 56;
-/** Gap between FAB and floating tab bar / screen edge. */
+/** Top floating action row height (matches secondary h-8 / text-xs controls). */
+export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 32;
+/**
+ * Breathing room above the top action row (below safe-area).
+ * Slightly roomier than general floating chrome margin so controls aren’t cramped.
+ */
+export const CHROME_ACTIONS_TOP_MARGIN = 20;
+/**
+ * Extra scrim height below the action row. With `from-80%`, this ~20% band
+ * fades background → transparent so content eases in under the chrome.
+ */
+export const CHROME_ACTIONS_TOP_SCRIM_FADE = 16;
+/** Bottom primary action button size (default shadcn icon). */
+export const CHROME_ACTIONS_FAB_SIZE = 40;
+/** Gap between primary FAB and floating tab bar (corner FAB uses FLOATING_CHROME_MARGIN). */
 export const CHROME_ACTIONS_FAB_GAP = 12;
 
 export type ActionChromeFlags = {
@@ -41,7 +51,7 @@ export function computeActionInsets(
 ): LayoutChromeInsets {
   const top =
     flags.hasTop && !options?.topInTitleBar
-      ? FLOATING_CHROME_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE
+      ? CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE
       : 0;
 
   let bottom = 0;

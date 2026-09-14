@@ -139,14 +139,16 @@ shellui.actions.clear();
 
 #### `ChromeActionsSpec`
 
-| Field      | Type                                     | Notes                                                           |
-| ---------- | ---------------------------------------- | --------------------------------------------------------------- |
-| `back`     | `{ id, label?, icon?, onClick? }`        | Optional; max 1. Prefer caret UI (`icon: 'back'` or omit icon). |
-| `title`    | `string` \| `{ text: string }`           | Optional; max 1.                                                |
-| `trailing` | `Array<{ id, label?, icon?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`).                  |
-| `primary`  | `{ id, label?, icon?, onClick? }`        | Optional; max 1 bottom FAB (`icon: 'plus'` is common).          |
+| Field      | Type                                                          | Notes                                                           |
+| ---------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| `back`     | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1. Prefer caret UI (`icon: 'back'` or omit icon). |
+| `title`    | `string` \| `{ text: string }`                                | Optional; max 1.                                                |
+| `trailing` | `Array<{ id, label?, icon?, disabled?, animate?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`).                  |
+| `primary`  | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1 bottom FAB (`icon: 'plus'` is common).          |
 
-Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`).
+Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`, `edit`, `share`, `filter`, `archive`, `settings`, `delete`, `star`, `refresh`).
+
+Use `disabled: true` to grey out a control. Use `animate: 'icon-rotate'` to spin the glyph (typical refresh / loading pattern — often paired with `disabled`).
 
 #### Protocol (for shell / playground integrators)
 

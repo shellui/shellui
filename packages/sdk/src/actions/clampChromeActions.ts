@@ -1,6 +1,11 @@
 import {
   CHROME_ACTIONS_MAX_TRAILING,
+  CHROME_ACTION_ANIMATIONS,
+  CHROME_ACTION_VARIANTS,
+  type ChromeActionAnimation,
   type ChromeActionItem,
+  type ChromeActionPayloadItem,
+  type ChromeActionVariant,
   type ChromeActionsPayload,
   type ChromeActionsSpec,
 } from '../types.js';
@@ -22,11 +27,42 @@ function normalizeTitle(title: ChromeActionsSpec['title']): string | undefined {
   return text.length > 0 ? text : undefined;
 }
 
+function normalizeVariant(
+  value: unknown,
+  role: string,
+  warnings: string[],
+): ChromeActionVariant | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string' && (CHROME_ACTION_VARIANTS as readonly string[]).includes(value)) {
+    return value as ChromeActionVariant;
+  }
+  warnings.push(
+    `chrome actions: ${role} has invalid variant ${JSON.stringify(value)} — using default`,
+  );
+  return undefined;
+}
+
+function normalizeAnimate(
+  value: unknown,
+  role: string,
+  warnings: string[],
+): ChromeActionAnimation | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (
+    typeof value === 'string' &&
+    (CHROME_ACTION_ANIMATIONS as readonly string[]).includes(value)
+  ) {
+    return value as ChromeActionAnimation;
+  }
+  warnings.push(`chrome actions: ${role} has invalid animate ${JSON.stringify(value)} — ignored`);
+  return undefined;
+}
+
 function serializeItem(
   item: ChromeActionItem | undefined,
   role: string,
   warnings: string[],
-): { id: string; label?: string; icon?: string } | undefined {
+): ChromeActionPayloadItem | undefined {
   if (!item) return undefined;
   const id = typeof item.id === 'string' ? item.id.trim() : '';
   if (!id) {
@@ -38,10 +74,15 @@ function serializeItem(
   if (!label && !icon && role !== 'back') {
     warnings.push(`chrome actions: ${role} "${id}" has neither label nor icon`);
   }
+  const variant = normalizeVariant(item.variant, `${role} "${id}"`, warnings);
+  const animate = normalizeAnimate(item.animate, `${role} "${id}"`, warnings);
   return {
     id,
     ...(label ? { label } : {}),
     ...(icon ? { icon } : {}),
+    ...(variant ? { variant } : {}),
+    ...(item.disabled === true ? { disabled: true } : {}),
+    ...(animate ? { animate } : {}),
   };
 }
 
@@ -60,6 +101,8 @@ export function clampChromeActions(
     return { payload: {}, callbackIds, warnings };
   }
 
+  const variant = normalizeVariant(spec.variant, 'set', warnings);
+
   const back = serializeItem(spec.back, 'back', warnings);
   if (back) callbackIds.push(back.id);
 
@@ -72,7 +115,7 @@ export function clampChromeActions(
     );
   }
 
-  const trailing: Array<{ id: string; label?: string; icon?: string }> = [];
+  const trailing: ChromeActionPayloadItem[] = [];
   const seen = new Set<string>();
   if (back) seen.add(back.id);
 
@@ -100,10 +143,15 @@ export function clampChromeActions(
   }
 
   const payload: ChromeActionsPayload = {};
+  if (variant) payload.variant = variant;
   if (back) payload.back = back;
   if (title) payload.title = title;
   if (trailing.length > 0) payload.trailing = trailing;
-  if (primary && !seen.has(primary.id)) payload.primary = primary;
+  if (primary && !seen.has(primary.id)) {
+    // Primary FAB ignores button variants — strip so host always uses default FAB style.
+    const { variant: _ignored, ...primaryRest } = primary;
+    payload.primary = primaryRest;
+  }
 
   return { payload, callbackIds, warnings };
 }

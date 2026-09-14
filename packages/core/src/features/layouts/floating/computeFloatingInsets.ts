@@ -28,18 +28,19 @@ export function floatingTabBarBottomPadPx(
 /** Collapsed desktop toggle control size (glass chip). */
 export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
 /**
- * Top inset when the desktop sidebar is collapsed — clears the floating
- * expand chip so content does not sit under it.
+ * Extra leading pad for chrome actions when the desktop sidebar is collapsed
+ * (toggle size + clearance). Content itself stays full-bleed — only the action
+ * row clears the expand chip.
  */
-export const FLOATING_COLLAPSED_TOP_INSET =
-  FLOATING_CHROME_MARGIN + FLOATING_SIDEBAR_TOGGLE_SIZE + FLOATING_CONTENT_CLEARANCE;
+export const FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA =
+  FLOATING_SIDEBAR_TOGGLE_SIZE + FLOATING_CONTENT_CLEARANCE;
 
 export type FloatingSafeArea = LayoutChromeInsets;
 
 export function computeFloatingInsets(options: {
   viewport: LayoutChromeViewport;
   chromeVisible: boolean;
-  /** Desktop only: sidebar fully hidden; left inset drops to safe-area. */
+  /** Desktop only: sidebar hidden — no left content inset (chip cleared by actions pad). */
   sidebarCollapsed?: boolean;
   safeArea?: Partial<FloatingSafeArea>;
 }): LayoutChromeInsets {
@@ -70,7 +71,7 @@ export function computeFloatingInsets(options: {
 
   if (options.sidebarCollapsed) {
     return {
-      top: safe.top + FLOATING_COLLAPSED_TOP_INSET,
+      top: safe.top,
       right: safe.right,
       bottom: safe.bottom,
       left: safe.left,

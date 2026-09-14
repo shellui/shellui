@@ -358,6 +358,61 @@
   box-sizing: border-box;
 }
 
+/* Animate live inset changes (action chrome, sidebar collapse, etc.). */
+@property --shellui-inset-top {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-right {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-bottom {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-left {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-chrome-actions-leading-extra {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* Host: always animate inset CSS vars (sidebar collapse / floating chrome). */
+html {
+  transition:
+    --shellui-inset-top 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-right 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-bottom 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-left 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-chrome-actions-leading-extra 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* App body padding: only after SDK enables animations (skip initial load). */
+html[data-shellui-layout-chrome-animate] .shellui-apply-layout-chrome-pad {
+  transition:
+    padding-top 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-right 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-left 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
+  html[data-shellui-layout-chrome-animate] .shellui-apply-layout-chrome-pad {
+    transition: none;
+  }
+}
+
 /* Scroll clearance so anchors/focus land clear of floating chrome. */
 html[data-shellui-layout-chrome-pad] .overflow-y-auto,
 html[data-shellui-layout-chrome-pad] .overflow-auto,
@@ -1055,6 +1110,22 @@ html.shellui-theme-switching
   }
   to {
     width: 100%;
+  }
+}
+
+/* Chrome action glyph spin (`animate: 'icon-rotate'`). Explicit so we don’t
+ * depend on Tailwind generating `animate-spin` for dynamically applied classes. */
+@keyframes shellui-chrome-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+[data-shellui-chrome-action-animate='icon-rotate'] {
+  animation: shellui-chrome-action-spin 0.75s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-shellui-chrome-action-animate='icon-rotate'] {
+    animation: none;
   }
 }
 

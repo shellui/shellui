@@ -7,6 +7,7 @@ type DemoVariant = 'default' | 'updated';
 function applyDemoActions(variant: DemoVariant): void {
   const updated = variant === 'updated';
   shellui.actions.set({
+    variant: updated ? 'secondary' : 'outline',
     back: {
       id: 'demo-back',
       onClick: () => {
@@ -18,21 +19,26 @@ function applyDemoActions(variant: DemoVariant): void {
       {
         id: 'demo-edit',
         label: updated ? 'Rename' : 'Edit',
+        icon: 'edit',
         onClick: () => shellui.toast({ title: 'Edit clicked (iframe)', type: 'default' }),
       },
       {
         id: 'demo-share',
         label: 'Share',
+        icon: 'share',
         onClick: () => shellui.toast({ title: 'Share clicked (iframe)', type: 'default' }),
       },
       {
         id: 'demo-filter',
         label: 'Filter',
+        icon: 'filter',
         onClick: () => shellui.toast({ title: 'Filter clicked (iframe)', type: 'default' }),
       },
       {
         id: 'demo-archive',
         label: 'Archive',
+        icon: 'archive',
+        variant: updated ? 'destructive' : undefined,
         onClick: () => shellui.toast({ title: 'Archive clicked (iframe)', type: 'default' }),
       },
     ],
@@ -69,14 +75,7 @@ export function ChromeActionsDemoView() {
   return (
     <div
       data-chrome-actions-demo-root
-      className="box-border min-h-full bg-background text-foreground"
-      // Clear floating chrome that overlays this iframe (top bar + FAB).
-      style={{
-        paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))',
-        paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))',
-        paddingLeft: '1.25rem',
-        paddingRight: '1.25rem',
-      }}
+      className="box-border min-h-full bg-background text-foreground px-5"
     >
       <h1
         className="text-base font-semibold mb-1 pt-4"
@@ -88,7 +87,8 @@ export function ChromeActionsDemoView() {
         This page runs inside an iframe and drives floating chrome via{' '}
         <code className="text-xs">shellui.actions.set()</code> /{' '}
         <code className="text-xs">clear()</code>. Clicks round-trip with{' '}
-        <code className="text-xs">SHELLUI_ACTION</code>.
+        <code className="text-xs">SHELLUI_ACTION</code>. Top/bottom padding comes from{' '}
+        <code className="text-xs">--shellui-inset-*</code> (animated when actions set or clear).
       </p>
 
       {!ready ? (

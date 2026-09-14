@@ -5,26 +5,47 @@ import { clampChromeActions } from './clampChromeActions.js';
 describe('clampChromeActions', () => {
   it('serializes a full spec and collects callback ids', () => {
     const { payload, callbackIds, warnings } = clampChromeActions({
+      variant: 'secondary',
       back: { id: 'back', onClick: () => undefined },
       title: 'Inbox',
       trailing: [
-        { id: 'edit', label: 'Edit', onClick: () => undefined },
+        { id: 'edit', label: 'Edit', icon: 'edit', onClick: () => undefined },
         { id: 'share', icon: 'share', onClick: () => undefined },
+        {
+          id: 'danger',
+          label: 'Delete',
+          variant: 'destructive',
+          onClick: () => undefined,
+        },
       ],
       primary: { id: 'compose', icon: 'plus', label: 'New', onClick: () => undefined },
     });
 
     expect(warnings).toEqual([]);
     expect(payload).toEqual({
+      variant: 'secondary',
       back: { id: 'back' },
       title: 'Inbox',
       trailing: [
-        { id: 'edit', label: 'Edit' },
+        { id: 'edit', label: 'Edit', icon: 'edit' },
         { id: 'share', icon: 'share' },
+        { id: 'danger', label: 'Delete', variant: 'destructive' },
       ],
       primary: { id: 'compose', icon: 'plus', label: 'New' },
     });
-    expect(callbackIds).toEqual(['back', 'edit', 'share', 'compose']);
+    expect(callbackIds).toEqual(['back', 'edit', 'share', 'danger', 'compose']);
+  });
+
+  it('ignores invalid variants and primary button variants', () => {
+    const { payload, warnings } = clampChromeActions({
+      variant: 'nope' as 'outline',
+      trailing: [{ id: 'a', label: 'A', variant: 'ghost' }],
+      primary: { id: 'p', icon: 'plus', variant: 'secondary' },
+    });
+    expect(payload.variant).toBeUndefined();
+    expect(payload.trailing).toEqual([{ id: 'a', label: 'A', variant: 'ghost' }]);
+    expect(payload.primary).toEqual({ id: 'p', icon: 'plus' });
+    expect(warnings.some((w) => w.includes('invalid variant'))).toBe(true);
   });
 
   it('normalizes title objects and skips empty titles', () => {
@@ -79,8 +100,38 @@ describe('clampChromeActions', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('returns empty payload for nullish input', () => {
-    expect(clampChromeActions(undefined).payload).toEqual({});
-    expect(clampChromeActions(null).payload).toEqual({});
+  it('serializes disabled and icon-rotate animate', () => {
+    const { payload, warnings } = clampChromeActions({
+      trailing: [
+        {
+          id: 'refresh',
+          icon: 'refresh',
+          animate: 'icon-rotate',
+          disabled: true,
+          onClick: () => undefined,
+        },
+        { id: 'edit', label: 'Edit', disabled: false, onClick: () => undefined },
+      ],
+      primary: { id: 'go', icon: 'plus', animate: 'icon-rotate', disabled: true },
+    });
+    expect(warnings).toEqual([]);
+    expect(payload.trailing).toEqual([
+      { id: 'refresh', icon: 'refresh', animate: 'icon-rotate', disabled: true },
+      { id: 'edit', label: 'Edit' },
+    ]);
+    expect(payload.primary).toEqual({
+      id: 'go',
+      icon: 'plus',
+      animate: 'icon-rotate',
+      disabled: true,
+    });
+  });
+
+  it('ignores invalid animate values', () => {
+    const { payload, warnings } = clampChromeActions({
+      trailing: [{ id: 'a', label: 'A', animate: 'bounce' as 'icon-rotate' }],
+    });
+    expect(payload.trailing).toEqual([{ id: 'a', label: 'A' }]);
+    expect(warnings.some((w) => w.includes('invalid animate'))).toBe(true);
   });
 });

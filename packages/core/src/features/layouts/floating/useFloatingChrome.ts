@@ -9,10 +9,16 @@ import {
   type LayoutChromeViewport,
   type ScrollChromeState,
 } from '@shellui/sdk';
-import { computeFloatingInsets, readShellSafeAreaPx } from './computeFloatingInsets';
+import {
+  computeFloatingInsets,
+  FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA,
+  readShellSafeAreaPx,
+} from './computeFloatingInsets';
 import { publishLayoutChrome } from './layoutChromeStore';
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shellui:floating-sidebar:collapsed';
+/** Host CSS var: extra left pad on chrome actions when the expand chip is visible. */
+const ACTIONS_LEADING_EXTRA_VAR = '--shellui-chrome-actions-leading-extra';
 /** Scroll Y / bottom distance under which an edge counts as “at end” (no fade). */
 const SCROLL_EDGE_PX = 8;
 
@@ -46,6 +52,15 @@ function writeSidebarCollapsed(collapsed: boolean): void {
   } catch {
     // Ignore quota / privacy mode errors.
   }
+}
+
+/** Pad chrome actions past the expand chip; content insets stay full-bleed when collapsed. */
+function syncChromeActionsLeadingExtra(desktopCollapsed: boolean): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.setProperty(
+    ACTIONS_LEADING_EXTRA_VAR,
+    `${desktopCollapsed ? FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA : 0}px`,
+  );
 }
 
 function buildChrome(
@@ -93,6 +108,8 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
 
   const pushChrome = useCallback(
     (visible: boolean, vp: LayoutChromeViewport, collapsed: boolean) => {
+      const desktopCollapsed = vp === 'desktop' && collapsed;
+      syncChromeActionsLeadingExtra(desktopCollapsed);
       publishLayoutChrome(buildChrome(vp, visible, collapsed));
     },
     [],
@@ -185,6 +202,7 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
 
   useEffect(() => {
     return () => {
+      syncChromeActionsLeadingExtra(false);
       publishLayoutChrome(null);
     };
   }, []);

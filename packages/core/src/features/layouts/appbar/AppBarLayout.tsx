@@ -930,7 +930,7 @@ export function AppBarLayout({
           // Desktop inset: float the content frame on the chrome tray (same as sidebar-inset).
           // `md:mx-3` (12px) must match `insetFramePadPx` on the header above.
           isInset &&
-            'bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
+            'relative bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
         )}
       >
         <Outlet />

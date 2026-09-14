@@ -56,8 +56,8 @@ Clicking a chrome control posts `SHELLUI_ACTION` with `{ id }` into **only** the
 
 ## Layouts
 
-- **Floating / sidebar / app-bar:** top bar overlays the content iframe; primary FAB sits above floating tab bar when present (extra bottom inset).
-- **Windows:** top actions render in the **window title bar**; FAB still overlays the window content.
+- **Floating / sidebar / app-bar / fullscreen:** top bar overlays the content iframe; the shell publishes safe `--shellui-inset-*` padding whenever actions are set (including non-floating layouts, via `layout: 'actions'`). Padding animates with a short CSS transition on show/hide. Primary FAB sits above floating tab bar when present (extra bottom inset).
+- **Windows:** top actions render in the **window title bar** (no top inset); FAB still overlays the window content with bottom inset.
 
 ## Icons
 
