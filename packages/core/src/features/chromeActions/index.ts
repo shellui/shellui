@@ -20,4 +20,7 @@ export {
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_FAB_SIZE,
 } from './computeActionInsets';
-export { republishLayoutChromeWithActions } from '../layouts/floating/layoutChromeStore';
+export {
+  republishLayoutChromeWithActions,
+  subscribeLayoutChrome,
+} from '../layouts/floating/layoutChromeStore';

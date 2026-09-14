@@ -21,7 +21,6 @@ import {
   DESKTOP_TITLEBAR_PAD_TOP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from '../chrome/constants';
-import { FloatingFadeMask } from './FloatingFadeMask';
 import { FloatingTabBar } from './FloatingTabBar';
 import { FloatingSidebar } from './FloatingSidebar';
 import { useFloatingChrome } from './useFloatingChrome';
@@ -40,8 +39,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
-  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed, scrollEdges } =
-    useFloatingChrome(viewport);
+  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed } = useFloatingChrome(viewport);
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
@@ -77,7 +75,6 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const showTabBar = viewport === 'mobile' || viewport === 'tablet';
   const showSidebar = viewport === 'desktop';
-  const showFades = showTabBar;
 
   return (
     <div
@@ -101,19 +98,6 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
-
-      {showFades ? (
-        <>
-          <FloatingFadeMask
-            placement="top"
-            visible={!scrollEdges.atTop}
-          />
-          <FloatingFadeMask
-            placement="bottom"
-            visible={!scrollEdges.atBottom}
-          />
-        </>
-      ) : null}
 
       {showTabBar ? (
         <FloatingTabBar

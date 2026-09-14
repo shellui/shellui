@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type ReactNode,
 } from 'react';
@@ -15,6 +16,7 @@ import {
   type ChromeActionPayloadItem,
   type ChromeActionVariant,
   type ChromeActionsPayload,
+  type LayoutChrome,
 } from '@shellui/sdk';
 import { Button } from '../../components/ui/button';
 import {
@@ -37,6 +39,10 @@ import {
   FLOATING_TAB_BAR_HEIGHT,
   floatingTabBarBottomPadPx,
 } from '../layouts/floating/computeFloatingInsets';
+import {
+  getPublishedLayoutChrome,
+  subscribeLayoutChrome,
+} from '../layouts/floating/layoutChromeStore';
 import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
@@ -61,6 +67,20 @@ const CHROME_ACTIONS_FADE_MS = 200;
 const CHROME_ACTIONS_TITLE_MS = 520;
 /** Trailing row crossfade (old overlay → remove → new). */
 const CHROME_ACTIONS_TRAILING_MS = 220;
+
+/**
+ * Floating phone/tablet hide-on-scroll: mirror nav chromeVisible for main-frame
+ * action buttons. Desktop / other layouts / overlays stay visible.
+ */
+function scrollHideApplies(chrome: LayoutChrome | null, surface: FrameSurface): boolean {
+  if (surface !== 'main') return false;
+  if (!chrome || chrome.layout !== 'floating') return false;
+  return chrome.viewport === 'mobile' || chrome.viewport === 'tablet';
+}
+
+function usePublishedLayoutChrome(): LayoutChrome | null {
+  return useSyncExternalStore(subscribeLayoutChrome, getPublishedLayoutChrome, () => null);
+}
 
 type PresenceItem = {
   actions: FrameChromeActions;
@@ -274,11 +294,14 @@ function useOptionalPresence<T extends { id: string }>(
 
 function FadePresence({
   visible,
+  scrollHidden = false,
   className,
   style,
   children,
 }: {
   visible: boolean;
+  /** Floating hide-on-scroll: slide away while presence stays mounted. */
+  scrollHidden?: boolean;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
@@ -286,9 +309,11 @@ function FadePresence({
   return (
     <div
       data-visible={visible ? 'true' : 'false'}
+      data-scroll-hidden={scrollHidden ? 'true' : 'false'}
+      data-shellui-chrome-actions-fab-slot=""
       className={cn(
-        chromeActionsFadeClass,
-        visible ? 'opacity-100' : 'pointer-events-none opacity-0',
+        // Opacity / translate transitions owned by index.css (match tab-bar hide).
+        visible ? null : 'pointer-events-none',
         className,
       )}
       style={style}
@@ -758,11 +783,14 @@ function TopActionBar({
   visible = true,
   /** When true, honor host `--shellui-inset-left/right` (main floating content). */
   useLayoutInsets = false,
+  /** Floating hide-on-scroll — slide/fade with the tab bar (main frame only). */
+  scrollHidden = false,
 }: {
   actions: FrameChromeActions;
   placement: 'overlay' | 'titlebar';
   visible?: boolean;
   useLayoutInsets?: boolean;
+  scrollHidden?: boolean;
 }) {
   const viewport = useViewport();
   const narrow = viewport === 'mobile' || viewport === 'tablet';
@@ -776,16 +804,19 @@ function TopActionBar({
   const titlebar = placement === 'titlebar';
   const inlinePad = isOverlay ? actionRowInlinePad(useLayoutInsets) : undefined;
   const setVariant = actions.variant;
+  const interactive = visible && !scrollHidden;
 
   return (
     <TooltipProvider delayDuration={250}>
       <div
         data-shellui-chrome-actions-top={placement}
         data-visible={visible ? 'true' : 'false'}
+        data-scroll-hidden={scrollHidden ? 'true' : 'false'}
         className={cn(
           'pointer-events-none',
-          chromeActionsFadeClass,
-          visible ? 'opacity-100' : 'opacity-0',
+          // Overlay: opacity/translate owned by index.css (scroll hide + presence).
+          !isOverlay && chromeActionsFadeClass,
+          !isOverlay && (visible ? 'opacity-100' : 'opacity-0'),
           isOverlay && 'absolute inset-x-0 top-0 z-[46]',
           titlebar && 'relative min-w-0 flex-1',
         )}
@@ -816,7 +847,7 @@ function TopActionBar({
           className={cn(
             'pointer-events-auto relative flex items-center gap-2',
             titlebar && 'min-w-0 flex-1 gap-1',
-            !visible && 'pointer-events-none',
+            !interactive && 'pointer-events-none',
           )}
           style={
             isOverlay
@@ -845,7 +876,7 @@ function TopActionBar({
                     : cn('mr-2', chromeActionIconControlClass),
                 )}
                 aria-label={back.label || 'Back'}
-                tabIndex={visible ? undefined : -1}
+                tabIndex={interactive ? undefined : -1}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (back.disabled) return;
@@ -893,11 +924,13 @@ function PrimaryFab({
   bottomOffset,
   visible = true,
   useLayoutInsets = false,
+  scrollHidden = false,
 }: {
   actions: FrameChromeActions;
   bottomOffset: number;
   visible?: boolean;
   useLayoutInsets?: boolean;
+  scrollHidden?: boolean;
 }) {
   const primary = actions.primary ?? null;
   const { item, visible: itemVisible } = useOptionalPresence(primary);
@@ -909,11 +942,13 @@ function PrimaryFab({
 
   const tip = item.label || item.icon || 'Primary action';
   const showTip = Boolean(item.icon) || !item.label;
+  const shown = visible && itemVisible && !scrollHidden;
 
   return (
     <TooltipProvider delayDuration={250}>
       <FadePresence
         visible={visible && itemVisible}
+        scrollHidden={scrollHidden}
         className="pointer-events-auto absolute z-[46]"
         style={{
           right,
@@ -933,7 +968,7 @@ function PrimaryFab({
             data-shellui-chrome-actions-hit=""
             className="size-10 shadow-sm"
             aria-label={tip}
-            tabIndex={visible && itemVisible ? undefined : -1}
+            tabIndex={shown ? undefined : -1}
             onClick={(e) => {
               e.stopPropagation();
               if (item.disabled) return;
@@ -968,11 +1003,14 @@ function FrameActionsOverlay({
   showTop,
   fabBottomOffset,
   visible,
+  scrollHidden = false,
 }: {
   actions: FrameChromeActions;
   showTop: boolean;
   fabBottomOffset: number;
   visible: boolean;
+  /** Floating phone/tablet: hide with nav on scroll. */
+  scrollHidden?: boolean;
 }) {
   const [{ rect, surface, portalParent, borderRadius }, setFrame] = useState(() =>
     resolveFrameSurface(actions.frameUuid),
@@ -1077,6 +1115,8 @@ function FrameActionsOverlay({
   // Corner FAB inside portaled surfaces (modal/drawer/window content).
   const overlayFabOffset =
     isOverlaySurface || isWindowSurface ? FLOATING_CHROME_MARGIN : fabBottomOffset;
+  // Overlays / windows / develop never follow floating tab-bar hide-on-scroll.
+  const hideWithNav = scrollHidden && surface === 'main';
 
   const chrome = (
     <>
@@ -1085,6 +1125,7 @@ function FrameActionsOverlay({
           actions={actions}
           placement="overlay"
           visible={visible}
+          scrollHidden={hideWithNav}
           useLayoutInsets={useLayoutInsets}
         />
       ) : null}
@@ -1092,6 +1133,7 @@ function FrameActionsOverlay({
         actions={actions}
         bottomOffset={overlayFabOffset}
         visible={visible}
+        scrollHidden={hideWithNav}
         useLayoutInsets={useLayoutInsets}
       />
     </>
@@ -1146,6 +1188,7 @@ export function ChromeActionsHost() {
   const { settings } = useSettings();
   const viewport = useViewport();
   const windowsLayout = settings.layout === 'windows';
+  const layoutChrome = usePublishedLayoutChrome();
 
   const fabBottomOffset = useMemo(() => {
     const safeBottom = 0; // CSS var applied in style; numeric pad for tab bar
@@ -1163,6 +1206,11 @@ export function ChromeActionsHost() {
     return FLOATING_CHROME_MARGIN;
   }, [settings.layout, viewport]);
 
+  // Same hide-on-scroll signal as FloatingTabBar (phone/tablet floating only).
+  const scrollHidden = Boolean(
+    layoutChrome && scrollHideApplies(layoutChrome, 'main') && layoutChrome.chromeVisible === false,
+  );
+
   if (presence.length === 0) return null;
 
   return (
@@ -1172,6 +1220,7 @@ export function ChromeActionsHost() {
           key={actions.frameUuid}
           actions={actions}
           visible={visible}
+          scrollHidden={scrollHidden}
           showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
           fabBottomOffset={windowsLayout ? FLOATING_CHROME_MARGIN : fabBottomOffset}
         />

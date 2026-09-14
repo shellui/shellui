@@ -9,9 +9,30 @@ import {
 
 let currentChrome: LayoutChrome | null = null;
 
+type LayoutChromeListener = () => void;
+const layoutChromeListeners = new Set<LayoutChromeListener>();
+
+function emitLayoutChrome(): void {
+  for (const listener of layoutChromeListeners) {
+    try {
+      listener();
+    } catch {
+      // Ignore subscriber errors.
+    }
+  }
+}
+
 /** Current layout-chrome snapshot (shell-side). Used when building settings for iframes. */
 export function getPublishedLayoutChrome(): LayoutChrome | null {
   return currentChrome;
+}
+
+/** Subscribe to published layout-chrome changes (e.g. floating hide-on-scroll). */
+export function subscribeLayoutChrome(listener: LayoutChromeListener): () => void {
+  layoutChromeListeners.add(listener);
+  return () => {
+    layoutChromeListeners.delete(listener);
+  };
 }
 
 /** Main layout content iframes only (not modal / drawer / picker overlays). */
@@ -104,6 +125,7 @@ function chromePayloadForOverlayFrame(
  */
 export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   currentChrome = chrome;
+  emitLayoutChrome();
   if (typeof window === 'undefined') return;
 
   const payload: LayoutChrome = chrome ?? CLEARED_CHROME;

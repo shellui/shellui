@@ -19,22 +19,6 @@ import { publishLayoutChrome } from './layoutChromeStore';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shellui:floating-sidebar:collapsed';
 /** Host CSS var: extra left pad on chrome actions when the expand chip is visible. */
 const ACTIONS_LEADING_EXTRA_VAR = '--shellui-chrome-actions-leading-extra';
-/** Scroll Y / bottom distance under which an edge counts as “at end” (no fade). */
-const SCROLL_EDGE_PX = 8;
-
-export type FloatingScrollEdges = {
-  atTop: boolean;
-  atBottom: boolean;
-};
-
-const INITIAL_SCROLL_EDGES: FloatingScrollEdges = { atTop: true, atBottom: true };
-
-function edgesFromMetrics(scrollY: number, distanceFromBottom?: number): FloatingScrollEdges {
-  const atTop = scrollY <= SCROLL_EDGE_PX;
-  const atBottom =
-    typeof distanceFromBottom === 'number' ? distanceFromBottom <= SCROLL_EDGE_PX : atTop;
-  return { atTop, atBottom };
-}
 
 function readSidebarCollapsed(): boolean {
   if (typeof window === 'undefined') return false;
@@ -97,7 +81,6 @@ function buildChrome(
 export function useFloatingChrome(viewport: LayoutChromeViewport) {
   const location = useLocation();
   const [chromeVisible, setChromeVisible] = useState(true);
-  const [scrollEdges, setScrollEdges] = useState<FloatingScrollEdges>(INITIAL_SCROLL_EDGES);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(readSidebarCollapsed);
   const scrollStateRef = useRef<ScrollChromeState>({ visible: true, lastY: 0 });
   const viewportRef = useRef(viewport);
@@ -127,11 +110,6 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
   const applyScrollMetrics = useCallback((scrollY: number, distanceFromBottom?: number) => {
     if (viewportRef.current === 'desktop') return;
 
-    const edges = edgesFromMetrics(scrollY, distanceFromBottom);
-    setScrollEdges((prev) =>
-      prev.atTop === edges.atTop && prev.atBottom === edges.atBottom ? prev : edges,
-    );
-
     const next = reduceScrollChromeVisibility(scrollStateRef.current, scrollY, {
       distanceFromBottom,
     });
@@ -142,7 +120,6 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
   // Reset hide-on-scroll when viewport tier or shell route changes.
   useEffect(() => {
     setChromeVisible(true);
-    setScrollEdges(INITIAL_SCROLL_EDGES);
     scrollStateRef.current = { visible: true, lastY: 0 };
     pushChrome(true, viewport, sidebarCollapsedRef.current);
     // Shell-owned pages: sample document scroller (iframes report via message).
@@ -183,11 +160,7 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
     const onScroll = (event: Event) => {
       const el = event.target;
       if (el instanceof Element) {
-        if (
-          el.closest(
-            '[data-shellui-floating-tabbar], [data-shellui-floating-sidebar], [data-shellui-floating-fade]',
-          )
-        ) {
+        if (el.closest('[data-shellui-floating-tabbar], [data-shellui-floating-sidebar]')) {
           return;
         }
       }
@@ -228,7 +201,6 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
     sidebarCollapsed: viewport === 'desktop' ? sidebarCollapsed : false,
     setSidebarCollapsed,
     toggleSidebarCollapsed,
-    scrollEdges,
     insets,
   };
 }

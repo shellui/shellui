@@ -251,47 +251,6 @@
   border-radius: min(var(--radius), 0.5rem);
 }
 
-/*
- * Floating layout edge fades: soft transparent dissolve (no backdrop blur).
- * Shown only when scroll is past that edge.
- */
-.shellui-floating-fade {
-  pointer-events: none;
-  position: absolute;
-  inset-inline: 0;
-  z-index: 40;
-  opacity: 0;
-  transition: opacity 220ms ease;
-  background: linear-gradient(
-    var(--shellui-floating-fade-dir, to bottom),
-    color-mix(in oklch, var(--background) 45%, transparent) 0%,
-    color-mix(in oklch, var(--background) 18%, transparent) 45%,
-    transparent 100%
-  );
-}
-
-.shellui-floating-fade[data-visible='true'] {
-  opacity: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .shellui-floating-fade {
-    transition: none;
-  }
-}
-
-.shellui-floating-fade-top {
-  top: 0;
-  height: 3rem; /* 48px */
-  --shellui-floating-fade-dir: to bottom;
-}
-
-.shellui-floating-fade-bottom {
-  bottom: 0;
-  height: 4.5rem; /* 72px */
-  --shellui-floating-fade-dir: to top;
-}
-
 /* Floating desktop sidebar collapse — transform/opacity only; respect reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   .shellui-floating-sidebar-panel .shellui-floating-glass,
@@ -342,6 +301,56 @@
   pointer-events: none;
   transition-duration: 160ms;
   transition-timing-function: ease-in;
+}
+
+/*
+ * Floating action chrome hide-on-scroll (phone/tablet) — same timings as the
+ * tab bar: slide the wrapper, fade opacity. Appear slower; dismiss faster.
+ * Presence (set/clear) uses data-visible; scroll hide uses data-scroll-hidden.
+ */
+[data-shellui-chrome-actions-top='overlay'],
+[data-shellui-chrome-actions-fab-slot] {
+  opacity: 1;
+  translate: 0 0;
+  transition-property: translate, opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-visible='false'],
+[data-shellui-chrome-actions-fab-slot][data-visible='false'],
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'],
+[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Presence-only dismiss stays snappy; scroll hide matches tab-bar dismiss. */
+[data-shellui-chrome-actions-top='overlay'][data-visible='false']:not([data-scroll-hidden='true']),
+[data-shellui-chrome-actions-fab-slot][data-visible='false']:not([data-scroll-hidden='true']) {
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'],
+[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'] {
+  translate: 0 -120%;
+}
+
+[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  translate: 0 120%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-shellui-chrome-actions-top='overlay'],
+  [data-shellui-chrome-actions-fab-slot] {
+    transition: none !important;
+  }
 }
 
 /*
