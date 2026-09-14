@@ -137,7 +137,7 @@ shellui.actions.set({
 shellui.actions.clear();
 ```
 
-See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and the local demo.
+See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop test buttons.
 
 ### Toast Notifications
 

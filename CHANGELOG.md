@@ -25,7 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
-- **Floating chrome actions (SDK):** `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. Shell renders them (floating glass / windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: ≤3 trailing visible (rest in `···`), ≤1 primary. Local demo: `pnpm --dir examples/chrome-actions start`. See [docs/features/chrome-actions.md](./docs/features/chrome-actions.md).
+- **Floating chrome actions (SDK):** `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. Shell renders them (floating glass / windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: ≤3 trailing visible (rest in `···`), ≤1 primary. Try via Settings → Develop → Chrome actions. See [docs/features/chrome-actions.md](./docs/features/chrome-actions.md).
 - **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Flutter Web (`flutter create --platforms=web --empty`). Companions: Next/Nuxt → `:3000`, SvelteKit → `:5173`, Flutter Web → `flutter run -d web-server` on `:8080`. Flutter is **Web only** (not iOS/Android) and uses `flutter pub get`.
 - **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
 - **App-bar inset layout:** app-bar twin with the same inset chrome tray and rounded content frame (`layout: "app-bar-inset"`).
@@ -38,7 +38,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 📚 Documentation
 
-- **Chrome actions:** SDK reference + feature guide; example under `examples/chrome-actions`.
+- **Chrome actions:** SDK reference + feature guide; Develop settings test buttons.
 
 ### 🐛 Bug Fixes
 

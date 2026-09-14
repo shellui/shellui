@@ -3,11 +3,13 @@ import { CHROME_ACTIONS_VISIBLE_TRAILING, shellui, type ChromeActionsPayload } f
 import { cn } from '../../lib/utils';
 import { useViewport } from '../../hooks/use-viewport';
 import { useSettings } from '../settings/hooks/useSettings';
-import { FLOATING_CHROME_MARGIN } from '../layouts/floating/computeFloatingInsets';
-import { floatingTabBarBottomPadPx } from '../layouts/floating/computeFloatingInsets';
-import { FLOATING_TAB_BAR_HEIGHT } from '../layouts/floating/computeFloatingInsets';
+import {
+  FLOATING_CHROME_MARGIN,
+  FLOATING_TAB_BAR_HEIGHT,
+  floatingTabBarBottomPadPx,
+} from '../layouts/floating/computeFloatingInsets';
 import { useChromeActionsSnapshot } from './ChromeActionsProvider';
-import type { FrameChromeActions } from './chromeActionsStore';
+import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
   CHROME_ACTIONS_FAB_GAP,
   CHROME_ACTIONS_FAB_SIZE,
@@ -22,6 +24,11 @@ import {
 } from './ChromeActionIcons';
 
 function fireAction(frameUuid: string, id: string): void {
+  // Develop buttons run in the shell window — trigger callbacks locally.
+  if (frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) {
+    shellui.callbackRegistry.triggerAction(id);
+    return;
+  }
   shellui.sendMessage({
     type: 'SHELLUI_ACTION',
     payload: { id },
@@ -29,7 +36,10 @@ function fireAction(frameUuid: string, id: string): void {
   });
 }
 
-function iframeRect(frameUuid: string): DOMRect | null {
+function frameRect(frameUuid: string): DOMRect | null {
+  if (frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) {
+    return new DOMRect(0, 0, window.innerWidth, window.innerHeight);
+  }
   for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
     if (uuid === frameUuid && iframe.isConnected) {
       return iframe.getBoundingClientRect();
@@ -105,6 +115,8 @@ function TopActionBar({
   const flags = actionChromeFlags(actions);
   if (!flags.hasTop) return null;
 
+  const back = actions.back;
+
   return (
     <div
       data-shellui-chrome-actions-top={placement}
@@ -122,20 +134,20 @@ function TopActionBar({
           : undefined
       }
     >
-      {actions.back ? (
+      {back ? (
         <button
           type="button"
           className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={actions.back.label || 'Back'}
+          aria-label={back.label || 'Back'}
           onClick={(e) => {
             e.stopPropagation();
-            fireAction(actions.frameUuid, actions.back!.id);
+            fireAction(actions.frameUuid, back.id);
           }}
         >
-          {actions.back.icon && actions.back.icon !== 'back' ? (
+          {back.icon && back.icon !== 'back' ? (
             <ChromeActionGlyph
-              icon={actions.back.icon}
-              label={actions.back.label}
+              icon={back.icon}
+              label={back.label}
             />
           ) : (
             <ChevronLeftIcon />
@@ -283,10 +295,10 @@ function FrameActionsOverlay({
   showTop: boolean;
   fabBottomOffset: number;
 }) {
-  const [rect, setRect] = useState<DOMRect | null>(() => iframeRect(actions.frameUuid));
+  const [rect, setRect] = useState<DOMRect | null>(() => frameRect(actions.frameUuid));
 
   const refresh = useCallback(() => {
-    setRect(iframeRect(actions.frameUuid));
+    setRect(frameRect(actions.frameUuid));
   }, [actions.frameUuid]);
 
   useEffect(() => {
@@ -359,7 +371,7 @@ export function ChromeActionsHost() {
         <FrameActionsOverlay
           key={actions.frameUuid}
           actions={actions}
-          showTop={!windowsLayout}
+          showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
           fabBottomOffset={
             windowsLayout ? FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_GAP : fabBottomOffset
           }

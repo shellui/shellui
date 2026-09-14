@@ -7,7 +7,6 @@ dist/
 .pnpm-store/
 shellui.config.*
 !packages/core/schemas/shellui.config.schema.json
-!examples/**/shellui.config.json
 shellui.config.ts
 shellui.config.json
 shellui.root.config.json

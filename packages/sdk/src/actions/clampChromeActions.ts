@@ -13,7 +13,7 @@ export type ClampChromeActionsResult = {
 };
 
 function normalizeTitle(title: ChromeActionsSpec['title']): string | undefined {
-  if (title == null) return undefined;
+  if (title === null || title === undefined) return undefined;
   if (typeof title === 'string') {
     const text = title.trim();
     return text.length > 0 ? text : undefined;

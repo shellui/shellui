@@ -63,18 +63,15 @@ Clicking a chrome control posts `SHELLUI_ACTION` with `{ id }` into **only** the
 
 `icon` may be a URL or a built-in name: `back`, `plus`, `more`. Provide `label` and/or `icon`.
 
-## Local demo
+## Try it locally
 
-From the monorepo (protocol / chrome verification):
+1. Run a Shellui app (`shellui start`).
+2. Open **Settings → Develop**.
+3. Use **Chrome actions** → Set / Update / Clear.
 
-```bash
-pnpm install
-pnpm --dir examples/chrome-actions start
-```
+Clicks show toasts. Narrow the viewport to exercise the `···` overflow menu.
 
-See [examples/chrome-actions/README.md](https://github.com/shellui/shellui/blob/develop/examples/chrome-actions/README.md).
-
-The primary clickable showcase will live in [shellui/playground](https://github.com/shellui/playground).
+The primary product showcase will live in [shellui/playground](https://github.com/shellui/playground).
 
 ## Out of scope (v2+)
 

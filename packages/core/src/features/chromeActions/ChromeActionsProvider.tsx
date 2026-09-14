@@ -12,6 +12,7 @@ import {
   getAllChromeActions,
   setChromeActionsForFrame,
   subscribeChromeActions,
+  SHELL_DEVELOP_CHROME_ACTIONS_FRAME,
 } from './chromeActionsStore';
 
 const logger = getLogger('shellcore');
@@ -19,8 +20,16 @@ const logger = getLogger('shellcore');
 function resolveFrameUuid(data: ShellUIMessage, event: MessageEvent): string | null {
   const fromUuid = data.from?.[0];
   if (fromUuid) return fromUuid;
-  const bySource = shellui.getUuidByIframe(event.source as Window);
-  return bySource ?? null;
+  const source = event.source;
+  if (source && typeof Window !== 'undefined' && source instanceof Window) {
+    const bySource = shellui.getUuidByIframe(source);
+    if (bySource) return bySource;
+  }
+  // Same-window posts (Settings → Develop) — no iframe uuid.
+  if (source === window || source === null) {
+    return SHELL_DEVELOP_CHROME_ACTIONS_FRAME;
+  }
+  return null;
 }
 
 /**
@@ -72,7 +81,8 @@ export function ChromeActionsProvider({ children }: { children: ReactNode }) {
       if (typeof identifier === 'string') {
         uuid = identifier;
       } else if (identifier instanceof HTMLIFrameElement) {
-        uuid = shellui.getUuidByIframe(identifier.contentWindow);
+        const win = identifier.contentWindow;
+        uuid = win ? shellui.getUuidByIframe(win) : undefined;
       }
       const result = original(identifier);
       if (uuid) {

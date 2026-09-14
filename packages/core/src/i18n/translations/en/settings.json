@@ -462,6 +462,35 @@
           "files": "Select files",
           "filesAndFolders": "Select files and folders"
         }
+      },
+      "chromeActions": {
+        "title": "Chrome actions",
+        "description": "Set / update / clear floating action chrome (back, title, trailing, primary FAB). Narrow the viewport to see trailing collapse into ···. Clicks show a toast.",
+        "buttons": {
+          "set": "Set actions",
+          "update": "Update actions",
+          "clear": "Clear actions"
+        },
+        "titles": {
+          "default": "Inbox",
+          "updated": "Inbox · updated"
+        },
+        "trailing": {
+          "edit": "Edit",
+          "rename": "Rename",
+          "share": "Share",
+          "filter": "Filter",
+          "archive": "Archive"
+        },
+        "primary": "Compose",
+        "toasts": {
+          "back": "Back clicked",
+          "edit": "Edit clicked",
+          "share": "Share clicked",
+          "filter": "Filter clicked",
+          "archive": "Archive clicked",
+          "primary": "Primary FAB clicked"
+        }
       }
     }
   }

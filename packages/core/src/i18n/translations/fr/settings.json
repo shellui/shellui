@@ -462,6 +462,35 @@
           "files": "Sélectionner des fichiers",
           "filesAndFolders": "Sélectionner fichiers et dossiers"
         }
+      },
+      "chromeActions": {
+        "title": "Actions chrome",
+        "description": "Définir / mettre à jour / effacer le chrome d’actions flottant (retour, titre, trailing, FAB). Réduisez la fenêtre pour voir le menu ···. Les clics affichent un toast.",
+        "buttons": {
+          "set": "Définir les actions",
+          "update": "Mettre à jour",
+          "clear": "Effacer"
+        },
+        "titles": {
+          "default": "Boîte de réception",
+          "updated": "Boîte · mise à jour"
+        },
+        "trailing": {
+          "edit": "Modifier",
+          "rename": "Renommer",
+          "share": "Partager",
+          "filter": "Filtrer",
+          "archive": "Archiver"
+        },
+        "primary": "Composer",
+        "toasts": {
+          "back": "Retour cliqué",
+          "edit": "Modifier cliqué",
+          "share": "Partager cliqué",
+          "filter": "Filtrer cliqué",
+          "archive": "Archiver cliqué",
+          "primary": "FAB principal cliqué"
+        }
       }
     }
   }

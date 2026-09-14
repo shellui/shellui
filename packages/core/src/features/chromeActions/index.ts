@@ -11,6 +11,7 @@ export {
   getAllChromeActions,
   setChromeActionsForFrame,
   subscribeChromeActions,
+  SHELL_DEVELOP_CHROME_ACTIONS_FRAME,
 } from './chromeActionsStore';
 export {
   actionChromeFlags,

@@ -1,7 +1,6 @@
 packages:
   - 'packages/*'
   - 'tools/*'
-  - 'examples/*'
 
 # pnpm-only settings (do not put in .npmrc — npm warns on unknown keys when using npx)
 nodeLinker: hoisted

@@ -1,5 +1,11 @@
 import type { ChromeActionsPayload } from '@shellui/sdk';
 
+/**
+ * Synthetic frame id for `shellui.actions.*` calls from the shell window itself
+ * (Settings → Develop test buttons). Not a real iframe.
+ */
+export const SHELL_DEVELOP_CHROME_ACTIONS_FRAME = '__shell_develop__';
+
 export type FrameChromeActions = ChromeActionsPayload & {
   /** Frame UUID that owns this set (from message `from[0]`). */
   frameUuid: string;
