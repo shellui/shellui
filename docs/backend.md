@@ -1,51 +1,47 @@
-# Backend
+---
+title: Connect a backend
+sidebar_label: Backend
+description: Choose identity-service, Supabase Auth, or no backend, then set the backend block in shellui.config.json.
+---
 
-After [Quick Start](/quickstart), choose how Shellui talks to an auth and API provider. This page compares options and documents the `backend` block in `shellui.config.json`. Continue with [Authentication](/features/authentication) to wire login and guarded routes.
+Point the shell at an auth API so `/login`, sessions, and guarded routes work. Shellui does not ship a user directory. You run [identity-service](https://github.com/shellui/identity-service), a [Supabase Auth](https://supabase.com/docs/guides/auth) project, or omit `backend` for a public shell. After this page, continue with [Authentication](/features/authentication).
 
-Shellui treats authentication and tenant-aware APIs as a **backend integration**. You choose a provider in `shellui.config.json`; the shell handles login UI, session storage, token refresh, and propagating the signed-in user to embedded apps through the SDK.
+## Providers
 
-Shellui does not ship a database or user directory. You run (or subscribe to) a backend that issues tokens and exposes auth settings. The shell connects to that backend over HTTP.
+| Provider | `backend.type` | When to use it |
+| --- | --- | --- |
+| Shellui identity-service | `shellui` | Self-hosted OAuth, company tenants, staff admin, JWT group and owner claims |
+| Supabase Auth | `supabase` | Existing Supabase project or local `supabase` CLI (GoTrue-compatible endpoints) |
+| None | omit `backend` | No sign-in. Auth APIs no-op. `requiresAuth` routes still redirect to `/login` without a session |
 
-## Supported providers today
+`BackendType` in `@shellui/core` is the list the current release accepts.
 
-| Provider                                               | `backend.type` | Typical use                                                                                                |
-| ------------------------------------------------------ | -------------- | ---------------------------------------------------------------------------------------------------------- |
-| Shellui identity service                               | `shellui`      | Self-hosted OAuth, multi-tenant companies, staff admin, JWT claims for groups and company ownership        |
-| [Supabase Auth](https://supabase.com/docs/guides/auth) | `supabase`     | Existing Supabase project, local Supabase CLI, or hosted Supabase with GoTrue-compatible endpoints         |
-| None                                                   | omit `backend` | No sign-in; auth APIs are no-ops and protected routes still redirect to `/login` without a working session |
+When `backend` is set, the shell:
 
-Additional backend types are planned. The `BackendType` union in `@shellui/core` is the source of truth for what the current release accepts.
+- Renders `/login` and `/login/callback`, and intersects config login methods with live backend settings (`GET /api/v1/settings` for identity-service, Supabase auth settings for Supabase)
+- Stores access and refresh tokens, refreshes before expiry, and exposes `useAuth()` in `@shellui/core`
+- Sends user fields, staff flags, groups, and the access token to trusted iframes through SDK settings
+- Optionally embeds a staff admin app when `adminPathname` and `adminUrl` are set (`type: "shellui"`). Extra sidebar links come from top-level `administration` - see [Administration](/features/administration)
 
-## What the shell uses the backend for
+Without `backend`, embedded apps do not receive auth settings, and login actions throw at runtime.
 
-When `backend` is set, Shellui:
+## identity-service
 
-- Renders `/login` and `/login/callback` and merges **config** login capabilities with **live** settings from the backend (`GET /api/v1/settings` for Shellui auth, Supabase auth settings for Supabase).
-- Persists access and refresh tokens in the browser, refreshes before expiry, and exposes `useAuth()` in `@shellui/core`.
-- Propagates user id, email, avatar, staff flag, groups, and access token to iframes via SDK settings (see [Authentication](/features/authentication) and [SDK](/sdk)).
-- Optionally embeds a staff **admin** app when `adminPathname` and `adminUrl` are configured (`backend.type: "shellui"`). Custom admin sidebar links come from top-level `administration` (see [Administration panel](/features/administration)).
-
-Without `backend`, embedded apps do not receive auth settings and login actions throw at runtime.
-
-## Minimal configuration
-
-### Shellui identity service
-
-Point the shell at your identity service base URL (no trailing slash). Set `companyId` for multi-tenant OAuth. Declare which login methods and OAuth providers the login page should offer; the backend still only enables providers it has credentials for.
+Set the API base URL with no trailing slash. Set `companyId` for multi-tenant OAuth. List methods and providers the login page may show; the backend still only enables providers it has credentials for.
 
 ```typescript
-import type { ShellUIConfig } from '@shellui/core';
+import type { ShellUIConfig } from "@shellui/core";
 
 const config: ShellUIConfig = {
   backend: {
-    type: 'shellui',
-    url: 'http://localhost:8000',
+    type: "shellui",
+    url: "http://localhost:8000",
     companyId: 1,
-    adminPathname: '/admin',
-    adminUrl: 'http://localhost:5174',
+    adminPathname: "/admin",
+    adminUrl: "http://localhost:5174",
     login: {
-      methods: ['oauth'],
-      oauthProviders: ['github', 'google', 'microsoft'],
+      methods: ["oauth"],
+      oauthProviders: ["github", "google", "microsoft"],
     },
   },
 };
@@ -53,61 +49,52 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-Run the identity service locally (see the `identity-service` package README in the monorepo). Register each OAuth provider app with a **single** callback URL on the identity host: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company **OAuth redirect allowlist** in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is always allowed for CLI login.
+Prefer the same fields in `shellui.config.json`. Register each OAuth app with a single identity callback: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company OAuth redirect allowlist in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is always allowed for `shellui login`.
 
-### Supabase
+## Supabase Auth
 
-Use your project URL and publishable (anon) key. Login methods can include OAuth, magic link, and Web3 depending on Supabase Auth configuration.
+Use the project URL and publishable (anon) key. Methods can include OAuth, magic link, and Web3 when those are enabled in the Supabase project.
 
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  backend: {
-    type: 'supabase',
-    url: 'https://YOUR_PROJECT.supabase.co',
-    publishableKey: 'sb_publishable_...',
-    login: {
-      methods: ['oauth', 'magic_link', 'web3'],
-      oauthProviders: ['github', 'google', 'apple', 'microsoft'],
-    },
-  },
-};
-
-export default config;
+```json
+{
+  "backend": {
+    "type": "supabase",
+    "url": "https://your_project.supabase.co",
+    "publishableKey": "your_publishable_key_here",
+    "login": {
+      "methods": ["oauth", "magic_link", "web3"],
+      "oauthProviders": ["github", "google", "apple", "microsoft"]
+    }
+  }
+}
 ```
 
-Local Supabase CLI commonly uses `url: 'http://localhost:54321'` and the publishable key from `supabase status`.
+Local Supabase CLI commonly uses `url: "http://localhost:54321"` and the publishable key from `supabase status`. User preferences sync into `user_metadata.shelluiPreferences`.
 
-## `backend` fields
+## backend fields
 
-| Field                  | Required      | Description                                                                                                                                                       |
-| ---------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `type`                 | yes           | `'shellui'` or `'supabase'`.                                                                                                                                      |
-| `url`                  | yes           | API base URL (no trailing slash).                                                                                                                                 |
-| `publishableKey`       | Supabase      | Public API key sent as `apikey` on auth requests.                                                                                                                 |
-| `companyId`            | Shellui OAuth | Tenant id sent on OAuth exchange and authorize flows.                                                                                                             |
-| `adminPathname`        | no            | Shell route path for the embedded admin panel (default staff entry from the user menu).                                                                           |
-| `adminUrl`             | no            | URL loaded inside the admin route (for example a Vite admin app).                                                                                                 |
-| `login.methods`        | no            | `password` \| `oauth` \| `magic_link` \| `web3` — controls which controls the login page may show after intersecting with backend settings.                       |
-| `login.oauthProviders` | no            | Provider ids (for example `github`, `google`) used for OAuth buttons and ordering.                                                                                |
-| `login.panelUrl`       | no            | Full-bleed iframe URL for the login page left panel (desktop). Takes precedence over `panelImage`. When neither is set, the muted panel shows `appIcon` top left. |
-| `login.panelImage`     | no            | Centered, ratio-preserving image path or URL for the login page left panel (e.g. `/login-panel.jpg` from `static/`).                                              |
+| Field | Required | Description |
+| --- | --- | --- |
+| `type` | yes | `"shellui"` or `"supabase"` |
+| `url` | yes | API base URL, no trailing slash |
+| `publishableKey` | Supabase | Public key sent as `apikey` on auth requests |
+| `companyId` | identity-service OAuth | Tenant id on authorize and code exchange |
+| `adminPathname` | no | Shell route for the admin iframe (account menu entry) |
+| `adminUrl` | no | URL loaded in that route |
+| `loginUrl` | no | Public origin of this shell for `shellui login` (not `adminUrl`) |
+| `login.methods` | no | `password` \| `oauth` \| `magic_link` \| `web3`. Intersected with backend settings |
+| `login.oauthProviders` | no | Provider ids for buttons and order (`github`, `google`, …) |
+| `login.panelUrl` | no | Full-bleed iframe for the desktop login left panel. Wins over `panelImage` |
+| `login.panelImage` | no | Centered image path or URL for that panel (for example `/login-panel.jpg` from `static/`) |
 
-TypeScript types live in `BackendConfig` and `BackendLoginConfig` in `@shellui/core`.
+Types: `BackendConfig` and `BackendLoginConfig` in `@shellui/core`. The stock login view does not render a password form even if `password` is listed.
 
-## Choosing a provider
+**identity-service** fits dedicated `/api/v1/*` auth, company tenants, staff admin, and JWT `user_metadata` for groups and `is_company_owner`. **Supabase** fits an existing GoTrue project. **No backend** fits a public shell; add `backend` when you need login, `requiresAuth`, or user settings in child apps.
 
-**Shellui identity service** fits when you want a dedicated auth API aligned with Shellui (company tenants, staff admin, JWT `user_metadata` for groups and `is_company_owner`, personal access tokens, and `/api/v1/*` routes). You operate the service or use a managed deployment.
+## Related pages
 
-**Supabase** fits when you already use Supabase for data and auth, or want GoTrue-compatible auth with minimal custom backend code. User preferences sync into `user_metadata.shelluiPreferences`.
-
-**No backend** is valid for public shells or prototypes without sign-in. Add `backend` when you need login, `requiresAuth` routes, or user settings in child apps.
-
-## Related guides
-
-- [Authentication](/features/authentication) — login routes, guarded navigation, session and SDK usage
-- [Administration panel](/features/administration) — staff admin iframe and custom sidebar navigation
-- [Navigation](/features/navigation) — `requiresAuth` and `hideWhenLoggedOut`
-- [CLI configuration](/cli) — `backend` in JSON/TypeScript config
-- [SDK](/sdk) — `shellui.login()` from iframes
+- [Authentication](/features/authentication) - routes, guards, session, SDK login
+- [Administration](/features/administration) - staff iframe and custom nav
+- [Navigation](/features/navigation) - `requiresAuth` and `hideWhenLoggedOut`
+- [CLI](/cli) - JSON, split files, and env substitution
+- [SDK](/sdk) - `shellui.login()` from iframes

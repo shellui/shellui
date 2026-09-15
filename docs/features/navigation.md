@@ -1,449 +1,155 @@
-# Navigation
+---
+title: Configure navigation
+sidebar_label: Navigation
+description: Define sidebar items and groups, hash-router URLs, auth visibility, and openIn modes in shellui.config.json.
+---
 
-Shellui provides a flexible navigation system that supports icons, groups, localization, and multiple display modes.
+Navigation is an array on `ShellUIConfig`. Each item loads an iframe URL (or a built-in shell route) at a unique `path`. Groups add section titles. The same items feed sidebar, app bar, floating tabs, and the windows start menu - visibility depends on [layout](/features/layouts).
 
-## Basic Navigation
-
-The simplest navigation configuration uses an array of navigation items:
+## Item fields
 
 ```typescript
-import type { ShellUIConfig } from '@shellui/core';
+import type { ShellUIConfig } from "@shellui/core";
 
 const config: ShellUIConfig = {
   navigation: [
     {
-      label: 'Home',
-      path: 'home',
-      url: 'http://localhost:4000/',
-      icon: '/icons/home.svg',
+      label: "Home",
+      path: "home",
+      url: "http://localhost:4000/",
+      icon: "/icons/home.svg",
     },
     {
-      label: 'About',
-      path: 'about',
-      url: 'https://example.com/about',
+      label: "About",
+      path: "about",
+      url: "https://example.com/about",
     },
   ],
 };
 ```
 
-### Navigation Item Properties
-
-Each navigation item supports the following properties:
-
-- **`label`** (string | LocalizedString, required): Display text for the navigation item
-- **`path`** (string, required): Unique path identifier used in the URL (e.g., `/home`)
-- **`url`** (string, required): URL to load when the navigation item is clicked
-- **`icon`** (string, optional): Path to an SVG icon file (e.g., `/icons/home.svg`)
-- **`hidden`** (boolean, optional): Hide item from sidebar and 404 links (route still exists)
-- **`hideWhenLoggedOut`** (boolean, optional): Hide item from navigation while signed out
-- **`requiresAuth`** (boolean, optional): Protect route access and redirect signed-out users to login
-- **`hiddenOnMobile`** (boolean, optional): Hide item from the mobile sidebar sheet
-- **`hiddenOnDesktop`** (boolean, optional): Hide item on desktop sidebar
-- **`openIn`** (`'default' | 'modal' | 'drawer' | 'external'`, optional): How to open the item
-- **`drawerPosition`** (`'top' | 'bottom' | 'left' | 'right'`, optional): Drawer side when `openIn: 'drawer'`
-- **`position`** (`'start' | 'end'`, optional): Place item in main nav or footer area
-- **`settings`** (string, optional): URL of a settings panel to display in **Settings > Applications**. See [Application Settings](/features/application-settings) for details.
-- **`useHashRouter`** (boolean, optional): When `true`, the app uses hash-based routing. If omitted, Shellui infers this from the `url` containing `/#/` (see [Hash URL navigation](#hash-url-navigation) below).
+- **`label`** (string | LocalizedString, required): display text
+- **`path`** (string, required): unique id used in the shell URL (for example `/home`)
+- **`url`** (string, required): iframe or route URL
+- **`icon`** (string, optional): SVG path such as `/icons/home.svg`
+- **`hidden`**: hide from sidebar and 404 links; the route still exists
+- **`hideWhenLoggedOut`**: hide while signed out
+- **`requiresAuth`**: redirect signed-out visitors to `/login?next=...`
+- **`requiresDevMode`**: only when Settings → Advanced → Developer features is on
+- **`requiresStaff`**: only staff (`isStaff`)
+- **`hiddenOnMobile` / `hiddenOnDesktop`**: hide from the mobile sheet or desktop sidebar (ignored if `hidden` is true)
+- **`openIn`**: `'default' | 'modal' | 'drawer' | 'external'`
+- **`drawerPosition`**: `'top' | 'bottom' | 'left' | 'right'` when `openIn: 'drawer'`
+- **`position`**: `'start'` (main) or `'end'` (footer / icon end of app bar)
+- **`settings`**: URL of a panel under Settings → Applications - see [Application settings](/features/application-settings)
+- **`useHashRouter`**: when `true`, treat as hash routing. If omitted, inferred from `url` containing `/#/`
+- **`safeForAuthToken`**: `false` never shares the session JWT with that iframe. Default is trusted (`undefined` / `true`)
 
 ## Hash URL navigation
 
-Shellui supports applications that use **hash-based routing** (e.g. React Router HashRouter, Vue Router in hash mode). For this to work, both the navigation configuration and any URLs opened in the shell must use the **`/#/`** segment in the URL.
+Apps that use hash routing (React Router `HashRouter`, Vue hash mode) need the literal sequence `/#/` in the item `url` and in links the shell opens.
 
-### How Shellui detects hash routing
-
-- **In configuration:** A navigation item is treated as a hash-router app if its `url` **contains the literal sequence `/#/`** (slash–hash–slash). For example: `http://localhost:5173/#/` or `http://localhost:5173/#/themes`. You can also set `useHashRouter: true` explicitly.
-- **When opening a link:** When the user opens a URL (e.g. from the address bar or a link), Shellui only applies hash-based navigation logic if the URL **contains `/#/`**. For example, `http://localhost:5173/#/themes/foo` will be parsed: the part after `/#/` becomes the path used inside the shell, and the shell matches the base URL (before `#`) to a navigation item that is configured for hash routing.
-
-If the URL does not contain `/#/`, Shellui treats it as normal path-based routing (pathname + search only).
-
-### Example
+- **Config:** `http://localhost:5173/#/` or `http://localhost:5173/#/themes` is treated as a hash-router app. You can also set `useHashRouter: true`.
+- **Incoming URLs:** the shell applies hash logic only if the URL contains `/#/`. The part after `/#/` becomes the path inside the iframe. The shell's own URL stays path-based.
 
 ```typescript
-const config: ShellUIConfig = {
-  navigation: [
-    {
-      label: 'Themes',
-      path: 'themes',
-      url: 'http://localhost:5173/#/themes', // Contains /#/ → hash routing
-    },
-    {
-      label: 'Home',
-      path: 'home',
-      url: 'http://localhost:5173/#/', // Root of hash app
-    },
-  ],
-};
+navigation: [
+  {
+    label: "Themes",
+    path: "themes",
+    url: "http://localhost:5173/#/themes",
+  },
+  {
+    label: "Home",
+    path: "home",
+    url: "http://localhost:5173/#/",
+  },
+];
 ```
 
-With this setup, opening `http://localhost:5173/#/themes/foo` in the shell will navigate to the "Themes" app and pass the subpath `foo` to the iframe. The shell’s own URL remains path-based (no hash), so navigation stays consistent whether the embedded app uses hash or path routing.
+Opening `http://localhost:5173/#/themes/foo` matches the Themes item and passes subpath `foo` to the iframe. URLs without `/#/` use pathname + search only.
 
-## Navigation Groups
-
-Organize navigation items into groups with titles:
+## Groups
 
 ```typescript
-const config: ShellUIConfig = {
-  navigation: [
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: 'http://localhost:4000/',
-    },
-    {
-      title: 'System',
-      items: [
-        {
-          label: 'Settings',
-          path: 'settings',
-          url: 'http://localhost:4000/settings',
-          icon: '/icons/settings.svg',
-        },
-        {
-          label: 'Profile',
-          path: 'profile',
-          url: 'http://localhost:4000/profile',
-        },
-      ],
-    },
-  ],
-};
-```
-
-Groups can have a `title` (string or localized) and an array of `items`. The group title appears as a section header in the sidebar.
-
-## Localized Labels
-
-Navigation labels and group titles can be localized for multi-language support:
-
-```typescript
-const config: ShellUIConfig = {
-  language: ['en', 'fr'], // Enable English and French
-  navigation: [
-    {
-      // Simple string (backward compatible)
-      label: 'Home',
-      path: 'home',
-      url: '/',
-    },
-    {
-      // Localized label object
-      label: {
-        en: 'Documentation',
-        fr: 'Documentation',
+navigation: [
+  {
+    label: "Dashboard",
+    path: "dashboard",
+    url: "http://localhost:4000/",
+  },
+  {
+    title: "System",
+    items: [
+      {
+        label: "Settings",
+        path: "settings",
+        url: "http://localhost:4000/settings",
+        icon: "/icons/settings.svg",
       },
-      path: 'docs',
-      url: '/docs',
-    },
-    {
-      // Group with localized title
-      title: {
-        en: 'System',
-        fr: 'Système',
-      },
-      items: [
-        {
-          label: {
-            en: 'Settings',
-            fr: 'Paramètres',
-          },
-          path: 'settings',
-          url: '/settings',
-        },
-      ],
-    },
-  ],
-};
+    ],
+  },
+];
 ```
 
-The label automatically updates based on the user's selected language. See the [Internationalization guide](/features/internationalization) for more details.
+`title` may be a string or localized object. Groups also accept `position: 'end'`.
 
-## Visibility Control
+## Localized labels
 
-Control when navigation items are visible:
-
-### Hidden Items
-
-Hide items from the sidebar and 404 page (route remains valid):
+When `language` includes more than one code, `label` and group `title` can be objects. See [Internationalization](/features/internationalization).
 
 ```typescript
-{
-  label: 'Admin Panel',
-  path: 'admin',
-  url: '/admin',
-  hidden: true, // Hidden from sidebar, but route still works
+label: {
+  en: "Documentation",
+  fr: "Documentation",
 }
 ```
 
-### Responsive Visibility
+A plain string stays the same in every language.
 
-Hide items on specific screen sizes:
+## Visibility and protection
 
-```typescript
+```json
 {
-  label: 'Desktop Only',
-  path: 'desktop',
-  url: '/desktop',
-  hiddenOnMobile: true, // Hidden on mobile (sidebar sheet)
-}
-
-{
-  label: 'Mobile Only',
-  path: 'mobile',
-  url: '/mobile',
-  hiddenOnDesktop: true, // Hidden on desktop (sidebar)
+  "label": "Admin Panel",
+  "path": "admin",
+  "url": "/admin",
+  "hidden": true
 }
 ```
 
-**Note:** `hiddenOnMobile` and `hiddenOnDesktop` have no effect if `hidden` is `true`.
-
-### Auth-Aware Visibility
-
-Hide items only for signed-out users:
-
-```typescript
+```json
 {
-  label: 'Admin',
-  path: 'admin',
-  url: 'https://app.example.com/admin',
-  hideWhenLoggedOut: true,
+  "label": "Desktop Only",
+  "path": "desktop",
+  "url": "/desktop",
+  "hiddenOnMobile": true
 }
 ```
 
-Use this when the route should stay available, but you only want logged-in users to see the navigation entry.
-
-## Route Protection With Login Redirect
-
-Protect route access while preserving deep links:
-
-```typescript
+```json
 {
-  label: 'Billing',
-  path: 'billing',
-  url: 'https://app.example.com/billing',
-  requiresAuth: true,
+  "label": "Billing",
+  "path": "billing",
+  "url": "https://app.example.com/billing",
+  "hideWhenLoggedOut": true,
+  "requiresAuth": true
 }
 ```
 
-If a signed-out user opens `/billing`, Shellui redirects to `/login?next=%2Fbilling`. After login succeeds, the app navigates back to `next`.
+If a signed-out visitor opens `/billing` with `requiresAuth`, the shell redirects to `/login?next=%2Fbilling` and returns after login. Logout from a `requiresAuth` route goes to `/` first. Details: [Authentication](/features/authentication).
 
-### Combine Visibility + Protection
+## Opening modes
 
-```typescript
-{
-  label: 'Settings',
-  path: 'settings',
-  url: '/__settings',
-  hideWhenLoggedOut: true,
-  requiresAuth: true,
-}
-```
+- **`default`**: main content iframe
+- **`modal`**: overlay (desktop dialog / mobile sheet) - see [Modals and drawers](/features/modals-drawers)
+- **`drawer`**: edge panel; `drawerPosition` defaults to `'right'`
+- **`external`**: new tab (`target="_blank"`)
 
-### Logout on Protected Routes
+## Sidebar position
 
-When the user logs out from a `requiresAuth` route, Shellui first navigates to `/` so they are not immediately redirected back to login.
+`position: 'start'` (default) is the main list. `position: 'end'` is the sidebar footer (or icon-only end of the app bar). Apply `position` on items or on groups.
 
-## Opening Modes
+## Related pages
 
-Control how navigation items open when clicked:
-
-### Default Mode
-
-Opens in the main content area (default behavior):
-
-```typescript
-{
-  label: 'Home',
-  path: 'home',
-  url: '/',
-  openIn: 'default', // Optional, this is the default
-}
-```
-
-### Modal Mode
-
-Opens the URL in a modal overlay:
-
-```typescript
-{
-  label: 'Settings',
-  path: 'settings',
-  url: '/settings',
-  openIn: 'modal',
-}
-```
-
-The modal appears centered on the screen with a backdrop. Users can close it by clicking outside or pressing Escape.
-
-### Drawer Mode
-
-Opens the URL in a side drawer panel:
-
-```typescript
-{
-  label: 'Sidebar',
-  path: 'sidebar',
-  url: '/sidebar',
-  openIn: 'drawer',
-  drawerPosition: 'right', // Optional, defaults to 'right'
-}
-```
-
-**Drawer Positions:**
-
-- `'top'` - Slides down from top
-- `'bottom'` - Slides up from bottom
-- `'left'` - Slides in from left
-- `'right'` - Slides in from right (default)
-
-### External Mode
-
-Opens the URL in a new browser tab:
-
-```typescript
-{
-  label: 'External Site',
-  path: 'external',
-  url: 'https://example.com',
-  openIn: 'external',
-}
-```
-
-This is equivalent to `target="_blank"` and opens the link in a new tab.
-
-## Sidebar Positioning
-
-Control where items appear in the sidebar:
-
-```typescript
-const config: ShellUIConfig = {
-  navigation: [
-    {
-      label: 'Top Item',
-      path: 'top',
-      url: '/',
-      position: 'start', // Default, appears in main sidebar area
-    },
-    {
-      label: 'Bottom Item',
-      path: 'bottom',
-      url: '/bottom',
-      position: 'end', // Appears in sidebar footer
-    },
-    {
-      title: 'Footer Group',
-      position: 'end', // Group appears in sidebar footer
-      items: [
-        {
-          label: 'Footer Item',
-          path: 'footer',
-          url: '/footer',
-        },
-      ],
-    },
-  ],
-};
-```
-
-- **`'start'`** (default): Items appear in the main sidebar area
-- **`'end'`**: Items appear in the sidebar footer (useful for settings, logout, etc.)
-
-## Complete Example
-
-Here's a complete navigation configuration showcasing all features:
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  language: ['en', 'fr'],
-  navigation: [
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: 'http://localhost:4000/',
-      icon: '/icons/dashboard.svg',
-    },
-    {
-      label: {
-        en: 'Documentation',
-        fr: 'Documentation',
-      },
-      path: 'docs',
-      url: 'https://docs.example.com',
-      icon: '/icons/book.svg',
-      requiresAuth: true, // visible in nav but route is protected
-    },
-    {
-      label: 'External Link',
-      path: 'external',
-      url: 'https://example.com',
-      openIn: 'external',
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/settings',
-      openIn: 'modal',
-      position: 'end',
-      hideWhenLoggedOut: true, // hidden while signed out
-      requiresAuth: true, // route protection on direct URL access
-    },
-    {
-      label: 'Side Panel',
-      path: 'panel',
-      url: '/panel',
-      openIn: 'drawer',
-      drawerPosition: 'right',
-    },
-    {
-      title: {
-        en: 'System',
-        fr: 'Système',
-      },
-      items: [
-        {
-          label: {
-            en: 'Settings',
-            fr: 'Paramètres',
-          },
-          path: 'settings',
-          url: '/settings',
-          icon: '/icons/settings.svg',
-        },
-        {
-          label: 'Hidden Route',
-          path: 'hidden',
-          url: '/hidden',
-          hidden: true, // Not shown in sidebar
-        },
-      ],
-    },
-    {
-      label: 'Mobile Only',
-      path: 'mobile',
-      url: '/mobile',
-      hiddenOnDesktop: true,
-    },
-  ],
-};
-
-export default config;
-```
-
-## Best Practices
-
-1. **Use icons**: Add SVG icons to make navigation more visual and easier to scan
-2. **Group related items**: Use navigation groups to organize related functionality
-3. **Localize labels**: Use localized strings when building multi-language apps
-4. **Use appropriate open modes**:
-   - Use `modal` for settings or quick actions
-   - Use `drawer` for secondary content or sidebars
-   - Use `external` for links to other sites
-5. **Position important items**: Place frequently used items at the top (`position: 'start'`) and system items at the bottom (`position: 'end'`)
-
-## Related Guides
-
-- [Authentication](/features/authentication) — Login, sessions, and `requiresAuth` behavior
-- [Layouts](/features/layouts) - Learn about different layout modes
-- [Internationalization](/features/internationalization) - Multi-language support
-- [Modals & Drawers](/features/modals-drawers) - Detailed guide on overlay modes
+- [Authentication](/features/authentication), [Layouts](/features/layouts), [Internationalization](/features/internationalization), [Modals and drawers](/features/modals-drawers)

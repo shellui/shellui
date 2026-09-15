@@ -1,161 +1,20 @@
-# Internationalization
+---
+title: Localize the shell
+sidebar_label: Internationalization
+description: Enable en and fr, localize navigation labels, and let users pick a language in Settings.
+---
 
-Shellui supports multi-language applications with localized navigation labels, UI text, and user preferences.
+Set `language` to one code or an array. Built-in UI strings exist for `'en'` (English) and `'fr'` (French). If `language` is omitted, the shell defaults to `'en'`.
 
-## Enabling Languages
-
-Enable languages in your configuration by specifying language codes:
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  language: 'en', // Single language
-  // or
-  language: ['en', 'fr'], // Multiple languages
-  // ... rest of config
-};
+```json
+{
+  "language": ["en", "fr"]
+}
 ```
 
-**Supported Languages:**
+A single string (`"en"`) enables only that language. Users change the active language in **Settings → Language**. The choice is stored in user settings and drives navigation labels (when localized), chrome copy, Settings, and error messages.
 
-- `'en'` - English
-- `'fr'` - French
-
-## Localized Navigation Labels
-
-Navigation labels can be localized using an object with language keys:
-
-```typescript
-const config: ShellUIConfig = {
-  language: ['en', 'fr'],
-  navigation: [
-    {
-      // Simple string (backward compatible)
-      label: 'Home',
-      path: 'home',
-      url: '/',
-    },
-    {
-      // Localized label object
-      label: {
-        en: 'Documentation',
-        fr: 'Documentation',
-      },
-      path: 'docs',
-      url: '/docs',
-    },
-    {
-      label: {
-        en: 'Settings',
-        fr: 'Paramètres',
-      },
-      path: 'settings',
-      url: '/settings',
-    },
-  ],
-};
-```
-
-The label automatically displays in the user's selected language.
-
-## Localized Group Titles
-
-Navigation group titles can also be localized:
-
-```typescript
-const config: ShellUIConfig = {
-  language: ['en', 'fr'],
-  navigation: [
-    {
-      title: {
-        en: 'System',
-        fr: 'Système',
-      },
-      items: [
-        {
-          label: {
-            en: 'Settings',
-            fr: 'Paramètres',
-          },
-          path: 'settings',
-          url: '/settings',
-        },
-      ],
-    },
-  ],
-};
-```
-
-## Mixed Localization
-
-You can mix localized and non-localized labels:
-
-```typescript
-const config: ShellUIConfig = {
-  language: ['en', 'fr'],
-  navigation: [
-    {
-      // Non-localized (always shows "Home")
-      label: 'Home',
-      path: 'home',
-      url: '/',
-    },
-    {
-      // Localized (shows "Documentation" or "Documentation" based on language)
-      label: {
-        en: 'Documentation',
-        fr: 'Documentation',
-      },
-      path: 'docs',
-      url: '/docs',
-    },
-  ],
-};
-```
-
-## Language Configuration
-
-### Single Language
-
-Enable only one language:
-
-```typescript
-const config: ShellUIConfig = {
-  language: 'en', // Only English
-  // ... rest of config
-};
-```
-
-### Multiple Languages
-
-Enable multiple languages:
-
-```typescript
-const config: ShellUIConfig = {
-  language: ['en', 'fr'], // English and French
-  // ... rest of config
-};
-```
-
-### Language Detection
-
-If `language` is not specified, Shellui defaults to English (`'en'`).
-
-## User Language Selection
-
-Users can change their language preference in Settings > Language. The selection is stored in user settings and persists across sessions.
-
-The language preference affects:
-
-- Navigation labels (if localized)
-- UI text (buttons, labels, etc.)
-- Settings interface
-- Error messages
-
-## Localized Strings in Configuration
-
-Any string property that supports `LocalizedString` can be localized:
+## LocalizedString
 
 ```typescript
 type LocalizedString =
@@ -163,101 +22,55 @@ type LocalizedString =
   | {
       en: string;
       fr: string;
-      [key: string]: string; // Other language codes
+      [key: string]: string;
     };
 ```
 
-**Supported Properties:**
-
-- Navigation item `label`
-- Navigation group `title`
-- Cookie consent descriptions (see [Cookie Consent](/features/cookie-consent))
-
-## Complete Example
-
-Here's a complete example with localized navigation:
+Supported on navigation item `label`, group `title`, administration titles/labels, and cookie-consent `description`. A plain string is shown in every language.
 
 ```typescript
-import type { ShellUIConfig } from '@shellui/core';
+import type { ShellUIConfig } from "@shellui/core";
 
 const config: ShellUIConfig = {
-  language: ['en', 'fr'],
-  title: 'My App',
+  language: ["en", "fr"],
   navigation: [
     {
-      label: {
-        en: 'Dashboard',
-        fr: 'Tableau de bord',
-      },
-      path: 'dashboard',
-      url: '/',
-      icon: '/icons/dashboard.svg',
+      label: "Home",
+      path: "home",
+      url: "/",
     },
     {
       label: {
-        en: 'Documentation',
-        fr: 'Documentation',
+        en: "Settings",
+        fr: "Paramètres",
       },
-      path: 'docs',
-      url: '/docs',
-      icon: '/icons/book.svg',
+      path: "settings",
+      url: "/settings",
     },
     {
       title: {
-        en: 'System',
-        fr: 'Système',
+        en: "System",
+        fr: "Système",
       },
       items: [
         {
           label: {
-            en: 'Settings',
-            fr: 'Paramètres',
+            en: "Profile",
+            fr: "Profil",
           },
-          path: 'settings',
-          url: '/settings',
-          icon: '/icons/settings.svg',
-        },
-        {
-          label: {
-            en: 'Profile',
-            fr: 'Profil',
-          },
-          path: 'profile',
-          url: '/profile',
+          path: "profile",
+          url: "/profile",
         },
       ],
     },
   ],
 };
-
-export default config;
 ```
 
-## Language Switching
+Iframe apps should listen for SDK `language` / `SHELLUI_SETTINGS` and update their own copy. Do not ship a second locale picker unless that app **is** the language settings surface. The shell already owns locale.
 
-Users can switch languages through:
+Provide a translation for every enabled code when you use an object. Extra keys on `LocalizedString` are allowed in the type; chrome translations beyond `en` / `fr` are not shipped in core today. Layouts are LTR.
 
-1. **Settings UI**: Settings > Language > Select language
-2. **Programmatic**: The language preference is stored in settings and can be accessed via the SDK
+## Related pages
 
-## Best Practices
-
-1. **Always provide fallbacks**: Use simple strings for labels that don't need translation
-2. **Consistent keys**: Use consistent language keys across your configuration
-3. **Complete translations**: Provide translations for all enabled languages
-4. **Test both languages**: Test your application in all enabled languages
-5. **Consider RTL**: While Shellui currently supports LTR languages, consider future RTL support when designing layouts
-
-## Language Codes
-
-Use standard ISO 639-1 language codes:
-
-- `'en'` - English
-- `'fr'` - French
-- Additional languages can be added by extending the language object
-
-## Related Guides
-
-- [Navigation](/features/navigation) - Learn about localized navigation labels
-- [Cookie Consent](/features/cookie-consent) - Localized cookie descriptions
-- [Themes](/features/themes) - Combine internationalization with custom themes
+- [Navigation](/features/navigation), [Cookie consent](/features/cookie-consent), [SDK](/sdk)

@@ -1,52 +1,48 @@
-# Installation
+---
+title: Install the CLI
+sidebar_label: Installation
+description: Install @shellui/cli globally or as a project dependency, then confirm the shellui command.
+---
 
-Install Shellui to start building your microfrontend application.
+Install `@shellui/cli` so you can create a project, run the development server, and build a production shell. Node.js 18.0.0 or higher is required. npm ships with Node.js.
 
-## Prerequisites
+## Install globally
 
-- **Node.js** version 18.0.0 or higher
-- **npm** (comes with Node.js)
-
-## Install Shellui CLI
-
-The Shellui CLI is the main tool you'll use to create, develop, and build Shellui applications.
-
-### Global Installation (Recommended)
-
-Install the CLI globally to use it from anywhere on your system:
+Use a global install when you want `shellui` on your PATH from any directory:
 
 ```bash
 npm install -g @shellui/cli
 ```
 
-After installation, you can use the `shellui` command from any directory:
+Then run commands directly:
 
 ```bash
 shellui start
-shellui dev            # alias for start
-shellui start --host   # listen on 0.0.0.0 to access from other devices
-shellui dev --app      # start Tauri desktop development
+shellui start --host
+shellui dev --app
 shellui build
-shellui build --app    # build desktop app (.app on macOS)
-npx shellui build --app --bundles app,dmg   # + macOS DMG installer
+shellui build --app
+npx shellui build --app --bundles app,dmg
 ```
 
-### Local Installation
+`dev` is an alias for `start`. `--host` listens on `0.0.0.0`. `--app` starts or builds the [desktop wrapper](/tauri).
 
-Alternatively, install the CLI as a dev dependency in your project:
+## Install in a project
+
+Add the CLI as a dev dependency when the version should stay with the repo:
 
 ```bash
 npm install --save-dev @shellui/cli
 ```
 
-Then use it via `npx`:
+Call it with `npx`:
 
 ```bash
 npx shellui start
 npx shellui build
 ```
 
-Or add scripts to your `package.json`:
+Or add scripts to `package.json`:
 
 ```json
 {
@@ -60,29 +56,21 @@ Or add scripts to your `package.json`:
 }
 ```
 
-## Verify Installation
+## Confirm the install
 
-Check that Shellui CLI is installed correctly:
+Print the installed version:
 
 ```bash
 shellui --version
 ```
 
-You should see the version number printed.
+If the command is missing, use `npx shellui --version` from a project that lists `@shellui/cli`, or reinstall globally.
 
-## Next Steps
+## Related packages
 
-Once installed, you're ready to:
+The CLI pulls in `@shellui/core` for the React shell. Install these yourself only when you import them from application code:
 
-1. **[Configure your Shellui app](/quickstart#configuration)** - Create a configuration file
-2. **[Start developing](/quickstart#running-the-development-server)** - Run the development server
-3. **[Build for production](/cli#build)** - Build your application
+- `@shellui/core` - config types, `useAuth`, and the runtime the CLI serves
+- `@shellui/sdk` - iframe APIs (`init`, toasts, overlays, storage)
 
-## Additional Packages
-
-The CLI automatically handles the core dependencies. If you need to integrate Shellui programmatically, you can install:
-
-- `@shellui/core` - Core React application runtime
-- `@shellui/sdk` - JavaScript SDK for Shellui integration
-
-These are typically not needed for basic usage, as the CLI manages them automatically.
+Next: [create a project](/quickstart).
