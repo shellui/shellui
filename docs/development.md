@@ -1,43 +1,35 @@
-# Development Guide
+---
+title: Develop this monorepo
+sidebar_label: Development
+description: 'Install pnpm, build @shellui/cli, @shellui/core, and @shellui/sdk, and run tests in the Shellui repository.'
+---
 
-Guide for developing Shellui packages.
+This repository is the CLI, core, and SDK workspace. Use it when you change Shellui itself. App authors should follow [Create a project](/quickstart) with the published CLI.
 
-## Project Structure
-
-```
+```text
 .
 ├── packages/
-│   ├── cli/          # CLI package
-│   ├── core/          # Core React app
-│   └── sdk/           # SDK package
-└── package.json       # Root workspace configuration
+│   ├── cli/
+│   ├── core/
+│   └── sdk/
+├── docs/
+├── tools/
+└── package.json
 ```
 
-AI skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When changing public CLI, SDK, or config behavior, update the matching skill there and keep it small (see [ADR 0001](/adr/ai-skill)).
+Agent skills live in the sibling repo [shellui/skills](https://github.com/shellui/skills) (`../skills`). When you change public CLI, SDK, or config behavior, update the matching skill there and keep it small - see [ADR 0001](/adr/ai-skill).
 
-## Development Workflow
+## Workflow
 
-### Prerequisites
-
-This project uses [pnpm](https://pnpm.io/) as its package manager. Install it globally if you haven't already:
+This project uses [pnpm](https://pnpm.io/) 9 (`packageManager` in root `package.json`).
 
 ```bash
 npm install -g pnpm
-```
-
-### Install dependencies
-
-```bash
 pnpm install
-```
-
-### Build all packages
-
-```bash
 pnpm run build
 ```
 
-### Build individual packages
+Individual packages:
 
 ```bash
 pnpm run build:cli
@@ -45,23 +37,12 @@ pnpm run build:core
 pnpm run build:sdk
 ```
 
-### Run tests
+Tests:
 
 ```bash
 pnpm test
 ```
 
-## Workspace Scripts
+`@shellui/cli` depends on `@shellui/core`. `@shellui/core` depends on `@shellui/sdk`. Workspace links mean a core change is visible to the CLI without publishing.
 
-- `pnpm run build` - Build all packages
-- `pnpm run build:cli` - Build CLI package
-- `pnpm run build:core` - Build Core package
-- `pnpm run build:sdk` - Build SDK package
-- `pnpm run clean` - Clean all node_modules
-
-## Workspace Dependencies
-
-- `@shellui/cli` depends on `@shellui/core`
-- `@shellui/core` depends on `@shellui/sdk`
-
-These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` during development.
+Useful root scripts: `pnpm start` / `pnpm run serve` (CLI `start`), `pnpm run docs:start`, `pnpm run tauri:dev`. See the root README for the full list. Format and lint: `pnpm run format`, `pnpm run lint`.

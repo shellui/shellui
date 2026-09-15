@@ -1,60 +1,38 @@
-# Quick Start Guide
+---
+title: Create a project
+sidebar_label: Create a Project
+description: 'Run shellui init, start the development server, and build a production shell with an optional colocated iframe app.'
+---
 
-Get up and running with Shellui in minutes. This guide will walk you through creating your first Shellui application.
+Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation).
 
-## Prerequisites
+## Scaffold with shellui init
 
-- Node.js 18.0.0 or higher
-- Shellui CLI installed ([Installation Guide](/installation))
-
-## Step 1: Create Your Project
-
-Create a new directory for your Shellui application:
+From an empty directory (or a folder you want the CLI to fill):
 
 ```bash
 mkdir my-shellui-app
 cd my-shellui-app
-```
-
-Initialize a Node.js project (optional, but recommended):
-
-```bash
-npm init -y
-```
-
-## Step 2: Install Shellui CLI
-
-Install the Shellui CLI as a dev dependency:
-
-```bash
-npm install --save-dev @shellui/cli
-```
-
-Or install globally:
-
-```bash
-npm install -g @shellui/cli
-```
-
-## Step 3: Create Configuration File
-
-Create a configuration file in your project root. You can generate one with the CLI or create it manually.
-
-### Option A: Generate with shellui init (recommended)
-
-From your project directory, run:
-
-```bash
 shellui init
 ```
 
-This creates a `shellui.config.json` with sensible defaults (port, title, layout, and sample navigation including Home and Settings), plus a `$schema` reference for editor autocomplete. To overwrite an existing config, use `shellui init --force`.
+The wizard asks for a framework and a backend. Shortcuts skip the framework prompt:
 
-If you still have a TypeScript config from an older project, run `shellui config migrate` to convert it.
+```bash
+shellui init react
+shellui init empty
+shellui init --framework next --backend none
+```
 
-Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/icons/home.svg`, `static/icons/settings.svg`) to customize assets, then skip to [Step 4: Start the Development Server](#step-4-start-the-development-server).
+`init` writes `shellui.config.json` (with `$schema` for editor autocomplete), placeholder files under `static/`, and - for JS frameworks - a companion app plus `dev.run` / `dev.url` so `shellui start` launches both. Overwrite an existing config with `shellui init --force`. Skip `npm`/`pnpm` install after a JS scaffold with `--no-install`.
 
-### Option B: Create shellui.config.json manually
+Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`, `flutter`. Flutter is **Web only** and needs the Flutter SDK on PATH. See [CLI init](/cli#shellui-init).
+
+If you still have a TypeScript config from an older project, convert it with `shellui config migrate`.
+
+### Write the config by hand
+
+Prefer `shellui init`. To start from JSON only:
 
 ```json
 {
@@ -71,117 +49,55 @@ Add a `static/` folder with `favicon.svg`, `logo.svg`, and icons (e.g. `static/i
       "path": "home",
       "url": "http://localhost:4000/",
       "icon": "/icons/home.svg"
-    },
-    {
-      "label": "About",
-      "path": "about",
-      "url": "https://example.com/about",
-      "icon": "/icons/info.svg"
     }
   ]
 }
 ```
 
-### Configuration Options
+`init` defaults the shell to port **4000**. If `port` is omitted, `shellui start` falls back to **3000**. String values may use `${VAR}` or `${VAR:-default}` - see [environment substitution](/cli#environment-variable-substitution). Store config outside the project root with `--config` or `SHELLUI_CONFIG`.
 
-- **port** (number, optional): Port number for the development server (default: 3000)
-- **title** (string, optional): Application title displayed in the UI
-- **backend** (object, optional): Backend config for auth/API communication (default: undefined). See [Backend](/backend) and [Authentication](/features/authentication).
-  - **type** (`"shellui"` | `"supabase"`): Backend provider
-  - **url** (string): Base API URL
-  - **login** (object, optional): `methods` and `oauthProviders` for the login page
-- **navigation** (array, optional): Array of navigation items with:
-  - **label** (string): Display text for the navigation item
-  - **path** (string): Unique path identifier
-  - **url** (string): URL to navigate to
-  - **icon** (string, optional): Icon name for the navigation item
-  - **hideWhenLoggedOut** (boolean, optional): Hide item from navigation while signed out
-  - **requiresAuth** (boolean, optional): Require authentication for direct route access, redirects to `/login?next=...`
-- **legalDocuments** (object, optional): Markdown strings for public legal pages and Settings. See [Legal documents](/features/legal-documents).
-- **storage** (object, optional): Storage-service URL. Settings → Storage is shown only when this is configured. See [Storage](/features/storage).
+Put `favicon.svg`, `logo.svg`, and icons under `static/` (for example `static/icons/home.svg`). The CLI serves that folder.
 
-String values may use `${VAR}` or `${VAR:-default}` for environment overrides (resolved at load time). See [CLI — Environment variable substitution](/cli#environment-variable-substitution).
-
-Store config outside the project root with `--config ./config` (or `SHELLUI_CONFIG`). See [CLI — Custom config location](/cli#custom-config-location).
-
-## Step 4: Start the Development Server
-
-Run the development server:
+## Start the development server
 
 ```bash
-shellui dev
+shellui start
 ```
 
-Or if installed locally:
+Local install:
 
 ```bash
-npx shellui dev
+npx shellui start
 ```
 
-`shellui start` works the same way — `dev` is an alias for `start`.
+`shellui dev` is the same command. The CLI starts Vite for `@shellui/core`, opens the browser on first start, watches config files, and prints the local URL. Listen on the LAN with `shellui start --host`. Open a native window with `shellui start --app` - see [Desktop app](/tauri).
 
-The server will:
+Typical terminal output:
 
-- Start on the configured port (default: 3000)
-- Automatically open your browser
-- Watch for configuration file changes and restart automatically
-- Display the server URL in the terminal
-
-Use `shellui dev --host` to listen on `0.0.0.0` and access the app from other devices on your network.
-
-To run as a native desktop app, see [Tauri](/tauri) and use `shellui dev --app`.
-
-You should see output like:
-
-```
+```text
 Starting Shellui...
 Loaded JSON config from /path/to/shellui.config.json
 👀 Watching config file: /path/to/shellui.config.json
 
-  VITE v7.x.x  ready in xxx ms
+  VITE v7.x.x  ready in 123 ms
 
   ➜  Local:   http://localhost:4000/
   ➜  Network: use --host to expose
 ```
 
-## Step 5: Build for Production
-
-When you're ready to build your application for production:
+## Build for production
 
 ```bash
 shellui build
 ```
 
-This will:
+The CLI resolves `${ENV}` placeholders at build time, embeds a frozen config in the bundle, writes `dist/web/shellui.config.json` (resolved values only), and emits a static site under `dist/web/`. That snapshot is public - do not put secrets in config. Changing env vars after the build has no effect until you rebuild.
 
-- Build your Shellui application
-- Resolve `${ENV}` placeholders at build time and embed a frozen config in the bundle
-- Write `dist/web/shellui.config.json` (resolved values only — public, not overridable at runtime)
-- Output the production files to the `dist/web/` directory
-- Optimize assets for production
+## Shell plus an iframe app
 
-The built files will be in `dist/web/` and can be deployed to any static hosting service.
+The CLI builds the **shell** only. Your microfrontend is a normal app (Vite, Next.js, and so on). Both can share one `package.json`.
 
-## Project Structure
-
-A typical Shellui project structure looks like:
-
-```
-my-shellui-app/
-├── shellui.config.json
-├── package.json
-├── static/                # Optional static assets
-├── dist/                  # Generated build output (gitignored)
-│   ├── web/               # Web build
-│   └── app/               # Desktop wrapper (--app)
-└── node_modules/
-```
-
-## Shell plus an embedded app
-
-The CLI only builds the **shell**. Your microfrontend is a normal app (Vite, Next, whatever) with its own scripts. Both can live in the **same package** — one `package.json`, one `pnpm install`.
-
-The [playground](https://github.com/shellui/playground) is that pattern: Shellui CLI for the host, Vite for the iframe demo. One `pnpm start` runs both:
+The [playground](https://github.com/shellui/playground) uses that pattern: Shellui CLI for the host, Vite for the iframe. One `pnpm start` runs both because config includes:
 
 ```json
 {
@@ -202,25 +118,30 @@ The [playground](https://github.com/shellui/playground) is that pattern: Shellui
 }
 ```
 
-`start:app` is an escape hatch. `shellui start --shell-only` is shell-only. Flags `--run` / `--follow` override `dev`. See [CLI — Companion process](/cli#companion-process).
+`start:app` is an escape hatch. `shellui start --shell-only` ignores `dev.run`. Flags `--run` and `--follow` override `dev`. See [companion process](/cli#companion-process).
 
-`shellui start` / `shellui build` are isolated from your app: they do not load `vite.config.*`, `postcss.config.*`, `tsconfig.json`, or `VITE_*`. Tailwind only scans `@shellui/core`. The shell cache is `node_modules/.vite-shellui`, so a colocated Vite app can keep the default `node_modules/.vite` (or its own `cacheDir`). See [CLI — Tooling isolation](/cli#tooling-isolation).
+`shellui start` and `shellui build` do not load your `vite.config.*`, PostCSS, `tsconfig.json`, or `VITE_*`. Tailwind for the shell scans `@shellui/core` only. The shell Vite cache is `node_modules/.vite-shellui`. See [tooling isolation](/cli#tooling-isolation).
 
-Point navigation `url`s at the Vite origin in development (for example `http://localhost:5173/#/`) and at the built app path in production (playground writes `dist/web/app/` and sets `PLAYGROUND_APP_URL=/app`). Use [`@shellui/sdk`](/sdk) inside the iframe.
+Point navigation `url`s at the companion origin in development (for example `http://localhost:5173/#/`) and at the built path in production. Call [`@shellui/sdk`](/sdk) inside the iframe.
 
-## Next Steps
+Typical tree:
 
-- **[Tauri](/tauri)** — Ship as a native desktop app with `shellui dev --app`
-- **[Backend](/backend)** — Choose Supabase, the Shellui identity service, or no backend
-- **[Authentication](/features/authentication)** — Login page, sessions, and guarded routes
-- **[Navigation](/features/navigation)** — Configure navigation menus
-- **[CLI Reference](/cli)** — Commands and configuration options
+```text
+my-shellui-app/
+├── shellui.config.json
+├── package.json
+├── static/
+├── dist/
+│   ├── web/
+│   └── app/
+└── node_modules/
+```
 
-## Troubleshooting
+`dist/` is generated and gitignored.
 
-### Port Already in Use
+## Troubleshoot a failed start
 
-If the default port is already in use, change it in your configuration:
+**Port in use.** Set another port in config:
 
 ```json
 {
@@ -228,14 +149,14 @@ If the default port is already in use, change it in your configuration:
 }
 ```
 
-### Configuration Not Loading
+**Config not loading.** Keep `shellui.config.json` in the project root (or pass `--config`). Validate JSON against `$schema`. JSON and split `shellui.*.config.json` files cannot coexist. TypeScript config is used only when no JSON or split files exist.
 
-- Ensure `shellui.config.json` is in your project root (or run `shellui init`)
-- Check that the file is valid JSON and matches the schema (`$schema` in the file)
-- If you still use TypeScript config, ensure no JSON/split files take precedence and that the export is serializable
+**Build errors.** Run `npm install` (or `pnpm install`), then re-read the CLI error. Invalid config fails at load time with schema messages.
 
-### Build Errors
+## Next steps
 
-- Ensure all dependencies are installed: `npm install`
-- Check that your configuration file is valid
-- Review error messages in the terminal for specific issues
+- [Backend](/backend) - identity-service, Supabase, or a public shell
+- [Authentication](/features/authentication) - login routes and guards
+- [Navigation](/features/navigation) - iframe URLs and opening modes
+- [CLI](/cli) - full command and config reference
+- [Desktop app](/tauri) - native window with `--app`
