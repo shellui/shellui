@@ -1,80 +1,91 @@
-# Shellui Core
+---
+title: Core package
+sidebar_label: Core
+description: '@shellui/core is the React shell runtime the CLI serves. Import config types and useAuth when you extend the host.'
+---
 
-Shellui Core - Core React application runtime
+`@shellui/core` is the React application the CLI starts and builds. You do not install it for a normal `shellui init` project - the CLI depends on it. Import it when you type `shellui.config.ts`, call `useAuth` / `useCookieConsent` from host code, or embed the runtime yourself.
 
-## Overview
-
-The `@shellui/core` package provides the React application runtime for Shellui. It's automatically included when you use the Shellui CLI, so you typically don't need to install it separately.
-
-## When to Use
-
-Most users will interact with `@shellui/core` indirectly through the CLI. However, you might need to reference it directly if you're:
-
-- Creating custom TypeScript configuration files (for type definitions)
-- Integrating Shellui programmatically
-- Extending Shellui functionality
-
-## Type Definitions
-
-If you're using an advanced TypeScript configuration file (`shellui.config.ts`), you can import types from `@shellui/core`:
-
-```typescript
-import type { ShellUIConfig, NavigationItem } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  // ... your configuration
-};
-```
-
-## Installation
-
-The core package is automatically managed by the CLI. If you need to install it directly:
+## Install
 
 ```bash
 npm install @shellui/core
 ```
 
-## Features
+Peer dependencies: React 18 or 19. The package also depends on `@shellui/sdk`.
 
-- React-based microfrontend shell
-- TypeScript type definitions
-- Development and production builds
-- Hot module replacement support
-
-## API Reference
-
-### Types
-
-#### `ShellUIConfig`
-
-Main configuration interface:
+## Config types
 
 ```typescript
-interface ShellUIConfig {
-  port?: number;
-  title?: string;
-  navigation?: NavigationItem[];
+import type { ShellUIConfig, NavigationItem } from '@shellui/core';
+
+const config: ShellUIConfig = {
+  port: 4000,
+  title: 'My Shellui App',
+  navigation: [
+    {
+      label: 'Home',
+      path: 'home',
+      url: 'http://localhost:4000/',
+      icon: '/icons/home.svg',
+    },
+  ],
+};
+
+export default config;
+```
+
+`ShellUIConfig` includes `port`, `title`, `version`, `favicon`, `appIcon`, `logo`, `language`, `layout`, `start_url`, `navigation`, `administration`, `storage`, `hosting`, theme fields, `sentry`, `backend`, `cookieConsent`, `legalDocuments`, and CLI-only `dev`. Item-level fields such as `requiresAuth` and `openIn` live on `NavigationItem`. Prefer the JSON schema at `@shellui/core/schemas/shellui.config.schema.json` over copying a partial interface into docs.
+
+Subpath exports:
+
+- `@shellui/core` - `App`, types, `useAuth`, `useConfig`, cookie-consent helpers, theme helpers
+- `@shellui/core/types` - config types only
+- `@shellui/core/constants/urls` - built-in routes (`/login`, `/__settings`, `/legal`, …)
+- `@shellui/core/theme` - theme utilities
+- `@shellui/core/style.css` - shell CSS
+
+## Auth in host code
+
+`useAuth` must run under `AuthProvider` (the CLI shell already wraps the app):
+
+```typescript
+import { useAuth } from "@shellui/core";
+
+function AccountSummary() {
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  if (isLoading) return null;
+  if (!isAuthenticated) return <p>Not signed in</p>;
+
+  return (
+    <div>
+      <p>{user?.email}</p>
+      <button type="button" onClick={() => void logout()}>
+        Sign out
+      </button>
+    </div>
+  );
 }
 ```
 
-#### `NavigationItem`
+`AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner`, `authProvider`, and `groups`. Session tokens stay on `AuthSession`. Iframe apps should read the signed-in profile from SDK settings instead of importing core.
 
-Navigation item interface:
+Cookie helpers: `useCookieConsent(host)`, `getCookieConsentAccepted(host)`. See [Cookie consent](/features/cookie-consent).
 
-```typescript
-interface NavigationItem {
-  label: string;
-  path: string;
-  url: string;
-  icon?: string;
-}
-```
+`useSettings` is **not** a public export. Iframe apps read `settings` from SDK messages. Layout override at runtime is **Settings → Develop → Layout** when developer features are enabled.
 
-## For Developers
+## Themes
 
-If you're contributing to Shellui or need to build the core package:
+Named curated themes and helpers (`defaultTheme`, `themes`, `themeNames`, `shelluiTheme`, `applyTheme`, …) export from `@shellui/core`. JSON sources live under `packages/core/src/features/theme/curated/` and validate against `schemas/shellui.theme.schema.json`. See [Themes](/features/themes).
+
+## Build this package
+
+From the monorepo:
 
 ```bash
 cd packages/core
-npm run build
+pnpm run build
 ```
+
+That regenerates the config schema and curated-theme catalog. Day-to-day host development uses `shellui start` from the [CLI](/cli).

@@ -1,139 +1,80 @@
-# Themes
+---
+title: Configure themes
+sidebar_label: Themes
+description: 'Set theme, themes, or themesDir in shellui.config.json using shadcn CSS variables (OKLCH preferred).'
+---
 
-Shellui theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (light under `:root`, dark under `.dark`). Tokens are **full CSS colors** — prefer **OKLCH** (`oklch(...)`). Configuration lives in `shellui.config` (no live theme editor yet).
+Theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (light under `:root`, dark under `.dark`). Tokens are full CSS colors - prefer **OKLCH** (`oklch(...)`). There is no live theme editor; configuration lives in `shellui.config.json` (or theme JSON under `themesDir`).
 
-## Designing your own theme
-
-Most curated themes below come from the excellent [tweakcn](https://tweakcn.com) — a perfect tool to create or customize a theme and export shadcn-compatible CSS variables. We highly encourage a [tweakcn Pro](https://tweakcn.com) subscription to support that project.
-
-Any theme built for [shadcn/ui](https://ui.shadcn.com/themes) works beautifully with Shellui: paste `:root` / `.dark` variables into theme JSON (`light` / `dark`), or map a registry-style export the same way. Many other platforms also share ready-made shadcn themes you can adapt the same way.
-
-When you are happy with a palette, save it as versioned theme JSON under `themesDir` (or inline in config) — see [Theme JSON shape](#theme-json-shape-version-1).
-
-## Quick start
-
-`shellui init` injects the official Shellui theme:
+`shellui init` sets the official palette:
 
 ```json
 {
   "theme": "shellui"
 }
 ```
+
+The shell writes variables as full colors on `:root`. Tailwind consumes `var(--background)` (not `hsl(var(--background))`). Hex and legacy HSL channel triples are accepted and normalized.
+
+Design palettes in [tweakcn](https://tweakcn.com) or any shadcn-compatible export, then map `:root` / `.dark` into `light` / `dark` (kebab-case keys work). Registry JSON (`cssVars.light` / `cssVars.dark`) maps the same way.
 
 ## Built-in themes
 
-Curated themes ship as versioned JSON (`version: 1`) in `@shellui/core`. Community and brand palettes are adapted from [tweakcn](https://tweakcn.com) and [shadcn/ui](https://ui.shadcn.com/) unless noted otherwise:
+Curated JSON (`version: 1`) ships in `@shellui/core` (`packages/core/src/features/theme/curated/*.json`), validated against `@shellui/core/schemas/shellui.theme.schema.json`. Named exports (`shelluiTheme`, `claudeTheme`, `themeNames`, …) come from `@shellui/core`. Community palettes are adapted from tweakcn and shadcn/ui unless noted.
 
-| Name              | Label           | Description                                                                               |
-| ----------------- | --------------- | ----------------------------------------------------------------------------------------- |
-| `shellui`         | Shellui         | Official Shellui theme — gold brand from shellui.com                                      |
-| `claude`          | Claude          | Warm terracotta theme with Outfit and Geist Mono                                          |
-| `light-green`     | Light Green     | Bright lime primary on cool neutrals (Inter + JetBrains Mono)                             |
-| `zen-inspired`    | Zen Inspired    | Warm parchment neutrals with charcoal primary (Inter + Playfair Display + JetBrains Mono) |
-| `astro-vista`     | Astro Vista     | Soft cool neutrals with warm orange primary (Outfit + Merriweather + Fira Code)           |
-| `shadcn`          | shadcn          | Default shadcn/ui neutral palette with system fonts                                       |
-| `amber-minimal`   | Amber Minimal   | Clean white neutrals with amber primary (Inter + Source Serif 4 + JetBrains Mono)         |
-| `amethyst-haze`   | Amethyst Haze   | Soft lavender neutrals with muted purple primary (Geist + Lora + Fira Code)               |
-| `bold-tech`       | Bold Tech       | Vivid violet primary on cool lilac neutrals (Roboto + Playfair Display + Fira Code)       |
-| `bubblegum`       | Bubblegum       | Playful pink primary with candy pastels (Poppins + Lora + Fira Code)                      |
-| `caffeine`        | Caffeine        | Warm coffee browns with soft cream accents (system fonts)                                 |
-| `candyland`       | Candyland       | Soft pastel pink, blue, and lime accents (Poppins + Roboto Mono)                          |
-| `catppuccin`      | Catppuccin      | Mauve primary with cool lavender neutrals (Montserrat + Fira Code)                        |
-| `claymorphism`    | Claymorphism    | Soft clay surfaces with violet primary (Plus Jakarta Sans + Lora + Roboto Mono)           |
-| `clean-slate`     | Clean Slate     | Cool slate neutrals with violet primary (Inter + Merriweather + JetBrains Mono)           |
-| `cosmic-night`    | Cosmic Night    | Soft violet cosmic palette (Inter + JetBrains Mono)                                       |
-| `cyberpunk`       | Cyberpunk       | Neon magenta and cyan accents (Outfit + Fira Code)                                        |
-| `darkmatter`      | Darkmatter      | Amber primary with mono-first UI (Geist Mono + JetBrains Mono)                            |
-| `doom-64`         | Doom 64         | Hard-edged retro game palette (Oxanium + Source Code Pro)                                 |
-| `elegant-luxury`  | Elegant Luxury  | Warm burgundy luxury palette (Poppins + Libre Baskerville + IBM Plex Mono)                |
-| `graphite`        | Graphite        | Neutral graphite greyscale (Montserrat + Fira Code)                                       |
-| `kodama-grove`    | Kodama Grove    | Earthy moss greens on warm parchment (Merriweather + Source Serif 4)                      |
-| `midnight-bloom`  | Midnight Bloom  | Violet bloom accents (Montserrat + Playfair Display + Source Code Pro)                    |
-| `mocha-mousse`    | Mocha Mousse    | Soft mocha browns (DM Sans + Georgia)                                                     |
-| `modern-minimal`  | Modern Minimal  | Clean blue primary on crisp neutrals (Inter + Source Serif 4 + JetBrains Mono)            |
-| `mono`            | Mono            | Strict monochrome UI with Geist Mono throughout                                           |
-| `nature`          | Nature          | Forest green primary on warm earth tones (Montserrat + Merriweather)                      |
-| `neo-brutalism`   | Neo Brutalism   | Hard edges, bold color blocks (DM Sans + Space Mono)                                      |
-| `northern-lights` | Northern Lights | Aurora green with cool blues (Plus Jakarta Sans + JetBrains Mono)                         |
-| `notebook`        | Notebook        | Handwritten notebook feel (Architects Daughter)                                           |
-| `ocean-breeze`    | Ocean Breeze    | Fresh teal primary on airy blues (DM Sans + Lora + IBM Plex Mono)                         |
-| `pastel-dreams`   | Pastel Dreams   | Soft lavender pastels with large radius (Open Sans + Source Serif 4)                      |
-| `perpetuity`      | Perpetuity      | Teal terminal aesthetic (Source Code Pro)                                                 |
-| `quantum-rose`    | Quantum Rose    | Vivid rose primary on soft pinks (Quicksand + Playfair Display)                           |
-| `retro-arcade`    | Retro Arcade    | Playful arcade magenta and teal (Outfit + Space Mono)                                     |
-| `sage-garden`     | Sage Garden     | Muted sage greens on warm paper (Antic + JetBrains Mono)                                  |
-| `soft-pop`        | Soft Pop        | Playful violet and teal soft-pop accents (DM Sans + Space Mono)                           |
-| `solar-dusk`      | Solar Dusk      | Warm dusk oranges on parchment (Oxanium + Merriweather + Fira Code)                       |
-| `starry-night`    | Starry Night    | Painterly night blues with gold accents (Libre Baskerville)                               |
-| `sunset-horizon`  | Sunset Horizon  | Warm sunset oranges (Montserrat + Merriweather + Ubuntu Mono)                             |
-| `supabase`        | Supabase        | Supabase green brand palette (Outfit)                                                     |
-| `t3-chat`         | T3 Chat         | Magenta-rose chat aesthetic with system fonts                                             |
-| `tangerine`       | Tangerine       | Bright tangerine primary on cool slate (Inter + Source Serif 4)                           |
-| `twitter`         | Twitter         | Sky-blue social palette (Open Sans)                                                       |
-| `vercel`          | Vercel          | Stark black-and-white Vercel aesthetic (Geist + Geist Mono)                               |
-| `vintage-paper`   | Vintage Paper   | Aged paper browns (Libre Baskerville + Lora + IBM Plex Mono)                              |
-| `violet-bloom`    | Violet Bloom    | Bold violet bloom with tight tracking (Plus Jakarta Sans + Lora)                          |
+| Name              | Label           | Notes                                        |
+| ----------------- | --------------- | -------------------------------------------- |
+| `shellui`         | Shellui         | Official gold brand                          |
+| `claude`          | Claude          | Warm terracotta, Outfit + Geist Mono         |
+| `light-green`     | Light Green     | Lime primary, Inter + JetBrains Mono         |
+| `zen-inspired`    | Zen Inspired    | Parchment neutrals, Inter + Playfair Display |
+| `astro-vista`     | Astro Vista     | Cool neutrals, orange primary                |
+| `shadcn`          | shadcn          | Default shadcn/ui neutrals, system fonts     |
+| `amber-minimal`   | Amber Minimal   | White neutrals, amber primary                |
+| `amethyst-haze`   | Amethyst Haze   | Lavender neutrals                            |
+| `bold-tech`       | Bold Tech       | Violet primary                               |
+| `bubblegum`       | Bubblegum       | Pink primary, candy pastels                  |
+| `caffeine`        | Caffeine        | Coffee browns                                |
+| `candyland`       | Candyland       | Pastel pink, blue, lime                      |
+| `catppuccin`      | Catppuccin      | Mauve primary                                |
+| `claymorphism`    | Claymorphism    | Clay surfaces, violet primary                |
+| `clean-slate`     | Clean Slate     | Slate neutrals                               |
+| `cosmic-night`    | Cosmic Night    | Soft violet                                  |
+| `cyberpunk`       | Cyberpunk       | Magenta and cyan                             |
+| `darkmatter`      | Darkmatter      | Amber primary, mono-first                    |
+| `doom-64`         | Doom 64         | Retro game palette                           |
+| `elegant-luxury`  | Elegant Luxury  | Burgundy                                     |
+| `graphite`        | Graphite        | Greyscale                                    |
+| `kodama-grove`    | Kodama Grove    | Moss greens                                  |
+| `midnight-bloom`  | Midnight Bloom  | Violet bloom                                 |
+| `mocha-mousse`    | Mocha Mousse    | Mocha browns                                 |
+| `modern-minimal`  | Modern Minimal  | Blue primary                                 |
+| `mono`            | Mono            | Geist Mono throughout                        |
+| `nature`          | Nature          | Forest green                                 |
+| `neo-brutalism`   | Neo Brutalism   | Bold blocks                                  |
+| `northern-lights` | Northern Lights | Aurora green                                 |
+| `notebook`        | Notebook        | Architects Daughter                          |
+| `ocean-breeze`    | Ocean Breeze    | Teal primary                                 |
+| `pastel-dreams`   | Pastel Dreams   | Lavender, large radius                       |
+| `perpetuity`      | Perpetuity      | Teal terminal                                |
+| `quantum-rose`    | Quantum Rose    | Rose primary                                 |
+| `retro-arcade`    | Retro Arcade    | Magenta and teal                             |
+| `sage-garden`     | Sage Garden     | Muted sage                                   |
+| `soft-pop`        | Soft Pop        | Violet and teal                              |
+| `solar-dusk`      | Solar Dusk      | Dusk oranges                                 |
+| `starry-night`    | Starry Night    | Night blues, gold                            |
+| `sunset-horizon`  | Sunset Horizon  | Sunset oranges                               |
+| `supabase`        | Supabase        | Supabase green                               |
+| `t3-chat`         | T3 Chat         | Magenta-rose                                 |
+| `tangerine`       | Tangerine       | Tangerine on slate                           |
+| `twitter`         | Twitter         | Sky blue                                     |
+| `vercel`          | Vercel          | Black and white, Geist                       |
+| `vintage-paper`   | Vintage Paper   | Aged paper                                   |
+| `violet-bloom`    | Violet Bloom    | Bold violet                                  |
 
-```ts
-import {
-  defaultTheme,
-  themes,
-  themeNames,
-  shelluiTheme,
-  claudeTheme,
-  lightGreenTheme,
-  zenInspiredTheme,
-  astroVistaTheme,
-  shadcnTheme,
-  amberMinimalTheme,
-  amethystHazeTheme,
-  boldTechTheme,
-  bubblegumTheme,
-  caffeineTheme,
-  candylandTheme,
-  catppuccinTheme,
-  claymorphismTheme,
-  cleanSlateTheme,
-  cosmicNightTheme,
-  cyberpunkTheme,
-  darkmatterTheme,
-  doom64Theme,
-  elegantLuxuryTheme,
-  graphiteTheme,
-  kodamaGroveTheme,
-  midnightBloomTheme,
-  mochaMousseTheme,
-  modernMinimalTheme,
-  monoTheme,
-  natureTheme,
-  neoBrutalismTheme,
-  northernLightsTheme,
-  notebookTheme,
-  oceanBreezeTheme,
-  pastelDreamsTheme,
-  perpetuityTheme,
-  quantumRoseTheme,
-  retroArcadeTheme,
-  sageGardenTheme,
-  softPopTheme,
-  solarDuskTheme,
-  starryNightTheme,
-  sunsetHorizonTheme,
-  supabaseTheme,
-  t3ChatTheme,
-  tangerineTheme,
-  twitterTheme,
-  vercelTheme,
-  vintagePaperTheme,
-  violetBloomTheme,
-} from '@shellui/core';
-```
+## Config shapes
 
-JSON sources live under `packages/core/src/features/theme/curated/*.json` and are validated against `@shellui/core/schemas/shellui.theme.schema.json`.
-
-## Config API
-
-### 1) Single built-in theme by name
+**Single built-in name:**
 
 ```json
 {
@@ -141,11 +82,9 @@ JSON sources live under `packages/core/src/features/theme/curated/*.json` and ar
 }
 ```
 
-### 2) Inline theme object (full or partial override)
+**Inline object** (partial `light` / `dark` merges onto the Shellui theme; camelCase or kebab-case keys):
 
-Partial `light` / `dark` tokens merge onto the Shellui theme. CamelCase or CSS-variable kebab-case keys are accepted (`primary-foreground`, `sidebar`, …):
-
-```ts
+```typescript
 import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
@@ -165,7 +104,7 @@ const config: ShellUIConfig = {
 };
 ```
 
-### 3) Theme folder (`themesDir`)
+**Folder of JSON themes:**
 
 ```json
 {
@@ -174,7 +113,7 @@ const config: ShellUIConfig = {
 }
 ```
 
-```
+```text
 themes/
   acme.json
   acme/
@@ -184,66 +123,18 @@ themes/
 
 Theme JSON must include `"version": 1` and pass the theme schema.
 
-### 4) Multiple themes
+**Several themes** for the Settings picker:
 
 ```json
 {
-  "themes": [
-    "shellui",
-    "claude",
-    "light-green",
-    "zen-inspired",
-    "astro-vista",
-    "shadcn",
-    "amber-minimal",
-    "amethyst-haze",
-    "bold-tech",
-    "bubblegum",
-    "caffeine",
-    "candyland",
-    "catppuccin",
-    "claymorphism",
-    "clean-slate",
-    "cosmic-night",
-    "cyberpunk",
-    "darkmatter",
-    "doom-64",
-    "elegant-luxury",
-    "graphite",
-    "kodama-grove",
-    "midnight-bloom",
-    "mocha-mousse",
-    "modern-minimal",
-    "mono",
-    "nature",
-    "neo-brutalism",
-    "northern-lights",
-    "notebook",
-    "ocean-breeze",
-    "pastel-dreams",
-    "perpetuity",
-    "quantum-rose",
-    "retro-arcade",
-    "sage-garden",
-    "soft-pop",
-    "solar-dusk",
-    "starry-night",
-    "sunset-horizon",
-    "supabase",
-    "t3-chat",
-    "tangerine",
-    "twitter",
-    "vercel",
-    "vintage-paper",
-    "violet-bloom"
-  ],
+  "themes": ["shellui", "claude", "shadcn"],
   "activeTheme": "shellui"
 }
 ```
 
-Or a map of id → name | path | object. `defaultTheme` remains an alias of `activeTheme`. Legacy `theme: "default"` resolves to `shellui`.
+Or a map of id → name | path | object. `defaultTheme` is an alias of `activeTheme`. Legacy `theme: "default"` resolves to `shellui`.
 
-## Theme JSON shape (version 1)
+## Theme JSON (version 1)
 
 ```json
 {
@@ -273,20 +164,13 @@ Or a map of id → name | path | object. `defaultTheme` remains an alias of `act
 }
 ```
 
-Paste from shadcn or [tweakcn](https://tweakcn.com) CSS by mapping `:root` / `.dark` variables into `light` / `dark` (kebab-case keys work). Registry JSON from tweakcn (`cssVars.light` / `cssVars.dark`) maps the same way.
+## Theme selector
 
-## How colors apply
+Settings → Appearance scales with how many themes you configured (1 / few / many). Recommended themes sort first. Each preview uses that theme's swatches, typography, and `radius`. Fonts from `fonts.files` apply when the theme is active.
 
-The shell sets CSS variables as **full colors** on `:root`. Tailwind consumes them with `var(--background)` (not `hsl(var(--background))`). Hex and legacy HSL channel triples are still accepted and normalized.
+Do not ship a second theme picker inside a hosted iframe unless that iframe **is** the settings surface. Read `settings.appearance` from the SDK instead.
 
-## Theme selector UI
+## Related pages
 
-Settings → Appearance scales with the number of available themes (1 / few / many). The picker uses a responsive `auto-fill` grid so cards keep a readable size and more columns appear as the panel widens. Recommended themes sort first. Each preview uses the theme’s color swatches, typography, and `radius` so sharp vs soft corners are visible before you switch. Fonts from a theme’s `fonts.files` apply when that theme is active.
-
-## Related
-
-- [tweakcn](https://tweakcn.com) — design and customize shadcn themes
-- [shadcn/ui themes](https://ui.shadcn.com/themes)
-- [Layouts](/features/layouts)
-- [Application settings](/features/application-settings)
-- [CLI](/cli)
+- [tweakcn](https://tweakcn.com), [shadcn/ui themes](https://ui.shadcn.com/themes)
+- [Layouts](/features/layouts), [Application settings](/features/application-settings), [CLI](/cli)
