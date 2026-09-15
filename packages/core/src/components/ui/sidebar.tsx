@@ -4,11 +4,15 @@ import { Slot } from '@radix-ui/react-slot';
 
 import { useIsMobile } from '../../hooks/use-mobile';
 import { cn } from '../../lib/utils';
-import { Z_INDEX } from '../../lib/z-index';
+import { MobileSidebarSheet } from './mobile-sidebar-sheet';
+import {
+  DEFAULT_MOBILE_SIDEBAR_SIZE,
+  normalizeMobileSidebarSize,
+  type MobileSidebarSize,
+} from '../../lib/mobile-sidebar-size';
 import { Button } from './button';
 import { Input } from './input';
 import { Separator } from './separator';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from './sheet';
 import { Skeleton } from './skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 
@@ -45,12 +49,32 @@ const SIDEBAR_WIDTH_STORAGE_KEY = 'shellui:sidebar:width';
 const SIDEBAR_WIDTH_DEFAULT_PX = 256;
 const SIDEBAR_WIDTH_MIN_PX = 230;
 const SIDEBAR_WIDTH_MAX_PX = 480;
-/** Cap at the viewport so a phone narrower than 18rem still gets a full-width sheet. */
-const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%)';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 /** Ignore tiny pointer moves so a rail click still toggles. */
 const SIDEBAR_RESIZE_DRAG_THRESHOLD_PX = 3;
+const SIDEBAR_MOBILE_SIZE_STORAGE_KEY = 'shellui:sidebar:mobile-size';
+
+function readMobileSidebarSize(fallback: MobileSidebarSize): MobileSidebarSize {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    return normalizeMobileSidebarSize(
+      sessionStorage.getItem(SIDEBAR_MOBILE_SIZE_STORAGE_KEY),
+      fallback,
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+function writeMobileSidebarSize(size: MobileSidebarSize): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SIDEBAR_MOBILE_SIZE_STORAGE_KEY, size);
+  } catch {
+    // Ignore quota / privacy mode errors.
+  }
+}
 
 function readSidebarOpen(fallback: boolean): boolean {
   if (typeof window === 'undefined') return fallback;
@@ -112,6 +136,12 @@ type SidebarContextProps = {
   setWidth: (width: number, options?: { persist?: boolean }) => void;
   isResizing: boolean;
   setIsResizing: (resizing: boolean) => void;
+  /**
+   * Mobile bottom-sheet snap size (`sm` | `md` | `lg`).
+   * Opening uses this size; drag-resize updates it (session-persisted).
+   */
+  mobileSize: MobileSidebarSize;
+  setMobileSize: (size: MobileSidebarSize, options?: { persist?: boolean }) => void;
 };
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null);
@@ -129,6 +159,9 @@ function SidebarProvider({
   defaultOpen = true,
   open: openProp,
   onOpenChange: setOpenProp,
+  defaultMobileSize = DEFAULT_MOBILE_SIDEBAR_SIZE,
+  mobileSize: mobileSizeProp,
+  onMobileSizeChange: setMobileSizeProp,
   className,
   style,
   children,
@@ -137,11 +170,27 @@ function SidebarProvider({
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Initial mobile bottom-sheet size when nothing is stored for the tab session.
+   * Config: `mobileSidebarSize` in `shellui.config.json` (`sm` | `md` | `lg`, default `md`).
+   */
+  defaultMobileSize?: MobileSidebarSize;
+  /** Controlled mobile sheet size. */
+  mobileSize?: MobileSidebarSize;
+  onMobileSizeChange?: (size: MobileSidebarSize) => void;
 }) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = React.useState(false);
   const [width, _setWidth] = React.useState(() => readSidebarWidth(SIDEBAR_WIDTH_DEFAULT_PX));
   const [isResizing, setIsResizing] = React.useState(false);
+  const normalizedDefaultMobileSize = normalizeMobileSidebarSize(
+    defaultMobileSize,
+    DEFAULT_MOBILE_SIDEBAR_SIZE,
+  );
+  const [_mobileSize, _setMobileSize] = React.useState<MobileSidebarSize>(() =>
+    readMobileSidebarSize(normalizedDefaultMobileSize),
+  );
+  const mobileSize = mobileSizeProp ?? _mobileSize;
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -169,6 +218,21 @@ function SidebarProvider({
       writeSidebarWidth(clamped);
     }
   }, []);
+
+  const setMobileSize = React.useCallback(
+    (next: MobileSidebarSize, options?: { persist?: boolean }) => {
+      const normalized = normalizeMobileSidebarSize(next, normalizedDefaultMobileSize);
+      if (setMobileSizeProp) {
+        setMobileSizeProp(normalized);
+      } else {
+        _setMobileSize(normalized);
+      }
+      if (options?.persist !== false) {
+        writeMobileSidebarSize(normalized);
+      }
+    },
+    [setMobileSizeProp, normalizedDefaultMobileSize],
+  );
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
@@ -205,6 +269,8 @@ function SidebarProvider({
       setWidth,
       isResizing,
       setIsResizing,
+      mobileSize,
+      setMobileSize,
     }),
     [
       state,
@@ -217,6 +283,8 @@ function SidebarProvider({
       width,
       setWidth,
       isResizing,
+      mobileSize,
+      setMobileSize,
     ],
   );
 
@@ -281,38 +349,18 @@ function Sidebar({
     throw new Error('useSidebar must be used within a SidebarProvider.');
   }
 
-  const { isMobile, state, openMobile, setOpenMobile } = context;
+  const { isMobile, state, openMobile, setOpenMobile, mobileSize, setMobileSize } = context;
 
   if (isMobile) {
     return (
-      <Sheet
+      <MobileSidebarSheet
         open={openMobile}
         onOpenChange={setOpenMobile}
-        {...props}
+        size={mobileSize}
+        onSizeChange={setMobileSize}
       >
-        <SheetContent
-          data-sidebar="sidebar"
-          data-slot="sidebar"
-          data-mobile="true"
-          className="w-(--sidebar-width) max-w-full overflow-x-hidden bg-sidebar p-0 text-sidebar-foreground sm:max-w-full [&>button]:hidden"
-          style={
-            {
-              '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-              zIndex: Z_INDEX.SIDEBAR_SHEET_CONTENT,
-            } as React.CSSProperties
-          }
-          overlayZIndex={Z_INDEX.SIDEBAR_SHEET_OVERLAY}
-          side={side}
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-          </SheetHeader>
-          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden pt-[var(--shellui-safe-area-top)] pr-[var(--shellui-safe-area-right)] pl-[var(--shellui-safe-area-left)]">
-            {children}
-          </div>
-        </SheetContent>
-      </Sheet>
+        {children}
+      </MobileSidebarSheet>
     );
   }
 

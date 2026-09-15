@@ -22,9 +22,41 @@ Persistent navigation built on shadcn/ui sidebar primitives.
 
 - Desktop: collapsible icon rail (trigger, rail, or `⌘B` / `Ctrl+B`)
 - Desktop: drag the expanded border to resize (230-480px; persisted for the tab session)
-- Mobile: sheet opened from the top header
+- Mobile: bottom sheet opened from the top header (`sm` / `md` / `lg` heights)
 - Themed via `--sidebar-*` for light and dark
 - Optional `appIcon` at the top of the expanded sidebar (hidden when collapsed)
+
+### Mobile bottom sidebar
+
+On viewports below 768px, the sidebar opens as a bottom sheet (not a left drawer).
+
+| Size | Height                                 |
+| ---- | -------------------------------------- |
+| `sm` | ~40% of `--shellui-overlay-max-height` |
+| `md` | ~55% (default)                         |
+| `lg` | ~75%                                   |
+
+```json
+{
+  "layout": "sidebar",
+  "mobileSidebarSize": "md"
+}
+```
+
+`mobileSidebarSize` sets the initial open size (`sm` | `md` | `lg`). After the user drags to another snap, that size is kept for the tab session (`sessionStorage`).
+
+Gestures:
+
+- **Grab handle** at the top of the sheet — drag to resize; release snaps to `sm` / `md` / `lg`
+- **Drag all the way down** (past the `sm` band) closes the sheet
+- **Tap / click the overlay** closes the sheet
+- Enter/exit **slides from below**; respects `prefers-reduced-motion`
+
+Programmatic API on `SidebarProvider` / `useSidebar()`:
+
+- `defaultMobileSize` — same as config when no session value exists
+- `mobileSize` / `setMobileSize` — controlled or read the current snap size
+- `openMobile` / `setOpenMobile` — open and close the sheet
 
 **Tauri (macOS):** overlay titlebar; traffic lights centered in 42px chrome. Collapsed sidebar gets a full-width 42px top bar (Back/Forward + open-sidebar). A full-width invisible 42px drag strip mounts at the app root, including error screens. **Back** / **Forward** leave iframe login pages because there is no browser chrome.
 

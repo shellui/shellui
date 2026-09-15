@@ -37,7 +37,7 @@ const config: ShellUIConfig = {
 - **`requiresAuth`**: redirect signed-out visitors to `/login?next=...`
 - **`requiresDevMode`**: only when Settings → Advanced → Developer features is on
 - **`requiresStaff`**: only staff (`isStaff`)
-- **`hiddenOnMobile` / `hiddenOnDesktop`**: hide from the mobile sheet or desktop sidebar (ignored if `hidden` is true)
+- **`hiddenOnMobile` / `hiddenOnDesktop`**: hide from the mobile bottom sidebar sheet or desktop sidebar (ignored if `hidden` is true)
 - **`openIn`**: `'default' | 'modal' | 'drawer' | 'external'`
 - **`drawerPosition`**: `'top' | 'bottom' | 'left' | 'right'` when `openIn: 'drawer'`
 - **`position`**: `'start'` (main) or `'end'` (footer / icon end of app bar)

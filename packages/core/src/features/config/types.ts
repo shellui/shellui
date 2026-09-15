@@ -274,6 +274,12 @@ export interface ShellUIConfig {
   language?: string | string[]; // Single language code or array of enabled language codes (e.g., 'en' or ['en', 'fr'])
   /** Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation. */
   layout?: LayoutType;
+  /**
+   * Mobile bottom-sidebar open size for `sidebar` / `sidebar-inset` layouts.
+   * `sm` (~40%), `md` (~55%, default), `lg` (~75%) of `--shellui-overlay-max-height`.
+   * Users can drag between sizes; the last size is kept for the tab session.
+   */
+  mobileSidebarSize?: 'sm' | 'md' | 'lg';
   /** When set, opening the app at "/" redirects to this path (e.g. "/playground"). */
   start_url?: string;
   navigation?: (NavigationItem | NavigationGroup)[];

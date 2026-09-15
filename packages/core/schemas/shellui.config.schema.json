@@ -44,6 +44,11 @@
           "$ref": "#/definitions/LayoutType",
           "description": "Layout mode: 'sidebar' (default) or 'fullscreen'. Fullscreen shows only content with no navigation."
         },
+        "mobileSidebarSize": {
+          "type": "string",
+          "enum": ["sm", "md", "lg"],
+          "description": "Mobile bottom-sidebar open size for `sidebar` / `sidebar-inset` layouts. `sm` (~40%), `md` (~55%, default), `lg` (~75%) of `--shellui-overlay-max-height`. Users can drag between sizes; the last size is kept for the tab session."
+        },
         "start_url": {
           "type": "string",
           "description": "When set, opening the app at \"/\" redirects to this path (e.g. \"/playground\")."
@@ -71,7 +76,7 @@
         },
         "hosting": {
           "$ref": "#/definitions/HostingConfig",
-          "description": "Hosting-service connection for `shellui deploy`. Propagated to iframes via SDK settings when `url` is set. Admin → Hosting appears when `url` is set unless `showInAdmin` is false."
+          "description": "Hosting-service connection. Propagated to iframes via SDK settings. Enables `shellui deploy` when `url` is set."
         },
         "theme": {
           "$ref": "#/definitions/ThemeRef",
@@ -121,30 +126,11 @@
         },
         "dev": {
           "$ref": "#/definitions/DevConfig",
-          "description": "CLI-only companion for `shellui start` (spawn or follow a colocated app). Never shipped to the browser."
+          "description": "CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`. Stripped before the config is sent to the browser."
         },
         "$schema": {
           "type": "string",
           "description": "JSON Schema URL for editor autocomplete and validation."
-        }
-      },
-      "additionalProperties": false
-    },
-    "DevConfig": {
-      "type": "object",
-      "description": "CLI-only companion for `shellui start`. Not shipped to the browser.",
-      "properties": {
-        "run": {
-          "type": "string",
-          "description": "Command to spawn in the project root (e.g. `vite`)."
-        },
-        "url": {
-          "type": "string",
-          "description": "URL (or host:port) to wait for before the shell opens, and to follow in follow-only mode."
-        },
-        "name": {
-          "type": "string",
-          "description": "Log prefix for the companion (default: `app`)."
         }
       },
       "additionalProperties": false
@@ -181,7 +167,7 @@
         "app-bar-inset",
         "floating"
       ],
-      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame that reveals the chrome background; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar with a 9-square launcher for start links and icon-only end links; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass navigation over full-bleed content (bottom-centered tabs on phone and tablet, floating sidebar on desktop) with layout-chrome safe insets for iframe apps."
+      "description": "Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass chrome over full-bleed content (bottom tabs on phone/tablet, floating sidebar on desktop)."
     },
     "NavigationItem": {
       "type": "object",
@@ -373,16 +359,15 @@
         },
         "publicUrl": {
           "type": "string",
-          "description": "Optional public base for browsable hosted app URLs when it differs from `url` (e.g. CDN or reverse proxy)."
-        },
-        "app": {
-          "type": "string",
-          "deprecated": true,
-          "description": "Deprecated. Use `slug` to redeploy to an existing preview site."
+          "description": "Optional public base for browsable app URLs when different from `url` (e.g. CDN or path-style gateway). The deploy API returns `urls` when possible."
         },
         "slug": {
           "type": "string",
-          "description": "Optional preview site slug. When set, redeploys to that slug (must belong to your company and user). When omitted, a new slug is created for each deploy."
+          "description": "Optional preview site slug. When set, `shellui deploy` redeploys to this slug (must belong to your company and user). When omitted, each deploy gets a new slug."
+        },
+        "app": {
+          "type": "string",
+          "deprecated": "Use `slug` instead."
         },
         "showInAdmin": {
           "type": "boolean",
@@ -391,7 +376,7 @@
       },
       "required": ["url"],
       "additionalProperties": false,
-      "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed. Admin shows Hosting when `url` is set, unless `showInAdmin` is false."
+      "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
     },
     "ThemeRef": {
       "anyOf": [
@@ -895,7 +880,7 @@
         },
         "loginUrl": {
           "type": "string",
-          "description": "Public origin (or URL) of this shell where /login and OAuth /login/callback live. Used by shellui login. Not the iframe admin app (adminUrl)."
+          "description": "Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live. Used by `shellui login`. Not the iframe admin app (`adminUrl`). Example: `https://app.example.com` or `http://127.0.0.1:4000`."
         },
         "publishableKey": {
           "type": "string",
@@ -938,11 +923,11 @@
         },
         "panelUrl": {
           "type": "string",
-          "description": "Full-bleed iframe URL for the login left panel. When set, takes precedence over panelImage."
+          "description": "Full-bleed iframe URL for the login left panel (wins over panelImage)."
         },
         "panelImage": {
           "type": "string",
-          "description": "Centered, ratio-preserving image path or URL for the login left panel (e.g. \"/login-panel.jpg\")."
+          "description": "Centered, ratio-preserving image for the login left panel."
         }
       },
       "additionalProperties": false,
@@ -1022,6 +1007,25 @@
         }
       },
       "additionalProperties": false
+    },
+    "DevConfig": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "Command to spawn in the project root (e.g. `vite`)."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL (or host:port) to wait for / follow."
+        },
+        "name": {
+          "type": "string",
+          "description": "Log prefix name (default: `app`)."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Companion process for local `shellui start` (not used at runtime in the shell)."
     }
   },
   "title": "ShellUIConfig",

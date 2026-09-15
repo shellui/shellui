@@ -1017,6 +1017,27 @@ html.shellui-theme-switching
   pointer-events: none;
 }
 
+/* Live drag / programmatic dismiss owns transform — skip CSS keyframes. */
+[data-sheet-content][data-mobile-sidebar-dragging='true'],
+[data-sheet-content][data-mobile-sidebar-dismissing='true'] {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-sheet-overlay][data-state='open'],
+  [data-sheet-overlay][data-state='closed'],
+  [data-sheet-content][data-side='left'][data-state='open'],
+  [data-sheet-content][data-side='left'][data-state='closed'],
+  [data-sheet-content][data-side='right'][data-state='open'],
+  [data-sheet-content][data-side='right'][data-state='closed'],
+  [data-sheet-content][data-side='top'][data-state='open'],
+  [data-sheet-content][data-side='top'][data-state='closed'],
+  [data-sheet-content][data-side='bottom'][data-state='open'],
+  [data-sheet-content][data-side='bottom'][data-state='closed'] {
+    animation: none !important;
+  }
+}
+
 /* Cookie consent dialog (bottom-left) animations */
 @keyframes cookie-dialog-content-in {
   from {

@@ -25,6 +25,8 @@ import { useSettings } from '../../settings/hooks/useSettings';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { useModal } from '../../modal/ModalContext';
 import { useDrawer } from '../../drawer/DrawerContext';
+import { useConfig } from '../../config/useConfig';
+import { normalizeMobileSidebarSize } from '../../../lib/mobile-sidebar-size';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { CollapsedDesktopTitlebar } from '../chrome/CollapsedDesktopTitlebar';
 import {
@@ -91,6 +93,7 @@ const SidebarLayoutContent = ({
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
+  const { config } = useConfig();
   const { navigationItem } = useNavigationItems();
   const isMobile = useIsMobile();
   const isTauriEnv = useIsTauriClient();
@@ -100,7 +103,7 @@ const SidebarLayoutContent = ({
     : undefined;
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
-
+  const defaultMobileSidebarSize = normalizeMobileSidebarSize(config.mobileSidebarSize);
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
   }, [i18n]);
@@ -158,7 +161,10 @@ const SidebarLayoutContent = ({
             : undefined
         }
       />
-      <SidebarProvider className="min-h-0 flex-1 overflow-hidden">
+      <SidebarProvider
+        className="min-h-0 flex-1 overflow-hidden"
+        defaultMobileSize={defaultMobileSidebarSize}
+      >
         <CloseMobileSidebarOnNavigate />
         <CloseMobileSidebarOnOverlay />
         <CollapsedTitlebarOffset />
