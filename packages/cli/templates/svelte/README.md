@@ -1,42 +1,24 @@
-# sv
+# Shellui SvelteKit companion
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+SvelteKit starter wired for Shellui via `@shellui/sdk/tiny` (client-only dynamic import for SSR safety).
 
-## Creating a project
+## Shellui integration
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Handshake: `shellui.ready` in `src/lib/shellui.js`
+- Theme: `shellui.applyTheme()` + `shellui.on('theme', …)`
+- Language: `shellui.on('language', …)` with `en` / `fr` sample strings (Svelte stores)
 
-```sh
-# create a new project
-npx sv create my-app
-```
+Change theme or language in Shell Settings to see the home page update.
 
-To recreate this project with the same configuration:
+## Scripts
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types jsdoc --no-install shellui-svelte
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+With Shellui (from the project root after `shellui init svelte`):
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+shellui start
+```

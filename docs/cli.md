@@ -45,8 +45,8 @@ The `init` command creates a new Shellui project with:
 
 2. **Framework scaffolding**:
    - **Empty shell**: Minimal `shellui.config.json` with placeholder static assets
-   - **React / Vue / Angular / Next.js / Nuxt / SvelteKit**: Official (or create-vite / ng new) starters with light `@shellui/sdk` wiring, fetched on-demand from GitHub
-   - **Flutter Web**: Official `flutter create --platforms=web` starter (**Web only** — not iOS/Android). Requires the Flutter SDK on PATH; init runs `flutter pub get` instead of npm
+   - **React / Vue / Angular / Next.js / Nuxt / SvelteKit**: Official (or create-vite / ng new) starters with `@shellui/sdk/tiny` handshake, shell **theme** sync (`applyTheme` + `on('theme')`), and **i18n** sync (`on('language')` with `en` / `fr` samples). Fetched on-demand from GitHub
+   - **Flutter Web**: Official `flutter create --platforms=web` starter (**Web only** — not iOS/Android). Requires the Flutter SDK on PATH; init runs `flutter pub get` instead of npm. **No Dart SDK yet** — theme/i18n/handshake are JS-only; see the Flutter template README
    - Templates are NOT bundled in the npm package - they are fetched from the repository tag matching the CLI version
    - Framework starters also wire `dev.run` / `dev.url` (and Home at shell `/` pointing at that URL) so `shellui start` launches the framework companion beside the shell. Empty stays shell-only (`Home` at `/`, no `dev` block).
    - After scaffolding a JS framework with `package.json`, init detects the package manager and runs install automatically (unless `--no-install`). `dev.run` matches the detected manager (e.g. `pnpm run dev`). Flutter uses a fixed `flutter run -d web-server ...` companion command.
