@@ -196,7 +196,14 @@
       "ollama": "Ollama models",
       "ollamaEmpty": "No Ollama models found. Install Ollama and pull a model, or turn Ollama on.",
       "browser": "Browser catalog",
-      "browserEmpty": "No browser models in the catalog."
+      "browserEmpty": "No browser models in the catalog.",
+      "status": {
+        "ready": "Ready",
+        "downloadable": "Not downloaded",
+        "downloading": "Downloading",
+        "needsWebGpu": "Needs WebGPU",
+        "unavailable": "Unavailable"
+      }
     },
     "details": {
       "title": "Details",

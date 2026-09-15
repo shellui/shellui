@@ -40,14 +40,32 @@ function StatusDot({ ok }: { ok: boolean }) {
   );
 }
 
+function modelStatusLabel(status: AiModel['status'], t: (key: string) => string): string {
+  switch (status) {
+    case 'ready':
+      return t('ai.models.status.ready');
+    case 'downloadable':
+      return t('ai.models.status.downloadable');
+    case 'downloading':
+      return t('ai.models.status.downloading');
+    case 'needs-webgpu':
+      return t('ai.models.status.needsWebGpu');
+    case 'unavailable':
+    default:
+      return t('ai.models.status.unavailable');
+  }
+}
+
 function ModelRows({
   models,
   locale,
   empty,
+  t,
 }: {
   models: AiModel[];
   locale: string;
   empty: string;
+  t: (key: string) => string;
 }) {
   if (models.length === 0) {
     return <p className="text-sm text-muted-foreground">{empty}</p>;
@@ -69,7 +87,7 @@ function ModelRows({
               ) : null}
             </div>
             <div className="shrink-0 space-y-0.5 text-right text-muted-foreground">
-              <p className="capitalize">{model.status}</p>
+              <p>{modelStatusLabel(model.status, t)}</p>
               {size ? <p className="tabular-nums text-xs">{size}</p> : null}
             </div>
           </li>
@@ -294,6 +312,7 @@ export const Ai = () => {
               models={ollamaModels}
               locale={locale}
               empty={t('ai.models.ollamaEmpty')}
+              t={t}
             />
           ) : null}
         </div>
@@ -319,6 +338,7 @@ export const Ai = () => {
               models={browserModels}
               locale={locale}
               empty={t('ai.models.browserEmpty')}
+              t={t}
             />
           ) : null}
         </div>

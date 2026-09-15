@@ -196,7 +196,14 @@
       "ollama": "Modèles Ollama",
       "ollamaEmpty": "Aucun modèle Ollama trouvé. Installez Ollama et tirez un modèle, ou activez Ollama.",
       "browser": "Catalogue navigateur",
-      "browserEmpty": "Aucun modèle navigateur dans le catalogue."
+      "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
+      "status": {
+        "ready": "Prêt",
+        "downloadable": "Non téléchargé",
+        "downloading": "Téléchargement",
+        "needsWebGpu": "WebGPU requis",
+        "unavailable": "Indisponible"
+      }
     },
     "details": {
       "title": "Détails",
