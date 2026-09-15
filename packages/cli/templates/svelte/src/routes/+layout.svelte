@@ -7,11 +7,19 @@
 	let { children } = $props();
 
 	onMount(() => {
+		let cancelled = false;
 		let stop = () => {};
 		void startShellui().then((unsubscribe) => {
+			if (cancelled) {
+				unsubscribe();
+				return;
+			}
 			stop = unsubscribe;
 		});
-		return () => stop();
+		return () => {
+			cancelled = true;
+			stop();
+		};
 	});
 </script>
 

@@ -22,6 +22,15 @@ export default defineNuxtPlugin(async () => {
   applyTheme();
   applyLanguage(shellui.language);
 
-  shellui.on('theme', applyTheme);
-  shellui.on('language', applyLanguage);
+  // App-lifetime: Nuxt client plugins normally live for the session; store
+  // off-handles so we can unsubscribe on HMR dispose instead of leaking.
+  const offTheme = shellui.on('theme', applyTheme);
+  const offLanguage = shellui.on('language', applyLanguage);
+
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      offTheme();
+      offLanguage();
+    });
+  }
 });
