@@ -152,7 +152,7 @@ const ensurePadStyles = () => {
 
 const scheduleLayoutChromeAnimations = () => {
   if (layoutChromeAnimateReady) return;
-  if (layoutChromeAnimateTimer != null) clearTimeout(layoutChromeAnimateTimer);
+  if (layoutChromeAnimateTimer !== null) clearTimeout(layoutChromeAnimateTimer);
   layoutChromeAnimateTimer = setTimeout(() => {
     layoutChromeAnimateReady = true;
     layoutChromeAnimateTimer = null;

@@ -258,7 +258,7 @@ export class ShellUISDK {
   /** Enable inset/pad transitions after boot-time chrome applies settle. */
   private _scheduleLayoutChromeAnimations(): void {
     if (this._layoutChromeAnimateReady || typeof window === 'undefined') return;
-    if (this._layoutChromeAnimateTimer != null) {
+    if (this._layoutChromeAnimateTimer !== null) {
       clearTimeout(this._layoutChromeAnimateTimer);
     }
     this._layoutChromeAnimateTimer = setTimeout(() => {

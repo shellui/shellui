@@ -199,7 +199,8 @@ export function applyLayoutChromeStyles(
     animate &&
     shouldPad &&
     hasPositiveInset(insets) &&
-    ((!bodyHadPad && Boolean(body)) || (options?.padTarget != null && !padTargetHadPad));
+    ((!bodyHadPad && Boolean(body)) ||
+      (options?.padTarget !== undefined && options.padTarget !== null && !padTargetHadPad));
   if (needsWarmup) {
     el.style.setProperty(LAYOUT_CHROME_CSS_VARS.top, '0px');
     el.style.setProperty(LAYOUT_CHROME_CSS_VARS.right, '0px');
