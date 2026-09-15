@@ -1,16 +1,14 @@
-# Shellui SDK
+---
+title: Call the iframe SDK
+sidebar_label: SDK
+description: 'Initialize @shellui/sdk in an embedded app for toasts, dialogs, overlays, storage, login, and settings.'
+---
 
-The Shellui SDK provides programmatic access to Shellui features from your JavaScript/TypeScript code.
+`@shellui/sdk` is how an iframe app talks to the shell (`init`, postMessage). Do not reach into host DOM. Theme, locale, toasts, dialogs, and overlays stay in host chrome. Call `init` before other full-SDK methods.
 
-## Installation
+## Tiny CDN script
 
-```bash
-npm install @shellui/sdk
-```
-
-## Tiny injectable (external sites)
-
-For pages that only need **theme**, **language/region**, and **navigation sync**, use the tiny CDN script (`shellui.tiny.js`, ~2 KB min / ~1 KB gzip). It auto-handshakes on load — no `init()` required.
+For pages that only need **theme**, **language/region**, **navigation**, and **layout chrome**, use `shellui.tiny.js` (~2 KB min / ~1 KB gzip). It handshakes on load - no `init()`.
 
 ```html
 <script
@@ -19,108 +17,91 @@ For pages that only need **theme**, **language/region**, and **navigation sync**
 ></script>
 <script>
   shellui.ready.then(() => {
-    console.log(shellui.theme?.mode, shellui.language, shellui.region?.timezone);
     shellui.applyTheme();
   });
-
   shellui.on('theme', () => shellui.applyTheme());
   shellui.navigate('/dashboard');
 </script>
 ```
 
-Or via the package subpath:
+Or the package subpath:
 
-```js
+```typescript
 import shellui from '@shellui/sdk/tiny';
 
 await shellui.ready;
 shellui.applyTheme();
 ```
 
-| Member                     | Description                                                                      |
+| Member                     | Role                                                                             |
 | -------------------------- | -------------------------------------------------------------------------------- |
-| `ready`                    | Promise resolved after handshake (or immediately outside an iframe)              |
+| `ready`                    | Promise after handshake (or immediately outside an iframe)                       |
 | `initialized`              | `boolean`                                                                        |
-| `theme`                    | Theme snapshot (`mode`, `colorScheme`, `colors`, fonts, …) or `null`             |
-| `language`                 | Language code (e.g. `"en"`) or `null`                                            |
+| `theme`                    | Snapshot (`mode`, `colorScheme`, `colors`, fonts) or `null`                      |
+| `language`                 | Language code (for example `"en"`) or `null`                                     |
 | `region`                   | `{ timezone }` or `null`                                                         |
-| `layoutChrome`             | Safe-inset snapshot from the shell (`insets`, `viewport`, …) or `null`           |
-| `on(event, cb)`            | `'ready'`, `'theme'`, `'language'`, `'region'`, `'chrome'` — unsubscribe         |
+| `layoutChrome`             | Safe-inset snapshot or `null`                                                    |
+| `on(event, cb)`            | `'ready'`, `'theme'`, `'language'`, `'region'`, `'chrome'` - returns unsubscribe |
 | `navigate(url)`            | Ask the shell to navigate                                                        |
 | `applyTheme(el?)`          | Write CSS variables on `el` (default `<html>`) and toggle `dark`                 |
-| `applyLayoutChrome(opts?)` | Write `--shellui-inset-*`; optional `.shellui-apply-layout-chrome-pad` on `body` |
+| `applyLayoutChrome(opts?)` | Write `--shellui-inset-*`; optional pad class on `body`                          |
 | `reportContentScroll(p)`   | Tell the shell about scroll (hide-on-scroll for floating)                        |
 
-URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** included — use the full SDK below for those.
+URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** in tiny - use the full SDK below.
 
-## Quick Start
+## Install and init
 
-```javascript
-import { shellui } from '@shellui/sdk';
-
-// Initialize the SDK
-await shellui.init();
-
-// Use SDK features
-shellui.toast({
-  title: 'Hello from SDK!',
-  type: 'success',
-});
+```bash
+npm install @shellui/sdk
 ```
 
-## Initialization
-
-### Basic Initialization
-
-```javascript
+```typescript
 import { shellui } from '@shellui/sdk';
 
-// Initialize SDK (required before using other features)
 await shellui.init();
+shellui.toast({ title: 'Hello from SDK', type: 'success' });
+```
 
-// Opt out of automatic body padding from layout chrome (floating safe insets):
+Opt out of automatic body padding from layout chrome:
+
+```typescript
 await shellui.init({ autoLayoutPadding: false });
 ```
 
-The SDK automatically detects if it's running in an iframe (sub-app) or the root window and handles communication accordingly.
+`shellui.initialized` is `true` after a successful `init`. Check it before calling APIs from late-mounting code.
 
-### Layout chrome (safe insets)
+## Layout chrome (safe insets)
 
-When the shell uses a floating layout (e.g. `floating`), it publishes safe insets to the **main layout** content iframe only (not modals / drawers). The iframe stays **100% × 100%**; padding is applied **inside** the app:
+Floating layout publishes `layoutChrome` to the **main** content iframe only (not modals / drawers). The iframe stays 100% × 100%; padding is applied **inside** the app.
 
-```javascript
-await shellui.init(); // auto-applies when layoutChrome.autoPadding is true
+```typescript
+await shellui.init();
 
 const chrome = shellui.getLayoutChrome();
-// { layout, viewport, insets: { top, right, bottom, left }, chromeVisible, autoPadding }
+// { layout, viewport, insets, chromeVisible, autoPadding }
 
-shellui.applyLayoutChrome(); // CSS vars + `.shellui-apply-layout-chrome-pad` on `body`
-shellui.applyLayoutChrome({ autoPadding: false }); // vars only
-
-// Nested overflow scroller (capture-phase window/document scroll is watched automatically):
-shellui.reportContentScroll({ scrollY: scroller.scrollTop, direction: 'down' });
+shellui.applyLayoutChrome();
+shellui.applyLayoutChrome({ autoPadding: false });
 ```
 
-CSS custom properties on `<html>`: `--shellui-inset-top`, `--shellui-inset-right`, `--shellui-inset-bottom`, `--shellui-inset-left`. Auto-padding adds the class `shellui-apply-layout-chrome-pad` on `document.body` (padding via those vars). Apps with a fixed `#root` should put that class on their scroll content (or read the vars) so the frame stays full-bleed under translucent chrome.
+CSS variables on `<html>`: `--shellui-inset-top`, `--shellui-inset-right`, `--shellui-inset-bottom`, `--shellui-inset-left`. Auto-padding adds `shellui-apply-layout-chrome-pad` on `document.body`. Apps with a fixed `#root` should put that class on the scroll content (or read the vars) so the frame stays full-bleed under translucent chrome.
 
-### Check Initialization Status
+The SDK watches capture-phase `window`/`document` scroll. For a nested overflow scroller, call:
 
-```javascript
-if (shellui.initialized) {
-  // SDK is ready
-  shellui.toast({ title: 'SDK Ready' });
-}
+```typescript
+shellui.reportContentScroll({
+  scrollY: scroller.scrollTop,
+  direction: 'down',
+});
 ```
 
-## Core Functions
+## Host chrome from the iframe
 
 ### Floating chrome actions
 
 Declare optional top/bottom action chrome owned by the shell (back, title, trailing, primary FAB):
 
-```javascript
-import { shellui } from '@shellui/sdk';
-
+```typescript
 await shellui.init();
 
 shellui.actions.set({
@@ -137,184 +118,112 @@ shellui.actions.set({
 shellui.actions.clear();
 ```
 
-#### `ChromeActionsSpec`
+| Field      | Type                                                          | Notes                                         |
+| ---------- | ------------------------------------------------------------- | --------------------------------------------- |
+| `back`     | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1                               |
+| `title`    | `string` \| `{ text: string }`                                | Optional; max 1                               |
+| `trailing` | `Array<{ id, label?, icon?, disabled?, animate?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`) |
+| `primary`  | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1 bottom FAB                    |
 
-| Field      | Type                                                          | Notes                                                           |
-| ---------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
-| `back`     | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1. Prefer caret UI (`icon: 'back'` or omit icon). |
-| `title`    | `string` \| `{ text: string }`                                | Optional; max 1.                                                |
-| `trailing` | `Array<{ id, label?, icon?, disabled?, animate?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`).                  |
-| `primary`  | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1 bottom FAB (`icon: 'plus'` is common).          |
+Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`, …).
 
-Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`, `edit`, `share`, `filter`, `archive`, `settings`, `delete`, `star`, `refresh`).
+Protocol: app → shell `SHELLUI_ACTIONS_SET` / `SHELLUI_ACTIONS_CLEAR`; shell → that iframe only `SHELLUI_ACTION` `{ id }` (SDK runs matching `onClick`). Types: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`.
 
-Use `disabled: true` to grey out a control. Use `animate: 'icon-rotate'` to spin the glyph (typical refresh / loading pattern — often paired with `disabled`).
+See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons.
 
-#### Protocol (for shell / playground integrators)
+### Toasts
 
-| Direction        | Message                 | Payload                                        |
-| ---------------- | ----------------------- | ---------------------------------------------- |
-| App → shell      | `SHELLUI_ACTIONS_SET`   | `ChromeActionsPayload` (no functions)          |
-| App → shell      | `SHELLUI_ACTIONS_CLEAR` | `{}`                                           |
-| Shell → app only | `SHELLUI_ACTION`        | `{ id: string }` → SDK runs matching `onClick` |
-
-Types exported from `@shellui/sdk`: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`, plus `CHROME_ACTIONS_MAX_TRAILING` / `CHROME_ACTIONS_VISIBLE_TRAILING`.
-
-See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons. The clickable product showcase belongs in [shellui/playground](https://github.com/shellui/playground).
-
-### Toast Notifications
-
-Show toast notifications:
-
-```javascript
-import { shellui } from '@shellui/sdk';
-
-// Simple toast
-shellui.toast({
-  title: 'Success!',
-  description: 'Operation completed.',
-  type: 'success',
-});
-
-// Toast with action
+```typescript
 const toastId = shellui.toast({
   title: 'File uploaded',
+  type: 'success',
   action: {
     label: 'View',
     onClick: () => {
-      console.log('View clicked');
+      shellui.navigate('/files');
     },
   },
 });
 
-// Update toast
 shellui.toast({
   id: toastId,
-  title: 'Upload complete!',
+  title: 'Upload complete',
   type: 'success',
 });
 ```
 
-See the [Toast Notifications guide](/features/toasts) for complete details.
+See [Toasts](/features/toasts).
 
-### Alert Dialogs
+### Dialogs
 
-Show alert dialogs:
-
-```javascript
+```typescript
 shellui.dialog({
-  title: 'Confirm Delete',
-  description: 'Are you sure you want to delete this item?',
+  title: 'Delete item',
+  description: 'This cannot be undone.',
   mode: 'okCancel',
   onOk: () => {
-    console.log('Confirmed');
-  },
-  onCancel: () => {
-    console.log('Cancelled');
+    void deleteItem();
   },
 });
 ```
 
-See the [Alert Dialogs guide](/features/dialogs) for complete details.
+See [Dialogs](/features/dialogs).
 
-### Modals
+### Modals and drawers
 
-Open URLs in modal overlays (desktop: centered dialog; mobile: bottom drawer):
-
-```javascript
-// Simple
-shellui.openModal('/settings');
-
-// Options
+```typescript
 shellui.openModal({
   url: 'https://example.com/form',
-  size: 'lg', // sm | md | lg | xl | full | content
-  dynamicSizing: false, // true → height follows iframe; disables manual resize
+  size: 'lg',
+  dynamicSizing: false,
   showCloseButton: true,
   dismissible: true,
   closeOnOverlayClick: true,
-  movable: true, // default — drag top edge (desktop/tablet)
-  resizable: true, // default — off when dynamicSizing
+  movable: true,
+  resizable: true,
 });
-
 shellui.closeModal();
-```
-
-### Drawers
-
-Open URLs in drawer panels (desktop/tablet: requested edge; mobile: bottom sheet):
-
-```javascript
-shellui.openDrawer({
-  url: '/sidebar',
-});
 
 shellui.openDrawer({
   url: '/filters',
   position: 'left',
-  size: 'md', // preset or CSS length e.g. '400px'
-  showCloseButton: true,
+  size: 'md',
   showDragHandle: true,
-  dismissible: true,
-  closeOnOverlayClick: true,
-  resizable: true, // default on desktop — off when dynamicSizing
+  resizable: true,
 });
-
 shellui.closeDrawer();
 ```
 
-On viewports below 768px, every `position` presents as a bottom sheet (same as mobile `openModal`).
+On viewports below 768px, every drawer `position` presents as a bottom sheet (same as mobile `openModal`). For content-sized overlays:
 
-### Overlay auto-size (iframe → shell)
-
-When the overlay is opened with `dynamicSizing: true` (or `size: 'content'`), the iframe reports its height over the message bus:
-
-```javascript
+```typescript
 await shellui.init();
-
-// Observe document size and report (ResizeObserver; immediate by default)
 shellui.overlay.autoSize({ observe: true });
-
-// Or one-shot
 shellui.overlay.reportSize({ height: 420 });
 ```
 
-Message type: `SHELLUI_OVERLAY_SIZE` with payload `{ version: 1, height, width?, overlayId? }`.
-See the [Modals & Drawers guide](/features/modals-drawers) for the full contract and fallback behavior.
+Message type `SHELLUI_OVERLAY_SIZE` with payload `{ version: 1, height, width?, overlayId? }`. See [Modals and drawers](/features/modals-drawers).
 
-### Navigation
+### Navigation and login
 
-Navigate programmatically:
-
-```javascript
-// Navigate to a route
+```typescript
 shellui.navigate('/dashboard');
-
-// Navigate to external URL (if configured in navigation)
 shellui.navigate('https://example.com/page');
-```
 
-**Note:** Navigation only works for URLs configured in your navigation configuration.
-
-### Login (iframe-safe OAuth)
-
-Request login from the shell (root window). This is useful when your page runs in an iframe and OAuth redirects must happen from the top-level frame.
-
-```javascript
 shellui.login({
   method: 'oauth',
   provider: 'github',
-  redirectPath: '/login', // optional, defaults to shell login route
+  redirectPath: '/login',
 });
 ```
 
-### Storage (files)
+Navigation applies to URLs configured in host navigation. `login` asks the **root** window to run OAuth so redirects are not trapped in the iframe. Methods: `oauth` (with `provider`) and `web3`.
 
-Upload, download, list, move, and rename files from an iframe app. The SDK forwards the request to the root shell, which calls storage-service using `storage.url` from `shellui.config.json`. See [Storage](/features/storage) for the full API.
+### Storage
 
-```javascript
-import { shellui } from '@shellui/sdk';
+The SDK forwards file calls to the root shell, which uses `storage.url` and the session token. Methods return `{ data, error }` (they do not throw). See [Storage](/features/storage).
 
+```typescript
 await shellui.init();
 
 const { data, error } = await shellui.storage
@@ -324,318 +233,94 @@ const { data, error } = await shellui.storage
 const { data: entries } = await shellui.storage.from('company').list('docs/reports');
 ```
 
-Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Use `{ folder: true }` on `move` / `rename` to move a whole folder.
+Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Pass `{ folder: true }` on `move` / `rename` to move a whole folder.
 
-### Storage picker
-
-Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
-
-```javascript
+```typescript
 const folders = await shellui.selectFolders({ multiple: true });
-if (folders) {
-  console.log(folders.items);
-}
-
 const files = await shellui.selectFiles({ multiple: true, folders: true });
 ```
 
-Each item includes a stable `id` (keep this so a rename still points at the same folder or file). See [Storage picker](/features/storage-picker).
+Each picked item includes a stable `id`. See [Storage picker](/features/storage-picker).
 
-## Message Passing
+## Settings and messages
 
-Shellui uses a message passing system for communication between the shell and sub-apps (iframes).
+After `init`, listen for settings (appearance, language, user, token):
 
-### Listening for Messages
-
-```javascript
-// Listen for a specific message type
-const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
-  const { settings } = data.payload;
-  console.log('Settings updated:', settings);
-  // Update your app based on new settings
+```typescript
+shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
+  const { settings } = data.payload as { settings?: Record<string, unknown> };
+  const colorScheme = (settings as { appearance?: { colorScheme?: string } })?.appearance
+    ?.colorScheme;
+  void colorScheme;
 });
-
-// Clean up listener when done
-cleanup();
 ```
 
-### Sending Messages
+Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`.
 
-```javascript
-// Send message to parent (if in iframe)
+```typescript
+const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
+  void data;
+});
+cleanup();
+
 shellui.sendMessageToParent({
   type: 'CUSTOM_MESSAGE',
   payload: { data: 'value' },
 });
 
-// Send message to all frames
 shellui.sendMessage({
   type: 'CUSTOM_MESSAGE',
   payload: { data: 'value' },
-});
-
-// Send message to specific frame
-shellui.sendMessage({
-  type: 'CUSTOM_MESSAGE',
-  payload: { data: 'value' },
-  to: ['frame-uuid-1', 'frame-uuid-2'],
+  to: ['frame-uuid-1'],
 });
 ```
 
-### Message Types
+Common types:
 
-Common Shellui message types:
+- `SHELLUI_URL_CHANGED`, `SHELLUI_SETTINGS`, `SHELLUI_SETTINGS_UPDATED`, `SHELLUI_SETTINGS_REQUESTED`
+- `SHELLUI_OPEN_MODAL`, `SHELLUI_CLOSE_MODAL`, `SHELLUI_OPEN_DRAWER`, `SHELLUI_CLOSE_DRAWER`, `SHELLUI_OVERLAY_SIZE`
+- `SHELLUI_NAVIGATE`, `SHELLUI_LOGIN`, `SHELLUI_INITIALIZED`
+- `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE`
+- `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT`
+- `SHELLUI_LAYOUT_CHROME`, `SHELLUI_CONTENT_SCROLL`
 
-- `SHELLUI_URL_CHANGED` - URL changed in shell
-- `SHELLUI_SETTINGS_UPDATED` - Settings were updated
-- `SHELLUI_OPEN_MODAL` - Modal opened
-- `SHELLUI_CLOSE_MODAL` - Modal closed
-- `SHELLUI_OPEN_DRAWER` - Drawer opened
-- `SHELLUI_CLOSE_DRAWER` - Drawer closed
-- `SHELLUI_OVERLAY_SIZE` - Iframe content size report for content-sized overlays
-- `SHELLUI_NAVIGATE` - Navigation requested
-- `SHELLUI_LOGIN` - Login requested from iframe (minimal payload: method, provider, optional redirectPath)
-- `SHELLUI_INITIALIZED` - SDK initialized
-- `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE` - File API (handled by the root shell)
-- `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT` - Storage picker (handled by the root shell)
-- `SHELLUI_LAYOUT_CHROME` - Shell → iframe layout chrome / safe insets update
-- `SHELLUI_CONTENT_SCROLL` - Iframe → shell scroll report (hide-on-scroll floating chrome)
-
-## Settings Access
-
-Access user settings:
-
-```javascript
-// Settings are available after initialization
-// They're automatically synced from the shell
-
-// Listen for settings updates
-shellui.addMessageListener('SHELLUI_SETTINGS', (data) => {
-  const { settings } = data.payload;
-  console.log('Current settings:', settings);
-
-  // Access specific settings (appearance has full theme values: name, colorScheme, mode, colors, etc.)
-  const colorScheme = settings.appearance?.colorScheme;
-  const themeValues = settings.appearance;
-  const language = settings.language?.code;
-  // Staff admin custom nav (from host `administration` config); null when unset
-  const adminNav = settings.administration;
-});
-```
-
-Host `administration` navigation is documented in [Administration panel](/features/administration). Host `storage` and `shellui.storage` are documented in [Storage](/features/storage); Settings → Storage is only shown when `storage.url` is set and `showInSettings` is not `false`.
-
-## Frame Management
-
-If you're working with iframes:
-
-```javascript
-// Add an iframe to the registry
-const iframe = document.createElement('iframe');
-iframe.src = '/sub-app';
-const frameId = shellui.addIframe(iframe);
-
-// Get frame UUID by window reference
-const uuid = shellui.getUuidByIframe(iframe.contentWindow);
-
-// Remove iframe
-shellui.removeIframe(frameId);
-// or
-shellui.removeIframe(iframe);
-```
-
-## Logging
-
-Use Shellui's logger:
-
-```javascript
-import { getLogger } from '@shellui/sdk';
-
-const logger = getLogger('my-app');
-
-logger.info('Application started');
-logger.warn('Deprecated feature used');
-logger.error('Error occurred', { error });
-logger.debug('Debug information', { data });
-```
-
-Logger namespaces:
-
-- `'shellsdk'` - SDK logging
-- `'shellcore'` - Core logging
-- Custom namespaces for your app
-
-## Version Information
-
-Get SDK version:
-
-```javascript
-import { getVersion } from '@shellui/sdk';
-
-const version = getVersion();
-console.log(`Shellui SDK version: ${version}`);
-```
-
-## Complete Example
-
-Here's a complete example integrating multiple SDK features:
-
-```javascript
-import { shellui, getLogger } from '@shellui/sdk';
-
-const logger = getLogger('my-app');
-
-async function initializeApp() {
-  // Initialize SDK
-  await shellui.init();
-  logger.info('SDK initialized');
-
-  // Listen for settings updates
-  shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
-    const { settings } = data.payload;
-    applyTheme(settings.appearance?.colorScheme);
-    applyLanguage(settings.language?.code);
-  });
-
-  // Listen for URL changes
-  shellui.addMessageListener('SHELLUI_URL_CHANGED', (data) => {
-    const { pathname } = data.payload;
-    logger.info('URL changed:', pathname);
-    updateActiveRoute(pathname);
-  });
-
-  // Show welcome toast
-  shellui.toast({
-    title: 'Welcome!',
-    description: 'Application loaded successfully.',
-    type: 'success',
-  });
-}
-
-function handleDelete(itemId) {
-  shellui.dialog({
-    title: 'Delete Item',
-    description: 'Are you sure you want to delete this item?',
-    mode: 'delete',
-    onOk: async () => {
-      try {
-        await deleteItem(itemId);
-        shellui.toast({
-          title: 'Item deleted',
-          type: 'success',
-        });
-      } catch (error) {
-        shellui.toast({
-          title: 'Failed to delete',
-          description: error.message,
-          type: 'error',
-        });
-      }
-    },
-    onCancel: () => {
-      // User cancelled
-    },
-  });
-}
-
-function openSettings() {
-  shellui.openModal('/settings');
-}
-
-function openFilters() {
-  shellui.openDrawer({
-    url: '/filters',
-    position: 'left',
-    size: '400px',
-  });
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeApp);
-} else {
-  initializeApp();
-}
-```
-
-## TypeScript Support
-
-The SDK includes TypeScript definitions:
+If you host nested iframes:
 
 ```typescript
-import { shellui, ToastOptions, DialogOptions } from '@shellui/sdk';
-
-const toastOptions: ToastOptions = {
-  title: 'Hello',
-  type: 'success',
-};
-
-shellui.toast(toastOptions);
-
-const dialogOptions: DialogOptions = {
-  title: 'Confirm',
-  mode: 'okCancel',
-  onOk: () => {},
-  onCancel: () => {},
-};
-
-shellui.dialog(dialogOptions);
+const frameId = shellui.addIframe(iframe);
+shellui.getUuidByIframe(iframe.contentWindow);
+shellui.removeIframe(frameId);
 ```
 
-## API Reference
+## Logging and version
 
-### Core Functions
+```typescript
+import { getLogger, getVersion } from '@shellui/sdk';
 
-- `shellui.init()` - Initialize the SDK
-- `shellui.getVersion()` - Get SDK version
-- `shellui.actions.set(spec)` / `shellui.actions.clear()` - Floating chrome actions (back / title / trailing / primary FAB)
-- `shellui.toast(options)` - Show toast notification
-- `shellui.dialog(options)` - Show alert dialog
-- `shellui.openModal(url | options)` - Open modal (responsive dialog / mobile drawer)
-- `shellui.closeModal()` - Close modal
-- `shellui.openDrawer(options)` - Open drawer (responsive edge / mobile bottom sheet)
-- `shellui.closeDrawer()` - Close drawer
-- `shellui.overlay.reportSize({ height })` - Report iframe content size
-- `shellui.overlay.autoSize({ observe })` - Observe and report content size
-- `shellui.navigate(url)` - Navigate programmatically
-- `shellui.login(options)` - Request root-shell login
-- `shellui.storage` - File API (`from(bucket).upload`, `download`, `list`, `move`, `rename`, …)
-- `shellui.selectFolders(options)` - Open a folder picker modal
-- `shellui.selectFiles(options)` - Open a file picker modal (`{ folders: true }` also allows folders)
+const logger = getLogger('my-app');
+logger.info('Application started');
+const version = getVersion();
+```
 
-### Message Functions
+Namespaces: `'shellsdk'`, `'shellcore'`, plus names you pass to `getLogger`.
 
-- `shellui.addMessageListener(type, listener)` - Add message listener
-- `shellui.removeMessageListener(type, listener)` - Remove message listener
-- `shellui.sendMessage(message)` - Send message to all frames
-- `shellui.sendMessageToParent(message)` - Send message to parent
-- `shellui.propagateMessage(message)` - Propagate message to all frames
+## API surface
 
-### Frame Functions
+**Chrome:** `init`, `actions.set` / `actions.clear`, `toast`, `dialog`, `openModal` / `closeModal`, `openDrawer` / `closeDrawer`, `overlay.reportSize` / `overlay.autoSize`, `navigate`, `login`, `getLayoutChrome`, `applyLayoutChrome`, `reportContentScroll`.
 
-- `shellui.addIframe(iframe)` - Add iframe to registry
-- `shellui.removeIframe(identifier)` - Remove iframe
-- `shellui.getUuidByIframe(windowRef)` - Get frame UUID
+**Storage:** `storage`, `selectFolders`, `selectFiles`, `selectStorage`.
 
-### Utility Functions
+**Bus:** `addMessageListener`, `removeMessageListener`, `sendMessage`, `sendMessageToParent`, `propagateMessage`.
 
-- `getLogger(namespace)` - Get logger instance
-- `getVersion()` - Get SDK version
+**Frames:** `addIframe`, `removeIframe`, `getUuidByIframe`.
 
-## Best Practices
+**Utils:** `getLogger`, `getVersion` (also `shellui.getVersion()`).
 
-1. **Always initialize**: Call `shellui.init()` before using other features
-2. **Clean up listeners**: Remove message listeners when components unmount
-3. **Handle errors**: Wrap SDK calls in try-catch blocks
-4. **Check context**: Verify you're in the right context (iframe vs root) if needed
-5. **Use TypeScript**: Take advantage of TypeScript definitions for type safety
+Prefer TypeScript types from `@shellui/sdk` (`ToastOptions`, `DialogOptions`, `OpenModalOptions`, …). Remove message listeners when a component unmounts. Wrap async SDK calls in your own error handling.
 
-## Related Guides
+## Related pages
 
-- [Toast Notifications](/features/toasts) - Detailed toast guide
-- [Alert Dialogs](/features/dialogs) - Detailed dialog guide
-- [Modals & Drawers](/features/modals-drawers) - Modal and drawer guide
-- [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
-- [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
-- [Navigation](/features/navigation) - Navigation configuration
-- [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app) - Same-package CLI + Vite app (playground)
+- [Toasts](/features/toasts), [Dialogs](/features/dialogs), [Floating chrome actions](/features/chrome-actions), [Modals and drawers](/features/modals-drawers)
+- [Storage](/features/storage), [Storage picker](/features/storage-picker)
+- [Navigation](/features/navigation)
+- [Create a project - shell plus an iframe app](/quickstart#shell-plus-an-iframe-app)

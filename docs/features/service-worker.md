@@ -1,181 +1,41 @@
-# Service Worker
+---
+title: Enable the service worker
+sidebar_label: Service Worker
+description: 'Opt in to production caching and update toasts from Settings → Advanced → Service Worker.'
+---
 
-Shellui includes a service worker that provides offline support, automatic app updates, and intelligent caching strategies.
+The shell can register a service worker that precaches build assets, uses network-first navigation, and shows update toasts. It is **opt-in**: `settings.serviceWorker.enabled` defaults to `false`. Turn it on in **Settings → Advanced → Service Worker**. Registration also requires a non-empty `navigation` array. Tauri desktop (`--app` / `--target tauri`) unregisters the worker; the desktop wrapper has its own cache.
 
-## Overview
+The CLI still **builds** `sw.js` for web (`shellui build`, and a dev plugin for `shellui start`). Building the file is not the same as registering it.
 
-The service worker:
+## User controls
 
-- **Caches assets** for offline access
-- **Detects updates** automatically
-- **Notifies users** when updates are available
-- **Updates seamlessly** on page refresh
-- **Works in production** builds only (disabled in development)
+In Settings → Advanced → Service Worker you can:
 
-## Automatic Registration
+- Enable or disable registration
+- See whether the worker is registered
+- Check for updates
+- Unregister
+- Clear app caches (when the panel exposes it)
 
-The service worker is automatically registered when:
+Toasts when a new worker is waiting use copy such as "A new version is available. Refresh to update." Users can refresh immediately or wait until the next load. After refresh, a waiting worker activates.
 
-- Running in production build
-- Navigation items are configured
-- Not running in Tauri (desktop apps use different caching)
+## Caching
 
-No configuration needed - it works out of the box!
+| Kind                                            | Strategy                                      |
+| ----------------------------------------------- | --------------------------------------------- |
+| Precache (HTML, CSS, JS, images from the build) | Cache-first with network fallback, on install |
+| Navigation                                      | Network-first with cache fallback             |
+| API requests                                    | Network-first (not cached by default)         |
 
-## Update Detection
+When offline, cached assets and pages can still load. Do not assume background sync or queued writes unless you implement that in your iframe app.
 
-Shellui automatically detects when a new version of your app is available:
+## Troubleshoot registration
 
-1. **Background Check**: Service worker checks for updates in the background
-2. **Update Found**: When an update is detected, a notification appears
-3. **User Choice**: User can update now or later
-4. **Automatic Update**: On page refresh, the new version activates automatically
+Confirm you enabled the toggle, `navigation` is non-empty, you are not in Tauri, and `sw.js` is deployed next to the site. If the worker is stuck, unregister from Settings, refresh, then enable again. In local `shellui start`, HMR is the primary workflow; treat the service worker as a production concern even though `sw.js` may exist in dev.
 
-## Update Notifications
+`config.version` can be shown in Settings → System → Update app so you can tell builds apart.
 
-Users see toast notifications when updates are available:
+## Related pages
 
-- **Update Available**: "A new version is available. Refresh to update."
-- **Update Installed**: "Update installed. Refresh to activate."
-
-Users can:
-
-- Click "Refresh" to update immediately
-- Dismiss and update later (updates automatically on next page load)
-
-## User Controls
-
-Users can control the service worker in Settings > Advanced > Service Worker:
-
-- **Enable/Disable**: Toggle service worker on or off
-- **Status**: See current registration status
-- **Update Check**: Manually check for updates
-- **Unregister**: Remove service worker (if needed)
-
-## Caching Strategies
-
-Shellui uses intelligent caching strategies:
-
-### Precache
-
-- **What**: All assets generated during build (HTML, CSS, JS, images)
-- **Strategy**: Cache-first with network fallback
-- **When**: On service worker installation
-
-### Navigation
-
-- **What**: HTML pages and routes
-- **Strategy**: Network-first with cache fallback
-- **When**: User navigates to a route
-
-### API Calls
-
-- **What**: External API requests
-- **Strategy**: Network-first (not cached by default)
-- **When**: API requests are made
-
-## Offline Support
-
-When offline, Shellui:
-
-- Serves cached assets
-- Shows cached pages
-- Displays offline indicators (if configured)
-- Queues actions for when connection is restored
-
-## Configuration
-
-### Disable Service Worker
-
-Disable the service worker via user settings (Settings > Advanced > Service Worker).
-
-For Tauri desktop builds, the service worker is disabled automatically when you use `shellui dev --app` or `shellui build --app` — no config change required.
-
-### Tauri Desktop Builds
-
-When building or developing with `--app`, the CLI injects a Tauri build target at compile time. The service worker stays enabled for normal web builds (`shellui dev`, `shellui build`) using the same `shellui.config.json`.
-
-Tauri uses its own caching system, so the service worker is not needed in desktop builds.
-
-## Update Behavior
-
-### Automatic Updates
-
-On page refresh, Shellui automatically:
-
-1. Checks for waiting service worker
-2. Activates the new version
-3. Reloads the page with the new version
-
-This ensures users always get the latest version after refreshing.
-
-### Manual Updates
-
-Users can manually update:
-
-1. Go to Settings > Advanced > Service Worker
-2. Click "Check for Updates"
-3. If an update is available, click "Refresh" when prompted
-
-## Service Worker Lifecycle
-
-1. **Installation**: Service worker installs and caches assets
-2. **Activation**: Service worker activates and takes control
-3. **Update Check**: Periodically checks for new versions
-4. **Update Found**: New service worker installs in background
-5. **Waiting**: New service worker waits for page refresh
-6. **Activation**: On refresh, new service worker activates
-
-## Best Practices
-
-1. **Let it work**: Service worker works automatically - no configuration needed
-2. **Test updates**: Test your update flow before deploying
-3. **Version your builds**: Use version numbers or build IDs to track updates
-4. **Inform users**: Let users know when updates are available
-5. **Handle offline**: Design your app to work offline when possible
-
-## Troubleshooting
-
-### Service Worker Not Registering
-
-**Check:**
-
-- Are you running a production build? (Service worker is disabled in development)
-- Do you have navigation items configured?
-- Are you running in Tauri? (Service worker is disabled)
-
-### Updates Not Detecting
-
-**Check:**
-
-- Is the service worker file (`sw.js`) being generated?
-- Are you deploying new builds correctly?
-- Is the browser cache cleared?
-
-### Service Worker Stuck
-
-**Solution:**
-
-1. Go to Settings > Advanced > Service Worker
-2. Click "Unregister"
-3. Refresh the page
-4. Service worker will re-register
-
-## Development vs Production
-
-### Development
-
-- Service worker is **disabled** by default
-- Hot module replacement works normally
-- No caching interference
-
-### Production
-
-- Service worker is **enabled** automatically
-- Assets are cached for offline access
-- Updates are detected automatically
-
-## Related Guides
-
-- [CLI Reference](/cli) - Building for production
-- [Tauri Integration](/tauri) - Desktop apps (service worker disabled)
+- [CLI](/cli), [Desktop app](/tauri)

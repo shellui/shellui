@@ -1,6 +1,6 @@
 # @shellui/sdk
 
-Shellui SDK — JavaScript SDK for Shellui integration.
+JavaScript/TypeScript SDK for iframe apps hosted in Shellui. Call `init`, then use host chrome (toasts, dialogs, overlays) and storage. Do not reach into host DOM.
 
 ## Installation
 
@@ -10,7 +10,7 @@ npm install @shellui/sdk
 
 ## Full SDK
 
-```javascript
+```typescript
 import { shellui } from '@shellui/sdk';
 
 await shellui.init();
@@ -19,7 +19,7 @@ shellui.toast({ title: 'Hello', type: 'success' });
 
 ## Tiny CDN script
 
-For external sites that only need theme, language/region, and navigation sync, use the tiny injectable (~2 KB):
+For external pages that only need theme, language/region, navigation, and layout chrome (~2 KB min):
 
 ```html
 <script
@@ -34,11 +34,11 @@ For external sites that only need theme, language/region, and navigation sync, u
 
 Or via npm:
 
-```js
+```typescript
 import shellui from '@shellui/sdk/tiny';
 ```
 
-See the [SDK docs](https://docs.shellui.com/sdk) for the full API and tiny section.
+API reference: [SDK docs](https://docs.shellui.com/sdk).
 
 ## License
 

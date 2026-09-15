@@ -11,13 +11,14 @@ import {
 import { DEFAULT_SHELLUI_BACKEND_URL } from '../registry.js';
 
 describe('parseInitArgs', () => {
-  test('treats framework ids as shortcuts including next/nuxt/svelte/flutter', () => {
+  test('treats framework ids as shortcuts including next/nuxt/svelte/alpine/flutter', () => {
     expect(parseInitArgs('react')).toEqual({ root: '.', frameworkShortcut: 'react' });
     expect(parseInitArgs('vue')).toEqual({ root: '.', frameworkShortcut: 'vue' });
     expect(parseInitArgs('angular')).toEqual({ root: '.', frameworkShortcut: 'angular' });
     expect(parseInitArgs('next')).toEqual({ root: '.', frameworkShortcut: 'next' });
     expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
     expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
+    expect(parseInitArgs('alpine')).toEqual({ root: '.', frameworkShortcut: 'alpine' });
     expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
   });
@@ -159,6 +160,7 @@ describe('buildInitConfig / companion wiring', () => {
     ['next', 'http://localhost:3000'],
     ['nuxt', 'http://localhost:3000'],
     ['svelte', 'http://localhost:5173'],
+    ['alpine', 'http://localhost:5173'],
   ])('%s wires dev.run/url/name and Home to companion origin', (framework, companionUrl) => {
     const config = buildInitConfig({ framework, backend: 'none' });
     expect(config.port).toBe(4000);
@@ -209,5 +211,11 @@ describe('buildInitConfig / companion wiring', () => {
     });
     expect(config.dev.run).toBe('pnpm run dev');
     expect(config.navigation.find((n) => n.path === '').path).toBe('');
+  });
+
+  test('alpine enables en/fr shell language for sample i18n UI', () => {
+    const config = buildInitConfig({ framework: 'alpine', backend: 'none' });
+    expect(config.language).toEqual(['en', 'fr']);
+    expect(config.dev.name).toBe('alpine');
   });
 });

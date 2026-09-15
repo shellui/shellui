@@ -1,26 +1,16 @@
-# Legal documents
+---
+title: Publish legal documents
+sidebar_label: Legal Documents
+description: 'Put privacy, terms, legal notice, and DPA markdown in legalDocuments so the shell serves public /legal routes.'
+---
 
-Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in your Shellui config. Shellui renders the content in the shell—no separate legal site or navigation item is required.
+Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in config. The shell renders them - no separate legal site or navigation item. Pages are **public** (no sign-in) on dedicated routes outside the main layout. Signed-in users can also open the same content from Settings.
 
-Legal pages are **public**: they work without sign-in and sit on dedicated routes outside the main app layout (no sidebar). Signed-in users can also open the same content from **Settings**.
-
-## What Shellui does in the UI
-
-When at least one document has non-empty markdown, Shellui:
-
-- Registers **public routes** under `/legal` for the index and each configured document.
-- Shows **footer links** on the login page (root window only, not when login runs inside an iframe).
-- Adds **Settings → System → Legal documents** with a tab per document and inline markdown preview.
-
-If every key is missing or empty, legal routes stay registered but show “not configured” copy, login footer links are hidden, and the Settings entry is omitted.
+When at least one document has non-empty markdown, the shell registers `/legal` routes, shows footer links on the top-level login page, and adds **Settings → System → Legal documents**. If every key is missing or empty, routes still exist with "not configured" copy, login footer links are hidden, and the Settings entry is omitted.
 
 ## Configuration
 
-Add `legalDocuments` to `shellui.config.json` (recommended) or an advanced `shellui.config.ts`. Each property is a **markdown string** loaded at config read time (not a URL).
-
-### JSON config (recommended)
-
-Inline markdown strings (or generate the JSON in a small build step):
+Each property is a **markdown string** loaded when config is read (not a URL). JSON:
 
 ```json
 {
@@ -33,9 +23,7 @@ Inline markdown strings (or generate the JSON in a small build step):
 }
 ```
 
-### Advanced TypeScript with files on disk
-
-Keep long text in `legal/*.md` and load it when the TypeScript config is evaluated (`shellui.config.ts` is used only when no JSON/split config is present):
+TypeScript config (only when no JSON/split file is present) can `readFileSync` files from disk:
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -57,79 +45,29 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-### Supported keys
-
-| Config key                | Default title in UI       | Public path                        |
+| Config key                | Default title             | Public path                        |
 | ------------------------- | ------------------------- | ---------------------------------- |
 | `privacyPolicy`           | Privacy Policy            | `/legal/privacy-policy`            |
 | `termsOfService`          | Terms of Service          | `/legal/terms-of-service`          |
 | `legalNotice`             | Legal Notice              | `/legal/legal-notice`              |
 | `dataProcessingAgreement` | Data Processing Agreement | `/legal/data-processing-agreement` |
 
-Types are defined as `LegalDocumentsConfig` on `ShellUIConfig` in `@shellui/core`.
+Type: `LegalDocumentsConfig`. Omit keys or pass `""`. `getLegalDocuments()` keeps entries whose trimmed value is non-empty.
 
-### Partial configuration
+## How people open them
 
-Omit keys you do not need, or pass an empty string. `getLegalDocuments()` only includes entries whose value is a non-empty string after `trim()`. Those documents are excluded from login links, the `/legal` index list, and Settings tabs.
+| Path                               | View                          |
+| ---------------------------------- | ----------------------------- |
+| `/legal`                           | Index of configured documents |
+| `/legal/privacy-policy`            | Privacy Policy                |
+| `/legal/terms-of-service`          | Terms of Service              |
+| `/legal/legal-notice`              | Legal Notice                  |
+| `/legal/data-processing-agreement` | Data Processing Agreement     |
 
-## How users open legal content
+Document pages include **Back to login**. These routes are not in `navigation` and are not iframe targets.
 
-### Direct URLs
+On `/login`, configured documents appear as footer links (root window only - not when login is in an iframe). Settings: `/__settings/legal-documents` when at least one document exists. Labels follow `settings.routes.legalDocuments`.
 
-Share or link to these paths on the shell origin (for example `http://localhost:4000` in development):
+Content uses `react-markdown` and Shellui typography. Markdown links open in a new tab with `rel="noreferrer"`. Breadcrumbs (**Legal documents** → title) hide when the view is inside an iframe.
 
-| Path                               | View                                    |
-| ---------------------------------- | --------------------------------------- |
-| `/legal`                           | Index listing every configured document |
-| `/legal/privacy-policy`            | Privacy Policy                          |
-| `/legal/terms-of-service`          | Terms of Service                        |
-| `/legal/legal-notice`              | Legal Notice                            |
-| `/legal/data-processing-agreement` | Data Processing Agreement               |
-
-Document pages include a **Back to login** link. The index page lists documents and also links back to `/login`.
-
-These routes are **not** part of your `navigation` array. They do not appear in the sidebar and are not iframe targets for microfrontends.
-
-### Login page
-
-On `/login`, configured documents appear as small text links in a footer below the sign-in form. Links use in-app routing (`react-router`) to the `/legal/...` paths.
-
-The footer is rendered only in the **top-level** login view (`window.parent === window`). If login is embedded in an iframe, legal links are not shown on that surface.
-
-### Settings
-
-Open the built-in settings route (default `/__settings`), then **System → Legal documents** (`/__settings/legal-documents`).
-
-The panel shows one button per document; the selected document’s markdown is rendered below. This route appears only when `getLegalDocuments(config)` returns at least one document.
-
-Settings labels follow the active locale (`settings.routes.legalDocuments` in English and French).
-
-## Markdown rendering
-
-Content is rendered with `react-markdown` and Shellui typography (headings, paragraphs, lists, blockquotes, inline code). Links in markdown open in a new tab with `rel="noreferrer"`.
-
-On standalone legal and settings views, a breadcrumb links **Legal documents** → document title. Breadcrumbs are hidden when the content is shown inside an iframe.
-
-Use markdown headings (`#`, `##`, `###`) to structure long policy text. The renderer supplies document-level styling; you do not need to ship CSS for legal pages.
-
-## Recommended project layout
-
-```text
-your-app/
-├── shellui.config.json   # or shellui.config.ts for readFileSync loading
-└── legal/
-    ├── privacy-policy.md
-    ├── terms-of-service.md
-    ├── legal-notice.md
-    └── data-processing-agreement.md
-```
-
-After editing markdown or config, restart or rely on config watch (`shellui start`) so the dev server reloads the configuration.
-
-## Related guides
-
-- [Authentication](/features/authentication) — login page and `/login` route
-- [Application settings](/features/application-settings) — per-app panels under Settings
-- [Storage](/features/storage) — Settings → Storage (only when `storage` is configured)
-- [Quick Start](/quickstart) — `legalDocuments` in the config overview
-- [CLI](/cli) — configuration file format
+After editing markdown or config, rely on `shellui start` config watch or restart the CLI.

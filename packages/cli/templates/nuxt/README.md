@@ -1,75 +1,26 @@
-# Nuxt Minimal Starter
+# Shellui Nuxt companion
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Nuxt starter wired for Shellui via `@shellui/sdk/tiny` (client-only dynamic import).
 
-## Setup
+## Shellui integration
 
-Make sure to install dependencies:
+- Handshake: `shellui.ready` in `useShellui`
+- Theme: `shellui.applyTheme()` + `shellui.on('theme', …)`
+- Language: `shellui.on('language', …)` with `en` / `fr` sample strings
 
-```bash
-# npm
-npm install
+Change theme or language in Shell Settings to see the home page update.
 
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
-```
-
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+## Scripts
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-# npm
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+Dev server is pinned to port **3000** (`nuxt.config.ts`) so `shellui.config.json` `dev.url` matches.
+
+With Shellui (from the project root after `shellui init nuxt`):
 
 ```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+shellui start
 ```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

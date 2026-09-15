@@ -3,7 +3,7 @@
  * Add new starters / backends here — the wizard, flags, and tests all read this registry.
  */
 
-/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter' | 'other'} FrameworkId */
+/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter' | 'other'} FrameworkId */
 /** @typedef {'none' | 'shellui' | 'supabase'} BackendId */
 
 /**
@@ -88,6 +88,13 @@ export const FRAMEWORKS = [
     positional: true,
   },
   {
+    id: 'alpine',
+    label: 'Alpine.js (Vite)',
+    hint: 'Official Alpine npm + Vite starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
     id: 'flutter',
     label: 'Flutter Web',
     hint: 'Web only (not iOS/Android) — requires Flutter SDK',
@@ -134,7 +141,7 @@ export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 
  * Companion `dev` + Home iframe URL for framework starters.
  * Shell stays on port 4000; Vite apps use 5173, Angular 4200, Next/Nuxt 3000, Flutter Web 8080.
  * For npm-based frameworks, `run` is rewritten to `{detectedPm} run dev` unless `fixedRun`.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', FrameworkCompanion>}
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', FrameworkCompanion>}
  */
 export const FRAMEWORK_COMPANIONS = {
   react: {
@@ -176,6 +183,13 @@ export const FRAMEWORK_COMPANIONS = {
     run: 'npm run dev',
     url: 'http://localhost:5173',
     name: 'svelte',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  alpine: {
+    run: 'npm run dev',
+    url: 'http://localhost:5173',
+    name: 'alpine',
     install: 'npm',
     manifest: 'package.json',
   },
@@ -240,8 +254,8 @@ export function getBackendPromptOptions() {
 /**
  * Relative paths fetched for each on-demand framework template.
  * Kept here so registry + fetch layer stay aligned.
- * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / flutter create.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', string[]>}
+ * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / Alpine npm+Vite / flutter create.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', string[]>}
  */
 export const TEMPLATE_FILES = {
   react: [
@@ -256,6 +270,8 @@ export const TEMPLATE_FILES = {
     'src/App.jsx',
     'src/App.css',
     'src/index.css',
+    'src/i18n.js',
+    'src/useShellui.js',
     'src/assets/hero.png',
     'src/assets/react.svg',
     'src/assets/vite.svg',
@@ -273,7 +289,8 @@ export const TEMPLATE_FILES = {
     'src/main.js',
     'src/App.vue',
     'src/style.css',
-    'src/components/HelloWorld.vue',
+    'src/i18n.js',
+    'src/composables/useShellui.js',
     'src/assets/hero.png',
     'src/assets/vite.svg',
     'src/assets/vue.svg',
@@ -298,6 +315,8 @@ export const TEMPLATE_FILES = {
     'src/app/app.component.html',
     'src/app/app.component.css',
     'src/app/app.component.spec.ts',
+    'src/app/i18n.ts',
+    'src/app/shellui.service.ts',
     'static/favicon.ico',
     'static/favicon.svg',
     'static/logo.svg',
@@ -315,7 +334,8 @@ export const TEMPLATE_FILES = {
     'app/page.module.css',
     'app/globals.css',
     'app/favicon.ico',
-    'app/shellui-client.js',
+    'app/home.js',
+    'app/i18n.js',
     'public/next.svg',
     'public/vercel.svg',
     'public/file.svg',
@@ -331,6 +351,8 @@ export const TEMPLATE_FILES = {
     'README.md',
     '.gitignore',
     'app/app.vue',
+    'app/i18n.ts',
+    'app/composables/useShellui.ts',
     'app/plugins/shellui.client.ts',
     'public/favicon.ico',
     'public/robots.txt',
@@ -347,12 +369,28 @@ export const TEMPLATE_FILES = {
     '.gitignore',
     '.vscode/extensions.json',
     'src/app.html',
+    'src/app.css',
     'src/app.d.ts',
     'src/lib/index.js',
+    'src/lib/i18n.js',
+    'src/lib/shellui.js',
     'src/lib/assets/favicon.svg',
     'src/routes/+layout.svelte',
     'src/routes/+page.svelte',
     'static/robots.txt',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  alpine: [
+    'package.json',
+    'index.html',
+    'vite.config.js',
+    'README.md',
+    '.gitignore',
+    'public/favicon.svg',
+    'src/main.js',
+    'src/i18n.js',
+    'src/style.css',
     'static/favicon.svg',
     'static/logo.svg',
   ],

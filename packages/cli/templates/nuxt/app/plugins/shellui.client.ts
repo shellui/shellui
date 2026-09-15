@@ -1,5 +1,36 @@
-// Client-only plugin (.client.ts) — light Shellui host handshake when embedded.
+import { normalizeLang, type AppLang } from '../i18n';
+
+/**
+ * Client-only plugin: Shellui handshake + theme/language sync (tiny SDK).
+ */
 export default defineNuxtPlugin(async () => {
+  const theme = useState<Record<string, unknown> | null>('shellui-theme', () => null);
+  const language = useState<AppLang>('shellui-language', () => 'en');
+
   const { shellui } = await import('@shellui/sdk/tiny');
-  void shellui.ready;
+
+  const applyTheme = () => {
+    shellui.applyTheme();
+    theme.value = shellui.theme as Record<string, unknown> | null;
+  };
+
+  const applyLanguage = (code: string | null) => {
+    language.value = normalizeLang(code);
+  };
+
+  await shellui.ready;
+  applyTheme();
+  applyLanguage(shellui.language);
+
+  // App-lifetime: Nuxt client plugins normally live for the session; store
+  // off-handles so we can unsubscribe on HMR dispose instead of leaking.
+  const offTheme = shellui.on('theme', applyTheme);
+  const offLanguage = shellui.on('language', applyLanguage);
+
+  if (import.meta.hot) {
+    import.meta.hot.dispose(() => {
+      offTheme();
+      offLanguage();
+    });
+  }
 });
