@@ -4,8 +4,9 @@ import { normalizeLang, t } from './i18n';
 import './style.css';
 
 /**
- * Shellui host sync for Alpine — mirrors the React starter’s useShellui pattern:
- * ready → applyTheme + language; subscribe to theme / language events.
+ * Shellui host sync for Alpine: after `shellui.ready`, apply the shell theme and
+ * language, then keep both in sync via `on('theme'|'language')`.
+ * (More than the light `void shellui.ready` handshake in other starters.)
  */
 function shelluiHome() {
   return {
@@ -27,13 +28,13 @@ function shelluiHome() {
         applyLanguage(shellui.language);
       });
 
-      this._offTheme = shellui.on('theme', applyTheme);
-      this._offLanguage = shellui.on('language', applyLanguage);
-    },
-
-    destroy() {
-      this._offTheme?.();
-      this._offLanguage?.();
+      const offTheme = shellui.on('theme', applyTheme);
+      const offLanguage = shellui.on('language', applyLanguage);
+      // Keep unsubscribers off the reactive proxy; tear down with the element.
+      this.$cleanup(() => {
+        offTheme();
+        offLanguage();
+      });
     },
 
     t(key) {
@@ -54,5 +55,11 @@ function shelluiHome() {
 }
 
 window.Alpine = Alpine;
+
+// Alpine has no built-in `$cleanup`; expose element teardown for `init()`.
+Alpine.magic('cleanup', (_el, { cleanup }) => (fn) => {
+  cleanup(fn);
+});
+
 Alpine.data('shelluiHome', shelluiHome);
 Alpine.start();
