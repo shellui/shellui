@@ -6,7 +6,13 @@ Official `flutter create --platforms=web --empty` starter for use as a Shellui c
 
 ## Shellui SDK status
 
-There is **no** `@shellui/sdk` / Dart handshake yet (JS starters call `shellui.ready`; Flutter does not). This template only provides a Web companion that Shellui can iframe. Theme / chrome padding / URL sync from the shell will come later when a Dart SDK exists.
+There is **no** `@shellui/sdk` / Dart client yet. JS framework starters (`react`, `vue`, `angular`, `next`, `nuxt`, `svelte`) use `@shellui/sdk/tiny` for:
+
+- handshake (`shellui.ready`)
+- theme sync (`applyTheme` + `on('theme')`)
+- language sync (`on('language')` with `en` / `fr`)
+
+This Flutter Web template only provides a companion the shell can iframe. It does **not** invent a postMessage bridge or Dart SDK. Theme / i18n / chrome padding / URL sync will land when a Dart SDK exists.
 
 ## Run with Shellui
 

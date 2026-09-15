@@ -1,16 +1,24 @@
-# React + Vite
+# Shellui React companion
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Vite + React starter wired for Shellui via `@shellui/sdk/tiny`.
 
-Currently, two official plugins are available:
+## Shellui integration
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Handshake: `shellui.ready` (via `useShellui`)
+- Theme: `shellui.applyTheme()` + `shellui.on('theme', …)`
+- Language: `shellui.on('language', …)` with `en` / `fr` sample strings (i18next)
 
-## React Compiler
+Change theme or language in Shell Settings to see the home page update.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Scripts
 
-## Expanding the Oxlint configuration
+```bash
+npm run dev
+npm run build
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+With Shellui (from the project root after `shellui init react`):
+
+```bash
+shellui start
+```

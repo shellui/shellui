@@ -168,9 +168,11 @@ describe('initCommand (non-interactive)', () => {
     expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'react.svg'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'hero.png'))).toBe(true);
     const app = fs.readFileSync(path.join(projectDir, 'src', 'App.jsx'), 'utf-8');
-    expect(app).toMatch(/Get started/);
-    expect(app).toMatch(/Count is/);
-    expect(app).not.toMatch(/Welcome to Shellui/);
+    expect(app).toMatch(/useShellui/);
+    expect(app).toMatch(/shellui-home/);
+    expect(app).toMatch(/t\('title'\)/);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'useShellui.js'))).toBe(true);
 
     const { detectPackageManager, formatDevRun } = await import('../../init/package-manager.js');
     const pm = detectPackageManager(projectDir);
