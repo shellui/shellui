@@ -157,14 +157,14 @@
     "retry": "Try again"
   },
   "ai": {
-    "description": "Run language models on this device for apps in the shell. Nothing is sent to a cloud AI service from Shellui itself.",
+    "description": "Run language models on this device for apps in the shell. Shellui does not send prompts to a cloud AI service on its own.",
     "enabled": {
       "title": "Allow apps to use AI",
       "description": "When off, embedded apps cannot create AI sessions even if a model is ready."
     },
     "status": {
       "title": "Status",
-      "loading": "Checking AI status…",
+      "loading": "Checking status…",
       "error": "Unable to check AI status.",
       "retry": "Try again",
       "refresh": "Refresh",
@@ -172,29 +172,37 @@
       "ollama": "Ollama",
       "available": "Available",
       "unavailable": "Not available",
-      "reachable": "Reachable",
-      "notReachable": "Not reachable",
+      "connected": "Connected",
+      "offline": "Offline",
+      "reachable": "Connected",
+      "notReachable": "Offline",
       "ollamaOffline": "Start Ollama on this machine to list local models.",
-      "ollamaDisabled": "Ollama provider is turned off."
+      "ollamaDisabled": "Ollama is turned off above."
     },
     "providers": {
-      "title": "Providers",
+      "title": "Models",
       "ollama": "Ollama",
-      "ollamaHint": "Use models already installed in the Ollama app on this computer.",
+      "ollamaHint": "Models already installed in the Ollama app on this computer.",
       "browser": "Browser models",
-      "browserHint": "Download models into this browser (WebGPU). Download pipeline coming next."
+      "browserHint": "Catalog for models stored in this browser. Download support comes later."
     },
     "defaultModel": {
       "title": "Default model",
       "description": "Used when an app does not pick a model.",
       "none": "Automatic (first ready model)",
-      "empty": "No ready models yet. Start Ollama or wait for browser downloads."
+      "empty": "No ready models yet. Start Ollama or enable a browser model."
     },
     "models": {
       "ollama": "Ollama models",
-      "ollamaEmpty": "No Ollama models found. Install Ollama and pull a model, or turn the provider on.",
+      "ollamaEmpty": "No Ollama models found. Install Ollama and pull a model, or turn Ollama on.",
       "browser": "Browser catalog",
       "browserEmpty": "No browser models in the catalog."
+    },
+    "details": {
+      "title": "Details",
+      "webGpuDetail": "WebGPU",
+      "ollamaDetail": "Ollama",
+      "empty": "No extra probe details right now."
     },
     "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
   },
