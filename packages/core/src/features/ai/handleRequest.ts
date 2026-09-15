@@ -1,11 +1,7 @@
-import {
-  createDefaultAiRegistry,
-  probeOllama,
-  probeWebGpu,
-  type AiRegistry,
-  DEFAULT_OLLAMA_BASE_URL,
-} from '@shellui/ai';
 import type { AiRequestPayload, AiResponsePayload, AiStreamPayload, Settings } from '@shellui/sdk';
+import { createDefaultAiRegistry } from './createRegistry.js';
+import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from './status.js';
+import type { AiRegistry } from './registry.js';
 
 function createSessionId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

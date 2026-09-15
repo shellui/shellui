@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import {
-  AiRegistry,
-  type AiAdapter,
-  type AiModel,
-  type AiPromptOptions,
-  type AiStreamChunk,
-} from '@shellui/ai';
 import type { Settings } from '@shellui/sdk';
-import { handleAiRequest, type AiSession } from './handleRequest';
+import { AiRegistry } from './registry.js';
+import type { AiAdapter, AiModel, AiPromptOptions, AiStreamChunk } from './types.js';
+import { handleAiRequest, type AiSession } from './handleRequest.js';
 
 class ReadyAdapter implements AiAdapter {
   readonly id = 'ollama' as const;
@@ -33,7 +28,7 @@ class ReadyAdapter implements AiAdapter {
   async unload(): Promise<void> {}
 }
 
-const baseSettings: Settings = {
+const baseSettings = {
   developerFeatures: { enabled: false },
   errorReporting: { enabled: false },
   logging: { namespaces: { shellsdk: false, shellcore: false } },
@@ -42,10 +37,7 @@ const baseSettings: Settings = {
     displayName: 'Default',
     mode: 'light',
     colorScheme: 'system',
-    colors: {
-      light: {} as Settings['appearance']['colors']['light'],
-      dark: {} as Settings['appearance']['colors']['dark'],
-    },
+    colors: { light: {}, dark: {} },
   },
   language: { code: 'en' },
   region: { timezone: 'UTC' },
@@ -57,7 +49,7 @@ const baseSettings: Settings = {
   },
   user: null,
   accessToken: null,
-};
+} as Settings;
 
 describe('handleAiRequest', () => {
   it('reports availability when a ready model exists', async () => {
@@ -75,19 +67,13 @@ describe('handleAiRequest', () => {
 
   it('returns unavailable when AI is disabled', async () => {
     const registry = new AiRegistry({ adapters: [new ReadyAdapter()] });
-    const disabledAi = {
-      enabled: false,
-      defaultModelId: 'ollama:llama' as string | null,
-      ollamaEnabled: true,
-      browserEnabled: true,
-    };
     const result = await handleAiRequest(
       {
         registry,
         sessions: new Map(),
         getSettings: () => ({
           ...baseSettings,
-          ai: disabledAi,
+          ai: { ...baseSettings.ai, enabled: false },
         }),
       },
       { id: '2', op: 'availability' },

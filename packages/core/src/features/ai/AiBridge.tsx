@@ -25,7 +25,7 @@ function replyToSender(
 
 /**
  * Root-window bridge: iframe `SHELLUI_AI_*` messages are handled here.
- * Adapters live in `@shellui/ai`; the SDK only postMessages.
+ * Adapters/registry live in this core feature module; the SDK only postMessages.
  */
 export const AiBridge = () => {
   const { settings } = useSettings();

@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  createDefaultAiRegistry,
-  DEFAULT_OLLAMA_BASE_URL,
-  probeOllama,
-  probeWebGpu,
-  type AiModel,
-} from '@shellui/ai';
 import { Button } from '../../../components/ui/button';
 import { Select } from '../../../components/ui/select';
 import { Switch } from '../../../components/ui/switch';
+import { createDefaultAiRegistry } from '../../ai/createRegistry';
+import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
+import type { AiModel } from '../../ai/types';
 import { useSettings } from '../hooks/useSettings';
 
 type AiPanelStatus = {

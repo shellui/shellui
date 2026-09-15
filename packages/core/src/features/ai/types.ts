@@ -1,6 +1,6 @@
 /**
- * Shared AI types for shell-side adapters and registry.
- * SDK protocol payloads live in `@shellui/sdk` so iframes never import this package.
+ * Shared AI types for shell-side adapters and registry (core feature module).
+ * SDK protocol payloads live in `@shellui/sdk` so iframes never import these types.
  */
 
 export type AiProviderId = 'ollama' | 'webllm';

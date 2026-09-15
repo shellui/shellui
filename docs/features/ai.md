@@ -1,8 +1,8 @@
 # On-device AI
 
-Shellui can run language models **on the user’s device** so every embedded app shares one download and one GPU session. Apps never talk to Ollama or WebGPU directly — they call a browser-shaped API on `@shellui/sdk`, and the **shell** owns discovery, model lifecycle, and inference.
+Shellui can run language models **on the user’s device** so every embedded app shares one download and one GPU session. Apps never talk to Ollama or WebGPU directly — they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.
 
-This page is the human-readable overview. Engine adapters live in [`@shellui/ai`](https://github.com/shellui/shellui/tree/develop/packages/ai) (see that package README for **how to remove** the feature cleanly).
+Local AI ships as a **default core feature**. You do not install a separate AI package. Turn providers on or off in **Settings → AI**.
 
 ## What you install or download
 
@@ -30,7 +30,7 @@ If every iframe downloaded and warmed its own copy:
 - Phones would thrash GPU memory
 - Users would re-download the same weights
 
-The shell keeps **one** registry and **one** runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, future Transformers.js, …) stay in the shell.
+The shell keeps **one** registry and **one** runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, future Transformers.js, …) stay in core.
 
 ## WebGPU and soft degradation
 
@@ -86,19 +86,20 @@ if (availability !== 'available') {
 
 Messaging (for implementers): `SHELLUI_AI_REQUEST` → shell → `SHELLUI_AI_RESPONSE` / `SHELLUI_AI_STREAM` back to the requesting iframe only.
 
-## Architecture (removable module)
+## Architecture
 
 ```
 App iframe
   └─ shellui.ai / LanguageModel (packages/sdk/src/ai)
        └─ postMessage
             └─ AiBridge (packages/core/src/features/ai)
-                 └─ @shellui/ai registry
-                      ├─ OllamaAdapter
-                      └─ WebLLMAdapter (catalog stub → download TODO)
+                 ├─ registry + adapters/
+                 │    ├─ OllamaAdapter
+                 │    └─ WebLLMAdapter (catalog stub → download TODO)
+                 └─ Settings → AI panel
 ```
 
-To delete the feature later, follow the checklist in `packages/ai/README.md`.
+Module map and notes: `packages/core/src/features/ai/README.md`.
 
 ## Related
 

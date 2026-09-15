@@ -1,4 +1,4 @@
-import type { AiModel } from '../types.js';
+import type { AiModel } from './types.js';
 
 /**
  * Curated browser catalog for v1. Models are listed as downloadable until the
