@@ -81,7 +81,7 @@ export const FLOATING_SIDEBAR_BRAND_ROW_HEIGHT = 52;
 export const FLOATING_SIDEBAR_NAV_PAD = 8;
 /**
  * Distance from viewport top to the first sidebar nav item (panel margin +
- * brand row + nav pad). Chrome actions align here when the sidebar is expanded.
+ * brand row + nav pad). Geometry reference for the floating sidebar panel.
  */
 export const FLOATING_SIDEBAR_FIRST_NAV_TOP =
   FLOATING_CHROME_MARGIN + FLOATING_SIDEBAR_BRAND_ROW_HEIGHT + FLOATING_SIDEBAR_NAV_PAD;

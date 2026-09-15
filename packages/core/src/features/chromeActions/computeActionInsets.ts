@@ -2,7 +2,6 @@ import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
-  FLOATING_SIDEBAR_FIRST_NAV_TOP,
   FLOATING_TAB_BAR_HEIGHT,
   FLOATING_TAB_BAR_HEIGHT_TABLET,
   floatingTabBarHeight,
@@ -14,14 +13,18 @@ export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 32;
 /** Top action row height — phone/tablet (`h-10` / `size-10`), closer to dock scale. */
 export const CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW = 40;
 /**
- * Default top breathing room (floating desktop collapsed chip alignment).
- * Applied as `max(margin, safe-area-top)` so notched phones keep the system
- * inset without stacking extra pad.
+ * Default top breathing room for floating chrome actions.
+ * Matches `FloatingSidebar` edge pad: margin is stacked on top of safe-area
+ * (`margin + safe-area`), not `max(margin, safe-area)`.
  */
 export const CHROME_ACTIONS_TOP_MARGIN = FLOATING_CHROME_MARGIN;
 /**
- * Minimal top gap for non-floating layouts (sidebar / app-bar / fullscreen)
- * and floating phone/tablet — shell chrome already frames the content.
+ * Floating desktop sits one margin lower than phone/tablet — the wider window
+ * reads better with the action row below the sidebar brand row.
+ */
+export const CHROME_ACTIONS_TOP_MARGIN_DESKTOP = FLOATING_CHROME_MARGIN * 2;
+/**
+ * Minimal top gap for non-floating layouts (sidebar / app-bar / fullscreen).
  */
 export const CHROME_ACTIONS_TOP_MARGIN_MINIMAL = 8;
 /** @deprecated Use chromeActionsTopMargin() — kept for call sites / tests. */
@@ -62,8 +65,8 @@ export type ChromeActionsTopContext = {
   /** Published layout id (`floating`, `actions`, `none`, …). */
   layout?: string;
   /**
-   * Floating desktop only: when true, align with the first sidebar nav item.
-   * When false (sidebar collapsed), keep the chip-aligned near-top margin.
+   * Floating desktop: sidebar expanded vs collapsed.
+   * Kept for callers; top margin is the same either way (chip / brand row).
    */
   sidebarExpanded?: boolean;
 };
@@ -76,8 +79,9 @@ export function chromeActionsTopBarHeight(viewport?: LayoutChromeViewport): numb
 
 /**
  * Top offset above the action row.
- * Floating desktop + expanded sidebar → first nav item; collapsed → chip margin;
- * everything else → minimal gap.
+ * Floating → chrome margin (phone/tablet) or double margin (desktop);
+ * safe-area is applied separately via `chromeActionsTopOffsetCss`.
+ * Everything else → minimal gap.
  */
 export function chromeActionsTopMargin(
   context?: ChromeActionsTopContext | LayoutChromeViewport,
@@ -87,9 +91,9 @@ export function chromeActionsTopMargin(
     return CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
   }
 
-  const { viewport, layout, sidebarExpanded } = context;
-  if (layout === 'floating' && viewport === 'desktop') {
-    return sidebarExpanded === false ? CHROME_ACTIONS_TOP_MARGIN : FLOATING_SIDEBAR_FIRST_NAV_TOP;
+  const { layout, viewport } = context;
+  if (layout === 'floating') {
+    return viewport === 'desktop' ? CHROME_ACTIONS_TOP_MARGIN_DESKTOP : CHROME_ACTIONS_TOP_MARGIN;
   }
   return CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
 }
@@ -120,11 +124,11 @@ export function chromeActionsShouldHonorSafeAreaTop(layout?: string): boolean {
 
 /**
  * CSS length for the top action row offset.
- * When honoring safe-area: `max(margin, safe-area-top)` so notched phones clear
- * the status band without double-padding the margin on zero-inset devices.
- * When the shell header already cleared safe-area: plain margin only.
- * When a mobile overlay header is present (`--shellui-shell-header-height`), sit
- * just below that band so actions clear the shell top bar.
+ * Floating matches the sidebar edge pad: `margin + safe-area-top` (not max),
+ * so actions sit level with the brand / expand chip on iPad and desktop.
+ * Other safe-area layouts use `max(margin, safe-area-top)`.
+ * Shell header layouts sit below `--shellui-shell-header-height` (or plain margin
+ * for inset cards).
  */
 export function chromeActionsTopOffsetCss(
   context?: ChromeActionsTopContext | LayoutChromeViewport,
@@ -151,6 +155,10 @@ export function chromeActionsTopOffsetCss(
     return `calc(var(--shellui-shell-header-height, 0px) + ${min}px)`;
   }
   if (!honor) return `${min}px`;
+  // Floating sidebar: paddingTop is margin + safe-area — keep actions in sync.
+  if (layout === 'floating') {
+    return `calc(${min}px + var(--shellui-safe-area-top, 0px))`;
+  }
   return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
 }
 
@@ -274,8 +282,13 @@ export function computeActionInsets(
       // Mobile overlay header already reserved in base inset — only add action row.
       top = barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
     } else {
-      // Match TopActionBar: safe-area layouts use max(margin, existing safe top).
-      const visualTop = honorSafe ? Math.max(topMargin, baseTop) : topMargin;
+      // Floating sidebar stacks margin + safe-area; other safe-area layouts use max.
+      const visualTop =
+        layout === 'floating' && honorSafe
+          ? topMargin + baseTop
+          : honorSafe
+            ? Math.max(topMargin, baseTop)
+            : topMargin;
       const topNeeded = visualTop + barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
       top = Math.max(0, topNeeded - baseTop);
     }

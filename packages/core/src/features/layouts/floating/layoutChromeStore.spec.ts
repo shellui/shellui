@@ -8,12 +8,10 @@ import {
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
+  CHROME_ACTIONS_TOP_MARGIN_DESKTOP,
   CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
 } from '../../chromeActions/computeActionInsets';
-import {
-  FLOATING_CONTENT_CLEARANCE,
-  FLOATING_SIDEBAR_FIRST_NAV_TOP,
-} from './computeFloatingInsets';
+import { FLOATING_CONTENT_CLEARANCE } from './computeFloatingInsets';
 
 const CLEARED = {
   layout: 'none',
@@ -46,12 +44,12 @@ describe('buildFrameLayoutChrome', () => {
     );
   });
 
-  it('aligns floating desktop expanded actions with the first sidebar nav item', () => {
+  it('keeps floating desktop expanded actions one margin below the brand row', () => {
     const chrome = buildFrameLayoutChrome(FLOATING, { hasTop: true, hasPrimary: true });
     expect(chrome.layout).toBe('floating');
     expect(chrome.insets.left).toBe(280);
     expect(chrome.insets.top).toBe(
-      FLOATING_SIDEBAR_FIRST_NAV_TOP +
+      CHROME_ACTIONS_TOP_MARGIN_DESKTOP +
         CHROME_ACTIONS_TOP_BAR_HEIGHT +
         CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
@@ -69,7 +67,9 @@ describe('buildFrameLayoutChrome', () => {
     };
     const chrome = buildFrameLayoutChrome(collapsed, { hasTop: true, hasPrimary: false });
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + CHROME_ACTIONS_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_TOP_MARGIN_DESKTOP +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT +
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 
@@ -82,13 +82,13 @@ describe('buildFrameLayoutChrome', () => {
     const chrome = buildFrameLayoutChrome(mobileFloating, { hasTop: true, hasPrimary: true });
     expect(chrome.insets.bottom).toBe(88);
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
+      CHROME_ACTIONS_TOP_MARGIN +
         CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
         CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 
-  it('does not double-count floating safe-area top when merging action insets', () => {
+  it('stacks the floating chrome margin above safe-area top when merging insets', () => {
     const safeTop = 47;
     const mobileFloating = {
       ...FLOATING,
@@ -97,7 +97,10 @@ describe('buildFrameLayoutChrome', () => {
     };
     const chrome = buildFrameLayoutChrome(mobileFloating, { hasTop: true, hasPrimary: true });
     expect(chrome.insets.top).toBe(
-      safeTop + CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE,
+      safeTop +
+        CHROME_ACTIONS_TOP_MARGIN +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 

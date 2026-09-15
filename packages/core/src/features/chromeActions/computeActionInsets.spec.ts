@@ -9,6 +9,7 @@ import {
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
+  CHROME_ACTIONS_TOP_MARGIN_DESKTOP,
   CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
   chromeActionsFabBottomOffsetCss,
   chromeActionsFabRightOffsetCss,
@@ -22,7 +23,6 @@ import {
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
-  FLOATING_SIDEBAR_FIRST_NAV_TOP,
 } from '../layouts/floating/computeFloatingInsets';
 import {
   clearAllChromeActions,
@@ -55,32 +55,38 @@ describe('chromeActionsStore', () => {
 });
 
 describe('chromeActionsTopMargin', () => {
-  it('aligns floating desktop expanded with the first sidebar nav item', () => {
+  it('uses the chrome margin for floating phone and tablet', () => {
+    expect(
+      chromeActionsTopMargin({
+        layout: 'floating',
+        viewport: 'tablet',
+      }),
+    ).toBe(CHROME_ACTIONS_TOP_MARGIN);
+    expect(
+      chromeActionsTopMargin({
+        layout: 'floating',
+        viewport: 'mobile',
+      }),
+    ).toBe(CHROME_ACTIONS_TOP_MARGIN);
+    expect(CHROME_ACTIONS_TOP_MARGIN).toBe(FLOATING_CHROME_MARGIN);
+  });
+
+  it('drops floating desktop one margin lower', () => {
     expect(
       chromeActionsTopMargin({
         layout: 'floating',
         viewport: 'desktop',
         sidebarExpanded: true,
       }),
-    ).toBe(FLOATING_SIDEBAR_FIRST_NAV_TOP);
-  });
-
-  it('keeps floating desktop collapsed near the expand chip', () => {
-    expect(
-      chromeActionsTopMargin({
-        layout: 'floating',
-        viewport: 'desktop',
-        sidebarExpanded: false,
-      }),
-    ).toBe(CHROME_ACTIONS_TOP_MARGIN);
-    expect(CHROME_ACTIONS_TOP_MARGIN).toBe(FLOATING_CHROME_MARGIN);
+    ).toBe(CHROME_ACTIONS_TOP_MARGIN_DESKTOP);
+    expect(CHROME_ACTIONS_TOP_MARGIN_DESKTOP).toBe(CHROME_ACTIONS_TOP_MARGIN + 12);
   });
 
   it('uses a minimal top margin for other layouts', () => {
     expect(chromeActionsTopMargin({ layout: 'actions', viewport: 'desktop' })).toBe(
       CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
     );
-    expect(chromeActionsTopMargin({ layout: 'floating', viewport: 'mobile' })).toBe(
+    expect(chromeActionsTopMargin({ layout: 'sidebar', viewport: 'mobile' })).toBe(
       CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
     );
   });
@@ -101,8 +107,12 @@ describe('chromeActionsTopOffsetCss', () => {
   });
 
   it('honors safe-area on floating and fullscreen', () => {
+    // Floating stacks margin + safe-area (same as FloatingSidebar edge pad).
     expect(chromeActionsTopOffsetCss({ layout: 'floating', viewport: 'mobile' })).toBe(
-      `max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`,
+      `calc(${CHROME_ACTIONS_TOP_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'floating', viewport: 'desktop' })).toBe(
+      `calc(${CHROME_ACTIONS_TOP_MARGIN_DESKTOP}px + var(--shellui-safe-area-top, 0px))`,
     );
     expect(chromeActionsTopOffsetCss({ layout: 'fullscreen', viewport: 'mobile' })).toBe(
       `max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`,
@@ -188,19 +198,19 @@ describe('computeActionInsets', () => {
     expect(mobile.top).toBeGreaterThan(desktop.top);
   });
 
-  it('aligns floating desktop expanded top inset with the first sidebar nav', () => {
+  it('keeps floating desktop top inset one margin below the brand row', () => {
     const top = computeActionInsets(
       { hasTop: true, hasPrimary: false },
       { viewport: 'desktop', layout: 'floating', sidebarExpanded: true },
     ).top;
     expect(top).toBe(
-      FLOATING_SIDEBAR_FIRST_NAV_TOP +
+      CHROME_ACTIONS_TOP_MARGIN_DESKTOP +
         CHROME_ACTIONS_TOP_BAR_HEIGHT +
         CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 
-  it('does not double-count existing safe-area top on floating phone', () => {
+  it('stacks chrome margin above safe-area on floating (matches sidebar pad)', () => {
     const safeTop = 47;
     const extra = computeActionInsets(
       { hasTop: true, hasPrimary: false },
@@ -210,10 +220,17 @@ describe('computeActionInsets', () => {
         existingTopInset: safeTop,
       },
     ).top;
-    // visualTop = max(8, 47) = 47; needed = 47+40+8 = 95; extra = 95-47 = 48
-    expect(extra).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE);
+    // visualTop = 12 + 47; needed = 59+40+8 = 107; extra = 107-47 = 60
+    expect(extra).toBe(
+      CHROME_ACTIONS_TOP_MARGIN +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
+    );
     expect(safeTop + extra).toBe(
-      safeTop + CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE,
+      safeTop +
+        CHROME_ACTIONS_TOP_MARGIN +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 

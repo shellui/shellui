@@ -43,7 +43,6 @@ import {
   getPublishedLayoutChrome,
   subscribeLayoutChrome,
 } from '../layouts/floating/layoutChromeStore';
-import { useIsHomeScreenPwa } from '../layouts/chrome/runtime';
 import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
@@ -968,7 +967,6 @@ function TopActionBar({
   const viewport = useViewport();
   const { settings } = useSettings();
   const layoutChrome = usePublishedLayoutChrome();
-  const homeScreenPwa = useIsHomeScreenPwa();
   const narrow = viewport === 'mobile' || viewport === 'tablet';
   const trailing = actions.trailing ?? [];
 
@@ -992,8 +990,6 @@ function TopActionBar({
   const inlinePad = isOverlay ? actionRowInlinePad(useLayoutInsets) : undefined;
   const setVariant = actions.variant;
   const interactive = visible && !scrollHidden;
-  // iOS Home Screen PWAs already get a system status gradient — don't stack ours.
-  const showTopScrim = isOverlay && !homeScreenPwa;
 
   return (
     <TooltipProvider delayDuration={250}>
@@ -1020,7 +1016,7 @@ function TopActionBar({
             : undefined
         }
       >
-        {showTopScrim ? (
+        {isOverlay ? (
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background from-70% to-transparent"
