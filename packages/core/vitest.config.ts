@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shellui/sdk': fileURLToPath(new URL('../sdk/src/index.ts', import.meta.url)),
+      '@shellui/ai': fileURLToPath(new URL('../ai/src/index.ts', import.meta.url)),
     },
   },
   test: {
@@ -14,6 +15,7 @@ export default defineConfig({
       'src/features/auth/utils/**/*.spec.ts',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
+      'src/features/ai/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
       'src/features/overlays/**/*.spec.ts',
       'src/features/theme/**/*.spec.ts',
@@ -23,6 +25,7 @@ export default defineConfig({
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       '../sdk/src/**/*.spec.ts',
+      '../ai/src/**/*.spec.ts',
     ],
   },
 });

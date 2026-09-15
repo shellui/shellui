@@ -38,6 +38,7 @@ From there, pick layout, themes, i18n, and advanced features as your product nee
 ### Advanced
 
 - **[Administration panel](/features/administration)** — Staff admin iframe, custom sidebar navigation from config
+- **[On-device AI](/features/ai)** — Settings → AI, Ollama / browser models, `shellui.ai` Prompt API shape
 - **[Storage](/features/storage)** — Settings → Storage quota and the SDK file API (`shellui.storage`) when `storage` is configured
 - **[Storage picker](/features/storage-picker)** — Modal file/folder picker (`shellui.selectFolders` / `selectFiles`)
 - **[Application settings](/features/application-settings)** — Per-app settings panels in Settings

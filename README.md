@@ -7,12 +7,14 @@ This monorepo contains the Shellui packages:
 - **@shellui/cli** - Command-line tool for Shellui
 - **@shellui/core** - Core React application runtime
 - **@shellui/sdk** - JavaScript SDK for Shellui integration
+- **@shellui/ai** - On-device AI adapters (Ollama + browser engines; shell-only)
 
 ## Structure
 
 ```
 .
 ├── packages/
+│   ├── ai/           # On-device AI adapters + registry
 │   ├── cli/          # CLI package
 │   ├── core/         # Core React app
 │   └── sdk/          # SDK package

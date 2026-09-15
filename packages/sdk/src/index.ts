@@ -39,6 +39,8 @@ import type {
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
+import { AiClient } from './ai/languageModel.js';
+import { createAiPostMessageTransport } from './ai/transport.js';
 import {
   applyLayoutChromeStyles,
   getScrollMetrics,
@@ -131,6 +133,24 @@ export type {
 } from './storage/types.js';
 export { StorageClient, StorageBucketApi } from './storage/client.js';
 
+export { AiClient, LanguageModelApi } from './ai/languageModel.js';
+export type { LanguageModelSession } from './ai/languageModel.js';
+export type {
+  AiAvailabilityResult,
+  AiAvailabilityValue,
+  AiCreateResult,
+  AiErrorPayload,
+  AiModelInfo,
+  AiModelStatus,
+  AiOp,
+  AiProviderId,
+  AiRequestPayload,
+  AiResponsePayload,
+  AiStatusSnapshot,
+  AiStreamPayload,
+  LanguageModelCreateOptions,
+} from './ai/types.js';
+
 export class ShellUISDK {
   initialized = false;
   currentPath: string;
@@ -140,6 +160,8 @@ export class ShellUISDK {
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
   storage: StorageClient;
+  /** On-device AI (Prompt API / LanguageModel shape). Shell runs inference. */
+  ai: AiClient;
   /** Cached layout chrome from settings / SHELLUI_LAYOUT_CHROME. */
   layoutChrome: LayoutChrome | null = null;
   private _autoLayoutPadding = true;
@@ -156,6 +178,7 @@ export class ShellUISDK {
     this.callbackRegistry = new CallbackRegistry();
     this.initialSettings = null;
     this.storage = new StorageClient(createPostMessageTransport(this));
+    this.ai = new AiClient(createAiPostMessageTransport(this));
   }
 
   async init(options?: { autoLayoutPadding?: boolean }): Promise<this> {
@@ -519,5 +542,6 @@ export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 export const storage = sdk.storage;
+export const ai = sdk.ai;
 
 export default sdk;

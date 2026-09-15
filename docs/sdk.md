@@ -278,6 +278,23 @@ const { data: entries } = await shellui.storage.from('company').list('docs/repor
 
 Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Use `{ folder: true }` on `move` / `rename` to move a whole folder.
 
+### On-device AI (Prompt API shape)
+
+Embedded apps call a LanguageModel-shaped API. The shell owns Ollama / browser adapters — the SDK only postMessages. See [On-device AI](/features/ai).
+
+```javascript
+import { shellui } from '@shellui/sdk';
+
+await shellui.init();
+
+const availability = await shellui.ai.languageModel.availability();
+if (availability === 'available') {
+  const session = await shellui.ai.languageModel.create();
+  const text = await session.prompt('Summarize this…');
+  session.destroy();
+}
+```
+
 ### Storage picker
 
 Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
@@ -350,6 +367,7 @@ Common Shellui message types:
 - `SHELLUI_INITIALIZED` - SDK initialized
 - `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE` - File API (handled by the root shell)
 - `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT` - Storage picker (handled by the root shell)
+- `SHELLUI_AI_REQUEST` / `SHELLUI_AI_RESPONSE` / `SHELLUI_AI_STREAM` - On-device AI (handled by the root shell)
 - `SHELLUI_LAYOUT_CHROME` - Shell → iframe layout chrome / safe insets update
 - `SHELLUI_CONTENT_SCROLL` - Iframe → shell scroll report (hide-on-scroll floating chrome)
 
@@ -551,6 +569,7 @@ shellui.dialog(dialogOptions);
 - `shellui.navigate(url)` - Navigate programmatically
 - `shellui.login(options)` - Request root-shell login
 - `shellui.storage` - File API (`from(bucket).upload`, `download`, `list`, `move`, `rename`, …)
+- `shellui.ai` - On-device AI (`languageModel.availability` / `create` / `prompt` / `promptStreaming`)
 - `shellui.selectFolders(options)` - Open a folder picker modal
 - `shellui.selectFiles(options)` - Open a file picker modal (`{ folders: true }` also allows folders)
 
@@ -587,6 +606,7 @@ shellui.dialog(dialogOptions);
 - [Alert Dialogs](/features/dialogs) - Detailed dialog guide
 - [Modals & Drawers](/features/modals-drawers) - Modal and drawer guide
 - [Storage](/features/storage) - File API (`shellui.storage`) and Settings → Storage
+- [On-device AI](/features/ai) - `shellui.ai` Prompt API shape and Settings → AI
 - [Storage picker](/features/storage-picker) - Pick files and folders from an iframe app
 - [Navigation](/features/navigation) - Navigation configuration
 - [Quick Start — Shell plus an embedded app](/quickstart#shell-plus-an-embedded-app) - Same-package CLI + Vite app (playground)

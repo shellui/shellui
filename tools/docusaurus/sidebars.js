@@ -70,6 +70,7 @@ const sidebars = {
           collapsed: false,
           items: [
             'features/administration',
+            'features/ai',
             'features/storage',
             'features/storage-picker',
             'features/application-settings',
