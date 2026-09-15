@@ -1367,11 +1367,19 @@ export function ChromeActionsHost() {
   const viewport = useViewport();
   const windowsLayout = settings.layout === 'windows';
   const layoutChrome = usePublishedLayoutChrome();
+  // Mobile sidebar header hosts top actions (same idea as windows title bars).
+  const topInTitleBar =
+    windowsLayout ||
+    ((settings.layout === 'sidebar' || settings.layout === 'sidebar-inset') &&
+      viewport === 'mobile');
 
   const floatingDock =
     settings.layout === 'floating' && (viewport === 'mobile' || viewport === 'tablet');
   // Floating dock: FAB diameter matches the bottom nav bar height (phone 56 / tablet 64).
-  const fabSizePx = floatingDock ? floatingTabBarHeight(viewport) : chromeActionsFabSize(viewport);
+  // Sidebar / app-bar: larger shell FAB so it doesn’t feel tiny against flush chrome.
+  const fabSizePx = floatingDock
+    ? floatingTabBarHeight(viewport)
+    : chromeActionsFabSize(viewport, { layout: settings.layout });
   const fabEdgeMargin = chromeActionsFabEdgeMargin(viewport);
   // Pill only beside the phone/tablet dock; desktop uses theme radius (square when 0).
   const fabShape = floatingDock ? 'pill' : 'theme';
@@ -1403,7 +1411,7 @@ export function ChromeActionsHost() {
           fabSizePx={fabSizePx}
           fabEdgeMargin={fabEdgeMargin}
           fabShape={fabShape}
-          showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
+          showTop={!topInTitleBar || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
           // Windows: FAB lives inside the window card — no device safe-area.
           fabBottomOffset={windowsLayout ? FLOATING_CHROME_MARGIN : fabBottomOffset}
         />

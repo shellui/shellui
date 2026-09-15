@@ -115,4 +115,21 @@ describe('buildFrameLayoutChrome', () => {
     expect(chrome.insets.top).toBe(0);
     expect(chrome.insets.bottom).toBeGreaterThan(0);
   });
+
+  it('keeps shell header inset but skips action top pad when title-bar hosted', () => {
+    const base = {
+      ...CLEARED,
+      layout: 'sidebar' as const,
+      viewport: 'mobile' as const,
+      chromeVisible: true,
+      insets: { top: 90, right: 0, bottom: 0, left: 0 },
+    };
+    const chrome = buildFrameLayoutChrome(
+      base,
+      { hasTop: true, hasPrimary: true },
+      { topInTitleBar: true },
+    );
+    expect(chrome.insets.top).toBe(90);
+    expect(chrome.insets.bottom).toBeGreaterThan(0);
+  });
 });

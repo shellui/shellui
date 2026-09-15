@@ -64,6 +64,19 @@ function isWindowsLayout(): boolean {
 }
 
 /**
+ * Top actions are inlined in shell chrome (not a floating overlay):
+ * - windows title bars
+ * - mobile sidebar / sidebar-inset header
+ */
+function isTopActionsInTitleBar(base: LayoutChrome): boolean {
+  if (isWindowsLayout()) return true;
+  if (base.viewport !== 'mobile') return false;
+  if (base.layout === 'sidebar' || base.layout === 'sidebar-inset') return true;
+  if (typeof document === 'undefined') return false;
+  return Boolean(document.querySelector('[data-shellui-sidebar-layout]'));
+}
+
+/**
  * Merge per-frame action-button insets into a base layout-chrome snapshot.
  * Sidebar / app-bar / fullscreen never publish floating chrome (`layout: 'none'`);
  * when actions are present we promote to `layout: 'actions'` so the SDK treats
@@ -113,7 +126,7 @@ export function buildFrameLayoutChrome(
 function chromePayloadForFrame(uuid: string, base: LayoutChrome): LayoutChrome {
   const actions = getChromeActionsForFrame(uuid);
   return buildFrameLayoutChrome(base, actionChromeFlags(actions), {
-    topInTitleBar: isWindowsLayout(),
+    topInTitleBar: isTopActionsInTitleBar(base),
   });
 }
 

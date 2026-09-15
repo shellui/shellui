@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { shellui } from '@shellui/sdk';
 import {
   Sidebar,
   SidebarInset,
@@ -41,6 +42,7 @@ import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
 } from '../chrome/constants';
+import { WindowTitleBarActions } from '../../chromeActions';
 import { cn } from '../../../lib/utils';
 
 /** Close the mobile sheet when the route changes. */
@@ -91,6 +93,7 @@ const SidebarLayoutContent = ({
   variant = 'sidebar',
 }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
@@ -108,6 +111,27 @@ const SidebarLayoutContent = ({
     layout: scrollHideLayout,
     includeSafeArea: showSafeAreaTopbar,
   });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [frameUuid, setFrameUuid] = useState<string | null>(null);
+
+  // Bind title-bar actions to the main content iframe (mobile only).
+  useEffect(() => {
+    if (!isMobile) {
+      setFrameUuid(null);
+      return;
+    }
+    const sync = () => {
+      const iframe = contentRef.current?.querySelector('iframe');
+      if (!iframe) {
+        setFrameUuid(null);
+        return;
+      }
+      setFrameUuid(shellui.getUuidByIframe(iframe.contentWindow) ?? null);
+    };
+    sync();
+    const id = window.setInterval(sync, 400);
+    return () => window.clearInterval(id);
+  }, [isMobile, location.pathname]);
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -222,14 +246,25 @@ const SidebarLayoutContent = ({
           >
             <SidebarTrigger
               data-shellui-no-drag=""
-              className="relative size-8 touch-manipulation text-foreground"
+              className="relative size-8 shrink-0 touch-manipulation text-foreground"
             />
             {isTauriEnv ? <DesktopHistoryButtons /> : null}
+            {isMobile ? (
+              <div
+                data-shellui-no-drag=""
+                className="flex min-w-0 flex-1 items-center"
+              >
+                <WindowTitleBarActions frameUuid={frameUuid} />
+              </div>
+            ) : null}
           </header>
           {variant === 'inset' && isMobile ? (
             <InsetMobileRadiusOverlay chromeVisible={chromeVisible} />
           ) : null}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div
+            ref={contentRef}
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          >
             <Outlet />
           </div>
         </SidebarInset>

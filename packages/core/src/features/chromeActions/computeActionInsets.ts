@@ -45,6 +45,11 @@ export const CHROME_ACTIONS_FAB_SIZE_LARGE = FLOATING_TAB_BAR_HEIGHT_TABLET;
 /** Desktop FAB (main frame) — between compact and tablet. */
 export const CHROME_ACTIONS_FAB_SIZE_DESKTOP = 52;
 /**
+ * Sidebar / app-bar main-frame FAB (phone). Larger than overlay default so it
+ * reads clearly against flush chrome; matches floating phone FAB.
+ */
+export const CHROME_ACTIONS_FAB_SIZE_SHELL = FLOATING_TAB_BAR_HEIGHT;
+/**
  * Edge inset for tablet/desktop FAB (right + bottom).
  * Mobile keeps `FLOATING_CHROME_MARGIN` so it sits flush with the dock band.
  */
@@ -149,16 +154,27 @@ export function chromeActionsTopOffsetCss(
   return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
 }
 
+/** True for sidebar / app-bar shell layouts (flush + inset). */
+export function isShellChromeLayout(layout?: string): boolean {
+  return (
+    layout === 'sidebar' ||
+    layout === 'sidebar-inset' ||
+    layout === 'app-bar' ||
+    layout === 'app-bar-inset'
+  );
+}
+
 /** Main-frame FAB diameter by viewport (overlays stay at `CHROME_ACTIONS_FAB_SIZE`). */
 export function chromeActionsFabSize(
   viewport?: LayoutChromeViewport,
-  options?: { floatingDock?: boolean },
+  options?: { floatingDock?: boolean; layout?: string },
 ): number {
   if (viewport === 'desktop') return CHROME_ACTIONS_FAB_SIZE_DESKTOP;
   // Tablet + phone floating dock: match the bottom nav bar height exactly.
   if (viewport === 'tablet' || options?.floatingDock) {
     return floatingTabBarHeight(viewport === 'tablet' ? 'tablet' : 'mobile');
   }
+  if (isShellChromeLayout(options?.layout)) return CHROME_ACTIONS_FAB_SIZE_SHELL;
   return CHROME_ACTIONS_FAB_SIZE;
 }
 
@@ -212,7 +228,7 @@ export function actionChromeFlags(
 export function computeActionInsets(
   flags: ActionChromeFlags,
   options?: {
-    /** When true, top actions live in the window title bar — no top inset. */
+    /** When true, top actions live in shell chrome (windows / mobile sidebar header) — no top inset. */
     topInTitleBar?: boolean;
     /** Existing bottom inset (e.g. floating tab bar) so FAB sits above it. */
     existingBottomInset?: number;
@@ -250,11 +266,7 @@ export function computeActionInsets(
   const barHeight = chromeActionsTopBarHeight(viewport);
   const baseTop = options?.existingTopInset ?? 0;
   const honorSafe = chromeActionsShouldHonorSafeAreaTop(layout);
-  const isShellHeaderLayout =
-    layout === 'sidebar' ||
-    layout === 'sidebar-inset' ||
-    layout === 'app-bar' ||
-    layout === 'app-bar-inset';
+  const isShellHeaderLayout = isShellChromeLayout(layout);
 
   let top = 0;
   if (flags.hasTop && !options?.topInTitleBar) {
@@ -272,7 +284,7 @@ export function computeActionInsets(
   let bottom = 0;
   if (flags.hasPrimary && !options?.primaryInDock) {
     const aboveNav = options?.existingBottomInset ?? 0;
-    const size = chromeActionsFabSize(viewport);
+    const size = chromeActionsFabSize(viewport, { layout });
     const edge = chromeActionsFabEdgeMargin(viewport);
     const safeBottom = options?.safeAreaBottom ?? 0;
     // When a tab bar already reserved bottom space (includes safe-area), only add

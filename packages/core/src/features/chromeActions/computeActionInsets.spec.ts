@@ -5,6 +5,7 @@ import {
   CHROME_ACTIONS_FAB_EDGE_MARGIN,
   CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_FAB_SIZE_DESKTOP,
+  CHROME_ACTIONS_FAB_SIZE_SHELL,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
@@ -239,6 +240,38 @@ describe('computeActionInsets', () => {
       FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE,
     );
     expect(desktop.bottom).toBeGreaterThan(mobile.bottom);
+  });
+
+  it('uses a larger shell FAB on sidebar / app-bar layouts', () => {
+    const sidebar = computeActionInsets(
+      { hasTop: false, hasPrimary: true },
+      { viewport: 'mobile', layout: 'sidebar' },
+    );
+    const appBar = computeActionInsets(
+      { hasTop: false, hasPrimary: true },
+      { viewport: 'mobile', layout: 'app-bar-inset' },
+    );
+    expect(sidebar.bottom).toBe(
+      FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE_SHELL + FLOATING_CONTENT_CLEARANCE,
+    );
+    expect(appBar.bottom).toBe(sidebar.bottom);
+    expect(sidebar.bottom).toBeGreaterThan(
+      FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE,
+    );
+  });
+
+  it('skips top inset when actions live in the title bar', () => {
+    expect(
+      computeActionInsets(
+        { hasTop: true, hasPrimary: false },
+        {
+          viewport: 'mobile',
+          layout: 'sidebar',
+          existingTopInset: 90,
+          topInTitleBar: true,
+        },
+      ).top,
+    ).toBe(0);
   });
 
   it('adds safe-area-bottom for corner FABs when no existing bottom chrome', () => {
