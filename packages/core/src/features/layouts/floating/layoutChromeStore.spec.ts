@@ -5,10 +5,14 @@ import {
   CHROME_ACTIONS_FAB_GAP,
   CHROME_ACTIONS_FAB_SIZE_DESKTOP,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
+  CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
-  CHROME_ACTIONS_TOP_MARGIN_MOBILE,
+  CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
 } from '../../chromeActions/computeActionInsets';
-import { FLOATING_CONTENT_CLEARANCE } from './computeFloatingInsets';
+import {
+  FLOATING_CONTENT_CLEARANCE,
+  FLOATING_SIDEBAR_FIRST_NAV_TOP,
+} from './computeFloatingInsets';
 
 const CLEARED = {
   layout: 'none',
@@ -32,23 +36,37 @@ describe('buildFrameLayoutChrome', () => {
     expect(chrome.layout).toBe('actions');
     expect(chrome.chromeVisible).toBe(true);
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT +
+        FLOATING_CONTENT_CLEARANCE,
     );
     expect(chrome.insets.bottom).toBe(
       CHROME_ACTIONS_FAB_EDGE_MARGIN + CHROME_ACTIONS_FAB_SIZE_DESKTOP + FLOATING_CONTENT_CLEARANCE,
     );
   });
 
-  it('keeps floating layout and stacks action insets on nav insets', () => {
+  it('aligns floating desktop expanded actions with the first sidebar nav item', () => {
     const chrome = buildFrameLayoutChrome(FLOATING, { hasTop: true, hasPrimary: true });
     expect(chrome.layout).toBe('floating');
     expect(chrome.insets.left).toBe(280);
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      FLOATING_SIDEBAR_FIRST_NAV_TOP + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
     // Desktop floating: FAB still sits above existing bottom inset (corner FAB).
     expect(chrome.insets.bottom).toBe(
       72 + CHROME_ACTIONS_FAB_SIZE_DESKTOP + CHROME_ACTIONS_FAB_GAP,
+    );
+  });
+
+  it('keeps floating desktop collapsed near the expand chip', () => {
+    const collapsed = {
+      ...FLOATING,
+      chromeVisible: false,
+      insets: { ...FLOATING.insets, left: 0 },
+    };
+    const chrome = buildFrameLayoutChrome(collapsed, { hasTop: true, hasPrimary: false });
+    expect(chrome.insets.top).toBe(
+      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
   });
 
@@ -61,7 +79,9 @@ describe('buildFrameLayoutChrome', () => {
     const chrome = buildFrameLayoutChrome(mobileFloating, { hasTop: true, hasPrimary: true });
     expect(chrome.insets.bottom).toBe(88);
     expect(chrome.insets.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN_MOBILE + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
+        FLOATING_CONTENT_CLEARANCE,
     );
   });
 

@@ -48,11 +48,11 @@ import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
   CHROME_ACTIONS_FAB_SIZE,
-  CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_SCRIM_FADE,
   actionChromeFlags,
   chromeActionsFabEdgeMargin,
   chromeActionsFabSize,
+  chromeActionsTopBarHeight,
   chromeActionsTopOffsetCss,
 } from './computeActionInsets';
 import {
@@ -77,8 +77,10 @@ const CHROME_ACTIONS_TRAILING_MS = 220;
 const CHROME_ACTIONS_BACK_SLOT_MS = 340;
 /** Easing shared by back slot + title shift (snappy settle, soft land). */
 const CHROME_ACTIONS_BACK_SLOT_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
-/** Overlay back control: size-8 + mr-2. */
+/** Overlay back control: size-8 + mr-2 (desktop). */
 const CHROME_ACTIONS_BACK_SLOT_OPEN = 40;
+/** Overlay back control: size-10 + mr-2 (phone/tablet). */
+const CHROME_ACTIONS_BACK_SLOT_OPEN_NARROW = 48;
 /** Title-bar back control: size-7 + mr-1. */
 const CHROME_ACTIONS_BACK_SLOT_OPEN_TITLEBAR = 32;
 /** Collapsed leading spacer when no back control. */
@@ -115,7 +117,9 @@ function resolveActionVariant(
 
 /** Shared sizing for back / trailing chrome action controls (flat — no elevation). */
 const chromeActionControlClass = 'shadow-none h-8 rounded-md text-xs';
+const chromeActionControlClassNarrow = 'shadow-none h-10 rounded-md text-sm';
 const chromeActionIconControlClass = 'shadow-none size-8 rounded-md text-xs';
+const chromeActionIconControlClassNarrow = 'shadow-none size-10 rounded-md text-sm';
 /** Windows title-bar: flush ghost controls that match maximize/close. */
 const chromeActionTitlebarClass =
   'shadow-none border-0 bg-transparent text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground';
@@ -441,12 +445,15 @@ function BackLeadingSlot({
   setVariant,
   frameUuid,
   interactive,
+  narrow = false,
 }: {
   back?: ChromeActionPayloadItem | null;
   titlebar: boolean;
   setVariant?: ChromeActionVariant;
   frameUuid: string;
   interactive: boolean;
+  /** Phone/tablet: larger hit targets. */
+  narrow?: boolean;
 }) {
   const backId = back?.id ?? null;
   const [displayed, setDisplayed] = useState<ChromeActionPayloadItem | null>(back ?? null);
@@ -470,9 +477,12 @@ function BackLeadingSlot({
 
   const openWidth = titlebar
     ? CHROME_ACTIONS_BACK_SLOT_OPEN_TITLEBAR
-    : CHROME_ACTIONS_BACK_SLOT_OPEN;
+    : narrow
+      ? CHROME_ACTIONS_BACK_SLOT_OPEN_NARROW
+      : CHROME_ACTIONS_BACK_SLOT_OPEN;
   const width = open ? openWidth : CHROME_ACTIONS_BACK_SLOT_CLOSED;
   const item = displayed;
+  const iconClass = narrow ? chromeActionIconControlClassNarrow : chromeActionIconControlClass;
 
   return (
     <div
@@ -511,7 +521,7 @@ function BackLeadingSlot({
                       'mr-1 size-7',
                       resolveTitlebarButtonClass(resolveActionVariant(item.variant, setVariant)),
                     )
-                  : cn('mr-2', chromeActionIconControlClass),
+                  : cn('mr-2', iconClass),
               )}
               aria-label={item.label || 'Back'}
               aria-hidden={!open}
@@ -650,6 +660,7 @@ function ActionButton({
   className,
   disabled,
   titlebar = false,
+  narrow = false,
 }: {
   item: TrailingItem;
   frameUuid: string;
@@ -659,12 +670,16 @@ function ActionButton({
   disabled?: boolean;
   /** Windows title-bar: ghost, no fill/border. */
   titlebar?: boolean;
+  /** Phone/tablet: larger hit targets. */
+  narrow?: boolean;
 }) {
   const iconOnly = Boolean(item.icon) && (!item.label || compact);
   const resolved = resolveActionVariant(item.variant, setVariant);
   const variant = titlebar ? 'ghost' : resolved;
   const isDisabled = Boolean(disabled || item.disabled);
   const tip = item.label || item.icon || item.id;
+  const controlClass = narrow ? chromeActionControlClassNarrow : chromeActionControlClass;
+  const iconClass = narrow ? chromeActionIconControlClassNarrow : chromeActionIconControlClass;
   const button = (
     <Button
       type="button"
@@ -675,9 +690,9 @@ function ActionButton({
       className={cn(
         titlebar
           ? cn('h-7 rounded-md text-xs', resolveTitlebarButtonClass(resolved))
-          : chromeActionControlClass,
-        iconOnly ? (titlebar ? 'size-7 px-0' : 'size-8 px-0') : 'px-3',
-        compact && iconOnly && !titlebar && 'size-7',
+          : controlClass,
+        iconOnly ? (titlebar ? 'size-7 px-0' : cn(iconClass, 'px-0')) : 'px-3',
+        compact && iconOnly && !titlebar && !narrow && 'size-7',
         className,
       )}
       onClick={(e) => {
@@ -714,6 +729,7 @@ function TrailingActionsRow({
   iconClassName,
   disabled,
   titlebar = false,
+  narrowControls = false,
 }: {
   snapshot: TrailingSnapshot;
   frameUuid: string;
@@ -722,6 +738,7 @@ function TrailingActionsRow({
   iconClassName: string;
   disabled: boolean;
   titlebar?: boolean;
+  narrowControls?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -734,6 +751,7 @@ function TrailingActionsRow({
           setVariant={setVariant}
           disabled={disabled}
           titlebar={titlebar}
+          narrow={narrowControls}
         />
       ))}
       {snapshot.moreItems ? (
@@ -860,7 +878,9 @@ function TrailingActionsCrossfade({
   const iconClassName = cn(
     titlebar
       ? cn('size-7 rounded-md text-xs', chromeActionTitlebarClass)
-      : chromeActionIconControlClass,
+      : narrow
+        ? chromeActionIconControlClassNarrow
+        : chromeActionIconControlClass,
   );
   const empty = current.visible.length === 0 && !current.moreItems && !outgoing;
   if (empty) return null;
@@ -883,6 +903,7 @@ function TrailingActionsCrossfade({
           iconClassName={iconClassName}
           disabled={busy}
           titlebar={titlebar}
+          narrowControls={!titlebar && narrow}
         />
       </div>
       {outgoing ? (
@@ -903,6 +924,7 @@ function TrailingActionsCrossfade({
             iconClassName={iconClassName}
             disabled
             titlebar={titlebar}
+            narrowControls={!titlebar && narrow}
           />
         </div>
       ) : null}
@@ -918,18 +940,36 @@ function TopActionBar({
   useLayoutInsets = false,
   /** Floating hide-on-scroll — slide/fade with the tab bar (main frame only). */
   scrollHidden = false,
+  /**
+   * When set, overrides layout-based safe-area decision (e.g. modal overlays still
+   * need the notch clearance even on sidebar/app-bar shells).
+   */
+  honorSafeAreaTop,
 }: {
   actions: FrameChromeActions;
   placement: 'overlay' | 'titlebar';
   visible?: boolean;
   useLayoutInsets?: boolean;
   scrollHidden?: boolean;
+  honorSafeAreaTop?: boolean;
 }) {
   const viewport = useViewport();
+  const { settings } = useSettings();
+  const layoutChrome = usePublishedLayoutChrome();
   const homeScreenPwa = useIsHomeScreenPwa();
   const narrow = viewport === 'mobile' || viewport === 'tablet';
   const trailing = actions.trailing ?? [];
-  const topOffset = chromeActionsTopOffsetCss(viewport);
+
+  // Prefer published floating chrome; otherwise use the active shell layout.
+  const layout =
+    layoutChrome?.layout === 'floating' ? 'floating' : (settings.layout ?? layoutChrome?.layout);
+  const sidebarExpanded =
+    layout === 'floating' && viewport === 'desktop'
+      ? (layoutChrome?.chromeVisible ?? true)
+      : undefined;
+  const topContext = { viewport, layout, sidebarExpanded };
+  const topOffset = chromeActionsTopOffsetCss(topContext, { honorSafeAreaTop });
+  const barHeight = chromeActionsTopBarHeight(viewport);
 
   const flags = actionChromeFlags(actions);
   if (!flags.hasTop) return null;
@@ -971,11 +1011,11 @@ function TopActionBar({
         {showTopScrim ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background/50 from-90% to-transparent"
+            className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background from-70% to-transparent"
             style={{
-              // Light tint through the action row, then fade — no blur (animates poorly).
+              // Solid through the action row, then fade — no blur (animates poorly).
               // Top offset is max(margin, safe-area) so we don’t stack both.
-              height: `calc(${topOffset} + ${CHROME_ACTIONS_TOP_BAR_HEIGHT}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`,
+              height: `calc(${topOffset} + ${barHeight}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`,
             }}
           />
         ) : null}
@@ -991,7 +1031,7 @@ function TopActionBar({
             isOverlay
               ? {
                   top: topOffset,
-                  height: CHROME_ACTIONS_TOP_BAR_HEIGHT,
+                  height: barHeight,
                   ...inlinePad,
                 }
               : undefined
@@ -1003,6 +1043,7 @@ function TopActionBar({
             setVariant={setVariant}
             frameUuid={actions.frameUuid}
             interactive={interactive}
+            narrow={!titlebar && narrow}
           />
 
           <ChromeActionTitle title={actions.title} />
@@ -1245,6 +1286,9 @@ function FrameActionsOverlay({
           visible={visible}
           scrollHidden={hideWithNav}
           useLayoutInsets={useLayoutInsets}
+          // Modal/drawer overlays are full-bleed under the notch even on
+          // sidebar/app-bar shells — keep safe-area for those surfaces only.
+          honorSafeAreaTop={isOverlaySurface ? true : undefined}
         />
       ) : null}
       <PrimaryFab

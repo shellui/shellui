@@ -72,6 +72,19 @@ export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
  */
 export const FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA =
   FLOATING_SIDEBAR_TOGGLE_SIZE + FLOATING_CONTENT_CLEARANCE;
+/**
+ * Floating sidebar brand header: `py-2.5` (10+10) + `size-8` toggle (32).
+ * Keep in sync with FloatingSidebar brand row.
+ */
+export const FLOATING_SIDEBAR_BRAND_ROW_HEIGHT = 52;
+/** Floating sidebar nav scroll pad (`p-2`). Keep in sync with FloatingSidebar. */
+export const FLOATING_SIDEBAR_NAV_PAD = 8;
+/**
+ * Distance from viewport top to the first sidebar nav item (panel margin +
+ * brand row + nav pad). Chrome actions align here when the sidebar is expanded.
+ */
+export const FLOATING_SIDEBAR_FIRST_NAV_TOP =
+  FLOATING_CHROME_MARGIN + FLOATING_SIDEBAR_BRAND_ROW_HEIGHT + FLOATING_SIDEBAR_NAV_PAD;
 
 export type FloatingSafeArea = LayoutChromeInsets;
 

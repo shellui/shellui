@@ -1,29 +1,36 @@
-import type { LayoutChromeInsets } from '@shellui/sdk';
+import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
+  FLOATING_SIDEBAR_FIRST_NAV_TOP,
   FLOATING_TAB_BAR_HEIGHT,
   FLOATING_TAB_BAR_HEIGHT_TABLET,
   floatingTabBarHeight,
 } from '../layouts/floating/computeFloatingInsets';
 import type { FrameChromeActions } from './chromeActionsStore';
 
-/** Top floating action row height (matches secondary h-8 / text-xs controls). */
+/** Top floating action row height — desktop overlay (`h-8` / `size-8`). */
 export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 32;
+/** Top action row height — phone/tablet (`h-10` / `size-10`), closer to dock scale. */
+export const CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW = 40;
 /**
- * Minimum breathing room above the top action row.
+ * Default top breathing room (floating desktop collapsed chip alignment).
  * Applied as `max(margin, safe-area-top)` so notched phones keep the system
- * inset without stacking extra pad, while desktop / narrow viewports (safe-area
- * 0) still clear the top edge.
+ * inset without stacking extra pad.
  */
-export const CHROME_ACTIONS_TOP_MARGIN = 12;
-/** @deprecated Use CHROME_ACTIONS_TOP_MARGIN — kept for call sites / tests. */
-export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = CHROME_ACTIONS_TOP_MARGIN;
+export const CHROME_ACTIONS_TOP_MARGIN = FLOATING_CHROME_MARGIN;
 /**
- * Extra scrim height below the action row. With `from-80%`, this ~20% band
- * fades background → transparent so content eases in under the chrome.
+ * Minimal top gap for non-floating layouts (sidebar / app-bar / fullscreen)
+ * and floating phone/tablet — shell chrome already frames the content.
  */
-export const CHROME_ACTIONS_TOP_SCRIM_FADE = 16;
+export const CHROME_ACTIONS_TOP_MARGIN_MINIMAL = 8;
+/** @deprecated Use chromeActionsTopMargin() — kept for call sites / tests. */
+export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
+/**
+ * Extra scrim height below the action row. With `from-70%`, this band fades
+ * background → transparent so content eases in under the chrome.
+ */
+export const CHROME_ACTIONS_TOP_SCRIM_FADE = 24;
 /** Bottom primary action button size (default shadcn icon / overlays). */
 export const CHROME_ACTIONS_FAB_SIZE = 40;
 /** Floating phone FAB — equal to `FLOATING_TAB_BAR_HEIGHT`. */
@@ -40,22 +47,87 @@ export const CHROME_ACTIONS_FAB_EDGE_MARGIN = 20;
 /** Gap between primary FAB and floating tab bar (corner FAB uses edge margin). */
 export const CHROME_ACTIONS_FAB_GAP = 12;
 
-export function chromeActionsTopMargin(_viewport?: 'mobile' | 'tablet' | 'desktop'): number {
-  return CHROME_ACTIONS_TOP_MARGIN;
+export type ChromeActionsTopContext = {
+  viewport?: LayoutChromeViewport;
+  /** Published layout id (`floating`, `actions`, `none`, …). */
+  layout?: string;
+  /**
+   * Floating desktop only: when true, align with the first sidebar nav item.
+   * When false (sidebar collapsed), keep the chip-aligned near-top margin.
+   */
+  sidebarExpanded?: boolean;
+};
+
+/** Top action control row height for the given viewport. */
+export function chromeActionsTopBarHeight(viewport?: LayoutChromeViewport): number {
+  if (viewport === 'mobile' || viewport === 'tablet') return CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW;
+  return CHROME_ACTIONS_TOP_BAR_HEIGHT;
 }
 
 /**
- * CSS length for the top action row offset: at least the chrome margin, or the
- * safe-area inset when it’s larger (real iPhone). Avoids double-padding.
+ * Top offset above the action row.
+ * Floating desktop + expanded sidebar → first nav item; collapsed → chip margin;
+ * everything else → minimal gap.
  */
-export function chromeActionsTopOffsetCss(viewport?: 'mobile' | 'tablet' | 'desktop'): string {
-  const min = chromeActionsTopMargin(viewport);
+export function chromeActionsTopMargin(
+  context?: ChromeActionsTopContext | LayoutChromeViewport,
+): number {
+  // Legacy call signature: chromeActionsTopMargin(viewport)
+  if (typeof context === 'string' || context === undefined) {
+    return CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
+  }
+
+  const { viewport, layout, sidebarExpanded } = context;
+  if (layout === 'floating' && viewport === 'desktop') {
+    return sidebarExpanded === false ? CHROME_ACTIONS_TOP_MARGIN : FLOATING_SIDEBAR_FIRST_NAV_TOP;
+  }
+  return CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
+}
+
+/**
+ * Whether the action row should clear the device status band via safe-area-top.
+ * Floating / fullscreen are full-bleed under the notch. Sidebar and app-bar
+ * already pad their shell headers into the status band — the content iframe
+ * starts below that chrome, so stacking safe-area again leaves a large empty gap
+ * on iPhone.
+ */
+export function chromeActionsShouldHonorSafeAreaTop(layout?: string): boolean {
+  if (!layout) return true;
+  if (layout === 'floating' || layout === 'fullscreen') return true;
+  if (
+    layout === 'sidebar' ||
+    layout === 'sidebar-inset' ||
+    layout === 'app-bar' ||
+    layout === 'app-bar-inset'
+  ) {
+    return false;
+  }
+  // Promoted `actions` / `none` snapshots while on a header layout: prefer the
+  // shell layout string from settings when available; default to no extra inset.
+  if (layout === 'actions' || layout === 'none') return false;
+  return true;
+}
+
+/**
+ * CSS length for the top action row offset.
+ * When honoring safe-area: `max(margin, safe-area-top)` so notched phones clear
+ * the status band without double-padding the margin on zero-inset devices.
+ * When the shell header already cleared safe-area: plain margin only.
+ */
+export function chromeActionsTopOffsetCss(
+  context?: ChromeActionsTopContext | LayoutChromeViewport,
+  options?: { honorSafeAreaTop?: boolean },
+): string {
+  const min = chromeActionsTopMargin(context);
+  const layout = typeof context === 'object' && context ? context.layout : undefined;
+  const honor = options?.honorSafeAreaTop ?? chromeActionsShouldHonorSafeAreaTop(layout);
+  if (!honor) return `${min}px`;
   return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
 }
 
 /** Main-frame FAB diameter by viewport (overlays stay at `CHROME_ACTIONS_FAB_SIZE`). */
 export function chromeActionsFabSize(
-  viewport?: 'mobile' | 'tablet' | 'desktop',
+  viewport?: LayoutChromeViewport,
   options?: { floatingDock?: boolean },
 ): number {
   if (viewport === 'desktop') return CHROME_ACTIONS_FAB_SIZE_DESKTOP;
@@ -67,7 +139,7 @@ export function chromeActionsFabSize(
 }
 
 /** Outer margin from the screen / frame edge for the main-frame FAB. */
-export function chromeActionsFabEdgeMargin(viewport?: 'mobile' | 'tablet' | 'desktop'): number {
+export function chromeActionsFabEdgeMargin(viewport?: LayoutChromeViewport): number {
   if (viewport === 'tablet' || viewport === 'desktop') return CHROME_ACTIONS_FAB_EDGE_MARGIN;
   return FLOATING_CHROME_MARGIN;
 }
@@ -102,21 +174,31 @@ export function computeActionInsets(
      * no extra bottom inset beyond the dock height.
      */
     primaryInDock?: boolean;
-    /** Viewport for top margin (mobile drops the extra pad). */
-    viewport?: 'mobile' | 'tablet' | 'desktop';
+    /** Viewport for top margin / bar height / FAB sizing. */
+    viewport?: LayoutChromeViewport;
+    /** Published layout id (`floating`, `actions`, …). */
+    layout?: string;
+    /** Floating desktop: sidebar expanded (align to first nav) vs collapsed. */
+    sidebarExpanded?: boolean;
   },
 ): LayoutChromeInsets {
-  const topMargin = chromeActionsTopMargin(options?.viewport);
+  const viewport = options?.viewport;
+  const topMargin = chromeActionsTopMargin({
+    viewport,
+    layout: options?.layout,
+    sidebarExpanded: options?.sidebarExpanded,
+  });
+  const barHeight = chromeActionsTopBarHeight(viewport);
   const top =
     flags.hasTop && !options?.topInTitleBar
-      ? topMargin + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE
+      ? topMargin + barHeight + FLOATING_CONTENT_CLEARANCE
       : 0;
 
   let bottom = 0;
   if (flags.hasPrimary && !options?.primaryInDock) {
     const aboveNav = options?.existingBottomInset ?? 0;
-    const size = chromeActionsFabSize(options?.viewport);
-    const edge = chromeActionsFabEdgeMargin(options?.viewport);
+    const size = chromeActionsFabSize(viewport);
+    const edge = chromeActionsFabEdgeMargin(viewport);
     // When a tab bar already reserved bottom space, only add FAB height + gap.
     // Otherwise reserve FAB + margin + clearance from the screen edge.
     bottom =

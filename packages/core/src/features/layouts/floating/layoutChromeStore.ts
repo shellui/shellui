@@ -67,11 +67,16 @@ export function buildFrameLayoutChrome(
 ): LayoutChrome {
   const primaryInDock =
     base.layout === 'floating' && (base.viewport === 'mobile' || base.viewport === 'tablet');
+  // Floating desktop publishes chromeVisible=false when the sidebar is collapsed.
+  const sidebarExpanded =
+    base.layout === 'floating' && base.viewport === 'desktop' ? base.chromeVisible : undefined;
   const extra = computeActionInsets(flags, {
     topInTitleBar: options?.topInTitleBar,
     existingBottomInset: base.insets.bottom,
     primaryInDock,
     viewport: base.viewport,
+    layout: base.layout,
+    sidebarExpanded,
   });
   const insets = mergeInsets(base.insets, extra);
   const hasActions = flags.hasTop || flags.hasPrimary;
@@ -107,7 +112,11 @@ function chromePayloadForOverlayFrame(
 ): LayoutChrome {
   const actions = getChromeActionsForFrame(uuid);
   const flags = actionChromeFlags(actions);
-  const insets = computeActionInsets(flags, { topInTitleBar: false, viewport });
+  const insets = computeActionInsets(flags, {
+    topInTitleBar: false,
+    viewport,
+    layout: 'actions',
+  });
   const hasActions = flags.hasTop || flags.hasPrimary;
   return {
     layout: hasActions ? 'actions' : 'none',

@@ -5,13 +5,20 @@ import {
   CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_FAB_SIZE_DESKTOP,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
+  CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
+  CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
+  chromeActionsShouldHonorSafeAreaTop,
+  chromeActionsTopBarHeight,
+  chromeActionsTopMargin,
+  chromeActionsTopOffsetCss,
   computeActionInsets,
   mergeInsets,
 } from './computeActionInsets';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
+  FLOATING_SIDEBAR_FIRST_NAV_TOP,
 } from '../layouts/floating/computeFloatingInsets';
 import {
   clearAllChromeActions,
@@ -43,6 +50,87 @@ describe('chromeActionsStore', () => {
   });
 });
 
+describe('chromeActionsTopMargin', () => {
+  it('aligns floating desktop expanded with the first sidebar nav item', () => {
+    expect(
+      chromeActionsTopMargin({
+        layout: 'floating',
+        viewport: 'desktop',
+        sidebarExpanded: true,
+      }),
+    ).toBe(FLOATING_SIDEBAR_FIRST_NAV_TOP);
+  });
+
+  it('keeps floating desktop collapsed near the expand chip', () => {
+    expect(
+      chromeActionsTopMargin({
+        layout: 'floating',
+        viewport: 'desktop',
+        sidebarExpanded: false,
+      }),
+    ).toBe(CHROME_ACTIONS_TOP_MARGIN);
+    expect(CHROME_ACTIONS_TOP_MARGIN).toBe(FLOATING_CHROME_MARGIN);
+  });
+
+  it('uses a minimal top margin for other layouts', () => {
+    expect(chromeActionsTopMargin({ layout: 'actions', viewport: 'desktop' })).toBe(
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
+    );
+    expect(chromeActionsTopMargin({ layout: 'floating', viewport: 'mobile' })).toBe(
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
+    );
+  });
+});
+
+describe('chromeActionsTopOffsetCss', () => {
+  it('skips safe-area on sidebar and app-bar (shell header already cleared it)', () => {
+    expect(chromeActionsTopOffsetCss({ layout: 'sidebar', viewport: 'mobile' })).toBe(
+      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'app-bar', viewport: 'mobile' })).toBe(
+      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'sidebar-inset', viewport: 'mobile' })).toBe(
+      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+    );
+  });
+
+  it('honors safe-area on floating and fullscreen', () => {
+    expect(chromeActionsTopOffsetCss({ layout: 'floating', viewport: 'mobile' })).toBe(
+      `max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'fullscreen', viewport: 'mobile' })).toBe(
+      `max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`,
+    );
+  });
+
+  it('allows forcing safe-area for overlay surfaces on header layouts', () => {
+    expect(
+      chromeActionsTopOffsetCss(
+        { layout: 'sidebar', viewport: 'mobile' },
+        { honorSafeAreaTop: true },
+      ),
+    ).toBe(`max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`);
+  });
+});
+
+describe('chromeActionsShouldHonorSafeAreaTop', () => {
+  it('matches layout chrome ownership of the status band', () => {
+    expect(chromeActionsShouldHonorSafeAreaTop('floating')).toBe(true);
+    expect(chromeActionsShouldHonorSafeAreaTop('fullscreen')).toBe(true);
+    expect(chromeActionsShouldHonorSafeAreaTop('sidebar')).toBe(false);
+    expect(chromeActionsShouldHonorSafeAreaTop('app-bar')).toBe(false);
+  });
+});
+
+describe('chromeActionsTopBarHeight', () => {
+  it('uses a taller row on phone and tablet', () => {
+    expect(chromeActionsTopBarHeight('desktop')).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT);
+    expect(chromeActionsTopBarHeight('mobile')).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW);
+    expect(chromeActionsTopBarHeight('tablet')).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW);
+  });
+});
+
 describe('computeActionInsets', () => {
   it('detects top and primary flags', () => {
     expect(actionChromeFlags(null)).toEqual({ hasTop: false, hasPrimary: false });
@@ -64,15 +152,35 @@ describe('computeActionInsets', () => {
     ).toBe(0);
   });
 
-  it('uses a shared top margin on mobile and desktop', () => {
+  it('uses a taller top bar on mobile than desktop for non-floating layouts', () => {
     const desktop = computeActionInsets(
       { hasTop: true, hasPrimary: false },
-      { viewport: 'desktop' },
+      { viewport: 'desktop', layout: 'actions' },
     );
-    const mobile = computeActionInsets({ hasTop: true, hasPrimary: false }, { viewport: 'mobile' });
-    expect(mobile.top).toBe(desktop.top);
+    const mobile = computeActionInsets(
+      { hasTop: true, hasPrimary: false },
+      { viewport: 'mobile', layout: 'actions' },
+    );
+    expect(desktop.top).toBe(
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT +
+        FLOATING_CONTENT_CLEARANCE,
+    );
     expect(mobile.top).toBe(
-      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
+        FLOATING_CONTENT_CLEARANCE,
+    );
+    expect(mobile.top).toBeGreaterThan(desktop.top);
+  });
+
+  it('aligns floating desktop expanded top inset with the first sidebar nav', () => {
+    const top = computeActionInsets(
+      { hasTop: true, hasPrimary: false },
+      { viewport: 'desktop', layout: 'floating', sidebarExpanded: true },
+    ).top;
+    expect(top).toBe(
+      FLOATING_SIDEBAR_FIRST_NAV_TOP + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
   });
 
