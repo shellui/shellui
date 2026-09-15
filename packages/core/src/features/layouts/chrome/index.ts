@@ -17,10 +17,16 @@ export {
   useIsTauriClient,
   useIsTauriRuntime,
   useIsTauriFullscreen,
+  useIsHomeScreenPwa,
   useMacOverlayChrome,
   useMacTrafficLights,
   isMacOSDesktop,
   isTauriRuntime,
+  isStandaloneDisplayMode,
+  isHomeScreenPwa,
+  getShelluiHostKind,
+  syncShelluiHostAttribute,
+  type ShelluiHostKind,
 } from './runtime';
 export { DesktopBackButton } from './DesktopBackButton';
 export { DesktopForwardButton } from './DesktopForwardButton';

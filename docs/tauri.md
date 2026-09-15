@@ -1,6 +1,45 @@
-# Desktop App
+# Native App (Tauri)
 
-Ship your Shellui app as a native desktop application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the desktop wrapper is generated into `dist/app/` so you never manage native project files in your repo.
+Ship your Shellui app as a native application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the wrapper is generated into `dist/app/` so you never manage native project files in your repo.
+
+## Browser PWA vs native (iOS)
+
+The same React / Vite shell runs in both hosts. Status-bar behavior does **not**:
+
+| Host                     | How it runs        | Top chrome                                                                                                                               |
+| ------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Safari / Home Screen PWA | Standalone web app | iOS 26/27 Liquid Glass — system status sampling / gradient. Shellui skips stacking its own status scrims and does not set `theme-color`. |
+| Tauri iOS (App Store)    | Native WKWebView   | **No** Home Screen PWA system gradient. You control insets with `viewport-fit=cover` + `env(safe-area-inset-*)` (already in the shell).  |
+| Tauri desktop            | Native webview     | Overlay titlebar / traffic lights (macOS).                                                                                               |
+
+Detect the live native shell in app code with `window.__TAURI__` (or Shellui’s `isTauriRuntime()`). Prefer that over the CLI `--target tauri` build flag when deciding UI — a browser tab of a tauri-targeted build must not get native chrome.
+
+```ts
+import { isTauriRuntime, isHomeScreenPwa } from '@shellui/core';
+
+if (isTauriRuntime()) {
+  // App Store / desktop WKWebView — native-controlled chrome
+}
+
+if (isHomeScreenPwa()) {
+  // Safari "Add to Home Screen" only
+}
+```
+
+`html[data-shellui-host]` is set to `browser` | `pwa` | `tauri` for CSS.
+
+**App Store recommendation:** distribute the iOS build via Tauri so you avoid the iOS Home Screen PWA status gradient. Keep the web PWA for install-from-Safari users who accept platform chrome. Always verify on a real iPhone/iPad — Tauri mobile has had its own inset quirks.
+
+The shell document already ships:
+
+```html
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+/>
+```
+
+Layouts pad with `--shellui-safe-area-*` (`env(safe-area-inset-*)`). On iOS WKWebView, if UIKit still shrinks the scroll view, set `contentInsetAdjustmentBehavior = .never` on the webview (e.g. via a Tauri iOS insets plugin) so edge-to-edge paint matches CSS safe-area.
 
 ## Prerequisites
 

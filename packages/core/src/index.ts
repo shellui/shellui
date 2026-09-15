@@ -112,3 +112,11 @@ export {
   getCookieConsentNewHosts,
 } from './features/cookieConsent/cookieConsent.js';
 export { useCookieConsent } from './features/cookieConsent/useCookieConsent.js';
+export {
+  isTauriRuntime,
+  isStandaloneDisplayMode,
+  isHomeScreenPwa,
+  getShelluiHostKind,
+  syncShelluiHostAttribute,
+  type ShelluiHostKind,
+} from './features/layouts/chrome/runtime.js';

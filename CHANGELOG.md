@@ -25,6 +25,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
+- **Host detection (PWA vs Tauri):** `isHomeScreenPwa()` / `isTauriRuntime()` / `data-shellui-host` distinguish Safari Home Screen installs from native WKWebView. iOS Home Screen PWAs skip stacked status scrims and `theme-color`; Tauri keeps controlled chrome + CSS safe-area. See [docs/tauri.md](./docs/tauri.md#browser-pwa-vs-native-ios).
 - **Floating chrome actions (SDK):** `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. Shell renders them (floating glass / windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: ≤3 trailing visible (rest in `···`), ≤1 primary. Try via Settings → Develop → Chrome actions. See [docs/features/chrome-actions.md](./docs/features/chrome-actions.md).
 - **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Flutter Web (`flutter create --platforms=web --empty`). Companions: Next/Nuxt → `:3000`, SvelteKit → `:5173`, Flutter Web → `flutter run -d web-server` on `:8080`. Flutter is **Web only** (not iOS/Android) and uses `flutter pub get`.
 - **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
