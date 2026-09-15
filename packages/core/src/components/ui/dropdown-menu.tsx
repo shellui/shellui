@@ -1,9 +1,29 @@
-import { forwardRef, type ComponentPropsWithoutRef, type ElementRef } from 'react';
+import {
+  forwardRef,
+  type ComponentPropsWithoutRef,
+  type ElementRef,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
+/**
+ * Default `modal={false}`: Radix modal menus set `pointer-events: none` on `body`,
+ * which breaks Apple Pencil (and sometimes fine touch) on iPad — items never get
+ * a `click` / `onSelect`. Non-modal matches LoginButton and Radix #1027.
+ */
+function DropdownMenu({
+  modal = false,
+  ...props
+}: ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>) {
+  return (
+    <DropdownMenuPrimitive.Root
+      modal={modal}
+      {...props}
+    />
+  );
+}
 
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
@@ -39,17 +59,32 @@ const DropdownMenuContent = forwardRef<
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
+/**
+ * Pencil taps often never synthesize a `click` under Radix layers (same class of
+ * bug as dialog close / toast actions). Fire click on pointerdown for pen only.
+ */
+function handlePenPointerDown(
+  e: ReactPointerEvent<HTMLDivElement>,
+  onPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void,
+) {
+  onPointerDown?.(e);
+  if (e.defaultPrevented) return;
+  if (e.pointerType !== 'pen') return;
+  e.currentTarget.click();
+}
+
 const DropdownMenuItem = forwardRef<
   ElementRef<typeof DropdownMenuPrimitive.Item>,
   ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
->(({ className, ...props }, ref) => (
+>(({ className, onPointerDown, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex items-center gap-2 cursor-pointer select-none rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
+      'relative flex items-center gap-2 cursor-pointer select-none rounded-sm px-2 py-1.5 text-sm outline-none transition-colors [touch-action:manipulation]',
       'focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className,
     )}
+    onPointerDown={(e) => handlePenPointerDown(e, onPointerDown)}
     {...props}
   />
 ));
