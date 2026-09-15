@@ -1,7 +1,9 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
 
-/** Floating tab bar content height (icon + short label). */
+/** Floating tab bar content height (icon + short label) — phone. */
 export const FLOATING_TAB_BAR_HEIGHT = 56;
+/** Tablet floating dock — taller touch targets. */
+export const FLOATING_TAB_BAR_HEIGHT_TABLET = 64;
 /** Gap between floating chrome and screen edge. */
 export const FLOATING_CHROME_MARGIN = 12;
 /**
@@ -19,12 +21,25 @@ export const FLOATING_SIDEBAR_WIDTH = 240;
  * iPhone 15 (~393px) fits 5 with FAB after side insets + FAB reserve.
  */
 export const FLOATING_MAX_TAB_SLOTS = 5;
-/** Cap when the corner FAB is present — keeps the bar from feeling crowded. */
+/**
+ * Phone-only cap when the corner FAB is present — keeps the bar from feeling crowded.
+ * Tablet keeps `FLOATING_MAX_TAB_SLOTS` even with a FAB.
+ */
 export const FLOATING_MAX_TAB_SLOTS_WITH_FAB = 4;
 /** Minimum equal-width slot for a bottom-nav tab (icon + readable label). */
 export const FLOATING_MIN_TAB_SLOT_WIDTH = 56;
+/** Tablet floating dock slots — wider so labels stay readable. */
+export const FLOATING_MIN_TAB_SLOT_WIDTH_TABLET = 96;
 /** Gap between the phone nav bar and the corner FAB (keep tight). */
 export const FLOATING_FAB_NAV_GAP = 6;
+
+export function floatingTabBarHeight(viewport: LayoutChromeViewport): number {
+  return viewport === 'tablet' ? FLOATING_TAB_BAR_HEIGHT_TABLET : FLOATING_TAB_BAR_HEIGHT;
+}
+
+export function floatingMinTabSlotWidth(viewport: LayoutChromeViewport): number {
+  return viewport === 'tablet' ? FLOATING_MIN_TAB_SLOT_WIDTH_TABLET : FLOATING_MIN_TAB_SLOT_WIDTH;
+}
 
 /**
  * Padding under the floating tab bar (chrome margin + safe-area).
@@ -85,7 +100,7 @@ export function computeFloatingInsets(options: {
       right: safe.right,
       bottom:
         floatingTabBarBottomPadPx(safe.bottom, viewport) +
-        FLOATING_TAB_BAR_HEIGHT +
+        floatingTabBarHeight(viewport) +
         FLOATING_CHROME_MARGIN +
         FLOATING_CONTENT_CLEARANCE,
       left: safe.left,

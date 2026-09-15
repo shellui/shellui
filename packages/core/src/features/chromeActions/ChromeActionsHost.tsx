@@ -36,8 +36,8 @@ import { useViewport } from '../../hooks/use-viewport';
 import { useSettings } from '../settings/hooks/useSettings';
 import {
   FLOATING_CHROME_MARGIN,
-  FLOATING_TAB_BAR_HEIGHT,
   floatingTabBarBottomPadCss,
+  floatingTabBarHeight,
 } from '../layouts/floating/computeFloatingInsets';
 import {
   getPublishedLayoutChrome,
@@ -46,10 +46,13 @@ import {
 import { useChromeActionsSnapshot } from './ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME, type FrameChromeActions } from './chromeActionsStore';
 import {
+  CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_SCRIM_FADE,
   actionChromeFlags,
-  chromeActionsTopMargin,
+  chromeActionsFabEdgeMargin,
+  chromeActionsFabSize,
+  chromeActionsTopOffsetCss,
 } from './computeActionInsets';
 import {
   ChevronLeftIcon,
@@ -66,6 +69,19 @@ const CHROME_ACTIONS_FADE_MS = 200;
 const CHROME_ACTIONS_TITLE_MS = 520;
 /** Trailing row crossfade (old overlay → remove → new). */
 const CHROME_ACTIONS_TRAILING_MS = 220;
+/**
+ * Back button slot open/close — width + glyph motion so the title translates
+ * with the same curve (keep in sync with BackLeadingSlot / title shift).
+ */
+const CHROME_ACTIONS_BACK_SLOT_MS = 340;
+/** Easing shared by back slot + title shift (snappy settle, soft land). */
+const CHROME_ACTIONS_BACK_SLOT_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+/** Overlay back control: size-8 + mr-2. */
+const CHROME_ACTIONS_BACK_SLOT_OPEN = 40;
+/** Title-bar back control: size-7 + mr-1. */
+const CHROME_ACTIONS_BACK_SLOT_OPEN_TITLEBAR = 32;
+/** Collapsed leading spacer when no back control. */
+const CHROME_ACTIONS_BACK_SLOT_CLOSED = 8;
 
 /**
  * Floating phone/tablet hide-on-scroll: mirror nav chromeVisible for main-frame
@@ -96,9 +112,9 @@ function resolveActionVariant(
   return itemVariant ?? setVariant ?? CHROME_ACTION_VARIANT_DEFAULT;
 }
 
-/** Shared sizing for back / trailing chrome action controls. */
-const chromeActionControlClass = 'shadow-sm h-8 rounded-md text-xs';
-const chromeActionIconControlClass = 'shadow-sm size-8 rounded-md text-xs';
+/** Shared sizing for back / trailing chrome action controls (flat — no elevation). */
+const chromeActionControlClass = 'shadow-none h-8 rounded-md text-xs';
+const chromeActionIconControlClass = 'shadow-none size-8 rounded-md text-xs';
 /** Windows title-bar: flush ghost controls that match maximize/close. */
 const chromeActionTitlebarClass =
   'shadow-none border-0 bg-transparent text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground';
@@ -325,6 +341,7 @@ function FadePresence({
 /**
  * Soft title crossfade: old and new overlap and ease opacity only (no slide /
  * stagger). Layers stay absolute so trailing actions never reflow.
+ * Horizontal motion comes from `BackLeadingSlot` width — the title rides flex layout.
  */
 function ChromeActionTitle({ title }: { title?: string }) {
   const titleRef = useRef(title ?? '');
@@ -410,6 +427,124 @@ function ChromeActionTitle({ title }: { title?: string }) {
         </span>
       ) : null}
     </span>
+  );
+}
+
+/**
+ * Leading back control: expands/collapses width so the title translates with it,
+ * while the button fades + eases in from the left.
+ */
+function BackLeadingSlot({
+  back,
+  titlebar,
+  setVariant,
+  frameUuid,
+  interactive,
+}: {
+  back?: ChromeActionPayloadItem | null;
+  titlebar: boolean;
+  setVariant?: ChromeActionVariant;
+  frameUuid: string;
+  interactive: boolean;
+}) {
+  const backId = back?.id ?? null;
+  const [displayed, setDisplayed] = useState<ChromeActionPayloadItem | null>(back ?? null);
+  const [open, setOpen] = useState(Boolean(back));
+
+  useEffect(() => {
+    if (back) {
+      setDisplayed(back);
+      const id = requestAnimationFrame(() => setOpen(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setOpen(false);
+    const t = window.setTimeout(() => setDisplayed(null), CHROME_ACTIONS_BACK_SLOT_MS);
+    return () => window.clearTimeout(t);
+  }, [backId]);
+
+  // Refresh label/icon/disabled while the same back id stays mounted.
+  useEffect(() => {
+    if (back && open) setDisplayed(back);
+  }, [back, open]);
+
+  const openWidth = titlebar
+    ? CHROME_ACTIONS_BACK_SLOT_OPEN_TITLEBAR
+    : CHROME_ACTIONS_BACK_SLOT_OPEN;
+  const width = open ? openWidth : CHROME_ACTIONS_BACK_SLOT_CLOSED;
+  const item = displayed;
+
+  return (
+    <div
+      data-shellui-chrome-actions-back-slot=""
+      data-open={open ? 'true' : 'false'}
+      className="relative shrink-0 overflow-hidden motion-reduce:transition-none"
+      style={{
+        width,
+        transitionProperty: 'width',
+        transitionDuration: `${CHROME_ACTIONS_BACK_SLOT_MS}ms`,
+        transitionTimingFunction: CHROME_ACTIONS_BACK_SLOT_EASE,
+      }}
+    >
+      {item ? (
+        <div
+          className={cn(
+            'origin-left motion-reduce:transition-none',
+            open ? 'translate-x-0 scale-100 opacity-100' : '-translate-x-2 scale-[0.92] opacity-0',
+          )}
+          style={{
+            transitionProperty: 'opacity, transform',
+            transitionDuration: `${CHROME_ACTIONS_BACK_SLOT_MS}ms`,
+            transitionTimingFunction: CHROME_ACTIONS_BACK_SLOT_EASE,
+          }}
+        >
+          <ChromeActionTooltip label={item.label || 'Back'}>
+            <Button
+              type="button"
+              variant={titlebar ? 'ghost' : resolveActionVariant(item.variant, setVariant)}
+              size="icon"
+              disabled={Boolean(item.disabled)}
+              className={cn(
+                'shrink-0',
+                titlebar
+                  ? cn(
+                      'mr-1 size-7',
+                      resolveTitlebarButtonClass(resolveActionVariant(item.variant, setVariant)),
+                    )
+                  : cn('mr-2', chromeActionIconControlClass),
+              )}
+              aria-label={item.label || 'Back'}
+              aria-hidden={!open}
+              tabIndex={interactive && open ? undefined : -1}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!open || item.disabled) return;
+                fireAction(frameUuid, item.id);
+              }}
+            >
+              {item.icon && item.icon !== 'back' ? (
+                <ChromeActionGlyph
+                  icon={item.icon}
+                  label={item.label}
+                  animate={item.animate}
+                />
+              ) : (
+                <ChevronLeftIcon
+                  className={item.animate === 'icon-rotate' ? 'animate-spin' : undefined}
+                  {...(item.animate === 'icon-rotate'
+                    ? { 'data-shellui-chrome-action-animate': 'icon-rotate' }
+                    : {})}
+                />
+              )}
+            </Button>
+          </ChromeActionTooltip>
+        </div>
+      ) : (
+        <span
+          aria-hidden
+          className="block size-2"
+        />
+      )}
+    </div>
   );
 }
 
@@ -792,7 +927,7 @@ function TopActionBar({
   const viewport = useViewport();
   const narrow = viewport === 'mobile' || viewport === 'tablet';
   const trailing = actions.trailing ?? [];
-  const topMargin = chromeActionsTopMargin(viewport);
+  const topOffset = chromeActionsTopOffsetCss(viewport);
 
   const flags = actionChromeFlags(actions);
   if (!flags.hasTop) return null;
@@ -835,7 +970,8 @@ function TopActionBar({
             className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background/50 from-90% to-transparent"
             style={{
               // Light tint through the action row, then fade — no blur (animates poorly).
-              height: `calc(${topMargin}px + ${CHROME_ACTIONS_TOP_BAR_HEIGHT}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px + var(--shellui-safe-area-top, 0px))`,
+              // Top offset is max(margin, safe-area) so we don’t stack both.
+              height: `calc(${topOffset} + ${CHROME_ACTIONS_TOP_BAR_HEIGHT}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`,
             }}
           />
         ) : null}
@@ -850,56 +986,20 @@ function TopActionBar({
           style={
             isOverlay
               ? {
-                  top: `calc(${topMargin}px + var(--shellui-safe-area-top, 0px))`,
+                  top: topOffset,
                   height: CHROME_ACTIONS_TOP_BAR_HEIGHT,
                   ...inlinePad,
                 }
               : undefined
           }
         >
-          {back ? (
-            <ChromeActionTooltip label={back.label || 'Back'}>
-              <Button
-                type="button"
-                variant={titlebar ? 'ghost' : resolveActionVariant(back.variant, setVariant)}
-                size="icon"
-                disabled={Boolean(back.disabled)}
-                className={cn(
-                  'mr-1 shrink-0',
-                  titlebar
-                    ? cn(
-                        'size-7',
-                        resolveTitlebarButtonClass(resolveActionVariant(back.variant, setVariant)),
-                      )
-                    : cn('mr-2', chromeActionIconControlClass),
-                )}
-                aria-label={back.label || 'Back'}
-                tabIndex={interactive ? undefined : -1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (back.disabled) return;
-                  fireAction(actions.frameUuid, back.id);
-                }}
-              >
-                {back.icon && back.icon !== 'back' ? (
-                  <ChromeActionGlyph
-                    icon={back.icon}
-                    label={back.label}
-                    animate={back.animate}
-                  />
-                ) : (
-                  <ChevronLeftIcon
-                    className={back.animate === 'icon-rotate' ? 'animate-spin' : undefined}
-                    {...(back.animate === 'icon-rotate'
-                      ? { 'data-shellui-chrome-action-animate': 'icon-rotate' }
-                      : {})}
-                  />
-                )}
-              </Button>
-            </ChromeActionTooltip>
-          ) : (
-            <span className="size-2 shrink-0" />
-          )}
+          <BackLeadingSlot
+            back={back}
+            titlebar={titlebar}
+            setVariant={setVariant}
+            frameUuid={actions.frameUuid}
+            interactive={interactive}
+          />
 
           <ChromeActionTitle title={actions.title} />
 
@@ -923,8 +1023,10 @@ function PrimaryFab({
   visible = true,
   useLayoutInsets = false,
   scrollHidden = false,
-  /** Match floating bottom nav height (56). Default shadcn icon size otherwise. */
-  large = false,
+  sizePx = CHROME_ACTIONS_FAB_SIZE,
+  edgeMargin = FLOATING_CHROME_MARGIN,
+  /** Phone/tablet dock: binary pill. Desktop: theme `--radius` (0 → square). */
+  shape = 'theme',
 }: {
   actions: FrameChromeActions;
   /** Pixel number or CSS length (e.g. calc with safe-area). */
@@ -932,15 +1034,19 @@ function PrimaryFab({
   visible?: boolean;
   useLayoutInsets?: boolean;
   scrollHidden?: boolean;
-  large?: boolean;
+  /** FAB diameter in px. */
+  sizePx?: number;
+  /** Outer inset from the frame / screen edge. */
+  edgeMargin?: number;
+  shape?: 'pill' | 'theme';
 }) {
   const primary = actions.primary ?? null;
   const { item, visible: itemVisible } = useOptionalPresence(primary);
   if (!item) return null;
 
   const right = useLayoutInsets
-    ? `calc(var(--shellui-inset-right, 0px) + ${FLOATING_CHROME_MARGIN}px)`
-    : `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-right, 0px))`;
+    ? `calc(var(--shellui-inset-right, 0px) + ${edgeMargin}px)`
+    : `calc(${edgeMargin}px + var(--shellui-safe-area-right, 0px))`;
 
   const ariaLabel = item.label || item.icon || 'Primary action';
   const shown = visible && itemVisible && !scrollHidden;
@@ -962,11 +1068,9 @@ function PrimaryFab({
         disabled={Boolean(item.disabled)}
         data-shellui-chrome-actions-fab=""
         data-shellui-chrome-actions-hit=""
-        data-shellui-floating-fab={large ? 'true' : undefined}
-        className={cn('shadow-sm', large ? undefined : 'size-10')}
-        style={
-          large ? { width: FLOATING_TAB_BAR_HEIGHT, height: FLOATING_TAB_BAR_HEIGHT } : undefined
-        }
+        data-shellui-floating-fab={shape === 'pill' ? 'true' : undefined}
+        className={cn('shadow-sm', shape === 'theme' && 'rounded-md')}
+        style={{ width: sizePx, height: sizePx }}
         aria-label={ariaLabel}
         tabIndex={shown ? undefined : -1}
         onClick={(e) => {
@@ -1002,7 +1106,9 @@ function FrameActionsOverlay({
   fabBottomOffset,
   visible,
   scrollHidden = false,
-  largeFab = false,
+  fabSizePx = CHROME_ACTIONS_FAB_SIZE,
+  fabEdgeMargin = FLOATING_CHROME_MARGIN,
+  fabShape = 'theme',
 }: {
   actions: FrameChromeActions;
   showTop: boolean;
@@ -1010,8 +1116,12 @@ function FrameActionsOverlay({
   visible: boolean;
   /** Floating phone/tablet: hide with nav on scroll. */
   scrollHidden?: boolean;
-  /** Match floating bottom nav height. */
-  largeFab?: boolean;
+  /** Main-frame FAB diameter. */
+  fabSizePx?: number;
+  /** Main-frame FAB edge inset. */
+  fabEdgeMargin?: number;
+  /** Main-frame FAB corner treatment. */
+  fabShape?: 'pill' | 'theme';
 }) {
   const [{ rect, surface, portalParent, borderRadius }, setFrame] = useState(() =>
     resolveFrameSurface(actions.frameUuid),
@@ -1116,6 +1226,9 @@ function FrameActionsOverlay({
   // Corner FAB inside portaled surfaces (modal/drawer/window content).
   const overlayFabOffset =
     isOverlaySurface || isWindowSurface ? FLOATING_CHROME_MARGIN : fabBottomOffset;
+  const fabSize = isOverlaySurface || isWindowSurface ? CHROME_ACTIONS_FAB_SIZE : fabSizePx;
+  const fabEdge = isOverlaySurface || isWindowSurface ? FLOATING_CHROME_MARGIN : fabEdgeMargin;
+  const shape = isOverlaySurface || isWindowSurface ? 'theme' : fabShape;
   // Overlays / windows / develop never follow floating tab-bar hide-on-scroll.
   const hideWithNav = scrollHidden && surface === 'main';
 
@@ -1136,7 +1249,9 @@ function FrameActionsOverlay({
         visible={visible}
         scrollHidden={hideWithNav}
         useLayoutInsets={useLayoutInsets}
-        large={largeFab && surface === 'main'}
+        sizePx={fabSize}
+        edgeMargin={fabEdge}
+        shape={shape}
       />
     </>
   );
@@ -1194,14 +1309,19 @@ export function ChromeActionsHost() {
 
   const floatingDock =
     settings.layout === 'floating' && (viewport === 'mobile' || viewport === 'tablet');
+  // Floating dock: FAB diameter matches the bottom nav bar height (phone 56 / tablet 64).
+  const fabSizePx = floatingDock ? floatingTabBarHeight(viewport) : chromeActionsFabSize(viewport);
+  const fabEdgeMargin = chromeActionsFabEdgeMargin(viewport);
+  // Pill only beside the phone/tablet dock; desktop uses theme radius (square when 0).
+  const fabShape = floatingDock ? 'pill' : 'theme';
 
   const fabBottomOffset = useMemo(() => {
     if (floatingDock) {
       // Match FloatingBottomDock paddingBottom (includes safe-area CSS var).
       return floatingTabBarBottomPadCss(viewport);
     }
-    return FLOATING_CHROME_MARGIN;
-  }, [floatingDock, viewport]);
+    return fabEdgeMargin;
+  }, [floatingDock, viewport, fabEdgeMargin]);
 
   // Same hide-on-scroll signal as FloatingBottomDock (phone/tablet floating only).
   const scrollHidden = Boolean(
@@ -1218,7 +1338,9 @@ export function ChromeActionsHost() {
           actions={actions}
           visible={visible}
           scrollHidden={scrollHidden}
-          largeFab={floatingDock}
+          fabSizePx={fabSizePx}
+          fabEdgeMargin={fabEdgeMargin}
+          fabShape={fabShape}
           showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
           fabBottomOffset={windowsLayout ? FLOATING_CHROME_MARGIN : fabBottomOffset}
         />

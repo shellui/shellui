@@ -2,32 +2,74 @@ import type { LayoutChromeInsets } from '@shellui/sdk';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
+  FLOATING_TAB_BAR_HEIGHT,
+  FLOATING_TAB_BAR_HEIGHT_TABLET,
+  floatingTabBarHeight,
 } from '../layouts/floating/computeFloatingInsets';
 import type { FrameChromeActions } from './chromeActionsStore';
 
 /** Top floating action row height (matches secondary h-8 / text-xs controls). */
 export const CHROME_ACTIONS_TOP_BAR_HEIGHT = 32;
 /**
- * Breathing room above the top action row (below safe-area).
- * Slightly roomier than general floating chrome margin so controls aren’t cramped.
+ * Minimum breathing room above the top action row.
+ * Applied as `max(margin, safe-area-top)` so notched phones keep the system
+ * inset without stacking extra pad, while desktop / narrow viewports (safe-area
+ * 0) still clear the top edge.
  */
-export const CHROME_ACTIONS_TOP_MARGIN = 20;
-/** Mobile: no extra top pad — safe-area alone; vertical space is tighter. */
-export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = 0;
+export const CHROME_ACTIONS_TOP_MARGIN = 12;
+/** @deprecated Use CHROME_ACTIONS_TOP_MARGIN — kept for call sites / tests. */
+export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = CHROME_ACTIONS_TOP_MARGIN;
 /**
  * Extra scrim height below the action row. With `from-80%`, this ~20% band
  * fades background → transparent so content eases in under the chrome.
  */
 export const CHROME_ACTIONS_TOP_SCRIM_FADE = 16;
-/** Bottom primary action button size (default shadcn icon). */
+/** Bottom primary action button size (default shadcn icon / overlays). */
 export const CHROME_ACTIONS_FAB_SIZE = 40;
-/** Floating phone/tablet FAB — keep equal to `FLOATING_TAB_BAR_HEIGHT` (56). */
-export const CHROME_ACTIONS_FAB_SIZE_FLOATING = 56;
-/** Gap between primary FAB and floating tab bar (corner FAB uses FLOATING_CHROME_MARGIN). */
+/** Floating phone FAB — equal to `FLOATING_TAB_BAR_HEIGHT`. */
+export const CHROME_ACTIONS_FAB_SIZE_FLOATING = FLOATING_TAB_BAR_HEIGHT;
+/** Tablet FAB — equal to `FLOATING_TAB_BAR_HEIGHT_TABLET`. */
+export const CHROME_ACTIONS_FAB_SIZE_LARGE = FLOATING_TAB_BAR_HEIGHT_TABLET;
+/** Desktop FAB (main frame) — between compact and tablet. */
+export const CHROME_ACTIONS_FAB_SIZE_DESKTOP = 52;
+/**
+ * Edge inset for tablet/desktop FAB (right + bottom).
+ * Mobile keeps `FLOATING_CHROME_MARGIN` so it sits flush with the dock band.
+ */
+export const CHROME_ACTIONS_FAB_EDGE_MARGIN = 20;
+/** Gap between primary FAB and floating tab bar (corner FAB uses edge margin). */
 export const CHROME_ACTIONS_FAB_GAP = 12;
 
-export function chromeActionsTopMargin(viewport?: 'mobile' | 'tablet' | 'desktop'): number {
-  return viewport === 'mobile' ? CHROME_ACTIONS_TOP_MARGIN_MOBILE : CHROME_ACTIONS_TOP_MARGIN;
+export function chromeActionsTopMargin(_viewport?: 'mobile' | 'tablet' | 'desktop'): number {
+  return CHROME_ACTIONS_TOP_MARGIN;
+}
+
+/**
+ * CSS length for the top action row offset: at least the chrome margin, or the
+ * safe-area inset when it’s larger (real iPhone). Avoids double-padding.
+ */
+export function chromeActionsTopOffsetCss(viewport?: 'mobile' | 'tablet' | 'desktop'): string {
+  const min = chromeActionsTopMargin(viewport);
+  return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
+}
+
+/** Main-frame FAB diameter by viewport (overlays stay at `CHROME_ACTIONS_FAB_SIZE`). */
+export function chromeActionsFabSize(
+  viewport?: 'mobile' | 'tablet' | 'desktop',
+  options?: { floatingDock?: boolean },
+): number {
+  if (viewport === 'desktop') return CHROME_ACTIONS_FAB_SIZE_DESKTOP;
+  // Tablet + phone floating dock: match the bottom nav bar height exactly.
+  if (viewport === 'tablet' || options?.floatingDock) {
+    return floatingTabBarHeight(viewport === 'tablet' ? 'tablet' : 'mobile');
+  }
+  return CHROME_ACTIONS_FAB_SIZE;
+}
+
+/** Outer margin from the screen / frame edge for the main-frame FAB. */
+export function chromeActionsFabEdgeMargin(viewport?: 'mobile' | 'tablet' | 'desktop'): number {
+  if (viewport === 'tablet' || viewport === 'desktop') return CHROME_ACTIONS_FAB_EDGE_MARGIN;
+  return FLOATING_CHROME_MARGIN;
 }
 
 export type ActionChromeFlags = {
@@ -73,12 +115,12 @@ export function computeActionInsets(
   let bottom = 0;
   if (flags.hasPrimary && !options?.primaryInDock) {
     const aboveNav = options?.existingBottomInset ?? 0;
+    const size = chromeActionsFabSize(options?.viewport);
+    const edge = chromeActionsFabEdgeMargin(options?.viewport);
     // When a tab bar already reserved bottom space, only add FAB height + gap.
     // Otherwise reserve FAB + margin + clearance from the screen edge.
     bottom =
-      aboveNav > 0
-        ? CHROME_ACTIONS_FAB_SIZE + CHROME_ACTIONS_FAB_GAP
-        : FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE;
+      aboveNav > 0 ? size + CHROME_ACTIONS_FAB_GAP : edge + size + FLOATING_CONTENT_CLEARANCE;
   }
 
   return { top, right: 0, bottom, left: 0 };

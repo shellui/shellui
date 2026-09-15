@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { buildFrameLayoutChrome } from './layoutChromeStore';
 import {
+  CHROME_ACTIONS_FAB_EDGE_MARGIN,
   CHROME_ACTIONS_FAB_GAP,
-  CHROME_ACTIONS_FAB_SIZE,
+  CHROME_ACTIONS_FAB_SIZE_DESKTOP,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
   CHROME_ACTIONS_TOP_MARGIN,
   CHROME_ACTIONS_TOP_MARGIN_MOBILE,
 } from '../../chromeActions/computeActionInsets';
-import { FLOATING_CHROME_MARGIN, FLOATING_CONTENT_CLEARANCE } from './computeFloatingInsets';
+import { FLOATING_CONTENT_CLEARANCE } from './computeFloatingInsets';
 
 const CLEARED = {
   layout: 'none',
@@ -34,7 +35,7 @@ describe('buildFrameLayoutChrome', () => {
       CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
     expect(chrome.insets.bottom).toBe(
-      FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE,
+      CHROME_ACTIONS_FAB_EDGE_MARGIN + CHROME_ACTIONS_FAB_SIZE_DESKTOP + FLOATING_CONTENT_CLEARANCE,
     );
   });
 
@@ -46,7 +47,9 @@ describe('buildFrameLayoutChrome', () => {
       CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
     );
     // Desktop floating: FAB still sits above existing bottom inset (corner FAB).
-    expect(chrome.insets.bottom).toBe(72 + CHROME_ACTIONS_FAB_SIZE + CHROME_ACTIONS_FAB_GAP);
+    expect(chrome.insets.bottom).toBe(
+      72 + CHROME_ACTIONS_FAB_SIZE_DESKTOP + CHROME_ACTIONS_FAB_GAP,
+    );
   });
 
   it('does not stack FAB inset when floating phone/tablet docks the primary', () => {

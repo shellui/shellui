@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   actionChromeFlags,
+  CHROME_ACTIONS_FAB_EDGE_MARGIN,
   CHROME_ACTIONS_FAB_SIZE,
+  CHROME_ACTIONS_FAB_SIZE_DESKTOP,
   CHROME_ACTIONS_TOP_BAR_HEIGHT,
+  CHROME_ACTIONS_TOP_MARGIN,
   computeActionInsets,
   mergeInsets,
 } from './computeActionInsets';
+import {
+  FLOATING_CHROME_MARGIN,
+  FLOATING_CONTENT_CLEARANCE,
+} from '../layouts/floating/computeFloatingInsets';
 import {
   clearAllChromeActions,
   clearChromeActionsForFrame,
@@ -57,14 +64,16 @@ describe('computeActionInsets', () => {
     ).toBe(0);
   });
 
-  it('uses zero top margin on mobile', () => {
+  it('uses a shared top margin on mobile and desktop', () => {
     const desktop = computeActionInsets(
       { hasTop: true, hasPrimary: false },
       { viewport: 'desktop' },
     );
     const mobile = computeActionInsets({ hasTop: true, hasPrimary: false }, { viewport: 'mobile' });
-    expect(mobile.top).toBeLessThan(desktop.top);
-    expect(mobile.top).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT + 12);
+    expect(mobile.top).toBe(desktop.top);
+    expect(mobile.top).toBe(
+      CHROME_ACTIONS_TOP_MARGIN + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+    );
   });
 
   it('stacks FAB above existing bottom inset', () => {
@@ -75,6 +84,21 @@ describe('computeActionInsets', () => {
     );
     expect(stacked.bottom).toBe(CHROME_ACTIONS_FAB_SIZE + 12);
     expect(alone.bottom).toBeGreaterThan(stacked.bottom);
+  });
+
+  it('uses a larger FAB + edge margin on tablet and desktop', () => {
+    const desktop = computeActionInsets(
+      { hasTop: false, hasPrimary: true },
+      { viewport: 'desktop' },
+    );
+    const mobile = computeActionInsets({ hasTop: false, hasPrimary: true }, { viewport: 'mobile' });
+    expect(desktop.bottom).toBe(
+      CHROME_ACTIONS_FAB_EDGE_MARGIN + CHROME_ACTIONS_FAB_SIZE_DESKTOP + FLOATING_CONTENT_CLEARANCE,
+    );
+    expect(mobile.bottom).toBe(
+      FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE,
+    );
+    expect(desktop.bottom).toBeGreaterThan(mobile.bottom);
   });
 
   it('skips FAB bottom inset when primary is in the floating dock', () => {

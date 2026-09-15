@@ -28,8 +28,9 @@ import {
   FLOATING_MAX_TAB_SLOTS,
   FLOATING_MAX_TAB_SLOTS_WITH_FAB,
   FLOATING_MIN_TAB_SLOT_WIDTH,
-  FLOATING_TAB_BAR_HEIGHT,
+  floatingMinTabSlotWidth,
   floatingTabBarBottomPadCss,
+  floatingTabBarHeight,
 } from './computeFloatingInsets';
 import type { ShellViewport } from '../../../hooks/use-viewport';
 import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvider';
@@ -86,11 +87,13 @@ function useMainHasPrimaryFab(): boolean {
 
 const tabTriggerClass =
   'h-auto min-w-0 flex-1 basis-0 flex-col gap-0.5 px-2 py-1.5 text-[11px] font-medium leading-tight text-muted-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none';
+const tabTriggerClassTablet =
+  'h-auto min-w-0 flex-1 basis-0 flex-col gap-1 px-3.5 py-2 text-xs font-medium leading-tight text-muted-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none';
 
 /**
- * Floating phone/tablet bottom nav: full-width shadcn Tabs with equal slots.
- * Primary FAB stays in the bottom-right corner; the bar shrinks to clear it.
- * Visible tab count adapts to available width.
+ * Floating phone/tablet bottom nav: shadcn Tabs with equal slots.
+ * Phone: full-width bar clearing the corner FAB (4 slots when FAB is present).
+ * Tablet: larger centered island keeps 5 slots with FAB; FAB stays bottom-right.
  */
 export function FloatingBottomDock({
   items,
@@ -112,14 +115,21 @@ export function FloatingBottomDock({
   const [moreOpen, setMoreOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const hasPrimaryFab = useMainHasPrimaryFab();
-  const slotCap = hasPrimaryFab ? FLOATING_MAX_TAB_SLOTS_WITH_FAB : FLOATING_MAX_TAB_SLOTS;
+  const isPhone = viewport === 'mobile';
+  const isTablet = viewport === 'tablet';
+  // Phone: drop a slot when the corner FAB is present. Tablet has room for 5 + FAB.
+  const slotCap =
+    isPhone && hasPrimaryFab ? FLOATING_MAX_TAB_SLOTS_WITH_FAB : FLOATING_MAX_TAB_SLOTS;
   const [maxSlots, setMaxSlots] = useState(slotCap);
+  const dockHeight = floatingTabBarHeight(viewport);
+  const slotWidth = floatingMinTabSlotWidth(viewport);
+  const triggerClass = isTablet ? tabTriggerClassTablet : tabTriggerClass;
 
   const flat = useMemo(() => flattenNavigationItems(items), [items]);
 
-  // Measure how many equal-width slots fit; tablet float uses a fixed cap.
+  // Measure how many equal-width slots fit; tablet island uses the slot cap.
   useLayoutEffect(() => {
-    if (viewport !== 'mobile') {
+    if (!isPhone) {
       setMaxSlots(slotCap);
       return;
     }
@@ -141,7 +151,7 @@ export function FloatingBottomDock({
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     ro?.observe(el);
     return () => ro?.disconnect();
-  }, [hasPrimaryFab, viewport, slotCap]);
+  }, [hasPrimaryFab, isPhone, slotCap]);
 
   const needsMoreChrome = endItems.length > 0 || showAuthButton;
   // Fit as many equal slots as width allows; reserve one for More when needed.
@@ -218,40 +228,39 @@ export function FloatingBottomDock({
 
   const bottomPad = floatingTabBarBottomPadCss(viewport);
 
-  // Phone: full-width bar clears the corner FAB. Tablet+: bar floats bottom-left;
+  // Phone: full-width bar clears the corner FAB. Tablet: centered island;
   // FAB stays bottom-right so they don’t share a row.
-  const floatStart = viewport !== 'mobile';
-  // Reserve FAB width + a tight gap. Right pad matches FAB edge (no extra side
-  // inset) so we don’t waste space between bar and FAB on iPhone.
   const fabReserve =
-    !floatStart && hasPrimaryFab ? CHROME_ACTIONS_FAB_SIZE_FLOATING + FLOATING_FAB_NAV_GAP : 0;
-  const rightPad = floatStart
-    ? undefined
-    : hasPrimaryFab
+    isPhone && hasPrimaryFab ? CHROME_ACTIONS_FAB_SIZE_FLOATING + FLOATING_FAB_NAV_GAP : 0;
+  const leftPad = `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-left, 0px))`;
+  const rightPad = isPhone
+    ? hasPrimaryFab
       ? `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-right, 0px))`
-      : `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-right, 0px))`;
+      : `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-right, 0px))`
+    : `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-right, 0px))`;
+  const tabCount = primary.length + (showMoreFinal ? 1 : 0);
 
   return (
     <div
       data-shellui-floating-dock="bottom"
       data-chrome-visible={chromeVisible ? 'true' : 'false'}
       data-has-fab={hasPrimaryFab ? 'true' : 'false'}
-      data-dock-align={floatStart ? 'start' : 'stretch'}
+      data-dock-align={isPhone ? 'stretch' : 'center'}
       className={cn(
-        'pointer-events-none absolute bottom-0 z-[45] flex',
-        floatStart ? 'left-0' : 'inset-x-0',
+        'pointer-events-none absolute inset-x-0 bottom-0 z-[45] flex',
+        !isPhone && 'justify-center',
       )}
       style={{
-        paddingLeft: `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-left, 0px))`,
+        paddingLeft: leftPad,
         paddingRight: rightPad,
         paddingBottom: bottomPad,
       }}
     >
       <div
         data-shellui-floating-dock-row=""
-        className={cn('pointer-events-auto min-w-0', floatStart ? 'w-auto max-w-md' : 'flex-1')}
+        className={cn('pointer-events-auto min-w-0', isPhone ? 'flex-1' : 'w-auto max-w-xl')}
         style={{
-          height: FLOATING_TAB_BAR_HEIGHT,
+          height: dockHeight,
           marginRight: fabReserve,
           transitionProperty: 'margin-right',
           transitionDuration: '380ms',
@@ -261,7 +270,7 @@ export function FloatingBottomDock({
         <Tabs
           value={activeTabKey}
           onValueChange={onTabChange}
-          className={cn('h-full min-w-0', floatStart ? 'w-auto' : 'w-full')}
+          className={cn('h-full min-w-0', isPhone ? 'w-full' : 'w-auto')}
         >
           <TabsList
             ref={listRef}
@@ -269,13 +278,15 @@ export function FloatingBottomDock({
             aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
             className={cn(
               'flex h-full min-w-0 gap-1 border border-border/60 bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-md',
-              floatStart ? 'w-auto' : 'w-full',
+              // Override TabsList default `h-10` so height matches the FAB.
+              isTablet ? 'h-16 gap-1.5 p-2' : 'h-14',
+              isPhone ? 'w-full' : 'w-auto',
             )}
             style={{
-              height: FLOATING_TAB_BAR_HEIGHT,
-              ...(floatStart
+              height: dockHeight,
+              ...(!isPhone
                 ? {
-                    width: `${(primary.length + (showMoreFinal ? 1 : 0)) * FLOATING_MIN_TAB_SLOT_WIDTH}px`,
+                    width: `${tabCount * slotWidth}px`,
                   }
                 : {}),
             }}
@@ -288,7 +299,7 @@ export function FloatingBottomDock({
                   key={key}
                   value={key}
                   data-shellui-floating-dock-tab=""
-                  className={tabTriggerClass}
+                  className={triggerClass}
                 >
                   <TabGlyph
                     item={navItem}
@@ -320,7 +331,7 @@ export function FloatingBottomDock({
                     data-shellui-floating-dock-tab=""
                     className={cn(
                       'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-                      tabTriggerClass,
+                      triggerClass,
                     )}
                   >
                     <MoreHorizontalIcon className="size-5" />

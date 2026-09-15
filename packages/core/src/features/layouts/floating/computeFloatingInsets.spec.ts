@@ -5,6 +5,7 @@ import {
   FLOATING_CONTENT_CLEARANCE,
   FLOATING_SIDEBAR_WIDTH,
   FLOATING_TAB_BAR_HEIGHT,
+  FLOATING_TAB_BAR_HEIGHT_TABLET,
 } from './computeFloatingInsets';
 
 describe('computeFloatingInsets', () => {
@@ -37,7 +38,7 @@ describe('computeFloatingInsets', () => {
     });
   });
 
-  it('adds bottom tab bar on tablet when visible (full bottom pad)', () => {
+  it('adds bottom tab bar on tablet when visible (full bottom pad, taller dock)', () => {
     expect(
       computeFloatingInsets({ viewport: 'tablet', chromeVisible: true, safeArea: safe }),
     ).toEqual({
@@ -46,7 +47,7 @@ describe('computeFloatingInsets', () => {
       bottom:
         20 +
         FLOATING_CHROME_MARGIN +
-        FLOATING_TAB_BAR_HEIGHT +
+        FLOATING_TAB_BAR_HEIGHT_TABLET +
         FLOATING_CHROME_MARGIN +
         FLOATING_CONTENT_CLEARANCE,
       left: 3,

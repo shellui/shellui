@@ -192,7 +192,7 @@
   border-radius: var(--shellui-floating-sidebar-radius);
 }
 
-/* Phone/tablet floating dock + FAB: binary radius (square theme → rectangle). */
+/* Phone/tablet floating dock + pill FAB: binary radius (0 theme → square). */
 [data-shellui-floating-dock-list],
 [data-shellui-floating-dock-tab],
 [data-shellui-chrome-actions-fab][data-shellui-floating-fab='true'] {
