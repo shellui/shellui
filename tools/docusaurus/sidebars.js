@@ -119,6 +119,11 @@ const sidebars = {
             },
             {
               type: 'doc',
+              id: 'features/ai',
+              label: 'On-device AI',
+            },
+            {
+              type: 'doc',
               id: 'features/storage',
               label: 'Storage',
             },

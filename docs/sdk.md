@@ -201,6 +201,27 @@ const { data: entries } = await shellui.storage.from('company').list('docs/repor
 
 Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Pass `{ folder: true }` on `move` / `rename` to move a whole folder.
 
+### On-device AI (Prompt API shape)
+
+Embedded apps call a LanguageModel-shaped API. The shell owns Ollama / browser adapters - the SDK only postMessages. See [On-device AI](/features/ai).
+
+```typescript
+import { shellui } from '@shellui/sdk';
+
+await shellui.init();
+
+const availability = await shellui.ai.languageModel.availability();
+if (availability === 'available') {
+  const session = await shellui.ai.languageModel.create();
+  const text = await session.prompt('Summarize this…');
+  session.destroy();
+}
+```
+
+### Storage picker
+
+Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
+
 ```typescript
 const folders = await shellui.selectFolders({ multiple: true });
 const files = await shellui.selectFiles({ multiple: true, folders: true });
@@ -248,6 +269,7 @@ Common types:
 - `SHELLUI_NAVIGATE`, `SHELLUI_LOGIN`, `SHELLUI_INITIALIZED`
 - `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE`
 - `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT`
+- `SHELLUI_AI_REQUEST` / `SHELLUI_AI_RESPONSE` / `SHELLUI_AI_STREAM`
 - `SHELLUI_LAYOUT_CHROME`, `SHELLUI_CONTENT_SCROLL`
 
 If you host nested iframes:
@@ -276,6 +298,8 @@ Namespaces: `'shellsdk'`, `'shellcore'`, plus names you pass to `getLogger`.
 
 **Storage:** `storage`, `selectFolders`, `selectFiles`, `selectStorage`.
 
+**AI:** `ai.languageModel` (`availability`, `create`, `prompt`, `promptStreaming`).
+
 **Bus:** `addMessageListener`, `removeMessageListener`, `sendMessage`, `sendMessageToParent`, `propagateMessage`.
 
 **Frames:** `addIframe`, `removeIframe`, `getUuidByIframe`.
@@ -287,6 +311,6 @@ Prefer TypeScript types from `@shellui/sdk` (`ToastOptions`, `DialogOptions`, `O
 ## Related pages
 
 - [Toasts](/features/toasts), [Dialogs](/features/dialogs), [Modals and drawers](/features/modals-drawers)
-- [Storage](/features/storage), [Storage picker](/features/storage-picker)
+- [Storage](/features/storage), [Storage picker](/features/storage-picker), [On-device AI](/features/ai)
 - [Navigation](/features/navigation)
 - [Create a project - shell plus an iframe app](/quickstart#shell-plus-an-iframe-app)

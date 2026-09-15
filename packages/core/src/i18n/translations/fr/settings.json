@@ -15,6 +15,7 @@
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
     "storage": "Stockage",
+    "ai": "IA",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
@@ -154,6 +155,48 @@
     "loading": "Chargement de l'utilisation du stockage…",
     "error": "Impossible de charger l'utilisation du stockage.",
     "retry": "Réessayer"
+  },
+  "ai": {
+    "description": "Exécutez des modèles de langage sur cet appareil pour les applications du shell. Shellui n'envoie rien à un service d'IA cloud de lui-même.",
+    "enabled": {
+      "title": "Autoriser les applications à utiliser l'IA",
+      "description": "Lorsque c'est désactivé, les applications intégrées ne peuvent pas créer de sessions IA même si un modèle est prêt."
+    },
+    "status": {
+      "title": "État",
+      "loading": "Vérification de l'état de l'IA…",
+      "error": "Impossible de vérifier l'état de l'IA.",
+      "retry": "Réessayer",
+      "refresh": "Actualiser",
+      "webGpu": "WebGPU",
+      "ollama": "Ollama",
+      "available": "Disponible",
+      "unavailable": "Indisponible",
+      "reachable": "Joignable",
+      "notReachable": "Injoignable",
+      "ollamaOffline": "Démarrez Ollama sur cette machine pour lister les modèles locaux.",
+      "ollamaDisabled": "Le fournisseur Ollama est désactivé."
+    },
+    "providers": {
+      "title": "Fournisseurs",
+      "ollama": "Ollama",
+      "ollamaHint": "Utiliser les modèles déjà installés dans l'application Ollama sur cet ordinateur.",
+      "browser": "Modèles navigateur",
+      "browserHint": "Télécharger des modèles dans ce navigateur (WebGPU). Le pipeline de téléchargement arrive ensuite."
+    },
+    "defaultModel": {
+      "title": "Modèle par défaut",
+      "description": "Utilisé lorsqu'une application ne choisit pas de modèle.",
+      "none": "Automatique (premier modèle prêt)",
+      "empty": "Aucun modèle prêt pour l'instant. Démarrez Ollama ou attendez les téléchargements navigateur."
+    },
+    "models": {
+      "ollama": "Modèles Ollama",
+      "ollamaEmpty": "Aucun modèle Ollama trouvé. Installez Ollama et tirez un modèle, ou activez le fournisseur.",
+      "browser": "Catalogue navigateur",
+      "browserEmpty": "Aucun modèle navigateur dans le catalogue."
+    },
+    "footnote": "Les gros modèles prennent de l'espace disque et peuvent chauffer le GPU au premier chargement. Traitez les invites des applications comme du contenu non fiable."
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",
@@ -462,6 +505,37 @@
           "files": "Sélectionner des fichiers",
           "filesAndFolders": "Sélectionner fichiers et dossiers"
         }
+      },
+      "ai": {
+        "title": "IA locale",
+        "description": "Sonde WebGPU et Ollama, liste les modèles et envoie un petit prompt via le même chemin AI que les applications. Il faut un modèle prêt (souvent Ollama).",
+        "webGpu": "WebGPU",
+        "ollama": "Ollama",
+        "defaultModel": "Modèle par défaut",
+        "adapters": "Adaptateurs enregistrés",
+        "aiEnabled": "Applications autorisées à utiliser l’IA",
+        "yes": "Oui",
+        "no": "Non",
+        "none": "Aucun",
+        "loading": "Vérification…",
+        "unknownError": "Une erreur s’est produite.",
+        "promptHint": "Le test d’invite envoie : « Reply with exactly: pong ».",
+        "buttons": {
+          "refresh": "Actualiser l’état",
+          "listModels": "Lister les modèles",
+          "prompt": "Tester une invite",
+          "stream": "Tester le flux",
+          "clear": "Effacer le journal"
+        },
+        "logRefreshed": "État actualisé.",
+        "logNoModels": "Aucun modèle trouvé (démarrez Ollama ou activez un modèle navigateur).",
+        "logModels": "Modèles : {{list}}",
+        "logPromptResult": "Invite via {{model}} : {{text}}",
+        "logPromptError": "Échec de l’invite : {{message}}",
+        "logStreamStart": "Flux en cours…",
+        "logStreamChunk": "morceau : {{chunk}}",
+        "logStreamDone": "Flux via {{model}} terminé : {{text}}",
+        "logStreamError": "Échec du flux : {{message}}"
       }
     }
   }

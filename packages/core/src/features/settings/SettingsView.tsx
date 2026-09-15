@@ -158,6 +158,7 @@ export const SettingsView = () => {
           ),
           ...userRoute,
           ...settingsNavRoutes.filter((route) => route.path === 'storage'),
+          ...settingsNavRoutes.filter((route) => route.path === 'ai'),
         ],
       },
       {

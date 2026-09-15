@@ -15,6 +15,7 @@
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
     "storage": "Storage",
+    "ai": "AI",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
@@ -154,6 +155,48 @@
     "loading": "Loading storage usage…",
     "error": "Unable to load storage usage.",
     "retry": "Try again"
+  },
+  "ai": {
+    "description": "Run language models on this device for apps in the shell. Nothing is sent to a cloud AI service from Shellui itself.",
+    "enabled": {
+      "title": "Allow apps to use AI",
+      "description": "When off, embedded apps cannot create AI sessions even if a model is ready."
+    },
+    "status": {
+      "title": "Status",
+      "loading": "Checking AI status…",
+      "error": "Unable to check AI status.",
+      "retry": "Try again",
+      "refresh": "Refresh",
+      "webGpu": "WebGPU",
+      "ollama": "Ollama",
+      "available": "Available",
+      "unavailable": "Not available",
+      "reachable": "Reachable",
+      "notReachable": "Not reachable",
+      "ollamaOffline": "Start Ollama on this machine to list local models.",
+      "ollamaDisabled": "Ollama provider is turned off."
+    },
+    "providers": {
+      "title": "Providers",
+      "ollama": "Ollama",
+      "ollamaHint": "Use models already installed in the Ollama app on this computer.",
+      "browser": "Browser models",
+      "browserHint": "Download models into this browser (WebGPU). Download pipeline coming next."
+    },
+    "defaultModel": {
+      "title": "Default model",
+      "description": "Used when an app does not pick a model.",
+      "none": "Automatic (first ready model)",
+      "empty": "No ready models yet. Start Ollama or wait for browser downloads."
+    },
+    "models": {
+      "ollama": "Ollama models",
+      "ollamaEmpty": "No Ollama models found. Install Ollama and pull a model, or turn the provider on.",
+      "browser": "Browser catalog",
+      "browserEmpty": "No browser models in the catalog."
+    },
+    "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
   },
   "dataPrivacy": {
     "title": "Data Privacy",
@@ -462,6 +505,37 @@
           "files": "Select files",
           "filesAndFolders": "Select files and folders"
         }
+      },
+      "ai": {
+        "title": "On-device AI",
+        "description": "Probe WebGPU and Ollama, list models, and run a tiny prompt through the same shell AI path apps use. Needs a ready model (usually Ollama).",
+        "webGpu": "WebGPU",
+        "ollama": "Ollama",
+        "defaultModel": "Default model",
+        "adapters": "Registered adapters",
+        "aiEnabled": "Apps allowed to use AI",
+        "yes": "Yes",
+        "no": "No",
+        "none": "None",
+        "loading": "Checking…",
+        "unknownError": "Something went wrong.",
+        "promptHint": "Prompt test sends: “Reply with exactly: pong”.",
+        "buttons": {
+          "refresh": "Refresh status",
+          "listModels": "List models",
+          "prompt": "Run prompt test",
+          "stream": "Run stream test",
+          "clear": "Clear log"
+        },
+        "logRefreshed": "Status refreshed.",
+        "logNoModels": "No models found (start Ollama or enable a browser model).",
+        "logModels": "Models: {{list}}",
+        "logPromptResult": "Prompt via {{model}}: {{text}}",
+        "logPromptError": "Prompt failed: {{message}}",
+        "logStreamStart": "Streaming…",
+        "logStreamChunk": "chunk: {{chunk}}",
+        "logStreamDone": "Stream via {{model}} done: {{text}}",
+        "logStreamError": "Stream failed: {{message}}"
       }
     }
   }

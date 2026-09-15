@@ -38,6 +38,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 ### Platform
 
 - [Administration](/features/administration) - staff admin iframe and custom sidebar links
+- [On-device AI](/features/ai) - Settings → AI, Ollama / browser models, and `shellui.ai`
 - [Storage](/features/storage) - storage-service quota and `shellui.storage`
 - [Storage picker](/features/storage-picker) - `selectFolders` / `selectFiles`
 - [Application settings](/features/application-settings) - per-app panels in Settings
