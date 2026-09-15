@@ -70,6 +70,8 @@ await shellui.init({ autoLayoutPadding: false });
 
 `shellui.initialized` is `true` after a successful `init`. Check it before calling APIs from late-mounting code.
 
+Concurrent `init()` calls share one in-flight promise (e.g. React StrictMode). **Only the first caller's options apply** — a second `init({ autoLayoutPadding: false })` while the first is still running is ignored. Await the first `init` (or check `initialized`) before relying on option overrides.
+
 ## Layout chrome (safe insets)
 
 Floating layout publishes `layoutChrome` to the **main** content iframe only (not modals / drawers). The iframe stays 100% × 100%; padding is applied **inside** the app.
@@ -125,9 +127,11 @@ shellui.actions.clear();
 | `trailing` | `Array<{ id, label?, icon?, disabled?, animate?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`) |
 | `primary`  | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1 bottom FAB                    |
 
-Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or built-in: `back`, `plus`, `more`, …).
+Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or a [built-in name](/features/chrome-actions#icons)).
 
 Protocol: app → shell `SHELLUI_ACTIONS_SET` / `SHELLUI_ACTIONS_CLEAR`; shell → that iframe only `SHELLUI_ACTION` `{ id }` (SDK runs matching `onClick`). Types: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`.
+
+Messages currently use `postMessage(..., '*')` (same as toasts/dialogs). Treat action ids/labels as observable by any same-page parent listener — see [known limitations](/features/chrome-actions#known-limitations).
 
 See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons.
 

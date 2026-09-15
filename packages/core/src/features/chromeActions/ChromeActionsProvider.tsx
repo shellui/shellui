@@ -21,7 +21,8 @@ function resolveFrameUuid(data: ShellUIMessage, event: MessageEvent): string | n
   const fromUuid = data.from?.[0];
   if (fromUuid) return fromUuid;
   const source = event.source;
-  if (source && typeof Window !== 'undefined' && source instanceof Window) {
+  // Use `typeof window` (lowercase) for SSR — `Window` is a TS type / ambient interface.
+  if (source && typeof window !== 'undefined' && source instanceof Window) {
     const bySource = shellui.getUuidByIframe(source);
     if (bySource) return bySource;
   }
@@ -30,6 +31,41 @@ function resolveFrameUuid(data: ShellUIMessage, event: MessageEvent): string | n
     return SHELL_DEVELOP_CHROME_ACTIONS_FRAME;
   }
   return null;
+}
+
+/**
+ * Resolve the frame UUID for a `removeIframe` argument before the registry drops it.
+ * When the iframe is already detached, `contentWindow` is null — fall back to matching
+ * the element in `frameRegistry`.
+ */
+export function resolveUuidFromRemoveTarget(
+  identifier: string | { contentWindow: Window | null },
+  lookup: {
+    getUuidByWindow: (win: Window) => string | undefined;
+    findUuidByElement: (el: unknown) => string | undefined;
+  },
+): string | undefined {
+  if (typeof identifier === 'string') return identifier;
+  const win = identifier.contentWindow;
+  if (win) {
+    const byWindow = lookup.getUuidByWindow(win);
+    if (byWindow) return byWindow;
+  }
+  return lookup.findUuidByElement(identifier);
+}
+
+export function resolveUuidForRemoveIframe(
+  identifier: string | HTMLIFrameElement,
+): string | undefined {
+  return resolveUuidFromRemoveTarget(identifier, {
+    getUuidByWindow: (win) => shellui.getUuidByIframe(win),
+    findUuidByElement: (el) => {
+      for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
+        if (iframe === el) return uuid;
+      }
+      return undefined;
+    },
+  });
 }
 
 /**
@@ -77,13 +113,8 @@ export function ChromeActionsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const original = shellui.removeIframe.bind(shellui);
     shellui.removeIframe = ((identifier: string | HTMLIFrameElement) => {
-      let uuid: string | undefined;
-      if (typeof identifier === 'string') {
-        uuid = identifier;
-      } else if (identifier instanceof HTMLIFrameElement) {
-        const win = identifier.contentWindow;
-        uuid = win ? shellui.getUuidByIframe(win) : undefined;
-      }
+      // Resolve UUID before the registry forgets the iframe (contentWindow may already be null).
+      const uuid = resolveUuidForRemoveIframe(identifier);
       const result = original(identifier);
       if (uuid) {
         clearChromeActionsForFrame(uuid);

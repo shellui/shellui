@@ -61,7 +61,34 @@ Clicking a chrome control posts `SHELLUI_ACTION` with `{ id }` into **only** the
 
 ## Icons
 
-`icon` may be a URL or a built-in name: `back`, `plus`, `more`. Provide `label` and/or `icon`.
+`icon` may be a URL / path (`https://…`, `data:…`, `/icons/edit.svg`) or a **built-in name**:
+
+`back`, `plus`, `more`, `edit`, `share`, `filter`, `archive`, `settings`, `delete`, `star`, `refresh`
+
+Provide `label` and/or `icon`. Custom React nodes are not supported (actions cross the iframe boundary as JSON).
+
+### Glyph animation
+
+Set `animate: 'icon-rotate'` to spin the glyph continuously (typical refresh / loading). Pair with `disabled: true` while work is in flight:
+
+```javascript
+shellui.actions.set({
+  trailing: [
+    {
+      id: 'refresh',
+      icon: 'refresh',
+      label: 'Refresh',
+      disabled: true,
+      animate: 'icon-rotate',
+      onClick: () => {},
+    },
+  ],
+});
+```
+
+## Known limitations
+
+- **`postMessage` target origin is `'*'`** for `SHELLUI_ACTIONS_SET` / `CLEAR` (same pattern as toast, dialog, and modal SDK messages). Any script listening on the parent window can observe action ids and labels. Prefer same-origin shell embeddings; locking the target origin is planned before GA.
 
 ## Try it locally
 
@@ -80,3 +107,4 @@ Narrow the viewport to exercise the `···` overflow menu.
 
 - Floating search / text-field slots
 - Auto-inferring actions from iframe URL
+- Locked `postMessage` target origin (see [Known limitations](#known-limitations))

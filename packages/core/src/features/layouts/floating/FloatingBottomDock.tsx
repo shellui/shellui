@@ -294,12 +294,14 @@ export function FloatingBottomDock({
             {primary.map((navItem) => {
               const label = resolveLocalizedString(navItem.label, lang);
               const key = itemKey(navItem);
+              const isActive = key === activeTabKey;
               return (
                 <TabsTrigger
                   key={key}
                   value={key}
                   data-shellui-floating-dock-tab=""
                   className={triggerClass}
+                  aria-current={isActive ? 'page' : undefined}
                 >
                   <TabGlyph
                     item={navItem}
@@ -327,6 +329,7 @@ export function FloatingBottomDock({
                     type="button"
                     role="tab"
                     aria-selected={activeTabKey === MORE_TAB_KEY}
+                    aria-current={activeTabKey === MORE_TAB_KEY ? 'page' : undefined}
                     data-state={activeTabKey === MORE_TAB_KEY ? 'active' : 'inactive'}
                     data-shellui-floating-dock-tab=""
                     className={cn(
