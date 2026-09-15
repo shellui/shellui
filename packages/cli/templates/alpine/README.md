@@ -2,7 +2,15 @@
 
 Vite + Alpine.js companion app for [Shellui](https://shellui.com).
 
-Scaffolded from the [official Alpine.js npm install](https://alpinejs.dev/essentials/installation) pattern (`import Alpine from 'alpinejs'` + `Alpine.start()`), bundled with [Vite](https://vite.dev/).
+**Boilerplate:** [Vite vanilla](https://vite.dev/guide/#scaffolding-your-first-vite-project) + [official Alpine npm module init](https://alpinejs.dev/essentials/installation) —
+
+```js
+import Alpine from 'alpinejs';
+window.Alpine = Alpine;
+Alpine.start();
+```
+
+Community starters ([create-alpine-app](https://github.com/thedevdojo/create-alpine-app), Vite+Alpine sketches like dvd101x/vite-alpine) were reviewed; this template stays lean (no Tailwind) and adds Shellui SDK theme + en/fr i18n.
 
 ## Scripts
 
