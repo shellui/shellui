@@ -518,6 +518,91 @@ export type StorageSelectResponsePayload = {
   error?: { message: string; status?: number };
 };
 
+/** Button variants for chrome actions (back / trailing). Primary FAB stays `default`. */
+export const CHROME_ACTION_VARIANTS = [
+  'outline',
+  'secondary',
+  'default',
+  'ghost',
+  'destructive',
+] as const;
+export type ChromeActionVariant = (typeof CHROME_ACTION_VARIANTS)[number];
+/** Default for back / trailing when `variant` is omitted. */
+export const CHROME_ACTION_VARIANT_DEFAULT: ChromeActionVariant = 'outline';
+
+/** Icon animations the shell can apply to a chrome action glyph. */
+export const CHROME_ACTION_ANIMATIONS = ['icon-rotate'] as const;
+export type ChromeActionAnimation = (typeof CHROME_ACTION_ANIMATIONS)[number];
+
+/** Single chrome action button declared by an embedded app. */
+export type ChromeActionItem = {
+  /** Stable id used for click round-trip (`SHELLUI_ACTION`). Required. */
+  id: string;
+  /** Visible label (optional when `icon` is set). */
+  label?: string;
+  /**
+   * Icon for the control. Prefer one of:
+   * - Built-in name: `back`, `plus`, `more`, `edit`, `share`, `filter`, `archive`, `settings`, `delete`, `star`, `refresh`
+   * - Image / SVG URL or path the shell can load (`/icons/edit.svg`, `https://…`, `data:image/…`)
+   *
+   * Custom React nodes are not supported (actions cross the iframe boundary as JSON).
+   * Optional when `label` is set. With both, the host shows icon + label.
+   */
+  icon?: string;
+  /** Overrides the set-level `variant` for this control. */
+  variant?: ChromeActionVariant;
+  /** When true, the control is non-interactive (still visible). */
+  disabled?: boolean;
+  /**
+   * Animate the glyph. Use `icon-rotate` for a continuous spin (e.g. refresh / loading).
+   * Combine with `disabled: true` while work is in flight.
+   */
+  animate?: ChromeActionAnimation;
+  /** Invoked in the declaring iframe when the shell posts `SHELLUI_ACTION`. */
+  onClick?: () => void;
+};
+
+/**
+ * Declarative floating action chrome for one contentView / iframe.
+ * Apps must re-`set` or `clear` on their own SPA navigations — the shell does
+ * not infer routes from the iframe URL.
+ */
+export type ChromeActionsSpec = {
+  /**
+   * Default button variant for back + trailing controls.
+   * @default 'outline'
+   */
+  variant?: ChromeActionVariant;
+  back?: ChromeActionItem;
+  title?: string | { text: string };
+  trailing?: ChromeActionItem[];
+  primary?: ChromeActionItem;
+};
+
+/** Serializable chrome-action button (callbacks stripped). */
+export type ChromeActionPayloadItem = {
+  id: string;
+  label?: string;
+  icon?: string;
+  variant?: ChromeActionVariant;
+  disabled?: boolean;
+  animate?: ChromeActionAnimation;
+};
+
+/** Serializable payload sent to the shell (callbacks stripped). */
+export type ChromeActionsPayload = {
+  variant?: ChromeActionVariant;
+  back?: ChromeActionPayloadItem;
+  title?: string;
+  trailing?: ChromeActionPayloadItem[];
+  primary?: ChromeActionPayloadItem;
+};
+
+/** Max trailing actions kept after clamp (extras dropped with a warning). */
+export const CHROME_ACTIONS_MAX_TRAILING = 8;
+/** Trailing actions shown before the mobile / narrow `···` overflow menu. */
+export const CHROME_ACTIONS_VISIBLE_TRAILING = 3;
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
@@ -549,7 +634,10 @@ export type ShellUIMessageType =
   | 'SHELLUI_SELECT_STORAGE_RESULT'
   | 'SHELLUI_UPLOAD_TOAST_DEMO'
   | 'SHELLUI_LAYOUT_CHROME'
-  | 'SHELLUI_CONTENT_SCROLL';
+  | 'SHELLUI_CONTENT_SCROLL'
+  | 'SHELLUI_ACTIONS_SET'
+  | 'SHELLUI_ACTIONS_CLEAR'
+  | 'SHELLUI_ACTION';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;
@@ -563,6 +651,8 @@ export interface ShellUIMessage {
     | OverlaySizePayload
     | ToastOptions
     | DialogOptions
+    | ChromeActionsPayload
+    | { id: string }
     | { [key: string]: unknown };
   from?: string[];
   to?: string[];

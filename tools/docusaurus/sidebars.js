@@ -105,6 +105,11 @@ const sidebars = {
               id: 'features/dialogs',
               label: 'Dialogs',
             },
+            {
+              type: 'doc',
+              id: 'features/chrome-actions',
+              label: 'Floating chrome actions',
+            },
           ],
         },
         {

@@ -13,6 +13,7 @@ import { reportSize as overlayReportSize, autoSize as overlayAutoSize } from './
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
+import { actions as chromeActionsApi } from './actions/chromeActions.js';
 import {
   selectStorage as selectStorageAction,
   selectFolders as selectFoldersAction,
@@ -36,6 +37,7 @@ import type {
   StorageSelectResult,
   LayoutChrome,
   ContentScrollPayload,
+  ChromeActionsSpec,
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
@@ -43,6 +45,8 @@ import {
   applyLayoutChromeStyles,
   getScrollMetrics,
   scrollDirectionFromDelta,
+  setLayoutChromeAnimationsEnabled,
+  LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
 
 import packageJson from '../package.json';
@@ -73,6 +77,12 @@ export type {
   StorageSelectMode,
   StorageSelectRequestPayload,
   StorageSelectResponsePayload,
+  ChromeActionItem,
+  ChromeActionsSpec,
+  ChromeActionsPayload,
+  ChromeActionVariant,
+  ChromeActionAnimation,
+  ChromeActionPayloadItem,
   LoggerInstance,
   Settings,
   SettingsUser,
@@ -94,13 +104,27 @@ export type {
 } from './types.js';
 
 export {
+  CHROME_ACTIONS_MAX_TRAILING,
+  CHROME_ACTIONS_VISIBLE_TRAILING,
+  CHROME_ACTION_VARIANTS,
+  CHROME_ACTION_VARIANT_DEFAULT,
+  CHROME_ACTION_ANIMATIONS,
+} from './types.js';
+
+export { clampChromeActions } from './actions/clampChromeActions.js';
+
+export {
   applyLayoutChromeStyles,
   ensureLayoutChromePadStyles,
   getScrollMetrics,
   reduceScrollChromeVisibility,
   scrollDirectionFromDelta,
+  setLayoutChromeAnimationsEnabled,
   LAYOUT_CHROME_CSS_VARS,
   LAYOUT_CHROME_PAD_CLASS,
+  LAYOUT_CHROME_ANIMATE_ATTR,
+  LAYOUT_CHROME_INSET_TRANSITION_MS,
+  LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
 
 export type { ScrollChromeState, ScrollMetrics, ContentScrollDirection } from './layoutChrome.js';
@@ -110,6 +134,9 @@ export const overlay = {
   reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
   autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
 };
+
+/** Floating action chrome (back / title / trailing / primary FAB). */
+export const actions = chromeActionsApi;
 
 export { StorageError } from './storage/types.js';
 export type {
@@ -144,6 +171,11 @@ export class ShellUISDK {
   layoutChrome: LayoutChrome | null = null;
   private _autoLayoutPadding = true;
   private _lastReportedScrollY = 0;
+  /** After boot settle, inset padding transitions animate (clear / re-activate). */
+  private _layoutChromeAnimateReady = false;
+  private _layoutChromeAnimateTimer: ReturnType<typeof setTimeout> | null = null;
+  /** In-flight init so concurrent callers (e.g. React StrictMode) share one setup. */
+  private _initPromise: Promise<this> | null = null;
 
   constructor() {
     this.currentPath =
@@ -160,7 +192,17 @@ export class ShellUISDK {
 
   async init(options?: { autoLayoutPadding?: boolean }): Promise<this> {
     if (this.initialized) return this;
+    if (this._initPromise) return this._initPromise;
 
+    this._initPromise = this._runInit(options).catch((error) => {
+      // Allow a clean retry after a failed init.
+      this._initPromise = null;
+      throw error;
+    });
+    return this._initPromise;
+  }
+
+  private async _runInit(options?: { autoLayoutPadding?: boolean }): Promise<this> {
     if (options?.autoLayoutPadding === false) {
       this._autoLayoutPadding = false;
     }
@@ -172,6 +214,11 @@ export class ShellUISDK {
     await this._setupInitialSettings();
     this._setupLayoutChromeListeners();
     this._applyChromeFromSettings(this.initialSettings ?? undefined);
+    // Seed 0px inset padding so later action-chrome updates can CSS-transition
+    // instead of jumping when the pad class is first added.
+    if (this._autoLayoutPadding !== false) {
+      this.applyLayoutChrome();
+    }
     this._setupContentScrollReporting();
 
     this.initialized = true;
@@ -181,7 +228,7 @@ export class ShellUISDK {
       type: 'SHELLUI_INITIALIZED',
       payload: {},
     });
-    return Promise.resolve(this);
+    return this;
   }
 
   getLayoutChrome(): LayoutChrome | null {
@@ -189,9 +236,12 @@ export class ShellUISDK {
   }
 
   /**
-   * Apply layout chrome CSS variables. When autoPadding is on, adds
-   * `shellui-apply-layout-chrome-pad` on `document.body` so the app content
-   * clears floating chrome (iframe stays 100% — padding is inside the app).
+   * Apply layout chrome CSS variables. When autoPadding is on, keeps
+   * `shellui-apply-layout-chrome-pad` on `document.body` (including at 0px) so
+   * inset changes — e.g. action buttons show/hide — animate via CSS.
+   * The iframe stays 100%; padding is inside the app.
+   *
+   * First paints after init snap without transition; later updates animate.
    */
   applyLayoutChrome(options?: { autoPadding?: boolean; el?: HTMLElement }): void {
     const chrome = this.getLayoutChrome();
@@ -200,7 +250,22 @@ export class ShellUISDK {
     applyLayoutChromeStyles(chrome, {
       el: options?.el,
       autoPadding,
+      animate: this._layoutChromeAnimateReady,
     });
+    this._scheduleLayoutChromeAnimations();
+  }
+
+  /** Enable inset/pad transitions after boot-time chrome applies settle. */
+  private _scheduleLayoutChromeAnimations(): void {
+    if (this._layoutChromeAnimateReady || typeof window === 'undefined') return;
+    if (this._layoutChromeAnimateTimer !== null) {
+      clearTimeout(this._layoutChromeAnimateTimer);
+    }
+    this._layoutChromeAnimateTimer = setTimeout(() => {
+      this._layoutChromeAnimateReady = true;
+      this._layoutChromeAnimateTimer = null;
+      setLayoutChromeAnimationsEnabled(true);
+    }, LAYOUT_CHROME_ANIMATE_READY_MS);
   }
 
   /** Report iframe scroll so the shell can hide/show floating chrome (floating). */
@@ -370,6 +435,16 @@ export class ShellUISDK {
       }
     });
 
+    // Sticky chrome actions — do not clear callbacks on click (until set/clear).
+    this.addMessageListener('SHELLUI_ACTION', (data) => {
+      const { id } = (data.payload as { id?: string }) ?? {};
+      if (id) {
+        this.callbackRegistry.triggerAction(id);
+      } else {
+        logger.warn('SHELLUI_ACTION message missing id');
+      }
+    });
+
     this.addMessageListener('SHELLUI_REFRESH_PAGE', () => {
       if (typeof window !== 'undefined' && window.parent === window) {
         window.location.reload();
@@ -381,6 +456,15 @@ export class ShellUISDK {
   overlay = {
     reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
     autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+  };
+
+  /**
+   * Floating action chrome. Re-`set` / `clear` on in-app SPA navigations —
+   * the shell does not infer actions from the iframe URL.
+   */
+  actions = {
+    set: (spec: ChromeActionsSpec): void => chromeActionsApi.set(spec),
+    clear: (): void => chromeActionsApi.clear(),
   };
 
   openModal(urlOrOptions?: string | OpenModalOptions): void {

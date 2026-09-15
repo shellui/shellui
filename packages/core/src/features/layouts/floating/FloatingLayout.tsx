@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router';
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { shellui } from '@shellui/sdk';
 import type { NavigationItem, NavigationGroup, ThemeAsset } from '../../config/types';
 import {
   filterNavigationForAuthState,
@@ -21,10 +22,14 @@ import {
   DESKTOP_TITLEBAR_PAD_TOP_PX,
   MAC_TRAFFIC_LIGHTS_WIDTH_PX,
 } from '../chrome/constants';
-import { FloatingFadeMask } from './FloatingFadeMask';
-import { FloatingTabBar } from './FloatingTabBar';
+import { FloatingBottomDock } from './FloatingBottomDock';
 import { FloatingSidebar } from './FloatingSidebar';
+import { FloatingStatusScrim } from './FloatingStatusScrim';
 import { useFloatingChrome } from './useFloatingChrome';
+import { SafeAreaTopbarOffset, isShellUiRootWindow } from '../chrome/SafeAreaTopbar';
+import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvider';
+import { actionChromeFlags } from '../../chromeActions/computeActionInsets';
+import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME } from '../../chromeActions/chromeActionsStore';
 
 export interface FloatingLayoutProps {
   title?: string;
@@ -33,15 +38,14 @@ export interface FloatingLayoutProps {
   navigation?: (NavigationItem | NavigationGroup)[];
 }
 
-/** Adaptive layout: floating glass tabs / sidebar over full-bleed content. */
+/** Adaptive layout: floating glass chrome over full-bleed content (tabs/dock + sidebar). */
 export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayoutProps) {
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
-  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed, scrollEdges } =
-    useFloatingChrome(viewport);
+  const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed } = useFloatingChrome(viewport);
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';
@@ -65,6 +69,21 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const tabItems = useMemo(() => flattenNavigationItems(startNav), [startNav]);
 
+  const chromeActions = useChromeActionsSnapshot();
+  const hasMainTopActions = useMemo(() => {
+    for (const actions of chromeActions) {
+      if (!actionChromeFlags(actions).hasTop) continue;
+      if (actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME) continue;
+      for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
+        if (uuid !== actions.frameUuid || !iframe.isConnected) continue;
+        if (iframe.dataset.shelluiFrame === 'overlay') continue;
+        if (iframe.closest('[data-shellui-windows-layout]')) continue;
+        return true;
+      }
+    }
+    return false;
+  }, [chromeActions]);
+
   useEffect(() => {
     if (!title) return;
     if (navigationItem) {
@@ -77,7 +96,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const showTabBar = viewport === 'mobile' || viewport === 'tablet';
   const showSidebar = viewport === 'desktop';
-  const showFades = showTabBar;
+  const showSafeAreaTopbar = showTabBar && isShellUiRootWindow();
+  // Status scrim only when there’s no top action chrome (that bar paints its own fade).
+  const showStatusScrim = showSafeAreaTopbar && !hasMainTopActions;
 
   return (
     <div
@@ -85,6 +106,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       data-viewport={viewport}
       className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background"
     >
+      <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
+      <FloatingStatusScrim enabled={showStatusScrim} />
+
       {isTauriEnv ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
@@ -102,25 +126,11 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
         <Outlet />
       </main>
 
-      {showFades ? (
-        <>
-          <FloatingFadeMask
-            placement="top"
-            visible={!scrollEdges.atTop}
-          />
-          <FloatingFadeMask
-            placement="bottom"
-            visible={!scrollEdges.atBottom}
-          />
-        </>
-      ) : null}
-
       {showTabBar ? (
-        <FloatingTabBar
+        <FloatingBottomDock
           items={tabItems}
           endItems={endItems}
           showAuthButton={showAuthButton}
-          placement="bottom"
           chromeVisible={chromeVisible}
           viewport={viewport}
         />

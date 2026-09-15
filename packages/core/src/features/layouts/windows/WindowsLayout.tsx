@@ -34,6 +34,7 @@ import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { WindowTitleBarActions } from '../../chromeActions';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -167,6 +168,7 @@ function AppWindow({
   zIndex: number;
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
+  const [frameUuid, setFrameUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(() => {
     if (isCompactDesktop()) return true;
     const desktop = getDesktopSize();
@@ -215,6 +217,21 @@ function AppWindow({
     startBounds: WindowBounds;
   } | null>(null);
   const resizeRafRef = useRef<number | null>(null);
+
+  // Resolve the content iframe UUID so title-bar actions can bind to this window.
+  useEffect(() => {
+    const sync = () => {
+      const iframe = containerRef.current?.querySelector('iframe');
+      if (!iframe) {
+        setFrameUuid(null);
+        return;
+      }
+      setFrameUuid(shellui.getUuidByIframe(iframe.contentWindow) ?? null);
+    };
+    sync();
+    const id = window.setInterval(sync, 400);
+    return () => window.clearInterval(id);
+  }, [win.id, win.pathname]);
   const pendingResizeBoundsRef = useRef<WindowBounds | null>(null);
 
   // Use a ref for onBoundsChange to avoid it in effect deps (prevents infinite render loop).
@@ -429,7 +446,10 @@ function AppWindow({
             )}
           />
         )}
-        <span className="flex-1 text-sm font-medium truncate min-w-0">{windowLabel}</span>
+        <WindowTitleBarActions
+          frameUuid={frameUuid}
+          fallbackTitle={windowLabel}
+        />
         <button
           type="button"
           onClick={(e) => {
@@ -772,6 +792,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   return (
     <>
       <div
+        data-shellui-windows-layout=""
         className="fixed inset-0 overflow-hidden bg-background"
         style={{ paddingBottom: TASKBAR_HEIGHT }}
       >

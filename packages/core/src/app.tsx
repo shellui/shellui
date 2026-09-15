@@ -12,6 +12,7 @@ import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal'
 import { AuthProvider } from './features/auth/AuthProvider';
 import { StorageBridge } from './features/storage/StorageBridge';
 import { SonnerProvider } from './features/sonner/SonnerContext';
+import { ChromeActionsHost, ChromeActionsProvider } from './features/chromeActions';
 import { Toaster } from './components/ui/sonner';
 import { UploadToaster } from './features/storage/uploads/UploadToaster';
 import './features/sentry/initSentry';
@@ -136,10 +137,13 @@ const App = () => {
             <I18nProvider>
               <DialogProvider>
                 <SonnerProvider>
-                  {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
-                  <Toaster />
-                  <UploadToaster />
-                  <AppContent />
+                  <ChromeActionsProvider>
+                    {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
+                    <Toaster />
+                    <UploadToaster />
+                    <ChromeActionsHost />
+                    <AppContent />
+                  </ChromeActionsProvider>
                 </SonnerProvider>
               </DialogProvider>
             </I18nProvider>

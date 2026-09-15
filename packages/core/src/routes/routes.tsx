@@ -22,6 +22,11 @@ const OverlayDynamicDemoView = lazy(() =>
     default: m.OverlayDynamicDemoView,
   })),
 );
+const ChromeActionsDemoView = lazy(() =>
+  import('../features/chromeActions/ChromeActionsDemoView').then((m) => ({
+    default: m.ChromeActionsDemoView,
+  })),
+);
 const LoginView = lazy(() =>
   import('../features/auth/components/LoginView').then((m) => ({ default: m.LoginView })),
 );
@@ -79,6 +84,15 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
           element: (
             <Suspense fallback={<RouteFallback />}>
               <OverlayDynamicDemoView />
+            </Suspense>
+          ),
+        },
+        {
+          // Chrome actions demo (develop → iframe set/clear)
+          path: urls.chromeActionsDemo.replace(/^\//, ''),
+          element: (
+            <Suspense fallback={<RouteFallback />}>
+              <ChromeActionsDemoView />
             </Suspense>
           ),
         },

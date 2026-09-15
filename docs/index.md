@@ -34,6 +34,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 - [Toasts](/features/toasts) - host toasts from `@shellui/sdk`
 - [Dialogs](/features/dialogs) - confirm and alert dialogs in host chrome
+- [Floating chrome actions](/features/chrome-actions) - back / title / trailing / primary FAB via the SDK
 
 ### Platform
 

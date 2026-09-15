@@ -70,6 +70,8 @@ await shellui.init({ autoLayoutPadding: false });
 
 `shellui.initialized` is `true` after a successful `init`. Check it before calling APIs from late-mounting code.
 
+Concurrent `init()` calls share one in-flight promise (e.g. React StrictMode). **Only the first caller's options apply** — a second `init({ autoLayoutPadding: false })` while the first is still running is ignored. Await the first `init` (or check `initialized`) before relying on option overrides.
+
 ## Layout chrome (safe insets)
 
 Floating layout publishes `layoutChrome` to the **main** content iframe only (not modals / drawers). The iframe stays 100% × 100%; padding is applied **inside** the app.
@@ -96,6 +98,42 @@ shellui.reportContentScroll({
 ```
 
 ## Host chrome from the iframe
+
+### Floating chrome actions
+
+Declare optional top/bottom action chrome owned by the shell (back, title, trailing, primary FAB):
+
+```typescript
+await shellui.init();
+
+shellui.actions.set({
+  back: { id: 'back', onClick: () => history.back() },
+  title: 'Inbox',
+  trailing: [
+    { id: 'edit', label: 'Edit', onClick: () => {} },
+    { id: 'share', label: 'Share', onClick: () => {} },
+  ],
+  primary: { id: 'compose', icon: 'plus', onClick: () => {} },
+});
+
+// Re-set or clear on your own SPA navigations — the shell does not infer routes.
+shellui.actions.clear();
+```
+
+| Field      | Type                                                          | Notes                                         |
+| ---------- | ------------------------------------------------------------- | --------------------------------------------- |
+| `back`     | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1                               |
+| `title`    | `string` \| `{ text: string }`                                | Optional; max 1                               |
+| `trailing` | `Array<{ id, label?, icon?, disabled?, animate?, onClick? }>` | Optional; ≤8 kept, ≤3 visible (rest in `···`) |
+| `primary`  | `{ id, label?, icon?, disabled?, animate?, onClick? }`        | Optional; max 1 bottom FAB                    |
+
+Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may be a URL or a [built-in name](/features/chrome-actions#icons)).
+
+Protocol: app → shell `SHELLUI_ACTIONS_SET` / `SHELLUI_ACTIONS_CLEAR`; shell → that iframe only `SHELLUI_ACTION` `{ id }` (SDK runs matching `onClick`). Types: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`.
+
+Messages currently use `postMessage(..., '*')` (same as toasts/dialogs). Treat action ids/labels as observable by any same-page parent listener — see [known limitations](/features/chrome-actions#known-limitations).
+
+See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons.
 
 ### Toasts
 
@@ -272,7 +310,7 @@ Namespaces: `'shellsdk'`, `'shellcore'`, plus names you pass to `getLogger`.
 
 ## API surface
 
-**Chrome:** `init`, `toast`, `dialog`, `openModal` / `closeModal`, `openDrawer` / `closeDrawer`, `overlay.reportSize` / `overlay.autoSize`, `navigate`, `login`, `getLayoutChrome`, `applyLayoutChrome`, `reportContentScroll`.
+**Chrome:** `init`, `actions.set` / `actions.clear`, `toast`, `dialog`, `openModal` / `closeModal`, `openDrawer` / `closeDrawer`, `overlay.reportSize` / `overlay.autoSize`, `navigate`, `login`, `getLayoutChrome`, `applyLayoutChrome`, `reportContentScroll`.
 
 **Storage:** `storage`, `selectFolders`, `selectFiles`, `selectStorage`.
 
@@ -286,7 +324,7 @@ Prefer TypeScript types from `@shellui/sdk` (`ToastOptions`, `DialogOptions`, `O
 
 ## Related pages
 
-- [Toasts](/features/toasts), [Dialogs](/features/dialogs), [Modals and drawers](/features/modals-drawers)
+- [Toasts](/features/toasts), [Dialogs](/features/dialogs), [Floating chrome actions](/features/chrome-actions), [Modals and drawers](/features/modals-drawers)
 - [Storage](/features/storage), [Storage picker](/features/storage-picker)
 - [Navigation](/features/navigation)
 - [Create a project - shell plus an iframe app](/quickstart#shell-plus-an-iframe-app)

@@ -1,5 +1,7 @@
 import { toCssVarValue } from './color';
 import type { ThemeColorsMode, ThemeDefinition } from './types';
+import { isHomeScreenPwa, isTauriRuntime } from '../layouts/chrome/runtime';
+
 const COLOR_VAR_MAP: Array<[keyof ThemeColorsMode, string]> = [
   ['background', '--background'],
   ['foreground', '--foreground'],
@@ -35,13 +37,30 @@ const COLOR_VAR_MAP: Array<[keyof ThemeColorsMode, string]> = [
   ['chart5', '--chart-5'],
 ];
 
-/** Update <meta name="theme-color"> so PWA / browser chrome matches the active surface. */
+/**
+ * Update <meta name="theme-color"> so browser chrome matches the active surface.
+ *
+ * Skipped for:
+ * - Home Screen PWAs (iOS 26/27 Liquid Glass ignores it; on older iOS it can
+ *   override `black-translucent` and paint an uncoverable slab)
+ * - Tauri runtime (native window / status bar owns chrome; meta is meaningless)
+ */
 function syncThemeColorMeta(cssColor: string): void {
-  if (typeof document === 'undefined' || !cssColor) return;
+  if (typeof document === 'undefined') return;
   const head = document.head || document.getElementsByTagName('head')[0];
   if (!head) return;
 
-  // Prefer a single unconditional theme-color (iOS reads this; media variants are flaky standalone)
+  const skip = isTauriRuntime() || isHomeScreenPwa();
+  const existing = head.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
+
+  if (skip) {
+    existing.forEach((meta) => meta.remove());
+    return;
+  }
+
+  if (!cssColor) return;
+
+  // Prefer a single unconditional theme-color (media variants are flaky)
   let meta = head.querySelector<HTMLMetaElement>('meta[name="theme-color"]:not([media])');
   if (!meta) {
     meta = document.createElement('meta');
@@ -76,8 +95,7 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
 
   root.style.setProperty('--radius', colors.radius);
 
-  // Keep browser chrome in sync. theme-color coexists with black-translucent — it
-  // does not paint the iOS status-bar slab, sizing the shell with dvh does.
+  // Browser-tab chrome only — see syncThemeColorMeta (skipped for PWA / Tauri).
   syncThemeColorMeta(toCssVarValue(colors.background) || (isDark ? '#000000' : '#ffffff'));
 
   const head = document.head || document.getElementsByTagName('head')[0];

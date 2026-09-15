@@ -3,6 +3,9 @@
 #[cfg(target_os = "macos")]
 mod macos;
 
+#[cfg(target_os = "ios")]
+mod ios;
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -12,6 +15,10 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     macos::install(&window);
                 }
+            }
+            #[cfg(target_os = "ios")]
+            {
+                ios::install();
             }
             Ok(())
         })
