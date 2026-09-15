@@ -37,7 +37,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### ✨ Feature
 
-- **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Flutter Web (`flutter create --platforms=web --empty`). Companions: Next/Nuxt → `:3000`, SvelteKit → `:5173`, Flutter Web → `flutter run -d web-server` on `:8080`. Flutter is **Web only** (not iOS/Android) and uses `flutter pub get`.
+- **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), Alpine.js (official Alpine npm + Vite), and Flutter Web (`flutter create --platforms=web --empty`). Companions: Next/Nuxt → `:3000`, SvelteKit/Alpine → `:5173`, Flutter Web → `flutter run -d web-server` on `:8080`. Alpine wires `@shellui/sdk/tiny` theme + en/fr language sync. Flutter is **Web only** (not iOS/Android) and uses `flutter pub get`.
 - **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
 - **App-bar inset layout:** app-bar twin with the same inset chrome tray and rounded content frame (`layout: "app-bar-inset"`).
 - **CLI companion:** `shellui start` can spawn or follow a colocated app via `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`).

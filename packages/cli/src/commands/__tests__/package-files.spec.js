@@ -16,6 +16,7 @@ describe('@shellui/cli package files list', () => {
     expect(pkg.files).not.toContain('templates/next');
     expect(pkg.files).not.toContain('templates/nuxt');
     expect(pkg.files).not.toContain('templates/svelte');
+    expect(pkg.files).not.toContain('templates/alpine');
     expect(pkg.files).not.toContain('templates/flutter');
   });
 

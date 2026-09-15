@@ -1,0 +1,18 @@
+{
+  "name": "shellui-alpine-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "alpinejs": "^3.14.9",
+    "@shellui/sdk": "^0.5.0-beta.3"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
+  }
+}

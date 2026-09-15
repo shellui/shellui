@@ -54,7 +54,7 @@ cli
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option(
     '--framework <type>',
-    'Framework type: empty, react, vue, angular, next, nuxt, svelte, flutter',
+    'Framework type: empty, react, vue, angular, next, nuxt, svelte, alpine, flutter',
   )
   .option('--backend <type>', 'Backend type: none, shellui, supabase')
   .option('--company-id <id>', 'Shellui company ID (required for shellui backend)')

@@ -196,6 +196,11 @@ export function applyCompanionConfig(config, framework, opts = {}) {
     },
   };
 
+  // Alpine starter ships en/fr UI that follows the shell — enable both in Settings.
+  if (framework === 'alpine') {
+    next.language = ['en', 'fr'];
+  }
+
   const navigation = Array.isArray(config.navigation) ? [...config.navigation] : [];
   next.navigation = navigation.map((item) => {
     if (isHomeNavItem(item)) {
