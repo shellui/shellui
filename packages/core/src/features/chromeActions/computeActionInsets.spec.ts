@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   actionChromeFlags,
+  CHROME_ACTIONS_CONTENT_CLEARANCE,
   CHROME_ACTIONS_FAB_EDGE_MARGIN,
   CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_FAB_SIZE_DESKTOP,
@@ -8,6 +9,8 @@ import {
   CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW,
   CHROME_ACTIONS_TOP_MARGIN,
   CHROME_ACTIONS_TOP_MARGIN_MINIMAL,
+  chromeActionsFabBottomOffsetCss,
+  chromeActionsFabRightOffsetCss,
   chromeActionsShouldHonorSafeAreaTop,
   chromeActionsTopBarHeight,
   chromeActionsTopMargin,
@@ -164,12 +167,12 @@ describe('computeActionInsets', () => {
     expect(desktop.top).toBe(
       CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
         CHROME_ACTIONS_TOP_BAR_HEIGHT +
-        FLOATING_CONTENT_CLEARANCE,
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
     expect(mobile.top).toBe(
       CHROME_ACTIONS_TOP_MARGIN_MINIMAL +
         CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW +
-        FLOATING_CONTENT_CLEARANCE,
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
     expect(mobile.top).toBeGreaterThan(desktop.top);
   });
@@ -180,7 +183,26 @@ describe('computeActionInsets', () => {
       { viewport: 'desktop', layout: 'floating', sidebarExpanded: true },
     ).top;
     expect(top).toBe(
-      FLOATING_SIDEBAR_FIRST_NAV_TOP + CHROME_ACTIONS_TOP_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE,
+      FLOATING_SIDEBAR_FIRST_NAV_TOP +
+        CHROME_ACTIONS_TOP_BAR_HEIGHT +
+        CHROME_ACTIONS_CONTENT_CLEARANCE,
+    );
+  });
+
+  it('does not double-count existing safe-area top on floating phone', () => {
+    const safeTop = 47;
+    const extra = computeActionInsets(
+      { hasTop: true, hasPrimary: false },
+      {
+        viewport: 'mobile',
+        layout: 'floating',
+        existingTopInset: safeTop,
+      },
+    ).top;
+    // visualTop = max(8, 47) = 47; needed = 47+40+8 = 95; extra = 95-47 = 48
+    expect(extra).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE);
+    expect(safeTop + extra).toBe(
+      safeTop + CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE,
     );
   });
 
@@ -207,6 +229,36 @@ describe('computeActionInsets', () => {
       FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE,
     );
     expect(desktop.bottom).toBeGreaterThan(mobile.bottom);
+  });
+
+  it('adds safe-area-bottom for corner FABs when no existing bottom chrome', () => {
+    expect(
+      computeActionInsets(
+        { hasTop: false, hasPrimary: true },
+        { viewport: 'mobile', layout: 'actions', safeAreaBottom: 34 },
+      ).bottom,
+    ).toBe(FLOATING_CHROME_MARGIN + CHROME_ACTIONS_FAB_SIZE + FLOATING_CONTENT_CLEARANCE + 34);
+  });
+
+  it('does not add safe-area-bottom when stacking above an existing bottom inset', () => {
+    expect(
+      computeActionInsets(
+        { hasTop: false, hasPrimary: true },
+        { viewport: 'mobile', existingBottomInset: 88, safeAreaBottom: 34 },
+      ).bottom,
+    ).toBe(CHROME_ACTIONS_FAB_SIZE + 12);
+  });
+
+  it('builds FAB edge offsets that honor safe-area CSS vars', () => {
+    expect(chromeActionsFabBottomOffsetCss(12)).toBe(
+      'calc(12px + var(--shellui-safe-area-bottom, 0px))',
+    );
+    expect(chromeActionsFabRightOffsetCss(12, { useLayoutInsets: true })).toBe(
+      'calc(12px + max(var(--shellui-inset-right, 0px), var(--shellui-safe-area-right, 0px)))',
+    );
+    expect(chromeActionsFabRightOffsetCss(12)).toBe(
+      'calc(12px + var(--shellui-safe-area-right, 0px))',
+    );
   });
 
   it('skips FAB bottom inset when primary is in the floating dock', () => {

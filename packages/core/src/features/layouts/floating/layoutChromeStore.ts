@@ -1,4 +1,5 @@
 import { applyLayoutChromeStyles, shellui, type LayoutChrome } from '@shellui/sdk';
+import { resolveViewport } from '../../../hooks/use-viewport';
 import { getChromeActionsForFrame } from '../../chromeActions/chromeActionsStore';
 import {
   actionChromeFlags,
@@ -6,6 +7,7 @@ import {
   mergeInsets,
   type ActionChromeFlags,
 } from '../../chromeActions/computeActionInsets';
+import { readShellSafeAreaPx } from './computeFloatingInsets';
 
 let currentChrome: LayoutChrome | null = null;
 
@@ -49,6 +51,13 @@ const CLEARED_CHROME: LayoutChrome = {
   autoPadding: true,
 };
 
+/** Base chrome when no layout publisher is active (sidebar / app-bar / fullscreen). */
+function resolveClearedChrome(): LayoutChrome {
+  const viewport =
+    typeof window !== 'undefined' ? resolveViewport(window.innerWidth) : CLEARED_CHROME.viewport;
+  return { ...CLEARED_CHROME, viewport };
+}
+
 function isWindowsLayout(): boolean {
   if (typeof document === 'undefined') return false;
   return Boolean(document.querySelector('[data-shellui-windows-layout]'));
@@ -70,13 +79,20 @@ export function buildFrameLayoutChrome(
   // Floating desktop publishes chromeVisible=false when the sidebar is collapsed.
   const sidebarExpanded =
     base.layout === 'floating' && base.viewport === 'desktop' ? base.chromeVisible : undefined;
+  const safeArea =
+    typeof document !== 'undefined'
+      ? readShellSafeAreaPx()
+      : { top: 0, right: 0, bottom: 0, left: 0 };
   const extra = computeActionInsets(flags, {
     topInTitleBar: options?.topInTitleBar,
     existingBottomInset: base.insets.bottom,
+    existingTopInset: base.insets.top,
     primaryInDock,
     viewport: base.viewport,
     layout: base.layout,
     sidebarExpanded,
+    // Docked / tab-bar bottoms already include safe-area; corner FABs need it here.
+    safeAreaBottom: primaryInDock || base.insets.bottom > 0 ? 0 : safeArea.bottom,
   });
   const insets = mergeInsets(base.insets, extra);
   const hasActions = flags.hasTop || flags.hasPrimary;
@@ -112,10 +128,15 @@ function chromePayloadForOverlayFrame(
 ): LayoutChrome {
   const actions = getChromeActionsForFrame(uuid);
   const flags = actionChromeFlags(actions);
+  const safeArea =
+    typeof document !== 'undefined'
+      ? readShellSafeAreaPx()
+      : { top: 0, right: 0, bottom: 0, left: 0 };
   const insets = computeActionInsets(flags, {
     topInTitleBar: false,
     viewport,
     layout: 'actions',
+    safeAreaBottom: safeArea.bottom,
   });
   const hasActions = flags.hasTop || flags.hasPrimary;
   return {
@@ -141,7 +162,7 @@ export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   emitLayoutChrome();
   if (typeof window === 'undefined') return;
 
-  const payload: LayoutChrome = chrome ?? CLEARED_CHROME;
+  const payload: LayoutChrome = chrome ?? resolveClearedChrome();
 
   // Host shell document: vars only (no padding on the outer shell).
   applyLayoutChromeStyles(payload, { autoPadding: false });

@@ -27,6 +27,11 @@ export const CHROME_ACTIONS_TOP_MARGIN_MINIMAL = 8;
 /** @deprecated Use chromeActionsTopMargin() — kept for call sites / tests. */
 export const CHROME_ACTIONS_TOP_MARGIN_MOBILE = CHROME_ACTIONS_TOP_MARGIN_MINIMAL;
 /**
+ * Extra space below the action row before iframe content starts.
+ * Smaller than floating-nav clearance — the scrim already separates chrome from content.
+ */
+export const CHROME_ACTIONS_CONTENT_CLEARANCE = 8;
+/**
  * Extra scrim height below the action row. With `from-70%`, this band fades
  * background → transparent so content eases in under the chrome.
  */
@@ -144,6 +149,29 @@ export function chromeActionsFabEdgeMargin(viewport?: LayoutChromeViewport): num
   return FLOATING_CHROME_MARGIN;
 }
 
+/**
+ * Bottom offset for a corner FAB (non-dock). Always clears the home indicator via
+ * safe-area — sidebar / app-bar / fullscreen iframes go edge-to-edge on iPhone.
+ */
+export function chromeActionsFabBottomOffsetCss(edgeMargin: number): string {
+  return `calc(${edgeMargin}px + var(--shellui-safe-area-bottom, 0px))`;
+}
+
+/**
+ * Trailing offset for a corner FAB.
+ * When layout insets are applied, take the larger of inset-right and safe-area-right
+ * so floating (inset already includes safe) and sidebar (inset 0) both clear the edge.
+ */
+export function chromeActionsFabRightOffsetCss(
+  edgeMargin: number,
+  options?: { useLayoutInsets?: boolean },
+): string {
+  if (options?.useLayoutInsets) {
+    return `calc(${edgeMargin}px + max(var(--shellui-inset-right, 0px), var(--shellui-safe-area-right, 0px)))`;
+  }
+  return `calc(${edgeMargin}px + var(--shellui-safe-area-right, 0px))`;
+}
+
 export type ActionChromeFlags = {
   hasTop: boolean;
   hasPrimary: boolean;
@@ -170,6 +198,12 @@ export function computeActionInsets(
     /** Existing bottom inset (e.g. floating tab bar) so FAB sits above it. */
     existingBottomInset?: number;
     /**
+     * Existing top inset already published (e.g. floating safe-area-top).
+     * Action extras are computed as total needed minus this, so we don’t
+     * double-count safe-area when visual offset is `max(margin, safe-area)`.
+     */
+    existingTopInset?: number;
+    /**
      * Primary FAB shares the floating bottom band (corner, beside the nav) —
      * no extra bottom inset beyond the dock height.
      */
@@ -180,29 +214,40 @@ export function computeActionInsets(
     layout?: string;
     /** Floating desktop: sidebar expanded (align to first nav) vs collapsed. */
     sidebarExpanded?: boolean;
+    /**
+     * Device safe-area-bottom (px). Added when the FAB is not docked and no
+     * existing bottom chrome already cleared the home indicator.
+     */
+    safeAreaBottom?: number;
   },
 ): LayoutChromeInsets {
   const viewport = options?.viewport;
+  const layout = options?.layout;
   const topMargin = chromeActionsTopMargin({
     viewport,
-    layout: options?.layout,
+    layout,
     sidebarExpanded: options?.sidebarExpanded,
   });
   const barHeight = chromeActionsTopBarHeight(viewport);
-  const top =
-    flags.hasTop && !options?.topInTitleBar
-      ? topMargin + barHeight + FLOATING_CONTENT_CLEARANCE
-      : 0;
+  const baseTop = options?.existingTopInset ?? 0;
+  const honorSafe = chromeActionsShouldHonorSafeAreaTop(layout);
+  // Match TopActionBar: safe-area layouts use max(margin, existing safe top).
+  const visualTop = honorSafe ? Math.max(topMargin, baseTop) : topMargin;
+  const topNeeded = visualTop + barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
+  const top = flags.hasTop && !options?.topInTitleBar ? Math.max(0, topNeeded - baseTop) : 0;
 
   let bottom = 0;
   if (flags.hasPrimary && !options?.primaryInDock) {
     const aboveNav = options?.existingBottomInset ?? 0;
     const size = chromeActionsFabSize(viewport);
     const edge = chromeActionsFabEdgeMargin(viewport);
-    // When a tab bar already reserved bottom space, only add FAB height + gap.
-    // Otherwise reserve FAB + margin + clearance from the screen edge.
+    const safeBottom = options?.safeAreaBottom ?? 0;
+    // When a tab bar already reserved bottom space (includes safe-area), only add
+    // FAB height + gap. Otherwise reserve FAB + margin + clearance + home indicator.
     bottom =
-      aboveNav > 0 ? size + CHROME_ACTIONS_FAB_GAP : edge + size + FLOATING_CONTENT_CLEARANCE;
+      aboveNav > 0
+        ? size + CHROME_ACTIONS_FAB_GAP
+        : edge + size + FLOATING_CONTENT_CLEARANCE + safeBottom;
   }
 
   return { top, right: 0, bottom, left: 0 };

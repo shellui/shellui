@@ -50,7 +50,9 @@ import {
   CHROME_ACTIONS_FAB_SIZE,
   CHROME_ACTIONS_TOP_SCRIM_FADE,
   actionChromeFlags,
+  chromeActionsFabBottomOffsetCss,
   chromeActionsFabEdgeMargin,
+  chromeActionsFabRightOffsetCss,
   chromeActionsFabSize,
   chromeActionsTopBarHeight,
   chromeActionsTopOffsetCss,
@@ -1089,9 +1091,7 @@ function PrimaryFab({
   const { item, visible: itemVisible } = useOptionalPresence(primary);
   if (!item) return null;
 
-  const right = useLayoutInsets
-    ? `calc(var(--shellui-inset-right, 0px) + ${edgeMargin}px)`
-    : `calc(${edgeMargin}px + var(--shellui-safe-area-right, 0px))`;
+  const right = chromeActionsFabRightOffsetCss(edgeMargin, { useLayoutInsets });
 
   const ariaLabel = item.label || item.icon || 'Primary action';
   const shown = visible && itemVisible && !scrollHidden;
@@ -1103,7 +1103,7 @@ function PrimaryFab({
       className="pointer-events-auto absolute z-[46]"
       style={{
         right,
-        bottom: bottomOffset,
+        bottom: typeof bottomOffset === 'number' ? `${bottomOffset}px` : bottomOffset,
       }}
     >
       <Button
@@ -1269,8 +1269,11 @@ function FrameActionsOverlay({
   const isWindowSurface = surface === 'window';
   const useLayoutInsets = surface === 'main' || surface === 'develop';
   // Corner FAB inside portaled surfaces (modal/drawer/window content).
-  const overlayFabOffset =
-    isOverlaySurface || isWindowSurface ? FLOATING_CHROME_MARGIN : fabBottomOffset;
+  const overlayFabOffset = isWindowSurface
+    ? FLOATING_CHROME_MARGIN
+    : isOverlaySurface
+      ? chromeActionsFabBottomOffsetCss(FLOATING_CHROME_MARGIN)
+      : fabBottomOffset;
   const fabSize = isOverlaySurface || isWindowSurface ? CHROME_ACTIONS_FAB_SIZE : fabSizePx;
   const fabEdge = isOverlaySurface || isWindowSurface ? FLOATING_CHROME_MARGIN : fabEdgeMargin;
   const shape = isOverlaySurface || isWindowSurface ? 'theme' : fabShape;
@@ -1368,7 +1371,8 @@ export function ChromeActionsHost() {
       // Match FloatingBottomDock paddingBottom (includes safe-area CSS var).
       return floatingTabBarBottomPadCss(viewport);
     }
-    return fabEdgeMargin;
+    // Sidebar / app-bar / fullscreen / floating desktop: clear home indicator.
+    return chromeActionsFabBottomOffsetCss(fabEdgeMargin);
   }, [floatingDock, viewport, fabEdgeMargin]);
 
   // Same hide-on-scroll signal as FloatingBottomDock (phone/tablet floating only).
@@ -1390,6 +1394,7 @@ export function ChromeActionsHost() {
           fabEdgeMargin={fabEdgeMargin}
           fabShape={fabShape}
           showTop={!windowsLayout || actions.frameUuid === SHELL_DEVELOP_CHROME_ACTIONS_FRAME}
+          // Windows: FAB lives inside the window card — no device safe-area.
           fabBottomOffset={windowsLayout ? FLOATING_CHROME_MARGIN : fabBottomOffset}
         />
       ))}
