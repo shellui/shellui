@@ -1,7 +1,7 @@
 ---
 title: CLI reference
 sidebar_label: CLI
-description: shellui commands, config files, environment substitution, tooling isolation, and preview deploy.
+description: 'shellui commands, config files, environment substitution, tooling isolation, and preview deploy.'
 ---
 
 The `@shellui/cli` binary is `shellui`. Install it from the [installation page](/installation). This page is the command and config reference. For a first project, use [Create a project](/quickstart).
@@ -37,12 +37,12 @@ shellui init --force
 
 Without flags, the wizard asks for framework and backend. JS starters are fetched from the GitHub tag that matches the CLI version (not bundled in the npm tarball). They wire `@shellui/sdk/tiny` for theme and language, plus `dev.run` / `dev.url` so `shellui start` launches the companion. Empty stays shell-only (`Home` at `/`, no `dev` block). After a JS scaffold, init detects the package manager and runs install unless `--no-install`. Flutter Web runs `flutter pub get` instead of npm. There is no Dart SDK; handshake, theme, and i18n stay JS-only.
 
-| Framework | Default `dev.run` | `dev.url` |
-| --- | --- | --- |
-| React / Vue / SvelteKit / Alpine | `{pm} run dev` | `http://localhost:5173` |
-| Angular | `{pm} run dev` | `http://localhost:4200` |
-| Next.js / Nuxt | `{pm} run dev` | `http://localhost:3000` |
-| Flutter Web | `flutter run -d web-server --web-hostname=localhost --web-port=8080` | `http://localhost:8080` |
+| Framework                        | Default `dev.run`                                                    | `dev.url`               |
+| -------------------------------- | -------------------------------------------------------------------- | ----------------------- |
+| React / Vue / SvelteKit / Alpine | `{pm} run dev`                                                       | `http://localhost:5173` |
+| Angular                          | `{pm} run dev`                                                       | `http://localhost:4200` |
+| Next.js / Nuxt                   | `{pm} run dev`                                                       | `http://localhost:3000` |
+| Flutter Web                      | `flutter run -d web-server --web-hostname=localhost --web-port=8080` | `http://localhost:8080` |
 
 The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Flutter's first web compile can exceed the default 60s companion wait - see the Flutter template README. Nuxt 4 expects a recent Node 22.x / 24.x.
 
@@ -170,10 +170,10 @@ Point editors at the schema:
 
 Any **string** in loaded config (JSON, split, or TypeScript export) may contain placeholders, resolved when the CLI loads config - after read, before schema validation, recursively:
 
-| Syntax | Behavior |
-| --- | --- |
-| `${VAR}` | `process.env.VAR`. Unset or empty becomes `""` and the CLI warns |
-| `${VAR:-default}` | `default` when `VAR` is unset or empty |
+| Syntax            | Behavior                                                         |
+| ----------------- | ---------------------------------------------------------------- |
+| `${VAR}`          | `process.env.VAR`. Unset or empty becomes `""` and the CLI warns |
+| `${VAR:-default}` | `default` when `VAR` is unset or empty                           |
 
 When a value is **exactly** one placeholder, the result is coerced if it looks like a JSON literal: `"${PORT:-4000}"` → number `4000`, `"${FLAG:-true}"` → boolean, `"${X:-null}"` → `null`. Embedded placeholders stay strings.
 
@@ -210,21 +210,21 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   port: 4000,
-  title: "My Shellui App",
+  title: 'My Shellui App',
   backend: {
-    type: "supabase",
-    url: "http://localhost:54321",
+    type: 'supabase',
+    url: 'http://localhost:54321',
   },
   navigation: [
     {
-      label: "Documentation",
-      path: "docs",
-      url: "https://docs.example.com/",
-      icon: "/icons/book-open.svg",
+      label: 'Documentation',
+      path: 'docs',
+      url: 'https://docs.example.com/',
+      icon: '/icons/book-open.svg',
     },
   ],
 };
@@ -253,13 +253,13 @@ The CLI does not replace your app toolchain. Set `dev.run` so one `shellui start
 
 `shellui start` and `shellui build` use an inline Vite config (`configFile: false`). They never merge the consumer project's toolchain.
 
-| Consumer file | What the shell uses |
-| --- | --- |
-| `vite.config.*` | Inline config, root = `@shellui/core` |
-| `postcss.config.*`, `tailwind.config.*` | CLI PostCSS + Tailwind v4, scan limited to `@shellui/core/src` |
-| `tsconfig.json` / `jsconfig.json` | Inline `esbuild.tsconfigRaw` (React JSX) |
-| `.env`, `.env.*`, `VITE_*` | Vite `envDir: false`; `import.meta.env` prefix is `SHELLUI_PUBLIC_` only |
-| `node_modules/.vite` | `node_modules/.vite-shellui` |
+| Consumer file                           | What the shell uses                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `vite.config.*`                         | Inline config, root = `@shellui/core`                                    |
+| `postcss.config.*`, `tailwind.config.*` | CLI PostCSS + Tailwind v4, scan limited to `@shellui/core/src`           |
+| `tsconfig.json` / `jsconfig.json`       | Inline `esbuild.tsconfigRaw` (React JSX)                                 |
+| `.env`, `.env.*`, `VITE_*`              | Vite `envDir: false`; `import.meta.env` prefix is `SHELLUI_PUBLIC_` only |
+| `node_modules/.vite`                    | `node_modules/.vite-shellui`                                             |
 
 `${VAR}` in config still reads process env (including project `.env` via dotenv) at CLI load time. Those values are for config substitution, not Vite `import.meta.env`. The dev server does not serve project `src/` - only `@shellui/core`, `node_modules`, `static/`, and optional `themesDir`.
 

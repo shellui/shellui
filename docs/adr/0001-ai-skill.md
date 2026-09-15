@@ -3,7 +3,7 @@ id: ai-skill
 slug: /adr/ai-skill
 title: ADR 0001 - Official shellui skill
 sidebar_label: ADR 0001
-description: Decision record for hosting the official Agent Skill in shellui/skills, versioning, and token budget.
+description: 'Decision record for hosting the official Agent Skill in shellui/skills, versioning, and token budget.'
 ---
 
 Accepted (amended: dedicated skills repo).
@@ -64,9 +64,9 @@ Keep skills small. Prefer bullets over prose. Target `SKILL.md` under ~150 lines
 
 ## Alternatives considered
 
-| Option | Why not |
-| --- | --- |
+| Option                               | Why not                                                   |
+| ------------------------------------ | --------------------------------------------------------- |
 | Keep the skill only in this monorepo | Weaker multi-repo install; catalog grows beyond one skill |
-| npm package for the skill | Ecosystem expects folders + git, not npm |
-| `shellui skill install` | Duplicates `npx skills`; defer |
-| Auto-generate from schema | Out of scope; revisit later |
+| npm package for the skill            | Ecosystem expects folders + git, not npm                  |
+| `shellui skill install`              | Duplicates `npx skills`; defer                            |
+| Auto-generate from schema            | Out of scope; revisit later                               |

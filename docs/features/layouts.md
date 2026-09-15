@@ -1,7 +1,7 @@
 ---
 title: Choose a layout
 sidebar_label: Layouts
-description: Set layout in shellui.config.json - sidebar, inset, fullscreen, app bar, floating, or experimental windows.
+description: 'Set layout in shellui.config.json - sidebar, inset, fullscreen, app bar, floating, or experimental windows.'
 ---
 
 `layout` is a shell concern (`shellui.config.json`). App UI must work in sidebar, top-bar, and window modes. Default is `sidebar`. Override at runtime from **Settings → Develop → Layout** when developer features are enabled (stored in user settings, wins over config).
@@ -42,18 +42,18 @@ Same as sidebar with a padded, rounded main frame that shows chrome around the c
 
 Glass chrome over full-bleed content. The iframe stays 100% × 100%; apps apply insets **inside** their UI.
 
-| Viewport | Width | Chrome |
-| --- | --- | --- |
-| Mobile | `<768px` | Floating bottom-centered tab bar |
-| Tablet | `768-1023px` | Same bottom tab bar |
-| Desktop | `≥1024px` | Floating glass sidebar |
+| Viewport | Width        | Chrome                           |
+| -------- | ------------ | -------------------------------- |
+| Mobile   | `<768px`     | Floating bottom-centered tab bar |
+| Tablet   | `768-1023px` | Same bottom tab bar              |
+| Desktop  | `≥1024px`    | Floating glass sidebar           |
 
 Hide-on-scroll: scrolling down hides chrome; scrolling up, near the top, or near the bottom restores it. Soft fade masks on phone/tablet hint at scroll. Prefer a small set of top-level start items (about 5); extras go under More.
 
 Floating publishes `layoutChrome` on `SHELLUI_SETTINGS` and `SHELLUI_LAYOUT_CHROME` to the **main** content iframe only.
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 shellui.getLayoutChrome();

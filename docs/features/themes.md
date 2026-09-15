@@ -1,7 +1,7 @@
 ---
 title: Configure themes
 sidebar_label: Themes
-description: Set theme, themes, or themesDir in shellui.config.json using shadcn CSS variables (OKLCH preferred).
+description: 'Set theme, themes, or themesDir in shellui.config.json using shadcn CSS variables (OKLCH preferred).'
 ---
 
 Theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (light under `:root`, dark under `.dark`). Tokens are full CSS colors - prefer **OKLCH** (`oklch(...)`). There is no live theme editor; configuration lives in `shellui.config.json` (or theme JSON under `themesDir`).
@@ -22,55 +22,55 @@ Design palettes in [tweakcn](https://tweakcn.com) or any shadcn-compatible expor
 
 Curated JSON (`version: 1`) ships in `@shellui/core` (`packages/core/src/features/theme/curated/*.json`), validated against `@shellui/core/schemas/shellui.theme.schema.json`. Named exports (`shelluiTheme`, `claudeTheme`, `themeNames`, …) come from `@shellui/core`. Community palettes are adapted from tweakcn and shadcn/ui unless noted.
 
-| Name | Label | Notes |
-| --- | --- | --- |
-| `shellui` | Shellui | Official gold brand |
-| `claude` | Claude | Warm terracotta, Outfit + Geist Mono |
-| `light-green` | Light Green | Lime primary, Inter + JetBrains Mono |
-| `zen-inspired` | Zen Inspired | Parchment neutrals, Inter + Playfair Display |
-| `astro-vista` | Astro Vista | Cool neutrals, orange primary |
-| `shadcn` | shadcn | Default shadcn/ui neutrals, system fonts |
-| `amber-minimal` | Amber Minimal | White neutrals, amber primary |
-| `amethyst-haze` | Amethyst Haze | Lavender neutrals |
-| `bold-tech` | Bold Tech | Violet primary |
-| `bubblegum` | Bubblegum | Pink primary, candy pastels |
-| `caffeine` | Caffeine | Coffee browns |
-| `candyland` | Candyland | Pastel pink, blue, lime |
-| `catppuccin` | Catppuccin | Mauve primary |
-| `claymorphism` | Claymorphism | Clay surfaces, violet primary |
-| `clean-slate` | Clean Slate | Slate neutrals |
-| `cosmic-night` | Cosmic Night | Soft violet |
-| `cyberpunk` | Cyberpunk | Magenta and cyan |
-| `darkmatter` | Darkmatter | Amber primary, mono-first |
-| `doom-64` | Doom 64 | Retro game palette |
-| `elegant-luxury` | Elegant Luxury | Burgundy |
-| `graphite` | Graphite | Greyscale |
-| `kodama-grove` | Kodama Grove | Moss greens |
-| `midnight-bloom` | Midnight Bloom | Violet bloom |
-| `mocha-mousse` | Mocha Mousse | Mocha browns |
-| `modern-minimal` | Modern Minimal | Blue primary |
-| `mono` | Mono | Geist Mono throughout |
-| `nature` | Nature | Forest green |
-| `neo-brutalism` | Neo Brutalism | Bold blocks |
-| `northern-lights` | Northern Lights | Aurora green |
-| `notebook` | Notebook | Architects Daughter |
-| `ocean-breeze` | Ocean Breeze | Teal primary |
-| `pastel-dreams` | Pastel Dreams | Lavender, large radius |
-| `perpetuity` | Perpetuity | Teal terminal |
-| `quantum-rose` | Quantum Rose | Rose primary |
-| `retro-arcade` | Retro Arcade | Magenta and teal |
-| `sage-garden` | Sage Garden | Muted sage |
-| `soft-pop` | Soft Pop | Violet and teal |
-| `solar-dusk` | Solar Dusk | Dusk oranges |
-| `starry-night` | Starry Night | Night blues, gold |
-| `sunset-horizon` | Sunset Horizon | Sunset oranges |
-| `supabase` | Supabase | Supabase green |
-| `t3-chat` | T3 Chat | Magenta-rose |
-| `tangerine` | Tangerine | Tangerine on slate |
-| `twitter` | Twitter | Sky blue |
-| `vercel` | Vercel | Black and white, Geist |
-| `vintage-paper` | Vintage Paper | Aged paper |
-| `violet-bloom` | Violet Bloom | Bold violet |
+| Name              | Label           | Notes                                        |
+| ----------------- | --------------- | -------------------------------------------- |
+| `shellui`         | Shellui         | Official gold brand                          |
+| `claude`          | Claude          | Warm terracotta, Outfit + Geist Mono         |
+| `light-green`     | Light Green     | Lime primary, Inter + JetBrains Mono         |
+| `zen-inspired`    | Zen Inspired    | Parchment neutrals, Inter + Playfair Display |
+| `astro-vista`     | Astro Vista     | Cool neutrals, orange primary                |
+| `shadcn`          | shadcn          | Default shadcn/ui neutrals, system fonts     |
+| `amber-minimal`   | Amber Minimal   | White neutrals, amber primary                |
+| `amethyst-haze`   | Amethyst Haze   | Lavender neutrals                            |
+| `bold-tech`       | Bold Tech       | Violet primary                               |
+| `bubblegum`       | Bubblegum       | Pink primary, candy pastels                  |
+| `caffeine`        | Caffeine        | Coffee browns                                |
+| `candyland`       | Candyland       | Pastel pink, blue, lime                      |
+| `catppuccin`      | Catppuccin      | Mauve primary                                |
+| `claymorphism`    | Claymorphism    | Clay surfaces, violet primary                |
+| `clean-slate`     | Clean Slate     | Slate neutrals                               |
+| `cosmic-night`    | Cosmic Night    | Soft violet                                  |
+| `cyberpunk`       | Cyberpunk       | Magenta and cyan                             |
+| `darkmatter`      | Darkmatter      | Amber primary, mono-first                    |
+| `doom-64`         | Doom 64         | Retro game palette                           |
+| `elegant-luxury`  | Elegant Luxury  | Burgundy                                     |
+| `graphite`        | Graphite        | Greyscale                                    |
+| `kodama-grove`    | Kodama Grove    | Moss greens                                  |
+| `midnight-bloom`  | Midnight Bloom  | Violet bloom                                 |
+| `mocha-mousse`    | Mocha Mousse    | Mocha browns                                 |
+| `modern-minimal`  | Modern Minimal  | Blue primary                                 |
+| `mono`            | Mono            | Geist Mono throughout                        |
+| `nature`          | Nature          | Forest green                                 |
+| `neo-brutalism`   | Neo Brutalism   | Bold blocks                                  |
+| `northern-lights` | Northern Lights | Aurora green                                 |
+| `notebook`        | Notebook        | Architects Daughter                          |
+| `ocean-breeze`    | Ocean Breeze    | Teal primary                                 |
+| `pastel-dreams`   | Pastel Dreams   | Lavender, large radius                       |
+| `perpetuity`      | Perpetuity      | Teal terminal                                |
+| `quantum-rose`    | Quantum Rose    | Rose primary                                 |
+| `retro-arcade`    | Retro Arcade    | Magenta and teal                             |
+| `sage-garden`     | Sage Garden     | Muted sage                                   |
+| `soft-pop`        | Soft Pop        | Violet and teal                              |
+| `solar-dusk`      | Solar Dusk      | Dusk oranges                                 |
+| `starry-night`    | Starry Night    | Night blues, gold                            |
+| `sunset-horizon`  | Sunset Horizon  | Sunset oranges                               |
+| `supabase`        | Supabase        | Supabase green                               |
+| `t3-chat`         | T3 Chat         | Magenta-rose                                 |
+| `tangerine`       | Tangerine       | Tangerine on slate                           |
+| `twitter`         | Twitter         | Sky blue                                     |
+| `vercel`          | Vercel          | Black and white, Geist                       |
+| `vintage-paper`   | Vintage Paper   | Aged paper                                   |
+| `violet-bloom`    | Violet Bloom    | Bold violet                                  |
 
 ## Config shapes
 
@@ -85,20 +85,20 @@ Curated JSON (`version: 1`) ships in `@shellui/core` (`packages/core/src/feature
 **Inline object** (partial `light` / `dark` merges onto the Shellui theme; camelCase or kebab-case keys):
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   theme: {
-    name: "brand",
-    label: "Brand",
-    radius: "0.5rem",
-    fonts: { sans: "Inter, system-ui, sans-serif" },
+    name: 'brand',
+    label: 'Brand',
+    radius: '0.5rem',
+    fonts: { sans: 'Inter, system-ui, sans-serif' },
     light: {
-      primary: "oklch(0.55 0.15 250)",
-      "primary-foreground": "oklch(1 0 0)",
+      primary: 'oklch(0.55 0.15 250)',
+      'primary-foreground': 'oklch(1 0 0)',
     },
     dark: {
-      primary: "oklch(0.7 0.12 250)",
+      primary: 'oklch(0.7 0.12 250)',
     },
   },
 };

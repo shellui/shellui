@@ -7,7 +7,7 @@ npm install @shellui/core
 ```
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 ```
 
 Docs: [Core](https://docs.shellui.com/core), [CLI](https://docs.shellui.com/cli).

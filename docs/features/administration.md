@@ -1,7 +1,7 @@
 ---
 title: Embed the administration panel
 sidebar_label: Administration
-description: Point backend.adminUrl at the staff admin app and add custom sidebar links with administration.navigation.
+description: 'Point backend.adminUrl at the staff admin app and add custom sidebar links with administration.navigation.'
 ---
 
 Staff and company owners open an embedded administration app from the account menu. The shell loads `backend.adminUrl` at `backend.adminPathname` (default `/admin`). Top-level `administration` injects extra sidebar links below Dashboard.
@@ -37,32 +37,32 @@ The shell registers a staff/owner-guarded route and embeds `adminUrl`. Hash rout
 v1 is a **flat** list (no nested groups). Items appear below Dashboard and above the built-in Identity group, in config order. Each entry uses the host [NavigationItem](/features/navigation) shape.
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   backend: {
-    type: "shellui",
-    url: "http://localhost:8000",
+    type: 'shellui',
+    url: 'http://localhost:8000',
     companyId: 1,
-    adminPathname: "/admin",
-    adminUrl: "http://localhost:5174",
+    adminPathname: '/admin',
+    adminUrl: 'http://localhost:5174',
   },
   administration: {
     title: {
-      en: "Applications",
-      fr: "Applications",
+      en: 'Applications',
+      fr: 'Applications',
     },
     navigation: [
       {
-        label: { en: "Billing", fr: "Facturation" },
-        path: "billing",
-        url: "https://billing.example.com/",
-        icon: "/icons/billing.svg",
+        label: { en: 'Billing', fr: 'Facturation' },
+        path: 'billing',
+        url: 'https://billing.example.com/',
+        icon: '/icons/billing.svg',
       },
       {
-        label: "Support desk",
-        path: "support",
-        url: "https://support.example.com/",
+        label: 'Support desk',
+        path: 'support',
+        url: 'https://support.example.com/',
       },
     ],
   },
@@ -71,14 +71,14 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `administration.title` | yes | Section heading (string or localized) |
-| `administration.navigation` | yes | Flat `NavigationItem` array |
-| `navigation[].label` / `path` / `url` | yes | `path` becomes `#/app/<path>` - avoid colliding with built-in ids such as `users` |
-| `navigation[].icon` | no | Icon path from the host |
-| `navigation[].requiresStaff` | no | Staff-only sidebar row |
-| `navigation[].openIn` | no | `'default'` (iframe) or `'external'` (new tab) for apps that block framing |
+| Field                                 | Required | Description                                                                       |
+| ------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `administration.title`                | yes      | Section heading (string or localized)                                             |
+| `administration.navigation`           | yes      | Flat `NavigationItem` array                                                       |
+| `navigation[].label` / `path` / `url` | yes      | `path` becomes `#/app/<path>` - avoid colliding with built-in ids such as `users` |
+| `navigation[].icon`                   | no       | Icon path from the host                                                           |
+| `navigation[].requiresStaff`          | no       | Staff-only sidebar row                                                            |
+| `navigation[].openIn`                 | no       | `'default'` (iframe) or `'external'` (new tab) for apps that block framing        |
 
 The shell sends a language-resolved `administration` object on `SHELLUI_SETTINGS`. The admin app reads `settings.administration`. Relative URLs starting with `/` resolve against `backend.url`. If `url` is empty, the first version falls back to `https://playground.shellui.com`. When `administration` is omitted, the shell sends `administration: null` and the admin sidebar shows built-in links only.
 

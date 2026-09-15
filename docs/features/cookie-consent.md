@@ -1,26 +1,26 @@
 ---
 title: Collect cookie consent
 sidebar_label: Cookie Consent
-description: Declare cookies in config, show the consent UI, and gate features with useCookieConsent(host).
+description: 'Declare cookies in config, show the consent UI, and gate features with useCookieConsent(host).'
 ---
 
 Declare cookies in `cookieConsent.cookies`. The shell shows a consent modal, stores accepted hosts in settings, and re-prompts when you add a host that was not in the last consent set. Gate third-party features on that list before you initialize them.
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   cookieConsent: {
     cookies: [
       {
-        name: "Sentry Error Reporting",
-        host: "sentry.io",
+        name: 'Sentry Error Reporting',
+        host: 'sentry.io',
         durationSeconds: 31536000,
-        type: "third_party",
-        category: "functional_performance",
+        type: 'third_party',
+        category: 'functional_performance',
         description: {
-          en: "Sends uncaught errors to Sentry so production failures can be fixed.",
-          fr: "Envoie les erreurs non gérées à Sentry pour corriger les pannes en production.",
+          en: 'Sends uncaught errors to Sentry so production failures can be fixed.',
+          fr: 'Envoie les erreurs non gérées à Sentry pour corriger les pannes en production.',
         },
       },
     ],
@@ -50,11 +50,11 @@ Users reopen the UI from **Settings → Data Privacy → Cookie Preferences**, o
 In host React (under the shell providers):
 
 ```typescript
-import { useCookieConsent } from "@shellui/core";
-import { useEffect } from "react";
+import { useCookieConsent } from '@shellui/core';
+import { useEffect } from 'react';
 
 function ErrorReporting() {
-  const { isAccepted, needsConsent } = useCookieConsent("sentry.io");
+  const { isAccepted, needsConsent } = useCookieConsent('sentry.io');
 
   useEffect(() => {
     if (isAccepted) {
@@ -69,9 +69,9 @@ function ErrorReporting() {
 Outside React:
 
 ```typescript
-import { getCookieConsentAccepted } from "@shellui/core";
+import { getCookieConsentAccepted } from '@shellui/core';
 
-if (getCookieConsentAccepted("sentry.io")) {
+if (getCookieConsentAccepted('sentry.io')) {
   initSentry();
 }
 ```

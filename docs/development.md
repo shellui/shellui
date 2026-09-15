@@ -1,7 +1,7 @@
 ---
 title: Develop this monorepo
 sidebar_label: Development
-description: Install pnpm, build @shellui/cli, @shellui/core, and @shellui/sdk, and run tests in the Shellui repository.
+description: 'Install pnpm, build @shellui/cli, @shellui/core, and @shellui/sdk, and run tests in the Shellui repository.'
 ---
 
 This repository is the CLI, core, and SDK workspace. Use it when you change Shellui itself. App authors should follow [Create a project](/quickstart) with the published CLI.

@@ -1,7 +1,7 @@
 ---
 title: Ship a desktop app
 sidebar_label: Desktop App
-description: Run shellui dev --app and shellui build --app to generate a Tauri 2 wrapper under dist/app/.
+description: 'Run shellui dev --app and shellui build --app to generate a Tauri 2 wrapper under dist/app/.'
 ---
 
 Ship the shell as a native desktop app. The CLI uses [Tauri 2](https://v2.tauri.app/) and writes the wrapper into `dist/app/` so you do not commit native project files.
@@ -34,11 +34,11 @@ npx shellui build --app --bundles app,dmg
 
 `shellui start --app` is the same as `dev --app`. On first run the CLI generates `dist/app/`, installs desktop build tools if needed (for example `@tauri-apps/cli`), and syncs root `tauri.conf.json` plus `shellui.config.json` `port` into the wrapper.
 
-| Command | Output |
-| --- | --- |
-| `shellui build` | `dist/web/` static site |
-| `shellui build --app` | `dist/web/` plus `.app` on macOS under `dist/app/` |
-| `shellui build --app --bundles app,dmg` | Above plus a `.dmg` |
+| Command                                 | Output                                             |
+| --------------------------------------- | -------------------------------------------------- |
+| `shellui build`                         | `dist/web/` static site                            |
+| `shellui build --app`                   | `dist/web/` plus `.app` on macOS under `dist/app/` |
+| `shellui build --app --bundles app,dmg` | Above plus a `.dmg`                                |
 
 Everything under `dist/` is generated and gitignored.
 
@@ -57,12 +57,12 @@ Optional **`tauri.conf.json`** next to `shellui.config.json`:
 }
 ```
 
-| Field | Use |
-| --- | --- |
-| `productName` | Dock / installer / window name for bundled apps. Defaults to `package.json` `name` with the first letter capitalized. During `tauri dev`, macOS uses the Cargo package name (kept in sync from `productName`) |
-| `identifier` | Bundle id. Defaults from the product name |
-| `bundle.icon` | Source icon(s) relative to the project root (prefer an opaque `static/icon.png`). The CLI runs `tauri icon` |
-| `app.windows[0]` | Optional window overrides. Overlay titlebar defaults stay unless you override them |
+| Field            | Use                                                                                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productName`    | Dock / installer / window name for bundled apps. Defaults to `package.json` `name` with the first letter capitalized. During `tauri dev`, macOS uses the Cargo package name (kept in sync from `productName`) |
+| `identifier`     | Bundle id. Defaults from the product name                                                                                                                                                                     |
+| `bundle.icon`    | Source icon(s) relative to the project root (prefer an opaque `static/icon.png`). The CLI runs `tauri icon`                                                                                                   |
+| `app.windows[0]` | Optional window overrides. Overlay titlebar defaults stay unless you override them                                                                                                                            |
 
 From `shellui.config.json`: `port` is the dev URL (`http://localhost:<port>`); `title` is a fallback product name; `favicon` / `appIcon` are icon fallbacks when `bundle.icon` / `static/icon.png` are absent (`appIcon` is last and is a transparent chrome glyph). Prefer root `tauri.conf.json` for dock name and icon; keep `title` / `appIcon` for in-app chrome.
 

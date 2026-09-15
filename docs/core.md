@@ -1,7 +1,7 @@
 ---
 title: Core package
 sidebar_label: Core
-description: @shellui/core is the React shell runtime the CLI serves. Import config types and useAuth when you extend the host.
+description: '@shellui/core is the React shell runtime the CLI serves. Import config types and useAuth when you extend the host.'
 ---
 
 `@shellui/core` is the React application the CLI starts and builds. You do not install it for a normal `shellui init` project - the CLI depends on it. Import it when you type `shellui.config.ts`, call `useAuth` / `useCookieConsent` from host code, or embed the runtime yourself.
@@ -17,17 +17,17 @@ Peer dependencies: React 18 or 19. The package also depends on `@shellui/sdk`.
 ## Config types
 
 ```typescript
-import type { ShellUIConfig, NavigationItem } from "@shellui/core";
+import type { ShellUIConfig, NavigationItem } from '@shellui/core';
 
 const config: ShellUIConfig = {
   port: 4000,
-  title: "My Shellui App",
+  title: 'My Shellui App',
   navigation: [
     {
-      label: "Home",
-      path: "home",
-      url: "http://localhost:4000/",
-      icon: "/icons/home.svg",
+      label: 'Home',
+      path: 'home',
+      url: 'http://localhost:4000/',
+      icon: '/icons/home.svg',
     },
   ],
 };

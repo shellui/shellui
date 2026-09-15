@@ -1,7 +1,7 @@
 ---
 title: Enable the service worker
 sidebar_label: Service Worker
-description: Opt in to production caching and update toasts from Settings → Advanced → Service Worker.
+description: 'Opt in to production caching and update toasts from Settings → Advanced → Service Worker.'
 ---
 
 The shell can register a service worker that precaches build assets, uses network-first navigation, and shows update toasts. It is **opt-in**: `settings.serviceWorker.enabled` defaults to `false`. Turn it on in **Settings → Advanced → Service Worker**. Registration also requires a non-empty `navigation` array. Tauri desktop (`--app` / `--target tauri`) unregisters the worker; the desktop wrapper has its own cache.
@@ -22,11 +22,11 @@ Toasts when a new worker is waiting use copy such as "A new version is available
 
 ## Caching
 
-| Kind | Strategy |
-| --- | --- |
+| Kind                                            | Strategy                                      |
+| ----------------------------------------------- | --------------------------------------------- |
 | Precache (HTML, CSS, JS, images from the build) | Cache-first with network fallback, on install |
-| Navigation | Network-first with cache fallback |
-| API requests | Network-first (not cached by default) |
+| Navigation                                      | Network-first with cache fallback             |
+| API requests                                    | Network-first (not cached by default)         |
 
 When offline, cached assets and pages can still load. Do not assume background sync or queued writes unless you implement that in your iframe app.
 

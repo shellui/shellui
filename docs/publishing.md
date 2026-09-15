@@ -1,7 +1,7 @@
 ---
 title: Publish npm packages
 sidebar_label: Publishing
-description: Sync versions, build, and run pnpm run publish so SDK, core, and CLI ship with the correct npm dist-tag.
+description: 'Sync versions, build, and run pnpm run publish so SDK, core, and CLI ship with the correct npm dist-tag.'
 ---
 
 Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` with one script. The npm dist-tag comes from the **root** `package.json` version:

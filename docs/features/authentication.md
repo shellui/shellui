@@ -1,7 +1,7 @@
 ---
 title: Configure authentication
 sidebar_label: Authentication
-description: Set backend.login, use /login and /login/callback, guard routes with requiresAuth, and call shellui.login from iframes.
+description: 'Set backend.login, use /login and /login/callback, guard routes with requiresAuth, and call shellui.login from iframes.'
 ---
 
 Configure sign-in on the shell: `backend` in `shellui.config.json`, built-in routes at `/login` and `/login/callback`, and navigation guards. The shell stores the session, refreshes tokens, and shares the signed-in user with trusted iframe apps. Choose a provider on [Connect a backend](/backend) first.
@@ -26,12 +26,12 @@ Add a `backend` block. Without it, `useAuth()` reports signed out and login acti
 
 `backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden.
 
-| Method | Login UI | Notes |
-| --- | --- | --- |
-| `oauth` | Provider buttons | Needs `oauthProviders` and a backend-enabled provider |
-| `magic_link` | Email field | Supabase email auth; identity-service when advertised |
-| `web3` | Ethereum wallet | When the backend enables it |
-| `password` | none | Typed and forwarded; the stock login view does not render a password form |
+| Method       | Login UI         | Notes                                                                     |
+| ------------ | ---------------- | ------------------------------------------------------------------------- |
+| `oauth`      | Provider buttons | Needs `oauthProviders` and a backend-enabled provider                     |
+| `magic_link` | Email field      | Supabase email auth; identity-service when advertised                     |
+| `web3`       | Ethereum wallet  | When the backend enables it                                               |
+| `password`   | none             | Typed and forwarded; the stock login view does not render a password form |
 
 `oauthProviders` is an array of ids (`github`, `google`, `microsoft`, `apple`). Shellui deduplicates and lowercases them. For identity-service, per-company OAuth clients from `/api/v1/settings` appear as separate labeled buttons.
 
@@ -41,10 +41,10 @@ Add a `backend` block. Without it, `useAuth()` reports signed out and login acti
 
 The shell registers these paths (`urls` in `@shellui/core/constants/urls`). You do not implement them in microfrontends.
 
-| Path | Purpose |
-| --- | --- |
-| `/login` | OAuth, magic link, Web3, legal links, `next` redirect |
-| `/login/callback` | OAuth callback (authorization code exchange) |
+| Path              | Purpose                                               |
+| ----------------- | ----------------------------------------------------- |
+| `/login`          | OAuth, magic link, Web3, legal links, `next` redirect |
+| `/login/callback` | OAuth callback (authorization code exchange)          |
 
 Protected routes redirect to `/login?next=<encoded-path>`. After sign-in, the shell navigates to `next` as an in-app path. Example: `/billing` → `/login?next=%2Fbilling`.
 
@@ -52,11 +52,11 @@ Protected routes redirect to `/login?next=<encoded-path>`. After sign-in, the sh
 
 On desktop, `/login` shows a full-height left panel. Both branding fields are optional.
 
-| Field | Behavior |
-| --- | --- |
-| `panelUrl` | Full-bleed iframe. Wins when both fields are set |
-| `panelImage` | Centered `object-contain` image |
-| neither | Muted panel with clickable `appIcon` top left (links home) |
+| Field        | Behavior                                                   |
+| ------------ | ---------------------------------------------------------- |
+| `panelUrl`   | Full-bleed iframe. Wins when both fields are set           |
+| `panelImage` | Centered `object-contain` image                            |
+| neither      | Muted panel with clickable `appIcon` top left (links home) |
 
 On mobile, the square `appIcon` is pinned top-left and the form stays centered. Language (when multiple languages are configured) and light/dark controls sit at the top right of the form column. The form uses `.shellui-safe-pad` for notches. Relative image paths are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
 
@@ -74,17 +74,17 @@ login: {
 The shell always exposes `/login`. Add a nav entry to open it in the main area, a modal, or a drawer:
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
-import urls from "@shellui/core/constants/urls";
+import type { ShellUIConfig } from '@shellui/core';
+import urls from '@shellui/core/constants/urls';
 
 const config: ShellUIConfig = {
   navigation: [
     {
-      label: "Login",
-      path: "login",
+      label: 'Login',
+      path: 'login',
       url: urls.login,
-      openIn: "modal",
-      position: "end",
+      openIn: 'modal',
+      position: 'end',
     },
   ],
 };
@@ -151,12 +151,12 @@ The backend returns `error_code` `access_pending` or `access_denied` (also as `s
 Iframes do not read storage directly. They receive `user` and `accessToken` through SDK settings after the shell initializes auth.
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 shellui.login({
-  method: "oauth",
-  provider: "github",
-  redirectPath: "/login",
+  method: 'oauth',
+  provider: 'github',
+  redirectPath: '/login',
 });
 ```
 

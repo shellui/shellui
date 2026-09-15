@@ -1,7 +1,7 @@
 ---
 title: Configure navigation
 sidebar_label: Navigation
-description: Define sidebar items and groups, hash-router URLs, auth visibility, and openIn modes in shellui.config.json.
+description: 'Define sidebar items and groups, hash-router URLs, auth visibility, and openIn modes in shellui.config.json.'
 ---
 
 Navigation is an array on `ShellUIConfig`. Each item loads an iframe URL (or a built-in shell route) at a unique `path`. Groups add section titles. The same items feed sidebar, app bar, floating tabs, and the windows start menu - visibility depends on [layout](/features/layouts).
@@ -9,20 +9,20 @@ Navigation is an array on `ShellUIConfig`. Each item loads an iframe URL (or a b
 ## Item fields
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   navigation: [
     {
-      label: "Home",
-      path: "home",
-      url: "http://localhost:4000/",
-      icon: "/icons/home.svg",
+      label: 'Home',
+      path: 'home',
+      url: 'http://localhost:4000/',
+      icon: '/icons/home.svg',
     },
     {
-      label: "About",
-      path: "about",
-      url: "https://example.com/about",
+      label: 'About',
+      path: 'about',
+      url: 'https://example.com/about',
     },
   ],
 };
@@ -55,14 +55,14 @@ Apps that use hash routing (React Router `HashRouter`, Vue hash mode) need the l
 ```typescript
 navigation: [
   {
-    label: "Themes",
-    path: "themes",
-    url: "http://localhost:5173/#/themes",
+    label: 'Themes',
+    path: 'themes',
+    url: 'http://localhost:5173/#/themes',
   },
   {
-    label: "Home",
-    path: "home",
-    url: "http://localhost:5173/#/",
+    label: 'Home',
+    path: 'home',
+    url: 'http://localhost:5173/#/',
   },
 ];
 ```
@@ -74,18 +74,18 @@ Opening `http://localhost:5173/#/themes/foo` matches the Themes item and passes 
 ```typescript
 navigation: [
   {
-    label: "Dashboard",
-    path: "dashboard",
-    url: "http://localhost:4000/",
+    label: 'Dashboard',
+    path: 'dashboard',
+    url: 'http://localhost:4000/',
   },
   {
-    title: "System",
+    title: 'System',
     items: [
       {
-        label: "Settings",
-        path: "settings",
-        url: "http://localhost:4000/settings",
-        icon: "/icons/settings.svg",
+        label: 'Settings',
+        path: 'settings',
+        url: 'http://localhost:4000/settings',
+        icon: '/icons/settings.svg',
       },
     ],
   },

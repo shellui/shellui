@@ -1,7 +1,7 @@
 ---
 title: Publish legal documents
 sidebar_label: Legal Documents
-description: Put privacy, terms, legal notice, and DPA markdown in legalDocuments so the shell serves public /legal routes.
+description: 'Put privacy, terms, legal notice, and DPA markdown in legalDocuments so the shell serves public /legal routes.'
 ---
 
 Publish Privacy Policy, Terms of Service, Legal Notice, and Data Processing Agreement from markdown in config. The shell renders them - no separate legal site or navigation item. Pages are **public** (no sign-in) on dedicated routes outside the main layout. Signed-in users can also open the same content from Settings.
@@ -26,18 +26,18 @@ Each property is a **markdown string** loaded when config is read (not a URL). J
 TypeScript config (only when no JSON/split file is present) can `readFileSync` files from disk:
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
-import { readFileSync } from "node:fs";
+import type { ShellUIConfig } from '@shellui/core';
+import { readFileSync } from 'node:fs';
 
 const config: ShellUIConfig = {
-  title: "My App",
+  title: 'My App',
   legalDocuments: {
-    privacyPolicy: readFileSync(new URL("./legal/privacy-policy.md", import.meta.url), "utf8"),
-    termsOfService: readFileSync(new URL("./legal/terms-of-service.md", import.meta.url), "utf8"),
-    legalNotice: readFileSync(new URL("./legal/legal-notice.md", import.meta.url), "utf8"),
+    privacyPolicy: readFileSync(new URL('./legal/privacy-policy.md', import.meta.url), 'utf8'),
+    termsOfService: readFileSync(new URL('./legal/terms-of-service.md', import.meta.url), 'utf8'),
+    legalNotice: readFileSync(new URL('./legal/legal-notice.md', import.meta.url), 'utf8'),
     dataProcessingAgreement: readFileSync(
-      new URL("./legal/data-processing-agreement.md", import.meta.url),
-      "utf8",
+      new URL('./legal/data-processing-agreement.md', import.meta.url),
+      'utf8',
     ),
   },
 };
@@ -45,24 +45,24 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-| Config key | Default title | Public path |
-| --- | --- | --- |
-| `privacyPolicy` | Privacy Policy | `/legal/privacy-policy` |
-| `termsOfService` | Terms of Service | `/legal/terms-of-service` |
-| `legalNotice` | Legal Notice | `/legal/legal-notice` |
+| Config key                | Default title             | Public path                        |
+| ------------------------- | ------------------------- | ---------------------------------- |
+| `privacyPolicy`           | Privacy Policy            | `/legal/privacy-policy`            |
+| `termsOfService`          | Terms of Service          | `/legal/terms-of-service`          |
+| `legalNotice`             | Legal Notice              | `/legal/legal-notice`              |
 | `dataProcessingAgreement` | Data Processing Agreement | `/legal/data-processing-agreement` |
 
 Type: `LegalDocumentsConfig`. Omit keys or pass `""`. `getLegalDocuments()` keeps entries whose trimmed value is non-empty.
 
 ## How people open them
 
-| Path | View |
-| --- | --- |
-| `/legal` | Index of configured documents |
-| `/legal/privacy-policy` | Privacy Policy |
-| `/legal/terms-of-service` | Terms of Service |
-| `/legal/legal-notice` | Legal Notice |
-| `/legal/data-processing-agreement` | Data Processing Agreement |
+| Path                               | View                          |
+| ---------------------------------- | ----------------------------- |
+| `/legal`                           | Index of configured documents |
+| `/legal/privacy-policy`            | Privacy Policy                |
+| `/legal/terms-of-service`          | Terms of Service              |
+| `/legal/legal-notice`              | Legal Notice                  |
+| `/legal/data-processing-agreement` | Data Processing Agreement     |
 
 Document pages include **Back to login**. These routes are not in `navigation` and are not iframe targets.
 

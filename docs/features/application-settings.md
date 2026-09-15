@@ -1,32 +1,32 @@
 ---
 title: Add application settings panels
 sidebar_label: Application Settings
-description: Set navigation[].settings so an iframe panel appears under Settings → Applications.
+description: 'Set navigation[].settings so an iframe panel appears under Settings → Applications.'
 ---
 
 A navigation item with a `settings` URL appears under **Settings → Applications** (first group in the settings sidebar). The shell embeds that URL in an iframe. You keep your own settings storage; the host does not read those keys.
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   navigation: [
     {
-      label: "Playground",
-      path: "playground",
-      url: "/",
-      icon: "/icons/play.svg",
-      settings: "/__settings",
+      label: 'Playground',
+      path: 'playground',
+      url: '/',
+      icon: '/icons/play.svg',
+      settings: '/__settings',
     },
     {
       label: {
-        en: "Docs",
-        fr: "Documentation",
+        en: 'Docs',
+        fr: 'Documentation',
       },
-      path: "docs",
-      url: "http://localhost:3000",
-      icon: "/icons/book-open.svg",
-      settings: "http://localhost:3000/settings",
+      path: 'docs',
+      url: 'http://localhost:3000',
+      icon: '/icons/book-open.svg',
+      settings: 'http://localhost:3000/settings',
     },
   ],
 };

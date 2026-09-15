@@ -1,7 +1,7 @@
 ---
 title: Open modals and drawers
 sidebar_label: Modals & Drawers
-description: Open iframe URLs in host modals and drawers from navigation or shellui.openModal / openDrawer.
+description: 'Open iframe URLs in host modals and drawers from navigation or shellui.openModal / openDrawer.'
 ---
 
 Modals and drawers are host overlays. Configure `openIn` on a navigation item, or call the SDK. Both share size presets, close chrome, and dismiss flags. On viewports below 768px, `openModal` and `openDrawer` present as a bottom sheet. Resizing across that breakpoint changes chrome only - the iframe stays mounted, so typed form state is kept.
@@ -9,22 +9,22 @@ Modals and drawers are host overlays. Configure `openIn` on a navigation item, o
 ## Open from navigation
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
   navigation: [
     {
-      label: "Settings",
-      path: "settings",
-      url: "/settings",
-      openIn: "modal",
+      label: 'Settings',
+      path: 'settings',
+      url: '/settings',
+      openIn: 'modal',
     },
     {
-      label: "Filters",
-      path: "filters",
-      url: "/filters",
-      openIn: "drawer",
-      drawerPosition: "right",
+      label: 'Filters',
+      path: 'filters',
+      url: '/filters',
+      openIn: 'drawer',
+      drawerPosition: 'right',
     },
   ],
 };
@@ -35,15 +35,15 @@ const config: ShellUIConfig = {
 ## Open from the SDK
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 
-shellui.openModal("/settings");
+shellui.openModal('/settings');
 
 shellui.openModal({
-  url: "/settings",
-  size: "lg",
+  url: '/settings',
+  size: 'lg',
   dynamicSizing: false,
   showCloseButton: true,
   dismissible: true,
@@ -65,9 +65,9 @@ Desktop and tablet honor `left` / `right` / `top` / `bottom`. Below 768px every 
 
 ```typescript
 shellui.openDrawer({
-  url: "/filters",
-  position: "left",
-  size: "md",
+  url: '/filters',
+  position: 'left',
+  size: 'md',
   showCloseButton: true,
   showDragHandle: true,
   dismissible: true,
@@ -76,9 +76,9 @@ shellui.openDrawer({
 });
 
 shellui.openDrawer({
-  url: "/panel",
-  position: "bottom",
-  size: "80vh",
+  url: '/panel',
+  position: 'bottom',
+  size: '80vh',
 });
 
 shellui.closeDrawer();
@@ -90,14 +90,14 @@ Left/right freeform widths (`"60vw"`, `"400px"`) map to the default bottom-sheet
 
 ## Size presets
 
-| Preset | Modal (desktop) | Drawer (vertical) | Drawer (horizontal) |
-| --- | --- | --- | --- |
-| `sm` | narrow | ~40% of overlay max | ~20rem |
-| `md` | medium | ~55% | ~28rem |
-| `lg` | default modal chrome | ~75% | ~36rem |
-| `xl` | large | ~90% | ~48rem |
-| `full` | near-viewport | `--shellui-overlay-max-height` | 100% |
-| `content` | grows with iframe reports | auto | auto |
+| Preset    | Modal (desktop)           | Drawer (vertical)              | Drawer (horizontal) |
+| --------- | ------------------------- | ------------------------------ | ------------------- |
+| `sm`      | narrow                    | ~40% of overlay max            | ~20rem              |
+| `md`      | medium                    | ~55%                           | ~28rem              |
+| `lg`      | default modal chrome      | ~75%                           | ~36rem              |
+| `xl`      | large                     | ~90%                           | ~48rem              |
+| `full`    | near-viewport             | `--shellui-overlay-max-height` | 100%                |
+| `content` | grows with iframe reports | auto                           | auto                |
 
 Sizes clamp to `--shellui-overlay-max-height` (`--shellui-app-height` minus top safe area). You can pass `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number). Drawers still accept freeform CSS lengths for the primary dimension.
 
@@ -106,8 +106,8 @@ Sizes clamp to `--shellui-overlay-max-height` (`--shellui-app-height` minus top 
 Same-origin `contentDocument` measurement is unreliable for microfrontends. Use the message protocol.
 
 ```typescript
-shellui.openModal({ url: "/confirm", dynamicSizing: true });
-shellui.openModal({ url: "/confirm", size: "content" });
+shellui.openModal({ url: '/confirm', dynamicSizing: true });
+shellui.openModal({ url: '/confirm', size: 'content' });
 ```
 
 While `dynamicSizing` is on, manual resize is disabled. Movable modals still work.
@@ -119,7 +119,7 @@ await shellui.init();
 
 const stop = shellui.overlay.autoSize({
   observe: true,
-  target: document.querySelector("[data-overlay-root]"),
+  target: document.querySelector('[data-overlay-root]'),
 });
 
 shellui.overlay.reportSize({ height: 480 });

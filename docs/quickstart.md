@@ -1,7 +1,7 @@
 ---
 title: Create a project
 sidebar_label: Create a Project
-description: Run shellui init, start the development server, and build a production shell with an optional colocated iframe app.
+description: 'Run shellui init, start the development server, and build a production shell with an optional colocated iframe app.'
 ---
 
 Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation).

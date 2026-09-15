@@ -1,7 +1,7 @@
 ---
 title: Shellui docs
 sidebar_label: Introduction
-description: Developer map for Shellui - a microfrontend shell with shared navigation, authentication, administration, and storage.
+description: 'Developer map for Shellui - a microfrontend shell with shared navigation, authentication, administration, and storage.'
 ---
 
 Shellui is an open-source web app development platform - a microfrontend shell that wraps your application with shared navigation, authentication, storage, and administration. This site documents `@shellui/cli`, `@shellui/core`, and `@shellui/sdk` for developers who host an iframe app inside that shell.

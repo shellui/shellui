@@ -1,7 +1,7 @@
 ---
 title: Localize the shell
 sidebar_label: Internationalization
-description: Enable en and fr, localize navigation labels, and let users pick a language in Settings.
+description: 'Enable en and fr, localize navigation labels, and let users pick a language in Settings.'
 ---
 
 Set `language` to one code or an array. Built-in UI strings exist for `'en'` (English) and `'fr'` (French). If `language` is omitted, the shell defaults to `'en'`.
@@ -29,37 +29,37 @@ type LocalizedString =
 Supported on navigation item `label`, group `title`, administration titles/labels, and cookie-consent `description`. A plain string is shown in every language.
 
 ```typescript
-import type { ShellUIConfig } from "@shellui/core";
+import type { ShellUIConfig } from '@shellui/core';
 
 const config: ShellUIConfig = {
-  language: ["en", "fr"],
+  language: ['en', 'fr'],
   navigation: [
     {
-      label: "Home",
-      path: "home",
-      url: "/",
+      label: 'Home',
+      path: 'home',
+      url: '/',
     },
     {
       label: {
-        en: "Settings",
-        fr: "Paramètres",
+        en: 'Settings',
+        fr: 'Paramètres',
       },
-      path: "settings",
-      url: "/settings",
+      path: 'settings',
+      url: '/settings',
     },
     {
       title: {
-        en: "System",
-        fr: "Système",
+        en: 'System',
+        fr: 'Système',
       },
       items: [
         {
           label: {
-            en: "Profile",
-            fr: "Profil",
+            en: 'Profile',
+            fr: 'Profil',
           },
-          path: "profile",
-          url: "/profile",
+          path: 'profile',
+          url: '/profile',
         },
       ],
     },

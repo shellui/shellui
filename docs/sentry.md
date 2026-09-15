@@ -1,7 +1,7 @@
 ---
 title: Report errors with Sentry
 sidebar_label: Sentry
-description: Set SENTRY_DSN for production builds so the shell initializes @sentry/react. Dev start never sends events.
+description: 'Set SENTRY_DSN for production builds so the shell initializes @sentry/react. Dev start never sends events.'
 ---
 
 The shell can send uncaught JavaScript errors and unhandled promise rejections to [Sentry](https://sentry.io) in **production** builds. `shellui start` never initializes Sentry, so local errors do not hit your project.
@@ -10,12 +10,12 @@ You do not have to put Sentry in `shellui.config.json`. The CLI merges `sentry` 
 
 ## Environment variables
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `SENTRY_DSN` | yes to enable | Project DSN (Sentry → Project → Settings → Client Keys). Enables Sentry unless disabled below |
-| `SENTRY_ENABLED` | no | `false` or `0` disables even when DSN is set |
-| `SENTRY_ENVIRONMENT` | no | Shown in Sentry. Defaults to `production` if unset |
-| `SENTRY_RELEASE` | no | Release id (git SHA or app version) for grouping |
+| Variable             | Required      | Description                                                                                   |
+| -------------------- | ------------- | --------------------------------------------------------------------------------------------- |
+| `SENTRY_DSN`         | yes to enable | Project DSN (Sentry → Project → Settings → Client Keys). Enables Sentry unless disabled below |
+| `SENTRY_ENABLED`     | no            | `false` or `0` disables even when DSN is set                                                  |
+| `SENTRY_ENVIRONMENT` | no            | Shown in Sentry. Defaults to `production` if unset                                            |
+| `SENTRY_RELEASE`     | no            | Release id (git SHA or app version) for grouping                                              |
 
 At build time the CLI injects the full config (including `sentry`) via `@shellui/config`. Core reads that module when `import.meta.env.DEV` is false and a DSN is present, then initializes `@sentry/react`.
 
@@ -40,11 +40,11 @@ A DSN in the frontend bundle is expected for browser Sentry. It is not a secret 
 
 ## When Sentry runs
 
-| Context | Initialized |
-| --- | --- |
-| `shellui start` (dev) | No |
-| Production build, `SENTRY_DSN` set, `SENTRY_ENABLED` not `false`/`0` | Yes |
-| Production build, no DSN | No |
-| Production build, `SENTRY_ENABLED=false` or `0` | No |
+| Context                                                              | Initialized |
+| -------------------------------------------------------------------- | ----------- |
+| `shellui start` (dev)                                                | No          |
+| Production build, `SENTRY_DSN` set, `SENTRY_ENABLED` not `false`/`0` | Yes         |
+| Production build, no DSN                                             | No          |
+| Production build, `SENTRY_ENABLED=false` or `0`                      | No          |
 
 If you also declare `sentry.io` in [cookie consent](/features/cookie-consent), gate extra client SDKs you initialize yourself. The shell's own production init still follows the table above.

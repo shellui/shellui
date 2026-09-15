@@ -1,7 +1,7 @@
 ---
 title: Install the CLI
 sidebar_label: Installation
-description: Install @shellui/cli globally or as a project dependency, then confirm the shellui command.
+description: 'Install @shellui/cli globally or as a project dependency, then confirm the shellui command.'
 ---
 
 Install `@shellui/cli` so you can create a project, run the development server, and build a production shell. Node.js 18.0.0 or higher is required. npm ships with Node.js.

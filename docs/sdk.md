@@ -1,7 +1,7 @@
 ---
 title: Call the iframe SDK
 sidebar_label: SDK
-description: Initialize @shellui/sdk in an embedded app for toasts, dialogs, overlays, storage, login, and settings.
+description: 'Initialize @shellui/sdk in an embedded app for toasts, dialogs, overlays, storage, login, and settings.'
 ---
 
 `@shellui/sdk` is how an iframe app talks to the shell (`init`, postMessage). Do not reach into host DOM. Theme, locale, toasts, dialogs, and overlays stay in host chrome. Call `init` before other full-SDK methods.
@@ -19,33 +19,33 @@ For pages that only need **theme**, **language/region**, **navigation**, and **l
   shellui.ready.then(() => {
     shellui.applyTheme();
   });
-  shellui.on("theme", () => shellui.applyTheme());
-  shellui.navigate("/dashboard");
+  shellui.on('theme', () => shellui.applyTheme());
+  shellui.navigate('/dashboard');
 </script>
 ```
 
 Or the package subpath:
 
 ```typescript
-import shellui from "@shellui/sdk/tiny";
+import shellui from '@shellui/sdk/tiny';
 
 await shellui.ready;
 shellui.applyTheme();
 ```
 
-| Member | Role |
-| --- | --- |
-| `ready` | Promise after handshake (or immediately outside an iframe) |
-| `initialized` | `boolean` |
-| `theme` | Snapshot (`mode`, `colorScheme`, `colors`, fonts) or `null` |
-| `language` | Language code (for example `"en"`) or `null` |
-| `region` | `{ timezone }` or `null` |
-| `layoutChrome` | Safe-inset snapshot or `null` |
-| `on(event, cb)` | `'ready'`, `'theme'`, `'language'`, `'region'`, `'chrome'` - returns unsubscribe |
-| `navigate(url)` | Ask the shell to navigate |
-| `applyTheme(el?)` | Write CSS variables on `el` (default `<html>`) and toggle `dark` |
-| `applyLayoutChrome(opts?)` | Write `--shellui-inset-*`; optional pad class on `body` |
-| `reportContentScroll(p)` | Tell the shell about scroll (hide-on-scroll for floating) |
+| Member                     | Role                                                                             |
+| -------------------------- | -------------------------------------------------------------------------------- |
+| `ready`                    | Promise after handshake (or immediately outside an iframe)                       |
+| `initialized`              | `boolean`                                                                        |
+| `theme`                    | Snapshot (`mode`, `colorScheme`, `colors`, fonts) or `null`                      |
+| `language`                 | Language code (for example `"en"`) or `null`                                     |
+| `region`                   | `{ timezone }` or `null`                                                         |
+| `layoutChrome`             | Safe-inset snapshot or `null`                                                    |
+| `on(event, cb)`            | `'ready'`, `'theme'`, `'language'`, `'region'`, `'chrome'` - returns unsubscribe |
+| `navigate(url)`            | Ask the shell to navigate                                                        |
+| `applyTheme(el?)`          | Write CSS variables on `el` (default `<html>`) and toggle `dark`                 |
+| `applyLayoutChrome(opts?)` | Write `--shellui-inset-*`; optional pad class on `body`                          |
+| `reportContentScroll(p)`   | Tell the shell about scroll (hide-on-scroll for floating)                        |
 
 URL changes are shared with the shell automatically. Auth, storage, toasts, dialogs, and modals are **not** in tiny - use the full SDK below.
 
@@ -56,10 +56,10 @@ npm install @shellui/sdk
 ```
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 await shellui.init();
-shellui.toast({ title: "Hello from SDK", type: "success" });
+shellui.toast({ title: 'Hello from SDK', type: 'success' });
 ```
 
 Opt out of automatic body padding from layout chrome:
@@ -91,7 +91,7 @@ The SDK watches capture-phase `window`/`document` scroll. For a nested overflow 
 ```typescript
 shellui.reportContentScroll({
   scrollY: scroller.scrollTop,
-  direction: "down",
+  direction: 'down',
 });
 ```
 
@@ -101,20 +101,20 @@ shellui.reportContentScroll({
 
 ```typescript
 const toastId = shellui.toast({
-  title: "File uploaded",
-  type: "success",
+  title: 'File uploaded',
+  type: 'success',
   action: {
-    label: "View",
+    label: 'View',
     onClick: () => {
-      shellui.navigate("/files");
+      shellui.navigate('/files');
     },
   },
 });
 
 shellui.toast({
   id: toastId,
-  title: "Upload complete",
-  type: "success",
+  title: 'Upload complete',
+  type: 'success',
 });
 ```
 
@@ -124,9 +124,9 @@ See [Toasts](/features/toasts).
 
 ```typescript
 shellui.dialog({
-  title: "Delete item",
-  description: "This cannot be undone.",
-  mode: "okCancel",
+  title: 'Delete item',
+  description: 'This cannot be undone.',
+  mode: 'okCancel',
   onOk: () => {
     void deleteItem();
   },
@@ -139,8 +139,8 @@ See [Dialogs](/features/dialogs).
 
 ```typescript
 shellui.openModal({
-  url: "https://example.com/form",
-  size: "lg",
+  url: 'https://example.com/form',
+  size: 'lg',
   dynamicSizing: false,
   showCloseButton: true,
   dismissible: true,
@@ -151,9 +151,9 @@ shellui.openModal({
 shellui.closeModal();
 
 shellui.openDrawer({
-  url: "/filters",
-  position: "left",
-  size: "md",
+  url: '/filters',
+  position: 'left',
+  size: 'md',
   showDragHandle: true,
   resizable: true,
 });
@@ -173,13 +173,13 @@ Message type `SHELLUI_OVERLAY_SIZE` with payload `{ version: 1, height, width?, 
 ### Navigation and login
 
 ```typescript
-shellui.navigate("/dashboard");
-shellui.navigate("https://example.com/page");
+shellui.navigate('/dashboard');
+shellui.navigate('https://example.com/page');
 
 shellui.login({
-  method: "oauth",
-  provider: "github",
-  redirectPath: "/login",
+  method: 'oauth',
+  provider: 'github',
+  redirectPath: '/login',
 });
 ```
 
@@ -193,10 +193,10 @@ The SDK forwards file calls to the root shell, which uses `storage.url` and the 
 await shellui.init();
 
 const { data, error } = await shellui.storage
-  .from("company")
-  .upload("docs/reports/2024/q1.pdf", file, { upsert: true });
+  .from('company')
+  .upload('docs/reports/2024/q1.pdf', file, { upsert: true });
 
-const { data: entries } = await shellui.storage.from("company").list("docs/reports");
+const { data: entries } = await shellui.storage.from('company').list('docs/reports');
 ```
 
 Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Pass `{ folder: true }` on `move` / `rename` to move a whole folder.
@@ -213,7 +213,7 @@ Each picked item includes a stable `id`. See [Storage picker](/features/storage-
 After `init`, listen for settings (appearance, language, user, token):
 
 ```typescript
-shellui.addMessageListener("SHELLUI_SETTINGS_UPDATED", (data) => {
+shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
   const { settings } = data.payload as { settings?: Record<string, unknown> };
   const colorScheme = (settings as { appearance?: { colorScheme?: string } })?.appearance
     ?.colorScheme;
@@ -224,20 +224,20 @@ shellui.addMessageListener("SHELLUI_SETTINGS_UPDATED", (data) => {
 Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`.
 
 ```typescript
-const cleanup = shellui.addMessageListener("SHELLUI_SETTINGS_UPDATED", (data) => {
+const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
   void data;
 });
 cleanup();
 
 shellui.sendMessageToParent({
-  type: "CUSTOM_MESSAGE",
-  payload: { data: "value" },
+  type: 'CUSTOM_MESSAGE',
+  payload: { data: 'value' },
 });
 
 shellui.sendMessage({
-  type: "CUSTOM_MESSAGE",
-  payload: { data: "value" },
-  to: ["frame-uuid-1"],
+  type: 'CUSTOM_MESSAGE',
+  payload: { data: 'value' },
+  to: ['frame-uuid-1'],
 });
 ```
 
@@ -261,10 +261,10 @@ shellui.removeIframe(frameId);
 ## Logging and version
 
 ```typescript
-import { getLogger, getVersion } from "@shellui/sdk";
+import { getLogger, getVersion } from '@shellui/sdk';
 
-const logger = getLogger("my-app");
-logger.info("Application started");
+const logger = getLogger('my-app');
+logger.info('Application started');
 const version = getVersion();
 ```
 

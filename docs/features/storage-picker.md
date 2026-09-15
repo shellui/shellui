@@ -1,7 +1,7 @@
 ---
 title: Pick files and folders
 sidebar_label: Storage Picker
-description: Open shellui.selectFolders or selectFiles so people using your app choose storage items in a host modal.
+description: 'Open shellui.selectFolders or selectFiles so people using your app choose storage items in a host modal.'
 ---
 
 Embedded apps open a file or folder picker in a Shellui modal. The picker UI lives in the files app (`storage.filesUrl`). The root shell opens it in a dedicated modal so it can stack above Settings. You need `storage.url`, `storage.filesUrl`, and a signed-in session. See [Storage](/features/storage).
@@ -20,7 +20,7 @@ Embedded apps open a file or folder picker in a Shellui modal. The picker UI liv
 Files are hidden. Pass `{ multiple: true }` for more than one folder.
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 
@@ -51,7 +51,7 @@ type StorageSelectedItem = {
   bucket: string;
   path: string;
   name: string;
-  type: "file" | "folder";
+  type: 'file' | 'folder';
 };
 ```
 

@@ -1,20 +1,20 @@
 ---
 title: Show a toast
 sidebar_label: Toasts
-description: Call shellui.toast from an iframe so the host shows a toast - types, duration, position, and actions.
+description: 'Call shellui.toast from an iframe so the host shows a toast - types, duration, position, and actions.'
 ---
 
 Toasts are host chrome. Call `shellui.toast` after `init` so the shell renders them. Do not mount a second live region in the iframe.
 
 ```typescript
-import { shellui } from "@shellui/sdk";
+import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 
 shellui.toast({
-  title: "Saved",
-  description: "Your changes are stored.",
-  type: "success",
+  title: 'Saved',
+  description: 'Your changes are stored.',
+  type: 'success',
 });
 ```
 
@@ -24,15 +24,15 @@ shellui.toast({
 
 ```typescript
 const toastId = shellui.toast({
-  title: "Processing…",
-  type: "loading",
+  title: 'Processing…',
+  type: 'loading',
   duration: Infinity,
 });
 
 shellui.toast({
   id: toastId,
-  title: "Complete",
-  type: "success",
+  title: 'Complete',
+  type: 'success',
   duration: 3000,
 });
 ```
@@ -49,12 +49,12 @@ Use the ellipsis character `…` in loading copy.
 
 ```typescript
 shellui.toast({
-  title: "File uploaded",
-  type: "success",
+  title: 'File uploaded',
+  type: 'success',
   action: {
-    label: "View",
+    label: 'View',
     onClick: () => {
-      shellui.navigate("/files");
+      shellui.navigate('/files');
     },
   },
 });
