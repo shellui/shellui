@@ -3,7 +3,7 @@
  * Add new starters / backends here — the wizard, flags, and tests all read this registry.
  */
 
-/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter' | 'other'} FrameworkId */
+/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter' | 'other'} FrameworkId */
 /** @typedef {'none' | 'shellui' | 'supabase'} BackendId */
 
 /**
@@ -88,6 +88,13 @@ export const FRAMEWORKS = [
     positional: true,
   },
   {
+    id: 'alpine',
+    label: 'Alpine.js (Vite)',
+    hint: 'Official Alpine npm + Vite starter with SDK',
+    scaffold: 'fetch',
+    positional: true,
+  },
+  {
     id: 'flutter',
     label: 'Flutter Web',
     hint: 'Web only (not iOS/Android) — requires Flutter SDK',
@@ -134,7 +141,7 @@ export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 
  * Companion `dev` + Home iframe URL for framework starters.
  * Shell stays on port 4000; Vite apps use 5173, Angular 4200, Next/Nuxt 3000, Flutter Web 8080.
  * For npm-based frameworks, `run` is rewritten to `{detectedPm} run dev` unless `fixedRun`.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', FrameworkCompanion>}
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', FrameworkCompanion>}
  */
 export const FRAMEWORK_COMPANIONS = {
   react: {
@@ -176,6 +183,13 @@ export const FRAMEWORK_COMPANIONS = {
     run: 'npm run dev',
     url: 'http://localhost:5173',
     name: 'svelte',
+    install: 'npm',
+    manifest: 'package.json',
+  },
+  alpine: {
+    run: 'npm run dev',
+    url: 'http://localhost:5173',
+    name: 'alpine',
     install: 'npm',
     manifest: 'package.json',
   },
@@ -240,8 +254,8 @@ export function getBackendPromptOptions() {
 /**
  * Relative paths fetched for each on-demand framework template.
  * Kept here so registry + fetch layer stay aligned.
- * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / flutter create.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'flutter', string[]>}
+ * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / Alpine npm+Vite / flutter create.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', string[]>}
  */
 export const TEMPLATE_FILES = {
   react: [
@@ -364,6 +378,19 @@ export const TEMPLATE_FILES = {
     'src/routes/+layout.svelte',
     'src/routes/+page.svelte',
     'static/robots.txt',
+    'static/favicon.svg',
+    'static/logo.svg',
+  ],
+  alpine: [
+    'package.json',
+    'index.html',
+    'vite.config.js',
+    'README.md',
+    '.gitignore',
+    'public/favicon.svg',
+    'src/main.js',
+    'src/i18n.js',
+    'src/style.css',
     'static/favicon.svg',
     'static/logo.svg',
   ],

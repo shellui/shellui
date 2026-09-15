@@ -60,11 +60,12 @@ shellui build --config ./config/shellui.config.json
   shellui init next
   shellui init nuxt
   shellui init svelte
+  shellui init alpine
   shellui init flutter
   shellui init --force
   ```
 
-  Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `flutter` (Flutter **Web only**; requires Flutter SDK).
+  Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`, `flutter` (Flutter **Web only**; requires Flutter SDK).
 
 - **config migrate** - Evaluate `shellui.config.ts` and write `shellui.config.json`
 

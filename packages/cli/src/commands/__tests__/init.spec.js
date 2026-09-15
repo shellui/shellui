@@ -144,6 +144,7 @@ describe('initCommand (non-interactive)', () => {
     expect(parseInitArgs('next')).toEqual({ root: '.', frameworkShortcut: 'next' });
     expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
     expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
+    expect(parseInitArgs('alpine')).toEqual({ root: '.', frameworkShortcut: 'alpine' });
     expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
   });
@@ -196,6 +197,7 @@ describe('initCommand (non-interactive)', () => {
     ['next', 'http://localhost:3000', 'package.json'],
     ['nuxt', 'http://localhost:3000', 'package.json'],
     ['svelte', 'http://localhost:5173', 'package.json'],
+    ['alpine', 'http://localhost:5173', 'package.json'],
     ['flutter', 'http://localhost:8080', 'pubspec.yaml'],
   ])(
     '%s scaffolding copies local template and wires companion',
@@ -248,6 +250,19 @@ describe('initCommand (non-interactive)', () => {
       if (framework === 'nuxt') {
         const nuxtCfg = fs.readFileSync(path.join(projectDir, 'nuxt.config.ts'), 'utf-8');
         expect(nuxtCfg).toMatch(/strictPort:\s*true/);
+      }
+
+      if (framework === 'alpine') {
+        expect(config.language).toEqual(['en', 'fr']);
+        const main = fs.readFileSync(path.join(projectDir, 'src', 'main.js'), 'utf-8');
+        expect(main).toMatch(/@shellui\/sdk\/tiny/);
+        expect(main).toMatch(/applyTheme/);
+        expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(true);
+        const i18n = fs.readFileSync(path.join(projectDir, 'src', 'i18n.js'), 'utf-8');
+        expect(i18n).toMatch(/Bienvenue/);
+        const vite = fs.readFileSync(path.join(projectDir, 'vite.config.js'), 'utf-8');
+        expect(vite).toMatch(/strictPort:\s*true/);
+        expect(vite).toMatch(/5173/);
       }
     },
   );

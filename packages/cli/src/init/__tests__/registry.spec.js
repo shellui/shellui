@@ -14,10 +14,10 @@ import {
   DEFAULT_SHELLUI_LOGIN_METHODS,
 } from '../registry.js';
 
-const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'flutter'];
+const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'alpine', 'flutter'];
 
 describe('init registry', () => {
-  test('registers empty, react, vue, angular, next, nuxt, svelte, and flutter frameworks', () => {
+  test('registers empty, react, vue, angular, next, nuxt, svelte, alpine, and flutter frameworks', () => {
     const ids = FRAMEWORKS.map((f) => f.id);
     expect(ids).toEqual(
       expect.arrayContaining([
@@ -28,6 +28,7 @@ describe('init registry', () => {
         'next',
         'nuxt',
         'svelte',
+        'alpine',
         'flutter',
       ]),
     );
@@ -42,6 +43,7 @@ describe('init registry', () => {
       'next',
       'nuxt',
       'svelte',
+      'alpine',
       'flutter',
     ]);
   });
@@ -65,10 +67,11 @@ describe('init registry', () => {
     });
   });
 
-  test('next/nuxt use port 3000; svelte uses 5173', () => {
+  test('next/nuxt use port 3000; svelte and alpine use 5173', () => {
     expect(FRAMEWORK_COMPANIONS.next.url).toBe('http://localhost:3000');
     expect(FRAMEWORK_COMPANIONS.nuxt.url).toBe('http://localhost:3000');
     expect(FRAMEWORK_COMPANIONS.svelte.url).toBe('http://localhost:5173');
+    expect(FRAMEWORK_COMPANIONS.alpine.url).toBe('http://localhost:5173');
   });
 
   test('empty is local scaffold; other skips scaffold', () => {
@@ -90,6 +93,7 @@ describe('init registry', () => {
 
   test('getFrameworkIdsList includes all registered ids', () => {
     expect(getFrameworkIdsList()).toContain('next');
+    expect(getFrameworkIdsList()).toContain('alpine');
     expect(getFrameworkIdsList()).toContain('flutter');
   });
 
@@ -110,6 +114,12 @@ describe('init registry', () => {
 
   test('next TEMPLATE_FILES includes ensure-port script', () => {
     expect(TEMPLATE_FILES.next).toContain('scripts/ensure-port.mjs');
+  });
+
+  test('alpine TEMPLATE_FILES includes i18n and SDK entry', () => {
+    expect(TEMPLATE_FILES.alpine).toEqual(
+      expect.arrayContaining(['src/main.js', 'src/i18n.js', 'vite.config.js', 'static/logo.svg']),
+    );
   });
 
   test('JS templates list theme/i18n wiring files', () => {
@@ -134,5 +144,6 @@ describe('init registry', () => {
     expect(TEMPLATE_FILES.svelte).toEqual(
       expect.arrayContaining(['src/lib/i18n.js', 'src/lib/shellui.js', 'src/app.css']),
     );
+    expect(TEMPLATE_FILES.alpine).toEqual(expect.arrayContaining(['src/main.js', 'src/i18n.js']));
   });
 });
