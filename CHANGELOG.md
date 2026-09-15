@@ -30,6 +30,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🛠 Improvements
 
+- **`shellui init` companions:** JS framework templates (`react`, `vue`, `angular`, `next`, `nuxt`, `svelte`) use `@shellui/sdk/tiny` with theme sync + `en`/`fr` i18n and a Shellui-integrated home (not stock Vite/Next hello worlds). Flutter Web documents the Dart SDK gap (no invented bridge).
 - **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from `static/icon.png`, padded for native dock sizing.
 - **Desktop config:** optional root `tauri.conf.json` for `productName`, `identifier`, and icon; Cargo name stays in sync for Dock / Cmd-Tab.
 - **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview, not fullscreen or browser tabs.

@@ -1,5 +1,24 @@
-# Vue 3 + Vite
+# Shellui Vue companion
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vite + Vue starter wired for Shellui via `@shellui/sdk/tiny`.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Shellui integration
+
+- Handshake: `shellui.ready` (via `useShellui`)
+- Theme: `shellui.applyTheme()` + `shellui.on('theme', …)`
+- Language: `shellui.on('language', …)` with `en` / `fr` sample strings (vue-i18n)
+
+Change theme or language in Shell Settings to see the home page update.
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+```
+
+With Shellui (from the project root after `shellui init vue`):
+
+```bash
+shellui start
+```
