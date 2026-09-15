@@ -13,11 +13,13 @@ features/ai/
   status.ts          WebGPU + Ollama soft probes
   types.ts           Adapter / model types
   handleRequest.ts   SHELLUI_AI_* request handler
+  developHarness.ts  Settings → Develop diagnostics / prompt harness
   AiBridge.tsx       Root-window message bridge (mounted from app.tsx)
   *.spec.ts          Unit tests (mocked; no WebGPU CI)
 ```
 
 Settings UI: `features/settings/components/Ai.tsx` (Preferences → AI).
+Developer harness: `features/settings/components/develop/AiTestTools.tsx` (Develop → Testing).
 
 ## Disable (not uninstall)
 

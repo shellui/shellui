@@ -45,21 +45,25 @@ export async function probeOllama(
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const startedAt = Date.now();
 
   try {
     const response = await fetchImpl(`${baseUrl}/api/tags`, {
       method: 'GET',
       signal: controller.signal,
     });
+    const latencyMs = Date.now() - startedAt;
     if (!response.ok) {
       return {
         reachable: false,
         baseUrl,
         detail: `Ollama responded with HTTP ${response.status}.`,
+        latencyMs,
       };
     }
-    return { reachable: true, baseUrl };
+    return { reachable: true, baseUrl, latencyMs };
   } catch (error) {
+    const latencyMs = Date.now() - startedAt;
     const aborted =
       (error instanceof Error && error.name === 'AbortError') ||
       (typeof DOMException !== 'undefined' &&
@@ -68,6 +72,7 @@ export async function probeOllama(
     return {
       reachable: false,
       baseUrl,
+      latencyMs,
       detail: aborted
         ? 'Ollama did not respond in time (is it running?).'
         : error instanceof Error

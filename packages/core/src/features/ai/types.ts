@@ -46,6 +46,8 @@ export type AiRuntimeStatus = {
     reachable: boolean;
     baseUrl: string;
     detail?: string;
+    /** Round-trip time for the soft probe when reachable (or until failure). */
+    latencyMs?: number;
   };
   models: AiModel[];
   defaultModelId: string | null;

@@ -505,6 +505,37 @@
           "files": "Sélectionner des fichiers",
           "filesAndFolders": "Sélectionner fichiers et dossiers"
         }
+      },
+      "ai": {
+        "title": "IA locale",
+        "description": "Sonde WebGPU et Ollama, liste les modèles et envoie un petit prompt via le même chemin AI que les applications. Il faut un modèle prêt (souvent Ollama).",
+        "webGpu": "WebGPU",
+        "ollama": "Ollama",
+        "defaultModel": "Modèle par défaut",
+        "adapters": "Adaptateurs enregistrés",
+        "aiEnabled": "Applications autorisées à utiliser l’IA",
+        "yes": "Oui",
+        "no": "Non",
+        "none": "Aucun",
+        "loading": "Vérification…",
+        "unknownError": "Une erreur s’est produite.",
+        "promptHint": "Le test d’invite envoie : « Reply with exactly: pong ».",
+        "buttons": {
+          "refresh": "Actualiser l’état",
+          "listModels": "Lister les modèles",
+          "prompt": "Tester une invite",
+          "stream": "Tester le flux",
+          "clear": "Effacer le journal"
+        },
+        "logRefreshed": "État actualisé.",
+        "logNoModels": "Aucun modèle trouvé (démarrez Ollama ou activez un modèle navigateur).",
+        "logModels": "Modèles : {{list}}",
+        "logPromptResult": "Invite via {{model}} : {{text}}",
+        "logPromptError": "Échec de l’invite : {{message}}",
+        "logStreamStart": "Flux en cours…",
+        "logStreamChunk": "morceau : {{chunk}}",
+        "logStreamDone": "Flux via {{model}} terminé : {{text}}",
+        "logStreamError": "Échec du flux : {{message}}"
       }
     }
   }

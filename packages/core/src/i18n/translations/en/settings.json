@@ -505,6 +505,37 @@
           "files": "Select files",
           "filesAndFolders": "Select files and folders"
         }
+      },
+      "ai": {
+        "title": "On-device AI",
+        "description": "Probe WebGPU and Ollama, list models, and run a tiny prompt through the same shell AI path apps use. Needs a ready model (usually Ollama).",
+        "webGpu": "WebGPU",
+        "ollama": "Ollama",
+        "defaultModel": "Default model",
+        "adapters": "Registered adapters",
+        "aiEnabled": "Apps allowed to use AI",
+        "yes": "Yes",
+        "no": "No",
+        "none": "None",
+        "loading": "Checking…",
+        "unknownError": "Something went wrong.",
+        "promptHint": "Prompt test sends: “Reply with exactly: pong”.",
+        "buttons": {
+          "refresh": "Refresh status",
+          "listModels": "List models",
+          "prompt": "Run prompt test",
+          "stream": "Run stream test",
+          "clear": "Clear log"
+        },
+        "logRefreshed": "Status refreshed.",
+        "logNoModels": "No models found (start Ollama or enable a browser model).",
+        "logModels": "Models: {{list}}",
+        "logPromptResult": "Prompt via {{model}}: {{text}}",
+        "logPromptError": "Prompt failed: {{message}}",
+        "logStreamStart": "Streaming…",
+        "logStreamChunk": "chunk: {{chunk}}",
+        "logStreamDone": "Stream via {{model}} done: {{text}}",
+        "logStreamError": "Stream failed: {{message}}"
       }
     }
   }
