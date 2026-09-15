@@ -178,16 +178,28 @@ const SidebarLayoutContent = ({
           {variant !== 'inset' ? <SidebarRail /> : null}
         </Sidebar>
 
-        <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <SidebarInset
+          className={cn(
+            'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+            // Mobile inset: tray shows around the content card (header sits on chrome).
+            variant === 'inset' && 'max-md:bg-transparent',
+          )}
+        >
           {variant === 'inset' ? <SidebarRail placement="inset" /> : null}{' '}
           {/*
             Mobile top chrome: extend the header background into the status-bar band
             so there is no empty strip. Interactive controls stay below the inset via
             padding. Overlays are fixed full-screen and still cover this band.
             Nested iframe shells skip top safe-area — the host already cleared it.
+            Inset: header sits on the chrome tray; the iframe card below is rounded.
           */}
           <header
-            className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
+            className={cn(
+              'relative z-[46] flex shrink-0 items-center gap-0.5 px-3 select-none md:hidden',
+              variant === 'inset'
+                ? 'border-transparent bg-transparent text-sidebar-foreground'
+                : 'border-b border-border bg-background',
+            )}
             style={{
               paddingTop: showSafeAreaTopbar
                 ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
@@ -210,8 +222,16 @@ const SidebarLayoutContent = ({
           {/*
             Fill to the physical bottom — do not pad safe-area here or the iframe
             looks cut off. In-app content (settings, etc.) owns bottom safe insets.
+            Inset mobile: full-bleed card with top radius only (chrome tray shows
+            above the curve); desktop keeps the padded rounded frame on SidebarInset.
           */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col overflow-hidden',
+              variant === 'inset' &&
+                'rounded-t-2xl border border-b-0 border-border bg-background shadow-sm md:rounded-none md:border-0 md:shadow-none',
+            )}
+          >
             <Outlet />
           </div>
         </SidebarInset>

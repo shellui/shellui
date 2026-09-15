@@ -810,17 +810,21 @@ export function AppBarLayout({
   const hasStartNav = startSections.some((s) => s.items.length > 0);
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
-  // Keep in sync with <main> `md:mx-3` — bar content aligns to the inset card border.
+  // Keep in sync with <main> inset frame pad — bar content aligns to the card border.
   // Extra inset from the frame edge: 20px left (brand/nav), 10px right (end links already have control padding).
-  const insetFramePadPx = 12;
+  // Mobile inset is full-bleed (top radius only); desktop uses 12px (md:mx-3).
+  const insetFramePadPx = isMobile ? 0 : 12;
   const insetBarContentOffsetLeftPx = 20;
   const insetBarContentOffsetRightPx = 10;
   // md+: strip owns the inset; mobile pads the header into the status band.
+  // Mobile inset is full-bleed — use the same control insets as the flush app-bar.
   const headerStyle = {
     paddingLeft: isInset
-      ? (chromeInset ?? insetFramePadPx) + insetBarContentOffsetLeftPx
+      ? isMobile
+        ? (chromeInset ?? 12)
+        : (chromeInset ?? insetFramePadPx) + insetBarContentOffsetLeftPx
       : (chromeInset ?? 12),
-    paddingRight: isInset ? insetFramePadPx + insetBarContentOffsetRightPx : 8,
+    paddingRight: isInset ? (isMobile ? 8 : insetFramePadPx + insetBarContentOffsetRightPx) : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
           paddingTop: `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`,
@@ -927,10 +931,10 @@ export function AppBarLayout({
       <main
         className={cn(
           'flex min-h-0 flex-1 flex-col overflow-hidden',
-          // Desktop inset: float the content frame on the chrome tray (same as sidebar-inset).
-          // `md:mx-3` (12px) must match `insetFramePadPx` on the header above.
+          // Inset: chrome tray above a radiused content frame.
+          // Mobile: full-bleed, top radius only. Desktop: padded rounded card.
           isInset &&
-            'relative bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
+            'relative rounded-t-2xl border border-b-0 border-border bg-background shadow-sm md:mx-3 md:mb-3 md:rounded-2xl md:border',
         )}
       >
         <Outlet />

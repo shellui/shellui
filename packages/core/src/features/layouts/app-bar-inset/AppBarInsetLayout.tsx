@@ -10,7 +10,7 @@ interface AppBarInsetLayoutProps {
 
 /**
  * App-bar inset layout — same as app-bar, with a padded, rounded main frame that
- * reveals the chrome background around the content area (desktop).
+ * reveals the chrome background around the content area (mobile + desktop).
  */
 export function AppBarInsetLayout(props: AppBarInsetLayoutProps) {
   return (
