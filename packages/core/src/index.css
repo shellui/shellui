@@ -280,9 +280,66 @@
   translate: 0 120%;
 }
 
+/*
+ * Sidebar / app-bar mobile top chrome hide-on-scroll.
+ * Header overlays content; --shellui-inset-top stays stable (header height).
+ * Inset layouts paint radius/tray via a non-interactive overlay (not the iframe).
+ */
+[data-shellui-scroll-hide-header],
+[data-shellui-inset-radius-overlay] {
+  translate: 0 0;
+  transition-property: translate, opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-scroll-hide-header][data-chrome-visible='false'],
+[data-shellui-inset-radius-overlay][data-chrome-visible='false'] {
+  translate: 0 -120%;
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+/*
+ * Full-bleed iframe under inset chrome: tray band + box-shadow cutout for the
+ * top radius. Overlay is pointer-events: none so taps reach the iframe.
+ */
+[data-shellui-inset-radius-overlay]::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--shellui-shell-header-height, 0px);
+  background: var(--shellui-inset-chrome);
+}
+
+[data-shellui-inset-radius-cutout] {
+  position: absolute;
+  inset: 0;
+  top: var(--shellui-shell-header-height, 0px);
+  overflow: hidden;
+}
+
+[data-shellui-inset-radius-cutout]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem 1rem 0 0;
+  border: 1px solid var(--border);
+  border-bottom-width: 0;
+  box-shadow: 0 0 0 100vmax var(--shellui-inset-chrome);
+}
+
 @media (prefers-reduced-motion: reduce) {
   [data-shellui-chrome-actions-top='overlay'],
   [data-shellui-chrome-actions-fab-slot] {
+    transition: none !important;
+  }
+
+  [data-shellui-scroll-hide-header],
+  [data-shellui-inset-radius-overlay] {
     transition: none !important;
   }
 }

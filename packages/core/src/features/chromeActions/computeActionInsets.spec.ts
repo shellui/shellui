@@ -86,13 +86,14 @@ describe('chromeActionsTopMargin', () => {
 });
 
 describe('chromeActionsTopOffsetCss', () => {
-  it('skips safe-area on sidebar and app-bar (shell header already cleared it)', () => {
+  it('skips safe-area on sidebar and app-bar (shell header band instead)', () => {
     expect(chromeActionsTopOffsetCss({ layout: 'sidebar', viewport: 'mobile' })).toBe(
-      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
     );
     expect(chromeActionsTopOffsetCss({ layout: 'app-bar', viewport: 'mobile' })).toBe(
-      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
     );
+    // Inset card already clears the header tray — normal top gap only.
     expect(chromeActionsTopOffsetCss({ layout: 'sidebar-inset', viewport: 'mobile' })).toBe(
       `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
     );
@@ -104,6 +105,15 @@ describe('chromeActionsTopOffsetCss', () => {
     );
     expect(chromeActionsTopOffsetCss({ layout: 'fullscreen', viewport: 'mobile' })).toBe(
       `max(${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px, var(--shellui-safe-area-top, 0px))`,
+    );
+  });
+
+  it('sits below the shell header band on flush sidebar and app-bar only', () => {
+    expect(chromeActionsTopOffsetCss({ layout: 'sidebar', viewport: 'mobile' })).toBe(
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'app-bar-inset', viewport: 'mobile' })).toBe(
+      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
     );
   });
 
@@ -247,6 +257,16 @@ describe('computeActionInsets', () => {
         { viewport: 'mobile', existingBottomInset: 88, safeAreaBottom: 34 },
       ).bottom,
     ).toBe(CHROME_ACTIONS_FAB_SIZE + 12);
+  });
+
+  it('stacks action-row inset on top of a mobile shell header band', () => {
+    const headerBand = 91;
+    expect(
+      computeActionInsets(
+        { hasTop: true, hasPrimary: false },
+        { viewport: 'mobile', layout: 'sidebar', existingTopInset: headerBand },
+      ).top,
+    ).toBe(CHROME_ACTIONS_TOP_BAR_HEIGHT_NARROW + CHROME_ACTIONS_CONTENT_CLEARANCE);
   });
 
   it('builds FAB edge offsets that honor safe-area CSS vars', () => {

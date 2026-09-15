@@ -118,6 +118,8 @@ export function chromeActionsShouldHonorSafeAreaTop(layout?: string): boolean {
  * When honoring safe-area: `max(margin, safe-area-top)` so notched phones clear
  * the status band without double-padding the margin on zero-inset devices.
  * When the shell header already cleared safe-area: plain margin only.
+ * When a mobile overlay header is present (`--shellui-shell-header-height`), sit
+ * just below that band so actions clear the shell top bar.
  */
 export function chromeActionsTopOffsetCss(
   context?: ChromeActionsTopContext | LayoutChromeViewport,
@@ -126,6 +128,23 @@ export function chromeActionsTopOffsetCss(
   const min = chromeActionsTopMargin(context);
   const layout = typeof context === 'object' && context ? context.layout : undefined;
   const honor = options?.honorSafeAreaTop ?? chromeActionsShouldHonorSafeAreaTop(layout);
+  const isShellHeaderLayout =
+    layout === 'sidebar' ||
+    layout === 'sidebar-inset' ||
+    layout === 'app-bar' ||
+    layout === 'app-bar-inset';
+  if (isShellHeaderLayout) {
+    // Modal overlays force honorSafeAreaTop and skip the shell header band.
+    if (options?.honorSafeAreaTop) {
+      return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
+    }
+    // Inset cards already start below the header tray — actions use a normal top gap.
+    if (layout === 'sidebar-inset' || layout === 'app-bar-inset') {
+      return `${min}px`;
+    }
+    // Flush sidebar / app-bar: actions sit just under the overlay header band.
+    return `calc(var(--shellui-shell-header-height, 0px) + ${min}px)`;
+  }
   if (!honor) return `${min}px`;
   return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
 }
@@ -231,10 +250,24 @@ export function computeActionInsets(
   const barHeight = chromeActionsTopBarHeight(viewport);
   const baseTop = options?.existingTopInset ?? 0;
   const honorSafe = chromeActionsShouldHonorSafeAreaTop(layout);
-  // Match TopActionBar: safe-area layouts use max(margin, existing safe top).
-  const visualTop = honorSafe ? Math.max(topMargin, baseTop) : topMargin;
-  const topNeeded = visualTop + barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
-  const top = flags.hasTop && !options?.topInTitleBar ? Math.max(0, topNeeded - baseTop) : 0;
+  const isShellHeaderLayout =
+    layout === 'sidebar' ||
+    layout === 'sidebar-inset' ||
+    layout === 'app-bar' ||
+    layout === 'app-bar-inset';
+
+  let top = 0;
+  if (flags.hasTop && !options?.topInTitleBar) {
+    if (isShellHeaderLayout && baseTop > 0) {
+      // Mobile overlay header already reserved in base inset — only add action row.
+      top = barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
+    } else {
+      // Match TopActionBar: safe-area layouts use max(margin, existing safe top).
+      const visualTop = honorSafe ? Math.max(topMargin, baseTop) : topMargin;
+      const topNeeded = visualTop + barHeight + CHROME_ACTIONS_CONTENT_CLEARANCE;
+      top = Math.max(0, topNeeded - baseTop);
+    }
+  }
 
   let bottom = 0;
   if (flags.hasPrimary && !options?.primaryInDock) {

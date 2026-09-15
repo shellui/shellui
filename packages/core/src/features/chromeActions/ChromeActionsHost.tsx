@@ -89,13 +89,23 @@ const CHROME_ACTIONS_BACK_SLOT_OPEN_TITLEBAR = 32;
 const CHROME_ACTIONS_BACK_SLOT_CLOSED = 8;
 
 /**
- * Floating phone/tablet hide-on-scroll: mirror nav chromeVisible for main-frame
- * action buttons. Desktop / other layouts / overlays stay visible.
+ * Floating / sidebar / app-bar phone hide-on-scroll: mirror nav chromeVisible
+ * for main-frame action buttons. Desktop and overlays stay visible.
  */
 function scrollHideApplies(chrome: LayoutChrome | null, surface: FrameSurface): boolean {
   if (surface !== 'main') return false;
-  if (!chrome || chrome.layout !== 'floating') return false;
-  return chrome.viewport === 'mobile' || chrome.viewport === 'tablet';
+  if (!chrome) return false;
+  if (chrome.viewport !== 'mobile' && chrome.viewport !== 'tablet') return false;
+  switch (chrome.layout) {
+    case 'floating':
+    case 'sidebar':
+    case 'sidebar-inset':
+    case 'app-bar':
+    case 'app-bar-inset':
+      return true;
+    default:
+      return false;
+  }
 }
 
 function usePublishedLayoutChrome(): LayoutChrome | null {

@@ -51,6 +51,8 @@ import {
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
 } from '../chrome/SafeAreaTopbar';
+import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
+import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
@@ -762,6 +764,14 @@ export function AppBarLayout({
   const currentLanguage = i18n.language || 'en';
   const isInset = variant === 'inset';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  // Nested shell-in-iframe must not repeat the root safe-area top band.
+  const showSafeAreaTopbar = isShellUiRootWindow();
+  const scrollHideLayout = isInset ? 'app-bar-inset' : 'app-bar';
+  const { chromeVisible } = useScrollHideChrome({
+    enabled: isMobile,
+    layout: scrollHideLayout,
+    includeSafeArea: showSafeAreaTopbar,
+  });
   const authAwareNavigation = useMemo(
     () =>
       filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
@@ -808,8 +818,6 @@ export function AppBarLayout({
     : undefined;
 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
-  // Nested shell-in-iframe must not repeat the root safe-area top band.
-  const showSafeAreaTopbar = isShellUiRootWindow();
   // Keep in sync with <main> inset frame pad — bar content aligns to the card border.
   // Extra inset from the frame edge: 20px left (brand/nav), 10px right (end links already have control padding).
   // Mobile inset is full-bleed (top radius only); desktop uses 12px (md:mx-3).
@@ -841,7 +849,7 @@ export function AppBarLayout({
       data-shellui-app-bar-layout=""
       data-shellui-layout-variant={variant}
       className={cn(
-        'flex h-full max-h-full flex-col overflow-hidden',
+        'relative flex h-full max-h-full flex-col overflow-hidden',
         isInset ? 'bg-shellui-inset-chrome' : 'bg-background',
       )}
     >
@@ -852,9 +860,16 @@ export function AppBarLayout({
           isInset ? '[&>div]:border-transparent [&>div]:bg-shellui-inset-chrome' : undefined
         }
       />
+      {/*
+        Mobile: header overlays the chrome tray (inset) or the iframe (flush).
+        Desktop: header stays in normal document flow.
+      */}
       <header
+        data-shellui-scroll-hide-header={isMobile ? '' : undefined}
+        data-chrome-visible={isMobile ? (chromeVisible ? 'true' : 'false') : undefined}
         className={cn(
-          'relative z-[46] flex w-full shrink-0 items-center gap-1.5 text-sidebar-foreground select-none',
+          'z-[46] flex w-full items-center gap-1.5 text-sidebar-foreground select-none',
+          isMobile ? 'absolute inset-x-0 top-0' : 'relative shrink-0',
           isInset
             ? 'border-b border-transparent bg-transparent'
             : 'border-b border-sidebar-border bg-sidebar',
@@ -928,13 +943,16 @@ export function AppBarLayout({
         </div>
       </header>
 
+      {isInset && isMobile ? <InsetMobileRadiusOverlay chromeVisible={chromeVisible} /> : null}
+
       <main
         className={cn(
           'flex min-h-0 flex-1 flex-col overflow-hidden',
-          // Inset: chrome tray above a radiused content frame.
-          // Mobile: full-bleed, top radius only. Desktop: padded rounded card.
+          // Mobile inset: full-bleed iframe; radius is a non-interactive overlay.
+          // Desktop inset: padded rounded card below the in-flow header.
           isInset &&
-            'relative rounded-t-2xl border border-b-0 border-border bg-background shadow-sm md:mx-3 md:mb-3 md:rounded-2xl md:border',
+            !isMobile &&
+            'relative bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
         )}
       >
         <Outlet />

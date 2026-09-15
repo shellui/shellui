@@ -35,3 +35,5 @@ export { ContentDragOverlay } from './ContentDragOverlay';
 export { DesktopChrome } from './DesktopChrome';
 export { CollapsedDesktopTitlebar } from './CollapsedDesktopTitlebar';
 export { isShellUiRootWindow, SafeAreaTopbarOffset, SafeAreaTopbarStrip } from './SafeAreaTopbar';
+export { useScrollHideChrome, type ScrollHideLayoutId } from './useScrollHideChrome';
+export { InsetMobileRadiusOverlay } from './InsetMobileRadiusOverlay';
