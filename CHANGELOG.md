@@ -22,8 +22,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### ✨ Feature
 
-<<<<<<< HEAD
-
 - **Host detection**: `isHomeScreenPwa()`, `isTauriRuntime()`, and `data-shellui-host` tell Safari Home Screen installs apart from native WKWebView. iOS Home Screen PWAs skip stacked status scrims and `theme-color`. Tauri keeps controlled chrome and CSS safe-area. See the [browser PWA vs native iOS](./docs/tauri.md#browser-pwa-vs-native-ios) notes.
 - **Floating chrome actions (SDK)**: `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. The shell renders them (floating glass or windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: at most 3 trailing visible (rest in `···`), at most 1 primary. Try it in Settings → Develop → Chrome actions. See the [chrome actions guide](./docs/features/chrome-actions.md).
 - **`shellui init` frameworks**: Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Alpine.js (official Alpine npm + Vite). Companions: Next/Nuxt on `:3000`, SvelteKit/Alpine on `:5173`. Alpine wires `@shellui/sdk/tiny` theme plus `en`/`fr` language sync.
@@ -59,7 +57,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - **Upload toaster:** auto-dismiss ~2.5s after all uploads succeed; keep open on failure so errors stay readable.
 - **SDK layout chrome:** inject `.shellui-apply-layout-chrome-pad` styles into the iframe app document so auto-padding works without shipping `@shellui/core` CSS.
-  > > > > > > > 5c0178e9b28a4cf3f7d70da9384192f4e33fe93c
 
 ### 🛠 Improvements
 
@@ -71,10 +68,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - CSS variables are full colors (`oklch(...)` / hex) via `var(--token)`. They are no longer HSL channel triples.
 - Official default theme is **shellui** (gold brand). AI-generated zinc/slate palettes are removed.
 - `shellui init` injects `theme: "shellui"`.
-
-### 🗑 Removed
-
-- **`shellui init` Flutter Web**: removed from the wizard, positional shortcuts, templates, and docs. Shellui has no Dart/Flutter SDK, so the starter could not integrate theme, i18n, or the SDK handshake.
 
 ### 🐛 Bug Fixes
 
