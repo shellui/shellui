@@ -133,6 +133,10 @@ export function ResponsiveModal({
   const dragCurrentY = useRef(0);
   const [sheetDragOffset, setSheetDragOffset] = useState(0);
   const [isSheetDragging, setIsSheetDragging] = useState(false);
+  /** True only during the opening slide so resize morph doesn’t re-trigger enter. */
+  const [enterMotion, setEnterMotion] = useState(false);
+  /** Swipe dismiss already translated off-screen — skip the CSS close slide. */
+  const [dismissMode, setDismissMode] = useState<'none' | 'swipe'>('none');
 
   const [geometry, setGeometry] = useState<ModalGeometry | null>(null);
   const geometryRef = useRef<ModalGeometry | null>(null);
@@ -310,8 +314,17 @@ export function ResponsiveModal({
       dragCurrentY.current = 0;
       setSheetDragOffset(0);
       setIsSheetDragging(false);
+      setDismissMode('none');
+      if (isSheet) {
+        setEnterMotion(true);
+        const t = window.setTimeout(() => setEnterMotion(false), 450);
+        return () => window.clearTimeout(t);
+      }
+      setEnterMotion(false);
+      return;
     }
-  }, [open]);
+    setEnterMotion(false);
+  }, [open, isSheet]);
 
   const handleSheetPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -349,6 +362,7 @@ export function ResponsiveModal({
 
       if (shouldDismiss && dismissible) {
         // Keep the dragged translate and continue off-screen — no snap-back before close
+        setDismissMode('swipe');
         setSheetDragOffset(Math.max(delta, height));
         onOpenChange(false);
         return;
@@ -364,7 +378,8 @@ export function ResponsiveModal({
   const canResize = resizable && !isSheet;
   const hasCustomGeometry = !isSheet && geometry !== null;
 
-  const sheetExitTransition = 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)';
+  const sheetExitTransition =
+    'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease-out';
 
   const geometryStyle: CSSProperties | undefined = hasCustomGeometry
     ? {
@@ -392,6 +407,8 @@ export function ResponsiveModal({
         data-presentation={presentation}
         data-geometry={hasCustomGeometry ? 'custom' : 'auto'}
         data-window-interacting={isWindowInteracting ? 'true' : undefined}
+        data-enter-motion={enterMotion ? '' : undefined}
+        data-dismiss={dismissMode === 'swipe' ? 'swipe' : undefined}
         showCloseButton={showCloseButton}
         className={cn(
           'gap-0 p-0 overflow-hidden flex flex-col',
@@ -404,10 +421,14 @@ export function ResponsiveModal({
           ...style,
           ...geometryStyle,
           ...(isSheet
-            ? {
-                transform: `translateY(${sheetDragOffset}px)`,
-                transition: isSheetDragging ? 'none' : sheetExitTransition,
-              }
+            ? enterMotion
+              ? {
+                  // Opening slide owns `transform` — don’t pin translateY(0) inline.
+                }
+              : {
+                  transform: `translateY(${sheetDragOffset}px)`,
+                  transition: isSheetDragging ? 'none' : sheetExitTransition,
+                }
             : {}),
           ...((isSheetDragging || isWindowInteracting) && { transition: 'none' }),
         }}

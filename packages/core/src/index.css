@@ -817,13 +817,18 @@ html.shellui-theme-switching
 
 /* Dialog / modal — sheet & custom geometry overrides (base left/top come from component classes) */
 
-/* Responsive openModal: sheet presentation (mobile) — override centered dialog geometry */
+/* Responsive openModal: sheet presentation (mobile) — override centered dialog geometry.
+ * Do not set `transform: none` — enter/exit slide and swipe-dismiss own transform.
+ * Morph transitions omit `transform` so keyframes / drag aren’t fought. */
 [data-dialog-content][data-presentation='sheet'] {
   left: 0;
   right: 0;
   top: auto;
   bottom: 0;
-  transform: none;
+  transition-property:
+    width, height, max-width, max-height, border-radius, left, right, top, bottom, padding;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
 }
 
 /* User-moved / resized dialog — inline left/top/width/height own layout */
@@ -844,7 +849,7 @@ html.shellui-theme-switching
 }
 
 /* Morph dialog ↔ sheet on resize without remounting iframe content */
-[data-dialog-content][data-presentation] {
+[data-dialog-content][data-presentation='dialog'] {
   transition-property:
     width, height, max-width, max-height, border-radius, left, right, top, bottom, transform,
     padding;
@@ -889,7 +894,8 @@ html.shellui-theme-switching
   }
 }
 
-/* Opacity-only enter/exit for responsive modal so presentation morph does not re-slide */
+/* Opacity-only enter/exit for responsive modal *dialog* so presentation morph
+   (dialog ↔ sheet on resize) does not re-slide. Sheets get a real slide below. */
 @keyframes responsive-modal-fade-in {
   from {
     opacity: 0;
@@ -907,11 +913,33 @@ html.shellui-theme-switching
   }
 }
 
+/* Mobile openModal-as-sheet — native-like bottom sheet (Vaul-aligned easing). */
+@keyframes responsive-modal-sheet-in {
+  from {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes responsive-modal-sheet-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+}
+
 [data-dialog-overlay][data-state='open'] {
-  animation: dialog-overlay-fade-in 0.1s ease-out;
+  animation: dialog-overlay-fade-in 0.2s ease-out;
 }
 [data-dialog-overlay][data-state='closed'] {
-  animation: dialog-overlay-fade-out 0.1s ease-in;
+  animation: dialog-overlay-fade-out 0.2s ease-in;
 }
 
 /* Alert dialogs — position/size come from inline styles on the component.
@@ -959,16 +987,32 @@ html.shellui-theme-switching
   animation: dialog-content-out 0.1s ease-in both;
 }
 
-/* openModal ResponsiveModal — same fade for dialog and sheet (stable across resize) */
-[data-dialog-content][data-presentation][data-state='open'] {
+/* openModal ResponsiveModal — dialog stays fade-only (stable across resize morph). */
+[data-dialog-content][data-presentation='dialog'][data-state='open'] {
   animation: responsive-modal-fade-in 0.15s ease-out both;
 }
-[data-dialog-content][data-presentation][data-state='closed'] {
+[data-dialog-content][data-presentation='dialog'][data-state='closed'] {
   animation: responsive-modal-fade-out 0.12s ease-in both;
 }
-/* Sheet swipe-dismiss continues from the dragged translate; keep mounted for the slide */
-[data-dialog-content][data-presentation='sheet'][data-state='closed'] {
-  animation: responsive-modal-fade-out 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+
+/*
+ * Mobile sheet: slide up on open, slide down on close.
+ * `data-enter-motion` is set only for the opening beat so a later dialog↔sheet
+ * morph does not re-run the enter slide. No animation-fill-mode on enter — after
+ * the keyframes finish, inline `transform` (swipe drag) must own the property.
+ * Swipe dismiss already translates off-screen; skip the close keyframe then.
+ */
+[data-dialog-content][data-presentation='sheet'][data-state='open'][data-enter-motion] {
+  animation: responsive-modal-sheet-in 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+[data-dialog-content][data-presentation='sheet'][data-state='closed']:not([data-dismiss='swipe']) {
+  animation: responsive-modal-sheet-out 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  will-change: transform;
+}
+[data-dialog-content][data-presentation='sheet'][data-state='closed'][data-dismiss='swipe'] {
+  /* Keep the dragged translate; only a light fade if needed */
+  animation: none;
 }
 
 /* Sheet overlay and panel animations (mobile sidebar) */
