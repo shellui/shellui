@@ -17,8 +17,12 @@ export type ScrollHideLayoutId = 'sidebar' | 'sidebar-inset' | 'app-bar' | 'app-
 
 /** Host CSS var: stable mobile shell header height (safe-area + bar). */
 export const SHELL_HEADER_HEIGHT_VAR = '--shellui-shell-header-height';
-/** Shared slide offset for mobile shell chrome (header + inset tray + action row). */
-export const CHROME_HIDE_TRANSLATE_VAR = '--shellui-chrome-hide-y';
+/**
+ * Shared hide-on-scroll motion for mobile shell chrome (header + inset tray +
+ * action row). Toggling this attribute on `html` applies the same translate /
+ * opacity targets to every consumer so they stay in sync.
+ */
+export const CHROME_HIDE_ATTR = 'data-shellui-chrome-hidden';
 
 /**
  * Pixel height of the mobile shell top bar (title row + optional safe-area).
@@ -43,13 +47,16 @@ function syncShellHeaderHeightVar(heightPx: number, enabled: boolean): void {
   document.documentElement.style.setProperty(SHELL_HEADER_HEIGHT_VAR, `${heightPx}px`);
 }
 
-function syncChromeHideTranslateVar(visible: boolean, enabled: boolean): void {
+/** Toggle the shared chrome hide motion on <html>. */
+function syncChromeHideMotion(visible: boolean, enabled: boolean): void {
   if (typeof document === 'undefined') return;
+  const root = document.documentElement;
   if (!enabled) {
-    document.documentElement.style.removeProperty(CHROME_HIDE_TRANSLATE_VAR);
+    root.removeAttribute(CHROME_HIDE_ATTR);
     return;
   }
-  document.documentElement.style.setProperty(CHROME_HIDE_TRANSLATE_VAR, visible ? '0%' : '-120%');
+  if (visible) root.removeAttribute(CHROME_HIDE_ATTR);
+  else root.setAttribute(CHROME_HIDE_ATTR, 'true');
 }
 
 /**
@@ -94,7 +101,7 @@ export function useScrollHideChrome(options: {
         typeof window !== 'undefined' ? resolveViewport(window.innerWidth) : 'mobile';
       const headerHeight = readHeaderHeight();
       syncShellHeaderHeightVar(headerHeight, true);
-      syncChromeHideTranslateVar(visible, true);
+      syncChromeHideMotion(visible, true);
       const snapshot: LayoutChrome = {
         layout,
         viewport,
@@ -114,10 +121,16 @@ export function useScrollHideChrome(options: {
 
   const applyScrollMetrics = useCallback((scrollY: number, distanceFromBottom?: number) => {
     if (!enabledRef.current) return;
+    const prevVisible = scrollStateRef.current.visible;
     const next = reduceScrollChromeVisibility(scrollStateRef.current, scrollY, {
       distanceFromBottom,
     });
     scrollStateRef.current = next;
+    // Flip the shared CSS motion immediately (before React paint) so the header
+    // stack and action row stay on the same animation clock.
+    if (next.visible !== prevVisible) {
+      syncChromeHideMotion(next.visible, true);
+    }
     setChromeVisible((prev) => (prev === next.visible ? prev : next.visible));
   }, []);
 
@@ -127,7 +140,7 @@ export function useScrollHideChrome(options: {
     scrollStateRef.current = { visible: true, lastY: 0 };
     if (!enabled) {
       syncShellHeaderHeightVar(0, false);
-      syncChromeHideTranslateVar(true, false);
+      syncChromeHideMotion(true, false);
       publishLayoutChrome(null);
       return;
     }
@@ -184,7 +197,7 @@ export function useScrollHideChrome(options: {
   useEffect(() => {
     return () => {
       syncShellHeaderHeightVar(0, false);
-      syncChromeHideTranslateVar(true, false);
+      syncChromeHideMotion(true, false);
       publishLayoutChrome(null);
     };
   }, []);

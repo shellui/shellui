@@ -241,6 +241,9 @@
  * dock: slide the wrapper, fade opacity. Appear slower; dismiss faster.
  * Presence (set/clear) uses data-visible; scroll hide uses data-scroll-hidden.
  * Corner FAB slot still used on non-docked layouts.
+ *
+ * Shell header layouts (sidebar / app-bar) opt into `data-shell-scroll-sync` and
+ * follow the shared `--shellui-chrome-hide-*` vars on <html> instead — see below.
  */
 [data-shellui-chrome-actions-top='overlay'],
 [data-shellui-chrome-actions-fab-slot] {
@@ -252,22 +255,25 @@
 }
 
 [data-shellui-chrome-actions-top='overlay'][data-visible='false'],
-[data-shellui-chrome-actions-fab-slot][data-visible='false'],
-[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'],
-[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+[data-shellui-chrome-actions-fab-slot][data-visible='false'] {
   opacity: 0;
   pointer-events: none;
 }
 
-/* Presence-only dismiss stays snappy; scroll hide matches tab-bar dismiss. */
+/* Presence-only dismiss stays snappy (not scroll hide). */
 [data-shellui-chrome-actions-top='overlay'][data-visible='false']:not([data-scroll-hidden='true']),
 [data-shellui-chrome-actions-fab-slot][data-visible='false']:not([data-scroll-hidden='true']) {
   transition-duration: 200ms;
   transition-timing-function: ease-out;
 }
 
-[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'],
+/* Floating / FAB scroll hide — own slide+fade (not shell-synced). */
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true']:not(
+    [data-shell-scroll-sync]
+  ),
 [data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
   transition-duration: 160ms;
   transition-timing-function: ease-in;
 }
@@ -283,26 +289,37 @@
 }
 
 /*
- * Sidebar / app-bar mobile top chrome hide-on-scroll.
- * Header + inset tray/radius slide as one stack; action row follows the same
- * `--shellui-chrome-hide-y` var so nothing drifts out of sync.
+ * Shared mobile shell chrome motion (header + inset tray + top action row).
+ * One attribute on <html> sets the target; both consumers run the same local
+ * translate + opacity transition (same idea as the floating dock).
  */
-[data-shellui-mobile-chrome-stack] {
-  translate: 0 var(--shellui-chrome-hide-y, 0%);
+[data-shellui-mobile-chrome-stack],
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+  translate: 0 0;
+  opacity: 1;
   transition-property: translate, opacity;
   transition-duration: 380ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-[data-shellui-mobile-chrome-stack][data-chrome-visible='false'] {
+html[data-shellui-chrome-hidden='true'] [data-shellui-mobile-chrome-stack],
+html[data-shellui-chrome-hidden='true']
+  [data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+  translate: 0 -120%;
   opacity: 0;
-  pointer-events: none;
   transition-duration: 160ms;
   transition-timing-function: ease-in;
 }
 
-[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
-  translate: 0 var(--shellui-chrome-hide-y, 0%);
+[data-shellui-mobile-chrome-stack][data-chrome-visible='false'],
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync][data-scroll-hidden='true'] {
+  pointer-events: none;
+}
+
+/* Presence clear still fades locally when actions are removed. */
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync][data-visible='false'] {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
 }
 
 /*
