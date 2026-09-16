@@ -26,7 +26,7 @@ shellui init --framework next --backend none
 
 `init` writes `shellui.config.json` (with `$schema` for editor autocomplete), placeholder files under `static/`, and - for JS frameworks - a companion app plus `dev.run` / `dev.url` so `shellui start` launches both. Overwrite an existing config with `shellui init --force`. Skip `npm`/`pnpm` install after a JS scaffold with `--no-install`.
 
-Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. See [CLI init](/cli#shellui-init).
+Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. Each JS starter wires theme and i18n with `@shellui/sdk/tiny` using that stack's normal patterns (hooks, composables, services, plugins). See [Framework starters](/framework-starters) for ports and per-framework notes, or [CLI init](/cli#shellui-init) for flags.
 
 If you still have a TypeScript config from an older project, convert it with `shellui config migrate`.
 
@@ -155,6 +155,7 @@ my-shellui-app/
 
 ## Next steps
 
+- [Framework starters](/framework-starters) - ports, theme/i18n wiring, and per-framework notes
 - [Backend](/backend) - identity-service, Supabase, or a public shell
 - [Authentication](/features/authentication) - login routes and guards
 - [Navigation](/features/navigation) - iframe URLs and opening modes

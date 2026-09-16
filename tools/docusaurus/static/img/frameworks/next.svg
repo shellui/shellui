@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Next.js">
+  <circle cx="64" cy="64" r="64" fill="#000"/>
+  <path fill="url(#nextGrad)" d="M106.3 106.3 48.8 36H36v56h10.4V50.9l51.2 62.8a64.2 64.2 0 0 0 8.7-7.4Z"/>
+  <path fill="#fff" d="M81.1 36H70.7v56h10.4V36Z"/>
+  <defs>
+    <linearGradient id="nextGrad" x1="90" y1="90" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>

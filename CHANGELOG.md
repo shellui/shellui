@@ -22,6 +22,8 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### ✨ Feature
 
+<<<<<<< HEAD
+
 - **Host detection**: `isHomeScreenPwa()`, `isTauriRuntime()`, and `data-shellui-host` tell Safari Home Screen installs apart from native WKWebView. iOS Home Screen PWAs skip stacked status scrims and `theme-color`. Tauri keeps controlled chrome and CSS safe-area. See the [browser PWA vs native iOS](./docs/tauri.md#browser-pwa-vs-native-ios) notes.
 - **Floating chrome actions (SDK)**: `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. The shell renders them (floating glass or windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: at most 3 trailing visible (rest in `···`), at most 1 primary. Try it in Settings → Develop → Chrome actions. See the [chrome actions guide](./docs/features/chrome-actions.md).
 - **`shellui init` frameworks**: Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Alpine.js (official Alpine npm + Vite). Companions: Next/Nuxt on `:3000`, SvelteKit/Alpine on `:5173`. Alpine wires `@shellui/sdk/tiny` theme plus `en`/`fr` language sync.
@@ -35,7 +37,29 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Identity-hosted login**: authorize → callback → confirmation → token bounce. CLI `shellui login` opens the identity method picker (`--provider` skips it).
 - **Desktop icons**: Tauri dock/taskbar icons use the opaque Shellui mark from `static/icon.png`, padded for native dock sizing.
 - **Desktop config**: optional root `tauri.conf.json` for `productName`, `identifier`, and icon. Cargo name stays in sync for Dock / Cmd-Tab.
-- **Traffic-light inset**: reserved left padding for macOS window controls only in a live Tauri webview, not fullscreen or browser tabs.
+- # **Traffic-light inset**: reserved left padding for macOS window controls only in a live Tauri webview, not fullscreen or browser tabs.
+- **Host detection (PWA vs Tauri):** `isHomeScreenPwa()` / `isTauriRuntime()` / `data-shellui-host` distinguish Safari Home Screen installs from native WKWebView. iOS Home Screen PWAs skip stacked status scrims and `theme-color`; Tauri keeps controlled chrome + CSS safe-area. See [docs/tauri.md](./docs/tauri.md#browser-pwa-vs-native-ios).
+- **Floating chrome actions (SDK):** `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. Shell renders them (floating glass / windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: ≤3 trailing visible (rest in `···`), ≤1 primary. Try via Settings → Develop → Chrome actions. See [docs/features/chrome-actions.md](./docs/features/chrome-actions.md).
+- **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Alpine.js (official Alpine npm + Vite). Companions: Next/Nuxt → `:3000`, SvelteKit/Alpine → `:5173`. Alpine wires `@shellui/sdk/tiny` theme + en/fr language sync.
+- **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
+- **App-bar inset layout:** app-bar twin with the same inset chrome tray and rounded content frame (`layout: "app-bar-inset"`).
+- **CLI companion:** `shellui start` can spawn or follow a colocated app via `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`).
+- **Theming v1:** curated OKLCH JSON themes (47 including Shellui, shadcn, and [tweakcn](https://tweakcn.com)), flexible config, and Appearance theme selector.
+- **Sidebar layout:** rebuild on shadcn sidebar — icon-collapse + rail (`⌘B`), drag-to-resize, mobile sheet; custom mobile bottom nav removed.
+- **Desktop app chrome:** macOS overlay titlebar, collapsed top bar with Back/Forward, full-width drag strip, and iframe/shell history restore.
+- **App-bar layout:** 42px chrome with text start links, title-only brand, icon end links, and the same Tauri treatment as sidebar.
+- **Identity-hosted login:** authorize → callback → confirmation → token bounce; CLI `shellui login` opens the identity method picker (`--provider` skips it).
+
+### 📚 Documentation
+
+- **Chrome actions:** SDK reference + feature guide; Develop settings test buttons.
+- **Framework starters:** dedicated docs page for `shellui init` companions (React, Vue, Angular, Next.js, Nuxt, SvelteKit, Alpine.js, empty) with ports, theme/i18n wiring, and framework icons. Cross-linked from Create a project and CLI.
+
+### 🐛 Bug Fixes
+
+- **Upload toaster:** auto-dismiss ~2.5s after all uploads succeed; keep open on failure so errors stay readable.
+- **SDK layout chrome:** inject `.shellui-apply-layout-chrome-pad` styles into the iframe app document so auto-padding works without shipping `@shellui/core` CSS.
+  > > > > > > > 5c0178e9b28a4cf3f7d70da9384192f4e33fe93c
 
 ### 🛠 Improvements
 

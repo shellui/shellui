@@ -14,6 +14,8 @@ Theming follows the [shadcn/ui](https://ui.shadcn.com/) CSS variable model (ligh
 }
 ```
 
+JS framework starters call `shellui.applyTheme()` and listen for `theme` with `@shellui/sdk/tiny` - see [Framework starters](/framework-starters#theme-and-i18n-out-of-the-box).
+
 The shell writes variables as full colors on `:root`. Tailwind consumes `var(--background)` (not `hsl(var(--background))`). Hex and legacy HSL channel triples are accepted and normalized.
 
 Design palettes in [tweakcn](https://tweakcn.com) or any shadcn-compatible export, then map `:root` / `.dark` into `light` / `dark` (kebab-case keys work). Registry JSON (`cssVars.light` / `cssVars.dark`) maps the same way.
