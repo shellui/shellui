@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router';
+import { Navigate, useLocation } from 'react-router';
 import { useConfig } from '../../features/config/useConfig';
 import { flattenNavigationItems } from '../../features/layouts/utils';
 import { HomeView } from './HomeView';
@@ -9,12 +9,17 @@ import { NavigationItemRoute } from './NavigationItemRoute';
  * - If start_url is set in config, redirects to start_url.
  * - Else if a navigation item has path "" or "/", shows that item's content.
  * - Otherwise shows the default HomeView.
+ *
+ * When a root nav item exists, this is also the parent for deep paths (e.g. /layout)
+ * so ContentView stays mounted across / ↔ /layout (same as /home/*).
  */
 export const IndexRoute = () => {
   const { config } = useConfig();
+  const location = useLocation();
 
   const startUrl = config?.start_url?.trim();
-  if (startUrl) {
+  // Only redirect from exact / — deep links under root must keep working
+  if (startUrl && (location.pathname === '/' || location.pathname === '')) {
     const to = startUrl.startsWith('/') ? startUrl : `/${startUrl}`;
     return (
       <Navigate
@@ -31,6 +36,11 @@ export const IndexRoute = () => {
     if (rootNavItem) {
       return <NavigationItemRoute />;
     }
+  }
+
+  // No root nav item: only the index path should show HomeView; deep unknowns 404 via sibling routes
+  if (location.pathname !== '/' && location.pathname !== '') {
+    return <NavigationItemRoute />;
   }
 
   return <HomeView />;

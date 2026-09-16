@@ -2,10 +2,6 @@ name: Run Tests
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - master
     paths:
       - 'packages/**'
       - 'package.json'
@@ -14,9 +10,6 @@ on:
       - 'eslint.config.js'
       - '.github/workflows/test.yml'
   pull_request:
-    branches:
-      - main
-      - master
     paths:
       - 'packages/**'
       - 'package.json'

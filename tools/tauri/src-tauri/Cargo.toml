@@ -1,8 +1,9 @@
 [package]
-name = "shellui-app"
+name = "shellui"
 version = "0.1.0"
-description = "ShellUI desktop app"
-authors = ["ShellUI"]
+default-run = "Shellui"
+description = "Shellui desktop app"
+authors = ["Shellui"]
 edition = "2021"
 rust-version = "1.70"
 
@@ -12,6 +13,15 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSView", "NSWindow"] }
+objc2-foundation = { version = "0.3", features = ["NSGeometry"] }
+
 [features]
 default = ["custom-protocol"]
 custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "Shellui"
+path = "src/main.rs"

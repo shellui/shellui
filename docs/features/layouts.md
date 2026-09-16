@@ -1,252 +1,106 @@
-# Layouts
+---
+title: Choose a layout
+sidebar_label: Layouts
+description: 'Set layout in shellui.config.json - sidebar, inset, fullscreen, app bar, floating, or experimental windows.'
+---
 
-Shellui supports four layout modes: sidebar (default), fullscreen, windows desktop (experimental), and app bar. Choose the layout that best fits your application's needs.
+`layout` is a shell concern (`shellui.config.json`). App UI must work in sidebar, top-bar, and window modes. Default is `sidebar`. Override at runtime from **Settings → Develop → Layout** when developer features are enabled (stored in user settings, wins over config).
 
-## Sidebar Layout (Default)
-
-The sidebar layout displays a navigation sidebar alongside your content. This is the default layout and works well for most applications.
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  layout: 'sidebar', // Optional, this is the default
-  navigation: [
-    {
-      label: 'Home',
-      path: 'home',
-      url: '/',
-    },
-  ],
-};
-```
-
-**Features:**
-
-- Persistent sidebar navigation
-- Responsive design (collapses to bottom navigation on mobile)
-- Supports icons, groups, and positioning
-- Works with all navigation features
-
-## Fullscreen Layout
-
-The fullscreen layout shows only the content area with no navigation sidebar. Useful for embedded applications or when you want maximum screen space.
-
-```typescript
-const config: ShellUIConfig = {
-  layout: 'fullscreen',
-  navigation: [
-    {
-      label: 'Home',
-      path: 'home',
-      url: '/',
-    },
-  ],
-};
-```
-
-**Features:**
-
-- No sidebar or navigation UI
-- Maximum content area
-- Navigation items still work (routes are valid)
-- Useful for embedded or kiosk applications
-
-**Note:** Even though there's no visible navigation, the routes defined in your navigation configuration are still accessible via direct URLs.
-
-## Windows Desktop Layout (Experimental)
-
-The windows layout provides a desktop-like experience with a taskbar, start menu, and multi-window support. Each navigation item opens in its own draggable, resizable window.
-
-> **Experimental:** The windows layout was implemented as a proof of concept to test the desktop-like experience. It works and can be tested (e.g. via Settings > Develop > Layout), but it is **not recommended for production use** at this time.
-
-```typescript
-const config: ShellUIConfig = {
-  layout: 'windows',
-  navigation: [
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: '/',
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/settings',
-    },
-  ],
-};
-```
-
-**Features:**
-
-- **Taskbar**: Bottom taskbar with app buttons and system clock
-- **Start Menu**: Click the start button to see all navigation items
-- **Multi-Window**: Each navigation item opens in its own window
-- **Window Management**:
-  - Drag windows to reposition
-  - Resize windows by dragging edges
-  - Minimize, maximize, and close windows
-  - Focus windows by clicking them or their taskbar button
-- **Desktop Background**: Customizable desktop area
-
-**Window Controls:**
-
-- Click and drag the title bar to move windows
-- Drag window edges to resize
-- Click the minimize button to minimize
-- Click the maximize button to maximize/restore
-- Click the close button to close the window
-
-**Taskbar:**
-
-- Shows buttons for all open windows
-- Click a button to focus that window
-- System clock displays current time
-- Start button opens the navigation menu
-
-## App Bar Layout
-
-The app bar layout uses a compact top bar (max height 42px) for navigation. Start links are shown in a select menu; end links are shown as icon-only buttons (or a first-letter badge when no icon is set), with a tooltip on hover showing the full name.
-
-```typescript
-const config: ShellUIConfig = {
-  layout: 'app-bar',
-  navigation: [
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: '/',
-      icon: '/icons/dashboard.svg',
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/settings',
-      position: 'end',
-    },
-  ],
-};
-```
-
-**Features:**
-
-- **Top bar**: Compact bar (max 42px) with logo/title on the left
-- **Start links**: Displayed in a select dropdown for space-efficient navigation
-- **End links**: Icon-only (or first letter) with tooltip on hover for full name
-- **Responsive**: Single row layout suitable for app-style UIs
-
-**Use cases:**
-
-- Apps that prefer a top bar over a sidebar
-- Dense UIs where vertical space is limited
-- When you want main nav in a dropdown and utility links (e.g. Settings) as icons on the right
-
-## Changing Layouts
-
-### Configuration-Based
-
-Set the layout in your configuration file:
-
-```typescript
-const config: ShellUIConfig = {
-  layout: 'windows', // 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
-  // ... rest of config
-};
-```
-
-### Runtime Override
-
-Users can override the layout at runtime through Settings > Develop > Layout (if developer features are enabled). This override is stored in user settings and takes precedence over the configuration.
-
-```typescript
-// In your app code, you can check the effective layout:
-import { useSettings } from '@shellui/core';
-
-function MyComponent() {
-  const { settings } = useSettings();
-  const effectiveLayout = settings.layout ?? config.layout;
-  // effectiveLayout will be 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'
+```json
+{
+  "layout": "sidebar"
 }
 ```
 
-## Layout-Specific Considerations
+Allowed values: `sidebar`, `sidebar-inset`, `fullscreen`, `windows`, `app-bar`, `app-bar-inset`, `floating`. Legacy `cupertino` maps to `floating`.
 
-### Sidebar Layout
+Iframe apps should size to `100%` of the iframe, not `100vh`, unless you subtract host chrome. Prefer `%` / flex inside the iframe.
 
-- **Mobile**: Automatically switches to bottom navigation bar
-- **Desktop**: Sidebar can be collapsed/expanded
-- **Groups**: Navigation groups appear as sections in the sidebar
-- **Positioning**: Use `position: 'end'` to place items in sidebar footer
+## Sidebar (default)
 
-### Fullscreen Layout
+Persistent navigation built on shadcn/ui sidebar primitives.
 
-- **Navigation**: No visible navigation UI, but routes still work
-- **Direct URLs**: Users can still navigate via direct URLs
-- **Embedding**: Perfect for embedding Shellui in other applications
-- **Kiosk Mode**: Ideal for kiosk or single-purpose applications
+- Desktop: collapsible icon rail (trigger, rail, or `⌘B` / `Ctrl+B`)
+- Desktop: drag the expanded border to resize (230-480px; persisted for the tab session)
+- Mobile: sheet opened from the top header
+- Themed via `--sidebar-*` for light and dark
+- Optional `appIcon` at the top of the expanded sidebar (hidden when collapsed)
 
-### Windows Layout
+**Tauri (macOS):** overlay titlebar; traffic lights centered in 42px chrome. Collapsed sidebar gets a full-width 42px top bar (Back/Forward + open-sidebar). A full-width invisible 42px drag strip mounts at the app root, including error screens. **Back** / **Forward** leave iframe login pages because there is no browser chrome.
 
-- **Experimental**: Proof of concept; suitable for testing but not recommended for production.
-- **Window State**: Window positions and sizes are remembered per session
-- **Performance**: Each window loads its content independently
-- **Navigation**: Start menu provides access to all navigation items
-- **Window Limits**: No hard limit on number of open windows, but performance may degrade with many windows
+## Sidebar inset
 
-### App Bar Layout
+Same as sidebar with a padded, rounded main frame that shows chrome around the content area on desktop (`variant="inset"`).
 
-- **Top bar**: Fixed max height of 42px; logo/title and select stay compact
-- **Start vs end**: Use `position: 'end'` on navigation items to show them as icon-only buttons on the right
-- **Tooltips**: End links show full name on hover via native tooltip
-- **Icons**: Set `icon` on items for end bar; omit for first-letter fallback
-
-## Complete Example
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  layout: 'sidebar', // or 'fullscreen', 'windows', or 'app-bar'
-  title: 'My App',
-  navigation: [
-    {
-      label: 'Dashboard',
-      path: 'dashboard',
-      url: '/',
-      icon: '/icons/dashboard.svg',
-    },
-    {
-      label: 'Settings',
-      path: 'settings',
-      url: '/settings',
-      icon: '/icons/settings.svg',
-    },
-  ],
-};
-
-export default config;
+```json
+{
+  "layout": "sidebar-inset"
+}
 ```
 
-## Best Practices
+## Floating
 
-1. **Choose the right layout**:
-   - Use `sidebar` for most web applications
-   - Use `fullscreen` for embedded or kiosk applications
-   - Use `windows` only for testing or proof-of-concept (experimental; not recommended for production)
-   - Use `app-bar` for a compact top bar with select menu and icon-only end links
+Glass chrome over full-bleed content. The iframe stays 100% × 100%; apps apply insets **inside** their UI.
 
-2. **Navigation items**: All layouts support the same navigation features, but visibility varies:
-   - Sidebar: All items visible in sidebar
-   - Fullscreen: No visible navigation, but routes work
-   - Windows: Items accessible via start menu
-   - App bar: Start items in a select; end items as icons with tooltips
+| Viewport | Width        | Chrome                           |
+| -------- | ------------ | -------------------------------- |
+| Mobile   | `<768px`     | Floating bottom-centered tab bar |
+| Tablet   | `768-1023px` | Same bottom tab bar              |
+| Desktop  | `≥1024px`    | Floating glass sidebar           |
 
-3. **Mobile considerations**: Sidebar layout automatically adapts to mobile with bottom navigation
+Hide-on-scroll: scrolling down hides chrome; scrolling up, near the top, or near the bottom restores it. Soft fade masks on phone/tablet hint at scroll. Prefer a small set of top-level start items (about 5); extras go under More.
 
-4. **Testing**: Test your application in all layout modes to ensure compatibility
+Floating publishes `layoutChrome` on `SHELLUI_SETTINGS` and `SHELLUI_LAYOUT_CHROME` to the **main** content iframe only.
 
-## Related Guides
+```typescript
+import { shellui } from '@shellui/sdk';
 
-- [Navigation](/features/navigation) - Learn about navigation configuration
-- [Themes](/features/themes) - Customize appearance for different layouts
+await shellui.init();
+shellui.getLayoutChrome();
+shellui.applyLayoutChrome();
+```
+
+CSS variables: `--shellui-inset-top|right|bottom|left`. Nested overflow scrollers should call `shellui.reportContentScroll`. Tiny CDN clients get the same snapshot, `applyLayoutChrome()`, `reportContentScroll()`, and a `chrome` event. See [SDK](/sdk).
+
+## Branding (`appIcon` / `logo`)
+
+```json
+{
+  "appIcon": "/app-icon.svg",
+  "logo": "/logo.svg"
+}
+```
+
+- **`appIcon`**: small square mark in sidebar header (expanded), app-bar start, windows start button, and floating desktop sidebar. A single SVG or mono PNG is recolored for light/dark. Paired files: `{ "light": "/app-icon-light.png", "dark": "/app-icon-dark.png" }`.
+- **`logo`**: wider wordmark. Prefer `appIcon` for chrome.
+
+## Fullscreen
+
+Content area only - no sidebar or nav chrome. Routes in `navigation` still work via direct URLs. Height fills `#root` (`h-full`), not raw `100vh`. Useful for kiosk or embedding.
+
+## App bar / app-bar inset
+
+Compact top bar (~56px). Start destinations are icon + label links. Groups use a caret dropdown (category looks selected when a child is active). Overflow goes into **More**. End links (`position: 'end'`) are icon-only with a tooltip. `app-bar-inset` uses the same padded, rounded main frame as sidebar-inset.
+
+**Tauri:** traffic-light inset, Back/Forward, and drag regions on the bar.
+
+## Windows (experimental)
+
+Taskbar, start menu, and one draggable window per navigation item. Implemented as a proof of concept. You can try it from Settings → Develop → Layout. It is **not** recommended for production.
+
+- Start menu sections follow navigation groups
+- Window positions and sizes persist for the session
+- Desktop background is a primary-color wash from the active theme
+- No hard cap on open windows; extra windows cost performance
+- **Mobile / phone**: windows are fullscreen (no drag/resize). Includes short viewports (e.g. iPhone landscape, often ≥768px wide). Opening an app closes other windows (one page at a time). Accidental resize stacks existing windows fullscreen with the focused one on top — they are not closed; resizing back to a roomy tablet/desktop restores a normal cascaded window size. The taskbar window list is hidden; the start / brand button always opens the start menu. Taskbar and window chrome honor safe-area top/bottom insets.
+
+## Mobile and iOS fullscreen (all layouts)
+
+- Shell height uses `--shellui-app-height` (`100dvh`). Safe-area insets are **padding only** on titlebars, sheets, and login. The main iframe fills to the physical bottom - do not pad the outlet with bottom safe-area or the iframe looks cut off.
+- Installed / standalone apps use `@media (display-mode: standalone)` for body layout.
+- Pad your own bottom chrome with `env(safe-area-inset-*)` when UI sits on the home-indicator band.
+- Shell-owned pages (login, access pending, errors) use `.shellui-safe-pad`.
+
+## Related pages
+
+- [Navigation](/features/navigation), [Themes](/features/themes), [SDK](/sdk)

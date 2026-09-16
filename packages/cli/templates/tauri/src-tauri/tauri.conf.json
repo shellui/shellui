@@ -21,7 +21,15 @@
       {
         "title": "shellui",
         "width": 1024,
-        "height": 768
+        "height": 768,
+        "hiddenTitle": true,
+        "titleBarStyle": "Overlay",
+        "decorations": true,
+        "acceptFirstMouse": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 24
+        }
       }
     ]
   },

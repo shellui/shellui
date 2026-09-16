@@ -15,6 +15,7 @@ import NavbarLogo from '@theme/Navbar/Logo';
 import NavbarSearch from '@theme/Navbar/Search';
 import SearchBar from '@theme/SearchBar';
 import DesktopMenu from '@theme/Navbar/DesktopMenu';
+import ShelluiThemeSync from '@theme/ShelluiThemeSync';
 import styles from './styles.module.css';
 
 function useNavbarItems() {
@@ -72,6 +73,7 @@ export default function NavbarContent() {
     <NavbarContentLayout
       left={
         <>
+          <ShelluiThemeSync />
           {!mobileSidebar.disabled && <NavbarMobileSidebarToggle />}
           <NavbarLogo />
           <NavbarItems items={leftItems} />

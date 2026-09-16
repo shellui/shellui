@@ -1,45 +1,40 @@
-# Administration panel
+---
+title: Embed the administration panel
+sidebar_label: Administration
+description: 'Point backend.adminUrl at the staff admin app and add custom sidebar links with administration.navigation.'
+---
 
-Staff and company owners can open an embedded **administration** app from the account menu. The shell loads that app at `backend.adminPathname` (default `/admin`) from `backend.adminUrl`. You can also add **custom navigation** under Dashboard so operators jump straight to your product apps.
+Staff and company owners open an embedded administration app from the account menu. The shell loads `backend.adminUrl` at `backend.adminPathname` (default `/admin`). Top-level `administration` injects extra sidebar links below Dashboard.
 
 ## Prerequisites
 
-1. Configure a Shellui identity backend (`backend.type: 'shellui'`). See [Backend](/backend).
-2. Point `backend.adminPathname` and `backend.adminUrl` at the admin React app (local Vite server or production origin such as `https://admin.shellui.com`).
-3. Sign in as a user with `isStaff` or `isCompanyOwner`.
+1. `backend.type: "shellui"` - see [Backend](/backend)
+2. `backend.adminPathname` and `backend.adminUrl` (local Vite such as `http://localhost:5174`, or `https://admin.shellui.com`)
+3. Sign in as a user with `isStaff` or `isCompanyOwner`
 
-Without `adminPathname` / `adminUrl`, the account menu does not show **Administration**.
+Without `adminPathname` / `adminUrl`, the account menu omits **Administration**.
 
-## Embed the admin app
-
-```typescript
-import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  backend: {
-    type: 'shellui',
-    url: 'http://localhost:8000',
-    companyId: 1,
-    adminPathname: '/admin',
-    // Local admin app: http://localhost:5174 — production: https://admin.shellui.com
-    adminUrl: 'http://localhost:5174',
-    login: {
-      methods: ['oauth'],
-      oauthProviders: ['github'],
-    },
-  },
-};
-
-export default config;
+```json
+{
+  "backend": {
+    "type": "shellui",
+    "url": "http://localhost:8000",
+    "companyId": 1,
+    "adminPathname": "/admin",
+    "adminUrl": "http://localhost:5174",
+    "login": {
+      "methods": ["oauth"],
+      "oauthProviders": ["github"]
+    }
+  }
+}
 ```
 
-The shell registers a route at `adminPathname`, guards it for staff/owners, and embeds `adminUrl` in an iframe. Hash routes inside the admin app sync with the shell path (for example `/admin/users` ↔ `#/users`).
+The shell registers a staff/owner-guarded route and embeds `adminUrl`. Hash routes inside the admin app sync with the shell path (`/admin/users` ↔ `#/users`).
 
 ## Custom admin navigation
 
-Use the top-level `administration` block to inject a titled section of links into the admin sidebar. Items appear **below Dashboard** and **above** the built-in Identity group, in the same order as in the config.
-
-v1 is a **flat** list only (no nested groups). Each entry uses the same `NavigationItem` shape as host [navigation](/features/navigation) (`label`, `path`, `url`, optional `icon`, and the usual optional flags).
+v1 is a **flat** list (no nested groups). Items appear below Dashboard and above the built-in Identity group, in config order. Each entry uses the host [NavigationItem](/features/navigation) shape.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
@@ -76,51 +71,21 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-### Fields
+| Field                                 | Required | Description                                                                       |
+| ------------------------------------- | -------- | --------------------------------------------------------------------------------- |
+| `administration.title`                | yes      | Section heading (string or localized)                                             |
+| `administration.navigation`           | yes      | Flat `NavigationItem` array                                                       |
+| `navigation[].label` / `path` / `url` | yes      | `path` becomes `#/app/<path>` - avoid colliding with built-in ids such as `users` |
+| `navigation[].icon`                   | no       | Icon path from the host                                                           |
+| `navigation[].requiresStaff`          | no       | Staff-only sidebar row                                                            |
+| `navigation[].openIn`                 | no       | `'default'` (iframe) or `'external'` (new tab) for apps that block framing        |
 
-| Field                        | Required | Description                                                                                                     |
-| ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `administration.title`       | yes      | Section heading in the admin sidebar (string or localized object).                                              |
-| `administration.navigation`  | yes      | Flat array of `NavigationItem`s. Order is preserved.                                                            |
-| `navigation[].label`         | yes      | Link label (string or localized).                                                                               |
-| `navigation[].path`          | yes      | Stable id used for the admin route (`#/app/<path>`). Avoid colliding with built-in paths like `users`.          |
-| `navigation[].url`           | yes      | App URL loaded in the admin content iframe. Absolute `https://…` or relative to `backend.url` (e.g. `/admin/`). |
-| `navigation[].icon`          | no       | Optional icon path from the host config (propagated via settings for a later UI pass).                          |
-| `navigation[].requiresStaff` | no       | When `true`, only staff users see the link in the admin sidebar.                                                |
-| `navigation[].openIn`        | no       | `'default'` (iframe) or `'external'` (new tab). Use `external` for apps that block framing (e.g. Django admin). |
+The shell sends a language-resolved `administration` object on `SHELLUI_SETTINGS`. The admin app reads `settings.administration`. Relative URLs starting with `/` resolve against `backend.url`. If `url` is empty, the first version falls back to `https://playground.shellui.com`. When `administration` is omitted, the shell sends `administration: null` and the admin sidebar shows built-in links only.
 
-### How it reaches the admin app
+Staff (`isStaff`) also see a **Django admin** link under Identity that opens `{backend.url}/admin/` in a **new tab** (Django sets `X-Frame-Options` / CSP that blocks framing). Mirror that with `requiresStaff: true`, `url: "/admin/"`, and `openIn: "external"`.
 
-1. The shell includes a resolved `administration` object in SDK settings (`SHELLUI_SETTINGS` / `SHELLUI_SETTINGS_UPDATED`).
-2. Labels and the section title are resolved to the active language before propagation.
-3. The admin app reads `settings.administration` and renders the section under Dashboard.
-4. Clicking an item opens `#/app/<path>` inside admin and loads the item `url` in a registered Shellui content iframe (settings are forwarded to the child frame). Relative URLs (starting with `/`) are resolved against `backend.url`. If `url` is empty, the first version falls back to `https://playground.shellui.com`.
+Admin → Storage appears when `storage.url` is set - see [Storage](/features/storage). Optional `hosting.showInAdmin: false` hides Admin → Hosting even if `hosting.url` is set.
 
-### Staff-only Django admin
+## Related pages
 
-Staff users (`isStaff`) see a **Django admin** link (lock icon) under **Identity** that opens `{backend.url}/admin/` in a **new tab** (Django typically sets `X-Frame-Options` / CSP and cannot be embedded).
-
-Configure the same entry under `administration.navigation` with `requiresStaff: true`, `url: '/admin/'`, and `openIn: 'external'`. Omit `openIn` (or use `'default'`) for URLs that are safe to embed in the admin content iframe.
-
-```typescript
-// Shape on Settings (from @shellui/sdk)
-administration?: {
-  title: string;
-  navigation: Array<{
-    path: string;
-    url: string;
-    label: string;
-    icon?: string;
-  }>;
-} | null;
-```
-
-When `administration` is omitted from config, the shell sends `administration: null` and the admin sidebar shows only its built-in links.
-
-## Related guides
-
-- [Backend](/backend) — `adminPathname` / `adminUrl` and identity provider setup
-- [Authentication](/features/authentication) — staff account menu and session propagation
-- [Navigation](/features/navigation) — `NavigationItem` fields shared with host nav
-- [SDK](/sdk) — settings messages between shell and iframes
-- [Storage](/features/storage) — Settings → Storage quota (only when `storage` is configured)
+- [Backend](/backend), [Authentication](/features/authentication), [Navigation](/features/navigation), [SDK](/sdk)

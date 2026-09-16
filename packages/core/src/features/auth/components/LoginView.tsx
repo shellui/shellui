@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../../components/ui/button';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useConfig } from '../../config/useConfig';
+import { getLegalDocuments } from '../../legal/legalDocuments';
 import { LegalDocumentsLinks } from '../../legal/LegalDocumentsLinks';
 import { useAuth } from '../hooks/useAuth';
 import type { AuthSettings, LoginMethod } from '../types';
 import {
   buildAuthUrlWithNext,
+  captureCliCallbackFromSearch,
   formatProviderLabel,
   getOAuthProviderCandidates,
   getPreferredBackendProvider,
@@ -17,8 +20,18 @@ import {
   isAccessPendingErrorCode,
   isLoginMethod,
   normalizeNextPath,
+  redirectToCliCallback,
 } from '../utils';
+import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
+import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
+import { useMacTrafficLights } from '../../layouts/chrome/runtime';
 import { AccessPendingView } from './AccessPendingView';
+import { LoginPreferencesControls } from './LoginPreferencesControls';
+
+/** Shared top inset for login chrome when traffic lights are absent. */
+const LOGIN_CHROME_PAD_Y = '2rem';
+/** Gap below the macOS titlebar before the brand icon. */
+const LOGIN_BRAND_BELOW_TITLEBAR_GAP = '0.75rem';
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
@@ -74,9 +87,11 @@ const ChevronDownIcon = ({ className }: { className?: string }) => (
 );
 
 export const LoginView = () => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
+  const trafficLights = useMacTrafficLights();
   const {
     isAuthenticated,
     isLoading: authLoading,
@@ -87,6 +102,7 @@ export const LoginView = () => {
     startWeb3Ethereum,
     getAuthSettings,
     sendMagicLink,
+    session,
   } = useAuth();
   const configuredSettings = useMemo<AuthSettings>(() => {
     const configuredMethods = Array.isArray(config.backend?.login?.methods)
@@ -132,6 +148,15 @@ export const LoginView = () => {
   }, [nextPath]);
 
   useEffect(() => {
+    captureCliCallbackFromSearch(location.search);
+  }, [location.search]);
+
+  useEffect(() => {
+    const loginLabel = t('authMenu.login');
+    document.title = config?.title ? `${loginLabel} | ${config.title}` : loginLabel;
+  }, [config?.title, t]);
+
+  useEffect(() => {
     const params = new URLSearchParams(location.search);
     const rawErr = params.get(SHELLUI_OAUTH_ERROR_PARAM);
     if (!rawErr) {
@@ -144,27 +169,31 @@ export const LoginView = () => {
     const path = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     navigate(path, { replace: true });
     setOauthLoadingProvider(null);
-    const baseMsg = rawErr.trim() || 'Sign-in could not continue.';
+    const baseMsg = rawErr.trim() || t('loginPage.signInCouldNotContinue');
     const hint =
       code === 'redirect_not_allowed'
-        ? ` Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: ${typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login'}.`
+        ? t('loginPage.redirectNotAllowedHint', {
+            origin: typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login',
+          })
         : '';
     setOauthBounceError(`${baseMsg}${hint}`);
     setOauthBounceCode(code);
-  }, [location.hash, location.pathname, location.search, navigate]);
+  }, [location.hash, location.pathname, location.search, navigate, t]);
 
   useEffect(() => {
-    if (authEvent === 'oauth_callback' && isAuthenticated) {
+    if (authEvent === 'oauth_callback' && isAuthenticated && session) {
       clearAuthEvent();
+      if (redirectToCliCallback(session)) return;
       navigate(nextPath, { replace: true });
     }
-  }, [authEvent, clearAuthEvent, isAuthenticated, navigate, nextPath]);
+  }, [authEvent, clearAuthEvent, isAuthenticated, navigate, nextPath, session]);
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && session) {
+      if (redirectToCliCallback(session)) return;
       navigate(nextPath, { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate, nextPath]);
+  }, [authLoading, isAuthenticated, navigate, nextPath, session]);
 
   const supportsOAuth = configuredSettings.methods.includes('oauth');
   const supportsMagicLink = configuredSettings.methods.includes('magic_link');
@@ -217,16 +246,16 @@ export const LoginView = () => {
   }, [featuredMethod]);
   const signInDescription = useMemo(() => {
     if ((supportsOAuth || supportsWeb3) && supportsMagicLink) {
-      return 'Continue with your identity provider or request a secure sign-in link by email.';
+      return t('loginPage.descriptionOauthOrWeb3AndMagic');
     }
     if (supportsOAuth || supportsWeb3) {
-      return 'Continue with your configured identity provider.';
+      return t('loginPage.descriptionOauthOrWeb3');
     }
     if (supportsMagicLink) {
-      return 'Enter your email to receive a secure sign-in link.';
+      return t('loginPage.descriptionMagic');
     }
-    return 'No sign-in method is currently available.';
-  }, [supportsMagicLink, supportsOAuth, supportsWeb3]);
+    return t('loginPage.descriptionNone');
+  }, [supportsMagicLink, supportsOAuth, supportsWeb3, t]);
 
   const verifyMethodSupport = useCallback(
     async (
@@ -240,8 +269,8 @@ export const LoginView = () => {
             // Some Supabase settings payloads do not explicitly advertise web3 methods.
             return { isSupported: true };
           }
-          const humanMethod = method === 'magic_link' ? 'magic link' : method;
-          setMethodError(`This backend does not support ${humanMethod} login.`);
+          const humanMethod = method === 'magic_link' ? t('loginPage.magicLinkMethod') : method;
+          setMethodError(t('loginPage.methodUnsupported', { method: humanMethod }));
           return { isSupported: false };
         }
         if (method === 'oauth' && provider && backendSettings.oauthProviders.length > 0) {
@@ -252,7 +281,9 @@ export const LoginView = () => {
           );
           if (!matchedProvider) {
             setMethodError(
-              `This backend does not support OAuth with ${formatProviderLabel(provider)}.`,
+              t('loginPage.oauthUnsupported', {
+                provider: formatProviderLabel(provider),
+              }),
             );
             return { isSupported: false };
           }
@@ -279,12 +310,12 @@ export const LoginView = () => {
         return { isSupported: true };
       } catch (err) {
         setMethodError(
-          err instanceof Error ? err.message : 'Could not verify backend login capabilities.',
+          err instanceof Error ? err.message : t('loginPage.couldNotVerifyCapabilities'),
         );
         return { isSupported: false };
       }
     },
-    [getAuthSettings, supportsWeb3],
+    [getAuthSettings, supportsWeb3, t],
   );
 
   const handleOAuthLogin = async (provider: string) => {
@@ -347,7 +378,7 @@ export const LoginView = () => {
     }
     const started = await startWeb3Ethereum();
     if (!started) {
-      setMethodError('Unable to complete Ethereum wallet login.');
+      setMethodError(t('loginPage.walletLoginFailed'));
     }
     setWeb3Loading(false);
   };
@@ -356,7 +387,7 @@ export const LoginView = () => {
     event.preventDefault();
     const email = magicLinkEmail.trim();
     if (!email) {
-      setMagicLinkError('Please enter your email address.');
+      setMagicLinkError(t('loginPage.enterEmail'));
       setMagicLinkMessage(null);
       setMethodError(null);
       return;
@@ -377,13 +408,18 @@ export const LoginView = () => {
         localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
       }
       await sendMagicLink(email, loginPathWithNext);
-      setMagicLinkMessage('Check your inbox for a magic login link.');
+      setMagicLinkMessage(t('loginPage.magicLinkSent'));
     } catch (err) {
-      setMagicLinkError(err instanceof Error ? err.message : 'Could not send magic link.');
+      setMagicLinkError(err instanceof Error ? err.message : t('loginPage.couldNotSendMagicLink'));
     } finally {
       setMagicLinkLoading(false);
     }
   };
+
+  const panelUrl = config.backend?.login?.panelUrl?.trim() || null;
+  const panelImage = config.backend?.login?.panelImage?.trim() || null;
+  const hasCustomPanel = Boolean(panelUrl || panelImage);
+  const legalDocuments = useMemo(() => getLegalDocuments(config), [config]);
 
   if (isAuthenticated) {
     return null;
@@ -402,19 +438,90 @@ export const LoginView = () => {
     );
   }
 
+  const chromePadTop = `calc(${LOGIN_CHROME_PAD_Y} + var(--shellui-safe-area-top))`;
+  // Clear traffic-light titlebar, then keep a small gap — only when native lights are shown.
+  const brandPadTop = trafficLights
+    ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_HEIGHT_PX}px + ${LOGIN_BRAND_BELOW_TITLEBAR_GAP})`
+    : chromePadTop;
+  const contentPadTop = trafficLights
+    ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_HEIGHT_PX}px + ${LOGIN_BRAND_BELOW_TITLEBAR_GAP} + 2rem)`
+    : `calc(4rem + var(--shellui-safe-area-top))`;
+
   return (
-    <main className="flex min-h-full w-full bg-background">
+    <main className="relative flex min-h-full w-full bg-background">
+      {!isIframeView ? (
+        <>
+          <div
+            className={cn(
+              'pointer-events-none absolute top-0 left-0 z-10 pl-[calc(1.5rem+var(--shellui-safe-area-left))]',
+              hasCustomPanel && 'md:invisible',
+            )}
+            style={{ paddingTop: brandPadTop }}
+          >
+            <div className="pointer-events-auto">
+              {config.appIcon ? (
+                <AppBrandIcon
+                  appIcon={config.appIcon}
+                  title={config.title}
+                  imgClassName="size-8"
+                />
+              ) : (
+                <span
+                  className="block size-8"
+                  aria-hidden
+                />
+              )}
+            </div>
+          </div>
+          <div
+            className="pointer-events-none absolute top-0 right-0 z-10 pr-[calc(1.5rem+var(--shellui-safe-area-right))]"
+            style={{ paddingTop: chromePadTop }}
+          >
+            <div className="pointer-events-auto">
+              <LoginPreferencesControls />
+            </div>
+          </div>
+        </>
+      ) : null}
+
       {!isIframeView && (
         <section
-          className="hidden w-1/2 bg-muted/40 md:block"
-          aria-hidden
-        />
+          className="relative hidden min-h-full w-1/2 overflow-hidden bg-muted/40 md:block"
+          aria-hidden={panelImage && !panelUrl ? true : undefined}
+        >
+          {panelUrl ? (
+            <iframe
+              src={panelUrl}
+              title={t('loginPage.brandingIframeTitle')}
+              className="h-full w-full border-0"
+            />
+          ) : panelImage ? (
+            <div className="flex h-full w-full items-center justify-center overflow-hidden">
+              <img
+                src={panelImage}
+                alt=""
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          ) : null}
+        </section>
       )}
 
       <section
-        className={cn('flex min-h-full w-full flex-col px-6 py-10', !isIframeView && 'md:w-1/2')}
+        className={cn(
+          'relative flex min-h-full w-full flex-col',
+          isIframeView
+            ? 'px-6 py-6'
+            : [
+                'pr-[calc(1.5rem+var(--shellui-safe-area-right))]',
+                'pb-[calc(1.5rem+var(--shellui-safe-area-bottom))] md:pb-[calc(2.5rem+var(--shellui-safe-area-bottom))]',
+                'pl-[calc(1.5rem+var(--shellui-safe-area-left))]',
+              ],
+          !isIframeView && 'md:w-1/2',
+        )}
+        style={!isIframeView ? { paddingTop: contentPadTop } : undefined}
       >
-        <div className="flex w-full flex-1 items-center justify-center">
+        <div className="flex w-full min-h-0 flex-1 items-center justify-center">
           <div
             className={cn(
               'w-full max-w-xl space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500',
@@ -423,7 +530,7 @@ export const LoginView = () => {
           >
             <div className="space-y-2">
               <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                Welcome back
+                {t('loginPage.welcomeBack')}
               </h1>
               <p className="text-sm text-muted-foreground">{signInDescription}</p>
             </div>
@@ -438,7 +545,7 @@ export const LoginView = () => {
               {featuredMethod === 'oauth' && featuredOAuthProvider && (
                 <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Last used
+                    {t('loginPage.lastUsed')}
                   </p>
                   {(() => {
                     const visual = getProviderVisual(featuredOAuthProvider);
@@ -459,8 +566,8 @@ export const LoginView = () => {
                         </span>
                         <span className="truncate">
                           {oauthLoadingProvider === featuredOAuthProvider
-                            ? `Redirecting to ${label}...`
-                            : `Continue with ${label}`}
+                            ? t('loginPage.redirectingTo', { provider: label })
+                            : t('loginPage.continueWith', { provider: label })}
                         </span>
                       </Button>
                     );
@@ -471,7 +578,7 @@ export const LoginView = () => {
               {featuredMethod === 'magic_link' && supportsMagicLink && (
                 <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Last used
+                    {t('loginPage.lastUsed')}
                   </p>
                   <form
                     className="space-y-2"
@@ -482,7 +589,7 @@ export const LoginView = () => {
                       type="email"
                       value={magicLinkEmail}
                       onChange={(event) => setMagicLinkEmail(event.target.value)}
-                      placeholder="name@company.com"
+                      placeholder={t('loginPage.emailPlaceholder')}
                       autoComplete="email"
                       required
                       className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -493,7 +600,9 @@ export const LoginView = () => {
                       className="w-full"
                       disabled={isActionPending}
                     >
-                      {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
+                      {magicLinkLoading
+                        ? t('loginPage.sendingMagicLink')
+                        : t('loginPage.sendMagicLink')}
                     </Button>
                     {magicLinkMessage && (
                       <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
@@ -506,7 +615,7 @@ export const LoginView = () => {
               {featuredMethod === 'web3' && supportsWeb3 && (
                 <section className="space-y-2 rounded-2xl bg-muted/30 p-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Last used
+                    {t('loginPage.lastUsed')}
                   </p>
                   {(() => {
                     const visual = getProviderVisual('ethereum');
@@ -525,7 +634,9 @@ export const LoginView = () => {
                           <visual.Icon className={cn('h-3 w-3', visual.iconClassName)} />
                         </span>
                         <span className="truncate">
-                          {web3Loading ? 'Connecting wallet...' : 'Continue with Ethereum wallet'}
+                          {web3Loading
+                            ? t('loginPage.connectingWallet')
+                            : t('loginPage.continueWithEthereum')}
                         </span>
                       </Button>
                     );
@@ -549,7 +660,9 @@ export const LoginView = () => {
                         showAlternativeMethods ? 'rotate-180' : 'rotate-0',
                       )}
                     />
-                    {showAlternativeMethods ? 'Hide other methods' : 'Use another method'}
+                    {showAlternativeMethods
+                      ? t('loginPage.hideOtherMethods')
+                      : t('loginPage.useAnotherMethod')}
                   </Button>
                 </div>
               )}
@@ -578,7 +691,7 @@ export const LoginView = () => {
                         <div className="relative py-1">
                           <div className="border-t border-border" />
                           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            or
+                            {t('loginPage.or')}
                           </span>
                         </div>
                       )}
@@ -587,7 +700,7 @@ export const LoginView = () => {
                       <div className="relative py-1">
                         <div className="border-t border-border" />
                         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                          or
+                          {t('loginPage.or')}
                         </span>
                       </div>
                     )}
@@ -596,7 +709,7 @@ export const LoginView = () => {
                       <div className="relative py-1">
                         <div className="border-t border-border" />
                         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                          or
+                          {t('loginPage.or')}
                         </span>
                       </div>
                     )}
@@ -604,7 +717,7 @@ export const LoginView = () => {
                     {supportsWeb3 && featuredMethod !== 'web3' && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Wallet login
+                          {t('loginPage.walletLogin')}
                         </p>
                         {(() => {
                           const visual = getProviderVisual('ethereum');
@@ -624,8 +737,8 @@ export const LoginView = () => {
                               </span>
                               <span className="truncate">
                                 {web3Loading
-                                  ? 'Connecting wallet...'
-                                  : 'Continue with Ethereum wallet'}
+                                  ? t('loginPage.connectingWallet')
+                                  : t('loginPage.continueWithEthereum')}
                               </span>
                             </Button>
                           );
@@ -636,9 +749,16 @@ export const LoginView = () => {
                     {supportsOAuth && otherOAuthProviders.length > 0 && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          {featuredMethod === 'oauth' ? 'Other social logins' : 'Social login'}
+                          {featuredMethod === 'oauth'
+                            ? t('loginPage.otherSocialLogins')
+                            : t('loginPage.socialLogin')}
                         </p>
-                        <div className="grid gap-2 sm:grid-cols-2">
+                        <div
+                          className={cn(
+                            'grid gap-2',
+                            otherOAuthProviders.length > 1 && 'sm:grid-cols-2',
+                          )}
+                        >
                           {otherOAuthProviders.map((provider) => {
                             const visual = getProviderVisual(provider);
                             const label = formatProviderLabel(provider);
@@ -659,8 +779,8 @@ export const LoginView = () => {
                                 </span>
                                 <span className="truncate">
                                   {oauthLoadingProvider === provider
-                                    ? `Redirecting to ${label}...`
-                                    : `Continue with ${label}`}
+                                    ? t('loginPage.redirectingTo', { provider: label })
+                                    : t('loginPage.continueWith', { provider: label })}
                                 </span>
                               </Button>
                             );
@@ -675,7 +795,7 @@ export const LoginView = () => {
                         <div className="relative py-1">
                           <div className="border-t border-border" />
                           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            or
+                            {t('loginPage.or')}
                           </span>
                         </div>
                       )}
@@ -683,7 +803,7 @@ export const LoginView = () => {
                     {supportsMagicLink && featuredMethod !== 'magic_link' && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Email magic link
+                          {t('loginPage.emailMagicLink')}
                         </p>
                         <form
                           className="space-y-2"
@@ -694,7 +814,7 @@ export const LoginView = () => {
                             type="email"
                             value={magicLinkEmail}
                             onChange={(event) => setMagicLinkEmail(event.target.value)}
-                            placeholder="name@company.com"
+                            placeholder={t('loginPage.emailPlaceholder')}
                             autoComplete="email"
                             required
                             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -705,7 +825,9 @@ export const LoginView = () => {
                             className="w-full"
                             disabled={isActionPending}
                           >
-                            {magicLinkLoading ? 'Sending magic link...' : 'Send magic link'}
+                            {magicLinkLoading
+                              ? t('loginPage.sendingMagicLink')
+                              : t('loginPage.sendMagicLink')}
                           </Button>
                           {magicLinkMessage && (
                             <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
@@ -721,14 +843,30 @@ export const LoginView = () => {
               </div>
 
               {!supportsOAuth && !supportsMagicLink && !supportsWeb3 && (
-                <p className="text-sm text-muted-foreground">
-                  No login method is currently enabled in backend auth settings.
-                </p>
+                <p className="text-sm text-muted-foreground">{t('loginPage.noMethodsEnabled')}</p>
               )}
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-xs font-normal text-muted-foreground/80 hover:text-muted-foreground"
+                  onClick={() => {
+                    if (isIframeView) {
+                      shellui.closeModal();
+                      return;
+                    }
+                    navigate('/');
+                  }}
+                >
+                  {t('loginPage.cancel')}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-        {!isIframeView && (
+        {!isIframeView && legalDocuments.length > 0 && (
           <div className="w-full max-w-xl border-t border-border pt-4">
             <LegalDocumentsLinks />
           </div>

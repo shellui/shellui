@@ -11,6 +11,8 @@ import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
 import { isAdminFrame } from '../admin/utils';
+import { isFrameForAppUrl } from '../layouts/utils';
+import { isMainLayoutFrame } from '../layouts/floating/layoutChromeStore';
 import { defaultTheme } from '../theme/themes';
 import {
   buildSettingsForPropagation,
@@ -28,49 +30,8 @@ const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AUTH_LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
 
-const toAbsoluteUrl = (url: string): URL | null => {
-  try {
-    return new URL(
-      url,
-      typeof window !== 'undefined' ? window.location.origin : 'http://localhost',
-    );
-  } catch {
-    return null;
-  }
-};
-
-const normalizePath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) return '/';
-  const withoutTrailing = trimmed.replace(/\/+$/, '');
-  return withoutTrailing || '/';
-};
-
-const normalizeHashPath = (value: string): string => {
-  const hash = value.replace(/^#\/?/, '').replace(/\/+$/, '');
-  return hash;
-};
-
-const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean => {
-  const frame = toAbsoluteUrl(frameSrc);
-  const item = toAbsoluteUrl(itemUrl);
-  if (!frame || !item) return false;
-  if (frame.origin !== item.origin) return false;
-
-  const itemPathname = normalizePath(item.pathname);
-  const framePathname = normalizePath(frame.pathname);
-  if (framePathname !== itemPathname && !framePathname.startsWith(`${itemPathname}/`)) {
-    return false;
-  }
-
-  const itemHashPath = normalizeHashPath(item.hash);
-  if (!itemHashPath) {
-    return true;
-  }
-
-  const frameHashPath = normalizeHashPath(frame.hash);
-  return frameHashPath === itemHashPath || frameHashPath.startsWith(`${itemHashPath}/`);
-};
+const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean =>
+  isFrameForAppUrl(frameSrc, itemUrl);
 
 const stripSensitiveUserFields = (settings: Settings): Settings => {
   return {
@@ -124,6 +85,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user: authUser, session, syncUserPreferences, loadUserPreferences, logout } = useAuth();
   const lastSyncedPreferencesRef = useRef<string | null>(null);
   const loadingPreferencesRef = useRef(false);
+  const settingsHydratedFromStorageRef = useRef(false);
   // Use a ref to always have current settings for message listeners (avoids closure issues)
   const settingsRef = useRef<Settings | null>(null);
   const [settings, setSettings] = useState<Settings>(() => {
@@ -132,6 +94,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     if (shellui.initialSettings) {
       initialSettings = shellui.initialSettings;
       settingsRef.current = initialSettings;
+      settingsHydratedFromStorageRef.current = true;
       return initialSettings;
     }
 
@@ -140,6 +103,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
+          settingsHydratedFromStorageRef.current = true;
           const parsed = JSON.parse(stored);
           // Deep merge with defaults to handle new settings
           initialSettings = {
@@ -257,6 +221,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
           includeAuthAccessToken,
           accessToken,
+          includeLayoutChrome: isMainLayoutFrame(iframe),
         });
         shellui.sendMessage({
           type: 'SHELLUI_SETTINGS',
@@ -272,9 +237,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     (iframeUuid: string, frameSrc: string, baseSettings: Settings) => {
       const lang = baseSettings.language?.code || 'en';
       const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+      const iframe = shellui.frameRegistry
+        .getAllIframes()
+        .find(([uuid]) => uuid === iframeUuid)?.[1];
       const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
         includeAuthAccessToken,
         accessToken: accessTokenRef.current,
+        includeLayoutChrome: isMainLayoutFrame(iframe),
       });
       shellui.sendMessage({
         type: 'SHELLUI_SETTINGS',
@@ -303,6 +272,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const propagateSettingsToIframesRef = useRef(propagateSettingsToIframes);
   propagateSettingsToIframesRef.current = propagateSettingsToIframes;
 
+  // Trailing-debounce iframe settings pushes during rapid theme spam so
+  // children only apply the final theme after switching settles.
+  const pendingIframeSettingsRef = useRef<Settings | null>(null);
+  const iframePropagateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const schedulePropagateSettingsToIframes = useCallback((next: Settings) => {
+    pendingIframeSettingsRef.current = next;
+    if (iframePropagateTimerRef.current !== null) {
+      clearTimeout(iframePropagateTimerRef.current);
+    }
+    iframePropagateTimerRef.current = setTimeout(() => {
+      iframePropagateTimerRef.current = null;
+      const pending = pendingIframeSettingsRef.current;
+      pendingIframeSettingsRef.current = null;
+      if (pending) {
+        propagateSettingsToIframesRef.current(pending);
+      }
+    }, 100);
+  }, []);
+
   // Keep ref in sync with state for message listeners
   useEffect(() => {
     settingsRef.current = settings;
@@ -327,17 +315,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const mergedSettings = mergePreferencesIntoSettings(currentSettings, tokenPreferences);
           const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
           const prevSignature = JSON.stringify(getPreferenceSnapshot(currentSettings));
-          lastSyncedPreferencesRef.current = signature;
           if (signature === prevSignature) {
+            lastSyncedPreferencesRef.current = signature;
             logger.info('JWT app preferences match current settings; skipping state update', {
               preferences: getPreferenceSnapshot(mergedSettings),
             });
             return;
           }
+          // Current UI already matches what we last synced — JWT is lagging a newer
+          // local change (or a superseded sync). Don’t regress appearance.
+          if (prevSignature === lastSyncedPreferencesRef.current) {
+            logger.info('Ignoring stale JWT preferences that lag last-synced settings', {
+              jwt: getPreferenceSnapshot(mergedSettings),
+              current: getPreferenceSnapshot(currentSettings),
+            });
+            return;
+          }
+          lastSyncedPreferencesRef.current = signature;
           settingsRef.current = mergedSettings;
           setSettings(mergedSettings);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
-          propagateSettingsToIframesRef.current(mergedSettings);
+          schedulePropagateSettingsToIframes(mergedSettings);
           logger.info('Loaded app preferences from JWT metadata', {
             preferences: getPreferenceSnapshot(mergedSettings),
           });
@@ -449,7 +447,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
               logger.info('Root Parent received settings update', { message });
-              propagateSettingsToIframes(nextSettings);
+              // Coalesce with rapid theme spam (same debounce as updateSettings).
+              schedulePropagateSettingsToIframes(nextSettings);
             } catch (error) {
               logger.error('Failed to update settings from message:', { error });
             }
@@ -477,6 +476,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
             includeAuthAccessToken,
             accessToken: accessTokenRef.current,
+            includeLayoutChrome: isMainLayoutFrame(frame),
           });
 
           // Route through the full parent -> child -> ... -> requester path so deep descendants
@@ -539,7 +539,51 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettingsRequested();
       cleanupInitialized();
     };
-  }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, pushSettingsToFrame]);
+  }, [
+    config,
+    isTrustedFrameForAuthToken,
+    propagateSettingsToIframes,
+    pushSettingsToFrame,
+    schedulePropagateSettingsToIframes,
+  ]);
+
+  // Apply config activeTheme / defaultTheme on first visit (no localStorage preference yet)
+  useEffect(() => {
+    if (settingsHydratedFromStorageRef.current) return;
+    const desired = config?.activeTheme || config?.defaultTheme;
+    if (!desired) return;
+    setSettings((prev) => {
+      if (prev.appearance?.name === desired) return prev;
+      const themeFromConfig = Array.isArray(config?.themes)
+        ? config.themes.find(
+            (t) =>
+              t && typeof t === 'object' && 'name' in t && (t as { name: string }).name === desired,
+          )
+        : undefined;
+      const typed =
+        themeFromConfig && typeof themeFromConfig === 'object' && 'displayName' in themeFromConfig
+          ? (themeFromConfig as {
+              displayName: string;
+              colors: Appearance['colors'];
+            })
+          : undefined;
+      const next: Settings = {
+        ...prev,
+        appearance: {
+          ...prev.appearance,
+          name: desired,
+          ...(typed
+            ? {
+                displayName: typed.displayName,
+                colors: typed.colors,
+              }
+            : {}),
+        },
+      };
+      settingsRef.current = next;
+      return next;
+    });
+  }, [config?.activeTheme, config?.defaultTheme, config?.themes]);
 
   useEffect(() => {
     if (
@@ -578,7 +622,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // ACTIONS
   const updateSettings = useCallback(
     (updates: Partial<Settings>) => {
-      const nextSettings = { ...settings, ...updates };
+      // Always merge from the latest ref so rapid theme toggles don’t clobber each other.
+      const base = settingsRef.current ?? defaultSettings;
+      const nextSettings = { ...base, ...updates };
 
       // Update localStorage and propagate to children if we're in the root window
       if (typeof window !== 'undefined' && window.parent === window) {
@@ -587,8 +633,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
           settingsRef.current = newSettings;
           setSettings(newSettings);
-          // Propagate to child iframes (sendMessageToParent does nothing in root)
-          propagateSettingsToIframes(newSettings);
+          // Trailing coalesce: spam theme switches only push the latest to iframes
+          schedulePropagateSettingsToIframes(newSettings);
         } catch (error) {
           logger.error('Failed to update settings in localStorage:', { error });
         }
@@ -604,20 +650,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         payload: { settings: stripSensitiveUserFields(nextSettings) },
       });
     },
-    [settings, propagateSettingsToIframes],
+    [schedulePropagateSettingsToIframes],
   );
 
   const updateSetting = useCallback(
     <K extends keyof Settings>(key: K, updates: Partial<Settings[K]>) => {
-      // Deep merge: preserve existing nested properties
-      const currentValue = settings[key];
+      // Deep merge from latest ref: preserve existing nested properties
+      const base = settingsRef.current ?? defaultSettings;
+      const currentValue = base[key];
       const mergedValue =
         typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)
           ? { ...currentValue, ...updates }
           : updates;
       updateSettings({ [key]: mergedValue } as Partial<Settings>);
     },
-    [settings, updateSettings],
+    [updateSettings],
   );
 
   const resetAllData = useCallback(() => {

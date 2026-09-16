@@ -49,6 +49,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
   const refreshInFlightRef = useRef(false);
+  /** Bumps on every preferences sync so a slower older PUT can’t overwrite a newer theme. */
+  const preferencesSyncGenRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -356,24 +358,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const syncUserPreferences = useCallback(
     async (preferences: UserPreferences) => {
+      const gen = ++preferencesSyncGenRef.current;
+      const sessionAtStart = sessionRef.current;
       try {
-        await backend.syncUserPreferences(session, preferences);
+        await backend.syncUserPreferences(sessionAtStart, preferences);
+        // A newer appearance change started another sync — drop this result.
+        if (gen !== preferencesSyncGenRef.current) return;
+
         const now = Math.floor(Date.now() / 1000);
         let nextSession: AuthSession | null = null;
         try {
-          if (session && isTokenAutoRefreshDisabled()) {
+          if (sessionAtStart && isTokenAutoRefreshDisabled()) {
             logger.info(
               'Skipped token refresh after preferences sync because Develop → Disable token auto-refresh is on',
             );
             nextSession = null;
           } else {
-            nextSession = session ? await backend.refreshAuthSession(session, now) : null;
+            nextSession = sessionAtStart
+              ? await backend.refreshAuthSession(sessionAtStart, now)
+              : null;
           }
         } catch (refreshErr) {
           logger.error('Failed to refresh auth session after syncing preferences', { refreshErr });
         }
-        if (!nextSession && session) {
-          nextSession = { ...session, userPreferences: preferences };
+        if (gen !== preferencesSyncGenRef.current) return;
+
+        if (!nextSession && sessionAtStart) {
+          nextSession = { ...sessionAtStart, userPreferences: preferences };
         }
         if (nextSession) {
           // Keep stored snapshot aligned with what we synced (JWT claims can lag the PUT).
@@ -387,7 +398,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logger.error('Failed to sync user preferences to auth provider metadata', { err });
       }
     },
-    [backend, session],
+    [backend],
   );
 
   const loadUserPreferences = useCallback(async () => {

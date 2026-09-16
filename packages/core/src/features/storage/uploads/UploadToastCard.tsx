@@ -410,7 +410,7 @@ export function UploadToastCard() {
         >
           <div className="overflow-hidden">
             <div className="border-t border-border px-3">
-              <div className="max-h-[min(14rem,calc(100dvh-14rem))] overflow-y-auto overscroll-contain divide-y divide-border">
+              <div className="max-h-[min(14rem,calc(var(--shellui-app-height,100dvh)-14rem))] overflow-y-auto overscroll-contain divide-y divide-border">
                 {items.map((item) => (
                   <FileRow
                     key={item.id}

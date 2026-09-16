@@ -1,16 +1,16 @@
 # @shellui/core
 
-Shellui Core - Core React application runtime
-
-## Installation
+React runtime for the Shellui host. `@shellui/cli` depends on this package. Install it yourself when you import config types or `useAuth` from host code.
 
 ```bash
 npm install @shellui/core
 ```
 
-## Usage
+```typescript
+import type { ShellUIConfig } from '@shellui/core';
+```
 
-This package contains the core React application for Shellui. It's typically used by `@shellui/cli` and `@shellui/sdk`.
+Docs: [Core](https://docs.shellui.com/core), [CLI](https://docs.shellui.com/cli).
 
 ## License
 

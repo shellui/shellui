@@ -1,6 +1,6 @@
 import type { Appearance, Settings } from '@shellui/sdk';
-import { getTheme, registerTheme } from '../../theme/themes';
-import type { ShellUIConfig } from '../../config/types';
+import { getTheme, setAvailableThemes, defaultTheme } from '../../theme/themes';
+import type { ShellUIConfig, ThemeDefinition } from '../../config/types';
 import { resolveColorMode } from './resolveColorMode';
 import { toAbsoluteFontUrls } from './toAbsoluteFontUrls';
 
@@ -14,9 +14,15 @@ export const getResolvedAppearanceForSettings = (
 ): Appearance | undefined => {
   if (typeof window === 'undefined') return undefined;
 
-  config?.themes?.forEach(registerTheme);
-  const themeName = settings.appearance?.name || config?.defaultTheme || 'default';
-  const themeDef = getTheme(themeName) || getTheme('default');
+  const available: ThemeDefinition[] =
+    config?.themes && Array.isArray(config.themes) && config.themes.length > 0
+      ? (config.themes as ThemeDefinition[])
+      : [defaultTheme];
+  setAvailableThemes(available);
+
+  const themeName =
+    settings.appearance?.name || config?.activeTheme || config?.defaultTheme || defaultTheme.name;
+  const themeDef = getTheme(themeName) || getTheme(defaultTheme.name);
   if (!themeDef) return undefined;
 
   const colorScheme = settings.appearance?.colorScheme ?? 'system';

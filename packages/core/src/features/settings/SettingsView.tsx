@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarProvider,
 } from '../../components/ui/sidebar';
 import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ import { useConfig } from '../config/useConfig';
 import { isTauri } from '../../service-worker/register';
 import { Button } from '../../components/ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from './SettingsIcons';
+import { NavIcon } from '../layouts/sidebar/SidebarIcons';
 import { flattenNavigationItems, resolveLocalizedString } from '../layouts/utils';
 import { ApplicationSettingsPanel } from './components/ApplicationSettingsPanel';
 import { createUserSettingsRoute } from './components/createUserSettingsRoute';
@@ -228,57 +230,56 @@ export const SettingsView = () => {
   }, [navigate]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden items-start">
-      {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex">
-        <SidebarContent>
-          {groupedRoutes.map((group) => (
-            <SidebarGroup key={group.title}>
-              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.routes.map((item) => (
-                    <SidebarMenuItem key={item.name}>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={item.name === selectedItem?.name}
-                      >
-                        <button
-                          onClick={() => navigate(`${urls.settings}/${item.path}`)}
-                          className="cursor-pointer"
+    <div className="flex h-full w-full overflow-hidden items-start md:pt-[var(--shellui-inset-top,0px)] md:pr-[var(--shellui-inset-right,0px)] md:pb-[var(--shellui-inset-bottom,0px)] md:pl-[var(--shellui-inset-left,0px)]">
+      {/* Desktop settings nav — local provider so this works outside the shell sidebar layout */}
+      <SidebarProvider className="hidden h-full min-h-0 w-auto shrink-0 md:flex">
+        <Sidebar
+          collapsible="none"
+          className="flex h-full border-r border-sidebar-border"
+        >
+          <SidebarContent>
+            {groupedRoutes.map((group) => (
+              <SidebarGroup key={group.title}>
+                <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {group.routes.map((item) => (
+                      <SidebarMenuItem key={item.name}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={item.name === selectedItem?.name}
                         >
-                          {'icon' in item && item.icon ? (
-                            <item.icon />
-                          ) : 'iconSrc' in item && item.iconSrc ? (
-                            <img
-                              src={item.iconSrc}
-                              alt=""
-                              className="h-4 w-4 shrink-0"
-                            />
-                          ) : (
-                            <span className="h-4 w-4 shrink-0" />
-                          )}
-                          <span>{item.name}</span>
-                        </button>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
-        </SidebarContent>
-      </Sidebar>
+                          <button
+                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                            className="cursor-pointer"
+                          >
+                            {'icon' in item && item.icon ? (
+                              <item.icon />
+                            ) : (
+                              <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
+                            )}
+                            <span>{item.name}</span>
+                          </button>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
+        </Sidebar>
+      </SidebarProvider>
 
       {/* Mobile List View */}
       <div className="md:hidden flex h-full w-full flex-col overflow-hidden">
         {isSettingsRoot ? (
           // Show list of settings pages
           <div className="flex flex-1 flex-col overflow-y-auto bg-background">
-            <header className="flex h-16 shrink-0 items-center justify-center px-4 border-b">
+            <header className="flex min-h-16 shrink-0 items-center justify-center border-b px-4 pt-[var(--shellui-inset-top,0px)]">
               <h1 className="text-lg font-semibold">{t('title')}</h1>
             </header>
-            <div className="flex flex-1 flex-col p-4 gap-6">
+            <div className="flex flex-1 flex-col gap-6 p-4 pb-[max(1.5rem,calc(1rem+max(var(--shellui-inset-bottom,0px),env(safe-area-inset-bottom,0px))))] pl-[max(1rem,max(var(--shellui-inset-left,0px),env(safe-area-inset-left,0px)))] pr-[max(1rem,max(var(--shellui-inset-right,0px),env(safe-area-inset-right,0px)))]">
               {groupedRoutes.map((group) => (
                 <div
                   key={group.title}
@@ -296,14 +297,8 @@ export const SettingsView = () => {
                       const iconEl =
                         'icon' in item && item.icon ? (
                           <item.icon />
-                        ) : 'iconSrc' in item && item.iconSrc ? (
-                          <img
-                            src={item.iconSrc}
-                            alt=""
-                            className="h-4 w-4 shrink-0"
-                          />
                         ) : (
-                          <span className="h-4 w-4 shrink-0" />
+                          <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
                         );
                       return (
                         <div
@@ -318,7 +313,7 @@ export const SettingsView = () => {
                             className="w-full flex items-center justify-between px-4 py-3 bg-transparent hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground transition-colors cursor-pointer rounded-none"
                           >
                             <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <div className="flex-shrink-0 text-foreground/70">{iconEl}</div>
+                              <div className="flex-shrink-0">{iconEl}</div>
                               <span className="text-sm font-normal text-foreground">
                                 {item.name}
                               </span>
@@ -338,7 +333,7 @@ export const SettingsView = () => {
         ) : (
           // Show selected settings page with back button
           <div className="flex h-full flex-1 flex-col overflow-hidden">
-            <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b">
+            <header className="flex min-h-16 shrink-0 items-center gap-2 border-b px-4 pt-[var(--shellui-inset-top,0px)]">
               <Button
                 variant="ghost"
                 size="icon"
@@ -349,7 +344,14 @@ export const SettingsView = () => {
               </Button>
               <h1 className="text-lg font-semibold">{selectedItem?.name}</h1>
             </header>
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 pt-4">
+            <div
+              className={cn(
+                'flex flex-1 flex-col overflow-hidden',
+                selectedItem?.path?.startsWith('app-')
+                  ? 'min-h-0'
+                  : 'gap-4 overflow-y-auto p-4 pt-4 pb-[max(1.5rem,calc(1rem+max(var(--shellui-inset-bottom,0px),env(safe-area-inset-bottom,0px))))] pl-[max(1rem,max(var(--shellui-inset-left,0px),env(safe-area-inset-left,0px)))] pr-[max(1rem,max(var(--shellui-inset-right,0px),env(safe-area-inset-right,0px)))]',
+              )}
+            >
               <Routes>
                 <Route
                   index
@@ -378,7 +380,7 @@ export const SettingsView = () => {
       {/* Desktop Main Content */}
       <main className="hidden md:flex h-full flex-1 flex-col overflow-hidden">
         {selectedItem && (
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear">
+          <header className="flex min-h-16 shrink-0 items-center gap-2 pt-[var(--shellui-inset-top,0px)] transition-[width,height] ease-linear">
             <div className="flex items-center gap-2 px-4">
               <Breadcrumb>
                 <BreadcrumbList>

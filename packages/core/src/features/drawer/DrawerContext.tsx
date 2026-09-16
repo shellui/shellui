@@ -1,5 +1,13 @@
-import { shellui, type ShellUIMessage } from '@shellui/sdk';
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { shellui, type OpenDrawerOptions, type ShellUIMessage } from '@shellui/sdk';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import type { DrawerDirection } from '../../components/ui/drawer';
 import { useModal } from '../modal/ModalContext';
 
@@ -32,17 +40,15 @@ const validateAndNormalizeUrl = (url: string | undefined | null): string | null 
 
 export const DEFAULT_DRAWER_POSITION: DrawerDirection = 'right';
 
-interface OpenDrawerOptions {
-  url?: string;
-  position?: DrawerDirection;
-  /** CSS length: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
-  size?: string;
-}
+/** Keep content mounted through Vaul exit (typically ~400–500ms). */
+const DRAWER_CLOSE_CLEAR_MS = 500;
 
 interface DrawerContextValue {
   isOpen: boolean;
   drawerUrl: string | null;
   position: DrawerDirection;
+  options: OpenDrawerOptions | null;
+  /** @deprecated Prefer options.size — kept for callers reading the resolved CSS/preset string. */
   size: string | null;
   openDrawer: (options?: OpenDrawerOptions) => void;
   closeDrawer: () => void;
@@ -67,16 +73,21 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [drawerUrl, setDrawerUrl] = useState<string | null>(null);
   const [position, setPosition] = useState<DrawerDirection>(DEFAULT_DRAWER_POSITION);
-  const [size, setSize] = useState<string | null>(null);
+  const [options, setOptions] = useState<OpenDrawerOptions | null>(null);
+  const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openDrawer = useCallback(
-    (options?: OpenDrawerOptions) => {
+    (openOptions?: OpenDrawerOptions) => {
+      if (clearTimerRef.current) {
+        clearTimeout(clearTimerRef.current);
+        clearTimerRef.current = null;
+      }
       closeModal();
-      const url = options?.url;
+      const url = openOptions?.url;
       const validatedUrl = url ? validateAndNormalizeUrl(url) : null;
       setDrawerUrl(validatedUrl);
-      setPosition(options?.position ?? DEFAULT_DRAWER_POSITION);
-      setSize(options?.size ?? null);
+      setPosition(openOptions?.position ?? DEFAULT_DRAWER_POSITION);
+      setOptions(openOptions ?? null);
       setIsOpen(true);
     },
     [closeModal],
@@ -84,17 +95,30 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
 
   const closeDrawer = useCallback(() => {
     setIsOpen(false);
-    // Do not reset drawerUrl/position here — Vaul's close animation uses the current
-    // direction. Resetting position (e.g. to 'right') mid-animation would make
-    // non-right drawers jump. State is set on next openDrawer().
+    // Keep position through Vaul's exit — resetting to 'right' mid-animation makes a
+    // bottom/left/top drawer look like a right drawer closing. Only clear url/options
+    // after exit so the next open remounts ContentView (loading bar). Position is set
+    // again in openDrawer().
+    if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    clearTimerRef.current = setTimeout(() => {
+      clearTimerRef.current = null;
+      setDrawerUrl(null);
+      setOptions(null);
+    }, DRAWER_CLOSE_CLEAR_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimerRef.current) clearTimeout(clearTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
     const cleanupOpen = shellui.addMessageListener(
       'SHELLUI_OPEN_DRAWER',
       (data: ShellUIMessage) => {
-        const payload = data.payload as { url?: string; position?: DrawerDirection; size?: string };
-        openDrawer({ url: payload.url, position: payload.position, size: payload.size });
+        const payload = data.payload as OpenDrawerOptions;
+        openDrawer(payload);
       },
     );
 
@@ -108,8 +132,20 @@ export const DrawerProvider = ({ children }: DrawerProviderProps) => {
     };
   }, [openDrawer, closeDrawer]);
 
+  const size = options?.size !== undefined && options?.size !== null ? String(options.size) : null;
+
   return (
-    <DrawerContext.Provider value={{ isOpen, drawerUrl, position, size, openDrawer, closeDrawer }}>
+    <DrawerContext.Provider
+      value={{
+        isOpen,
+        drawerUrl,
+        position,
+        options,
+        size,
+        openDrawer,
+        closeDrawer,
+      }}
+    >
       {children}
     </DrawerContext.Provider>
   );

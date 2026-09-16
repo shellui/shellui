@@ -1,117 +1,121 @@
-# Desktop App
+---
+title: Ship a desktop app
+sidebar_label: Desktop App
+description: 'Run shellui dev --app and shellui build --app to generate a Tauri 2 wrapper under dist/app/.'
+---
 
-Ship your Shellui app as a native desktop application. The CLI uses [Tauri 2](https://v2.tauri.app/) under the hood today — the desktop wrapper is generated into `dist/app/` so you never manage native project files in your repo.
+Ship the shell as a native desktop app. The CLI uses [Tauri 2](https://v2.tauri.app/) and writes the wrapper into `dist/app/` so you do not commit native project files.
+
+## Browser PWA vs native (iOS) {#browser-pwa-vs-native-ios}
+
+The same React / Vite shell runs in both hosts. Status-bar behavior does **not**:
+
+| Host                     | How it runs        | Top chrome                                                                                                                               |
+| ------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Safari / Home Screen PWA | Standalone web app | iOS 26/27 Liquid Glass — system status sampling / gradient. Shellui skips stacking its own status scrims and does not set `theme-color`. |
+| Tauri iOS (App Store)    | Native WKWebView   | **No** Home Screen PWA system gradient. You control insets with `viewport-fit=cover` + `env(safe-area-inset-*)` (already in the shell).  |
+| Tauri desktop            | Native webview     | Overlay titlebar / traffic lights (macOS).                                                                                               |
+
+Detect the live native shell in app code with `window.__TAURI__` (or Shellui’s `isTauriRuntime()`). Prefer that over the CLI `--target tauri` build flag when deciding UI — a browser tab of a tauri-targeted build must not get native chrome.
+
+```ts
+import { isTauriRuntime, isHomeScreenPwa } from '@shellui/core';
+
+if (isTauriRuntime()) {
+  // App Store / desktop WKWebView — native-controlled chrome
+}
+
+if (isHomeScreenPwa()) {
+  // Safari "Add to Home Screen" only
+}
+```
+
+`html[data-shellui-host]` is set to `browser` | `pwa` | `tauri` for CSS.
+
+**App Store recommendation:** distribute the iOS build via Tauri so you avoid the iOS Home Screen PWA status gradient. Keep the web PWA for install-from-Safari users who accept platform chrome. Always verify on a real iPhone/iPad — Tauri mobile has had its own inset quirks.
+
+The shell document already ships:
+
+```html
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+/>
+```
+
+Layouts pad with `--shellui-safe-area-*` (`env(safe-area-inset-*)`). On iOS WKWebView, if UIKit still shrinks the scroll view, set `contentInsetAdjustmentBehavior = .never` on the webview (e.g. via a Tauri iOS insets plugin) so edge-to-edge paint matches CSS safe-area.
 
 ## Prerequisites
 
-**Required before running desktop commands:**
-
-1. **[Rust](https://www.rust-lang.org/tools/install)** – Install via [rustup](https://rustup.rs/):
-
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   ```
-
-   **Verify installation:**
-
-   ```bash
-   cargo --version
-   rustc --version
-   ```
-
-   If these commands fail, restart your terminal or run `source ~/.cargo/env`.
-
-2. **[Node](https://nodejs.org/)** 18+ and a package manager (npm, pnpm, or yarn)
-
-**Platform-specific requirements** (see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)):
-
-- **macOS**: Xcode Command Line Tools (`xcode-select --install`)
-- **Windows**: Microsoft Visual Studio C++ Build Tools, WebView2
-- **Linux**: webkit2gtk, and other dev packages (see Tauri docs)
-
-> **Note**: If you see `failed to run 'cargo metadata'`, Rust/Cargo is not installed or not in your PATH.
-
-## Quick start
-
-From your Shellui project directory:
+1. **Rust** via [rustup](https://rustup.rs/):
 
 ```bash
-# Development: Shellui server + native window
-shellui dev --app
-
-# Production: web build + native desktop app (.app on macOS)
-shellui build --app
-
-# Production + macOS DMG installer (for distribution)
-npx shellui build --app --bundles app,dmg
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-On first run, the CLI:
+Confirm with `cargo --version` and `rustc --version`. If those fail, restart the terminal or run `source ~/.cargo/env`. `failed to run 'cargo metadata'` means Cargo is missing or off PATH.
 
-1. Generates `dist/app/` with the desktop wrapper (implementation-specific project files)
-2. Installs desktop build dependencies (e.g. `@tauri-apps/cli`) if not already present
-3. Syncs `shellui.config.ts` (title, icon, port) into the generated wrapper
+2. **Node.js** 18+ and a package manager.
 
-`shellui start --app` works the same as `shellui dev --app`.
+Platform extras - see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
 
-## Build output layout
-
-| Command                                 | Output                                                |
-| --------------------------------------- | ----------------------------------------------------- |
-| `shellui build`                         | `dist/web/` — static site for hosting                 |
-| `shellui build --app`                   | `dist/web/` + `.app` bundle (macOS) under `dist/app/` |
-| `shellui build --app --bundles app,dmg` | Above + `.dmg` installer (macOS)                      |
-
-Everything under `dist/` is generated locally and gitignored — nothing to commit or hand-edit.
-
-## Configuration
-
-The CLI syncs these fields from `shellui.config.ts`:
-
-| Config field | Use in desktop app                         |
-| ------------ | ------------------------------------------ |
-| `title`      | Window title and app name                  |
-| `appIcon`    | App icon                                   |
-| `port`       | Dev server URL (`http://localhost:<port>`) |
-
-No extra config is needed for desktop vs web. The CLI sets the build target automatically when you use `--app`. Your `shellui.config.ts` stays the same for both.
+- **macOS:** Xcode Command Line Tools (`xcode-select --install`)
+- **Windows:** Visual Studio C++ Build Tools, WebView2
+- **Linux:** webkit2gtk and related packages listed in Tauri docs
 
 ## Commands
 
-| Command                                 | Description                                                                       |
-| --------------------------------------- | --------------------------------------------------------------------------------- |
-| `shellui dev --app`                     | Start Shellui dev server and open the native window                               |
-| `shellui build --app`                   | Build web app to `dist/web/`, then build the native desktop app (`.app` on macOS) |
-| `shellui build --app --bundles app,dmg` | Same, plus a macOS `.dmg` installer for distribution                              |
-
 ```bash
-shellui dev --app ./my-project
-shellui dev --app --host
-shellui build --app ./my-project
+shellui dev --app
+shellui build --app
 npx shellui build --app --bundles app,dmg
 ```
+
+`shellui start --app` is the same as `dev --app`. On first run the CLI generates `dist/app/`, installs desktop build tools if needed (for example `@tauri-apps/cli`), and syncs root `tauri.conf.json` plus `shellui.config.json` `port` into the wrapper.
+
+| Command                                 | Output                                             |
+| --------------------------------------- | -------------------------------------------------- |
+| `shellui build`                         | `dist/web/` static site                            |
+| `shellui build --app`                   | `dist/web/` plus `.app` on macOS under `dist/app/` |
+| `shellui build --app --bundles app,dmg` | Above plus a `.dmg`                                |
+
+Everything under `dist/` is generated and gitignored.
+
+## Configuration
+
+Optional **`tauri.conf.json`** next to `shellui.config.json`:
+
+```json
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Shellui",
+  "identifier": "com.shellui.app",
+  "bundle": {
+    "icon": ["static/icon.png"]
+  }
+}
+```
+
+| Field            | Use                                                                                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `productName`    | Dock / installer / window name for bundled apps. Defaults to `package.json` `name` with the first letter capitalized. During `tauri dev`, macOS uses the Cargo package name (kept in sync from `productName`) |
+| `identifier`     | Bundle id. Defaults from the product name                                                                                                                                                                     |
+| `bundle.icon`    | Source icon(s) relative to the project root (prefer an opaque `static/icon.png`). The CLI runs `tauri icon`                                                                                                   |
+| `app.windows[0]` | Optional window overrides. Overlay titlebar defaults stay unless you override them                                                                                                                            |
+
+From `shellui.config.json`: `port` is the dev URL (`http://localhost:<port>`); `title` is a fallback product name; `favicon` / `appIcon` are icon fallbacks when `bundle.icon` / `static/icon.png` are absent (`appIcon` is last and is a transparent chrome glyph). Prefer root `tauri.conf.json` for dock name and icon; keep `title` / `appIcon` for in-app chrome.
+
+On **macOS**, the window uses an overlay titlebar. Close / minimize / zoom are system traffic lights. Shellui centers them in the 42px sidebar chrome; web controls get a 2px top pad. Traffic-light **horizontal inset** applies only in a live Tauri webview on macOS while the window is **not** native fullscreen (Tauri `plugin:window|is_fullscreen` + `tauri://resize`). Opening the same `--target tauri` URL in a browser, or entering fullscreen, drops that spacing. **Back / Forward** stay in Tauri chrome (including native fullscreen). A full-width invisible 42px top strip (`data-tauri-drag-region`; needs `core:window:allow-start-dragging`) is mounted at the app root. Buttons sit above that strip so they stay clickable. Sidebar **Back** walks iframe history, including out of a login page.
 
 ## Bundle targets
 
-When you run `shellui build --app`, the CLI passes a `--bundles` flag to the desktop bundler (Tauri today). By default only the **`app`** target is built — on macOS that is a `.app` you can run directly from:
-
-```
-dist/app/src-tauri/target/release/bundle/macos/
-```
-
-This default avoids flaky macOS DMG packaging during local development.
-
-To also produce a **`.dmg` disk image** (for distribution or notarization), pass `--bundles app,dmg`:
+`shellui build --app` passes `--bundles` to Tauri. Default is **`app`** only (on macOS, `.app` under `dist/app/src-tauri/target/release/bundle/macos/`). That skips flaky DMG packaging during local builds.
 
 ```bash
 npx shellui build --app --bundles app,dmg
 ```
 
-The DMG is written under `dist/app/src-tauri/target/release/bundle/dmg/`.
-
-Other [Tauri bundle targets](https://v2.tauri.app/reference/config/#bundleconfig) (`deb`, `rpm`, `appimage`, `msi`, `nsis`, …) can be passed the same way if you need them on Linux or Windows.
-
-**`package.json` scripts example:**
+DMG lands under `dist/app/src-tauri/target/release/bundle/dmg/`. Other [Tauri bundle targets](https://v2.tauri.app/reference/config/#bundleconfig) (`deb`, `rpm`, `appimage`, `msi`, `nsis`) work the same way on Linux or Windows.
 
 ```json
 {
@@ -122,79 +126,25 @@ Other [Tauri bundle targets](https://v2.tauri.app/reference/config/#bundleconfig
 }
 ```
 
-## Development
-
-1. Run `shellui dev --app` from your project root.
-2. The CLI generates or updates `dist/app/`, syncs config, and starts the desktop dev environment.
-3. The Shellui dev server starts (via `shellui start --target tauri`) and a native window opens pointing at it.
-4. Edit your app or config; the web app hot-reloads as usual.
-
-## Production build
-
-1. Run `shellui build --app` from your project root.
-2. Web assets are built to `dist/web/`, then the native desktop app is built.
-3. On macOS, the `.app` bundle is under `dist/app/src-tauri/target/release/bundle/macos/`.
-
-For a macOS **DMG installer** (distribution):
-
-```bash
-npx shellui build --app --bundles app,dmg
-```
-
-See [Bundle targets](#bundle-targets) for details and other platforms.
-
 ## Icons
 
-Icon setup runs automatically during sync:
+Sync prefers `tauri.conf.json` → `bundle.icon`, then `static/icon.png`, then `favicon` / `static/favicon.svg` (not the transparent `appIcon` chrome glyph). The CLI generates PNG / ICNS / ICO via `tauri icon`, then falls back to bundled defaults. Use a solid-background square for the dock, padded to Apple's ~824/1024 grid on macOS. Keep `appIcon` as the mono mark for sidebar / app-bar chrome.
 
-1. Copies your icon from `appIcon` or `static/favicon.svg`
-2. Generates platform-specific icons when the source is SVG
-3. Falls back to bundled defaults if no icon is configured
+## Layout
 
-## Project layout
-
-```
+```text
 my-project/
-├── shellui.config.ts      # Shared config for web and desktop
-├── static/                  # Optional assets
-└── dist/                    # Generated (gitignored)
-    ├── web/                 # Web build
-    └── app/                 # Desktop wrapper (regenerated by --app)
+├── shellui.config.json
+├── static/
+└── dist/
+    ├── web/
+    └── app/
 ```
 
-You only maintain `shellui.config.ts` and your static assets. The desktop wrapper in `dist/app/` is an implementation detail — today Tauri, swappable without changing your workflow.
-
-## Shellui monorepo
-
-When developing Shellui itself, the monorepo provides `pnpm tauri:dev` and `pnpm tauri:build` via `tools/tauri/`. For apps built with the published CLI, use `shellui dev --app` and `shellui build --app`.
+When developing Shellui itself, the monorepo exposes `pnpm tauri:dev` and `pnpm tauri:build` via `tools/tauri/`. Published-CLI apps use `shellui dev --app` and `shellui build --app`.
 
 ## Troubleshooting
 
-### `failed to run 'cargo metadata'`
+**`failed to open icon .../icon.png`.** Remove `dist/app` and run `shellui dev --app` again.
 
-Rust/Cargo is not installed or not in PATH. Install via [rustup](https://rustup.rs/) and restart your terminal.
-
-### `failed to open icon .../icon.png`
-
-Regenerate the desktop wrapper:
-
-```bash
-rm -rf dist/app
-shellui dev --app
-```
-
-### `bundle_dmg.sh` failed (macOS)
-
-**What happened:** The app itself likely built successfully. Tauri then tries to create a `.dmg` disk image installer using `bundle_dmg.sh` — that optional packaging step failed. This is a [known flaky step](https://github.com/tauri-apps/tauri/issues/4995) on macOS (AppleScript, disk mounting, CI quirks).
-
-**Check for your app:** look for `dist/app/src-tauri/target/release/bundle/macos/*.app` — you can run it directly.
-
-**Default behavior:** `shellui build --app` now builds the `.app` bundle only (skips DMG) for a reliable local build.
-
-**For a DMG installer** (distribution):
-
-```bash
-shellui build --app --bundles app,dmg
-```
-
-If DMG still fails, try unmounting stale volumes: `hdiutil info` then `hdiutil detach /dev/diskX`.
+**`bundle_dmg.sh` failed (macOS).** Look for `.app` under `dist/app/src-tauri/target/release/bundle/macos/` - the app bundle can succeed when DMG packaging fails. Default `--app` skips DMG. If you requested `app,dmg` and it failed, unmount stale volumes (`hdiutil info`, then `hdiutil detach /dev/diskX`). This is a [known flaky Tauri step](https://github.com/tauri-apps/tauri/issues/4995).

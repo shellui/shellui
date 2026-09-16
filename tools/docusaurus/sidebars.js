@@ -13,7 +13,6 @@
 
 /** @type {import('@docusaurus/plugin-content-docs').Config} */
 const sidebars = {
-  // By default, Docusaurus generates a sidebar from the docs folder structure
   tutorialSidebar: [
     {
       type: 'doc',
@@ -25,10 +24,31 @@ const sidebars = {
       label: 'Getting Started',
       collapsed: false,
       items: [
-        'installation',
-        'quickstart',
-        'backend',
-        'features/authentication',
+        {
+          type: 'doc',
+          id: 'installation',
+          label: 'Installation',
+        },
+        {
+          type: 'doc',
+          id: 'quickstart',
+          label: 'Create a Project',
+        },
+        {
+          type: 'doc',
+          id: 'framework-starters',
+          label: 'Framework Starters',
+        },
+        {
+          type: 'doc',
+          id: 'backend',
+          label: 'Backend',
+        },
+        {
+          type: 'doc',
+          id: 'features/authentication',
+          label: 'Authentication',
+        },
       ],
     },
     {
@@ -41,9 +61,21 @@ const sidebars = {
           label: 'Navigation & Layout',
           collapsed: false,
           items: [
-            'features/navigation',
-            'features/layouts',
-            'features/modals-drawers',
+            {
+              type: 'doc',
+              id: 'features/navigation',
+              label: 'Navigation',
+            },
+            {
+              type: 'doc',
+              id: 'features/layouts',
+              label: 'Layouts',
+            },
+            {
+              type: 'doc',
+              id: 'features/modals-drawers',
+              label: 'Modals & Drawers',
+            },
           ],
         },
         {
@@ -51,8 +83,16 @@ const sidebars = {
           label: 'Customization',
           collapsed: false,
           items: [
-            'features/themes',
-            'features/internationalization',
+            {
+              type: 'doc',
+              id: 'features/themes',
+              label: 'Themes',
+            },
+            {
+              type: 'doc',
+              id: 'features/internationalization',
+              label: 'Internationalization',
+            },
           ],
         },
         {
@@ -60,8 +100,21 @@ const sidebars = {
           label: 'User Interface',
           collapsed: false,
           items: [
-            'features/toasts',
-            'features/dialogs',
+            {
+              type: 'doc',
+              id: 'features/toasts',
+              label: 'Toasts',
+            },
+            {
+              type: 'doc',
+              id: 'features/dialogs',
+              label: 'Dialogs',
+            },
+            {
+              type: 'doc',
+              id: 'features/chrome-actions',
+              label: 'Floating chrome actions',
+            },
           ],
         },
         {
@@ -69,13 +122,41 @@ const sidebars = {
           label: 'Advanced',
           collapsed: false,
           items: [
-            'features/administration',
-            'features/storage',
-            'features/storage-picker',
-            'features/application-settings',
-            'features/cookie-consent',
-            'features/legal-documents',
-            'features/service-worker',
+            {
+              type: 'doc',
+              id: 'features/administration',
+              label: 'Administration',
+            },
+            {
+              type: 'doc',
+              id: 'features/storage',
+              label: 'Storage',
+            },
+            {
+              type: 'doc',
+              id: 'features/storage-picker',
+              label: 'Storage Picker',
+            },
+            {
+              type: 'doc',
+              id: 'features/application-settings',
+              label: 'Application Settings',
+            },
+            {
+              type: 'doc',
+              id: 'features/cookie-consent',
+              label: 'Cookie Consent',
+            },
+            {
+              type: 'doc',
+              id: 'features/legal-documents',
+              label: 'Legal Documents',
+            },
+            {
+              type: 'doc',
+              id: 'features/service-worker',
+              label: 'Service Worker',
+            },
           ],
         },
       ],
@@ -85,10 +166,26 @@ const sidebars = {
       label: 'Packages',
       collapsed: false,
       items: [
-        'cli',
-        'core',
-        'sdk',
-        'tauri',
+        {
+          type: 'doc',
+          id: 'cli',
+          label: 'CLI',
+        },
+        {
+          type: 'doc',
+          id: 'core',
+          label: 'Core',
+        },
+        {
+          type: 'doc',
+          id: 'sdk',
+          label: 'SDK',
+        },
+        {
+          type: 'doc',
+          id: 'tauri',
+          label: 'Desktop App',
+        },
       ],
     },
     {
@@ -96,8 +193,26 @@ const sidebars = {
       label: 'Guides',
       collapsed: false,
       items: [
-        'development',
-        'publishing',
+        {
+          type: 'doc',
+          id: 'development',
+          label: 'Development',
+        },
+        {
+          type: 'doc',
+          id: 'publishing',
+          label: 'Publishing',
+        },
+        {
+          type: 'doc',
+          id: 'sentry',
+          label: 'Sentry',
+        },
+        {
+          type: 'doc',
+          id: 'adr/ai-skill',
+          label: 'ADR 0001',
+        },
       ],
     },
   ],

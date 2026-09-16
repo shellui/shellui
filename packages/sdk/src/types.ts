@@ -1,5 +1,5 @@
 /**
- * ShellUI SDK Type Definitions
+ * Shellui SDK Type Definitions
  */
 
 export interface ShellUIUrlPayload {
@@ -93,7 +93,7 @@ export interface SettingsAdministration {
 }
 
 /**
- * Storage-service connection from host `storage` in shellui.config.ts.
+ * Storage-service connection from host `storage` in shellui.config.json.
  * Used by Admin → Storage, Settings → Storage (quota), and the SDK file API
  * (`shellui.storage`) which the shell executes against this URL.
  */
@@ -102,6 +102,19 @@ export interface SettingsStorage {
   url: string;
   /** Files explorer app URL when configured. */
   filesUrl?: string | null;
+}
+
+/**
+ * Hosting-service connection from host `hosting` in shellui.config.json.
+ * Used by iframe apps that need the hosting API base URL and default app slug.
+ */
+export interface SettingsHosting {
+  /** Base URL of hosting-service (no trailing slash). */
+  url: string;
+  /** Default hosted app slug or UUID when configured. */
+  app?: string | null;
+  /** When false, admin panel hides Hosting navigation even if `url` is set. */
+  showInAdmin?: boolean;
 }
 
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
@@ -202,6 +215,43 @@ export interface SettingsUser {
   isCompanyOwner?: boolean;
 }
 
+/** Viewport tier used by adaptive layouts (e.g. floating). */
+export type LayoutChromeViewport = 'mobile' | 'tablet' | 'desktop';
+
+/** CSS-pixel insets the shell chrome occupies over full-bleed content. */
+export interface LayoutChromeInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/**
+ * Layout chrome snapshot for embedded apps.
+ * Keep content clear of floating nav by applying these insets (auto or manually).
+ */
+export interface LayoutChrome {
+  layout: string;
+  viewport: LayoutChromeViewport;
+  insets: LayoutChromeInsets;
+  chromeVisible: boolean;
+  /** When true (default), SDK applies body padding from insets after init / chrome updates. */
+  autoPadding: boolean;
+}
+
+/** Payload for `SHELLUI_LAYOUT_CHROME` (shell → iframe). */
+export type LayoutChromePayload = {
+  layoutChrome: LayoutChrome;
+};
+
+/** Payload for `SHELLUI_CONTENT_SCROLL` (iframe → shell). */
+export type ContentScrollPayload = {
+  scrollY: number;
+  direction: 'up' | 'down' | 'none';
+  /** Pixels remaining until bottom of the scroller; used to re-show floating chrome. */
+  distanceFromBottom?: number;
+};
+
 export interface Settings {
   developerFeatures: {
     enabled: boolean;
@@ -244,24 +294,41 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
-  /** Override layout at runtime: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar'. When set, overrides config.layout (e.g. from Develop settings). */
-  layout?: 'sidebar' | 'fullscreen' | 'windows' | 'app-bar';
+  /** Override layout at runtime. When set, overrides config.layout (e.g. from Develop settings). */
+  layout?:
+    | 'sidebar'
+    | 'sidebar-inset'
+    | 'fullscreen'
+    | 'windows'
+    | 'app-bar'
+    | 'app-bar-inset'
+    | 'floating';
+  /**
+   * Floating chrome safe-area for iframe content (layout + viewport dependent).
+   * Published by the shell (e.g. floating); apps apply via `shellui.applyLayoutChrome()`.
+   */
+  layoutChrome?: LayoutChrome;
   /** Root-level navigation items (injected by shell when sending settings to sub-apps) */
   navigation?: {
     items: SettingsNavigationItem[];
   };
   /**
-   * Custom admin-panel navigation (from host `administration` in shellui.config.ts).
+   * Custom admin-panel navigation (from host `administration` in shellui.config.json).
    * Consumed by the staff admin app to render extra sidebar links below Dashboard.
    */
   administration?: SettingsAdministration | null;
   /**
-   * Storage-service connection (from host `storage` in shellui.config.ts).
+   * Storage-service connection (from host `storage` in shellui.config.json).
    * When set, Admin shows Storage and iframe apps can call `shellui.storage`.
    * Settings → Storage (quota) is a host UI and is omitted when `storage` is
    * unset or `showInSettings` is false.
    */
   storage?: SettingsStorage | null;
+  /**
+   * Hosting-service connection (from host `hosting` in shellui.config.json).
+   * Omitted or null when hosting is not configured.
+   */
+  hosting?: SettingsHosting | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**
@@ -270,7 +337,7 @@ export interface Settings {
    */
   accessToken?: string | null;
   /**
-   * ShellUI-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
+   * Shellui-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
    * Injected for trusted sub-apps (e.g. admin iframe) so they call the same backend as the shell.
    */
   authBackendBaseUrl?: string | null;
@@ -280,12 +347,113 @@ export interface Settings {
 
 export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
-/** Size as CSS length: e.g. "400px", "80vh", "50vw" */
-export interface OpenDrawerOptions {
+/**
+ * Named overlay size presets.
+ * - `content` — grow/shrink with iframe reports via `shellui.overlay.reportSize` / `autoSize`
+ * - CSS lengths (e.g. `"400px"`, `"80vh"`) remain supported for drawers
+ */
+export type OverlaySizePreset = 'sm' | 'md' | 'lg' | 'xl' | 'full' | 'content';
+
+export type OverlaySizeValue = OverlaySizePreset | (string & {});
+
+/** Shared size + dismiss options for modals and drawers. */
+export interface OverlayOpenOptions {
+  /**
+   * Size preset (`sm` | `md` | `lg` | `xl` | `full` | `content`) or a CSS length
+   * (e.g. `"400px"`, `"80vh"`) for freeform drawer sizing.
+   */
+  size?: OverlaySizeValue;
+  /** Explicit width (CSS length or px number). Clamped to the viewport. */
+  width?: string | number;
+  /** Explicit height (CSS length or px number). Clamped to the viewport. */
+  height?: string | number;
+  maxWidth?: string | number;
+  maxHeight?: string | number;
+  /**
+   * When true (default), render the overlay chrome close (×) control.
+   * When false, the host app owns dismiss UI; Escape / overlay click / swipe
+   * still follow `dismissible` / `closeOnOverlayClick`.
+   */
+  showCloseButton?: boolean;
+  /**
+   * When true (default), Escape and swipe-to-dismiss can close the overlay.
+   * Set false to require an explicit close from app content or `closeModal` / `closeDrawer`.
+   */
+  dismissible?: boolean;
+  /** When true (default), clicking the backdrop closes the overlay. */
+  closeOnOverlayClick?: boolean;
+  /**
+   * When true, the overlay height follows iframe content via
+   * `shellui.overlay.autoSize()` / `SHELLUI_OVERLAY_SIZE` (same as `size: 'content'`).
+   * Manual resize is disabled while dynamic sizing is active.
+   */
+  dynamicSizing?: boolean;
+}
+
+export interface OpenModalOptions extends OverlayOpenOptions {
+  url?: string;
+  /**
+   * When true (default), desktop/tablet dialog can be dragged by its title bar.
+   * Ignored for mobile sheet presentation.
+   */
+  movable?: boolean;
+  /**
+   * When true (default), desktop/tablet dialog can be resized from edges/corners.
+   * Ignored for mobile sheet presentation.
+   */
+  resizable?: boolean;
+}
+
+export interface OpenDrawerOptions extends OverlayOpenOptions {
   url?: string;
   position?: DrawerPosition;
-  /** CSS length for drawer size: height for top/bottom (e.g. "80vh", "400px"), width for left/right (e.g. "50vw", "320px") */
-  size?: string;
+  /**
+   * Show the native drag handle when swipe-to-dismiss is enabled.
+   * Defaults to true when `dismissible` is true.
+   */
+  showDragHandle?: boolean;
+  /**
+   * When true (default), desktop drawers can be resized from the free edge
+   * (left/right width, top/bottom height). Ignored on mobile. Not movable.
+   */
+  resizable?: boolean;
+}
+
+/** Child → parent size report for content-sized overlays. */
+export interface OverlayReportSizeOptions {
+  /** Content height in CSS pixels. */
+  height: number;
+  /** Optional content width in CSS pixels. */
+  width?: number;
+  /** Optional id when multiple overlays could be open. */
+  overlayId?: string;
+}
+
+export interface OverlayAutoSizeOptions {
+  /** When true (default), start observing; when false, stop any active observer. */
+  observe?: boolean;
+  /** Also report width. Default true. */
+  includeWidth?: boolean;
+  /**
+   * Optional debounce interval in ms. Default 0 (report on the next animation frame).
+   * Set only if you need to coalesce noisy observers.
+   */
+  debounceMs?: number;
+  /**
+   * Element (or CSS selector) whose content size should be measured.
+   * Prefer a content-sized root — observing `html`/`body` alone often misses growth
+   * when they are `height: 100%` of a fixed iframe.
+   */
+  target?: Element | string | null;
+  overlayId?: string;
+}
+
+/** Payload for `SHELLUI_OVERLAY_SIZE` (iframe → shell). */
+export interface OverlaySizePayload {
+  version: 1;
+  height: number;
+  width?: number;
+  overlayId?: string;
 }
 
 /**
@@ -350,12 +518,98 @@ export type StorageSelectResponsePayload = {
   error?: { message: string; status?: number };
 };
 
+/** Button variants for chrome actions (back / trailing). Primary FAB stays `default`. */
+export const CHROME_ACTION_VARIANTS = [
+  'outline',
+  'secondary',
+  'default',
+  'ghost',
+  'destructive',
+] as const;
+export type ChromeActionVariant = (typeof CHROME_ACTION_VARIANTS)[number];
+/** Default for back / trailing when `variant` is omitted. */
+export const CHROME_ACTION_VARIANT_DEFAULT: ChromeActionVariant = 'outline';
+
+/** Icon animations the shell can apply to a chrome action glyph. */
+export const CHROME_ACTION_ANIMATIONS = ['icon-rotate'] as const;
+export type ChromeActionAnimation = (typeof CHROME_ACTION_ANIMATIONS)[number];
+
+/** Single chrome action button declared by an embedded app. */
+export type ChromeActionItem = {
+  /** Stable id used for click round-trip (`SHELLUI_ACTION`). Required. */
+  id: string;
+  /** Visible label (optional when `icon` is set). */
+  label?: string;
+  /**
+   * Icon for the control. Prefer one of:
+   * - Built-in name: `back`, `plus`, `more`, `edit`, `share`, `filter`, `archive`, `settings`, `delete`, `star`, `refresh`
+   * - Image / SVG URL or path the shell can load (`/icons/edit.svg`, `https://…`, `data:image/…`)
+   *
+   * Custom React nodes are not supported (actions cross the iframe boundary as JSON).
+   * Optional when `label` is set. With both, the host shows icon + label.
+   */
+  icon?: string;
+  /** Overrides the set-level `variant` for this control. */
+  variant?: ChromeActionVariant;
+  /** When true, the control is non-interactive (still visible). */
+  disabled?: boolean;
+  /**
+   * Animate the glyph. Use `icon-rotate` for a continuous spin (e.g. refresh / loading).
+   * Combine with `disabled: true` while work is in flight.
+   */
+  animate?: ChromeActionAnimation;
+  /** Invoked in the declaring iframe when the shell posts `SHELLUI_ACTION`. */
+  onClick?: () => void;
+};
+
+/**
+ * Declarative floating action chrome for one contentView / iframe.
+ * Apps must re-`set` or `clear` on their own SPA navigations — the shell does
+ * not infer routes from the iframe URL.
+ */
+export type ChromeActionsSpec = {
+  /**
+   * Default button variant for back + trailing controls.
+   * @default 'outline'
+   */
+  variant?: ChromeActionVariant;
+  back?: ChromeActionItem;
+  title?: string | { text: string };
+  trailing?: ChromeActionItem[];
+  primary?: ChromeActionItem;
+};
+
+/** Serializable chrome-action button (callbacks stripped). */
+export type ChromeActionPayloadItem = {
+  id: string;
+  label?: string;
+  icon?: string;
+  variant?: ChromeActionVariant;
+  disabled?: boolean;
+  animate?: ChromeActionAnimation;
+};
+
+/** Serializable payload sent to the shell (callbacks stripped). */
+export type ChromeActionsPayload = {
+  variant?: ChromeActionVariant;
+  back?: ChromeActionPayloadItem;
+  title?: string;
+  trailing?: ChromeActionPayloadItem[];
+  primary?: ChromeActionPayloadItem;
+};
+
+/** Max trailing actions kept after clamp (extras dropped with a warning). */
+export const CHROME_ACTIONS_MAX_TRAILING = 8;
+/** Trailing actions shown before the mobile / narrow `···` overflow menu. */
+export const CHROME_ACTIONS_VISIBLE_TRAILING = 3;
+
 export type ShellUIMessageType =
   | 'SHELLUI_URL_CHANGED'
   | 'SHELLUI_OPEN_MODAL'
   | 'SHELLUI_CLOSE_MODAL'
   | 'SHELLUI_OPEN_DRAWER'
   | 'SHELLUI_CLOSE_DRAWER'
+  | 'SHELLUI_OVERLAY_SIZE'
   | 'SHELLUI_NAVIGATE'
   | 'SHELLUI_SETTINGS_UPDATED'
   | 'SHELLUI_SETTINGS'
@@ -378,7 +632,12 @@ export type ShellUIMessageType =
   | 'SHELLUI_STORAGE_RESPONSE'
   | 'SHELLUI_SELECT_STORAGE'
   | 'SHELLUI_SELECT_STORAGE_RESULT'
-  | 'SHELLUI_UPLOAD_TOAST_DEMO';
+  | 'SHELLUI_UPLOAD_TOAST_DEMO'
+  | 'SHELLUI_LAYOUT_CHROME'
+  | 'SHELLUI_CONTENT_SCROLL'
+  | 'SHELLUI_ACTIONS_SET'
+  | 'SHELLUI_ACTIONS_CLEAR'
+  | 'SHELLUI_ACTION';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;
@@ -387,9 +646,13 @@ export interface ShellUIMessage {
     | Record<string, never>
     | { url?: string | null }
     | { url: string }
-    | { url?: string; position?: DrawerPosition; size?: string }
+    | OpenModalOptions
+    | OpenDrawerOptions
+    | OverlaySizePayload
     | ToastOptions
     | DialogOptions
+    | ChromeActionsPayload
+    | { id: string }
     | { [key: string]: unknown };
   from?: string[];
   to?: string[];

@@ -1,16 +1,19 @@
 /**
- * ShellUI SDK
- * Handles communication between the iframe content and the ShellUI parent frame.
+ * Shellui SDK
+ * Handles communication between the iframe content and the Shellui parent frame.
  */
 
 import { setupUrlMonitoring } from './utils/setupUrlMonitoring.js';
 import { setupKeyListener } from './utils/setupKeyListener.js';
 import { openModal as openModalAction } from './actions/openModal.js';
+import { closeModal as closeModalAction } from './actions/closeModal.js';
 import { openDrawer as openDrawerAction } from './actions/openDrawer.js';
 import { closeDrawer as closeDrawerAction } from './actions/closeDrawer.js';
+import { reportSize as overlayReportSize, autoSize as overlayAutoSize } from './actions/overlay.js';
 import { login as loginAction } from './actions/login.js';
 import { toast as toastAction } from './actions/toast.js';
 import { dialog as dialogAction } from './actions/dialog.js';
+import { actions as chromeActionsApi } from './actions/chromeActions.js';
 import {
   selectStorage as selectStorageAction,
   selectFolders as selectFoldersAction,
@@ -26,12 +29,25 @@ import type {
   DialogOptions,
   Settings,
   OpenDrawerOptions,
+  OpenModalOptions,
+  OverlayAutoSizeOptions,
+  OverlayReportSizeOptions,
   LoginOptions,
   StorageSelectOptions,
   StorageSelectResult,
+  LayoutChrome,
+  ContentScrollPayload,
+  ChromeActionsSpec,
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
+import {
+  applyLayoutChromeStyles,
+  getScrollMetrics,
+  scrollDirectionFromDelta,
+  setLayoutChromeAnimationsEnabled,
+  LAYOUT_CHROME_ANIMATE_READY_MS,
+} from './layoutChrome.js';
 
 import packageJson from '../package.json';
 
@@ -46,7 +62,14 @@ export type {
   AlertDialogSize,
   DialogPosition,
   DrawerPosition,
+  OverlaySizePreset,
+  OverlaySizeValue,
+  OverlayOpenOptions,
+  OpenModalOptions,
   OpenDrawerOptions,
+  OverlayReportSizeOptions,
+  OverlayAutoSizeOptions,
+  OverlaySizePayload,
   LoginOptions,
   StorageSelectOptions,
   StorageSelectResult,
@@ -54,6 +77,12 @@ export type {
   StorageSelectMode,
   StorageSelectRequestPayload,
   StorageSelectResponsePayload,
+  ChromeActionItem,
+  ChromeActionsSpec,
+  ChromeActionsPayload,
+  ChromeActionVariant,
+  ChromeActionAnimation,
+  ChromeActionPayloadItem,
   LoggerInstance,
   Settings,
   SettingsUser,
@@ -61,12 +90,53 @@ export type {
   SettingsAdministration,
   SettingsAdministrationNavigationItem,
   SettingsStorage,
+  SettingsHosting,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,
   SettingsAvailableTheme,
   Appearance,
+  LayoutChrome,
+  LayoutChromeInsets,
+  LayoutChromeViewport,
+  LayoutChromePayload,
+  ContentScrollPayload,
 } from './types.js';
+
+export {
+  CHROME_ACTIONS_MAX_TRAILING,
+  CHROME_ACTIONS_VISIBLE_TRAILING,
+  CHROME_ACTION_VARIANTS,
+  CHROME_ACTION_VARIANT_DEFAULT,
+  CHROME_ACTION_ANIMATIONS,
+} from './types.js';
+
+export { clampChromeActions } from './actions/clampChromeActions.js';
+
+export {
+  applyLayoutChromeStyles,
+  ensureLayoutChromePadStyles,
+  getScrollMetrics,
+  reduceScrollChromeVisibility,
+  scrollDirectionFromDelta,
+  setLayoutChromeAnimationsEnabled,
+  LAYOUT_CHROME_CSS_VARS,
+  LAYOUT_CHROME_PAD_CLASS,
+  LAYOUT_CHROME_ANIMATE_ATTR,
+  LAYOUT_CHROME_INSET_TRANSITION_MS,
+  LAYOUT_CHROME_ANIMATE_READY_MS,
+} from './layoutChrome.js';
+
+export type { ScrollChromeState, ScrollMetrics, ContentScrollDirection } from './layoutChrome.js';
+
+/** Iframe helpers for content-sized modal/drawer overlays. */
+export const overlay = {
+  reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
+  autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+};
+
+/** Floating action chrome (back / title / trailing / primary FAB). */
+export const actions = chromeActionsApi;
 
 export { StorageError } from './storage/types.js';
 export type {
@@ -97,6 +167,15 @@ export class ShellUISDK {
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
   storage: StorageClient;
+  /** Cached layout chrome from settings / SHELLUI_LAYOUT_CHROME. */
+  layoutChrome: LayoutChrome | null = null;
+  private _autoLayoutPadding = true;
+  private _lastReportedScrollY = 0;
+  /** After boot settle, inset padding transitions animate (clear / re-activate). */
+  private _layoutChromeAnimateReady = false;
+  private _layoutChromeAnimateTimer: ReturnType<typeof setTimeout> | null = null;
+  /** In-flight init so concurrent callers (e.g. React StrictMode) share one setup. */
+  private _initPromise: Promise<this> | null = null;
 
   constructor() {
     this.currentPath =
@@ -111,23 +190,157 @@ export class ShellUISDK {
     this.storage = new StorageClient(createPostMessageTransport(this));
   }
 
-  async init(): Promise<this> {
+  async init(options?: { autoLayoutPadding?: boolean }): Promise<this> {
     if (this.initialized) return this;
+    if (this._initPromise) return this._initPromise;
+
+    this._initPromise = this._runInit(options).catch((error) => {
+      // Allow a clean retry after a failed init.
+      this._initPromise = null;
+      throw error;
+    });
+    return this._initPromise;
+  }
+
+  private async _runInit(options?: { autoLayoutPadding?: boolean }): Promise<this> {
+    if (options?.autoLayoutPadding === false) {
+      this._autoLayoutPadding = false;
+    }
 
     await setupUrlMonitoring(this);
     await this.messageListenerRegistry.setupGlobalListener();
     await setupKeyListener();
     await this._setupCallbackListeners();
     await this._setupInitialSettings();
+    this._setupLayoutChromeListeners();
+    this._applyChromeFromSettings(this.initialSettings ?? undefined);
+    // Seed 0px inset padding so later action-chrome updates can CSS-transition
+    // instead of jumping when the pad class is first added.
+    if (this._autoLayoutPadding !== false) {
+      this.applyLayoutChrome();
+    }
+    this._setupContentScrollReporting();
 
     this.initialized = true;
-    logger.info(`ShellUI SDK ${this.version} initialized`);
+    logger.info(`Shellui SDK ${this.version} initialized`);
 
     this.sendMessageToParent({
       type: 'SHELLUI_INITIALIZED',
       payload: {},
     });
-    return Promise.resolve(this);
+    return this;
+  }
+
+  getLayoutChrome(): LayoutChrome | null {
+    return this.layoutChrome ?? this.initialSettings?.layoutChrome ?? null;
+  }
+
+  /**
+   * Apply layout chrome CSS variables. When autoPadding is on, keeps
+   * `shellui-apply-layout-chrome-pad` on `document.body` (including at 0px) so
+   * inset changes — e.g. action buttons show/hide — animate via CSS.
+   * The iframe stays 100%; padding is inside the app.
+   *
+   * First paints after init snap without transition; later updates animate.
+   */
+  applyLayoutChrome(options?: { autoPadding?: boolean; el?: HTMLElement }): void {
+    const chrome = this.getLayoutChrome();
+    const autoPadding =
+      options?.autoPadding ?? this._autoLayoutPadding ?? chrome?.autoPadding ?? true;
+    applyLayoutChromeStyles(chrome, {
+      el: options?.el,
+      autoPadding,
+      animate: this._layoutChromeAnimateReady,
+    });
+    this._scheduleLayoutChromeAnimations();
+  }
+
+  /** Enable inset/pad transitions after boot-time chrome applies settle. */
+  private _scheduleLayoutChromeAnimations(): void {
+    if (this._layoutChromeAnimateReady || typeof window === 'undefined') return;
+    if (this._layoutChromeAnimateTimer !== null) {
+      clearTimeout(this._layoutChromeAnimateTimer);
+    }
+    this._layoutChromeAnimateTimer = setTimeout(() => {
+      this._layoutChromeAnimateReady = true;
+      this._layoutChromeAnimateTimer = null;
+      setLayoutChromeAnimationsEnabled(true);
+    }, LAYOUT_CHROME_ANIMATE_READY_MS);
+  }
+
+  /** Report iframe scroll so the shell can hide/show floating chrome (floating). */
+  reportContentScroll(payload: ContentScrollPayload): void {
+    this.sendMessageToParent({
+      type: 'SHELLUI_CONTENT_SCROLL',
+      payload,
+    });
+  }
+
+  private _applyChromeFromSettings(settings: Settings | undefined): void {
+    if (settings?.layoutChrome) {
+      this.layoutChrome = settings.layoutChrome;
+      if (this._autoLayoutPadding !== false && settings.layoutChrome.autoPadding !== false) {
+        this.applyLayoutChrome();
+      } else if (settings.layoutChrome) {
+        this.applyLayoutChrome({ autoPadding: false });
+      }
+    }
+  }
+
+  private _setupLayoutChromeListeners(): void {
+    const onChrome = (data: ShellUIMessage) => {
+      const payload = data.payload as { layoutChrome?: LayoutChrome } | undefined;
+      if (payload?.layoutChrome) {
+        this.layoutChrome = payload.layoutChrome;
+        if (this.initialSettings) {
+          this.initialSettings = { ...this.initialSettings, layoutChrome: payload.layoutChrome };
+        }
+        if (this._autoLayoutPadding !== false && payload.layoutChrome.autoPadding !== false) {
+          this.applyLayoutChrome();
+        } else {
+          this.applyLayoutChrome({ autoPadding: false });
+        }
+      }
+    };
+
+    this.addMessageListener('SHELLUI_LAYOUT_CHROME', onChrome);
+
+    const onSettings = (data: ShellUIMessage) => {
+      const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
+      this._applyChromeFromSettings(settings);
+    };
+    this.addMessageListener('SHELLUI_SETTINGS', onSettings);
+    this.addMessageListener('SHELLUI_SETTINGS_UPDATED', onSettings);
+  }
+
+  private _setupContentScrollReporting(): void {
+    if (typeof window === 'undefined' || window.parent === window) return;
+
+    let raf = 0;
+    const report = (target: EventTarget | null) => {
+      const metrics = getScrollMetrics(target ?? document);
+      if (!metrics) return;
+      const direction = scrollDirectionFromDelta(metrics.scrollY - this._lastReportedScrollY);
+      this._lastReportedScrollY = metrics.scrollY;
+      this.reportContentScroll({
+        scrollY: metrics.scrollY,
+        direction,
+        distanceFromBottom: metrics.distanceFromBottom,
+      });
+    };
+
+    const onScroll = (event: Event) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        report(event.target);
+      });
+    };
+
+    // Capture nested overflow scrollers (Settings panels, etc.) — scroll does not bubble.
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true });
+    // Initial edge state for host fades / chrome (before any user scroll).
+    requestAnimationFrame(() => report(document));
   }
 
   private async _setupInitialSettings(): Promise<void> {
@@ -139,6 +352,9 @@ export class ShellUISDK {
       const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
       if (settings) {
         this.initialSettings = settings;
+        if (settings.layoutChrome) {
+          this.layoutChrome = settings.layoutChrome;
+        }
       }
     };
 
@@ -219,6 +435,16 @@ export class ShellUISDK {
       }
     });
 
+    // Sticky chrome actions — do not clear callbacks on click (until set/clear).
+    this.addMessageListener('SHELLUI_ACTION', (data) => {
+      const { id } = (data.payload as { id?: string }) ?? {};
+      if (id) {
+        this.callbackRegistry.triggerAction(id);
+      } else {
+        logger.warn('SHELLUI_ACTION message missing id');
+      }
+    });
+
     this.addMessageListener('SHELLUI_REFRESH_PAGE', () => {
       if (typeof window !== 'undefined' && window.parent === window) {
         window.location.reload();
@@ -226,8 +452,27 @@ export class ShellUISDK {
     });
   }
 
-  openModal(url?: string): void {
-    openModalAction(url);
+  /** Iframe helpers for content-sized modal/drawer overlays. */
+  overlay = {
+    reportSize: (options: OverlayReportSizeOptions): void => overlayReportSize(options),
+    autoSize: (options?: OverlayAutoSizeOptions): (() => void) => overlayAutoSize(options),
+  };
+
+  /**
+   * Floating action chrome. Re-`set` / `clear` on in-app SPA navigations —
+   * the shell does not infer actions from the iframe URL.
+   */
+  actions = {
+    set: (spec: ChromeActionsSpec): void => chromeActionsApi.set(spec),
+    clear: (): void => chromeActionsApi.clear(),
+  };
+
+  openModal(urlOrOptions?: string | OpenModalOptions): void {
+    openModalAction(urlOrOptions);
+  }
+
+  closeModal(): void {
+    closeModalAction();
   }
 
   openDrawer(options?: OpenDrawerOptions): void {
@@ -317,9 +562,12 @@ export class ShellUISDK {
 
 const sdk = new ShellUISDK();
 
-export const init = async (): Promise<ShellUISDK> => await sdk.init();
+export const init = async (options?: { autoLayoutPadding?: boolean }): Promise<ShellUISDK> =>
+  await sdk.init(options);
 export const getVersion = (): string => sdk.getVersion();
-export const openModal = (url?: string): void => openModalAction(url);
+export const openModal = (urlOrOptions?: string | OpenModalOptions): void =>
+  openModalAction(urlOrOptions);
+export const closeModal = (): void => closeModalAction();
 export const openDrawer = (options?: OpenDrawerOptions): void => openDrawerAction(options);
 export const closeDrawer = (): void => closeDrawerAction();
 export const navigate = (url: string): void => sdk.navigate(url);

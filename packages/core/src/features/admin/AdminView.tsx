@@ -2,14 +2,22 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Outlet, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/ui/button';
 import { ContentView } from '../../components/ContentView';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { LoginButton } from '../auth/components/LoginButton';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { AppLayout } from '../layouts/AppLayout';
+import {
+  isShellUiRootWindow,
+  SafeAreaTopbarOffset,
+  SafeAreaTopbarStrip,
+} from '../layouts/chrome/SafeAreaTopbar';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { getAdminContentUrl, getAdminPath } from './config';
 import { buildAdminIframeSrc } from './utils';
+
+const ADMIN_HEADER_HEIGHT_PX = 48;
 
 const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
   if (!allow) {
@@ -23,6 +31,7 @@ export const AdminView = () => {
   const location = useLocation();
   const { config } = useConfig();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
   const adminPath = getAdminPath(config);
   const baseAdminContentUrl = getAdminContentUrl(config);
@@ -56,10 +65,30 @@ export const AdminView = () => {
     }
   }, [config?.title]);
 
+  const showSafeAreaTopbar = isShellUiRootWindow();
+  const headerStyle = {
+    paddingLeft: 'max(0.5rem, var(--shellui-safe-area-left))',
+    paddingRight: 'max(0.75rem, var(--shellui-safe-area-right))',
+    ...(isMobile && showSafeAreaTopbar
+      ? {
+          paddingTop: 'var(--shellui-safe-area-top)',
+          height: `calc(${ADMIN_HEADER_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
+        }
+      : { height: ADMIN_HEADER_HEIGHT_PX }),
+  } as const;
+
   return (
     <AppLayout>
-      <div className="flex h-full w-full flex-col overflow-hidden bg-background">
-        <header className="flex h-12 shrink-0 items-center justify-between border-b bg-card px-2 md:px-3">
+      <div
+        data-shellui-admin-layout=""
+        className="flex h-full w-full flex-col overflow-hidden bg-background"
+      >
+        <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
+        <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
+        <header
+          className="flex shrink-0 items-center justify-between border-b bg-card"
+          style={headerStyle}
+        >
           <Button
             type="button"
             variant="ghost"

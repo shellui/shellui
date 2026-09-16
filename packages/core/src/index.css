@@ -1,8 +1,6 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source(none);
 
-/* Explicitly tell Tailwind to scan this directory for utility classes.
- * Without this, Tailwind v4 skips source files inside node_modules,
- * which breaks consumers that use @shellui/cli with the core's src/. */
+/* Scan only this package's src — never the consumer project (cwd). */
 @source ".";
 
 @custom-variant dark (&:is(.dark *));
@@ -16,73 +14,487 @@
  * for JavaScript overrides to work properly
  */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 142 71% 45%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --background: oklch(1 0.0001 263.2831);
+  --foreground: oklch(0.2101 0.0318 264.6685);
+  --card: oklch(0.9846 0.0018 248.5713);
+  --card-foreground: oklch(0.2101 0.0318 264.6685);
+  --popover: oklch(1 0.0001 263.2831);
+  --popover-foreground: oklch(0.2101 0.0318 264.6685);
+  --primary: oklch(0.7609 0.1541 80.8397);
+  --primary-foreground: oklch(0.195 0.0239 83.9752);
+  --secondary: oklch(0.967 0.003 264.5101);
+  --secondary-foreground: oklch(0.2101 0.0318 264.6685);
+  --muted: oklch(0.967 0.003 264.5101);
+  --muted-foreground: oklch(0.551 0.0234 264.3657);
+  --accent: oklch(0.967 0.003 264.5101);
+  --accent-foreground: oklch(0.2101 0.0318 264.6685);
+  --destructive: oklch(0.5771 0.2151 27.3175);
+  --destructive-foreground: oklch(1 0.0001 263.2831);
+  --border: oklch(0.9276 0.0059 264.5182);
+  --input: oklch(0.9276 0.0059 264.5182);
+  --ring: oklch(0.6894 0.1397 83.6763);
   --radius: 0.5rem;
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 240 5.3% 26.1%;
-  --sidebar-primary: 240 5.9% 10%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 240 4.8% 95.9%;
-  --sidebar-accent-foreground: 240 5.9% 10%;
-  --sidebar-border: 220 13% 91%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --sidebar-background: oklch(0.9846 0.0018 248.5713);
+  --sidebar-foreground: oklch(0.4461 0.0264 256.8155);
+  --sidebar-primary: oklch(0.7609 0.1541 80.8397);
+  --sidebar-primary-foreground: oklch(0.195 0.0239 83.9752);
+  --sidebar-accent: oklch(0.967 0.003 264.5101);
+  --sidebar-accent-foreground: oklch(0.2101 0.0318 264.6685);
+  --sidebar-border: oklch(0.9276 0.0059 264.5182);
+  --sidebar-ring: oklch(0.6894 0.1397 83.6763);
+  --sidebar: var(--sidebar-background);
+  /* Tray behind inset content — slight darken of sidebar for edge contrast. */
+  --shellui-inset-chrome: color-mix(in oklch, var(--sidebar) 97%, black);
+  /* Hover / selected chips on the inset tray — subtle contrast against chrome. */
+  --shellui-inset-accent: color-mix(
+    in oklch,
+    var(--shellui-inset-chrome) 90%,
+    var(--sidebar-foreground)
+  );
+  --shellui-inset-accent-foreground: var(--sidebar-foreground);
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 142 71% 55%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 212.7 26.8% 83.9%;
-  --sidebar-background: 240 5.9% 10%;
-  --sidebar-foreground: 240 4.8% 95.9%;
-  --sidebar-primary: 224.3 76.3% 94.9%;
-  --sidebar-primary-foreground: 240 5.9% 10%;
-  --sidebar-accent: 240 3.7% 15.9%;
-  --sidebar-accent-foreground: 240 4.8% 95.9%;
-  --sidebar-border: 240 3.7% 15.9%;
-  --sidebar-ring: 217.2 91.2% 59.8%;
+  --background: oklch(0.1296 0.0274 261.6981);
+  --foreground: oklch(0.9846 0.0018 248.5713);
+  --card: oklch(0.2101 0.0318 264.6685);
+  --card-foreground: oklch(0.9846 0.0018 248.5713);
+  --popover: oklch(0.2101 0.0318 264.6685);
+  --popover-foreground: oklch(0.9846 0.0018 248.5713);
+  --primary: oklch(0.8061 0.1364 84.8895);
+  --primary-foreground: oklch(0.195 0.0239 83.9752);
+  --secondary: oklch(0.2781 0.0296 256.8577);
+  --secondary-foreground: oklch(0.9846 0.0018 248.5713);
+  --muted: oklch(0.2781 0.0296 256.8577);
+  --muted-foreground: oklch(0.7137 0.0192 261.335);
+  --accent: oklch(0.2781 0.0296 256.8577);
+  --accent-foreground: oklch(0.9846 0.0018 248.5713);
+  --destructive: oklch(0.6369 0.2078 25.3221);
+  --destructive-foreground: oklch(1 0.0001 263.2831);
+  --border: oklch(0.2781 0.0296 256.8577);
+  --input: oklch(0.2781 0.0296 256.8577);
+  --ring: oklch(0.8061 0.1364 84.8895);
+  --radius: 0.5rem;
+  --sidebar-background: oklch(0.2101 0.0318 264.6685);
+  --sidebar-foreground: oklch(0.9276 0.0059 264.5182);
+  --sidebar-primary: oklch(0.8061 0.1364 84.8895);
+  --sidebar-primary-foreground: oklch(0.195 0.0239 83.9752);
+  --sidebar-accent: oklch(0.2781 0.0296 256.8577);
+  --sidebar-accent-foreground: oklch(0.9846 0.0018 248.5713);
+  --sidebar-border: oklch(0.2781 0.0296 256.8577);
+  --sidebar-ring: oklch(0.8061 0.1364 84.8895);
+  --sidebar: var(--sidebar-background);
+  /* Dark: lift the tray slightly — sidebar is already lighter than background, so darkening hides the edge. */
+  --shellui-inset-chrome: color-mix(in oklch, var(--sidebar) 88%, white);
+  /* Hover / selected chips on the inset tray — subtle contrast against chrome. */
+  --shellui-inset-accent: color-mix(
+    in oklch,
+    var(--shellui-inset-chrome) 88%,
+    var(--sidebar-foreground)
+  );
+  --shellui-inset-accent-foreground: var(--sidebar-foreground);
+}
+
+/*
+ * Padding only — never fold these into shell height. Use for chrome clearance
+ * (titlebar, sheet edges, home indicator). The shell itself is sized by
+ * --shellui-app-height (100dvh in CSS).
+ */
+:root {
+  --shellui-app-height: 100dvh;
+  --shellui-safe-area-top: env(safe-area-inset-top, 0px);
+  --shellui-safe-area-right: env(safe-area-inset-right, 0px);
+  --shellui-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --shellui-safe-area-left: env(safe-area-inset-left, 0px);
+  /*
+   * Max height for sheets / modals / drawers. Leaves the top safe area clear.
+   */
+  --shellui-overlay-max-height: calc(
+    var(--shellui-app-height) - var(--shellui-safe-area-top) - 0.5rem
+  );
+}
+
+/*
+ * Content padding that clears the notch / home indicator, then keeps the
+ * configured inset beyond that edge. Override with --shellui-safe-pad-x / -y.
+ */
+.shellui-safe-pad {
+  padding-top: calc(var(--shellui-safe-pad-y, 1.5rem) + var(--shellui-safe-area-top));
+  padding-right: calc(var(--shellui-safe-pad-x, 1.5rem) + var(--shellui-safe-area-right));
+  padding-bottom: calc(var(--shellui-safe-pad-y, 1.5rem) + var(--shellui-safe-area-bottom));
+  padding-left: calc(var(--shellui-safe-pad-x, 1.5rem) + var(--shellui-safe-area-left));
+}
+
+/*
+ * Floating layout glass chrome (frosted blur + translucent fill).
+ * Colors follow sidebar tokens so themes restyle chrome with the rest of nav.
+ *
+ * Radius:
+ * - Desktop sidebar: theme radius, capped at 0.5rem
+ * - Mobile tab bar: binary — 0 when theme radius is 0, else full pill (50%)
+ */
+:root {
+  --shellui-inset-top: 0px;
+  --shellui-inset-right: 0px;
+  --shellui-inset-bottom: 0px;
+  --shellui-inset-left: 0px;
+  --shellui-floating-sidebar-radius: min(var(--radius), 5rem);
+  /* Any positive --radius → huge radius (pill); 0 → square. */
+  --shellui-floating-mobile-radius: calc(var(--radius) * 999);
+}
+
+.shellui-floating-glass {
+  color: var(--sidebar-foreground);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 40%, transparent) 0%,
+      color-mix(in oklch, white 10%, transparent) 42%,
+      color-mix(in oklch, white 16%, transparent) 100%
+    ),
+    /* Frost from sidebar surface so chrome tracks theme, not raw background grey */
+    color-mix(in oklch, var(--sidebar) 82%, transparent);
+  backdrop-filter: blur(40px) saturate(160%);
+  -webkit-backdrop-filter: blur(40px) saturate(160%);
+  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 40%, transparent) inset,
+    0 -1px 0 color-mix(in oklch, black 6%, transparent) inset,
+    0 10px 32px color-mix(in oklch, black 14%, transparent),
+    0 2px 6px color-mix(in oklch, black 6%, transparent);
+}
+
+.shellui-floating-sidebar-panel .shellui-floating-glass,
+.shellui-floating-sidebar-chip .shellui-floating-glass {
+  border-radius: var(--shellui-floating-sidebar-radius);
+}
+
+.dark .shellui-floating-glass {
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in oklch, white 16%, transparent) 0%,
+      color-mix(in oklch, white 4%, transparent) 45%,
+      color-mix(in oklch, white 9%, transparent) 100%
+    ),
+    color-mix(in oklch, var(--sidebar) 78%, transparent);
+  border-color: color-mix(in oklch, var(--sidebar-border) 90%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in oklch, white 12%, transparent) inset,
+    0 -1px 0 color-mix(in oklch, black 30%, transparent) inset,
+    0 14px 40px color-mix(in oklch, black 40%, transparent),
+    0 2px 8px color-mix(in oklch, black 22%, transparent);
+}
+
+/* Desktop floating nav rows / chrome controls: match capped sidebar radius. */
+.shellui-floating-sidebar-panel .shellui-floating-nav-item,
+.shellui-floating-sidebar-panel .shellui-floating-nav-control {
+  border-radius: var(--shellui-floating-sidebar-radius);
+}
+
+/* Phone/tablet floating dock + pill FAB: binary radius (0 theme → square). */
+[data-shellui-floating-dock-list],
+[data-shellui-floating-dock-tab],
+[data-shellui-chrome-actions-fab][data-shellui-floating-fab='true'] {
+  border-radius: var(--shellui-floating-mobile-radius) !important;
+}
+
+/* Floating desktop sidebar collapse — transform/opacity only; respect reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .shellui-floating-sidebar-panel .shellui-floating-glass,
+  .shellui-floating-sidebar-chip .shellui-floating-glass,
+  [data-shellui-floating-dock],
+  [data-shellui-floating-dock-row],
+  [data-shellui-floating-dock-fab] {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/*
+ * Floating bottom dock hide-on-scroll (phone/tablet).
+ * Slide the whole dock (Tabs + FAB); appear slower, dismiss faster.
+ */
+[data-shellui-floating-dock] {
+  translate: 0 0;
+  transition-property: translate, opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-floating-dock][data-chrome-visible='false'] {
+  translate: 0 120%;
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-shellui-floating-dock] {
+    transition: none !important;
+  }
+}
+
+/*
+ * Floating action chrome hide-on-scroll (phone/tablet) — same timings as the
+ * dock: slide the wrapper, fade opacity. Appear slower; dismiss faster.
+ * Presence (set/clear) uses data-visible; scroll hide uses data-scroll-hidden.
+ * Corner FAB slot still used on non-docked layouts.
+ *
+ * Shell header layouts (sidebar / app-bar) opt into `data-shell-scroll-sync` and
+ * follow the shared `--shellui-chrome-hide-*` vars on <html> instead — see below.
+ */
+[data-shellui-chrome-actions-top='overlay'],
+[data-shellui-chrome-actions-fab-slot] {
+  opacity: 1;
+  translate: 0 0;
+  transition-property: translate, opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-visible='false'],
+[data-shellui-chrome-actions-fab-slot][data-visible='false'] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Presence-only dismiss stays snappy (not scroll hide). */
+[data-shellui-chrome-actions-top='overlay'][data-visible='false']:not([data-scroll-hidden='true']),
+[data-shellui-chrome-actions-fab-slot][data-visible='false']:not([data-scroll-hidden='true']) {
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+/* Floating / FAB scroll hide — own slide+fade (not shell-synced). */
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true']:not(
+    [data-shell-scroll-sync]
+  ),
+[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true']:not(
+    [data-shell-scroll-sync]
+  ) {
+  translate: 0 -120%;
+}
+
+[data-shellui-chrome-actions-fab-slot][data-scroll-hidden='true'] {
+  translate: 0 120%;
+}
+
+/*
+ * Shared mobile shell chrome motion (header + inset tray + top action row).
+ * One attribute on <html> sets the target; both consumers run the same local
+ * translate + opacity transition (same idea as the floating dock).
+ */
+[data-shellui-mobile-chrome-stack],
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+  translate: 0 0;
+  opacity: 1;
+  transition-property: translate, opacity;
+  transition-duration: 380ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-shellui-chrome-hidden='true'] [data-shellui-mobile-chrome-stack],
+html[data-shellui-chrome-hidden='true']
+  [data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+  translate: 0 -120%;
+  opacity: 0;
+  transition-duration: 160ms;
+  transition-timing-function: ease-in;
+}
+
+[data-shellui-mobile-chrome-stack][data-chrome-visible='false'],
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync][data-scroll-hidden='true'] {
+  pointer-events: none;
+}
+
+/* Presence clear still fades locally when actions are removed. */
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync][data-visible='false'] {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+/*
+ * Full-bleed iframe under inset chrome: tray band + box-shadow cutout for the
+ * top radius. Overlay is pointer-events: none so taps reach the iframe.
+ */
+[data-shellui-inset-radius-overlay]::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--shellui-shell-header-height, 0px);
+  background: var(--shellui-inset-chrome);
+}
+
+[data-shellui-inset-radius-cutout] {
+  position: absolute;
+  inset: 0;
+  top: var(--shellui-shell-header-height, 0px);
+  overflow: hidden;
+}
+
+[data-shellui-inset-radius-cutout]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem 1rem 0 0;
+  border: 1px solid var(--border);
+  border-bottom-width: 0;
+  box-shadow: 0 0 0 100vmax var(--shellui-inset-chrome);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-shellui-chrome-actions-top='overlay'],
+  [data-shellui-chrome-actions-fab-slot] {
+    transition: none !important;
+  }
+
+  [data-shellui-mobile-chrome-stack],
+  [data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+    transition: none !important;
+  }
+}
+
+/*
+ * Layout chrome safe insets — applied INSIDE the iframe app, never by shrinking
+ * the host iframe (main layout content stays 100%×100% under floating chrome).
+ * SDK auto-padding toggles `.shellui-apply-layout-chrome-pad` on `document.body`
+ * (and apps may put the class on their own scroll root).
+ */
+.shellui-apply-layout-chrome-pad {
+  padding-top: var(--shellui-inset-top, 0px);
+  padding-right: var(--shellui-inset-right, 0px);
+  padding-bottom: var(--shellui-inset-bottom, 0px);
+  padding-left: var(--shellui-inset-left, 0px);
+  box-sizing: border-box;
+}
+
+/* Animate live inset changes (action chrome, sidebar collapse, etc.). */
+@property --shellui-inset-top {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-right {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-bottom {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-inset-left {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --shellui-chrome-actions-leading-extra {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+/* Host: always animate inset CSS vars (sidebar collapse / floating chrome). */
+html {
+  transition:
+    --shellui-inset-top 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-right 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-bottom 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-inset-left 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    --shellui-chrome-actions-leading-extra 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* App body padding: only after SDK enables animations (skip initial load). */
+html[data-shellui-layout-chrome-animate] .shellui-apply-layout-chrome-pad {
+  transition:
+    padding-top 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-right 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-bottom 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding-left 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    transition: none;
+  }
+  html[data-shellui-layout-chrome-animate] .shellui-apply-layout-chrome-pad {
+    transition: none;
+  }
+}
+
+/* Scroll clearance so anchors/focus land clear of floating chrome. */
+html[data-shellui-layout-chrome-pad] .overflow-y-auto,
+html[data-shellui-layout-chrome-pad] .overflow-auto,
+html[data-shellui-layout-chrome-pad] [data-shellui-chrome-scroll] {
+  scroll-padding-top: var(--shellui-inset-top, 0px);
+  scroll-padding-bottom: var(--shellui-inset-bottom, 0px);
+  scroll-padding-left: var(--shellui-inset-left, 0px);
+  scroll-padding-right: var(--shellui-inset-right, 0px);
+}
+
+/*
+ * Installed web app: make <body> the containing block for fixed descendants
+ * (overlays, sheets, toasts). Pure CSS via display-mode — no JS attributes.
+ */
+@media (display-mode: standalone) {
+  body {
+    position: fixed;
+    inset: 0;
+    height: var(--shellui-app-height, 100dvh);
+    contain: layout paint;
+  }
 }
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    border-color: var(--border);
+  }
+  /*
+   * Interactive controls: pointer everywhere for consistency (raw <button>/links
+   * in layouts often omit Tailwind `cursor-pointer`; native UA default varies).
+   */
+  button:not(:disabled):not([disabled]),
+  [role='button']:not([aria-disabled='true']),
+  [role='menuitem'],
+  [role='tab'],
+  [role='option'],
+  [role='switch'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='link'],
+  a[href],
+  summary,
+  label[for],
+  input[type='button']:not(:disabled),
+  input[type='submit']:not(:disabled),
+  input[type='reset']:not(:disabled),
+  input[type='checkbox']:not(:disabled),
+  input[type='radio']:not(:disabled),
+  input[type='file']:not(:disabled),
+  select:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  button[disabled],
+  [role='button'][aria-disabled='true'],
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
   }
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(
       --body-font-family,
       var(
@@ -141,6 +553,16 @@
     filter: brightness(0.95);
   }
 
+  /* Shell chrome nav uses its own accent hover — don't stack the global brightness. */
+  [data-shellui-sidebar-layout] button:hover,
+  [data-shellui-sidebar-layout] [role='button']:hover,
+  [data-shellui-app-bar-layout] button:hover,
+  [data-shellui-app-bar-layout] [role='button']:hover,
+  [data-shellui-collapsed-titlebar] button:hover,
+  [data-shellui-collapsed-titlebar] [role='button']:hover {
+    filter: none;
+  }
+
   /* Playful input styling */
   input,
   textarea,
@@ -165,28 +587,6 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 }
-:root {
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
-.dark {
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
-}
-
 /* 
  * @theme directive for Tailwind v4
  * This registers CSS variables as theme tokens that Tailwind can use
@@ -196,33 +596,35 @@
 @theme {
   /* Register CSS variables as theme tokens - these reference the dynamic variables */
   /* Tailwind v4 will use these to generate utility classes */
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-sidebar-background: hsl(var(--sidebar-background));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar-background: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar: var(--sidebar);
+  --color-shellui-inset-chrome: var(--shellui-inset-chrome);
 
   /* Border radius tokens */
   --radius-lg: var(--radius);
@@ -230,9 +632,48 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+/* Inset layouts: keep Tauri collapsed titlebar on the chrome tray. */
+[data-shellui-layout-variant='inset'] [data-shellui-collapsed-titlebar] {
+  background-color: var(--shellui-inset-chrome);
+  border-bottom-color: transparent;
+}
+
+/*
+ * Inset layouts: remap sidebar accent tokens so hover / selected nav chips
+ * contrast against --shellui-inset-chrome (transparent sidebar / app-bar).
+ */
+[data-shellui-layout-variant='inset'] {
+  --sidebar-accent: var(--shellui-inset-accent);
+  --sidebar-accent-foreground: var(--shellui-inset-accent-foreground);
+  --color-sidebar-accent: var(--shellui-inset-accent);
+  --color-sidebar-accent-foreground: var(--shellui-inset-accent-foreground);
+}
+
+/*
+ * While switching themes, disable CSS transitions so colors snap instead of morphing.
+ * Do NOT disable animations — that restarts Radix dialog/drawer open animations and
+ * looks like the settings modal is closing and reopening on every theme change.
+ * Overlay surfaces keep their transitions so backdrop fade stays stable.
+ * Appearance theme controls keep transitions so disable/pending states can ease in.
+ */
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *),
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *)::before,
+html.shellui-theme-switching
+  *:not([data-dialog-overlay]):not([data-sheet-overlay]):not([data-drawer-overlay]):not(
+    [data-theme-switch-ui]
+  ):not([data-theme-switch-ui] *)::after {
+  transition: none !important;
+}
+
 @layer base {
   * {
-    outline-color: hsl(var(--ring) / 0.5);
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
   }
 
   /* Toaster must receive pointer events when a modal has body pointer-events: none (e.g. Radix).
@@ -242,53 +683,79 @@
     pointer-events: auto !important;
   }
 
+  /* Chrome-action controls portaled above overlay iframes (modal/drawer). */
+  [data-shellui-chrome-actions] [data-shellui-chrome-actions-hit] {
+    pointer-events: auto !important;
+  }
+
   /* Ensure Sonner toasts use theme variables - override Sonner defaults */
   [data-sonner-toast] {
-    background-color: hsl(var(--background)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
+    background-color: var(--background) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
   }
 
   [data-sonner-toast] [data-description] {
-    color: hsl(var(--muted-foreground)) !important;
+    color: var(--muted-foreground) !important;
   }
 
   [data-sonner-toast] [data-button],
   [data-sonner-toast] button[data-button] {
-    background-color: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
   }
 
   [data-sonner-toast] [data-button]:hover,
   [data-sonner-toast] button[data-button]:hover {
-    background-color: hsl(var(--primary) / 0.9) !important;
+    background-color: color-mix(in oklch, var(--primary) 90%, transparent) !important;
   }
 
   [data-sonner-toast] [data-cancel],
   [data-sonner-toast] button[data-cancel] {
-    background-color: hsl(var(--muted)) !important;
-    color: hsl(var(--muted-foreground)) !important;
+    background-color: var(--muted) !important;
+    color: var(--muted-foreground) !important;
   }
 
   [data-sonner-toast] [data-cancel]:hover,
   [data-sonner-toast] button[data-cancel]:hover {
-    background-color: hsl(var(--muted) / 0.8) !important;
+    background-color: color-mix(in oklch, var(--muted) 80%, transparent) !important;
+  }
+
+  /* Group cancel + action on the right. Sonner's unlayered CSS sets margin-auto on
+   * every button; !important beats it from @layer base. Target [data-cancel] — the
+   * close control is also a <button>, so :first-of-type is wrong. */
+  [data-sonner-toast][data-styled='true'] [data-button] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  [data-sonner-toast][data-styled='true'] [data-cancel],
+  [data-sonner-toast][data-styled='true']:not(:has([data-cancel])) [data-action] {
+    margin-left: auto !important;
+  }
+
+  [data-sonner-toaster][dir='rtl'] [data-sonner-toast][data-styled='true'] [data-cancel],
+  [data-sonner-toaster][dir='rtl']
+    [data-sonner-toast][data-styled='true']:not(:has([data-cancel]))
+    [data-action] {
+    margin-left: 0 !important;
+    margin-right: auto !important;
   }
 
   /* Success toast icon uses text color (no separate icon color) */
   [data-sonner-toast][data-type='success'] [data-icon],
   [data-sonner-toast][data-type='success'] [data-icon] svg {
-    color: hsl(var(--foreground)) !important;
+    color: var(--foreground) !important;
   }
 
   /* Color error toast icon */
   [data-sonner-toast][data-type='error'] [data-icon],
   [data-sonner-toast][data-type='error'] svg {
-    color: hsl(var(--destructive)) !important;
+    color: var(--destructive) !important;
   }
 
-  /* Invert sidebar icons in dark mode - target all icons in sidebar context */
-  /* Exclude app icon and logo which have their own rules */
+  /* Local /icons/ nav items use CSS mask + currentColor (see NavIcon) so they
+   * follow sidebar hover/active text. Keep invert only for legacy <img> icons. */
   .dark [data-sidebar='sidebar'] img[src*='/icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
   .dark [data-sidebar='sidebar'] img[src*='icons/']:not(.sidebar-app-icon):not(.sidebar-logo),
   .dark [data-sidebar='sidebar'] img[src$='.svg']:not(.sidebar-app-icon):not(.sidebar-logo) {
@@ -300,17 +767,28 @@
     filter: invert(1);
   }
 
-  /* Sidebar app icon - match text color for visibility */
-  /* In light mode: make icon dark to match dark text */
-  [data-sidebar='sidebar'] img.sidebar-app-icon {
+  /* Brand app icon - match chrome text color for visibility.
+   * Single-path assets use filters; paired light/dark files use .app-brand-icon-static (no filter). */
+  img.app-brand-icon,
+  [data-sidebar='sidebar'] img.sidebar-app-icon,
+  [data-layout='app-bar'] img.app-bar-app-icon,
+  img.windows-app-icon {
     filter: brightness(0) saturate(100%);
     opacity: 0.9;
   }
 
-  /* In dark mode: invert to make icon light to match light text */
-  .dark [data-sidebar='sidebar'] img.sidebar-app-icon {
+  .dark img.app-brand-icon,
+  .dark [data-sidebar='sidebar'] img.sidebar-app-icon,
+  .dark [data-layout='app-bar'] img.app-bar-app-icon,
+  .dark img.windows-app-icon {
     filter: brightness(0) invert(1) saturate(100%);
     opacity: 0.9;
+  }
+
+  /* Paired light/dark brand assets — show as authored (wins over layout-specific filters) */
+  img.app-brand-icon-static {
+    filter: none !important;
+    opacity: 1;
   }
 
   /* Sidebar logo - dark in light mode, white in dark mode */
@@ -337,10 +815,46 @@
   }
 }
 
-/* Dialog / modal overlay and content animations */
-[data-dialog-content] {
-  left: 50%;
-  top: 50%;
+/* Dialog / modal — sheet & custom geometry overrides (base left/top come from component classes) */
+
+/* Responsive openModal: sheet presentation (mobile) — override centered dialog geometry.
+ * Do not set `transform: none` — enter/exit slide and swipe-dismiss own transform.
+ * Morph transitions omit `transform` so keyframes / drag aren’t fought. */
+[data-dialog-content][data-presentation='sheet'] {
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  transition-property:
+    width, height, max-width, max-height, border-radius, left, right, top, bottom, padding;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
+}
+
+/* User-moved / resized dialog — inline left/top/width/height own layout */
+[data-dialog-content][data-geometry='custom'] {
+  left: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  /* Never paint larger than the viewport even if state lags a resize */
+  max-width: calc(100vw - 16px) !important;
+  max-height: calc(var(--shellui-app-height, 100dvh) - 16px) !important;
+}
+
+[data-dialog-content][data-window-interacting='true'] {
+  transition: none !important;
+  user-select: none;
+}
+
+/* Morph dialog ↔ sheet on resize without remounting iframe content */
+[data-dialog-content][data-presentation='dialog'] {
+  transition-property:
+    width, height, max-width, max-height, border-radius, left, right, top, bottom, transform,
+    padding;
+  transition-duration: 220ms;
+  transition-timing-function: ease;
 }
 
 @keyframes dialog-overlay-fade-in {
@@ -380,18 +894,248 @@
   }
 }
 
-[data-dialog-overlay][data-state='open'] {
-  animation: dialog-overlay-fade-in 0.1s ease-out;
+/* Opacity-only enter/exit for responsive modal *dialog* so presentation morph
+   (dialog ↔ sheet on resize) does not re-slide. Sheets get a real slide below. */
+@keyframes responsive-modal-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-[data-dialog-overlay][data-state='closed'] {
-  animation: dialog-overlay-fade-out 0.1s ease-in;
+@keyframes responsive-modal-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
-[data-dialog-content][data-state='open'] {
+/* Mobile openModal-as-sheet — native-like bottom sheet (Vaul-aligned easing). */
+@keyframes responsive-modal-sheet-in {
+  from {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes responsive-modal-sheet-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(100%);
+  }
+}
+
+[data-dialog-overlay][data-state='open'] {
+  animation: dialog-overlay-fade-in 0.2s ease-out;
+}
+[data-dialog-overlay][data-state='closed'] {
+  animation: dialog-overlay-fade-out 0.2s ease-in;
+}
+
+/* Alert dialogs — position/size come from inline styles on the component.
+   Animations must re-assert translate(-50%,-50%) every keyframe or fill-mode
+   clears transform and the dialog jumps to top-left@50%/50% (looks top-right / full-height). */
+@keyframes alert-dialog-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+@keyframes alert-dialog-fade-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+}
+[data-dialog-content][data-alert-dialog] {
+  height: auto !important;
+  max-height: calc(
+    var(--shellui-app-height, 100dvh) - max(0.75rem, var(--shellui-safe-area-top)) -
+      max(0.75rem, var(--shellui-safe-area-bottom))
+  ) !important;
+}
+[data-dialog-content][data-alert-dialog][data-state='open'] {
+  animation: alert-dialog-fade-in 0.15s ease-out both;
+}
+[data-dialog-content][data-alert-dialog][data-state='closed'] {
+  animation: alert-dialog-fade-out 0.12s ease-in both;
+}
+
+/* Default dialog enter/exit — exclude alert dialogs (scale() would clobber translate centering) */
+[data-dialog-content][data-state='open']:not([data-presentation]):not([data-alert-dialog]) {
   animation: dialog-content-in 0.1s ease-out 0.05s both;
 }
-[data-dialog-content][data-state='closed'] {
+[data-dialog-content][data-state='closed']:not([data-presentation]):not([data-alert-dialog]) {
   animation: dialog-content-out 0.1s ease-in both;
+}
+
+/* openModal ResponsiveModal — dialog stays fade-only (stable across resize morph). */
+[data-dialog-content][data-presentation='dialog'][data-state='open'] {
+  animation: responsive-modal-fade-in 0.15s ease-out both;
+}
+[data-dialog-content][data-presentation='dialog'][data-state='closed'] {
+  animation: responsive-modal-fade-out 0.12s ease-in both;
+}
+
+/*
+ * Mobile sheet: slide up on open, slide down on close.
+ * `data-enter-motion` is set only for the opening beat so a later dialog↔sheet
+ * morph does not re-run the enter slide. No animation-fill-mode on enter — after
+ * the keyframes finish, inline `transform` (swipe drag) must own the property.
+ * Swipe dismiss already translates off-screen; skip the close keyframe then.
+ */
+[data-dialog-content][data-presentation='sheet'][data-state='open'][data-enter-motion] {
+  animation: responsive-modal-sheet-in 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+[data-dialog-content][data-presentation='sheet'][data-state='closed']:not([data-dismiss='swipe']) {
+  animation: responsive-modal-sheet-out 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  will-change: transform;
+}
+[data-dialog-content][data-presentation='sheet'][data-state='closed'][data-dismiss='swipe'] {
+  /* Keep the dragged translate; only a light fade if needed */
+  animation: none;
+}
+
+/* Sheet overlay and panel animations (mobile sidebar) */
+@keyframes sheet-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheet-overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sheet-content-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes sheet-content-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-content-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes sheet-content-in-top {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-top {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-100%);
+  }
+}
+@keyframes sheet-content-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-content-out-bottom {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+[data-sheet-overlay][data-state='open'] {
+  animation: sheet-overlay-fade-in 0.2s ease-out both;
+}
+[data-sheet-overlay][data-state='closed'] {
+  animation: sheet-overlay-fade-out 0.2s ease-in both;
+  pointer-events: none;
+}
+
+[data-sheet-content] {
+  will-change: transform;
+}
+
+[data-sheet-content][data-side='left'][data-state='open'] {
+  animation: sheet-content-in-left 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='left'][data-state='closed'] {
+  animation: sheet-content-out-left 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='right'][data-state='open'] {
+  animation: sheet-content-in-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='right'][data-state='closed'] {
+  animation: sheet-content-out-right 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='top'][data-state='open'] {
+  animation: sheet-content-in-top 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='top'][data-state='closed'] {
+  animation: sheet-content-out-top 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+[data-sheet-content][data-side='bottom'][data-state='open'] {
+  animation: sheet-content-in-bottom 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[data-sheet-content][data-side='bottom'][data-state='closed'] {
+  animation: sheet-content-out-bottom 0.18s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
 }
 
 /* Cookie consent dialog (bottom-left) animations */
@@ -433,6 +1177,22 @@
   }
 }
 
+/* Chrome action glyph spin (`animate: 'icon-rotate'`). Explicit so we don’t
+ * depend on Tailwind generating `animate-spin` for dynamically applied classes. */
+@keyframes shellui-chrome-action-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+[data-shellui-chrome-action-animate='icon-rotate'] {
+  animation: shellui-chrome-action-spin 0.75s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-shellui-chrome-action-animate='icon-rotate'] {
+    animation: none;
+  }
+}
+
 /* Auth account dropdown menu animation (LoginButton) */
 @keyframes auth-menu-in {
   from {
@@ -463,9 +1223,111 @@
 
 [data-auth-menu-content][data-state='open'] {
   animation: auth-menu-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
 }
 
 [data-auth-menu-content][data-state='closed'] {
   animation: auth-menu-out 0.12s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+/* Tauri overlay titlebar: drag via data-tauri-drag-region; keep controls clickable. */
+[data-shellui-drag-region],
+[data-tauri-drag-region] {
+  app-region: drag;
+  -webkit-app-region: drag;
+}
+
+[data-shellui-drag-region] [data-shellui-no-drag],
+[data-shellui-no-drag],
+[data-shellui-drag-region] a,
+[data-shellui-drag-region] button,
+[data-shellui-drag-region] input,
+[data-shellui-drag-region] select,
+[data-shellui-drag-region] [role='combobox'] {
+  app-region: no-drag;
+  -webkit-app-region: no-drag;
+}
+
+html[data-shellui-overlay-chrome] {
+  --shellui-titlebar-height: 42px;
+  --shellui-traffic-lights-width: 78px;
+}
+
+/* Keep sidebar chrome above the full-width drag strip so Back / trigger stay clickable. */
+html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
+  z-index: 46;
+}
+
+/*
+ * Tablet / desktop: fixed shell sidebar sits below the layout safe-area strip.
+ * Only when the root (non-iframe) layout advertised the topbar via
+ * data-shellui-safe-area-topbar. Drawer overlay stays full-bleed (topbar dims
+ * behind it); left/right/top drawer panels clear the inset so they never cover
+ * the strip. Height is 0 when env(safe-area-inset-top) is 0.
+ */
+@media (min-width: 768px) {
+  html[data-shellui-safe-area-topbar]
+    [data-shellui-sidebar-layout]
+    > [data-slot='sidebar-wrapper']
+    > [data-slot='sidebar']
+    > [data-slot='sidebar-container'] {
+    top: var(--shellui-safe-area-top);
+    bottom: auto;
+    height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top));
+  }
+
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='left'],
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='right'] {
+    top: var(--shellui-safe-area-top);
+    bottom: 0;
+    height: auto;
+  }
+
+  /* Top drawer: sit below the safe-area band (no extra pt — offset replaces it). */
+  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='top'] {
+    top: var(--shellui-safe-area-top);
+    padding-top: 0;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+  }
+}
+
+/* Collapsed Tauri: full-width 42px titlebar; push sidebar + content below it. */
+html[data-shellui-collapsed-titlebar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar']
+  > [data-slot='sidebar-container'] {
+  top: var(--shellui-titlebar-height, 42px);
+  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 42px));
+}
+
+html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar']
+  > [data-slot='sidebar-container'] {
+  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 42px));
+  height: calc(
+    var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top) -
+      var(--shellui-titlebar-height, 42px)
+  );
+}
+
+html[data-shellui-collapsed-titlebar]
+  [data-shellui-sidebar-layout]
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar-inset'] {
+  padding-top: var(--shellui-titlebar-height, 42px);
+}
+
+/* Root safe-area topbar: collapsed chrome sits below the status band. */
+html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
+  top: var(--shellui-safe-area-top);
+}
+
+/* Avoid iframe stealing pointer events while dragging the sidebar border. */
+[data-slot='sidebar-wrapper'][data-resizing] iframe {
   pointer-events: none;
 }

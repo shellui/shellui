@@ -1,0 +1,18 @@
+<main class="shellui-home">
+  <p class="eyebrow">Shellui</p>
+  <h1>{{ shellui.t('title') }}</h1>
+  <p class="blurb">{{ shellui.t('blurb') }}</p>
+
+  <dl class="meta">
+    <div>
+      <dt>{{ shellui.t('themeLabel') }}</dt>
+      <dd>{{ shellui.themeLabel() }}</dd>
+    </div>
+    <div>
+      <dt>{{ shellui.t('languageLabel') }}</dt>
+      <dd>{{ shellui.language() || shellui.t('fallbackLanguage') }}</dd>
+    </div>
+  </dl>
+
+  <p class="hint">{{ shellui.t('hint') }}</p>
+</main>

@@ -1,89 +1,49 @@
-# Publishing Guide
+---
+title: Publish npm packages
+sidebar_label: Publishing
+description: 'Sync versions, build, and run pnpm run publish so SDK, core, and CLI ship with the correct npm dist-tag.'
+---
 
-This guide explains how to publish the Shellui packages to npm.
+Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` with one script. The npm dist-tag comes from the **root** `package.json` version:
 
-## How publishing works
+- Version contains `alpha` (for example `0.2.0-alpha.0`) → tag `alpha`
+- Version contains `beta` (for example `0.2.0-beta.1`) → tag `beta`
+- Otherwise → tag `latest`
 
-Publishing is done with a single script that:
+Put `alpha` or `beta` in the version string for pre-releases so `latest` is not overwritten.
 
-1. Reads the **version** from the root `package.json`
-2. Chooses the npm **dist-tag** from that version (so pre-releases don’t overwrite `latest`):
-   - Version contains **`alpha`** (e.g. `0.2.0-alpha.0`) → `--tag alpha`
-   - Version contains **`beta`** (e.g. `0.2.0-beta.1`) → `--tag beta`
-   - Otherwise → `--tag latest`
-3. Publishes packages in dependency order: **SDK → Core → CLI**
+## Steps
 
-You must use **alpha** or **beta** in the version string when publishing pre-releases so the correct tag is used automatically.
+1. `npm login`
+2. Set the version in the root `package.json`
+3. Sync packages: `pnpm run version:sync`
+4. Build: `pnpm run build`
+5. From the repo root: `pnpm run publish`
 
-## Prerequisites
+That runs `scripts/publish-with-tag.js` in order SDK → Core → CLI. You do not pass the tag by hand.
 
-1. Log in to npm:
+For a later bump: change the root version, `pnpm run version:sync`, `pnpm run publish`. Stable releases omit `alpha` / `beta`.
 
-   ```bash
-   npm login
-   ```
+If the release changes agent-relevant APIs or config, update the matching skill in [shellui/skills](https://github.com/shellui/skills), bump `metadata.version` and that skill's `CHANGELOG.md`, and keep the skill lean - see [ADR 0001](/adr/ai-skill).
 
-2. Set the version in the **root** `package.json`. For pre-releases, include `alpha` or `beta` in the version (e.g. `0.2.0-alpha.0`, `1.0.0-beta.1`).
-
-3. Sync the version to all packages:
-
-   ```bash
-   pnpm run version:sync
-   ```
-
-4. Build before publishing:
-
-   ```bash
-   pnpm run build
-   ```
-
-## Publish all packages
-
-From the repo root:
+## Test the CLI locally
 
 ```bash
-pnpm run publish
+pnpm run build
+cd packages/cli
+pnpm link --global
 ```
 
-This runs `scripts/publish-with-tag.js`, which publishes `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` in order with the tag derived from the root version. You don’t need to pass the tag manually.
+In another project:
 
-## Version management
+```bash
+pnpm link --global @shellui/cli
+shellui --version
+```
 
-1. **Bump the root version** in `package.json` (e.g. `0.2.0-alpha.0` → `0.2.0-alpha.1`).
-2. **Sync to all packages:**
+## Failures
 
-   ```bash
-   pnpm run version:sync
-   ```
-
-3. **Publish:**
-
-   ```bash
-   pnpm run publish
-   ```
-
-For stable releases, use a version without `alpha` or `beta` (e.g. `1.0.0`); it will be published with tag `latest`.
-
-## Testing before publishing
-
-1. Build and link locally:
-
-   ```bash
-   pnpm run build
-   cd packages/cli
-   pnpm link --global
-   ```
-
-2. In another project:
-
-   ```bash
-   pnpm link --global @shellui/cli
-   shellui --version
-   ```
-
-## Troubleshooting
-
-- **"Package already exists"**: This version is already on npm. Bump the version and run `pnpm run version:sync` before publishing again.
-- **"Access denied"**: Ensure you’re logged in (`npm login`) and have publish access to the `@shellui` scope.
-- **Wrong tag on npm**: Check that the root version contains `alpha` or `beta` for pre-releases; the script uses only the version string to pick the tag.
-- **"Missing files"**: Check the `files` field in each package’s `package.json`.
+- **"Package already exists":** bump the version and `pnpm run version:sync` before publishing again
+- **"Access denied":** `npm login` and publish rights on `@shellui`
+- **Wrong tag:** check that the root version contains `alpha` or `beta` for pre-releases
+- **"Missing files":** check the `files` field in each package `package.json`

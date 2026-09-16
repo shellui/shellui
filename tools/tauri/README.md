@@ -1,6 +1,6 @@
 # @shellui/tauri
 
-Tauri 2 desktop app for the Shellui monorepo. Wraps the Shellui web app in a native window and uses **shellui.config.ts** for title, icon, and dev port.
+Tauri 2 desktop app for the Shellui monorepo. Wraps the Shellui web app in a native window and uses **shellui.config.json** for title, icon, and dev port.
 
 > **For apps built with the Shellui CLI**, use `shellui dev --app` and `shellui build --app` instead. See [Tauri docs](../../docs/tauri.md).
 

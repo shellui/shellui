@@ -11,7 +11,7 @@ export const HomeView = () => {
         className="m-0 text-3xl font-light text-foreground"
         style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
       >
-        {t('welcome', { title: config?.title ?? 'ShellUI' })}
+        {t('welcome', { title: config?.title ?? 'Shellui' })}
       </h1>
       <p className="mt-4 text-lg text-muted-foreground">{t('getStarted')}</p>
       <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border text-left">

@@ -1,0 +1,21 @@
+{
+  "name": "shellui-next-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/ensure-port.mjs 3000 && next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@shellui/sdk": "^0.5.0-beta.3",
+    "next": "16.3.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5"
+  }
+}

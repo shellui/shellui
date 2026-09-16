@@ -2,7 +2,7 @@
   "name": "@shellui/tauri",
   "version": "0.1.0",
   "private": true,
-  "description": "Tauri desktop app for ShellUI",
+  "description": "Tauri desktop app for Shellui",
   "scripts": {
     "install:deps": "pnpm install && pnpm run sync-config",
     "sync-config": "node scripts/sync-shellui-config.mjs",

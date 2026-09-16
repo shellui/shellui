@@ -40,7 +40,7 @@ export const AccessPendingView = ({ message, code, onBackToLogin }: Props) => {
     !detailLower.includes('email domain is not authorized');
 
   return (
-    <main className="flex min-h-full items-center justify-center bg-background px-6 py-12">
+    <main className="shellui-safe-pad flex min-h-full items-center justify-center bg-background [--shellui-safe-pad-y:3rem]">
       <div className="w-full max-w-xl animate-in fade-in-0 slide-in-from-bottom-3 duration-500">
         <section
           className="border border-border bg-card"

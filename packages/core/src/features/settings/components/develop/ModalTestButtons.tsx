@@ -21,6 +21,29 @@ export const ModalTestButtons = () => {
         >
           {t('develop.testing.modalTesting.buttons.openModal')}
         </Button>
+        <Button
+          onClick={() => shellui.openModal({ url: urls.settings, size: 'sm' })}
+          variant="outline"
+        >
+          {t('develop.testing.modalTesting.buttons.openModalSm')}
+        </Button>
+        <Button
+          onClick={() =>
+            shellui.openModal({
+              url: urls.overlayDemo,
+              dynamicSizing: true,
+            })
+          }
+          variant="outline"
+        >
+          {t('develop.testing.modalTesting.buttons.openModalDynamic')}
+        </Button>
+        <Button
+          onClick={() => shellui.closeModal()}
+          variant="outline"
+        >
+          {t('develop.testing.modalTesting.buttons.closeModal')}
+        </Button>
       </div>
       <p className="text-xs text-muted-foreground mt-2">
         {t('develop.testing.modalTesting.description')}

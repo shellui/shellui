@@ -1,6 +1,6 @@
 import path from 'path';
 
-/** Root output folder for all ShellUI build artifacts */
+/** Root output folder for all Shellui build artifacts */
 export const DIST_DIR = 'dist';
 
 /** Web build output (static site) */

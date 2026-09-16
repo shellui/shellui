@@ -12,6 +12,7 @@ import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal'
 import { AuthProvider } from './features/auth/AuthProvider';
 import { StorageBridge } from './features/storage/StorageBridge';
 import { SonnerProvider } from './features/sonner/SonnerContext';
+import { ChromeActionsHost, ChromeActionsProvider } from './features/chromeActions';
 import { Toaster } from './components/ui/sonner';
 import { UploadToaster } from './features/storage/uploads/UploadToaster';
 import './features/sentry/initSentry';
@@ -25,6 +26,7 @@ import {
   ensureServiceWorkerDisabledWhenOff,
 } from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
+import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
 
 const AppContent = () => {
   const { config } = useConfig();
@@ -90,9 +92,10 @@ const AppContent = () => {
   if (!config.navigation || config.navigation.length === 0) {
     return (
       <>
+        <DesktopChrome />
         <CookieConsentModal />
         <div style={{ fontFamily: 'system-ui, sans-serif', padding: '2rem' }}>
-          <h1>{config.title || 'ShellUI'}</h1>
+          <h1>{config.title || 'Shellui'}</h1>
           <p>No navigation items configured.</p>
         </div>
       </>
@@ -105,6 +108,7 @@ const AppContent = () => {
 
   return (
     <>
+      <DesktopChrome />
       <CookieConsentModal />
       <RouterProvider router={router} />
     </>
@@ -113,7 +117,7 @@ const AppContent = () => {
 
 const App = () => {
   const [isLoading, setIsLoading] = useState(true);
-  // Initialize ShellUI SDK to support recursive nesting
+  // Initialize Shellui SDK to support recursive nesting
   useLayoutEffect(() => {
     shellui.init().then(() => {
       setIsLoading(false);
@@ -133,10 +137,13 @@ const App = () => {
             <I18nProvider>
               <DialogProvider>
                 <SonnerProvider>
-                  {/* Toaster + upload progress live at ShellUI root so they survive navigation. */}
-                  <Toaster />
-                  <UploadToaster />
-                  <AppContent />
+                  <ChromeActionsProvider>
+                    {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
+                    <Toaster />
+                    <UploadToaster />
+                    <ChromeActionsHost />
+                    <AppContent />
+                  </ChromeActionsProvider>
                 </SonnerProvider>
               </DialogProvider>
             </I18nProvider>

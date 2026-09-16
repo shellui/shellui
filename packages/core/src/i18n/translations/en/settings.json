@@ -86,6 +86,8 @@
     "modeDescription": "Choose light, dark, or automatic mode.",
     "colorTheme": "Color Theme",
     "colorThemeDescription": "Select a color theme. Each theme has light and dark variants.",
+    "colorThemeDescriptionSingle": "Your app theme. Light and dark variants follow the mode above.",
+    "recommended": "Recommended",
     "themes": {
       "light": "Light",
       "dark": "Dark",
@@ -269,21 +271,27 @@
     },
     "layout": {
       "title": "Layout",
-      "description": "Switch between sidebar layout and windows (taskbar) layout. This overrides the app config for this session.",
+      "description": "Switch between sidebar, inset, app bar, floating, and windows layouts. This overrides the app config for this session.",
       "sidebar": "Sidebar",
+      "sidebar-inset": "Sidebar inset",
       "windows": "Windows (experimental)",
-      "app-bar": "App bar"
+      "app-bar": "App bar",
+      "app-bar-inset": "App bar inset",
+      "floating": "Floating",
+      "more": "More",
+      "hideSidebar": "Hide sidebar",
+      "showSidebar": "Show sidebar"
     },
     "logging": {
       "title": "Logging",
-      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of ShellUI output debug information.",
+      "description": "Enable or disable logging for specific namespaces. This helps you control which parts of Shellui output debug information.",
       "shellsdk": {
         "label": "Show ShellSDK logs",
-        "description": "Enable logging for ShellUI SDK operations"
+        "description": "Enable logging for Shellui SDK operations"
       },
       "shellcore": {
         "label": "Show ShellCore logs",
-        "description": "Enable logging for ShellUI Core operations"
+        "description": "Enable logging for Shellui Core operations"
       }
     },
     "auth": {
@@ -295,7 +303,7 @@
     },
     "testing": {
       "title": "Testing",
-      "description": "Test ShellUI features and functionality.",
+      "description": "Test Shellui features and functionality.",
       "toastNotifications": {
         "title": "Toast Notifications",
         "buttons": {
@@ -420,9 +428,13 @@
       },
       "modalTesting": {
         "title": "Modal Testing",
-        "description": "Opens the settings in a modal. Close with the × button or by clicking outside.",
+        "description": "Opens settings in a modal (desktop dialog / mobile bottom drawer). Dynamic sizing hugs compact iframe content. Close with ×, backdrop, Escape, or swipe on mobile.",
         "buttons": {
-          "openModal": "Open modal (settings)"
+          "openModal": "Open modal (settings)",
+          "openModalSm": "Open modal (sm)",
+          "openModalContent": "Open modal (content, no ×)",
+          "openModalDynamic": "Open modal (dynamic sizing)",
+          "closeModal": "Close modal"
         }
       },
       "drawerTesting": {
@@ -434,6 +446,8 @@
           "drawerBottom": "Drawer from bottom",
           "drawerRightNarrow": "Drawer right (400px)",
           "drawerBottomHalf": "Drawer bottom (60vh)",
+          "drawerBottomDynamic": "Drawer bottom (dynamic sizing)",
+          "drawerNoClose": "Drawer bottom (no ×)",
           "closeDrawer": "Close drawer"
         }
       },
@@ -447,6 +461,15 @@
           "foldersMultiple": "Select folders",
           "files": "Select files",
           "filesAndFolders": "Select files and folders"
+        }
+      },
+      "chromeActions": {
+        "title": "Chrome actions",
+        "description": "Opens a shell-owned demo page inside a modal or drawer iframe. That iframe calls shellui.actions.set/clear so chrome and click round-trips use the real postMessage path. Use Set / Update / Clear inside the demo; narrow the viewport for ··· overflow.",
+        "buttons": {
+          "openModal": "Open demo (modal iframe)",
+          "openDrawer": "Open demo (drawer iframe)",
+          "close": "Close demo"
         }
       }
     }

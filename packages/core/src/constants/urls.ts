@@ -1,6 +1,8 @@
 export default {
   settings: '/__settings',
   cookiePreferences: '/__cookie-preferences',
+  overlayDemo: '/__overlay-demo',
+  chromeActionsDemo: '/__chrome-actions-demo',
   login: '/login',
   loginCallback: '/login/callback',
   admin: '/admin',

@@ -8,3 +8,8 @@
 export { startCommand } from './start.js';
 export { buildCommand } from './build.js';
 export { initCommand } from './init.js';
+export { configCommand } from './config.js';
+export { loginCommand } from './login.js';
+export { logoutCommand } from './logout.js';
+export { whoamiCommand } from './whoami.js';
+export { deployCommand, deployHistoryCommand, deployRollbackCommand } from './deploy.js';

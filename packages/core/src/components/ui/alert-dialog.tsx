@@ -5,7 +5,7 @@ import {
   type HTMLAttributes,
 } from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
-import { cva, type VariantProps } from 'class-variance-authority';
+import { cva } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
 import { Button, type ButtonProps } from './button';
@@ -23,7 +23,7 @@ const AlertDialogOverlay = forwardRef<
   <AlertDialogPrimitive.Overlay
     ref={ref}
     data-dialog-overlay
-    className={cn('fixed inset-0 bg-[hsl(var(--background)/0.8)] backdrop-blur-[1px]', className)}
+    className={cn('fixed inset-0 bg-black/50 backdrop-blur-[1px]', className)}
     style={{ zIndex: Z_INDEX.ALERT_DIALOG_OVERLAY }}
     {...props}
   />
@@ -31,43 +31,60 @@ const AlertDialogOverlay = forwardRef<
 AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 
 const alertDialogContentVariants = cva(
-  'fixed left-[50%] top-[50%] grid w-full min-w-0 max-w-[calc(100vw-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden sm:rounded-lg',
-  {
-    variants: {
-      size: {
-        default: 'max-w-lg',
-        sm: 'max-w-sm',
-      },
-    },
-    defaultVariants: {
-      size: 'default',
-    },
-  },
+  'fixed flex flex-col gap-4 border bg-background py-6 shadow-lg box-border overflow-hidden rounded-xl sm:rounded-lg',
 );
 
-interface AlertDialogContentProps
-  extends
-    ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>,
-    VariantProps<typeof alertDialogContentVariants> {}
+const ALERT_DIALOG_MAX_WIDTH: Record<'default' | 'sm', string> = {
+  default:
+    'min(32rem, calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)))',
+  sm: 'min(24rem, calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)))',
+};
+
+interface AlertDialogContentProps extends ComponentPropsWithoutRef<
+  typeof AlertDialogPrimitive.Content
+> {
+  size?: 'default' | 'sm' | null;
+}
 
 const AlertDialogContent = forwardRef<
   ElementRef<typeof AlertDialogPrimitive.Content>,
   AlertDialogContentProps
->(({ className, size = 'default', children, style, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      data-dialog-content
-      className={cn(alertDialogContentVariants({ size }), 'group', className)}
-      data-size={size}
-      style={{ zIndex: Z_INDEX.ALERT_DIALOG_CONTENT, ...style }}
-      {...props}
-    >
-      {children}
-    </AlertDialogPrimitive.Content>
-  </AlertDialogPortal>
-));
+>(({ className, size = 'default', children, style, ...props }, ref) => {
+  const resolvedSize: 'default' | 'sm' = size === 'sm' ? 'sm' : 'default';
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        data-dialog-content
+        data-alert-dialog
+        className={cn(alertDialogContentVariants(), 'group', className)}
+        data-size={resolvedSize}
+        style={{
+          zIndex: Z_INDEX.ALERT_DIALOG_CONTENT,
+          // Exact center — inline beats utility/animation cascade fights
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          right: 'auto',
+          bottom: 'auto',
+          transform: 'translate(-50%, -50%)',
+          // Content-sized height (never stretch to viewport)
+          height: 'auto',
+          maxHeight:
+            'calc(var(--shellui-app-height, 100dvh) - max(0.75rem, var(--shellui-safe-area-top)) - max(0.75rem, var(--shellui-safe-area-bottom)))',
+          width: ALERT_DIALOG_MAX_WIDTH[resolvedSize],
+          maxWidth: ALERT_DIALOG_MAX_WIDTH[resolvedSize],
+          margin: 0,
+          ...style,
+        }}
+        {...props}
+      >
+        {children}
+      </AlertDialogPrimitive.Content>
+    </AlertDialogPortal>
+  );
+});
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
 const AlertDialogHeader = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
@@ -95,9 +112,9 @@ AlertDialogMedia.displayName = 'AlertDialogMedia';
 const AlertDialogFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'flex w-full min-w-full flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2',
-      '-mb-6 mt-2 border-t border-border bg-muted/50 px-6 py-3 sm:rounded-b-lg',
-      '[&_button]:h-8 [&_button]:text-xs [&_button]:px-3',
+      'flex w-full min-w-full flex-col-reverse max-sm:gap-2 sm:flex-row sm:justify-end sm:space-x-2',
+      '-mb-6 mt-2 border-t border-border bg-muted/50 px-6 py-3 rounded-b-xl sm:rounded-b-lg',
+      '[&_button]:h-8 [&_button]:min-w-[80px] [&_button]:text-xs [&_button]:px-3',
       'group-data-[size=sm]:flex-row group-data-[size=sm]:gap-2',
       'group-data-[size=sm]:[&>*:not(:only-child)]:min-w-0 group-data-[size=sm]:[&>*:not(:only-child)]:flex-1',
       className,

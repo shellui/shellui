@@ -20,7 +20,7 @@ export interface ConfigProviderProps {
 let configLogged = false;
 
 /**
- * Provides ShellUI config (loaded from @shellui/config at build time) via context.
+ * Provides Shellui config (loaded from @shellui/config at build time) via context.
  * Children can use useConfig() to read config.
  */
 export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof createElement> {
@@ -39,7 +39,7 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       }
       return resolved;
     } catch (err) {
-      logger.error('Failed to load ShellUI config:', { error: err });
+      logger.error('Failed to load Shellui config:', { error: err });
       return {} as ShellUIConfig;
     }
   });

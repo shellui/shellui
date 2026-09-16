@@ -4,8 +4,26 @@
     <meta charset="UTF-8" />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
+    <!-- iOS home-screen / standalone: draw under a translucent status bar.
+         On iOS 26/27 Home Screen PWAs, the system may still paint Liquid Glass
+         status chrome; App Store / Tauri WKWebView does not get that treatment.
+         See docs/tauri.md (Browser PWA vs native). -->
+    <meta
+      name="apple-mobile-web-app-capable"
+      content="yes"
+    />
+    <meta
+      name="mobile-web-app-capable"
+      content="yes"
+    />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <!-- No static theme-color: on installed iOS PWAs it can override
+         black-translucent. applyTheme sets it only for browser tabs (not PWA / Tauri). -->
     <title></title>
     <link
       rel="icon"
@@ -78,15 +96,28 @@
       * {
         box-sizing: border-box;
       }
+      :root {
+        /* Dynamic viewport — CSS only; no JS height measurement. */
+        --shellui-app-height: 100dvh;
+      }
       html,
       body {
         margin: 0;
         padding: 0;
-        height: 100%;
+        height: calc(100% + env(safe-area-inset-top, 0px));
         overflow: hidden;
+        background-color: var(--background, #ffffff);
       }
+      /*
+        Fixed full-screen shell so the app (and portaled overlays) can paint under
+        a translucent iOS status bar. Height is pure CSS (--shellui-app-height).
+      */
       #root {
-        height: 100%;
+        position: fixed;
+        inset: 0;
+        height: var(--shellui-app-height);
+        overflow: hidden;
+        background-color: var(--background, #ffffff);
       }
     </style>
   </head>

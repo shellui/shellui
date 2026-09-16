@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://shellui.com/schemas/shellui.theme.schema.json",
+  "title": "ShelluiTheme",
+  "description": "Versioned Shellui theme definition (theme folder JSON or inline theme object). Schema version: 1.",
+  "type": "object",
+  "required": ["version", "name"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema URL for editor autocomplete and validation."
+    },
+    "version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Theme schema version. Must be 1."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique theme id (e.g. \"acme\")."
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable name shown in Settings → Appearance."
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Deprecated alias for label."
+    },
+    "description": {
+      "type": "string"
+    },
+    "recommended": {
+      "type": "boolean",
+      "description": "When true, the theme selector may highlight this theme in large lists."
+    },
+    "fonts": {
+      "$ref": "#/definitions/ThemeFonts"
+    },
+    "fontFamily": {
+      "type": "string"
+    },
+    "headingFontFamily": {
+      "type": "string"
+    },
+    "bodyFontFamily": {
+      "type": "string"
+    },
+    "fontFiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "letterSpacing": {
+      "type": "string"
+    },
+    "textShadow": {
+      "type": "string"
+    },
+    "lineHeight": {
+      "type": "string"
+    },
+    "radius": {
+      "type": "string",
+      "description": "Shared border radius for light and dark (e.g. \"0.5rem\")."
+    },
+    "light": {
+      "$ref": "#/definitions/ThemeColorTokens"
+    },
+    "dark": {
+      "$ref": "#/definitions/ThemeColorTokens"
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "$ref": "#/definitions/ThemeColorTokens"
+        },
+        "dark": {
+          "$ref": "#/definitions/ThemeColorTokens"
+        }
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["light", "dark"]
+    },
+    {
+      "required": ["colors"]
+    }
+  ],
+  "definitions": {
+    "ThemeFonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sans": {
+          "type": "string"
+        },
+        "mono": {
+          "type": "string"
+        },
+        "serif": {
+          "type": "string"
+        },
+        "heading": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Paths relative to the theme JSON / themesDir, or absolute URLs."
+        }
+      }
+    },
+    "ThemeColorTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "background": { "type": "string" },
+        "foreground": { "type": "string" },
+        "card": { "type": "string" },
+        "cardForeground": { "type": "string" },
+        "popover": { "type": "string" },
+        "popoverForeground": { "type": "string" },
+        "primary": { "type": "string" },
+        "primaryForeground": { "type": "string" },
+        "secondary": { "type": "string" },
+        "secondaryForeground": { "type": "string" },
+        "muted": { "type": "string" },
+        "mutedForeground": { "type": "string" },
+        "accent": { "type": "string" },
+        "accentForeground": { "type": "string" },
+        "destructive": { "type": "string" },
+        "destructiveForeground": { "type": "string" },
+        "border": { "type": "string" },
+        "input": { "type": "string" },
+        "ring": { "type": "string" },
+        "radius": { "type": "string" },
+        "sidebarBackground": { "type": "string" },
+        "sidebarForeground": { "type": "string" },
+        "sidebarPrimary": { "type": "string" },
+        "sidebarPrimaryForeground": { "type": "string" },
+        "sidebarAccent": { "type": "string" },
+        "sidebarAccentForeground": { "type": "string" },
+        "sidebarBorder": { "type": "string" },
+        "sidebarRing": { "type": "string" },
+        "sidebar": { "type": "string", "description": "CSS-variable alias for sidebarBackground" },
+        "card-foreground": { "type": "string" },
+        "popover-foreground": { "type": "string" },
+        "primary-foreground": { "type": "string" },
+        "secondary-foreground": { "type": "string" },
+        "muted-foreground": { "type": "string" },
+        "accent-foreground": { "type": "string" },
+        "destructive-foreground": { "type": "string" },
+        "sidebar-background": { "type": "string" },
+        "sidebar-foreground": { "type": "string" },
+        "sidebar-primary": { "type": "string" },
+        "sidebar-primary-foreground": { "type": "string" },
+        "sidebar-accent": { "type": "string" },
+        "sidebar-accent-foreground": { "type": "string" },
+        "sidebar-border": { "type": "string" },
+        "sidebar-ring": { "type": "string" },
+        "chart-1": { "type": "string" },
+        "chart-2": { "type": "string" },
+        "chart-3": { "type": "string" },
+        "chart-4": { "type": "string" },
+        "chart-5": { "type": "string" },
+        "chart1": { "type": "string" },
+        "chart2": { "type": "string" },
+        "chart3": { "type": "string" },
+        "chart4": { "type": "string" },
+        "chart5": { "type": "string" }
+      }
+    }
+  }
+}

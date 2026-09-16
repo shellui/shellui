@@ -5,12 +5,20 @@ export {
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
 export { buildSessionFromParams } from './buildSessionFromParams';
+export { hashHasOAuthTokens } from './hashHasOAuthTokens';
 export {
   AuthRequestError,
   getAuthRequestErrorCode,
   inferAccessPendingErrorCode,
   isAccessPendingErrorCode,
 } from './authRequestError';
+export {
+  CLI_CALLBACK_PARAM,
+  captureCliCallbackFromSearch,
+  isLoopbackCliCallbackUrl,
+  redirectCliCallbackError,
+  redirectToCliCallback,
+} from './cliCallback';
 export { clearStoredAuthSession } from './clearStoredAuthSession';
 export { decodeJwtPayload } from './decodeJwtPayload';
 export { formatProviderLabel } from './formatProviderLabel';

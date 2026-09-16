@@ -21,6 +21,20 @@ This monorepo contains the Shellui packages:
 └── package.json       # Root workspace configuration
 ```
 
+## AI skill (for coding agents)
+
+Official skills live in [shellui/skills](https://github.com/shellui/skills) (sibling repo). Install so agents follow config, CLI, SDK, and naming conventions:
+
+```bash
+npx skills add shellui/skills --skill shellui
+# across many local apps:
+npx skills add shellui/skills --skill shellui -g
+```
+
+Update with `npx skills update`.
+
+See [docs/adr/0001-ai-skill.md](docs/adr/0001-ai-skill.md) for hosting, versioning, and contribution notes.
+
 ## Development
 
 ### Prerequisites

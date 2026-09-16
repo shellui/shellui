@@ -45,7 +45,7 @@ describe('toAuthSessionFromSettingsUser', () => {
     vi.useRealTimers();
   });
 
-  it('reads groups and staff from ShellUI JWT user_metadata when present', () => {
+  it('reads groups and staff from Shellui JWT user_metadata when present', () => {
     const settingsUser = {
       id: 'user-1',
       email: 'user@example.com',

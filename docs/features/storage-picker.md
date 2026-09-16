@@ -1,34 +1,31 @@
-# Storage picker
+---
+title: Pick files and folders
+sidebar_label: Storage Picker
+description: 'Open shellui.selectFolders or selectFiles so people using your app choose storage items in a host modal.'
+---
 
-Embedded apps can open a file or folder picker in a Shellui modal. The user browses storage, keeps a selection while navigating, then confirms. The SDK returns serializable items — your app renders them however it wants.
+Embedded apps open a file or folder picker in a Shellui modal. The picker UI lives in the files app (`storage.filesUrl`). The root shell opens it in a dedicated modal so it can stack above Settings. You need `storage.url`, `storage.filesUrl`, and a signed-in session. See [Storage](/features/storage).
 
-The picker UI lives in the files app (`storage.filesUrl`). The root shell opens it in a dedicated modal so it can stack above Settings.
-
-## Setup
-
-Set `storage.url` and `storage.filesUrl` in `shellui.config.ts`:
-
-```typescript
-storage: {
-  url: 'http://localhost:8001',
-  filesUrl: 'http://localhost:5175/',
-},
+```json
+{
+  "storage": {
+    "url": "http://localhost:8001",
+    "filesUrl": "http://localhost:5175/"
+  }
+}
 ```
-
-The user must be signed in.
 
 ## Pick folders
 
-Folders only — files are hidden. Pass `{ multiple: true }` to allow more than one.
+Files are hidden. Pass `{ multiple: true }` for more than one folder.
 
-```javascript
+```typescript
 import { shellui } from '@shellui/sdk';
 
 await shellui.init();
 
 const result = await shellui.selectFolders({ multiple: true });
 if (!result) {
-  // User cancelled
   return;
 }
 
@@ -37,50 +34,39 @@ for (const folder of result.items) {
 }
 ```
 
-## Pick files (and optionally folders)
+## Pick files
 
-```javascript
-// Files only (folders are for navigation)
+```typescript
 const files = await shellui.selectFiles({ multiple: true });
-
-// Files and folders
 const items = await shellui.selectFiles({ multiple: true, folders: true });
 ```
 
-## What you get back
+`selectFiles` without `folders: true` uses folders only for navigation. `folders: true` allows selecting files and folders (`mode: 'any'`).
 
-Each item looks like this:
+## Result shape
 
 ```typescript
-{
-  id: string; // Stable id (survives rename)
+type StorageSelectedItem = {
+  id: string;
   bucket: string;
-  path: string; // Location at the time of selection
+  path: string;
   name: string;
   type: 'file' | 'folder';
-}
+};
 ```
 
-Keep `id` in your own data. After a folder or file is renamed, resolve the current path:
+Keep `id` in your data. After a rename, resolve the current path:
 
-```javascript
-const { data, error } = await shellui.storage.get(savedId);
+```typescript
+const { data, error } = await shellui.storage.get(saved_item_id);
 if (data) {
-  // data.path is the current location
+  console.log(data.path);
 }
+void error;
 ```
 
-`selectFolders` / `selectFiles` resolve to `null` when the user closes or cancels the modal. They throw if `storage.filesUrl` is missing.
+`selectFolders` / `selectFiles` resolve to `null` when the picker is closed or cancelled. They throw if `storage.filesUrl` is missing.
 
-## Messages
+The SDK sends `SHELLUI_SELECT_STORAGE` (`{ id, multiple, mode: 'folders' | 'files' | 'any' }`) and waits for `SHELLUI_SELECT_STORAGE_RESULT`. You do not post these yourself.
 
-Apps do not need to post these themselves — the SDK methods above do.
-
-| Type                            | Direction  | Payload                                                 |
-| ------------------------------- | ---------- | ------------------------------------------------------- |
-| `SHELLUI_SELECT_STORAGE`        | app → root | `{ id, multiple, mode: 'folders' \| 'files' \| 'any' }` |
-| `SHELLUI_SELECT_STORAGE_RESULT` | root → app | `{ id, items? }` or `{ id, cancelled: true }`           |
-
-## Try it
-
-Settings → Advanced → enable developer features → Develop. The storage picker buttons open the same APIs and list selected names with a remove control.
+Try the same APIs from **Settings → Advanced → developer features → Develop**.

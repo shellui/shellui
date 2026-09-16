@@ -1,6 +1,6 @@
 /**
  * Message Listener Registry
- * Manages message listeners for ShellUI message types
+ * Manages message listeners for Shellui message types
  */
 
 import { getLogger } from '../logger/logger.js';
@@ -10,6 +10,18 @@ import type { FrameRegistry } from './frameRegistry.js';
 const logger = getLogger('shellsdk');
 
 export type MessageListener = (messageData: ShellUIMessage, originalEvent: MessageEvent) => void;
+
+/**
+ * Child→parent messages that the **immediate** parent shell owns.
+ * Nested shells must handle these locally and must not re-broadcast to
+ * `window.parent` (otherwise chrome actions / URL sync land on the root).
+ */
+const LOCAL_PARENT_MESSAGE_TYPES = new Set([
+  'SHELLUI_URL_CHANGED',
+  'SHELLUI_INITIALIZED',
+  'SHELLUI_ACTIONS_SET',
+  'SHELLUI_ACTIONS_CLEAR',
+]);
 
 export class MessageListenerRegistry {
   private listeners = new Map<string, Set<MessageListener>>();
@@ -38,6 +50,7 @@ export class MessageListenerRegistry {
       }
 
       const fromUuid = this.frameRegistry?.getUuidByIframe(event.source as Window);
+      const isLocalParentMessage = LOCAL_PARENT_MESSAGE_TYPES.has(messageType);
 
       const typeListeners = this.listeners.get(messageType) ?? [];
 
@@ -46,8 +59,7 @@ export class MessageListenerRegistry {
           if (
             window.parent === window ||
             (event.data.to && (event.data.to.length === 0 || event.data.to.includes('*'))) ||
-            messageType === 'SHELLUI_URL_CHANGED' ||
-            messageType === 'SHELLUI_INITIALIZED'
+            isLocalParentMessage
           ) {
             listener(
               {
@@ -66,7 +78,8 @@ export class MessageListenerRegistry {
 
       logger.debug('Message received:', event.data);
 
-      if (messageType === 'SHELLUI_URL_CHANGED' || messageType === 'SHELLUI_INITIALIZED') {
+      // Immediate-parent ownership — do not bubble to outer shells.
+      if (isLocalParentMessage) {
         return;
       }
 

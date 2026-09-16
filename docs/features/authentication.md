@@ -1,83 +1,80 @@
-# Authentication
+---
+title: Configure authentication
+sidebar_label: Authentication
+description: 'Set backend.login, use /login and /login/callback, guard routes with requiresAuth, and call shellui.login from iframes.'
+---
 
-This guide follows [Backend](/backend) in the getting-started path. It covers sign-in configuration, built-in login routes, and navigation guards for developers hosting their own shell.
-
-Shellui authentication is **configuration-driven**: set `backend` in `shellui.config.ts`, declare login capabilities, protect navigation items, and use built-in routes at `/login` and `/login/callback`. The shell stores the session, refreshes tokens, and shares the signed-in user with embedded apps through the SDK.
-
-## Prerequisites
-
-Configure a backend provider first. See [Backend](/backend) for Shellui identity service vs Supabase and field reference.
+Configure sign-in on the shell: `backend` in `shellui.config.json`, built-in routes at `/login` and `/login/callback`, and navigation guards. The shell stores the session, refreshes tokens, and shares the signed-in user with trusted iframe apps. Choose a provider on [Connect a backend](/backend) first.
 
 ## Enable authentication
 
-Add a `backend` block to `shellui.config.ts` (or `shellui.config.json`). Without it, `useAuth()` reports signed out and login actions are unavailable.
+Add a `backend` block. Without it, `useAuth()` reports signed out and login actions are unavailable.
+
+```json
+{
+  "backend": {
+    "type": "shellui",
+    "url": "http://localhost:8000",
+    "companyId": 1,
+    "login": {
+      "methods": ["oauth", "magic_link"],
+      "oauthProviders": ["github", "google"]
+    }
+  }
+}
+```
+
+`backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden.
+
+| Method       | Login UI         | Notes                                                                     |
+| ------------ | ---------------- | ------------------------------------------------------------------------- |
+| `oauth`      | Provider buttons | Needs `oauthProviders` and a backend-enabled provider                     |
+| `magic_link` | Email field      | Supabase email auth; identity-service when advertised                     |
+| `web3`       | Ethereum wallet  | When the backend enables it                                               |
+| `password`   | none             | Typed and forwarded; the stock login view does not render a password form |
+
+`oauthProviders` is an array of ids (`github`, `google`, `microsoft`, `apple`). Shellui deduplicates and lowercases them. For identity-service, per-company OAuth clients from `/api/v1/settings` appear as separate labeled buttons.
+
+**identity-service** needs `url` and `companyId` for OAuth. Optional `adminPathname` / `adminUrl` add **Administration** in the account menu for staff/owners - see [Administration](/features/administration). **Supabase** needs `url` and `publishableKey`.
+
+## Login routes
+
+The shell registers these paths (`urls` in `@shellui/core/constants/urls`). You do not implement them in microfrontends.
+
+| Path              | Purpose                                               |
+| ----------------- | ----------------------------------------------------- |
+| `/login`          | OAuth, magic link, Web3, legal links, `next` redirect |
+| `/login/callback` | OAuth callback (authorization code exchange)          |
+
+Protected routes redirect to `/login?next=<encoded-path>`. After sign-in, the shell navigates to `next` as an in-app path. Example: `/billing` → `/login?next=%2Fbilling`.
+
+### Login left panel
+
+On desktop, `/login` shows a full-height left panel. Both branding fields are optional.
+
+| Field        | Behavior                                                   |
+| ------------ | ---------------------------------------------------------- |
+| `panelUrl`   | Full-bleed iframe. Wins when both fields are set           |
+| `panelImage` | Centered `object-contain` image                            |
+| neither      | Muted panel with clickable `appIcon` top left (links home) |
+
+On mobile, the square `appIcon` is pinned top-left and the form stays centered. Language (when multiple languages are configured) and light/dark controls sit at the top right of the form column. The form uses `.shellui-safe-pad` for notches. Relative image paths are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
+
+```typescript
+login: {
+  methods: ["oauth"],
+  oauthProviders: ["github"],
+  panelUrl: "http://localhost:5176/login-branding/",
+  // panelImage: "/login-panel.jpg",
+}
+```
+
+### Optional login nav item
+
+The shell always exposes `/login`. Add a nav entry to open it in the main area, a modal, or a drawer:
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';
-
-const config: ShellUIConfig = {
-  port: 4000,
-  title: 'My App',
-  backend: {
-    type: 'shellui',
-    url: 'http://localhost:8000',
-    companyId: 1,
-    login: {
-      methods: ['oauth', 'magic_link'],
-      oauthProviders: ['github', 'google'],
-    },
-  },
-};
-
-export default config;
-```
-
-### Login methods
-
-`backend.login.methods` lists what the **login page is allowed to show**. At runtime Shellui intersects this list with settings from the backend so misconfigured providers are not offered.
-
-| Method       | Login UI         | Notes                                                                                          |
-| ------------ | ---------------- | ---------------------------------------------------------------------------------------------- |
-| `oauth`      | Provider buttons | Requires `oauthProviders` and provider enabled on the backend.                                 |
-| `magic_link` | Email field      | Supabase email auth; Shellui identity when the backend advertises it.                          |
-| `web3`       | Ethereum wallet  | Supabase external provider / Shellui Web3 when enabled.                                        |
-| `password`   | —                | Recognized in types and backend payloads; password UI is not rendered by the stock login view. |
-
-`backend.login.oauthProviders` is an array of provider ids (for example `github`, `google`, `microsoft`, `apple`). Shellui deduplicates and lowercases them. For Shellui auth, per-company OAuth clients from `/api/v1/settings` appear as separate buttons with labels.
-
-### Provider-specific fields
-
-**Shellui (`type: 'shellui'`)**
-
-- `url` — identity service origin.
-- `companyId` — required for OAuth code exchange.
-- `adminPathname` / `adminUrl` — optional staff admin iframe; staff users see **Administration** in the account menu when `adminPathname` is set. Add top-level `administration` to inject custom sidebar links (see [Administration panel](/features/administration)).
-
-**Supabase (`type: 'supabase'`)**
-
-- `url` — project URL (hosted or `http://localhost:54321`).
-- `publishableKey` — required for refresh and user metadata calls.
-
-## Login page and routes
-
-Shellui registers fixed auth routes (see `urls` in `@shellui/core`):
-
-| Path              | Purpose                                                                    |
-| ----------------- | -------------------------------------------------------------------------- |
-| `/login`          | Login view: OAuth, magic link, Web3, legal links, `next` redirect handling |
-| `/login/callback` | OAuth callback handler (authorization code exchange)                       |
-
-You do **not** implement these pages in your microfrontends. They are part of the shell router.
-
-### `next` query parameter
-
-Protected routes redirect to `/login?next=<encoded-path>`. After a successful sign-in, Shellui navigates to `next` (normalized to an in-app path). Example: `/billing` → `/login?next=%2Fbilling`.
-
-### Optional login navigation item
-
-The shell always exposes `/login`. You can add a navigation entry so users open login in the main area, a modal, or a drawer:
-
-```typescript
 import urls from '@shellui/core/constants/urls';
 
 const config: ShellUIConfig = {
@@ -93,58 +90,37 @@ const config: ShellUIConfig = {
 };
 ```
 
-When the user is authenticated, login entries whose URL matches the shell login route are **hidden** from the sidebar so you do not show “Login” while signed in. The header **account control** (avatar or “Login”) remains available in supported layouts.
+When a session exists, login entries whose URL matches the shell login route are hidden from the sidebar. The header account control (avatar or Login) remains in supported layouts.
 
-### Account control
+Layouts with a sidebar, app bar, or Windows taskbar render that control: signed-out users go to `/login`; signed-in users get profile, settings, optional administration, and logout. Logout from a `requiresAuth` route navigates to `/` first so you are not sent straight back to login.
 
-Layouts with a sidebar, app bar, or Windows taskbar render a login/account control: signed-out users go to `/login`; signed-in users get profile, settings, optional administration, and logout. Logout from a `requiresAuth` route navigates to `/` first so the user is not sent straight back to login.
+## Guard routes
 
-## Guard navigation and routes
+See [Navigation](/features/navigation) for the full item shape.
 
-Navigation items support auth-aware visibility and enforcement (see [Navigation](/features/navigation)).
+**`requiresAuth`:** direct navigation checks the session. While auth is loading, the route shows a fallback; when signed out, the shell redirects to `/login?next=...`. The iframe URL does not load until you sign in.
 
-### `requiresAuth`
-
-When `true`, direct navigation to the item’s path checks the session. While auth is loading, the route shows a fallback; when signed out, the shell redirects to `/login?next=...`.
-
-```typescript
+```json
 {
-  label: 'Billing',
-  path: 'billing',
-  url: 'https://app.example.com/billing',
-  requiresAuth: true,
+  "label": "Billing",
+  "path": "billing",
+  "url": "https://app.example.com/billing",
+  "requiresAuth": true
 }
 ```
 
-Enforcement is implemented in the shell route wrapper (`NavigationItemRoute`): unauthenticated users never load the iframe URL until they sign in.
+**`hideWhenLoggedOut`:** omit the item from the sidebar and 404 suggestions while signed out. Combine with `requiresAuth` to hide and protect.
 
-### `hideWhenLoggedOut`
+`filterNavigationForAuthState` removes `hideWhenLoggedOut` items when signed out and hides login nav URLs when signed in. `requiresDevMode` items are unchanged by auth.
 
-When `true`, the item is omitted from the sidebar and 404 suggestions while signed out. The route may still exist; combine with `requiresAuth` to hide and protect.
-
-```typescript
-{
-  label: 'Settings',
-  path: 'settings',
-  url: '/__settings',
-  hideWhenLoggedOut: true,
-  requiresAuth: true,
-}
-```
-
-### Filter behavior
-
-`filterNavigationForAuthState` removes `hideWhenLoggedOut` items when signed out and hides login nav URLs when signed in. Developer-only items (`requiresDevMode`) are unchanged by auth.
-
-## Session and React API
-
-`AuthProvider` wraps the shell app. In custom shell code (or apps that bundle core), use:
+## Session in the host
 
 ```typescript
-import { useAuth } from '@shellui/core';
+import { useAuth } from "@shellui/core";
 
 function Example() {
   const { user, isAuthenticated, isLoading, logout, startOAuth } = useAuth();
+  void startOAuth;
 
   if (isLoading) return null;
   if (!isAuthenticated) return <p>Not signed in</p>;
@@ -152,29 +128,29 @@ function Example() {
   return (
     <div>
       <p>{user?.email}</p>
-      <button type="button" onClick={() => logout()}>Sign out</button>
+      <button type="button" onClick={() => void logout()}>
+        Sign out
+      </button>
     </div>
   );
 }
 ```
 
-`AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner` (Shellui JWT), `authProvider`, and `groups`. `AuthSession` holds tokens and expiry for advanced use.
+Sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open. With identity-service, the provider redirects to `/api/v1/oauth/callback`, which bounces to the shell `/login/callback` with tokens in the URL hash. The shell persists them and strips the hash. Older IdP configs that still send `?code=` to the shell continue to use `POST /oauth/exchange`.
 
-Sessions persist in browser storage; the shell refreshes access tokens before expiry and on a timer while the tab is open. OAuth returns may deliver tokens in the URL hash; the shell persists them and strips the hash.
+Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
 
-## Company access and pending accounts
+## Company access pending
 
-When the Shellui identity service uses a non-public company join mode (`domain` or `invite`), OAuth may create the user but **not** issue tokens for that company. Access is stored per company (`CompanyMembership.is_enabled`), so the same person can be approved in one tenant and blocked in another.
+When identity-service uses a non-public company join mode (`domain` or `invite`), OAuth may create an account but not issue tokens for that company. Access is stored per company (`CompanyMembership.is_enabled`).
 
-The backend returns `error_code` `access_pending` or `access_denied` (also as `shellui_oauth_error_code` on bounce redirects). Shellui then shows a dedicated pending-access screen. After an admin enables membership for that company, the user can sign in. Configure modes in admin **Organization** or `PATCH /api/v1/companies/<id>/` — see identity-service company access docs.
+The backend returns `error_code` `access_pending` or `access_denied` (also as `shellui_oauth_error_code` on bounce redirects). The shell then shows a pending-access screen. After an admin enables membership, sign in again. Configure modes in admin **Organization** or `PATCH /api/v1/companies/<id>/`.
 
-## Embedded apps and the SDK
+## Iframe apps
 
-Iframes do not read storage directly. They receive user and `accessToken` through SDK settings after the shell initializes auth.
+Iframes do not read storage directly. They receive `user` and `accessToken` through SDK settings after the shell initializes auth.
 
-From a child app, request login in the **top-level** window (required for OAuth redirects):
-
-```javascript
+```typescript
 import { shellui } from '@shellui/sdk';
 
 shellui.login({
@@ -184,28 +160,18 @@ shellui.login({
 });
 ```
 
-Supported `method` values: `oauth` (with `provider`), `web3`. The shell handles `SHELLUI_LOGIN` messages from nested frames.
+Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL.
 
-Settings propagation includes `authBackendBaseUrl` when `backend.type` is `shellui`, so admin or API tools in iframes can call the same identity base URL.
-
-## User settings
-
-Signed-in users open **Settings** (built-in route) for account fields, theme, language, and region. Shellui syncs preferences with the backend (`user_metadata` / Shellui preferences endpoints) when configured.
-
-Legal document links on the login page come from `legalDocuments` in config; see [Legal documents](/features/legal-documents).
+Signed-in users open **Settings** for account fields, theme, language, and region. Preferences sync with the backend when configured. Legal links on the login page come from `legalDocuments` - see [Legal documents](/features/legal-documents).
 
 ## Checklist
 
-1. Choose [Backend](/backend) provider and run it (identity service or Supabase).
-2. Set `backend.type`, `url`, and provider-specific keys in `shellui.config.ts`.
-3. Set `backend.login.methods` and `oauthProviders` to match what the backend enables.
-4. Mark sensitive nav items with `requiresAuth` and optionally `hideWhenLoggedOut`.
-5. Test deep links while signed out (`/billing` → login → return).
-6. In embedded apps, use SDK settings for the user and `shellui.login()` for iframe-safe OAuth.
+1. Run identity-service or Supabase and set `backend.type`, `url`, and provider keys
+2. Set `backend.login.methods` and `oauthProviders` to match the backend
+3. Mark sensitive nav items with `requiresAuth` and optionally `hideWhenLoggedOut`
+4. Test a signed-out deep link (`/billing` → login → return)
+5. In embedded apps, read the signed-in profile from SDK settings and call `shellui.login()` for OAuth
 
-## Related guides
+## Related pages
 
-- [Backend](/backend) — provider comparison and configuration reference
-- [Navigation](/features/navigation) — auth-related navigation properties
-- [SDK](/sdk) — `shellui.login()` and settings payloads
-- [Application settings](/features/application-settings) — per-app settings panels
+- [Backend](/backend), [Navigation](/features/navigation), [SDK](/sdk), [Application settings](/features/application-settings)

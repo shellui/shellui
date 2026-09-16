@@ -1,6 +1,6 @@
 # @shellui/cli
 
-Shellui CLI - Command-line tool for Shellui
+Command-line tool for Shellui. Install it, then run `shellui` to create a project, start the host, and build.
 
 ## Installation
 
@@ -8,7 +8,7 @@ Shellui CLI - Command-line tool for Shellui
 npm install -g @shellui/cli
 ```
 
-Or install as a dev dependency:
+Or as a project dev dependency:
 
 ```bash
 npm install --save-dev @shellui/cli
@@ -17,86 +17,42 @@ npm install --save-dev @shellui/cli
 ## Usage
 
 ```bash
-shellui dev [path/to/project] [--host] [--app]
-shellui start [path/to/project] [--host] [--app]   # alias: dev
-shellui build [path/to/project] [--app] [--bundles <targets>]
-shellui init [path/to/project] [--force]
+shellui init
+shellui init react
+shellui start
+shellui start --host
+shellui start --app
+shellui start --run vite --follow http://localhost:5173
+shellui start --shell-only
+shellui build
+shellui build --app
+shellui build --app --bundles app,dmg
+shellui config migrate
+shellui config split
+shellui config unsplit
+shellui login
+shellui logout
+shellui whoami
+shellui deploy
+shellui start --config ./config
 ```
 
-### Commands
+`dev` is an alias for `start`. `--shell-only` ignores `config.dev.run`. Do not pass `--no-run`.
 
-- **dev** / **start** - Start the Shellui development server
+**init frameworks:** `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. Each JS starter wires theme and i18n with `@shellui/sdk/tiny`. See [Framework starters](https://docs.shellui.com/framework-starters).
 
-  ```bash
-  shellui dev
-  shellui dev ./my-project
-  shellui dev --host      # listen on 0.0.0.0 for network access
-  shellui dev --app       # desktop development (generates dist/app/)
-  ```
+Full command and config reference: [CLI docs](https://docs.shellui.com/cli). Desktop: [Tauri / desktop app](https://docs.shellui.com/tauri). `shellui start` / `build` ignore the project `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` - see [tooling isolation](https://docs.shellui.com/cli#tooling-isolation).
 
-- **build** - Build the Shellui application for production
+## Project structure (this package)
 
-  ```bash
-  shellui build
-  shellui build ./my-project
-  shellui build --app              # desktop app (.app on macOS)
-  shellui build --app --bundles app,dmg   # + macOS DMG installer
-  ```
-
-- **init** - Create a `shellui.config.ts` boilerplate
-
-  ```bash
-  shellui init
-  shellui init --force
-  ```
-
-See the Shellui docs for [CLI](https://docs.shellui.com/cli) and [Tauri](https://docs.shellui.com/tauri) details.
-
-## Project Structure
-
-The CLI is organized for maintainability with a clear separation of concerns:
-
-```
+```text
 src/
-├── cli.js              # Main CLI orchestrator
-├── commands/           # All commands in separate files
-│   ├── index.js       # Command registry
-│   ├── start.js       # Start command implementation
-│   └── build.js       # Build command implementation
-└── utils/             # Utility functions
-    ├── index.js       # Utilities export
-    ├── config.js      # Configuration loading
-    └── vite.js        # Vite-specific utilities
+├── cli.js
+├── commands/
+└── utils/
 ```
 
-## Development
-
-### Adding a New Command
-
-1. Create a new file in `src/commands/` (e.g., `new-command.js`)
-2. Export a command function:
-
-```javascript
-export async function newCommandCommand(args) {
-  // Command implementation
-}
-```
-
-3. Register it in `src/cli.js`:
-
-```javascript
-import { newCommandCommand } from './commands/index.js';
-
-cli.command('new-command [args]', 'Description').action(newCommandCommand);
-```
-
-4. Export it from `src/commands/index.js`:
-
-```javascript
-export { newCommandCommand } from './new-command.js';
-```
-
-See `src/commands/README.md` for more details.
+Adding a command: implement it under `src/commands/`, export from `src/commands/index.js`, register it in `src/cli.js`. See `src/commands/README.md`.
 
 ## License
 

@@ -56,6 +56,24 @@ export const DrawerTestButtons = () => {
           {t('develop.testing.drawerTesting.buttons.drawerBottomHalf')}
         </Button>
         <Button
+          onClick={() =>
+            shellui.openDrawer({
+              url: urls.overlayDemo,
+              position: 'bottom',
+              dynamicSizing: true,
+            })
+          }
+          variant="outline"
+        >
+          {t('develop.testing.drawerTesting.buttons.drawerBottomDynamic')}
+        </Button>
+        <Button
+          onClick={() => openDrawer({ position: 'bottom', size: 'md', showCloseButton: false })}
+          variant="outline"
+        >
+          {t('develop.testing.drawerTesting.buttons.drawerNoClose')}
+        </Button>
+        <Button
           onClick={() => shellui.closeDrawer()}
           variant="outline"
         >

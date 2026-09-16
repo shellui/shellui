@@ -203,6 +203,7 @@ export const StoragePickerProvider = ({ children }: StoragePickerProviderProps) 
                 url={pending.url}
                 pathPrefix="storage-picker"
                 ignoreMessages={true}
+                layoutChrome={false}
                 navItem={pickerNavItem}
               />
             </div>

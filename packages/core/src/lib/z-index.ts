@@ -4,8 +4,11 @@
  * Use these constants everywhere so stacking stays consistent.
  */
 export const Z_INDEX = {
+  /** Mobile sidebar sheet overlay / content (above main content, below modals) */
+  SIDEBAR_SHEET_OVERLAY: 9990,
+  SIDEBAR_SHEET_CONTENT: 9991,
   /** Sidebar trigger (above main content, below modals) */
-  SIDEBAR_TRIGGER: 9999,
+  SIDEBAR_TRIGGER: 9992,
   /** Modal overlay and content (settings panel, etc.) */
   MODAL_OVERLAY: 10000,
   MODAL_CONTENT: 10001,

@@ -25,7 +25,7 @@ function normalizeMode(options: StorageSelectOptions = {}): StorageSelectMode {
 }
 
 /**
- * Open the storage picker in a ShellUI modal. Resolves with selected items,
+ * Open the storage picker in a Shellui modal. Resolves with selected items,
  * or `null` if the user cancelled.
  */
 export function selectStorage(

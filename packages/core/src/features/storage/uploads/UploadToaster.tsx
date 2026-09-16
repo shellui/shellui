@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { shellui } from '@shellui/sdk';
 import { UploadToastCard } from './UploadToastCard';
 import { startUploadToastDemo, UPLOAD_TOAST_DEMO_MESSAGE, UPLOAD_TOAST_ID } from './uploadQueue';
@@ -10,7 +11,7 @@ function isShellUiRoot(): boolean {
 }
 
 /**
- * Custom upload toast at the outermost ShellUI window. Nested iframes never
+ * Custom upload toast at the outermost Shellui window. Nested iframes never
  * render it — they post uploads / demo requests up so the root can show this
  * panel above modals and keep it while the user navigates.
  */
@@ -27,15 +28,17 @@ export function UploadToaster() {
 
   if (!isRoot || items.length === 0) return null;
 
-  return (
+  // Portal to body so z-index sits above portaled modals/drawers (same as Sonner).
+  return createPortal(
     <div
       id={UPLOAD_TOAST_ID}
-      className="pointer-events-none fixed right-3 bottom-20 md:right-4 md:bottom-4"
+      className="pointer-events-none fixed right-[max(0.75rem,env(safe-area-inset-right,0px))] bottom-[max(5rem,calc(5rem+env(safe-area-inset-bottom,0px)))] md:right-[max(1rem,env(safe-area-inset-right,0px))] md:bottom-[max(1rem,env(safe-area-inset-bottom,0px))]"
       style={{ zIndex: Z_INDEX.TOAST }}
     >
       <div className="pointer-events-auto origin-bottom animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
         <UploadToastCard />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

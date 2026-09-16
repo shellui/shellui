@@ -10,16 +10,7 @@ import { RouteFallback } from './RouteFallback';
 export const NavigationItemRoute = () => {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
-  const { url, currentItem, isRootFallback } = useNavigationItems();
-
-  if (isRootFallback) {
-    return (
-      <Navigate
-        to="/"
-        replace
-      />
-    );
-  }
+  const { url, currentItem } = useNavigationItems();
 
   if (!currentItem) {
     return <NotFoundView />;
