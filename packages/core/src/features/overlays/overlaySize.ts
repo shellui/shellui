@@ -342,7 +342,7 @@ export function resolveBottomSheetSnapPoints(
   const expanded = sheetExpandedSnapFraction(viewport, safeAreaTopPx);
 
   let normal: number;
-  if (reportedHeightPx != null && Number.isFinite(reportedHeightPx) && reportedHeightPx > 0) {
+  if (reportedHeightPx !== null && Number.isFinite(reportedHeightPx) && reportedHeightPx > 0) {
     normal = reportedHeightPx / viewport;
   } else {
     const dynamic = isDynamicSizing(options);

@@ -533,7 +533,7 @@ export function ResponsiveModal({
 
   const sheetHeightStyle: CSSProperties | undefined = (() => {
     if (!isSheet) return undefined;
-    if (sheetDragHeight != null) {
+    if (sheetDragHeight !== null) {
       return {
         height: sheetDragHeight,
         maxHeight: sheetDragHeight,
