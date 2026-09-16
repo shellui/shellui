@@ -36,6 +36,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'framework-starters',
+          label: 'Framework Starters',
+        },
+        {
+          type: 'doc',
           id: 'backend',
           label: 'Backend',
         },
