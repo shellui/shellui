@@ -21,7 +21,6 @@ shellui init next
 shellui init nuxt
 shellui init svelte
 shellui init alpine
-shellui init flutter
 shellui init empty
 ```
 
@@ -35,16 +34,15 @@ shellui init react ./my-project
 shellui init --force
 ```
 
-Without flags, the wizard asks for framework and backend. JS starters are fetched from the GitHub tag that matches the CLI version (not bundled in the npm tarball). They wire `@shellui/sdk/tiny` for theme and language, plus `dev.run` / `dev.url` so `shellui start` launches the companion. Empty stays shell-only (`Home` at `/`, no `dev` block). After a JS scaffold, init detects the package manager and runs install unless `--no-install`. Flutter Web runs `flutter pub get` instead of npm. There is no Dart SDK; handshake, theme, and i18n stay JS-only.
+Without flags, the wizard asks for framework and backend. JS starters are fetched from the GitHub tag that matches the CLI version (not bundled in the npm tarball). They wire `@shellui/sdk/tiny` for theme and language, plus `dev.run` / `dev.url` so `shellui start` launches the companion. Empty stays shell-only (`Home` at `/`, no `dev` block). After a JS scaffold, init detects the package manager and runs install unless `--no-install`.
 
-| Framework                        | Default `dev.run`                                                    | `dev.url`               |
-| -------------------------------- | -------------------------------------------------------------------- | ----------------------- |
-| React / Vue / SvelteKit / Alpine | `{pm} run dev`                                                       | `http://localhost:5173` |
-| Angular                          | `{pm} run dev`                                                       | `http://localhost:4200` |
-| Next.js / Nuxt                   | `{pm} run dev`                                                       | `http://localhost:3000` |
-| Flutter Web                      | `flutter run -d web-server --web-hostname=localhost --web-port=8080` | `http://localhost:8080` |
+| Framework                        | Default `dev.run` | `dev.url`               |
+| -------------------------------- | ----------------- | ----------------------- |
+| React / Vue / SvelteKit / Alpine | `{pm} run dev`    | `http://localhost:5173` |
+| Angular                          | `{pm} run dev`    | `http://localhost:4200` |
+| Next.js / Nuxt                   | `{pm} run dev`    | `http://localhost:3000` |
 
-The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Flutter's first web compile can exceed the default 60s companion wait - see the Flutter template README. Nuxt 4 expects a recent Node 22.x / 24.x.
+The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Nuxt 4 expects a recent Node 22.x / 24.x.
 
 **Options:** positional `framework` or `--framework`; `--backend none|shellui|supabase`; `--company-id`; `--supabase-url`; `--force`; `--no-install`; `--config`.
 

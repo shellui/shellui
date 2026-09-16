@@ -27,7 +27,7 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 - **Host detection (PWA vs Tauri):** `isHomeScreenPwa()` / `isTauriRuntime()` / `data-shellui-host` distinguish Safari Home Screen installs from native WKWebView. iOS Home Screen PWAs skip stacked status scrims and `theme-color`; Tauri keeps controlled chrome + CSS safe-area. See [docs/tauri.md](./docs/tauri.md#browser-pwa-vs-native-ios).
 - **Floating chrome actions (SDK):** `shellui.actions.set` / `clear` declare optional back, title, trailing, and primary FAB chrome. Shell renders them (floating glass / windows title bar), posts `SHELLUI_ACTION` clicks into that iframe only, and clears on shell navigation. Caps: ≤3 trailing visible (rest in `···`), ≤1 primary. Try via Settings → Develop → Chrome actions. See [docs/features/chrome-actions.md](./docs/features/chrome-actions.md).
-- **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), Alpine.js (official Alpine npm + Vite), and Flutter Web (`flutter create --platforms=web --empty`). Companions: Next/Nuxt → `:3000`, SvelteKit/Alpine → `:5173`, Flutter Web → `flutter run -d web-server` on `:8080`. Alpine wires `@shellui/sdk/tiny` theme + en/fr language sync. Flutter is **Web only** (not iOS/Android) and uses `flutter pub get`.
+- **`shellui init` frameworks:** Next.js (`create-next-app` App Router JS), Nuxt (nuxi minimal), SvelteKit (`sv create` minimal), and Alpine.js (official Alpine npm + Vite). Companions: Next/Nuxt → `:3000`, SvelteKit/Alpine → `:5173`. Alpine wires `@shellui/sdk/tiny` theme + en/fr language sync.
 - **Sidebar inset layout:** sidebar twin with a padded, rounded main frame (`layout: "sidebar-inset"`); selectable from Settings → Develop.
 - **App-bar inset layout:** app-bar twin with the same inset chrome tray and rounded content frame (`layout: "app-bar-inset"`).
 - **CLI companion:** `shellui start` can spawn or follow a colocated app via `dev.run` / `dev.url` (or `--run` / `--follow` / `--shell-only`).
@@ -48,7 +48,11 @@ See for sample https://raw.githubusercontent.com/favoloso/conventional-changelog
 
 ### 🛠 Improvements
 
-- **`shellui init` companions:** JS framework templates (`react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`) use `@shellui/sdk/tiny` with theme sync + `en`/`fr` i18n and a Shellui-integrated home (not stock Vite/Next hello worlds). Flutter Web documents the Dart SDK gap (no invented bridge).
+- **`shellui init` companions:** JS framework templates (`react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`) use `@shellui/sdk/tiny` with theme sync + `en`/`fr` i18n and a Shellui-integrated home (not stock Vite/Next hello worlds).
+
+### 🗑 Removed
+
+- **`shellui init` Flutter Web:** Removed from the wizard, positional shortcuts, templates, and docs. Shellui has no Dart/Flutter SDK, so the starter could not integrate theme, i18n, or the SDK handshake.
 - **Desktop icons:** Tauri dock/taskbar icons use the opaque Shellui mark from `static/icon.png`, padded for native dock sizing.
 - **Desktop config:** optional root `tauri.conf.json` for `productName`, `identifier`, and icon; Cargo name stays in sync for Dock / Cmd-Tab.
 - **Traffic-light inset:** reserved left padding for macOS window controls only in a live Tauri webview, not fullscreen or browser tabs.
