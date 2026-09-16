@@ -145,8 +145,8 @@ describe('initCommand (non-interactive)', () => {
     expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
     expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
     expect(parseInitArgs('alpine')).toEqual({ root: '.', frameworkShortcut: 'alpine' });
-    expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
+    expect(parseInitArgs('flutter')).toEqual({ root: 'flutter', frameworkShortcut: null });
   });
 
   test('positional/flag react scaffolding copies local official Vite template', async () => {
@@ -198,7 +198,6 @@ describe('initCommand (non-interactive)', () => {
     ['nuxt', 'http://localhost:3000', 'package.json'],
     ['svelte', 'http://localhost:5173', 'package.json'],
     ['alpine', 'http://localhost:5173', 'package.json'],
-    ['flutter', 'http://localhost:8080', 'pubspec.yaml'],
   ])(
     '%s scaffolding copies local template and wires companion',
     async (framework, companionUrl, manifest) => {
@@ -220,19 +219,12 @@ describe('initCommand (non-interactive)', () => {
       const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
       expect(config.dev.url).toBe(companionUrl);
       expect(config.dev.name).toBe(framework);
+      expect(config.dev.run).toMatch(/run dev$/);
       expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
         `${companionUrl}/`,
       );
       expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
       expect(config.port).toBe(4000);
-
-      if (framework === 'flutter') {
-        expect(config.dev.run).toBe(
-          'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-        );
-      } else {
-        expect(config.dev.run).toMatch(/run dev$/);
-      }
 
       if (framework === 'svelte') {
         expect(fs.existsSync(path.join(projectDir, 'svelte.config.js'))).toBe(true);
@@ -267,27 +259,20 @@ describe('initCommand (non-interactive)', () => {
     },
   );
 
-  test('react init is not hijacked by a pre-existing pubspec.yaml', async () => {
-    const projectDir = path.join(testRoot, 'react-with-pubspec');
+  test('rejects --framework flutter', async () => {
+    const projectDir = path.join(testRoot, 'flutter-rejected');
     fs.mkdirSync(projectDir);
-    fs.writeFileSync(
-      path.join(projectDir, 'pubspec.yaml'),
-      "name: leftover\nenvironment:\n  sdk: '>=3.0.0 <4.0.0'\n",
-    );
 
-    const cwd = process.cwd();
-    process.chdir(repoRoot);
-    try {
-      await initCommand(projectDir, { framework: 'react', backend: 'none', install: false });
-    } finally {
-      process.chdir(cwd);
-    }
+    let exitCode = null;
+    process.exit = (code) => {
+      exitCode = code;
+      throw new Error(`process.exit(${code})`);
+    };
 
-    const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
-    expect(config.dev.name).toBe('react');
-    expect(config.dev.url).toBe('http://localhost:5173');
-    expect(config.dev.run).toMatch(/run dev$/);
-    expect(config.dev.run).not.toMatch(/flutter/);
-    expect(fs.existsSync(path.join(projectDir, 'package.json'))).toBe(true);
+    await expect(
+      initCommand(projectDir, { framework: 'flutter', backend: 'none', install: false }),
+    ).rejects.toThrow(/process\.exit/);
+    expect(exitCode).toBe(1);
+    expect(fs.existsSync(path.join(projectDir, MAIN_CONFIG_FILE))).toBe(false);
   });
 });

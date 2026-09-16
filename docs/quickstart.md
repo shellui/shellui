@@ -26,7 +26,7 @@ shellui init --framework next --backend none
 
 `init` writes `shellui.config.json` (with `$schema` for editor autocomplete), placeholder files under `static/`, and - for JS frameworks - a companion app plus `dev.run` / `dev.url` so `shellui start` launches both. Overwrite an existing config with `shellui init --force`. Skip `npm`/`pnpm` install after a JS scaffold with `--no-install`.
 
-Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`, `flutter`. Flutter is **Web only** and needs the Flutter SDK on PATH. See [CLI init](/cli#shellui-init).
+Frameworks: `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. See [CLI init](/cli#shellui-init).
 
 If you still have a TypeScript config from an older project, convert it with `shellui config migrate`.
 
