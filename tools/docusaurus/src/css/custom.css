@@ -1004,6 +1004,8 @@ hr {
 }
 
 html[data-theme='dark'] .framework-chip__icon[data-framework='next'],
-html[data-theme='dark'] .framework-heading-icon[data-framework='next'] {
+html[data-theme='dark'] .framework-heading-icon[data-framework='next'],
+html[data-theme='dark'] .framework-chip__icon[data-framework='empty'],
+html[data-theme='dark'] .framework-heading-icon[data-framework='empty'] {
   filter: invert(1);
 }
