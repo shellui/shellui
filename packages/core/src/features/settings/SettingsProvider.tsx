@@ -315,17 +315,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           const mergedSettings = mergePreferencesIntoSettings(currentSettings, tokenPreferences);
           const signature = JSON.stringify(getPreferenceSnapshot(mergedSettings));
           const prevSignature = JSON.stringify(getPreferenceSnapshot(currentSettings));
-          lastSyncedPreferencesRef.current = signature;
           if (signature === prevSignature) {
+            lastSyncedPreferencesRef.current = signature;
             logger.info('JWT app preferences match current settings; skipping state update', {
               preferences: getPreferenceSnapshot(mergedSettings),
             });
             return;
           }
+          // Current UI already matches what we last synced — JWT is lagging a newer
+          // local change (or a superseded sync). Don’t regress appearance.
+          if (prevSignature === lastSyncedPreferencesRef.current) {
+            logger.info('Ignoring stale JWT preferences that lag last-synced settings', {
+              jwt: getPreferenceSnapshot(mergedSettings),
+              current: getPreferenceSnapshot(currentSettings),
+            });
+            return;
+          }
+          lastSyncedPreferencesRef.current = signature;
           settingsRef.current = mergedSettings;
           setSettings(mergedSettings);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedSettings));
-          propagateSettingsToIframesRef.current(mergedSettings);
+          schedulePropagateSettingsToIframes(mergedSettings);
           logger.info('Loaded app preferences from JWT metadata', {
             preferences: getPreferenceSnapshot(mergedSettings),
           });
@@ -437,7 +447,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             try {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings));
               logger.info('Root Parent received settings update', { message });
-              propagateSettingsToIframes(nextSettings);
+              // Coalesce with rapid theme spam (same debounce as updateSettings).
+              schedulePropagateSettingsToIframes(nextSettings);
             } catch (error) {
               logger.error('Failed to update settings from message:', { error });
             }
@@ -528,7 +539,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       cleanupSettingsRequested();
       cleanupInitialized();
     };
-  }, [config, isTrustedFrameForAuthToken, propagateSettingsToIframes, pushSettingsToFrame]);
+  }, [
+    config,
+    isTrustedFrameForAuthToken,
+    propagateSettingsToIframes,
+    pushSettingsToFrame,
+    schedulePropagateSettingsToIframes,
+  ]);
 
   // Apply config activeTheme / defaultTheme on first visit (no localStorage preference yet)
   useEffect(() => {
@@ -605,7 +622,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // ACTIONS
   const updateSettings = useCallback(
     (updates: Partial<Settings>) => {
-      const nextSettings = { ...settings, ...updates };
+      // Always merge from the latest ref so rapid theme toggles don’t clobber each other.
+      const base = settingsRef.current ?? defaultSettings;
+      const nextSettings = { ...base, ...updates };
 
       // Update localStorage and propagate to children if we're in the root window
       if (typeof window !== 'undefined' && window.parent === window) {
@@ -631,20 +650,21 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         payload: { settings: stripSensitiveUserFields(nextSettings) },
       });
     },
-    [settings, schedulePropagateSettingsToIframes],
+    [schedulePropagateSettingsToIframes],
   );
 
   const updateSetting = useCallback(
     <K extends keyof Settings>(key: K, updates: Partial<Settings[K]>) => {
-      // Deep merge: preserve existing nested properties
-      const currentValue = settings[key];
+      // Deep merge from latest ref: preserve existing nested properties
+      const base = settingsRef.current ?? defaultSettings;
+      const currentValue = base[key];
       const mergedValue =
         typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)
           ? { ...currentValue, ...updates }
           : updates;
       updateSettings({ [key]: mergedValue } as Partial<Settings>);
     },
-    [settings, updateSettings],
+    [updateSettings],
   );
 
   const resetAllData = useCallback(() => {
