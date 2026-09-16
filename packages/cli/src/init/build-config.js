@@ -186,7 +186,7 @@ export function applyCompanionConfig(config, framework, opts = {}) {
   }
 
   const packageManager = opts.packageManager || 'npm';
-  const run = companion.fixedRun ? companion.run : formatDevRun(packageManager || 'npm');
+  const run = formatDevRun(packageManager || 'npm');
   const next = {
     ...config,
     dev: {

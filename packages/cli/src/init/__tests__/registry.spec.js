@@ -14,10 +14,10 @@ import {
   DEFAULT_SHELLUI_LOGIN_METHODS,
 } from '../registry.js';
 
-const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'alpine', 'flutter'];
+const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'alpine'];
 
 describe('init registry', () => {
-  test('registers empty, react, vue, angular, next, nuxt, svelte, alpine, and flutter frameworks', () => {
+  test('registers empty, react, vue, angular, next, nuxt, svelte, and alpine frameworks', () => {
     const ids = FRAMEWORKS.map((f) => f.id);
     expect(ids).toEqual(
       expect.arrayContaining([
@@ -29,9 +29,9 @@ describe('init registry', () => {
         'nuxt',
         'svelte',
         'alpine',
-        'flutter',
       ]),
     );
+    expect(ids).not.toContain('flutter');
   });
 
   test('positional shortcuts cover empty and all fetch frameworks', () => {
@@ -44,8 +44,8 @@ describe('init registry', () => {
       'nuxt',
       'svelte',
       'alpine',
-      'flutter',
     ]);
+    expect(getPositionalFrameworkIds()).not.toContain('flutter');
   });
 
   test('fetch frameworks have template file lists and companions', () => {
@@ -57,14 +57,10 @@ describe('init registry', () => {
     }
   });
 
-  test('flutter companion is fixed-run Flutter Web server on 8080', () => {
-    expect(FRAMEWORK_COMPANIONS.flutter).toMatchObject({
-      fixedRun: true,
-      install: 'flutter',
-      manifest: 'pubspec.yaml',
-      url: 'http://localhost:8080',
-      run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-    });
+  test('flutter is not a registered framework or companion', () => {
+    expect(getFramework('flutter')).toBeUndefined();
+    expect(FRAMEWORK_COMPANIONS.flutter).toBeUndefined();
+    expect(TEMPLATE_FILES.flutter).toBeUndefined();
   });
 
   test('next/nuxt use port 3000; svelte and alpine use 5173', () => {
@@ -89,21 +85,18 @@ describe('init registry', () => {
   test('prompt options are derived from the same registry', () => {
     expect(getFrameworkPromptOptions().map((o) => o.value)).toEqual(FRAMEWORKS.map((f) => f.id));
     expect(getBackendPromptOptions().map((o) => o.value)).toEqual(BACKENDS.map((b) => b.id));
+    expect(getFrameworkPromptOptions().map((o) => o.value)).not.toContain('flutter');
   });
 
-  test('getFrameworkIdsList includes all registered ids', () => {
+  test('getFrameworkIdsList includes all registered ids and excludes flutter', () => {
     expect(getFrameworkIdsList()).toContain('next');
     expect(getFrameworkIdsList()).toContain('alpine');
-    expect(getFrameworkIdsList()).toContain('flutter');
+    expect(getFrameworkIdsList()).not.toContain('flutter');
   });
 
   test('shellui defaults match BackendConfig shape expectations', () => {
     expect(DEFAULT_SHELLUI_BACKEND_URL).toMatch(/^https:\/\//);
     expect([...DEFAULT_SHELLUI_LOGIN_METHODS]).toEqual(['password', 'oauth']);
-  });
-
-  test('flutter hint documents Web-only', () => {
-    expect(getFramework('flutter')?.hint).toMatch(/Web only/i);
   });
 
   test('svelte TEMPLATE_FILES includes svelte.config.js and vscode extensions', () => {

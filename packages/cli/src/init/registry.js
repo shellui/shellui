@@ -3,7 +3,7 @@
  * Add new starters / backends here — the wizard, flags, and tests all read this registry.
  */
 
-/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter' | 'other'} FrameworkId */
+/** @typedef {'empty' | 'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'other'} FrameworkId */
 /** @typedef {'none' | 'shellui' | 'supabase'} BackendId */
 
 /**
@@ -30,8 +30,7 @@
  *   run: string,
  *   url: string,
  *   name: string,
- *   fixedRun?: boolean,
- *   install?: 'npm' | 'flutter',
+ *   install?: 'npm',
  *   manifest?: string,
  * }} FrameworkCompanion
  */
@@ -95,13 +94,6 @@ export const FRAMEWORKS = [
     positional: true,
   },
   {
-    id: 'flutter',
-    label: 'Flutter Web',
-    hint: 'Web only (not iOS/Android) — requires Flutter SDK',
-    scaffold: 'fetch',
-    positional: true,
-  },
-  {
     id: 'other',
     label: 'Other (coming soon)',
     hint: 'Skip scaffold',
@@ -139,9 +131,9 @@ export const DEFAULT_SHELLUI_LOGIN_METHODS = /** @type {const} */ (['password', 
 
 /**
  * Companion `dev` + Home iframe URL for framework starters.
- * Shell stays on port 4000; Vite apps use 5173, Angular 4200, Next/Nuxt 3000, Flutter Web 8080.
- * For npm-based frameworks, `run` is rewritten to `{detectedPm} run dev` unless `fixedRun`.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', FrameworkCompanion>}
+ * Shell stays on port 4000; Vite apps use 5173, Angular 4200, Next/Nuxt 3000.
+ * `run` is rewritten to `{detectedPm} run dev`.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine', FrameworkCompanion>}
  */
 export const FRAMEWORK_COMPANIONS = {
   react: {
@@ -192,14 +184,6 @@ export const FRAMEWORK_COMPANIONS = {
     name: 'alpine',
     install: 'npm',
     manifest: 'package.json',
-  },
-  flutter: {
-    run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-    url: 'http://localhost:8080',
-    name: 'flutter',
-    fixedRun: true,
-    install: 'flutter',
-    manifest: 'pubspec.yaml',
   },
 };
 
@@ -254,8 +238,8 @@ export function getBackendPromptOptions() {
 /**
  * Relative paths fetched for each on-demand framework template.
  * Kept here so registry + fetch layer stay aligned.
- * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / Alpine npm+Vite / flutter create.
- * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine' | 'flutter', string[]>}
+ * Sources: official create-vite / ng new / create-next-app / nuxi / sv create / Alpine npm+Vite.
+ * @type {Record<'react' | 'vue' | 'angular' | 'next' | 'nuxt' | 'svelte' | 'alpine', string[]>}
  */
 export const TEMPLATE_FILES = {
   react: [
@@ -391,22 +375,6 @@ export const TEMPLATE_FILES = {
     'src/main.js',
     'src/i18n.js',
     'src/style.css',
-    'static/favicon.svg',
-    'static/logo.svg',
-  ],
-  flutter: [
-    'pubspec.yaml',
-    'analysis_options.yaml',
-    'README.md',
-    '.gitignore',
-    'lib/main.dart',
-    'web/index.html',
-    'web/favicon.png',
-    'web/manifest.json',
-    'web/icons/Icon-192.png',
-    'web/icons/Icon-512.png',
-    'web/icons/Icon-maskable-192.png',
-    'web/icons/Icon-maskable-512.png',
     'static/favicon.svg',
     'static/logo.svg',
   ],

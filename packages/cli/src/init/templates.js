@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { TEMPLATE_FILES, FRAMEWORK_COMPANIONS, getFramework } from './registry.js';
 
 /**
- * Manifest file used to probe GitHub template availability (package.json or pubspec.yaml).
+ * Manifest file used to probe GitHub template availability (package.json).
  * @param {string} framework
  * @returns {string}
  */
