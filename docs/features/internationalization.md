@@ -67,10 +67,10 @@ const config: ShellUIConfig = {
 };
 ```
 
-Iframe apps should listen for SDK `language` / `SHELLUI_SETTINGS` and update their own copy. Do not ship a second locale picker unless that app **is** the language settings surface. The shell already owns locale.
+Iframe apps should listen for SDK `language` / `SHELLUI_SETTINGS` and update their own copy. Do not ship a second locale picker unless that app **is** the language settings surface. The shell already owns locale. JS starters from `shellui init` do this with `@shellui/sdk/tiny` - see [Framework starters](/framework-starters#theme-and-i18n-out-of-the-box).
 
 Provide a translation for every enabled code when you use an object. Extra keys on `LocalizedString` are allowed in the type; chrome translations beyond `en` / `fr` are not shipped in core today. Layouts are LTR.
 
 ## Related pages
 
-- [Navigation](/features/navigation), [Cookie consent](/features/cookie-consent), [SDK](/sdk)
+- [Framework starters](/framework-starters), [Navigation](/features/navigation), [Cookie consent](/features/cookie-consent), [SDK](/sdk)

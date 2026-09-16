@@ -42,7 +42,7 @@ Without flags, the wizard asks for framework and backend. JS starters are fetche
 | Angular                          | `{pm} run dev`    | `http://localhost:4200` |
 | Next.js / Nuxt                   | `{pm} run dev`    | `http://localhost:3000` |
 
-The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Nuxt 4 expects a recent Node 22.x / 24.x.
+The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Nuxt 4 expects a recent Node 22.x / 24.x. Per-framework theme / i18n wiring, icons, and run notes: [Framework starters](/framework-starters).
 
 **Options:** positional `framework` or `--framework`; `--backend none|shellui|supabase`; `--company-id`; `--supabase-url`; `--force`; `--no-install`; `--config`.
 
