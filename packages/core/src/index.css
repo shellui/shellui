@@ -272,7 +272,9 @@
   transition-timing-function: ease-in;
 }
 
-[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true'] {
+[data-shellui-chrome-actions-top='overlay'][data-scroll-hidden='true']:not(
+    [data-shell-scroll-sync]
+  ) {
   translate: 0 -120%;
 }
 
@@ -282,24 +284,25 @@
 
 /*
  * Sidebar / app-bar mobile top chrome hide-on-scroll.
- * Header overlays content; --shellui-inset-top stays stable (header height).
- * Inset layouts paint radius/tray via a non-interactive overlay (not the iframe).
+ * Header + inset tray/radius slide as one stack; action row follows the same
+ * `--shellui-chrome-hide-y` var so nothing drifts out of sync.
  */
-[data-shellui-scroll-hide-header],
-[data-shellui-inset-radius-overlay] {
-  translate: 0 0;
+[data-shellui-mobile-chrome-stack] {
+  translate: 0 var(--shellui-chrome-hide-y, 0%);
   transition-property: translate, opacity;
   transition-duration: 380ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-[data-shellui-scroll-hide-header][data-chrome-visible='false'],
-[data-shellui-inset-radius-overlay][data-chrome-visible='false'] {
-  translate: 0 -120%;
+[data-shellui-mobile-chrome-stack][data-chrome-visible='false'] {
   opacity: 0;
   pointer-events: none;
   transition-duration: 160ms;
   transition-timing-function: ease-in;
+}
+
+[data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
+  translate: 0 var(--shellui-chrome-hide-y, 0%);
 }
 
 /*
@@ -338,8 +341,8 @@
     transition: none !important;
   }
 
-  [data-shellui-scroll-hide-header],
-  [data-shellui-inset-radius-overlay] {
+  [data-shellui-mobile-chrome-stack],
+  [data-shellui-chrome-actions-top='overlay'][data-shell-scroll-sync] {
     transition: none !important;
   }
 }

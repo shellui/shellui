@@ -219,48 +219,51 @@ const SidebarLayoutContent = ({
         >
           {variant === 'inset' ? <SidebarRail placement="inset" /> : null}{' '}
           {/*
-            Mobile: header overlays the iframe. Hide-on-scroll slides the bar only;
-            inset radius is a non-interactive overlay (stable inset-top, no jump).
+            Mobile: header + inset tray/radius slide as one stack; action row follows
+            the same CSS var. Stable inset-top — no jump when chrome hides.
           */}
-          <header
-            data-shellui-scroll-hide-header=""
+          <div
+            data-shellui-mobile-chrome-stack=""
             data-chrome-visible={chromeVisible ? 'true' : 'false'}
-            className={cn(
-              'absolute inset-x-0 top-0 z-[46] flex items-center gap-0.5 px-3 select-none md:hidden',
-              variant === 'inset'
-                ? 'border-transparent bg-transparent text-sidebar-foreground'
-                : 'border-b border-border bg-background',
-            )}
-            style={{
-              paddingTop: showSafeAreaTopbar
-                ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
-                : DESKTOP_TITLEBAR_PAD_TOP_PX,
-              height: showSafeAreaTopbar
-                ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
-                : DESKTOP_TITLEBAR_HEIGHT_PX,
-              ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
-            }}
-            {...(trafficLights
-              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-              : {})}
+            className="pointer-events-none absolute inset-0 z-[45] md:hidden"
           >
-            <SidebarTrigger
-              data-shellui-no-drag=""
-              className="relative size-8 shrink-0 touch-manipulation text-foreground"
-            />
-            {isTauriEnv ? <DesktopHistoryButtons /> : null}
-            {isMobile ? (
-              <div
+            <header
+              data-shellui-scroll-hide-header=""
+              className={cn(
+                'pointer-events-auto relative z-[1] flex items-center gap-0.5 px-3 select-none',
+                variant === 'inset'
+                  ? 'border-transparent bg-transparent text-sidebar-foreground'
+                  : 'border-b border-border bg-background',
+              )}
+              style={{
+                paddingTop: showSafeAreaTopbar
+                  ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
+                  : DESKTOP_TITLEBAR_PAD_TOP_PX,
+                height: showSafeAreaTopbar
+                  ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
+                  : DESKTOP_TITLEBAR_HEIGHT_PX,
+                ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
+              }}
+              {...(trafficLights
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            >
+              <SidebarTrigger
                 data-shellui-no-drag=""
-                className="flex min-w-0 flex-1 items-center"
-              >
-                <WindowTitleBarActions frameUuid={frameUuid} />
-              </div>
-            ) : null}
-          </header>
-          {variant === 'inset' && isMobile ? (
-            <InsetMobileRadiusOverlay chromeVisible={chromeVisible} />
-          ) : null}
+                className="relative size-8 shrink-0 touch-manipulation text-foreground"
+              />
+              {isTauriEnv ? <DesktopHistoryButtons /> : null}
+              {isMobile ? (
+                <div
+                  data-shellui-no-drag=""
+                  className="flex min-w-0 flex-1 items-center"
+                >
+                  <WindowTitleBarActions frameUuid={frameUuid} />
+                </div>
+              ) : null}
+            </header>
+            {variant === 'inset' ? <InsetMobileRadiusOverlay /> : null}
+          </div>
           <div
             ref={contentRef}
             className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"

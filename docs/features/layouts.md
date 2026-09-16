@@ -80,7 +80,7 @@ Content area only - no sidebar or nav chrome. Routes in `navigation` still work 
 
 ## App bar / app-bar inset
 
-Compact top bar (~52px). Start destinations are icon + label links. Groups use a caret dropdown (category looks selected when a child is active). Overflow goes into **More**. End links (`position: 'end'`) are icon-only with a tooltip. `app-bar-inset` uses the same padded, rounded main frame as sidebar-inset.
+Compact top bar (~56px). Start destinations are icon + label links. Groups use a caret dropdown (category looks selected when a child is active). Overflow goes into **More**. End links (`position: 'end'`) are icon-only with a tooltip. `app-bar-inset` uses the same padded, rounded main frame as sidebar-inset.
 
 **Tauri:** traffic-light inset, Back/Forward, and drag regions on the bar.
 

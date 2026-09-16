@@ -127,8 +127,8 @@ export function chromeActionsShouldHonorSafeAreaTop(layout?: string): boolean {
  * Floating matches the sidebar edge pad: `margin + safe-area-top` (not max),
  * so actions sit level with the brand / expand chip on iPad and desktop.
  * Other safe-area layouts use `max(margin, safe-area-top)`.
- * Shell header layouts sit below `--shellui-shell-header-height` (or plain margin
- * for inset cards).
+ * Shell header layouts sit below `--shellui-shell-header-height`. Desktop/tablet
+ * inset cards already clear the in-flow header, so they use a plain margin.
  */
 export function chromeActionsTopOffsetCss(
   context?: ChromeActionsTopContext | LayoutChromeViewport,
@@ -147,11 +147,13 @@ export function chromeActionsTopOffsetCss(
     if (options?.honorSafeAreaTop) {
       return `max(${min}px, var(--shellui-safe-area-top, 0px))`;
     }
-    // Inset cards already start below the header tray — actions use a normal top gap.
-    if (layout === 'sidebar-inset' || layout === 'app-bar-inset') {
+    const viewport = typeof context === 'object' && context ? context.viewport : undefined;
+    // Desktop/tablet inset: header is in normal flow; the card already starts below it.
+    // Mobile inset: header overlays content (same as flush) — clear that band.
+    if ((layout === 'sidebar-inset' || layout === 'app-bar-inset') && viewport !== 'mobile') {
       return `${min}px`;
     }
-    // Flush sidebar / app-bar: actions sit just under the overlay header band.
+    // Flush sidebar / app-bar, and mobile inset: sit just under the overlay header.
     return `calc(var(--shellui-shell-header-height, 0px) + ${min}px)`;
   }
   if (!honor) return `${min}px`;

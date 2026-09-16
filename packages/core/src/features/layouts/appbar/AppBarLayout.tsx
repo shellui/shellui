@@ -54,15 +54,12 @@ import {
 import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
 import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import {
-  DESKTOP_TITLEBAR_HEIGHT_PX,
-  DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
-} from '../chrome/constants';
+import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
-/** App-bar chrome height — matches the Tauri / sidebar titlebar strip. */
-const APP_BAR_HEIGHT_PX = DESKTOP_TITLEBAR_HEIGHT_PX;
+/** App-bar chrome height — taller than the 42px Tauri/sidebar title strip. */
+const APP_BAR_HEIGHT_PX = 56;
+/** Extra top inset so controls aren’t flush against the window edge / notch band. */
+const APP_BAR_PAD_TOP_PX = 6;
 
 export type AppBarChromeVariant = 'app-bar' | 'inset';
 
@@ -241,8 +238,8 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
 
 const navTriggerClass = (active: boolean) =>
   cn(
-    // h-7 leaves air in the 42px chrome after the 2px top pad.
-    'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors',
+    // h-8 fills the taller app-bar after the top pad.
+    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     active
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
@@ -691,7 +688,7 @@ function TopBarEndItem({
   );
 
   const buttonClass = cn(
-    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
       : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground',
@@ -770,6 +767,7 @@ export function AppBarLayout({
   const { chromeVisible } = useScrollHideChrome({
     enabled: isMobile,
     layout: scrollHideLayout,
+    barHeightPx: APP_BAR_HEIGHT_PX,
     includeSafeArea: showSafeAreaTopbar,
   });
   const authAwareNavigation = useMemo(
@@ -835,12 +833,12 @@ export function AppBarLayout({
     paddingRight: isInset ? (isMobile ? 8 : insetFramePadPx + insetBarContentOffsetRightPx) : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
-          paddingTop: `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`,
+          paddingTop: `calc(var(--shellui-safe-area-top) + ${APP_BAR_PAD_TOP_PX}px)`,
           height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
         }
       : {
           height: APP_BAR_HEIGHT_PX,
-          paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+          paddingTop: APP_BAR_PAD_TOP_PX,
         }),
   } as const;
 
@@ -861,89 +859,174 @@ export function AppBarLayout({
         }
       />
       {/*
-        Mobile: header overlays the chrome tray (inset) or the iframe (flush).
-        Desktop: header stays in normal document flow.
+        Mobile: header + inset tray/radius slide as one stack; action row follows
+        the same CSS var. Desktop: header stays in normal document flow.
       */}
-      <header
-        data-shellui-scroll-hide-header={isMobile ? '' : undefined}
-        data-chrome-visible={isMobile ? (chromeVisible ? 'true' : 'false') : undefined}
-        className={cn(
-          'z-[46] flex w-full items-center gap-1.5 text-sidebar-foreground select-none',
-          isMobile ? 'absolute inset-x-0 top-0' : 'relative shrink-0',
-          isInset
-            ? 'border-b border-transparent bg-transparent'
-            : 'border-b border-sidebar-border bg-sidebar',
-        )}
-        style={headerStyle}
-        data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
-        {...(trafficLights ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
-      >
-        {appIcon ? (
-          <AppBrandIcon
-            appIcon={appIcon}
-            title={title}
-            data-shellui-no-drag=""
-            className="mr-1 shrink-0"
-            imgClassName="app-bar-app-icon"
-          />
-        ) : null}
-
-        {hasStartNav ? (
-          <AppBarNav
-            sections={startSections}
-            activePathPrefix={activePathPrefix}
-            currentLanguage={currentLanguage}
-          />
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
-
-        {isTauriRuntime ? (
-          <div
-            data-shellui-no-drag=""
-            className="shrink-0"
-          >
-            <DesktopHistoryButtons />
-          </div>
-        ) : null}
-
+      {isMobile ? (
         <div
-          aria-hidden
-          className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
-          {...(trafficLights || overlay
+          data-shellui-mobile-chrome-stack=""
+          data-chrome-visible={chromeVisible ? 'true' : 'false'}
+          className="pointer-events-none absolute inset-0 z-[45]"
+        >
+          <header
+            data-shellui-scroll-hide-header=""
+            className={cn(
+              'pointer-events-auto relative z-[1] flex w-full items-center gap-1.5 text-sidebar-foreground select-none',
+              isInset
+                ? 'border-b border-transparent bg-transparent'
+                : 'border-b border-sidebar-border bg-sidebar',
+            )}
+            style={headerStyle}
+            data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
+            {...(trafficLights
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
+          >
+            {appIcon ? (
+              <AppBrandIcon
+                appIcon={appIcon}
+                title={title}
+                data-shellui-no-drag=""
+                className="mr-1 shrink-0"
+                imgClassName="app-bar-app-icon size-6"
+              />
+            ) : null}
+
+            {hasStartNav ? (
+              <AppBarNav
+                sections={startSections}
+                activePathPrefix={activePathPrefix}
+                currentLanguage={currentLanguage}
+              />
+            ) : (
+              <div className="min-w-0 flex-1" />
+            )}
+
+            {isTauriRuntime ? (
+              <div
+                data-shellui-no-drag=""
+                className="shrink-0"
+              >
+                <DesktopHistoryButtons />
+              </div>
+            ) : null}
+
+            <div
+              aria-hidden
+              className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
+              {...(trafficLights || overlay
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            />
+
+            <div
+              data-shellui-no-drag=""
+              className="flex shrink-0 items-center gap-0.5"
+            >
+              {endNavItems.length > 0 ? (
+                <TooltipProvider
+                  delayDuration={200}
+                  skipDelayDuration={0}
+                >
+                  <div className="flex items-center gap-0.5">
+                    {endNavItems.map((item) => (
+                      <TopBarEndItem
+                        key={item.path}
+                        item={item}
+                        label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                        activePathPrefix={activePathPrefix}
+                      />
+                    ))}
+                  </div>
+                </TooltipProvider>
+              ) : null}
+              <LoginButton
+                variant="appbar"
+                hideWhenLoggedOut={hasCustomLoginNav}
+              />
+            </div>
+          </header>
+          {isInset ? <InsetMobileRadiusOverlay /> : null}
+        </div>
+      ) : (
+        <header
+          className={cn(
+            'relative z-[46] flex w-full shrink-0 items-center gap-1.5 text-sidebar-foreground select-none',
+            isInset
+              ? 'border-b border-transparent bg-transparent'
+              : 'border-b border-sidebar-border bg-sidebar',
+          )}
+          style={headerStyle}
+          data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
+          {...(trafficLights
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
             : {})}
-        />
-
-        <div
-          data-shellui-no-drag=""
-          className="flex shrink-0 items-center gap-0.5"
         >
-          {endNavItems.length > 0 ? (
-            <TooltipProvider
-              delayDuration={200}
-              skipDelayDuration={0}
-            >
-              <div className="flex items-center gap-0.5">
-                {endNavItems.map((item) => (
-                  <TopBarEndItem
-                    key={item.path}
-                    item={item}
-                    label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
-                    activePathPrefix={activePathPrefix}
-                  />
-                ))}
-              </div>
-            </TooltipProvider>
+          {appIcon ? (
+            <AppBrandIcon
+              appIcon={appIcon}
+              title={title}
+              data-shellui-no-drag=""
+              className="mr-1 shrink-0"
+              imgClassName="app-bar-app-icon size-6"
+            />
           ) : null}
-          <LoginButton
-            variant="appbar"
-            hideWhenLoggedOut={hasCustomLoginNav}
-          />
-        </div>
-      </header>
 
-      {isInset && isMobile ? <InsetMobileRadiusOverlay chromeVisible={chromeVisible} /> : null}
+          {hasStartNav ? (
+            <AppBarNav
+              sections={startSections}
+              activePathPrefix={activePathPrefix}
+              currentLanguage={currentLanguage}
+            />
+          ) : (
+            <div className="min-w-0 flex-1" />
+          )}
+
+          {isTauriRuntime ? (
+            <div
+              data-shellui-no-drag=""
+              className="shrink-0"
+            >
+              <DesktopHistoryButtons />
+            </div>
+          ) : null}
+
+          <div
+            aria-hidden
+            className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
+            {...(trafficLights || overlay
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
+          />
+
+          <div
+            data-shellui-no-drag=""
+            className="flex shrink-0 items-center gap-0.5"
+          >
+            {endNavItems.length > 0 ? (
+              <TooltipProvider
+                delayDuration={200}
+                skipDelayDuration={0}
+              >
+                <div className="flex items-center gap-0.5">
+                  {endNavItems.map((item) => (
+                    <TopBarEndItem
+                      key={item.path}
+                      item={item}
+                      label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                      activePathPrefix={activePathPrefix}
+                    />
+                  ))}
+                </div>
+              </TooltipProvider>
+            ) : null}
+            <LoginButton
+              variant="appbar"
+              hideWhenLoggedOut={hasCustomLoginNav}
+            />
+          </div>
+        </header>
+      )}
 
       <main
         className={cn(

@@ -17,6 +17,8 @@ export type ScrollHideLayoutId = 'sidebar' | 'sidebar-inset' | 'app-bar' | 'app-
 
 /** Host CSS var: stable mobile shell header height (safe-area + bar). */
 export const SHELL_HEADER_HEIGHT_VAR = '--shellui-shell-header-height';
+/** Shared slide offset for mobile shell chrome (header + inset tray + action row). */
+export const CHROME_HIDE_TRANSLATE_VAR = '--shellui-chrome-hide-y';
 
 /**
  * Pixel height of the mobile shell top bar (title row + optional safe-area).
@@ -39,6 +41,15 @@ function syncShellHeaderHeightVar(heightPx: number, enabled: boolean): void {
     return;
   }
   document.documentElement.style.setProperty(SHELL_HEADER_HEIGHT_VAR, `${heightPx}px`);
+}
+
+function syncChromeHideTranslateVar(visible: boolean, enabled: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (!enabled) {
+    document.documentElement.style.removeProperty(CHROME_HIDE_TRANSLATE_VAR);
+    return;
+  }
+  document.documentElement.style.setProperty(CHROME_HIDE_TRANSLATE_VAR, visible ? '0%' : '-120%');
 }
 
 /**
@@ -83,6 +94,7 @@ export function useScrollHideChrome(options: {
         typeof window !== 'undefined' ? resolveViewport(window.innerWidth) : 'mobile';
       const headerHeight = readHeaderHeight();
       syncShellHeaderHeightVar(headerHeight, true);
+      syncChromeHideTranslateVar(visible, true);
       const snapshot: LayoutChrome = {
         layout,
         viewport,
@@ -115,6 +127,7 @@ export function useScrollHideChrome(options: {
     scrollStateRef.current = { visible: true, lastY: 0 };
     if (!enabled) {
       syncShellHeaderHeightVar(0, false);
+      syncChromeHideTranslateVar(true, false);
       publishLayoutChrome(null);
       return;
     }
@@ -171,6 +184,7 @@ export function useScrollHideChrome(options: {
   useEffect(() => {
     return () => {
       syncShellHeaderHeightVar(0, false);
+      syncChromeHideTranslateVar(true, false);
       publishLayoutChrome(null);
     };
   }, []);

@@ -54,7 +54,9 @@ import {
   chromeActionsFabRightOffsetCss,
   chromeActionsFabSize,
   chromeActionsTopBarHeight,
+  chromeActionsTopMargin,
   chromeActionsTopOffsetCss,
+  isShellChromeLayout,
 } from './computeActionInsets';
 import {
   ChevronLeftIcon,
@@ -980,6 +982,31 @@ function TopActionBar({
   const topContext = { viewport, layout, sidebarExpanded };
   const topOffset = chromeActionsTopOffsetCss(topContext, { honorSafeAreaTop });
   const barHeight = chromeActionsTopBarHeight(viewport);
+  const topMargin = chromeActionsTopMargin(topContext);
+  // Shell headers (flush + mobile inset) own the tray / radius band. Scrim fills
+  // from the header bottom through the action row so no gap shows through.
+  // Always fade from content background (bright) — never the darker inset tray.
+  const scrimClearsShellHeader = isShellChromeLayout(layout) && honorSafeAreaTop !== true;
+  const clipToInsetCard =
+    (layout === 'sidebar-inset' || layout === 'app-bar-inset') &&
+    viewport === 'mobile' &&
+    honorSafeAreaTop !== true;
+  const shellScrollSync =
+    isShellChromeLayout(layout) &&
+    honorSafeAreaTop !== true &&
+    (viewport === 'mobile' || viewport === 'tablet');
+  // When clipped to the inset card, offsets are relative to the card top (header already cleared).
+  const rowTop = clipToInsetCard ? `${topMargin}px` : topOffset;
+  const scrimTop = clipToInsetCard
+    ? 0
+    : scrimClearsShellHeader
+      ? 'var(--shellui-shell-header-height, 0px)'
+      : 0;
+  const scrimHeight = clipToInsetCard
+    ? `calc(${topMargin}px + ${barHeight}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`
+    : scrimClearsShellHeader
+      ? `calc(${topMargin}px + ${barHeight}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`
+      : `calc(${topOffset} + ${barHeight}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`;
 
   const flags = actionChromeFlags(actions);
   if (!flags.hasTop) return null;
@@ -997,12 +1024,14 @@ function TopActionBar({
         data-shellui-chrome-actions-top={placement}
         data-visible={visible ? 'true' : 'false'}
         data-scroll-hidden={scrollHidden ? 'true' : 'false'}
+        data-shell-scroll-sync={shellScrollSync ? '' : undefined}
         className={cn(
           'pointer-events-none',
           // Overlay: opacity/translate owned by index.css (scroll hide + presence).
           !isOverlay && chromeActionsFadeClass,
           !isOverlay && (visible ? 'opacity-100' : 'opacity-0'),
-          isOverlay && 'absolute inset-x-0 top-0 z-[46]',
+          isOverlay && 'absolute inset-x-0 z-[46]',
+          isOverlay && !clipToInsetCard && 'top-0',
           titlebar && 'relative min-w-0 flex-1',
         )}
         style={
@@ -1012,6 +1041,16 @@ function TopActionBar({
                 // track the floating sidebar / layout resize instead of fighting it.
                 left: `calc(var(--shellui-inset-left, 0px) + var(--shellui-chrome-actions-leading-extra, 0px))`,
                 right: 'var(--shellui-inset-right, 0px)',
+                // Match InsetMobileRadiusOverlay cutout so the bright scrim doesn’t
+                // square off the top card corners.
+                ...(clipToInsetCard
+                  ? {
+                      top: 'var(--shellui-shell-header-height, 0px)',
+                      bottom: 0,
+                      borderRadius: '1rem 1rem 0 0',
+                      overflow: 'hidden',
+                    }
+                  : undefined),
               }
             : undefined
         }
@@ -1019,11 +1058,10 @@ function TopActionBar({
         {isOverlay ? (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-background from-70% to-transparent"
+            className="pointer-events-none absolute inset-x-0 bg-gradient-to-b from-background from-70% to-transparent"
             style={{
-              // Solid through the action row, then fade — no blur (animates poorly).
-              // Top offset is max(margin, safe-area) so we don’t stack both.
-              height: `calc(${topOffset} + ${barHeight}px + ${CHROME_ACTIONS_TOP_SCRIM_FADE}px)`,
+              top: scrimTop,
+              height: scrimHeight,
             }}
           />
         ) : null}
@@ -1038,7 +1076,7 @@ function TopActionBar({
           style={
             isOverlay
               ? {
-                  top: topOffset,
+                  top: rowTop,
                   height: barHeight,
                   ...inlinePad,
                 }

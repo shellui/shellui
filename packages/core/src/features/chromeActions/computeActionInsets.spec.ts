@@ -100,9 +100,12 @@ describe('chromeActionsTopOffsetCss', () => {
     expect(chromeActionsTopOffsetCss({ layout: 'app-bar', viewport: 'mobile' })).toBe(
       `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
     );
-    // Inset card already clears the header tray — normal top gap only.
+    // Mobile inset still overlays the header — clear the same band as flush.
     expect(chromeActionsTopOffsetCss({ layout: 'sidebar-inset', viewport: 'mobile' })).toBe(
-      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'app-bar-inset', viewport: 'mobile' })).toBe(
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
     );
   });
 
@@ -119,11 +122,17 @@ describe('chromeActionsTopOffsetCss', () => {
     );
   });
 
-  it('sits below the shell header band on flush sidebar and app-bar only', () => {
+  it('sits below the shell header band on mobile shell chrome; desktop inset uses margin only', () => {
     expect(chromeActionsTopOffsetCss({ layout: 'sidebar', viewport: 'mobile' })).toBe(
       `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
     );
     expect(chromeActionsTopOffsetCss({ layout: 'app-bar-inset', viewport: 'mobile' })).toBe(
+      `calc(var(--shellui-shell-header-height, 0px) + ${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px)`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'sidebar-inset', viewport: 'desktop' })).toBe(
+      `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
+    );
+    expect(chromeActionsTopOffsetCss({ layout: 'app-bar-inset', viewport: 'desktop' })).toBe(
       `${CHROME_ACTIONS_TOP_MARGIN_MINIMAL}px`,
     );
   });
