@@ -92,6 +92,7 @@ Taskbar, start menu, and one draggable window per navigation item. Implemented a
 - Window positions and sizes persist for the session
 - Desktop background is a primary-color wash from the active theme
 - No hard cap on open windows; extra windows cost performance
+- **Mobile / phone**: windows are fullscreen (no drag/resize). Includes short viewports (e.g. iPhone landscape, often ≥768px wide). Opening an app closes other windows (one page at a time). Accidental resize stacks existing windows fullscreen with the focused one on top — they are not closed; resizing back to a roomy tablet/desktop restores a normal cascaded window size. The taskbar window list is hidden; the start / brand button always opens the start menu. Taskbar and window chrome honor safe-area top/bottom insets.
 
 ## Mobile and iOS fullscreen (all layouts)
 
