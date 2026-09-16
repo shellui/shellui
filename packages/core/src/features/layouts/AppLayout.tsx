@@ -12,7 +12,6 @@ import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
 import { StoragePickerProvider } from '../storage/StoragePickerContext';
 import { LayoutFallback } from './LayoutFallback';
-import { isShellUiRootWindow } from './chrome/SafeAreaTopbar';
 
 const SidebarLayout = lazy(() =>
   import('./sidebar/SidebarLayout').then((m) => ({ default: m.SidebarLayout })),
@@ -55,9 +54,10 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   const { settings } = useSettings();
-  // Nested shell-in-iframe (e.g. nav → `/__settings`): parent already owns chrome — use fullscreen.
-  const configuredLayout = normalizeLayoutType(settings.layout ?? layout) ?? 'sidebar';
-  const effectiveLayout: LayoutType = !isShellUiRootWindow() ? 'fullscreen' : configuredLayout;
+  // Nested shell-in-iframe (e.g. Playground → `/`) keeps its configured layout so
+  // the demo can show chrome-inside-chrome. Safe-area top bands still skip nesting
+  // elsewhere so notches aren’t double-padded.
+  const effectiveLayout = normalizeLayoutType(settings.layout ?? layout) ?? 'sidebar';
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let LayoutComponent: LazyExoticComponent<ComponentType<any>>;
