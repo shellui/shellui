@@ -5,6 +5,7 @@ import type {
   OverlaySizeValue,
   DrawerPosition,
 } from '@shellui/sdk';
+import { readSafeAreaInsetTop } from '../layouts/chrome/viewport';
 
 /** CSS max-height for overlays — matches --shellui-overlay-max-height in index.css. */
 const OVERLAY_MAX_HEIGHT_CSS = 'var(--shellui-overlay-max-height)';
@@ -280,4 +281,92 @@ export function resolveDismissOptions(
     closeOnOverlayClick: options?.closeOnOverlayClick !== false,
     showDragHandle,
   };
+}
+
+/**
+ * Expanded bottom-sheet height leaves a tappable overlay band above the sheet:
+ * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}.
+ */
+export const SHEET_EXPANDED_TOP_GAP_PX = 60;
+
+/** CSS height for the expanded bottom-sheet chrome. */
+export const SHEET_EXPANDED_HEIGHT_CSS = `calc(var(--shellui-app-height) - var(--shellui-safe-area-top) - ${SHEET_EXPANDED_TOP_GAP_PX}px)`;
+
+/** Pixel height for the expanded snap (matches {@link SHEET_EXPANDED_HEIGHT_CSS}). */
+export function sheetExpandedHeightPx(
+  viewportHeightPx?: number,
+  safeAreaTopPx?: number,
+  topGapPx = SHEET_EXPANDED_TOP_GAP_PX,
+): number {
+  const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
+  let safeTop = safeAreaTopPx;
+  if (safeTop === undefined) {
+    safeTop = typeof document !== 'undefined' ? readSafeAreaInsetTop() : 0;
+  }
+  return Math.max(0, Math.round(viewport - safeTop - topGapPx));
+}
+
+/** Vaul snap fraction for the expanded height (`height / viewport`). */
+export function sheetExpandedSnapFraction(
+  viewportHeightPx?: number,
+  safeAreaTopPx?: number,
+): number {
+  const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
+  if (!(viewport > 0)) return 0.9;
+  return Number((sheetExpandedHeightPx(viewport, safeAreaTopPx) / viewport).toFixed(4));
+}
+
+/** Vertical drawer presets → window-height fraction (Vaul snapPoints). */
+const VERTICAL_SNAP_BY_PRESET: Record<OverlaySizePreset, number> = {
+  sm: 0.4,
+  md: 0.55,
+  lg: 0.75,
+  xl: 0.9,
+  full: 1,
+  content: 0.5,
+};
+
+/**
+ * Resolve `[normal, expanded]` Vaul snap points for a bottom sheet.
+ * Returns null when the sheet is already near the expanded height (nothing useful to expand to).
+ */
+export function resolveBottomSheetSnapPoints(
+  options?: OverlayOpenOptions | null,
+  reportedHeightPx?: number | null,
+  viewportHeightPx?: number,
+  safeAreaTopPx?: number,
+): number[] | null {
+  const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
+  if (!(viewport > 0)) return null;
+
+  const expanded = sheetExpandedSnapFraction(viewport, safeAreaTopPx);
+
+  let normal: number;
+  if (reportedHeightPx != null && Number.isFinite(reportedHeightPx) && reportedHeightPx > 0) {
+    normal = reportedHeightPx / viewport;
+  } else {
+    const dynamic = isDynamicSizing(options);
+    const size = (dynamic ? 'content' : options?.size) as OverlaySizeValue | undefined;
+    if (!size) {
+      normal = 0.8;
+    } else if (isOverlaySizePreset(size)) {
+      if (size === 'full') return null;
+      normal = VERTICAL_SNAP_BY_PRESET[size];
+    } else if (typeof size === 'number' && Number.isFinite(size)) {
+      normal = size / viewport;
+    } else {
+      const raw = String(size).trim();
+      const vh = raw.match(/^([\d.]+)vh$/i);
+      const px = raw.match(/^([\d.]+)px$/i);
+      if (vh) normal = parseFloat(vh[1]) / 100;
+      else if (px) normal = parseFloat(px[1]) / viewport;
+      else normal = 0.8;
+    }
+  }
+
+  // Already near expanded — expand would be a no-op
+  if (normal >= expanded - 0.04) return null;
+  // Keep a meaningful gap between snaps
+  normal = Math.min(Math.max(normal, 0.2), expanded - 0.05);
+  return [Number(normal.toFixed(4)), expanded];
 }

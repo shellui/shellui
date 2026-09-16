@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -17,12 +17,14 @@ import {
   DYNAMIC_DRAWER_PENDING_PX,
   DYNAMIC_OVERLAY_MEASURE_WIDTH_PX,
   DYNAMIC_OVERLAY_PENDING_PX,
+  resolveBottomSheetSnapPoints,
   resolveDialogSize,
   resolveDismissOptions,
   resolveDrawerSize,
   resolveDrawerSizeForViewport,
   resolveEffectiveDrawerPosition,
   isDynamicSizing,
+  SHEET_EXPANDED_HEIGHT_CSS,
 } from '../overlays/overlaySize';
 import { useOverlayReportedSize } from '../overlays/useOverlayReportedSize';
 import { ResponsiveModal } from '../overlays/ResponsiveModal';
@@ -392,6 +394,41 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     }
   };
 
+  const drawerDesktopResizable =
+    !drawerPending && !isMobile && !drawerDynamic && drawerOptions?.resizable !== false;
+
+  // Bottom sheets: snap between the configured height and near-full so drag-up expands.
+  // Skip when desktop free-edge resize is active (those compete with Vaul snaps).
+  const drawerSnapPoints = useMemo(() => {
+    if (effectiveDrawerPosition !== 'bottom') return undefined;
+    if (!drawerDismiss.showDragHandle || !drawerDismiss.dismissible) return undefined;
+    if (drawerPending || drawerDesktopResizable) return undefined;
+    return resolveBottomSheetSnapPoints(drawerOptions, drawerReported?.height ?? null) ?? undefined;
+  }, [
+    effectiveDrawerPosition,
+    drawerDismiss.showDragHandle,
+    drawerDismiss.dismissible,
+    drawerPending,
+    drawerDesktopResizable,
+    drawerOptions,
+    drawerReported?.height,
+  ]);
+
+  const [drawerActiveSnap, setDrawerActiveSnap] = useState<number | string | null>(null);
+
+  useEffect(() => {
+    if (!isDrawerOpen || !drawerSnapPoints?.length) {
+      setDrawerActiveSnap(null);
+      return;
+    }
+    setDrawerActiveSnap((prev) => {
+      if (typeof prev === 'number' && drawerSnapPoints.some((p) => Math.abs(p - prev) < 0.0001)) {
+        return prev;
+      }
+      return drawerSnapPoints[0];
+    });
+  }, [isDrawerOpen, drawerSnapPoints]);
+
   const modalTitle =
     resolveLocalizedString(modalNavItem?.label, currentLanguage) ||
     (t('modalContent') ?? 'Modal content');
@@ -445,20 +482,33 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         onOpenChange={handleDrawerOpenChange}
         direction={effectiveDrawerPosition}
         dismissible={drawerDismiss.dismissible}
+        snapPoints={drawerSnapPoints}
+        activeSnapPoint={drawerSnapPoints ? drawerActiveSnap : undefined}
+        setActiveSnapPoint={drawerSnapPoints ? setDrawerActiveSnap : undefined}
       >
         <DrawerContent
           direction={effectiveDrawerPosition}
           open={isDrawerOpen}
           size={
-            drawerReported
-              ? drawerIsVertical
-                ? `${drawerReported.height}px`
-                : `${drawerReported.width ?? drawerReported.height}px`
-              : drawerPending
-                ? `${drawerPendingPx}px`
-                : drawerSize.drawerSize
+            drawerSnapPoints
+              ? SHEET_EXPANDED_HEIGHT_CSS
+              : drawerReported
+                ? drawerIsVertical
+                  ? `${drawerReported.height}px`
+                  : `${drawerReported.width ?? drawerReported.height}px`
+                : drawerPending
+                  ? `${drawerPendingPx}px`
+                  : drawerSize.drawerSize
           }
-          style={drawerContentStyle}
+          style={
+            drawerSnapPoints
+              ? // Vaul snap transform owns visible height — don't pin reported/pending px
+                {
+                  ...drawerSize.style,
+                  ...(drawerSize.contentSized || drawerDynamic ? { transition: 'none' } : {}),
+                }
+              : drawerContentStyle
+          }
           className={drawerSize.className}
           showCloseButton={!drawerPending && drawerDismiss.showCloseButton}
           showDragHandle={
@@ -468,9 +518,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             drawerDismiss.dismissible
           }
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
-          resizable={
-            !drawerPending && !isMobile && !drawerDynamic && drawerOptions?.resizable !== false
-          }
+          resizable={drawerDesktopResizable}
         >
           {drawerUrl ? (
             <>

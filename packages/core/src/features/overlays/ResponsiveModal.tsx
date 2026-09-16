@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -9,16 +10,20 @@ import {
 } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../../components/ui/dialog';
 import { cn } from '../../lib/utils';
+import { sheetExpandedHeightPx } from './overlaySize';
 
 export type ResponsiveModalPresentation = 'dialog' | 'sheet';
 
 const SWIPE_DISMISS_PX = 80;
 const SWIPE_DISMISS_RATIO = 0.2;
+/** Drag distance (px) to commit expand / collapse on release. */
+const SHEET_SNAP_COMMIT_PX = 56;
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 240;
 const VIEWPORT_MARGIN = 8;
 
 type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+type SheetSnap = 'normal' | 'expanded';
 
 type ModalGeometry = {
   x: number;
@@ -137,6 +142,12 @@ export function ResponsiveModal({
   const [enterMotion, setEnterMotion] = useState(false);
   /** Swipe dismiss already translated off-screen — skip the CSS close slide. */
   const [dismissMode, setDismissMode] = useState<'none' | 'swipe'>('none');
+  /** Bottom sheet height snap: normal (configured) ↔ near-full. */
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>('normal');
+  /** Live height while dragging between snaps (px). */
+  const [sheetDragHeight, setSheetDragHeight] = useState<number | null>(null);
+  const normalHeightRef = useRef<number | null>(null);
+  const sheetSnapRef = useRef<SheetSnap>('normal');
 
   const [geometry, setGeometry] = useState<ModalGeometry | null>(null);
   const geometryRef = useRef<ModalGeometry | null>(null);
@@ -315,6 +326,10 @@ export function ResponsiveModal({
       setSheetDragOffset(0);
       setIsSheetDragging(false);
       setDismissMode('none');
+      setSheetSnap('normal');
+      sheetSnapRef.current = 'normal';
+      setSheetDragHeight(null);
+      normalHeightRef.current = null;
       if (isSheet) {
         setEnterMotion(true);
         const t = window.setTimeout(() => setEnterMotion(false), 450);
@@ -326,9 +341,44 @@ export function ResponsiveModal({
     setEnterMotion(false);
   }, [open, isSheet]);
 
+  useEffect(() => {
+    sheetSnapRef.current = sheetSnap;
+  }, [sheetSnap]);
+
+  const expandedSheetHeight = useCallback(() => {
+    return sheetExpandedHeightPx();
+  }, []);
+
+  // Remember the configured (normal) height whenever we're settled at that snap
+  useLayoutEffect(() => {
+    if (
+      !open ||
+      !isSheet ||
+      sheetSnap !== 'normal' ||
+      isSheetDragging ||
+      sheetDragHeight !== null
+    ) {
+      return;
+    }
+    const h = contentRef.current?.offsetHeight;
+    if (h && h > 0) {
+      normalHeightRef.current = h;
+    }
+  }, [open, isSheet, sheetSnap, isSheetDragging, sheetDragHeight, style, className, children]);
+
+  const canExpandSheet = useCallback(() => {
+    const normal = normalHeightRef.current ?? contentRef.current?.offsetHeight ?? 0;
+    const expanded = expandedSheetHeight();
+    return normal > 0 && expanded - normal >= SHEET_SNAP_COMMIT_PX;
+  }, [expandedSheetHeight]);
+
   const handleSheetPointerDown = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!isSheet || !dismissible) return;
+      // Capture normal height before expand so collapse can restore it
+      if (sheetSnapRef.current === 'normal' && contentRef.current) {
+        normalHeightRef.current = contentRef.current.offsetHeight;
+      }
       dragStartY.current = e.clientY;
       dragCurrentY.current = 0;
       setIsSheetDragging(true);
@@ -337,12 +387,45 @@ export function ResponsiveModal({
     [isSheet, dismissible],
   );
 
-  const handleSheetPointerMove = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragStartY.current === null) return;
-    const delta = Math.max(0, e.clientY - dragStartY.current);
-    dragCurrentY.current = delta;
-    setSheetDragOffset(delta);
-  }, []);
+  const handleSheetPointerMove = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (dragStartY.current === null) return;
+      const rawDelta = e.clientY - dragStartY.current; // +down / −up
+      dragCurrentY.current = rawDelta;
+      const normal = normalHeightRef.current ?? contentRef.current?.offsetHeight ?? 0;
+      const expanded = expandedSheetHeight();
+      const expandable = canExpandSheet();
+
+      if (sheetSnapRef.current === 'normal') {
+        if (rawDelta >= 0 || !expandable) {
+          // Drag down → dismiss preview (no upward expand)
+          setSheetDragOffset(Math.max(0, rawDelta));
+          setSheetDragHeight(null);
+          return;
+        }
+        // Drag up → grow toward expanded
+        setSheetDragOffset(0);
+        setSheetDragHeight(Math.min(expanded, normal - rawDelta));
+        return;
+      }
+
+      // Expanded: drag down shrinks; further down peeks dismiss translate
+      if (rawDelta <= 0) {
+        setSheetDragOffset(0);
+        setSheetDragHeight(expanded);
+        return;
+      }
+      const shrinkRange = expanded - normal;
+      if (rawDelta < shrinkRange) {
+        setSheetDragOffset(0);
+        setSheetDragHeight(expanded - rawDelta);
+        return;
+      }
+      setSheetDragHeight(normal);
+      setSheetDragOffset(rawDelta - shrinkRange);
+    },
+    [canExpandSheet, expandedSheetHeight],
+  );
 
   const handleSheetPointerUp = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -352,26 +435,79 @@ export function ResponsiveModal({
       } catch {
         // ignore
       }
-      const delta = dragCurrentY.current;
+      const rawDelta = dragCurrentY.current;
       const height = contentRef.current?.offsetHeight ?? window.innerHeight;
-      const shouldDismiss = delta >= SWIPE_DISMISS_PX || delta >= height * SWIPE_DISMISS_RATIO;
+      const normal = normalHeightRef.current ?? height;
+      const expanded = expandedSheetHeight();
+      const expandable = canExpandSheet();
 
       dragStartY.current = null;
       dragCurrentY.current = 0;
       setIsSheetDragging(false);
 
-      if (shouldDismiss && dismissible) {
-        // Keep the dragged translate and continue off-screen — no snap-back before close
-        setDismissMode('swipe');
-        setSheetDragOffset(Math.max(delta, height));
-        onOpenChange(false);
+      if (sheetSnapRef.current === 'normal') {
+        if (rawDelta > 0) {
+          const shouldDismiss =
+            dismissible &&
+            (rawDelta >= SWIPE_DISMISS_PX || rawDelta >= height * SWIPE_DISMISS_RATIO);
+          if (shouldDismiss) {
+            setDismissMode('swipe');
+            setSheetDragOffset(Math.max(rawDelta, height));
+            setSheetDragHeight(null);
+            onOpenChange(false);
+            return;
+          }
+          setSheetDragOffset(0);
+          setSheetDragHeight(null);
+          return;
+        }
+
+        // Dragged up — commit expand if far enough / past midpoint
+        if (
+          expandable &&
+          (normal - rawDelta >= (normal + expanded) / 2 || -rawDelta >= SHEET_SNAP_COMMIT_PX)
+        ) {
+          setSheetSnap('expanded');
+          sheetSnapRef.current = 'expanded';
+          setSheetDragHeight(null);
+          setSheetDragOffset(0);
+          return;
+        }
+        setSheetDragHeight(null);
+        setSheetDragOffset(0);
         return;
       }
 
-      // Not far enough — ease back to rest from the dragged position
+      // From expanded
+      const shrinkRange = Math.max(1, expanded - normal);
+      if (rawDelta > shrinkRange) {
+        const dismissDelta = rawDelta - shrinkRange;
+        const shouldDismiss =
+          dismissible &&
+          (dismissDelta >= SWIPE_DISMISS_PX || dismissDelta >= normal * SWIPE_DISMISS_RATIO);
+        if (shouldDismiss) {
+          setDismissMode('swipe');
+          setSheetDragOffset(Math.max(dismissDelta, height));
+          setSheetDragHeight(null);
+          onOpenChange(false);
+          return;
+        }
+        // Not far enough past normal — collapse to normal
+        setSheetSnap('normal');
+        sheetSnapRef.current = 'normal';
+        setSheetDragHeight(null);
+        setSheetDragOffset(0);
+        return;
+      }
+
+      if (rawDelta >= SHEET_SNAP_COMMIT_PX || expanded - rawDelta <= (normal + expanded) / 2) {
+        setSheetSnap('normal');
+        sheetSnapRef.current = 'normal';
+      }
+      setSheetDragHeight(null);
       setSheetDragOffset(0);
     },
-    [dismissible, onOpenChange],
+    [canExpandSheet, dismissible, expandedSheetHeight, onOpenChange],
   );
 
   const canMove = movable && !isSheet;
@@ -379,7 +515,7 @@ export function ResponsiveModal({
   const hasCustomGeometry = !isSheet && geometry !== null;
 
   const sheetExitTransition =
-    'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease-out';
+    'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.32s ease-out, height 0.32s cubic-bezier(0.32, 0.72, 0, 1), max-height 0.32s cubic-bezier(0.32, 0.72, 0, 1)';
 
   const geometryStyle: CSSProperties | undefined = hasCustomGeometry
     ? {
@@ -395,6 +531,26 @@ export function ResponsiveModal({
       }
     : undefined;
 
+  const sheetHeightStyle: CSSProperties | undefined = (() => {
+    if (!isSheet) return undefined;
+    if (sheetDragHeight != null) {
+      return {
+        height: sheetDragHeight,
+        maxHeight: sheetDragHeight,
+        minHeight: sheetDragHeight,
+      };
+    }
+    if (sheetSnap === 'expanded') {
+      const h = expandedSheetHeight();
+      return {
+        height: h,
+        maxHeight: h,
+        minHeight: h,
+      };
+    }
+    return undefined;
+  })();
+
   return (
     <Dialog
       open={open}
@@ -409,6 +565,7 @@ export function ResponsiveModal({
         data-window-interacting={isWindowInteracting ? 'true' : undefined}
         data-enter-motion={enterMotion ? '' : undefined}
         data-dismiss={dismissMode === 'swipe' ? 'swipe' : undefined}
+        data-sheet-snap={isSheet ? sheetSnap : undefined}
         showCloseButton={showCloseButton}
         className={cn(
           'gap-0 p-0 overflow-hidden flex flex-col',
@@ -420,6 +577,7 @@ export function ResponsiveModal({
         style={{
           ...style,
           ...geometryStyle,
+          ...sheetHeightStyle,
           ...(isSheet
             ? enterMotion
               ? {
@@ -494,11 +652,12 @@ export function ResponsiveModal({
               onPointerMove={handleSheetPointerMove}
               onPointerUp={handleSheetPointerUp}
               onPointerCancel={() => {
-                // Cancel mid-drag — ease back to rest (not a dismiss)
+                // Cancel mid-drag — ease back to the current snap
                 dragStartY.current = null;
                 dragCurrentY.current = 0;
                 setIsSheetDragging(false);
                 setSheetDragOffset(0);
+                setSheetDragHeight(null);
               }}
             />
           </div>
