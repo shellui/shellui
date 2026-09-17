@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export',
+  basePath: process.env.NODE_ENV === 'production' ? '/app' : '',
   // Companion must stay on :3000 (see scripts/ensure-port.mjs + package.json "dev").
   //
   // Shellui embeds this app in an iframe from the shell origin (default

@@ -106,7 +106,7 @@ export function buildBaseConfig() {
     title: 'My App',
     favicon: '/favicon.svg',
     logo: '/logo.svg',
-    layout: 'sidebar',
+    layout: 'fullscreen',
     language: 'en',
     theme: 'shellui',
     navigation: [
@@ -196,15 +196,11 @@ export function applyCompanionConfig(config, framework, opts = {}) {
     },
   };
 
-  // Alpine starter ships en/fr UI that follows the shell — enable both in Settings.
-  if (framework === 'alpine') {
-    next.language = ['en', 'fr'];
-  }
-
+  const appUrl = `\${SHELLUI_APP_URL:-${companion.url}}`;
   const navigation = Array.isArray(config.navigation) ? [...config.navigation] : [];
   next.navigation = navigation.map((item) => {
     if (isHomeNavItem(item)) {
-      return { ...item, url: `${companion.url}/` };
+      return { ...item, url: `${appUrl}/` };
     }
     return item;
   });

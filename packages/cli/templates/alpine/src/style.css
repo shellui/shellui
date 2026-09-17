@@ -1,114 +1,35 @@
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
-  --primary: #171717;
-  --muted-foreground: #737373;
-  --border: #e5e5e5;
-  --heading-font-family: ui-sans-serif, system-ui, sans-serif;
-  --font-family: ui-sans-serif, system-ui, sans-serif;
-  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  color: var(--foreground, #213547);
+  background: var(--background, #ffffff);
 }
 
-.dark {
-  --background: #0a0a0a;
-  --foreground: #fafafa;
-  --primary: #fafafa;
-  --muted-foreground: #a3a3a3;
-  --border: #262626;
-  color-scheme: dark;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html,
 body {
   margin: 0;
-  min-height: 100%;
-}
-
-body {
-  font-family: var(--font-family);
-  background: var(--background);
-  color: var(--foreground);
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
 }
 
 #app {
-  min-height: 100svh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1.25rem;
-}
-
-.home {
-  width: 100%;
   max-width: 40rem;
-}
-
-.eyebrow {
-  margin: 0 0 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
+  padding: 2rem;
+  text-align: center;
 }
 
 h1 {
-  margin: 0 0 0.75rem;
-  font-family: var(--heading-font-family);
-  font-size: 1.75rem;
-  font-weight: 650;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-  color: var(--primary);
+  font-size: 2rem;
+  margin: 0 0 0.5rem;
 }
 
-.blurb {
-  margin: 0 0 1.5rem;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--muted-foreground);
-}
-
-.meta {
-  margin: 0 0 1.25rem;
-  padding: 0.85rem 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  display: grid;
-  gap: 0.75rem;
-}
-
-.meta > div {
-  display: grid;
-  grid-template-columns: 7rem 1fr;
-  gap: 0.75rem;
-  align-items: baseline;
-}
-
-.meta dt {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-
-.meta dd {
-  margin: 0;
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.hint {
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--muted-foreground);
+button {
+  margin-top: 1rem;
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border, #ccc);
+  background: var(--accent-bg, #f9f9f9);
+  color: var(--accent, #646cff);
+  cursor: pointer;
 }

@@ -109,34 +109,31 @@ describe('init registry', () => {
     expect(TEMPLATE_FILES.next).toContain('scripts/ensure-port.mjs');
   });
 
-  test('alpine TEMPLATE_FILES includes i18n and SDK entry', () => {
+  test('alpine TEMPLATE_FILES includes SDK entry and deploy env example', () => {
     expect(TEMPLATE_FILES.alpine).toEqual(
-      expect.arrayContaining(['src/main.js', 'src/i18n.js', 'vite.config.js', 'static/logo.svg']),
+      expect.arrayContaining(['.env.example', 'src/main.js', 'vite.config.js', 'static/logo.svg']),
     );
   });
 
-  test('JS templates list theme/i18n wiring files', () => {
+  test('JS templates list boilerplate, CLI, and SDK handshake files', () => {
     expect(TEMPLATE_FILES.react).toEqual(
-      expect.arrayContaining(['src/i18n.js', 'src/useShellui.js']),
+      expect.arrayContaining(['.env.example', 'src/assets/hero.png', 'src/main.jsx']),
     );
     expect(TEMPLATE_FILES.vue).toEqual(
-      expect.arrayContaining(['src/i18n.js', 'src/composables/useShellui.js']),
+      expect.arrayContaining(['src/components/HelloWorld.vue', 'src/assets/hero.png']),
     );
     expect(TEMPLATE_FILES.angular).toEqual(
-      expect.arrayContaining(['src/app/i18n.ts', 'src/app/shellui.service.ts']),
+      expect.arrayContaining(['scripts/copy-browser.mjs', 'src/app/app.component.html']),
     );
-    expect(TEMPLATE_FILES.next).toEqual(expect.arrayContaining(['app/home.js', 'app/i18n.js']));
-    expect(TEMPLATE_FILES.next).not.toContain('app/shellui-client.js');
+    expect(TEMPLATE_FILES.next).toEqual(
+      expect.arrayContaining(['app/shellui-client.js', 'scripts/copy-export.mjs']),
+    );
+    expect(TEMPLATE_FILES.next).not.toContain('app/home.js');
     expect(TEMPLATE_FILES.nuxt).toEqual(
-      expect.arrayContaining([
-        'app/i18n.ts',
-        'app/composables/useShellui.ts',
-        'app/plugins/shellui.client.ts',
-      ]),
+      expect.arrayContaining(['app/plugins/shellui.client.ts']),
     );
     expect(TEMPLATE_FILES.svelte).toEqual(
-      expect.arrayContaining(['src/lib/i18n.js', 'src/lib/shellui.js', 'src/app.css']),
+      expect.arrayContaining(['svelte.config.js', 'src/routes/+layout.svelte']),
     );
-    expect(TEMPLATE_FILES.alpine).toEqual(expect.arrayContaining(['src/main.js', 'src/i18n.js']));
   });
 });
