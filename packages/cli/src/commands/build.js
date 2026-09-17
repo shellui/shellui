@@ -14,6 +14,7 @@ import {
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
+import { prepareBuildEnvironment } from '../utils/project-env.js';
 
 /**
  * Collect all unique path values from navigation config (items and nested groups).
@@ -118,6 +119,8 @@ export async function buildCommand(root = '.', options = {}) {
   // This allows shellui.config.ts (advanced) to detect build mode and generate build ID
   process.env.SHELLUI_BUILD = 'true';
   process.env.NODE_ENV = 'production';
+
+  prepareBuildEnvironment(projectRoot);
 
   // Load configuration
   const config = await loadConfig(root, { config: options.config });

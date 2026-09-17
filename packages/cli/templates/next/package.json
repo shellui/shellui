@@ -6,6 +6,7 @@
     "start": "shellui start",
     "dev": "node scripts/ensure-port.mjs 3000 && next dev --port 3000",
     "build": "shellui build && next build && node scripts/copy-export.mjs",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "start:app": "next start --port 3000",
     "lint": "eslint"
   },

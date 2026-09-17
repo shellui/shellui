@@ -189,6 +189,7 @@ describe('initCommand (non-interactive)', () => {
     expect(pkg.devDependencies['@shellui/cli']).toBeTruthy();
     expect(pkg.scripts.build).toBe('shellui build && vite build');
     expect(pkg.scripts.start).toBe('shellui start');
+    expect(pkg.scripts['serve:dist']).toBe('node node_modules/@shellui/cli/scripts/serve-dist.mjs');
 
     const { detectPackageManager, formatDevRun } = await import('../../init/package-manager.js');
     const pm = detectPackageManager(projectDir);

@@ -9,6 +9,7 @@
   },
   "files": [
     "bin",
+    "scripts",
     "src",
     "templates/tauri",
     "README.md",
