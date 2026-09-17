@@ -23,18 +23,55 @@ export function ensureDistGitignore(projectDir) {
   fs.writeFileSync(gitignorePath, GITIGNORE_DIST_ENTRY, 'utf-8');
 }
 
+const EMPTY_SHELL_PACKAGE_JSON = {
+  name: 'my-shellui-app',
+  private: true,
+  version: '0.0.0',
+  type: 'module',
+  scripts: {
+    start: 'shellui start',
+    build: 'shellui build',
+  },
+  devDependencies: {
+    '@shellui/cli': '^0.5.0',
+  },
+};
+
 /**
- * Create empty shell scaffold with minimal static files.
+ * Create empty shell scaffold with minimal static files and package.json for the CLI.
  * @param {string} projectRoot
  * @returns {{ created: boolean }}
  */
 export function createEmptyShell(projectRoot) {
   const staticDir = path.join(projectRoot, 'static');
-  if (fs.existsSync(staticDir)) {
-    return { created: false };
+  let created = false;
+
+  if (!fs.existsSync(staticDir)) {
+    fs.mkdirSync(staticDir, { recursive: true });
+    fs.writeFileSync(path.join(staticDir, 'favicon.svg'), FAVICON_SVG, 'utf-8');
+    fs.writeFileSync(path.join(staticDir, 'logo.svg'), LOGO_SVG, 'utf-8');
+    created = true;
   }
-  fs.mkdirSync(staticDir, { recursive: true });
-  fs.writeFileSync(path.join(staticDir, 'favicon.svg'), FAVICON_SVG, 'utf-8');
-  fs.writeFileSync(path.join(staticDir, 'logo.svg'), LOGO_SVG, 'utf-8');
-  return { created: true };
+
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  if (!fs.existsSync(packageJsonPath)) {
+    fs.writeFileSync(
+      packageJsonPath,
+      `${JSON.stringify(EMPTY_SHELL_PACKAGE_JSON, null, 2)}\n`,
+      'utf-8',
+    );
+    created = true;
+  }
+
+  const envExamplePath = path.join(projectRoot, '.env.example');
+  if (!fs.existsSync(envExamplePath)) {
+    fs.writeFileSync(
+      envExamplePath,
+      '# Production build: set companion URL for navigation (empty shell has no companion).\nSHELLUI_APP_URL=/app\n',
+      'utf-8',
+    );
+    created = true;
+  }
+
+  return { created };
 }

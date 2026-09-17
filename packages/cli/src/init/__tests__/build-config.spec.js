@@ -176,7 +176,7 @@ describe('buildInitConfig / companion wiring', () => {
       name: framework,
     });
     expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
-      `${companionUrl}/`,
+      `\${SHELLUI_APP_URL:-${companionUrl}}/`,
     );
     expect(config.navigation.find((n) => n.path === 'settings').url).toBe('/__settings');
 
@@ -195,9 +195,17 @@ describe('buildInitConfig / companion wiring', () => {
     expect(config.navigation.find((n) => n.path === '').path).toBe('');
   });
 
-  test('alpine enables en/fr shell language for sample i18n UI', () => {
+  test('alpine wires companion like other vite starters', () => {
     const config = buildInitConfig({ framework: 'alpine', backend: 'none' });
-    expect(config.language).toEqual(['en', 'fr']);
+    expect(config.layout).toBe('fullscreen');
     expect(config.dev.name).toBe('alpine');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+      '${SHELLUI_APP_URL:-http://localhost:5173}/',
+    );
+  });
+
+  test('defaults to fullscreen layout', () => {
+    const config = buildInitConfig({ backend: 'none' });
+    expect(config.layout).toBe('fullscreen');
   });
 });

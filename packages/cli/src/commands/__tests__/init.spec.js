@@ -38,7 +38,7 @@ describe('initCommand (non-interactive)', () => {
     const projectDir = path.join(testRoot, 'empty-none');
     fs.mkdirSync(projectDir);
 
-    await initCommand(projectDir, { framework: 'empty', backend: 'none' });
+    await initCommand(projectDir, { framework: 'empty', backend: 'none', install: false });
 
     const configPath = path.join(projectDir, MAIN_CONFIG_FILE);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -49,6 +49,11 @@ describe('initCommand (non-interactive)', () => {
     expect(fs.existsSync(path.join(projectDir, 'static', 'favicon.svg'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'static', 'logo.svg'))).toBe(true);
     expect(fs.readFileSync(path.join(projectDir, '.gitignore'), 'utf-8')).toContain('dist/');
+    expect(fs.existsSync(path.join(projectDir, 'package.json'))).toBe(true);
+    const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
+    expect(pkg.devDependencies['@shellui/cli']).toBeTruthy();
+    expect(pkg.scripts.build).toBe('shellui build');
+    expect(config.layout).toBe('fullscreen');
   });
 
   test('--backend shellui --company-id writes BackendConfig defaults + companyId', async () => {
@@ -59,6 +64,7 @@ describe('initCommand (non-interactive)', () => {
       framework: 'empty',
       backend: 'shellui',
       companyId: '123',
+      install: false,
     });
 
     const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
@@ -78,6 +84,7 @@ describe('initCommand (non-interactive)', () => {
       framework: 'empty',
       backend: 'supabase',
       supabaseUrl: 'https://abc.supabase.co',
+      install: false,
     });
 
     const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
@@ -128,10 +135,15 @@ describe('initCommand (non-interactive)', () => {
     const configPath = path.join(projectDir, MAIN_CONFIG_FILE);
     fs.writeFileSync(configPath, JSON.stringify({ title: 'Old App' }, null, 2));
 
-    await initCommand(projectDir, { framework: 'empty', backend: 'none' });
+    await initCommand(projectDir, { framework: 'empty', backend: 'none', install: false });
     expect(JSON.parse(fs.readFileSync(configPath, 'utf-8')).title).toBe('Old App');
 
-    await initCommand(projectDir, { framework: 'empty', backend: 'none', force: true });
+    await initCommand(projectDir, {
+      framework: 'empty',
+      backend: 'none',
+      force: true,
+      install: false,
+    });
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     expect(config.title).toBe('My App');
     expect(config.port).toBe(4000);
@@ -168,24 +180,29 @@ describe('initCommand (non-interactive)', () => {
     expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'react.svg'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'src', 'assets', 'hero.png'))).toBe(true);
     const app = fs.readFileSync(path.join(projectDir, 'src', 'App.jsx'), 'utf-8');
-    expect(app).toMatch(/useShellui/);
-    expect(app).toMatch(/shellui-home/);
-    expect(app).toMatch(/t\('title'\)/);
-    expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(true);
-    expect(fs.existsSync(path.join(projectDir, 'src', 'useShellui.js'))).toBe(true);
+    expect(app).toMatch(/Get started/);
+    expect(app).toMatch(/hero\.png/);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(false);
+    expect(fs.existsSync(path.join(projectDir, 'src', 'useShellui.js'))).toBe(false);
+
+    const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
+    expect(pkg.devDependencies['@shellui/cli']).toBeTruthy();
+    expect(pkg.scripts.build).toBe('shellui build && vite build');
+    expect(pkg.scripts.start).toBe('shellui start');
 
     const { detectPackageManager, formatDevRun } = await import('../../init/package-manager.js');
     const pm = detectPackageManager(projectDir);
     expect(pm).toBeTruthy();
 
     const config = JSON.parse(fs.readFileSync(path.join(projectDir, MAIN_CONFIG_FILE), 'utf-8'));
+    expect(config.layout).toBe('fullscreen');
     expect(config.dev).toEqual({
       run: formatDevRun(pm),
       url: 'http://localhost:5173',
       name: 'react',
     });
     expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
-      'http://localhost:5173/',
+      '${SHELLUI_APP_URL:-http://localhost:5173}/',
     );
     expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
     expect(config.port).toBe(4000);
@@ -221,15 +238,21 @@ describe('initCommand (non-interactive)', () => {
       expect(config.dev.name).toBe(framework);
       expect(config.dev.run).toMatch(/run dev$/);
       expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
-        `${companionUrl}/`,
+        `\${SHELLUI_APP_URL:-${companionUrl}}/`,
       );
+      const pkg = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
+      expect(pkg.devDependencies['@shellui/cli']).toBeTruthy();
+      expect(pkg.scripts.start).toBe('shellui start');
+      expect(pkg.scripts.build).toMatch(/^shellui build/);
+      expect(config.layout).toBe('fullscreen');
       expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
       expect(config.port).toBe(4000);
 
       if (framework === 'svelte') {
         expect(fs.existsSync(path.join(projectDir, 'svelte.config.js'))).toBe(true);
+        const svelteCfg = fs.readFileSync(path.join(projectDir, 'svelte.config.js'), 'utf-8');
+        expect(svelteCfg).toMatch(/adapter-static/);
         const vite = fs.readFileSync(path.join(projectDir, 'vite.config.js'), 'utf-8');
-        expect(vite).not.toMatch(/adapter\s*:/);
         expect(vite).toMatch(/strictPort:\s*true/);
       }
 
@@ -245,16 +268,16 @@ describe('initCommand (non-interactive)', () => {
       }
 
       if (framework === 'alpine') {
-        expect(config.language).toEqual(['en', 'fr']);
         const main = fs.readFileSync(path.join(projectDir, 'src', 'main.js'), 'utf-8');
         expect(main).toMatch(/@shellui\/sdk\/tiny/);
-        expect(main).toMatch(/applyTheme/);
-        expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(true);
-        const i18n = fs.readFileSync(path.join(projectDir, 'src', 'i18n.js'), 'utf-8');
-        expect(i18n).toMatch(/Bienvenue/);
+        expect(main).toMatch(/shellui\.ready/);
+        expect(fs.existsSync(path.join(projectDir, 'src', 'i18n.js'))).toBe(false);
+        const html = fs.readFileSync(path.join(projectDir, 'index.html'), 'utf-8');
+        expect(html).toMatch(/Get started/);
         const vite = fs.readFileSync(path.join(projectDir, 'vite.config.js'), 'utf-8');
         expect(vite).toMatch(/strictPort:\s*true/);
         expect(vite).toMatch(/5173/);
+        expect(vite).toMatch(/dist\/web\/app/);
       }
     },
   );
