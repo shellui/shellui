@@ -7,6 +7,7 @@
     "start": "shellui start",
     "dev": "vite",
     "build": "shellui build && vite build",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

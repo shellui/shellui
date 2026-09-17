@@ -6,6 +6,7 @@
     "ng": "ng",
     "dev": "ng serve --port 4200",
     "build": "shellui build && ng build && node scripts/copy-browser.mjs",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

@@ -5,6 +5,7 @@
   "scripts": {
     "start": "shellui start",
     "build": "shellui build && nuxt generate",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

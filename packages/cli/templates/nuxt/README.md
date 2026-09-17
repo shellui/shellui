@@ -9,6 +9,7 @@ Built as a static site (`nuxt generate`) so it deploys with the shell.
 ```bash
 npm run dev      # Nuxt dev server pinned to port 3000
 npm run build    # shellui build + nuxt generate (static) → dist/web/app
+npm run serve:dist  # serve dist/web on http://localhost:8000 (404.html SPA fallback)
 npm run preview
 ```
 
@@ -23,4 +24,4 @@ shellui start    # runs the shell (:4000) + this companion (:3000)
 shellui deploy   # uploads dist/web to a Shellui hosting preview
 ```
 
-`SHELLUI_APP_URL` (see `.env.example`) and `app.baseURL` set where the built companion is served (default `/app`).
+`SHELLUI_APP_URL` (see `.env.example`) and `app.baseURL` set where the built companion is served (default `/app`). `shellui build` applies that default automatically. After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally (unknown routes fall back to `404.html`).

@@ -7,6 +7,7 @@
     "start": "shellui start",
     "dev": "vite dev",
     "build": "shellui build && vite build",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",

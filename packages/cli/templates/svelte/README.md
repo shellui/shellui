@@ -9,6 +9,7 @@ Built as a static site (`@sveltejs/adapter-static`) so it deploys with the shell
 ```bash
 npm run dev      # Vite dev server on http://localhost:5173 (strictPort)
 npm run build    # shellui build + vite build (static) → dist/web/app
+npm run serve:dist  # serve dist/web on http://localhost:8000 (404.html SPA fallback)
 npm run preview
 ```
 
@@ -21,4 +22,4 @@ shellui start    # runs the shell (:4000) + this companion (:5173)
 shellui deploy   # uploads dist/web to a Shellui hosting preview
 ```
 
-`SHELLUI_APP_URL` (see `.env.example`) and the SvelteKit `paths.base` set where the built companion is served (default `/app`).
+`SHELLUI_APP_URL` (see `.env.example`) and the SvelteKit `paths.base` set where the built companion is served (default `/app`). `shellui build` applies that default automatically. After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally (unknown routes fall back to `404.html`).
