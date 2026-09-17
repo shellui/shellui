@@ -55,7 +55,11 @@ export function createEmptyShell(projectRoot) {
 
   const packageJsonPath = path.join(projectRoot, 'package.json');
   if (!fs.existsSync(packageJsonPath)) {
-    fs.writeFileSync(packageJsonPath, `${JSON.stringify(EMPTY_SHELL_PACKAGE_JSON, null, 2)}\n`, 'utf-8');
+    fs.writeFileSync(
+      packageJsonPath,
+      `${JSON.stringify(EMPTY_SHELL_PACKAGE_JSON, null, 2)}\n`,
+      'utf-8',
+    );
     created = true;
   }
 

@@ -2,16 +2,34 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <title>Shellui Alpine App</title>
   </head>
   <body>
-    <div id="app" x-data="{ count: 0 }">
+    <div
+      id="app"
+      x-data="{ count: 0 }"
+    >
       <h1>Get started</h1>
       <p>Edit <code>index.html</code> and save to test <code>HMR</code></p>
-      <button type="button" @click="count++">Count is <span x-text="count"></span></button>
+      <button
+        type="button"
+        @click="count++"
+      >
+        Count is <span x-text="count"></span>
+      </button>
     </div>
-    <script type="module" src="/src/main.js"></script>
+    <script
+      type="module"
+      src="/src/main.js"
+    ></script>
   </body>
 </html>

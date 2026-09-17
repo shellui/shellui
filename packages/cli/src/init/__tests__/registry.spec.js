@@ -129,9 +129,7 @@ describe('init registry', () => {
       expect.arrayContaining(['app/shellui-client.js', 'scripts/copy-export.mjs']),
     );
     expect(TEMPLATE_FILES.next).not.toContain('app/home.js');
-    expect(TEMPLATE_FILES.nuxt).toEqual(
-      expect.arrayContaining(['app/plugins/shellui.client.ts']),
-    );
+    expect(TEMPLATE_FILES.nuxt).toEqual(expect.arrayContaining(['app/plugins/shellui.client.ts']));
     expect(TEMPLATE_FILES.svelte).toEqual(
       expect.arrayContaining(['svelte.config.js', 'src/routes/+layout.svelte']),
     );
