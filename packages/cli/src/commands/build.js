@@ -43,6 +43,23 @@ function getNavigationPaths(navigation) {
 }
 
 /**
+ * Rewrite root-relative-to-index asset references (emitted by Vite `base: './'`)
+ * so a copy of index.html placed `depth` folders deep still resolves assets.
+ * A file at `dist/web/<seg1>/<seg2>/index.html` must reach `dist/web/assets/...`
+ * via `../../assets/...`. Without this, hosts that serve `/<path>/` with a
+ * trailing slash resolve `./assets` under the subfolder and 404.
+ * @param {string} html - index.html content built with relative base
+ * @param {number} depth - number of path segments the copy is nested under
+ * @returns {string}
+ */
+export function rewriteRelativeAssetDepth(html, depth) {
+  if (depth <= 0) return html;
+  const prefix = '../'.repeat(depth);
+  // Match attribute values that start with `./` (e.g. src="./assets/…", href='./favicon.svg').
+  return html.replace(/(\s(?:src|href)=)(["'])\.\//g, `$1$2${prefix}`);
+}
+
+/**
  * Recursively copy a directory
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
@@ -239,13 +256,17 @@ export async function buildCommand(root = '.', options = {}) {
       const routePaths = getNavigationPaths(config.navigation);
       if (routePaths.length > 0) {
         console.log(pc.blue(`Creating route folders for ${routePaths.length} path(s)...`));
+        const indexHtml = fs.readFileSync(indexPath, 'utf-8');
         for (const routePath of routePaths) {
           const routeDir = path.join(distPath, routePath);
           const routeIndexPath = path.join(routeDir, 'index.html');
           if (!fs.existsSync(routeDir)) {
             fs.mkdirSync(routeDir, { recursive: true });
           }
-          fs.copyFileSync(indexPath, routeIndexPath);
+          // Relative `base: './'` assets must climb back to dist/web for nested routes
+          // so `/<path>/` (trailing slash) serving still resolves them.
+          const depth = routePath.split('/').filter(Boolean).length;
+          fs.writeFileSync(routeIndexPath, rewriteRelativeAssetDepth(indexHtml, depth), 'utf-8');
         }
         console.log(pc.green(`Route folders created: ${routePaths.join(', ')}`));
       }
