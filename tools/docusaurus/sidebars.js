@@ -81,6 +81,11 @@ const sidebars = {
               id: 'features/modals-drawers',
               label: 'Modals & Drawers',
             },
+            {
+              type: 'doc',
+              id: 'features/companion-isolation',
+              label: 'Companion isolation',
+            },
           ],
         },
         {

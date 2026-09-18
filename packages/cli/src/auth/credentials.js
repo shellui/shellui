@@ -5,6 +5,30 @@ import path from 'path';
 const CREDENTIALS_VERSION = 1;
 
 /**
+ * Documented residual for L-10: tokens are stored as JSON on disk.
+ * Permissions are hardened (0700 dir / 0600 file on Unix); OS keychain is a future follow-up.
+ */
+export const CREDENTIAL_STORAGE_RESIDUAL = Object.freeze({
+  format: 'plaintext-json',
+  unixPermissions: { directory: '0700', file: '0600' },
+  windowsPermissions: 'best-effort-chmod; relies on %APPDATA% ACLs',
+  notProtectedAgainst: [
+    'same-user malware',
+    'root/admin access',
+    'backup tools copying the file',
+    'disk imaging',
+  ],
+  followUp: 'OS keychain / Secret Service integration (tracked separately from this release)',
+});
+
+/**
+ * @returns {typeof CREDENTIAL_STORAGE_RESIDUAL}
+ */
+export function getCredentialStorageInfo() {
+  return CREDENTIAL_STORAGE_RESIDUAL;
+}
+
+/**
  * Resolve the directory for shellui CLI credentials (XDG / AppData).
  * @returns {string}
  */

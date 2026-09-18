@@ -29,6 +29,10 @@ cli
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option('--run <command>', 'Spawn a companion command (overrides config.dev.run)')
   .option('--follow <url>', 'Wait for / follow a companion URL (overrides config.dev.url)')
+  .option(
+    '--allow-remote-companion',
+    'Allow non-loopback dev.url / --follow URLs (default: loopback only with warnings)',
+  )
   .option('--shell-only', 'Do not spawn a companion even if config.dev.run is set')
   .action((root, options) =>
     startCommand(root, {

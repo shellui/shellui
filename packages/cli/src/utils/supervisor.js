@@ -3,6 +3,8 @@ import http from 'http';
 import https from 'https';
 import net from 'net';
 import { URL } from 'url';
+import pc from 'picocolors';
+import { validateCompanionUrl } from './companion-url.js';
 
 const DEFAULT_PROBE_MS = 1000;
 const DEFAULT_WAIT_TIMEOUT_MS = 60_000;
@@ -194,7 +196,13 @@ export function spawnCompanion({ command, cwd, name = 'app', env = process.env }
  * Resolve companion settings from config.dev plus CLI flags.
  * `--run` / `--follow` override config. `--shell-only` (or `run: false`) ignores `dev.run`.
  * @param {{ dev?: { run?: string; url?: string; name?: string } } | null | undefined} config
- * @param {{ run?: string | false; follow?: string; noRun?: boolean; shellOnly?: boolean }} [options]
+ * @param {{
+ *   run?: string | false,
+ *   follow?: string,
+ *   noRun?: boolean,
+ *   shellOnly?: boolean,
+ *   allowRemoteCompanion?: boolean,
+ * }} [options]
  */
 export function resolveCompanion(config, options = {}) {
   const dev = config?.dev && typeof config.dev === 'object' ? config.dev : {};
@@ -205,7 +213,24 @@ export function resolveCompanion(config, options = {}) {
     : (runFromFlag ?? (typeof dev.run === 'string' ? dev.run : undefined));
   const urlFromFlag =
     typeof options.follow === 'string' && options.follow ? options.follow : undefined;
-  const url = urlFromFlag ?? (typeof dev.url === 'string' ? dev.url : undefined);
+  const rawUrl = urlFromFlag ?? (typeof dev.url === 'string' ? dev.url : undefined);
   const name = typeof dev.name === 'string' && dev.name ? dev.name : 'app';
-  return { run, url, name };
+
+  if (!rawUrl) {
+    return { run, url: undefined, name };
+  }
+
+  const source = urlFromFlag ? '--follow' : 'dev.url';
+  const validation = validateCompanionUrl(rawUrl, {
+    allowRemote: options.allowRemoteCompanion === true,
+    source,
+  });
+  for (const warning of validation.warnings) {
+    console.warn(pc.yellow(warning));
+  }
+  if (!validation.ok) {
+    throw new Error(validation.error);
+  }
+
+  return { run, url: validation.url, name };
 }

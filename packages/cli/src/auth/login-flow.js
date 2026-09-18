@@ -1,8 +1,28 @@
+import crypto from 'crypto';
 import http from 'http';
 import { spawn } from 'child_process';
 import pc from 'picocolors';
 
 const LOGIN_TIMEOUT_MS = 3 * 60 * 1000;
+
+export const LOGIN_NONCE_HEADER = 'X-Shellui-Login-Nonce';
+
+/**
+ * @returns {string}
+ */
+export function generateLoginNonce() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+/**
+ * @param {unknown} payload
+ * @param {string} expectedNonce
+ */
+export function validateCaptureNonce(payload, expectedNonce) {
+  if (!payload || typeof payload !== 'object') return false;
+  const nonce = /** @type {Record<string, unknown>} */ (payload).nonce;
+  return typeof nonce === 'string' && nonce.length > 0 && nonce === expectedNonce;
+}
 
 /**
  * @param {string} url
@@ -20,7 +40,11 @@ export function openBrowser(url) {
   spawn('xdg-open', [url], { stdio: 'ignore', detached: true }).unref();
 }
 
-function waitingPageHtml() {
+/**
+ * @param {{ port: number, nonce: string, backendUrl: string }} ctx
+ */
+export function buildWaitingPageHtml({ port, nonce, backendUrl }) {
+  const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,22 +55,31 @@ function waitingPageHtml() {
     :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
     body { margin: 0; min-height: 100vh; display: grid; place-items: center;
       background: #0f1419; color: #e7ecf3; }
-    main { width: min(24rem, calc(100% - 2rem)); padding: 2rem;
+    main { width: min(28rem, calc(100% - 2rem)); padding: 2rem;
       border: 1px solid #2a3441; border-radius: 12px; background: #151b23; }
     h1 { font-size: 1.25rem; margin: 0 0 0.5rem; font-weight: 600; }
-    p { margin: 0; color: #9aa7b8; font-size: 0.95rem; line-height: 1.4; }
+    p { margin: 0 0 0.75rem; color: #9aa7b8; font-size: 0.95rem; line-height: 1.45; }
+    code { font-size: 0.85rem; color: #c5d0de; word-break: break-all; }
+    .warn { color: #f0b429; margin-top: 1rem; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <main>
-    <h1>shellui</h1>
+    <h1>shellui CLI sign-in</h1>
     <p>Waiting for sign-in in your browser…</p>
+    <p>Session port: <code>${port}</code></p>
+    <p>Session nonce: <code>${nonce}</code></p>
+    <p class="warn">Only continue if you ran <code>shellui login</code> in your terminal and the authorize URL starts with <code>${authorizePrefix}</code>.</p>
   </main>
 </body>
 </html>`;
 }
 
-function callbackPageHtml(backendUrl) {
+/**
+ * @param {{ nonce: string, backendUrl: string }} ctx
+ */
+export function buildCallbackPageHtml({ nonce, backendUrl }) {
+  const nonceJson = JSON.stringify(nonce);
   const backendJson = JSON.stringify(backendUrl.replace(/\/$/, ''));
   return `<!DOCTYPE html>
 <html lang="en">
@@ -58,19 +91,23 @@ function callbackPageHtml(backendUrl) {
     :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
     body { margin: 0; min-height: 100vh; display: grid; place-items: center;
       background: #0f1419; color: #e7ecf3; }
-    main { width: min(24rem, calc(100% - 2rem)); padding: 2rem;
+    main { width: min(28rem, calc(100% - 2rem)); padding: 2rem;
       border: 1px solid #2a3441; border-radius: 12px; background: #151b23; }
     h1 { font-size: 1.25rem; margin: 0 0 0.5rem; font-weight: 600; }
-    p { margin: 0; color: #9aa7b8; font-size: 0.95rem; line-height: 1.4; }
+    p { margin: 0 0 0.75rem; color: #9aa7b8; font-size: 0.95rem; line-height: 1.45; }
+    code { font-size: 0.85rem; color: #c5d0de; word-break: break-all; }
+    .warn { color: #f0b429; margin-top: 1rem; font-size: 0.9rem; }
   </style>
 </head>
 <body>
   <main>
     <h1 id="title">Completing sign-in…</h1>
     <p id="msg">Please wait.</p>
+    <p class="warn">Session nonce: <code>${nonce}</code> — verify it matches your terminal before closing this window.</p>
   </main>
   <script>
     (async function () {
+      var loginNonce = ${nonceJson};
       var title = document.getElementById('title');
       var msg = document.getElementById('msg');
       var params = new URLSearchParams(window.location.search);
@@ -83,8 +120,11 @@ function callbackPageHtml(backendUrl) {
         try {
           await fetch('/error', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: err, errorCode: errCode || null }),
+            headers: {
+              'Content-Type': 'application/json',
+              '${LOGIN_NONCE_HEADER}': loginNonce,
+            },
+            body: JSON.stringify({ nonce: loginNonce, error: err, errorCode: errCode || null }),
           });
         } catch (e) {}
         return;
@@ -122,8 +162,12 @@ function callbackPageHtml(backendUrl) {
           try {
             await fetch('/error', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                '${LOGIN_NONCE_HEADER}': loginNonce,
+              },
               body: JSON.stringify({
+                nonce: loginNonce,
                 error: (exchangeErr && exchangeErr.message) || 'Session exchange failed.',
               }),
             });
@@ -143,8 +187,11 @@ function callbackPageHtml(backendUrl) {
         try {
           await fetch('/error', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Missing tokens in callback.' }),
+            headers: {
+              'Content-Type': 'application/json',
+              '${LOGIN_NONCE_HEADER}': loginNonce,
+            },
+            body: JSON.stringify({ nonce: loginNonce, error: 'Missing tokens in callback.' }),
           });
         } catch (e) {}
         return;
@@ -152,8 +199,12 @@ function callbackPageHtml(backendUrl) {
       try {
         var res = await fetch('/capture', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            '${LOGIN_NONCE_HEADER}': loginNonce,
+          },
           body: JSON.stringify({
+            nonce: loginNonce,
             access_token: access_token,
             refresh_token: refresh_token,
             expires_at: expires_at,
@@ -162,7 +213,7 @@ function callbackPageHtml(backendUrl) {
         });
         if (!res.ok) throw new Error('CLI rejected tokens');
         title.textContent = 'Signed in';
-        msg.textContent = 'You can close this window and return to the terminal.';
+        msg.textContent = 'Credentials were sent to the shellui CLI on this machine. You can close this window.';
         history.replaceState(null, '', window.location.pathname);
       } catch (e) {
         title.textContent = 'Sign-in failed';
@@ -172,6 +223,16 @@ function callbackPageHtml(backendUrl) {
   </script>
 </body>
 </html>`;
+}
+
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {string} expectedNonce
+ */
+export function extractLoginNonce(req, expectedNonce) {
+  const header = req.headers[LOGIN_NONCE_HEADER.toLowerCase()];
+  if (typeof header === 'string' && header === expectedNonce) return header;
+  return null;
 }
 
 /**
@@ -217,6 +278,7 @@ export async function fetchOAuthProviders(backendUrl, companyId) {
  *   companyId: string,
  *   provider?: string,
  *   redirectTo: string,
+ *   state?: string,
  * }} opts
  */
 export function buildAuthorizeUrl(opts) {
@@ -227,6 +289,9 @@ export function buildAuthorizeUrl(opts) {
   }
   url.searchParams.set('company_id', opts.companyId);
   url.searchParams.set('redirect_to', opts.redirectTo);
+  if (typeof opts.state === 'string' && opts.state) {
+    url.searchParams.set('state', opts.state);
+  }
   return url.toString();
 }
 
@@ -247,6 +312,7 @@ export function buildAuthorizeUrl(opts) {
 export async function runLoginFlow(opts) {
   const { backendUrl, companyId } = opts;
   const provider = typeof opts.provider === 'string' ? opts.provider.trim().toLowerCase() : '';
+  const loginNonce = generateLoginNonce();
 
   return new Promise((resolve, reject) => {
     /** @type {import('http').Server | null} */
@@ -267,18 +333,26 @@ export async function runLoginFlow(opts) {
       else resolve(result);
     };
 
+    const rejectNonce = (res) => {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid_nonce' }));
+      finish(new Error('Login callback rejected: invalid or missing session nonce.'));
+    };
+
     server = http.createServer((req, res) => {
       const url = new URL(req.url || '/', 'http://127.0.0.1');
 
       if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/login')) {
+        const address = server?.address();
+        const port = address && typeof address !== 'string' ? address.port : 0;
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(waitingPageHtml());
+        res.end(buildWaitingPageHtml({ port, nonce: loginNonce, backendUrl }));
         return;
       }
 
       if (req.method === 'GET' && url.pathname === '/callback') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(callbackPageHtml(backendUrl));
+        res.end(buildCallbackPageHtml({ nonce: loginNonce, backendUrl }));
         return;
       }
 
@@ -298,6 +372,18 @@ export async function runLoginFlow(opts) {
             finish(new Error('Invalid callback payload from browser.'));
             return;
           }
+
+          const headerNonce = extractLoginNonce(req, loginNonce);
+          const bodyNonceOk = validateCaptureNonce(payload, loginNonce);
+          if (!headerNonce && !bodyNonceOk) {
+            rejectNonce(res);
+            return;
+          }
+          if (headerNonce && !bodyNonceOk) {
+            rejectNonce(res);
+            return;
+          }
+
           if (url.pathname === '/error') {
             const message =
               (typeof payload.error === 'string' && payload.error) || 'OAuth sign-in failed.';
@@ -363,10 +449,22 @@ export async function runLoginFlow(opts) {
         companyId,
         ...(provider ? { provider } : {}),
         redirectTo: callbackUrl,
+        state: loginNonce,
       });
+      const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
 
-      console.log(pc.cyan('Open this URL in your browser to sign in:'));
+      console.log(pc.cyan('Sign in via your browser (loopback only):'));
+      console.log(pc.dim(`  Loopback port: ${address.port}`));
+      console.log(pc.dim(`  Session nonce: ${loginNonce}`));
+      console.log(pc.dim(`  Authorize URLs must start with: ${authorizePrefix}`));
+      console.log('');
       console.log(pc.bold(authorizeUrl));
+      console.log('');
+      console.log(
+        pc.yellow(
+          'Only sign in if you started `shellui login` in this terminal. Ignore authorize links from other sources.',
+        ),
+      );
       console.log(pc.dim('Waiting for authentication…'));
       try {
         openBrowser(authorizeUrl);
