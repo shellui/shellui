@@ -157,11 +157,11 @@
     "retry": "Réessayer"
   },
   "ai": {
-    "description": "Exécutez des modèles de langage sur cet appareil pour les applications du shell. Shellui n'envoie pas les invites à un service d'IA cloud de lui-même.",
+    "description": "Modèles sur cet appareil pour les applications du shell. Shellui n'envoie rien à un service d'IA cloud de lui-même.",
     "unknownError": "Une erreur s’est produite.",
     "enabled": {
       "title": "Autoriser les applications à utiliser l'IA",
-      "description": "Lorsque c'est désactivé, les applications intégrées ne peuvent pas créer de sessions IA même si un modèle est prêt."
+      "description": "Les applications ne peuvent pas ouvrir de sessions IA tant que c'est désactivé."
     },
     "status": {
       "title": "État",
@@ -170,45 +170,45 @@
       "retry": "Réessayer",
       "refresh": "Actualiser",
       "webGpu": "WebGPU",
-      "webGpuHint": "Nécessaire pour les modèles navigateur.",
+      "webGpuHint": "Requis pour les modèles navigateur",
       "ollama": "Ollama",
-      "ollamaOnlineHint": "Les modèles locaux peuvent être listés.",
+      "ollamaOnlineHint": "Prêt à lister les modèles locaux",
       "storage": "Stockage navigateur",
-      "storageHint": "Espace pour les installations catalogue sur cet appareil.",
+      "storageHint": "Conserve les installations catalogue sur cet appareil",
       "available": "Disponible",
       "unavailable": "Indisponible",
       "connected": "Connecté",
       "offline": "Hors ligne",
       "reachable": "Connecté",
       "notReachable": "Hors ligne",
-      "ollamaOffline": "Démarrez Ollama sur cette machine pour lister les modèles locaux.",
+      "ollamaOffline": "Démarrez Ollama, puis actualisez",
       "ollamaDisabled": "Ollama est désactivé ci-dessus."
     },
     "providers": {
       "title": "Fournisseurs",
       "ollama": "Ollama",
-      "ollamaHint": "Modèles déjà installés dans l'application Ollama sur cet ordinateur.",
+      "ollamaHint": "Modèles déjà présents via l'application Ollama.",
       "browser": "Modèles navigateur",
-      "browserHint": "Catalogue stocké dans ce profil navigateur.",
+      "browserHint": "Les installations catalogue restent dans ce navigateur. L'inférence n'est pas encore branchée ; utilisez Ollama pour les invites.",
       "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites."
     },
     "defaultModel": {
       "title": "Modèle par défaut",
-      "description": "Utilisé lorsqu'une application ne choisit pas de modèle. Choisi automatiquement s'il n'y a qu'un modèle prêt.",
+      "description": "Utilisé lorsqu'une application n'en choisit pas.",
       "none": "Automatique (premier modèle prêt)",
-      "empty": "Aucun modèle prêt pour l'instant. Démarrez Ollama ou installez une entrée catalogue."
+      "empty": "Aucun modèle prêt. Démarrez Ollama ou installez une entrée catalogue."
     },
     "models": {
       "ollama": "Modèles Ollama",
       "ollamaEmpty": "Ollama est hors ligne. Démarrez-le, puis actualisez.",
-      "ollamaEmptyReady": "Ollama est connecté, mais aucun modèle n'est installé. Tirez-en un avec ollama pull.",
+      "ollamaEmptyReady": "Connecté, mais aucun modèle. Lancez ollama pull.",
       "browser": "Catalogue navigateur",
       "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
       "download": "Installer",
       "cancel": "Annuler",
       "delete": "Retirer",
-      "downloadProgress": "{{percent}} % enregistré",
-      "needsWebGpuAction": "Activez WebGPU dans ce navigateur, puis installez.",
+      "downloadProgress": "{{percent}} %",
+      "needsWebGpuAction": "Ce navigateur a besoin de WebGPU avant les installations catalogue.",
       "status": {
         "ready": "Prêt",
         "downloadable": "Non installé",
@@ -543,8 +543,8 @@
         }
       },
       "ai": {
-        "title": "IA locale",
-        "description": "Sonde WebGPU et Ollama, liste les modèles et envoie un petit prompt via le même chemin AI que les applications. Il faut un modèle prêt (souvent Ollama).",
+        "title": "Outils de test IA",
+        "description": "Sondes développeur sur le même chemin AI que les applications. La configuration courante est dans Paramètres → IA.",
         "webGpu": "WebGPU",
         "ollama": "Ollama",
         "defaultModel": "Modèle par défaut",

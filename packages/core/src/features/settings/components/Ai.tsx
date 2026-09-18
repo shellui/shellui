@@ -8,7 +8,7 @@ import { isBrowserModelInstalled } from '../../ai/browserInstallStore';
 import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
-import { HardDriveIcon, RefreshCwIcon, SparklesIcon } from '../SettingsIcons';
+import { RefreshCwIcon } from '../SettingsIcons';
 import { useSettings } from '../hooks/useSettings';
 
 type AiPanelStatus = {
@@ -229,29 +229,28 @@ export const Ai = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
-          <div className="space-y-0.5">
-            <label
-              htmlFor="ai-enabled"
-              className="text-sm font-medium leading-none"
-              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-            >
-              {t('ai.enabled.title')}
-            </label>
-            <p className="text-sm text-muted-foreground">{t('ai.enabled.description')}</p>
-          </div>
-          <Switch
-            id="ai-enabled"
-            checked={ai.enabled}
-            onCheckedChange={(checked) => updateSetting('ai', { enabled: checked })}
-          />
+    <div className="space-y-5">
+      <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
+
+      <div className="flex items-center justify-between gap-4">
+        <div className="space-y-0.5">
+          <label
+            htmlFor="ai-enabled"
+            className="text-sm font-medium leading-none"
+            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+          >
+            {t('ai.enabled.title')}
+          </label>
+          <p className="text-sm text-muted-foreground">{t('ai.enabled.description')}</p>
         </div>
+        <Switch
+          id="ai-enabled"
+          checked={ai.enabled}
+          onCheckedChange={(checked) => updateSetting('ai', { enabled: checked })}
+        />
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-3">
           <h2
             className="text-sm font-medium leading-none"
@@ -265,6 +264,7 @@ export const Ai = () => {
             className="h-8 gap-1.5 text-xs"
             disabled={loading}
             onClick={() => void load()}
+            aria-label={t('ai.status.refresh')}
           >
             <RefreshCwIcon />
             {t('ai.status.refresh')}
@@ -275,7 +275,7 @@ export const Ai = () => {
           <p className="text-sm text-muted-foreground">{t('ai.status.loading')}</p>
         ) : null}
         {error ? (
-          <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
             <p className="text-sm text-destructive">{t('ai.status.error')}</p>
             <Button
               variant="outline"
@@ -289,56 +289,58 @@ export const Ai = () => {
 
         {status ? (
           <div className="grid gap-2 sm:grid-cols-3">
-            <div className="rounded-lg border border-border/60 bg-background p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{t('ai.status.webGpu')}</p>
-                  <p className="text-xs text-muted-foreground">{t('ai.status.webGpuHint')}</p>
+            {(
+              [
+                {
+                  key: 'webGpu',
+                  title: t('ai.status.webGpu'),
+                  hint: t('ai.status.webGpuHint'),
+                  ok: status.webGpu.available,
+                  okLabel: t('ai.status.available'),
+                  badLabel: t('ai.status.unavailable'),
+                },
+                {
+                  key: 'ollama',
+                  title: t('ai.status.ollama'),
+                  hint: status.ollama.reachable
+                    ? t('ai.status.ollamaOnlineHint')
+                    : t('ai.status.ollamaOffline'),
+                  ok: status.ollama.reachable,
+                  okLabel: t('ai.status.connected'),
+                  badLabel: t('ai.status.offline'),
+                },
+                {
+                  key: 'storage',
+                  title: t('ai.status.storage'),
+                  hint: t('ai.status.storageHint'),
+                  ok: status.storage.available,
+                  okLabel: t('ai.status.available'),
+                  badLabel: t('ai.status.unavailable'),
+                },
+              ] as const
+            ).map((item) => (
+              <div
+                key={item.key}
+                className="rounded-lg border border-border/60 px-3 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-medium">{item.title}</p>
+                    <p className="text-xs text-muted-foreground">{item.hint}</p>
+                  </div>
+                  <StatusBadge
+                    ok={item.ok}
+                    okLabel={item.okLabel}
+                    badLabel={item.badLabel}
+                  />
                 </div>
-                <StatusBadge
-                  ok={status.webGpu.available}
-                  okLabel={t('ai.status.available')}
-                  badLabel={t('ai.status.unavailable')}
-                />
               </div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-background p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{t('ai.status.ollama')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {status.ollama.reachable
-                      ? t('ai.status.ollamaOnlineHint')
-                      : t('ai.status.ollamaOffline')}
-                  </p>
-                </div>
-                <StatusBadge
-                  ok={status.ollama.reachable}
-                  okLabel={t('ai.status.connected')}
-                  badLabel={t('ai.status.offline')}
-                />
-              </div>
-            </div>
-            <div className="rounded-lg border border-border/60 bg-background p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">{t('ai.status.storage')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {status.storage.detail ?? t('ai.status.storageHint')}
-                  </p>
-                </div>
-                <StatusBadge
-                  ok={status.storage.available}
-                  okLabel={t('ai.status.available')}
-                  badLabel={t('ai.status.unavailable')}
-                />
-              </div>
-            </div>
+            ))}
           </div>
         ) : null}
       </div>
 
-      <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
+      <div className="space-y-2">
         <label
           htmlFor="ai-default-model"
           className="text-sm font-medium leading-none"
@@ -380,21 +382,16 @@ export const Ai = () => {
           {t('ai.providers.title')}
         </h2>
 
-        <section className="space-y-3 rounded-lg border border-border/60 bg-background p-3">
+        <section className="space-y-3 rounded-lg border border-border/60 p-3">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                <HardDriveIcon />
-              </div>
-              <div className="space-y-1">
-                <p
-                  className="text-sm font-medium leading-none"
-                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-                >
-                  {t('ai.providers.ollama')}
-                </p>
-                <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
-              </div>
+            <div className="space-y-1">
+              <p
+                className="text-sm font-medium leading-none"
+                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+              >
+                {t('ai.providers.ollama')}
+              </p>
+              <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
             </div>
             <Switch
               checked={ai.ollamaEnabled}
@@ -403,7 +400,7 @@ export const Ai = () => {
           </div>
           {ai.ollamaEnabled ? (
             ollamaModels.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {status?.ollama.reachable
                   ? t('ai.models.ollamaEmptyReady')
                   : t('ai.models.ollamaEmpty')}
@@ -415,12 +412,7 @@ export const Ai = () => {
                     key={model.id}
                     className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
                   >
-                    <div className="min-w-0 space-y-1">
-                      <p className="truncate text-sm font-medium">{model.name}</p>
-                      {model.description ? (
-                        <p className="text-xs text-muted-foreground">{model.description}</p>
-                      ) : null}
-                    </div>
+                    <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
                     <div className="flex items-center gap-2">
                       {formatBytes(model.sizeBytes, locale) ? (
                         <span className="text-xs tabular-nums text-muted-foreground">
@@ -439,33 +431,28 @@ export const Ai = () => {
           ) : null}
         </section>
 
-        <section className="space-y-3 rounded-lg border border-border/60 bg-background p-3">
+        <section className="space-y-3 rounded-lg border border-border/60 p-3">
           <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                <SparklesIcon />
-              </div>
-              <div className="space-y-1">
-                <p
-                  className="text-sm font-medium leading-none"
-                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-                >
-                  {t('ai.providers.browser')}
-                </p>
-                <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
-              </div>
+            <div className="space-y-1">
+              <p
+                className="text-sm font-medium leading-none"
+                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+              >
+                {t('ai.providers.browser')}
+              </p>
+              <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
             </div>
             <Switch
               checked={ai.browserEnabled}
               onCheckedChange={(checked) => updateSetting('ai', { browserEnabled: checked })}
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t('ai.providers.browserStubNote')}</p>
+          {ai.browserEnabled && status && !status.webGpu.available ? (
+            <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
+          ) : null}
           {ai.browserEnabled ? (
             browserModels.length === 0 ? (
-              <p className="rounded-md border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
-                {t('ai.models.browserEmpty')}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('ai.models.browserEmpty')}</p>
             ) : (
               <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
                 {browserModels.map((model) => {
@@ -481,24 +468,17 @@ export const Ai = () => {
                       key={model.id}
                       className="space-y-2 px-3 py-2.5"
                     >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{model.name}</p>
-                          {model.description ? (
-                            <p className="text-xs text-muted-foreground">{model.description}</p>
-                          ) : null}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
                           {size ? (
-                            <span className="text-xs tabular-nums text-muted-foreground">
-                              {size}
-                            </span>
+                            <p className="text-xs tabular-nums text-muted-foreground">{size}</p>
                           ) : null}
-                          <ModelStatusBadge
-                            status={isDownloading ? 'downloading' : model.status}
-                            t={t}
-                          />
                         </div>
+                        <ModelStatusBadge
+                          status={isDownloading ? 'downloading' : model.status}
+                          t={t}
+                        />
                       </div>
 
                       {isDownloading || progress != null ? (
@@ -509,6 +489,9 @@ export const Ai = () => {
                             aria-valuemin={0}
                             aria-valuemax={100}
                             aria-valuenow={Math.round((progress ?? 0) * 100)}
+                            aria-label={t('ai.models.downloadProgress', {
+                              percent: Math.round((progress ?? 0) * 100),
+                            })}
                           >
                             <div
                               className="h-full rounded-full bg-primary transition-[width]"
@@ -559,11 +542,6 @@ export const Ai = () => {
                       {download?.modelId === model.id && download.error ? (
                         <p className="text-xs text-destructive">{download.error}</p>
                       ) : null}
-                      {!status?.webGpu.available && canDownload ? (
-                        <p className="text-xs text-muted-foreground">
-                          {t('ai.models.needsWebGpuAction')}
-                        </p>
-                      ) : null}
                     </li>
                   );
                 })}
@@ -572,8 +550,6 @@ export const Ai = () => {
           ) : null}
         </section>
       </div>
-
-      <p className="text-xs text-muted-foreground">{t('ai.footnote')}</p>
     </div>
   );
 };

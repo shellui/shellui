@@ -28,19 +28,24 @@ export const AiTestTools = () => {
     setLog((prev) => (prev ? `${prev}\n${line}` : line));
   }, []);
 
-  const refresh = useCallback(async () => {
-    setBusy('refresh');
-    setError(null);
-    try {
-      const next = await collectDevelopAiDiagnostics(settings);
-      setDiagnostics(next);
-      appendLog(t('develop.testing.ai.logRefreshed'));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('develop.testing.ai.unknownError'));
-    } finally {
-      setBusy(null);
-    }
-  }, [appendLog, settings, t]);
+  const refresh = useCallback(
+    async (options?: { log?: boolean }) => {
+      setBusy('refresh');
+      setError(null);
+      try {
+        const next = await collectDevelopAiDiagnostics(settings);
+        setDiagnostics(next);
+        if (options?.log) {
+          appendLog(t('develop.testing.ai.logRefreshed'));
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('develop.testing.ai.unknownError'));
+      } finally {
+        setBusy(null);
+      }
+    },
+    [appendLog, settings, t],
+  );
 
   useEffect(() => {
     void refresh();
@@ -172,7 +177,7 @@ export const AiTestTools = () => {
           variant="outline"
           size="sm"
           disabled={busy !== null}
-          onClick={() => void refresh()}
+          onClick={() => void refresh({ log: true })}
         >
           {t('develop.testing.ai.buttons.refresh')}
         </Button>
