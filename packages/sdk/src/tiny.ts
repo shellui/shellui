@@ -108,7 +108,8 @@ const resolveParentTargetOrigin = (): string => {
   if (parent === window) return location.origin;
   const ancestors = (document.location as Location & { ancestorOrigins?: DOMStringList })
     .ancestorOrigins;
-  if (ancestors?.length) return ancestors[0]!;
+  const ancestorOrigin = ancestors?.[0];
+  if (ancestorOrigin) return ancestorOrigin;
   if (document.referrer) {
     try {
       return new URL(document.referrer).origin;

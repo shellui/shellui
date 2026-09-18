@@ -52,11 +52,11 @@ Protected routes redirect to `/login?next=<encoded-path>`. After sign-in, the sh
 
 On desktop, `/login` shows a full-height left panel. Both branding fields are optional.
 
-| Field        | Behavior                                                   |
-| ------------ | ---------------------------------------------------------- |
-| `panelUrl`   | Full-bleed iframe. Wins when both fields are set           |
-| `panelImage` | Centered `object-contain` image                            |
-| neither      | Muted panel with clickable `appIcon` top left (links home) |
+| Field        | Behavior                                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `panelUrl`   | Full-bleed iframe. Wins when both fields are set. Must be a same-origin relative path, a configured backend/login/storage origin, or (development only) a loopback URL; untrusted URLs are ignored |
+| `panelImage` | Centered `object-contain` image                                                                                                                                                                    |
+| neither      | Muted panel with clickable `appIcon` top left (links home)                                                                                                                                         |
 
 On mobile, the square `appIcon` is pinned top-left and the form stays centered. Language (when multiple languages are configured) and light/dark controls sit at the top right of the form column. The form uses `.shellui-safe-pad` for notches. Relative image paths are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
 

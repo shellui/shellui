@@ -124,7 +124,8 @@ export function resolveParentTargetOrigin(): string {
     ancestorOrigins?: DOMStringList;
   };
   const ancestors = locationWithAncestors.ancestorOrigins;
-  if (ancestors?.length) return ancestors[0]!;
+  const ancestorOrigin = ancestors?.[0];
+  if (ancestorOrigin) return ancestorOrigin;
 
   if (document.referrer) {
     try {

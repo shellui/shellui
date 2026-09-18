@@ -36,7 +36,7 @@ const config: ShellUIConfig = {
 - **`hideWhenLoggedOut`**: hide while signed out
 - **`requiresAuth`**: redirect signed-out visitors to `/login?next=...`
 - **`requiresDevMode`**: only when Settings → Advanced → Developer features is on
-- **`requiresStaff`**: only staff (`isStaff`)
+- **`requiresStaff`**: only staff (`isStaff`). The shell route guard blocks signed-out and non-staff users with an access-forbidden view; backend APIs must still enforce authorization.
 - **`hiddenOnMobile` / `hiddenOnDesktop`**: hide from the mobile sheet or desktop sidebar (ignored if `hidden` is true)
 - **`openIn`**: `'default' | 'modal' | 'drawer' | 'external'`
 - **`drawerPosition`**: `'top' | 'bottom' | 'left' | 'right'` when `openIn: 'drawer'`
