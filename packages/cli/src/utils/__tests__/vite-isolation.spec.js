@@ -55,20 +55,23 @@ describe('createIsolatedViteConfig', () => {
     expect(allow).not.toContain(path.join(projectRoot, 'src'));
   });
 
-  test('prebundles @mlc-ai/web-llm when AI is enabled (default)', () => {
-    expect(isolated.optimizeDeps.include).toContain('@mlc-ai/web-llm');
+  test('excludes @mlc-ai/web-llm from optimizeDeps when AI is enabled (default)', () => {
+    expect(isolated.optimizeDeps.exclude).toContain('@mlc-ai/web-llm');
+    expect(isolated.optimizeDeps.include).not.toContain('@mlc-ai/web-llm');
+    expect(isolated.optimizeDeps.include).toContain('loglevel');
     expect(isolated.optimizeDeps.needsInterop).not.toContain('@mlc-ai/web-llm');
     expect(isolated.optimizeDeps.needsInterop).toContain('loglevel');
     expect(isolated.worker.format).toBe('es');
   });
 
-  test('does not prebundle WebLLM when ai.enabled is false', () => {
+  test('does not touch WebLLM optimizeDeps when ai.enabled is false', () => {
     const disabled = createIsolatedViteConfig({
       projectRoot,
       coreSrcPath,
       corePackagePath,
       shelluiConfig: { ai: { enabled: false } },
     });
+    expect(disabled.optimizeDeps.exclude).toBeUndefined();
     expect(disabled.optimizeDeps.include).toBeUndefined();
   });
 

@@ -79,29 +79,93 @@ const defaultLoadModule: LoadWebLLMModule = async () => {
 };
 
 /**
- * Vite `optimizeDeps.needsInterop` (or CJS interop) can wrap the ESM namespace so
- * named exports like `CreateWebWorkerMLCEngine` only appear on `.default`.
+ * Resolve `@mlc-ai/web-llm` after dynamic import.
+ * Vite optimizeDeps / interop can nest named exports under `.default` (or deeper)
+ * or drop them from a mangled prebundle — prefer excluding the package from optimizeDeps.
  */
 export function normalizeWebLlmModule(mod: unknown): WebLLMModule {
-  const candidate =
+  const candidates: unknown[] = [mod];
+  if (mod && typeof mod === 'object') {
+    const d1 = (mod as { default?: unknown }).default;
+    if (d1) candidates.push(d1);
+    if (d1 && typeof d1 === 'object') {
+      const d2 = (d1 as { default?: unknown }).default;
+      if (d2) candidates.push(d2);
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      typeof candidate === 'object' &&
+      typeof (candidate as { CreateWebWorkerMLCEngine?: unknown }).CreateWebWorkerMLCEngine ===
+        'function'
+    ) {
+      return candidate as WebLLMModule;
+    }
+  }
+
+  // Last resort: find a function property that looks like the factory (mangled re-exports).
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const record = candidate as Record<string, unknown>;
+    for (const [key, value] of Object.entries(record)) {
+      if (
+        typeof value === 'function' &&
+        /CreateWebWorkerMLCEngine/i.test(key) &&
+        key !== 'default'
+      ) {
+        return candidate as WebLLMModule;
+      }
+    }
+  }
+
+  // Optional v1 escape hatch: main-thread CreateMLCEngine if the worker factory is gone.
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      typeof candidate === 'object' &&
+      typeof (candidate as { CreateMLCEngine?: unknown }).CreateMLCEngine === 'function'
+    ) {
+      // eslint-disable-next-line no-console -- operator-facing fallback
+      console.warn(
+        '[shellui.ai]',
+        'CreateWebWorkerMLCEngine missing after import; falling back to CreateMLCEngine (main thread). Prefer optimizeDeps.exclude for @mlc-ai/web-llm.',
+      );
+      const api = candidate as WebLLMModule & {
+        CreateMLCEngine: (
+          modelId: string | string[],
+          engineConfig?: unknown,
+          chatOpts?: unknown,
+        ) => Promise<unknown>;
+      };
+      return {
+        ...api,
+        CreateWebWorkerMLCEngine: async (
+          _worker: unknown,
+          modelId: string | string[],
+          engineConfig?: unknown,
+          chatOpts?: unknown,
+        ) => api.CreateMLCEngine(modelId, engineConfig, chatOpts),
+      } as WebLLMModule;
+    }
+  }
+
+  const keys = mod && typeof mod === 'object' ? Object.keys(mod as object) : [];
+  const defaultKeys =
     mod &&
     typeof mod === 'object' &&
-    typeof (mod as { CreateWebWorkerMLCEngine?: unknown }).CreateWebWorkerMLCEngine === 'function'
-      ? (mod as WebLLMModule)
-      : mod &&
-          typeof mod === 'object' &&
-          (mod as { default?: unknown }).default &&
-          typeof (mod as { default: { CreateWebWorkerMLCEngine?: unknown } }).default
-            .CreateWebWorkerMLCEngine === 'function'
-        ? ((mod as { default: WebLLMModule }).default as WebLLMModule)
-        : null;
+    (mod as { default?: unknown }).default &&
+    typeof (mod as { default: unknown }).default === 'object'
+      ? Object.keys((mod as { default: object }).default)
+      : [];
+  // eslint-disable-next-line no-console -- diagnose mangled Vite prebundles
+  console.error('[shellui.ai] web-llm import keys', keys, defaultKeys.length ? defaultKeys : null);
 
-  if (!candidate || typeof candidate.CreateWebWorkerMLCEngine !== 'function') {
-    throw new Error(
-      'Failed to load @mlc-ai/web-llm: CreateWebWorkerMLCEngine is missing (check Vite optimizeDeps / export interop — do not put @mlc-ai/web-llm in needsInterop)',
-    );
-  }
-  return candidate;
+  throw new Error(
+    'Failed to load @mlc-ai/web-llm: CreateWebWorkerMLCEngine is missing. ' +
+      'Exclude @mlc-ai/web-llm from Vite optimizeDeps and clear node_modules/.vite-shellui.',
+  );
 }
 
 /**
