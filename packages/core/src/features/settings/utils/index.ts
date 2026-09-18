@@ -1,5 +1,4 @@
 export { buildSettingsForPropagation } from './buildSettingsForPropagation';
-export { isTrustedFrameForAuthToken } from './isTrustedFrameForAuthToken';
 export { flattenNavigationItems } from './flattenNavigationItems';
 export { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 export { getBrowserTimezone } from './getBrowserTimezone';

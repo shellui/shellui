@@ -1,5 +1,6 @@
 import { shellui } from '../index.js';
 import { generateUuid } from '../utils/uuid.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 import type { DialogOptions } from '../types.js';
 
 /**
@@ -48,11 +49,7 @@ export function dialog(options?: DialogOptions): string | void {
     },
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 
   return options.id ? undefined : dialogId;
 }

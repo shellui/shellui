@@ -9,6 +9,7 @@ import {
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useAuth } from '../auth/hooks/useAuth';
+import { isTrustedFrameForAuthToken } from '../security/trustedFrames';
 import { isMainLayoutFrame } from '../layouts/floating/layoutChromeStore';
 import { defaultTheme } from '../theme/themes';
 import {
@@ -18,7 +19,6 @@ import {
   isSameUser,
   mergePreferencesIntoSettings,
   toSettingsUser,
-  isTrustedFrameForAuthToken,
 } from './utils';
 import { unregisterServiceWorker } from '../../service-worker/register';
 
@@ -165,7 +165,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return defaultSettings;
   });
 
-  const isFrameTrustedForAuthToken = useCallback(
+  const isTrustedFrameForAuthTokenCallback = useCallback(
     (frameSrc: string): boolean => isTrustedFrameForAuthToken(frameSrc, config),
     [config],
   );
@@ -181,7 +181,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const accessToken = accessTokenRef.current;
       for (const [uuid, iframe] of iframes) {
         const frameSrc = iframe?.src ?? '';
-        const includeAuthAccessToken = isFrameTrustedForAuthToken(frameSrc);
+        const includeAuthAccessToken = isTrustedFrameForAuthTokenCallback(frameSrc);
         const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
           includeAuthAccessToken,
           accessToken,
@@ -194,13 +194,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [config, isFrameTrustedForAuthToken],
+    [config, isTrustedFrameForAuthTokenCallback],
   );
 
   const pushSettingsToFrame = useCallback(
     (iframeUuid: string, frameSrc: string, baseSettings: Settings) => {
       const lang = baseSettings.language?.code || 'en';
-      const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+      const includeAuthAccessToken = isTrustedFrameForAuthTokenCallback(frameSrc);
       const iframe = shellui.frameRegistry
         .getAllIframes()
         .find(([uuid]) => uuid === iframeUuid)?.[1];
@@ -215,7 +215,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         to: [iframeUuid],
       });
     },
-    [config, isFrameTrustedForAuthToken],
+    [config, isTrustedFrameForAuthTokenCallback],
   );
 
   // When the shell rotates the JWT, `authUser` often does not change, so the user-sync effect
@@ -435,7 +435,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             .find(([uuid]) => uuid === firstHopIframeUuid)?.[1];
           const lang = currentSettings.language?.code || 'en';
           const includeAuthAccessToken = frame
-            ? isFrameTrustedForAuthToken(frame.src ?? '')
+            ? isTrustedFrameForAuthTokenCallback(frame.src ?? '')
             : false;
           const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
             includeAuthAccessToken,
@@ -505,7 +505,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, [
     config,
-    isFrameTrustedForAuthToken,
+    isTrustedFrameForAuthTokenCallback,
     propagateSettingsToIframes,
     pushSettingsToFrame,
     schedulePropagateSettingsToIframes,
