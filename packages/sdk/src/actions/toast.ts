@@ -1,5 +1,6 @@
 import { shellui } from '../index.js';
 import { generateUuid } from '../utils/uuid.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 import type { ToastOptions } from '../types.js';
 
 /**
@@ -44,11 +45,7 @@ export function toast(options: ToastOptions = {}): string | void {
     },
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 
   return options.id ? undefined : toastId;
 }

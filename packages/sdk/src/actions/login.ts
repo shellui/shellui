@@ -1,4 +1,5 @@
 import type { LoginOptions } from '../types.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 
 /**
  * Requests login in the shell context.
@@ -34,9 +35,5 @@ export function login(options: LoginOptions): void {
         })();
   if (!message) return;
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }

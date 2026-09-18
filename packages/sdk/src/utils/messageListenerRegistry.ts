@@ -6,6 +6,11 @@
 import { getLogger } from '../logger/logger.js';
 import type { ShellUIMessage } from '../types.js';
 import type { FrameRegistry } from './frameRegistry.js';
+import {
+  MessageSecurityPolicy,
+  resolveIframeTargetOrigin,
+  resolveParentTargetOrigin,
+} from './messageSecurity.js';
 
 const logger = getLogger('shellsdk');
 
@@ -28,9 +33,18 @@ export class MessageListenerRegistry {
   private messageHandler: ((event: MessageEvent) => void) | null = null;
   private isListening = false;
   private frameRegistry: FrameRegistry | null;
+  private messageSecurity: MessageSecurityPolicy;
 
-  constructor(frameRegistry: FrameRegistry | null = null) {
+  constructor(
+    frameRegistry: FrameRegistry | null = null,
+    messageSecurity: MessageSecurityPolicy = new MessageSecurityPolicy(),
+  ) {
     this.frameRegistry = frameRegistry;
+    this.messageSecurity = messageSecurity;
+  }
+
+  configureMessageSecurity(options?: { allowedOrigins?: string[] }): void {
+    this.messageSecurity.configure(options);
   }
 
   setupGlobalListener(): void {
@@ -46,6 +60,14 @@ export class MessageListenerRegistry {
       const messageType = event.data.type as string;
 
       if (!messageType.startsWith('SHELLUI_')) {
+        return;
+      }
+
+      if (!this.messageSecurity.isTrustedInboundMessage(event, this.frameRegistry, messageType)) {
+        logger.warn('Rejected untrusted SHELLUI message', {
+          type: messageType,
+          origin: event.origin,
+        });
         return;
       }
 
@@ -219,13 +241,18 @@ export class MessageListenerRegistry {
       if (sendToAll || message.to?.includes(uuid)) {
         try {
           if (iframe?.contentWindow) {
+            const targetOrigin = resolveIframeTargetOrigin(iframe);
+            if (!targetOrigin) {
+              logger.warn(`Skipped message ${message.type} to iframe ${uuid}: no target origin`);
+              continue;
+            }
             iframe.contentWindow.postMessage(
               {
                 type: message.type,
                 payload: message.payload,
                 to: (message.to || []).filter((t) => t !== uuid),
               },
-              '*',
+              targetOrigin,
             );
             sentCount++;
             logger.debug(`Sent message ${message.type} to iframe ${uuid}`);
@@ -257,7 +284,7 @@ export class MessageListenerRegistry {
     }
 
     if (window.parent !== window) {
-      window.parent.postMessage(message, '*');
+      window.parent.postMessage(message, resolveParentTargetOrigin());
       logger.debug(`Sent message ${message.type} to parent window`);
       return true;
     }

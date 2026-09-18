@@ -1,4 +1,5 @@
 import { getLogger } from '../logger/logger.js';
+import { postShellMessage } from './postShellMessage.js';
 
 const logger = getLogger('shellsdk');
 
@@ -26,8 +27,8 @@ export function setupKeyListener(): () => void {
       );
 
       if (window.parent !== window) {
-        window.parent.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
-        window.parent.postMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} }, '*');
+        postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
+        postShellMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} });
       }
     }
   };

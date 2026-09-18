@@ -22,6 +22,7 @@ import {
 import { getLogger } from './logger/logger.js';
 import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
+import { MessageSecurityPolicy } from './utils/messageSecurity.js';
 import { CallbackRegistry } from './utils/callbackRegistry.js';
 import type {
   ShellUIMessage,
@@ -114,6 +115,17 @@ export {
 export { clampChromeActions } from './actions/clampChromeActions.js';
 
 export {
+  MessageSecurityPolicy,
+  PRIVILEGED_COMPANION_MESSAGE_TYPES,
+  collectOriginsFromUrls,
+  resolveIframeTargetOrigin,
+  resolveParentTargetOrigin,
+  resolveSelfTargetOrigin,
+} from './utils/messageSecurity.js';
+export type { MessageSourceKind } from './utils/messageSecurity.js';
+export { postShellMessage } from './utils/postShellMessage.js';
+
+export {
   applyLayoutChromeStyles,
   ensureLayoutChromePadStyles,
   getScrollMetrics,
@@ -164,6 +176,7 @@ export class ShellUISDK {
   version: string;
   frameRegistry: FrameRegistry;
   messageListenerRegistry: MessageListenerRegistry;
+  messageSecurity: MessageSecurityPolicy;
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
   storage: StorageClient;
@@ -184,13 +197,24 @@ export class ShellUISDK {
         : '';
     this.version = (packageJson as { version: string }).version;
     this.frameRegistry = new FrameRegistry();
-    this.messageListenerRegistry = new MessageListenerRegistry(this.frameRegistry);
+    this.messageSecurity = new MessageSecurityPolicy();
+    this.messageListenerRegistry = new MessageListenerRegistry(
+      this.frameRegistry,
+      this.messageSecurity,
+    );
     this.callbackRegistry = new CallbackRegistry();
     this.initialSettings = null;
     this.storage = new StorageClient(createPostMessageTransport(this));
   }
 
-  async init(options?: { autoLayoutPadding?: boolean }): Promise<this> {
+  configureMessageSecurity(options?: { allowedOrigins?: string[] }): void {
+    this.messageListenerRegistry.configureMessageSecurity(options);
+  }
+
+  async init(options?: {
+    autoLayoutPadding?: boolean;
+    allowedMessageOrigins?: string[];
+  }): Promise<this> {
     if (this.initialized) return this;
     if (this._initPromise) return this._initPromise;
 
@@ -202,9 +226,16 @@ export class ShellUISDK {
     return this._initPromise;
   }
 
-  private async _runInit(options?: { autoLayoutPadding?: boolean }): Promise<this> {
+  private async _runInit(options?: {
+    autoLayoutPadding?: boolean;
+    allowedMessageOrigins?: string[];
+  }): Promise<this> {
     if (options?.autoLayoutPadding === false) {
       this._autoLayoutPadding = false;
+    }
+
+    if (options?.allowedMessageOrigins?.length) {
+      this.configureMessageSecurity({ allowedOrigins: options.allowedMessageOrigins });
     }
 
     await setupUrlMonitoring(this);
@@ -562,8 +593,12 @@ export class ShellUISDK {
 
 const sdk = new ShellUISDK();
 
-export const init = async (options?: { autoLayoutPadding?: boolean }): Promise<ShellUISDK> =>
-  await sdk.init(options);
+export const init = async (options?: {
+  autoLayoutPadding?: boolean;
+  allowedMessageOrigins?: string[];
+}): Promise<ShellUISDK> => await sdk.init(options);
+export const configureMessageSecurity = (options?: { allowedOrigins?: string[] }): void =>
+  sdk.configureMessageSecurity(options);
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (urlOrOptions?: string | OpenModalOptions): void =>
   openModalAction(urlOrOptions);

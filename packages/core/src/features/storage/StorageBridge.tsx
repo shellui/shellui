@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { shellui, type ShellUIMessage, type StorageRequestPayload } from '@shellui/sdk';
+import {
+  postShellMessage,
+  shellui,
+  type ShellUIMessage,
+  type StorageRequestPayload,
+} from '@shellui/sdk';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import { getStorageRequestTrustDenial } from '../security/trustedFrames';
@@ -56,7 +61,7 @@ export const StorageBridge = () => {
           shellui.sendMessage({ ...reply, to: from });
           return;
         }
-        window.postMessage(reply, '*');
+        postShellMessage(reply);
       });
     };
 
