@@ -148,7 +148,22 @@ The backend returns `error_code` `access_pending` or `access_denied` (also as `s
 
 ## Iframe apps
 
-Iframes do not read storage directly. They receive `user` and `accessToken` through SDK settings after the shell initializes auth.
+Iframes do not read storage directly. They receive `user` through SDK settings after the shell initializes auth. The session **access token** is included only when the companion navigation item sets `safeForAuthToken: true` (opt-in). The refresh token stays in the shell and is never sent to iframe apps.
+
+### Migration (breaking change)
+
+If your companion relied on the previous default (token shared without config), add `safeForAuthToken: true` on its navigation item after upgrading:
+
+```typescript
+{
+  label: 'My app',
+  path: 'my-app',
+  url: 'http://localhost:5173/',
+  safeForAuthToken: true,
+}
+```
+
+When [postMessage trust policy](https://github.com/shellui/shellui/issues/60) is enabled via `security.allowedMessageOrigins`, token sharing still requires `safeForAuthToken: true`; allowed origins are enforced separately for postMessage traffic.
 
 ```typescript
 import { shellui } from '@shellui/sdk';

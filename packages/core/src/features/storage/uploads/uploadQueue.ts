@@ -1,3 +1,4 @@
+import { postShellMessage } from '@shellui/sdk';
 import type { UploadItem, UploadItemStatus, UploadQueueSummary } from './types';
 
 export const UPLOAD_TOAST_ID = 'shellui-upload-progress';
@@ -341,11 +342,7 @@ function clearDemoUploads(): void {
 export function requestUploadToastDemo(): void {
   if (typeof window === 'undefined') return;
   const message = { type: UPLOAD_TOAST_DEMO_MESSAGE, payload: {} };
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-    return;
-  }
-  window.postMessage(message, '*');
+  postShellMessage(message);
 }
 
 /** Simulated uploads for the Develop panel — no network requests. */

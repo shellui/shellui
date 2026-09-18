@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  postShellMessage,
   shellui,
   type ShellUIMessage,
   type StorageSelectMode,
@@ -63,9 +64,7 @@ function replyToRequester(pending: PendingSelect, payload: StorageSelectResponse
     shellui.sendMessage({ ...message, to });
     return;
   }
-  if (typeof window !== 'undefined') {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }
 
 interface StoragePickerProviderProps {
@@ -104,7 +103,7 @@ export const StoragePickerProvider = ({ children }: StoragePickerProviderProps) 
       shellui.sendMessage({ ...reply, to });
       return;
     }
-    window.postMessage(reply, '*');
+    postShellMessage(reply);
   }, []);
 
   useEffect(() => {

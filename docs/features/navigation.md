@@ -43,7 +43,7 @@ const config: ShellUIConfig = {
 - **`position`**: `'start'` (main) or `'end'` (footer / icon end of app bar)
 - **`settings`**: URL of a panel under Settings → Applications - see [Application settings](/features/application-settings)
 - **`useHashRouter`**: when `true`, treat as hash routing. If omitted, inferred from `url` containing `/#/`
-- **`safeForAuthToken`**: `false` never shares the session JWT with that iframe. Default is trusted (`undefined` / `true`)
+- **`safeForAuthToken`**: set to `true` to opt in to sharing the session access token (`settings.accessToken`) with that iframe. Default is **not** shared (`undefined` / `false`). The refresh token is never shared with companions.
 
 ## Hash URL navigation
 

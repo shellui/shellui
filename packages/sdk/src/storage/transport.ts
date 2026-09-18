@@ -1,4 +1,5 @@
 import { generateUuid } from '../utils/uuid.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 import type { ShellUIMessage } from '../types.js';
 import {
   StorageError,
@@ -21,11 +22,7 @@ type StorageMessageSdk = {
 };
 
 function postStorageMessage(message: { type: string; payload: unknown }): void {
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-    return;
-  }
-  window.postMessage(message, '*');
+  postShellMessage(message);
 }
 
 export function createPostMessageTransport(

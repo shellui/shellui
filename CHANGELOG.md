@@ -21,10 +21,12 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ## [0.5.1] - Unreleased
 
 ### 🔒 Security
-
 - **Modal iframe allowlist:** localhost origins are allowed only in development builds; production shells reject loopback modal URLs unless they match configured storage, admin, or same-origin targets. (#63)
 - **Navigation route guard:** routes with `requiresStaff` now show an access-forbidden view for signed-out and non-staff users (client-side UX guard; APIs must still enforce authorization). (#63)
 - **Login branding `panelUrl`:** restricted to same-origin relative paths, configured backend/login/storage origins, and loopback URLs in development only. Untrusted absolute URLs are ignored. (#63)
+- **`safeForAuthToken` default is now opt-in (breaking):** companion iframe apps no longer receive `settings.accessToken` unless their navigation item sets `safeForAuthToken: true`. First-party admin and storage file explorer frames are unchanged. The refresh token was never shared with companions and still is not. See [Authentication — Iframe apps](./docs/features/authentication.md#iframe-apps) for migration.
+- **StorageBridge trusted-frame gate (H-07):** `SHELLUI_STORAGE_REQUEST` is honored only from registered iframe companions that pass the same trusted-frame policy as session JWT sharing (`safeForAuthToken: true` opt-in, admin URLs, `storage.filesUrl`). Untrusted senders receive `403` without storage I/O. Shared helpers live in `features/security/trustedFrames`.
+- **postMessage hardening (H-06 / M-13 / M-14):** inbound `SHELLUI_*` messages now require an allowed origin and a trusted source (registered iframe, parent shell, or same-window). Privileged companion commands (`SHELLUI_LOGIN` / `LOGOUT`, modal/drawer, toast/dialog, chrome actions, etc.) reject unregistered frames. Outbound SDK and shell replies use concrete target origins instead of `'*'`. The Shellui host auto-derives companion origins from `shellui.config.json` navigation and storage URLs, plus optional `security.allowedMessageOrigins` for manual extras (preview/staging hosts, etc.). Standalone SDK embeds can still use `shellui.configureMessageSecurity({ allowedOrigins: [...] })` or `shellui.init({ allowedMessageOrigins: [...] })`.
 
 ### 🐛 Bug Fixes
 
