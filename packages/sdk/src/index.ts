@@ -42,6 +42,8 @@ import type {
 } from './types.js';
 import { StorageClient } from './storage/client.js';
 import { createPostMessageTransport } from './storage/transport.js';
+import { AiClient } from './ai/languageModel.js';
+import { createAiPostMessageTransport } from './ai/transport.js';
 import {
   applyLayoutChromeStyles,
   getScrollMetrics,
@@ -49,6 +51,7 @@ import {
   setLayoutChromeAnimationsEnabled,
   LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
+import { waitForInitialSettings } from './utils/waitForInitialSettings.js';
 
 import packageJson from '../package.json';
 
@@ -124,6 +127,16 @@ export {
 } from './utils/messageSecurity.js';
 export type { MessageSourceKind } from './utils/messageSecurity.js';
 export { postShellMessage } from './utils/postShellMessage.js';
+export {
+  waitForInitialSettings,
+  SETTINGS_HANDSHAKE_TIMEOUT_MS,
+  SETTINGS_REQUEST_RETRY_MS,
+  SETTINGS_REQUEST_MAX_ATTEMPTS,
+} from './utils/waitForInitialSettings.js';
+export type {
+  InitialSettingsHandshakeResult,
+  WaitForInitialSettingsOptions,
+} from './utils/waitForInitialSettings.js';
 
 export {
   applyLayoutChromeStyles,
@@ -170,6 +183,24 @@ export type {
 } from './storage/types.js';
 export { StorageClient, StorageBucketApi } from './storage/client.js';
 
+export { AiClient, LanguageModelApi } from './ai/languageModel.js';
+export type { LanguageModelSession } from './ai/languageModel.js';
+export type {
+  AiAvailabilityResult,
+  AiAvailabilityValue,
+  AiCreateResult,
+  AiErrorPayload,
+  AiModelInfo,
+  AiModelStatus,
+  AiOp,
+  AiProviderId,
+  AiRequestPayload,
+  AiResponsePayload,
+  AiStatusSnapshot,
+  AiStreamPayload,
+  LanguageModelCreateOptions,
+} from './ai/types.js';
+
 export class ShellUISDK {
   initialized = false;
   currentPath: string;
@@ -180,6 +211,8 @@ export class ShellUISDK {
   callbackRegistry: CallbackRegistry;
   initialSettings: Settings | null;
   storage: StorageClient;
+  /** On-device AI (Prompt API / LanguageModel shape). Shell runs inference. */
+  ai: AiClient;
   /** Cached layout chrome from settings / SHELLUI_LAYOUT_CHROME. */
   layoutChrome: LayoutChrome | null = null;
   private _autoLayoutPadding = true;
@@ -205,6 +238,7 @@ export class ShellUISDK {
     this.callbackRegistry = new CallbackRegistry();
     this.initialSettings = null;
     this.storage = new StorageClient(createPostMessageTransport(this));
+    this.ai = new AiClient(createAiPostMessageTransport(this));
   }
 
   configureMessageSecurity(options?: { allowedOrigins?: string[] }): void {
@@ -375,10 +409,6 @@ export class ShellUISDK {
   }
 
   private async _setupInitialSettings(): Promise<void> {
-    if (window.parent === window) {
-      return;
-    }
-
     const applySettings = (data: ShellUIMessage) => {
       const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
       if (settings) {
@@ -394,15 +424,20 @@ export class ShellUISDK {
     this.addMessageListener('SHELLUI_SETTINGS', applySettings);
     this.addMessageListener('SHELLUI_SETTINGS_UPDATED', applySettings);
 
-    return new Promise((resolve) => {
-      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', () => {
-        cleanup();
-        resolve();
-      });
-      this.sendMessageToParent({
-        type: 'SHELLUI_SETTINGS_REQUESTED',
-        payload: {},
-      });
+    await waitForInitialSettings({
+      isEmbedded: typeof window !== 'undefined' && window.parent !== window,
+      requestSettings: () => {
+        this.sendMessageToParent({
+          type: 'SHELLUI_SETTINGS_REQUESTED',
+          payload: {},
+        });
+      },
+      onSettings: (listener) => this.addMessageListener('SHELLUI_SETTINGS', () => listener()),
+      onTimeout: () => {
+        logger.warn(
+          'Timed out waiting for SHELLUI_SETTINGS from parent; continuing init with defaults',
+        );
+      },
     });
   }
 
@@ -638,5 +673,6 @@ export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
 export const shellui = sdk;
 export const storage = sdk.storage;
+export const ai = sdk.ai;
 
 export default sdk;

@@ -1,0 +1,79 @@
+/**
+ * Shared AI types for shell-side adapters and registry (core feature module).
+ * SDK protocol payloads live in `@shellui/sdk` so iframes never import these types.
+ */
+
+export type AiProviderId = 'ollama' | 'webllm';
+
+export type AiModelStatus =
+  | 'ready'
+  | 'downloadable'
+  | 'downloading'
+  | 'unavailable'
+  | 'needs-webgpu';
+
+export type AiModel = {
+  id: string;
+  name: string;
+  provider: AiProviderId;
+  /** Approximate size in bytes when known (catalog / Ollama). */
+  sizeBytes?: number;
+  status: AiModelStatus;
+  /** Short human label (e.g. quant, parameter count). */
+  description?: string;
+};
+
+export type AiPromptOptions = {
+  modelId: string;
+  prompt: string;
+  signal?: AbortSignal;
+  systemPrompt?: string;
+};
+
+export type AiStreamChunk = {
+  text: string;
+  done: boolean;
+};
+
+export type AiAvailability = 'available' | 'downloadable' | 'downloading' | 'unavailable';
+
+export type AiRuntimeStatus = {
+  webGpu: {
+    available: boolean;
+    detail?: string;
+  };
+  ollama: {
+    reachable: boolean;
+    baseUrl: string;
+    detail?: string;
+    /** Round-trip time for the soft probe when reachable (or until failure). */
+    latencyMs?: number;
+  };
+  models: AiModel[];
+  defaultModelId: string | null;
+};
+
+export type AiAdapter = {
+  readonly id: AiProviderId;
+  /** Soft probe — never throws. */
+  isAvailable(): Promise<boolean>;
+  listModels(): Promise<AiModel[]>;
+  /** Prepare weights / connection for a model id. Idempotent. */
+  load(modelId: string, signal?: AbortSignal): Promise<void>;
+  prompt(options: AiPromptOptions): Promise<string>;
+  promptStreaming(options: AiPromptOptions): AsyncIterable<AiStreamChunk>;
+  unload(modelId?: string): Promise<void>;
+  /** Optional browser/catalog download with 0–1 progress. */
+  download?(
+    modelId: string,
+    options?: { signal?: AbortSignal; onProgress?: (progress: number) => void },
+  ): Promise<void>;
+  cancelDownload?(modelId: string): void;
+  deleteInstalled?(modelId: string): Promise<void>;
+  getDownloadProgress?(modelId: string): number | null;
+};
+
+export type AiRegistryOptions = {
+  adapters: AiAdapter[];
+  defaultModelId?: string | null;
+};

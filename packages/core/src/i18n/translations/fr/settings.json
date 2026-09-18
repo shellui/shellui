@@ -15,6 +15,7 @@
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
     "storage": "Stockage",
+    "ai": "IA",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
@@ -145,6 +146,7 @@
   },
   "storage": {
     "description": "Consultez l'utilisation de votre quota de stockage.",
+    "remoteTitle": "Stockage de fichiers",
     "yourUsage": "Votre utilisation",
     "organization": "Organisation",
     "noPersonalLimit": "Aucune limite personnelle. Vos fichiers comptent dans le quota de l'organisation.",
@@ -153,7 +155,88 @@
     "signInRequired": "Connectez-vous pour voir votre utilisation du stockage.",
     "loading": "Chargement de l'utilisation du stockage…",
     "error": "Impossible de charger l'utilisation du stockage.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "aiModels": {
+      "title": "Modèles IA locaux",
+      "description": "Utilisation navigateur et catalogue pour les modèles sur cet appareil. Les tailles catalogue sont des estimations tant que les poids ne sont pas stockés.",
+      "originUsage": "Cette origine navigateur",
+      "originHint": "Espace total signalé par l'API de stockage du navigateur pour ce site (inclut plus que l'IA).",
+      "catalogEstimate": "Estimation catalogue installé",
+      "catalogEstimateHint": "Somme des tailles listées pour les entrées catalogue marquées installées. Pas une mesure exacte tant que les téléchargements ne stockent pas les vrais poids.",
+      "catalogUsed": "{{used}} estimés · {{count}} installés",
+      "noneInstalled": "Aucun modèle catalogue navigateur n'est encore installé.",
+      "estimateUnavailable": "L'estimation de stockage navigateur est indisponible.",
+      "loading": "Vérification du stockage local…"
+    }
+  },
+  "ai": {
+    "description": "Modèles sur cet appareil pour les applications du shell. Shellui n'envoie rien à un service d'IA cloud de lui-même.",
+    "unknownError": "Une erreur s’est produite.",
+    "enabled": {
+      "title": "Autoriser les applications à utiliser l'IA",
+      "description": "Les applications ne peuvent pas ouvrir de sessions IA tant que c'est désactivé."
+    },
+    "status": {
+      "title": "État",
+      "loading": "Vérification de l'état…",
+      "error": "Impossible de vérifier l'état de l'IA.",
+      "retry": "Réessayer",
+      "refresh": "Actualiser",
+      "webGpu": "WebGPU",
+      "webGpuHint": "Requis pour les modèles navigateur",
+      "ollama": "Ollama",
+      "ollamaOnlineHint": "Prêt à lister les modèles locaux",
+      "storage": "Stockage navigateur",
+      "storageHint": "Conserve les installations catalogue sur cet appareil",
+      "available": "Disponible",
+      "unavailable": "Indisponible",
+      "connected": "Connecté",
+      "offline": "Hors ligne",
+      "reachable": "Connecté",
+      "notReachable": "Hors ligne",
+      "ollamaOffline": "Démarrez Ollama, puis actualisez",
+      "ollamaDisabled": "Ollama est désactivé ci-dessus."
+    },
+    "providers": {
+      "title": "Fournisseurs",
+      "ollama": "Ollama",
+      "ollamaHint": "Modèles déjà présents via l'application Ollama.",
+      "browser": "Modèles navigateur",
+      "browserHint": "Les installations catalogue restent dans ce navigateur. L'inférence n'est pas encore branchée ; utilisez Ollama pour les invites.",
+      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites."
+    },
+    "defaultModel": {
+      "title": "Modèle par défaut",
+      "description": "Utilisé lorsqu'une application n'en choisit pas.",
+      "none": "Automatique (premier modèle prêt)",
+      "empty": "Aucun modèle prêt. Démarrez Ollama ou installez une entrée catalogue."
+    },
+    "models": {
+      "ollama": "Modèles Ollama",
+      "ollamaEmpty": "Ollama est hors ligne. Démarrez-le, puis actualisez.",
+      "ollamaEmptyReady": "Connecté, mais aucun modèle. Lancez ollama pull.",
+      "browser": "Catalogue navigateur",
+      "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
+      "download": "Installer",
+      "cancel": "Annuler",
+      "delete": "Retirer",
+      "downloadProgress": "{{percent}} %",
+      "needsWebGpuAction": "Ce navigateur a besoin de WebGPU avant les installations catalogue.",
+      "status": {
+        "ready": "Prêt",
+        "downloadable": "Non installé",
+        "downloading": "Installation",
+        "needsWebGpu": "WebGPU requis",
+        "unavailable": "Indisponible"
+      }
+    },
+    "details": {
+      "title": "Détails",
+      "webGpuDetail": "WebGPU",
+      "ollamaDetail": "Ollama",
+      "empty": "Aucun détail de sonde pour le moment."
+    },
+    "footnote": "Les gros modèles prennent de l'espace disque et peuvent chauffer le GPU au premier chargement. Traitez les invites des applications comme du contenu non fiable."
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",
@@ -471,6 +554,37 @@
           "openDrawer": "Ouvrir la démo (tiroir iframe)",
           "close": "Fermer la démo"
         }
+      },
+      "ai": {
+        "title": "Outils de test IA",
+        "description": "Sondes développeur sur le même chemin AI que les applications. La configuration courante est dans Paramètres → IA.",
+        "webGpu": "WebGPU",
+        "ollama": "Ollama",
+        "defaultModel": "Modèle par défaut",
+        "adapters": "Adaptateurs enregistrés",
+        "aiEnabled": "Applications autorisées à utiliser l’IA",
+        "yes": "Oui",
+        "no": "Non",
+        "none": "Aucun",
+        "loading": "Vérification…",
+        "unknownError": "Une erreur s’est produite.",
+        "promptHint": "Le test d’invite envoie : « Reply with exactly: pong ».",
+        "buttons": {
+          "refresh": "Actualiser l’état",
+          "listModels": "Lister les modèles",
+          "prompt": "Tester une invite",
+          "stream": "Tester le flux",
+          "clear": "Effacer le journal"
+        },
+        "logRefreshed": "État actualisé.",
+        "logNoModels": "Aucun modèle trouvé (démarrez Ollama ou activez un modèle navigateur).",
+        "logModels": "Modèles : {{list}}",
+        "logPromptResult": "Invite via {{model}} : {{text}}",
+        "logPromptError": "Échec de l’invite : {{message}}",
+        "logStreamStart": "Flux en cours…",
+        "logStreamChunk": "morceau : {{chunk}}",
+        "logStreamDone": "Flux via {{model}} terminé : {{text}}",
+        "logStreamError": "Échec du flux : {{message}}"
       }
     }
   }
