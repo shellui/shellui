@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   mapWebLlmRuntimeError,
   probeWebLlmBrowserSupport,
-  WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE,
+  WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
 } from './webLlmBrowserSupport.js';
 
 describe('probeWebLlmBrowserSupport', () => {
@@ -25,7 +25,7 @@ describe('probeWebLlmBrowserSupport', () => {
     );
     expect(result.supported).toBe(false);
     expect(result.reason).toBe('firefox');
-    expect(result.detail).toBe(WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE);
+    expect(result.detail).toBe(WEBLLM_UNSUPPORTED_BROWSER_MESSAGE);
   });
 
   it('rejects Safari', () => {
@@ -44,7 +44,7 @@ describe('mapWebLlmRuntimeError', () => {
         new Error('Failed to get GPU adapter'),
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0',
       ),
-    ).toBe(WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE);
+    ).toBe(WEBLLM_UNSUPPORTED_BROWSER_MESSAGE);
   });
 
   it('does not remap on Chromium', () => {

@@ -37,7 +37,7 @@ describe('WebLLMAdapter unsupported browser', () => {
     vi.spyOn(browserSupport, 'probeWebLlmBrowserSupport').mockReturnValue({
       supported: false,
       reason: 'firefox',
-      detail: browserSupport.WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE,
+      detail: browserSupport.WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
     });
   });
 

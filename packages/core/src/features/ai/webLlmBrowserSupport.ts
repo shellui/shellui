@@ -7,7 +7,7 @@
  * similarly unsupported for v1; use Ollama there.
  */
 
-export const WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE =
+export const WEBLLM_UNSUPPORTED_BROWSER_MESSAGE =
   'Browser models need Chrome or Edge (WebGPU). Use Ollama on this browser.';
 
 export type WebLlmBrowserSupport = {
@@ -31,7 +31,7 @@ export function probeWebLlmBrowserSupport(
     return {
       supported: false,
       reason: 'firefox',
-      detail: WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE,
+      detail: WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
     };
   }
 
@@ -41,7 +41,7 @@ export function probeWebLlmBrowserSupport(
     return {
       supported: false,
       reason: 'safari',
-      detail: WEBKLLM_UNSUPPORTED_BROWSER_MESSAGE,
+      detail: WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
     };
   }
 
