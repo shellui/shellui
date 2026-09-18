@@ -13,6 +13,12 @@ const config = {
       label: 'Companion',
       path: 'companion',
       url: 'http://localhost:5175/',
+      safeForAuthToken: true,
+    },
+    {
+      label: 'Default companion',
+      path: 'default',
+      url: 'http://localhost:5198/',
     },
     {
       label: 'Hostile embed',
@@ -41,6 +47,10 @@ const trustedIframe = {
   src: 'http://localhost:5175/company/docs',
 } as HTMLIFrameElement;
 
+const defaultIframe = {
+  src: 'http://localhost:5198/widget',
+} as HTMLIFrameElement;
+
 const hostileIframe = {
   src: 'http://localhost:5199/widget',
 } as HTMLIFrameElement;
@@ -49,12 +59,17 @@ const registry = {
   getAllIframes: () =>
     [
       ['trusted-uuid', trustedIframe],
+      ['default-uuid', defaultIframe],
       ['hostile-uuid', hostileIframe],
     ] as Array<[string, HTMLIFrameElement]>,
 };
 
 describe('isTrustedFrameForAuthToken', () => {
-  it('allows registered navigation companions by default', () => {
+  it('does not trust navigation companions by default', () => {
+    expect(isTrustedFrameForAuthToken('http://localhost:5198/widget', config)).toBe(false);
+  });
+
+  it('allows navigation companions with safeForAuthToken: true', () => {
     expect(isTrustedFrameForAuthToken('http://localhost:5175/company', config)).toBe(true);
   });
 
@@ -89,6 +104,13 @@ describe('getStorageRequestTrustDenial', () => {
   it('allows trusted companion frames', () => {
     expect(getStorageRequestTrustDenial(['trusted-uuid'], registry, config)).toBeNull();
     expect(isRegisteredTrustedFrame('http://localhost:5175/company', config)).toBe(true);
+  });
+
+  it('denies default (non-opt-in) companion frames', () => {
+    expect(getStorageRequestTrustDenial(['default-uuid'], registry, config)).toEqual({
+      message: 'Storage request rejected: untrusted frame',
+      status: 403,
+    });
   });
 
   it('denies hostile iframe requests without storage I/O', () => {

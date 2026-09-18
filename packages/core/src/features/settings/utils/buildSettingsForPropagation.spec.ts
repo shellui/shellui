@@ -116,7 +116,29 @@ describe('buildSettingsForPropagation', () => {
     expect(result.appearance?.availableThemes?.length).toBeGreaterThan(0);
   });
 
-  it('injects access token into settings.user only when explicitly allowed', () => {
+  it('never propagates refresh tokens to iframe settings', () => {
+    const settingsWithRefresh = {
+      ...baseSettings,
+      refreshToken: 'secret-refresh-token',
+    } as Settings & { refreshToken: string };
+
+    const result = buildSettingsForPropagation(settingsWithRefresh, undefined, 'en', {
+      includeAuthAccessToken: true,
+      accessToken: 'access-jwt',
+    });
+
+    expect(result.accessToken).toBe('access-jwt');
+    expect(result).not.toHaveProperty('refreshToken');
+  });
+
+  it('defaults access token to null when includeAuthAccessToken is omitted', () => {
+    const result = buildSettingsForPropagation(baseSettings, undefined, 'en', {
+      accessToken: 'jwt.should.not.be.exposed',
+    });
+    expect(result.accessToken).toBeNull();
+  });
+
+  it('injects access token into settings only when explicitly allowed', () => {
     const settingsWithUser: Settings = {
       ...baseSettings,
       user: {

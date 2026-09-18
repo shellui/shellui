@@ -9,8 +9,8 @@ export type FrameRegistryLike = {
 
 /**
  * Whether an iframe `src` is trusted for privileged shell features (JWT sharing,
- * StorageBridge). Matches navigation `safeForAuthToken`, admin URLs, and
- * registered companion apps.
+ * StorageBridge). Navigation companions require `safeForAuthToken: true` (opt-in).
+ * First-party admin URLs and `storage.filesUrl` remain trusted by default.
  */
 export function isTrustedFrameForAuthToken(frameSrc: string, config?: ShellUIConfig): boolean {
   if (isAdminFrame(frameSrc, config)) {
@@ -36,7 +36,7 @@ export function isTrustedFrameForAuthToken(frameSrc: string, config?: ShellUICon
 
   const navigationItems = flattenNavigationItems(config?.navigation ?? []);
   return navigationItems.some(
-    (item) => item.safeForAuthToken !== false && isFrameForAppUrl(frameSrc, item.url),
+    (item) => item.safeForAuthToken === true && isFrameForAppUrl(frameSrc, item.url),
   );
 }
 

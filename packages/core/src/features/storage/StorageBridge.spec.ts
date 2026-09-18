@@ -9,6 +9,7 @@ const config = {
       label: 'Companion',
       path: 'companion',
       url: 'http://localhost:5175/',
+      safeForAuthToken: true,
     },
     {
       label: 'Hostile',

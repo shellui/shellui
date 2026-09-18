@@ -200,7 +200,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const pushSettingsToFrame = useCallback(
     (iframeUuid: string, frameSrc: string, baseSettings: Settings) => {
       const lang = baseSettings.language?.code || 'en';
-      const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+      const includeAuthAccessToken = isTrustedFrameForAuthTokenCallback(frameSrc);
       const iframe = shellui.frameRegistry
         .getAllIframes()
         .find(([uuid]) => uuid === iframeUuid)?.[1];
