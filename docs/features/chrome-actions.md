@@ -86,9 +86,9 @@ shellui.actions.set({
 });
 ```
 
-## Known limitations
+## Message security
 
-- **`postMessage` target origin is `'*'`** for `SHELLUI_ACTIONS_SET` / `CLEAR` (same pattern as toast, dialog, and modal SDK messages). Any script listening on the parent window can observe action ids and labels. Prefer same-origin shell embeddings; locking the target origin is planned before GA.
+`SHELLUI_ACTIONS_SET` / `CLEAR` follow the shared Shellui messaging policy: outbound posts target the parent shell origin, and inbound privileged messages require an allowed origin plus a registered iframe (or same-window Settings → Develop). See [SDK messaging](/sdk#host-chrome-from-the-iframe) for `allowedMessageOrigins` / `configureMessageSecurity`.
 
 ## Try it locally
 

@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🔒 Security
+
+- **postMessage hardening (H-06 / M-13 / M-14):** inbound `SHELLUI_*` messages now require an allowed origin and a trusted source (registered iframe, parent shell, or same-window). Privileged companion commands (`SHELLUI_LOGIN` / `LOGOUT`, modal/drawer, toast/dialog, chrome actions, etc.) reject unregistered frames. Outbound SDK and shell replies use concrete target origins instead of `'*'`. Host apps can extend the allowlist via `shellui.configureMessageSecurity({ allowedOrigins: [...] })` or `shellui.init({ allowedMessageOrigins: [...] })`; the Shellui host auto-derives companion origins from `shellui.config.json` navigation and storage URLs.
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.

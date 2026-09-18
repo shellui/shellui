@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getLogger, shellui, type Settings } from '@shellui/sdk';
+import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
@@ -450,7 +450,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void (async () => {
           const started = await startWeb3Ethereum();
           if (started && typeof window !== 'undefined') {
-            window.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
+            postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
           }
         })();
         return;
