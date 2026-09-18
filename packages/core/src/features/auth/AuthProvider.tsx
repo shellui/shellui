@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getLogger, shellui, type Settings } from '@shellui/sdk';
+import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
@@ -8,14 +8,18 @@ import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types'
 import {
   AuthRequestError,
   clearStoredAuthSession,
+  establishBffAuthSession,
   getAccessTokenFromSdkSettings,
   getAuthRequestErrorCode,
   getUserFromSdkSettings,
   inferAccessPendingErrorCode,
+  isBffAuthEnabledFromConfig,
   isSessionExpired,
   isTokenAutoRefreshDisabled,
+  logoutBffAuthSession,
   persistAuthSession,
   readStoredAuthSession,
+  refreshBffAuthSession,
   toAuthSessionFromSettingsUser,
 } from './utils';
 
@@ -36,9 +40,35 @@ type LoginMessagePayload = {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
+  const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
     [config.backend?.publishableKey, config.backend?.type, config.backend?.url],
+  );
+
+  const commitAuthSession = useCallback(
+    async (nextSession: AuthSession, nowSeconds: number): Promise<AuthSession> => {
+      if (bffAuthEnabled) {
+        const bffSession = await establishBffAuthSession(nextSession, nowSeconds);
+        if (bffSession) {
+          persistAuthSession(bffSession, { storeRefreshToken: false });
+          return bffSession;
+        }
+      }
+      persistAuthSession(nextSession);
+      return nextSession;
+    },
+    [bffAuthEnabled],
+  );
+
+  const refreshAuthSession = useCallback(
+    async (current: AuthSession, nowSeconds: number): Promise<AuthSession | null> => {
+      if (bffAuthEnabled) {
+        return refreshBffAuthSession(current, nowSeconds);
+      }
+      return backend.refreshAuthSession(current, nowSeconds);
+    },
+    [backend, bffAuthEnabled],
   );
 
   const [session, setSession] = useState<AuthSession | null>(null);
@@ -70,8 +100,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const sessionFromHash = backend.readSessionFromCallback(window.location.hash, now);
       if (sessionFromHash) {
         if (!cancelled) {
-          persistAuthSession(sessionFromHash);
-          setSession(sessionFromHash);
+          try {
+            const committed = await commitAuthSession(sessionFromHash, now);
+            setSession(committed);
+          } catch {
+            persistAuthSession(sessionFromHash);
+            setSession(sessionFromHash);
+          }
           setAuthEvent('oauth_callback');
           if (window.location.hash) {
             window.history.replaceState(
@@ -104,6 +139,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      if (!stored.accessToken && (stored.refreshToken || bffAuthEnabled)) {
+        if (isTokenAutoRefreshDisabled()) {
+          if (!cancelled) {
+            setSession(stored);
+            setIsLoading(false);
+          }
+          return;
+        }
+        try {
+          const restored = await refreshAuthSession(stored, now);
+          if (!restored) {
+            clearStoredAuthSession();
+            if (!cancelled) {
+              setSession(null);
+              setIsLoading(false);
+            }
+            return;
+          }
+          persistAuthSession(restored, { storeRefreshToken: !bffAuthEnabled });
+          if (!cancelled) {
+            setSession(restored);
+            setIsLoading(false);
+          }
+          return;
+        } catch {
+          clearStoredAuthSession();
+          if (!cancelled) {
+            setSession(null);
+            setIsLoading(false);
+          }
+          return;
+        }
+      }
+
       if (!isSessionExpired(stored)) {
         if (!cancelled) {
           setSession(stored);
@@ -125,7 +194,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       try {
-        const restored = await backend.restoreSession(stored, now);
+        const restored = await refreshAuthSession(stored, now);
         if (!restored) {
           clearStoredAuthSession();
           if (!cancelled) {
@@ -136,7 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (!cancelled) {
-          persistAuthSession(restored);
+          persistAuthSession(restored, { storeRefreshToken: !bffAuthEnabled });
           setSession(restored);
           setIsLoading(false);
         }
@@ -153,13 +222,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [backend]);
+  }, [backend, bffAuthEnabled, commitAuthSession, refreshAuthSession]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window || isLoading) {
       return;
     }
-    if (!session?.refreshToken) {
+    if (!session || (!bffAuthEnabled && !session.refreshToken)) {
       return;
     }
 
@@ -169,7 +238,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const runRefresh = async () => {
       if (cancelled) return;
       const current = sessionRef.current;
-      if (!current?.refreshToken || refreshInFlightRef.current) return;
+      if (!current || refreshInFlightRef.current) return;
+      if (!bffAuthEnabled && !current.refreshToken) return;
 
       const now = Math.floor(Date.now() / 1000);
       const secondsLeft = current.expiresAt - now;
@@ -191,9 +261,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       refreshInFlightRef.current = true;
       try {
-        const next = await backend.refreshAuthSession(current, now);
+        const next = await refreshAuthSession(current, now);
         if (cancelled || !next) return;
-        persistAuthSession(next);
+        persistAuthSession(next, { storeRefreshToken: !bffAuthEnabled });
         sessionRef.current = next;
         setSession(next);
       } catch (err) {
@@ -230,7 +300,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       document.removeEventListener('visibilitychange', maybeRefreshOnResume);
       window.removeEventListener('focus', maybeRefreshOnResume);
     };
-  }, [backend, isLoading, session?.refreshToken, session?.expiresAt]);
+  }, [bffAuthEnabled, isLoading, refreshAuthSession, session, session?.expiresAt]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) {
@@ -275,6 +345,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const persistOAuthSession = useCallback(
+    async (nextSession: AuthSession) => {
+      const now = Math.floor(Date.now() / 1000);
+      try {
+        const committed = await commitAuthSession(nextSession, now);
+        setSession(committed);
+      } catch {
+        persistAuthSession(nextSession, { storeRefreshToken: !bffAuthEnabled });
+        setSession(nextSession);
+      }
+      setAuthEvent('oauth_callback');
+    },
+    [bffAuthEnabled, commitAuthSession],
+  );
+
+  const mapOAuthCallbackError = useCallback((err: unknown): OAuthCallbackResult => {
+    const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
+    const oauthErrorCode =
+      getAuthRequestErrorCode(err) ??
+      inferAccessPendingErrorCode(message) ??
+      (err instanceof AuthRequestError ? err.code : null);
+    setError(message);
+    setErrorCode(oauthErrorCode);
+    return { ok: false, error: message, errorCode: oauthErrorCode };
+  }, []);
+
+  const completeOAuthSessionCallback = useCallback(
+    async ({
+      authCode,
+      redirectTo,
+    }: {
+      authCode: string;
+      redirectTo: string;
+    }): Promise<OAuthCallbackResult> => {
+      try {
+        setError(null);
+        setErrorCode(null);
+        const now = Math.floor(Date.now() / 1000);
+        const nextSession = await backend.exchangeOAuthSessionCode({
+          authCode,
+          redirectTo,
+          nowSeconds: now,
+        });
+        if (!nextSession) {
+          const message = 'Unable to complete OAuth login.';
+          setError(message);
+          setErrorCode(null);
+          return { ok: false, error: message, errorCode: null };
+        }
+        await persistOAuthSession(nextSession);
+        return { ok: true };
+      } catch (err) {
+        return mapOAuthCallbackError(err);
+      }
+    },
+    [backend, mapOAuthCallbackError, persistOAuthSession],
+  );
+
   const completeOAuthCallback = useCallback(
     async ({
       provider,
@@ -304,22 +432,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setErrorCode(null);
           return { ok: false, error: message, errorCode: null };
         }
-        persistAuthSession(nextSession);
-        setSession(nextSession);
-        setAuthEvent('oauth_callback');
+        await persistOAuthSession(nextSession);
         return { ok: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
-        const oauthErrorCode =
-          getAuthRequestErrorCode(err) ??
-          inferAccessPendingErrorCode(message) ??
-          (err instanceof AuthRequestError ? err.code : null);
-        setError(message);
-        setErrorCode(oauthErrorCode);
-        return { ok: false, error: message, errorCode: oauthErrorCode };
+        return mapOAuthCallbackError(err);
       }
     },
-    [backend],
+    [backend, mapOAuthCallbackError, persistOAuthSession],
   );
 
   const startWeb3Ethereum = useCallback(async () => {
@@ -332,15 +451,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setErrorCode(null);
         return false;
       }
-      persistAuthSession(nextSession);
-      setSession(nextSession);
+      const now = Math.floor(Date.now() / 1000);
+      const committed = await commitAuthSession(nextSession, now);
+      setSession(committed);
       return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to start Ethereum wallet login.');
       setErrorCode(err instanceof AuthRequestError ? err.code : null);
       return false;
     }
-  }, [backend]);
+  }, [backend, commitAuthSession]);
 
   const getAuthSettings = useCallback(() => backend.getAuthSettings(), [backend]);
 
@@ -374,9 +494,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             );
             nextSession = null;
           } else {
-            nextSession = sessionAtStart
-              ? await backend.refreshAuthSession(sessionAtStart, now)
-              : null;
+            nextSession = sessionAtStart ? await refreshAuthSession(sessionAtStart, now) : null;
           }
         } catch (refreshErr) {
           logger.error('Failed to refresh auth session after syncing preferences', { refreshErr });
@@ -390,7 +508,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Keep stored snapshot aligned with what we synced (JWT claims can lag the PUT).
           nextSession = { ...nextSession, userPreferences: preferences };
           if (typeof window !== 'undefined' && window.parent === window) {
-            persistAuthSession(nextSession);
+            persistAuthSession(nextSession, { storeRefreshToken: !bffAuthEnabled });
           }
           setSession(nextSession);
         }
@@ -398,7 +516,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logger.error('Failed to sync user preferences to auth provider metadata', { err });
       }
     },
-    [backend],
+    [backend, bffAuthEnabled, refreshAuthSession],
   );
 
   const loadUserPreferences = useCallback(async () => {
@@ -412,6 +530,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
+      if (bffAuthEnabled) {
+        await logoutBffAuthSession(session?.accessToken);
+      }
       await backend.logout(session);
     } catch {
       // Even if API sign-out fails, still clear local session.
@@ -422,7 +543,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthEvent(null);
     setError(null);
     setErrorCode(null);
-  }, [backend, session]);
+  }, [backend, bffAuthEnabled, session]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
@@ -450,7 +571,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void (async () => {
           const started = await startWeb3Ethereum();
           if (started && typeof window !== 'undefined') {
-            window.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
+            postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
           }
         })();
         return;
@@ -498,6 +619,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,
@@ -515,6 +637,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,

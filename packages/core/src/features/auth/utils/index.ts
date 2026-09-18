@@ -4,7 +4,12 @@ export {
   getShellUILoginDeviceId,
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
+export { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
 export { buildSessionFromParams } from './buildSessionFromParams';
+export {
+  buildSessionFromTokenPayload,
+  tokenPayloadToUrlParams,
+} from './buildSessionFromTokenPayload';
 export { hashHasOAuthTokens } from './hashHasOAuthTokens';
 export {
   AuthRequestError,
@@ -19,7 +24,19 @@ export {
   redirectCliCallbackError,
   redirectToCliCallback,
 } from './cliCallback';
-export { clearStoredAuthSession } from './clearStoredAuthSession';
+export {
+  clearStoredAuthSession,
+  persistAuthProfile,
+  persistAuthSession,
+  readStoredAuthSession,
+} from './authSessionPersistence';
+export type { PersistedAuthProfile } from './authSessionPersistence';
+export {
+  establishBffAuthSession,
+  logoutBffAuthSession,
+  refreshBffAuthSession,
+} from './bffAuthClient';
+export { isBffAuthEnabledFromConfig, useIsBffAuthEnabled } from './isBffAuthEnabled';
 export { decodeJwtPayload } from './decodeJwtPayload';
 export { formatProviderLabel } from './formatProviderLabel';
 export { getAccessTokenFromSdkSettings, getUserFromSdkSettings } from './getUserFromSdkSettings';
@@ -32,6 +49,4 @@ export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';
 export { normalizeNextPath } from './normalizeNextPath';
 export { normalizeRedirectPath } from './normalizeRedirectPath';
-export { persistAuthSession } from './persistAuthSession';
-export { readStoredAuthSession } from './readStoredAuthSession';
 export { toAuthSessionFromSettingsUser } from './toAuthSessionFromSettingsUser';

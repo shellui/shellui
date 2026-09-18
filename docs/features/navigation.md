@@ -36,14 +36,14 @@ const config: ShellUIConfig = {
 - **`hideWhenLoggedOut`**: hide while signed out
 - **`requiresAuth`**: redirect signed-out visitors to `/login?next=...`
 - **`requiresDevMode`**: only when Settings → Advanced → Developer features is on
-- **`requiresStaff`**: only staff (`isStaff`)
+- **`requiresStaff`**: only staff (`isStaff`). The shell route guard blocks signed-out and non-staff users with an access-forbidden view; backend APIs must still enforce authorization.
 - **`hiddenOnMobile` / `hiddenOnDesktop`**: hide from the mobile sheet or desktop sidebar (ignored if `hidden` is true)
 - **`openIn`**: `'default' | 'modal' | 'drawer' | 'external'`
 - **`drawerPosition`**: `'top' | 'bottom' | 'left' | 'right'` when `openIn: 'drawer'`
 - **`position`**: `'start'` (main) or `'end'` (footer / icon end of app bar)
 - **`settings`**: URL of a panel under Settings → Applications - see [Application settings](/features/application-settings)
 - **`useHashRouter`**: when `true`, treat as hash routing. If omitted, inferred from `url` containing `/#/`
-- **`safeForAuthToken`**: `false` never shares the session JWT with that iframe. Default is trusted (`undefined` / `true`)
+- **`safeForAuthToken`**: set to `true` to opt in to sharing the session access token (`settings.accessToken`) with that iframe. Default is **not** shared (`undefined` / `false`). The refresh token is never shared with companions.
 
 ## Hash URL navigation
 

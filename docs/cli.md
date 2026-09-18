@@ -110,13 +110,15 @@ shellui login --config ./config
 shellui login --provider github
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>`. Loopback is always allowlisted on the identity service.
+Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>`. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+
+After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The CLI callback page exchanges it at `POST /api/v1/oauth/session`, then posts tokens to `/capture`. Legacy fragment delivery (`#access_token=…`) still works during rollout.
 
 **Loopback threat model (Track F / L-11, L-12):**
 
 - The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
 - **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce — verify they match your terminal before completing sign-in.
-- Tokens in the callback URL fragment are cleared with `history.replaceState` after capture.
+- Auth codes and URL fragments are cleared with `history.replaceState` after capture.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
@@ -124,7 +126,7 @@ Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (
 
 ### shellui logout / whoami
 
-`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` when a token is present. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired.
+`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
 ### shellui deploy [root]
 

@@ -57,10 +57,15 @@ describe('login-flow nonce helpers', () => {
     expect(waiting).toContain(nonce);
     expect(waiting).toContain('/api/v1/authorize');
 
-    const callback = buildCallbackPageHtml({ nonce });
+    const callback = buildCallbackPageHtml({
+      nonce,
+      backendUrl: 'https://id.shellui.com',
+    });
     expect(callback).toContain(nonce);
     expect(callback).toContain(LOGIN_NONCE_HEADER);
     expect(callback).toContain('/capture');
+    expect(callback).toContain('shellui_auth_code');
+    expect(callback).toContain('/api/v1/oauth/session');
   });
 });
 

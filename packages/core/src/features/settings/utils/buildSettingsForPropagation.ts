@@ -122,5 +122,12 @@ export const buildSettingsForPropagation = (
     authBackendBaseUrl,
   };
 
+  if ('refreshToken' in result) {
+    const { refreshToken: _refreshRemoved, ...withoutRefresh } = result as Settings & {
+      refreshToken?: string;
+    };
+    return withoutRefresh;
+  }
+
   return result;
 };

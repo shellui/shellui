@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
+import { SHELLUI_AUTH_CODE_PARAM } from '../constants/oauth';
 import {
   buildAuthUrlWithNext,
+  buildOAuthSessionRedirectTo,
   captureCliCallbackFromSearch,
   hashHasOAuthTokens,
   inferAccessPendingErrorCode,
@@ -71,6 +73,7 @@ const looksLikeUsedOAuthCode = (message: string | null | undefined) => {
   const text = (message || '').toLowerCase();
   return (
     text.includes('bad_verification_code') ||
+    text.includes('auth_code') ||
     text.includes('code has already been used') ||
     text.includes('authorization code was already redeemed') ||
     text.includes('invalid_grant') ||
@@ -82,12 +85,20 @@ const looksLikeUsedOAuthCode = (message: string | null | undefined) => {
 export const OAuthCallbackView = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { completeOAuthCallback, isAuthenticated, isLoading, session } = useAuth();
+  const {
+    completeOAuthCallback,
+    completeOAuthSessionCallback,
+    isAuthenticated,
+    isLoading,
+    session,
+  } = useAuth();
   const [localError, setLocalError] = useState<string | null>(null);
   const [pendingAccess, setPendingAccess] = useState<PendingAccess | null>(null);
   const [isWorking, setIsWorking] = useState(true);
   /** OAuth `code` we already started exchanging (avoid double-spend / Strict Mode races). */
   const startedCodeRef = useRef<string | null>(null);
+  /** Session auth code we already started exchanging (identity 0.5.0 default delivery). */
+  const startedAuthCodeRef = useRef<string | null>(null);
   const nextPath = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return normalizeNextPath(params.get('next')) ?? '/';
@@ -137,8 +148,105 @@ export const OAuthCallbackView = () => {
       return;
     }
 
+    const authCode = params.get(SHELLUI_AUTH_CODE_PARAM);
     const code = params.get('code');
     const provider = params.get('provider');
+
+    const applyExchangeFailure = (
+      exchangeKey: string,
+      result: { ok: boolean; error?: string | null; errorCode?: string | null },
+      cancelled: boolean,
+    ) => {
+      const pendingCode =
+        (isAccessPendingErrorCode(result.errorCode) ? result.errorCode : null) ??
+        inferAccessPendingErrorCode(result.error);
+
+      if (pendingCode) {
+        const pending: PendingAccess = {
+          message:
+            (result.error && result.error.trim()) ||
+            'Your account was created and is waiting for an administrator to grant access.',
+          code: pendingCode,
+        };
+        writePendingForCode(exchangeKey, pending);
+        if (redirectCliCallbackError(pending.message, pending.code)) return;
+        setPendingAccess(pending);
+        setIsWorking(false);
+        if (!cancelled) {
+          navigate(buildLoginPendingUrl(nextPath, pending), { replace: true });
+        }
+        return;
+      }
+
+      const recovered = readPendingForCode(exchangeKey);
+      if (recovered && looksLikeUsedOAuthCode(result.error)) {
+        if (redirectCliCallbackError(recovered.message, recovered.code)) return;
+        setPendingAccess(recovered);
+        setIsWorking(false);
+        if (!cancelled) {
+          navigate(buildLoginPendingUrl(nextPath, recovered), { replace: true });
+        }
+        return;
+      }
+
+      const message = result.error ?? 'Unable to complete OAuth login.';
+      if (redirectCliCallbackError(message, result.errorCode)) return;
+      setLocalError(message);
+      setIsWorking(false);
+    };
+
+    if (authCode) {
+      const cachedPending = readPendingForCode(authCode);
+      if (cachedPending) {
+        if (redirectCliCallbackError(cachedPending.message, cachedPending.code)) return;
+        setPendingAccess(cachedPending);
+        setIsWorking(false);
+        navigate(buildLoginPendingUrl(nextPath, cachedPending), { replace: true });
+        return;
+      }
+
+      if (startedAuthCodeRef.current === authCode) {
+        return;
+      }
+      startedAuthCodeRef.current = authCode;
+
+      let cancelled = false;
+      const runSessionExchange = async () => {
+        const redirectTo = buildOAuthSessionRedirectTo(
+          window.location.origin,
+          location.pathname,
+          location.search,
+        );
+        let result: { ok: boolean; error?: string | null; errorCode?: string | null };
+        try {
+          result = await completeOAuthSessionCallback({ authCode, redirectTo });
+        } catch (err) {
+          result = {
+            ok: false,
+            error: err instanceof Error ? err.message : 'Unable to complete OAuth login.',
+            errorCode: null,
+          };
+        }
+
+        if (!result.ok) {
+          applyExchangeFailure(authCode, result, cancelled);
+          return;
+        }
+
+        clearPendingForCode(authCode);
+        if (typeof window !== 'undefined' && window.history?.replaceState) {
+          const cleaned = new URL(window.location.href);
+          cleaned.searchParams.delete(SHELLUI_AUTH_CODE_PARAM);
+          window.history.replaceState({}, document.title, cleaned.pathname + cleaned.search);
+        }
+      };
+
+      void runSessionExchange();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!code || !provider) {
       const message = 'Missing OAuth callback parameters.';
       if (redirectCliCallbackError(message)) return;
@@ -147,7 +255,6 @@ export const OAuthCallbackView = () => {
       return;
     }
 
-    // If a previous attempt already learned this login is pending, show it without re-exchanging.
     const cachedPending = readPendingForCode(code);
     if (cachedPending) {
       if (redirectCliCallbackError(cachedPending.message, cachedPending.code)) return;
@@ -163,7 +270,7 @@ export const OAuthCallbackView = () => {
     startedCodeRef.current = code;
 
     let cancelled = false;
-    const run = async () => {
+    const runLegacyExchange = async () => {
       const redirectUri = `${window.location.origin}${location.pathname}${location.search}`;
       let result: { ok: boolean; error?: string | null; errorCode?: string | null };
       try {
@@ -181,59 +288,21 @@ export const OAuthCallbackView = () => {
         };
       }
 
-      // Always apply UI state — do not drop failures when the effect cleans up
-      // (Strict Mode / callback identity changes), or the page stays on "Completing…".
       if (!result.ok) {
-        const pendingCode =
-          (isAccessPendingErrorCode(result.errorCode) ? result.errorCode : null) ??
-          inferAccessPendingErrorCode(result.error);
-
-        if (pendingCode) {
-          const pending: PendingAccess = {
-            message:
-              (result.error && result.error.trim()) ||
-              'Your account was created and is waiting for an administrator to grant access.',
-            code: pendingCode,
-          };
-          writePendingForCode(code, pending);
-          if (redirectCliCallbackError(pending.message, pending.code)) return;
-          setPendingAccess(pending);
-          setIsWorking(false);
-          if (!cancelled) {
-            navigate(buildLoginPendingUrl(nextPath, pending), { replace: true });
-          }
-          return;
-        }
-
-        // Code was likely consumed by a cancelled first attempt that already marked pending.
-        const recovered = readPendingForCode(code);
-        if (recovered && looksLikeUsedOAuthCode(result.error)) {
-          if (redirectCliCallbackError(recovered.message, recovered.code)) return;
-          setPendingAccess(recovered);
-          setIsWorking(false);
-          if (!cancelled) {
-            navigate(buildLoginPendingUrl(nextPath, recovered), { replace: true });
-          }
-          return;
-        }
-
-        const message = result.error ?? 'Unable to complete OAuth login.';
-        if (redirectCliCallbackError(message, result.errorCode)) return;
-        setLocalError(message);
-        setIsWorking(false);
+        applyExchangeFailure(code, result, cancelled);
         return;
       }
 
       clearPendingForCode(code);
-      // Session is set in AuthProvider; the authenticated effect handles CLI bounce / next.
     };
 
-    void run();
+    void runLegacyExchange();
     return () => {
       cancelled = true;
     };
   }, [
     completeOAuthCallback,
+    completeOAuthSessionCallback,
     fragmentHasTokens,
     isAuthenticated,
     isLoading,
@@ -246,7 +315,9 @@ export const OAuthCallbackView = () => {
   const backToLogin = () => {
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
+    const authCode = params.get(SHELLUI_AUTH_CODE_PARAM);
     if (code) clearPendingForCode(code);
+    if (authCode) clearPendingForCode(authCode);
     navigate(buildAuthUrlWithNext(urls.login, nextPath), { replace: true });
   };
 

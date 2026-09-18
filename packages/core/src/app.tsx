@@ -27,6 +27,7 @@ import {
 } from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
 import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
+import { MessagingSecurityBootstrap } from './features/messaging/MessagingSecurityBootstrap';
 
 const AppContent = () => {
   const { config } = useConfig();
@@ -130,6 +131,7 @@ const App = () => {
 
   return (
     <ConfigProvider>
+      <MessagingSecurityBootstrap />
       <AuthProvider>
         <StorageBridge />
         <SettingsProvider>
