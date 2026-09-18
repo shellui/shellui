@@ -54,7 +54,7 @@ Models stay in Ollama's own storage. The browser only calls a local HTTP API (`h
 
 **Settings → AI** lists a curated browser catalog. **Install** uses [`@mlc-ai/web-llm`](https://webllm.mlc.ai/) to fetch MLC weights from Hugging Face (via WebLLM’s prebuilt model library — not a custom HF downloader), warms a **dedicated Web Worker** engine, and marks the model ready when inference can run.
 
-**Recommended browsers for in-browser Install:** Chromium with mature WebGPU — **Chrome** and **Edge**. Firefox and Safari now ship WebGPU too, but their implementations are less mature for WebLLM engine init, so Install there is **experimental** — note that desktop Safari uses **WebKit**, not Chrome's **Blink**, so behavior can differ. Shellui no longer hard-blocks them: Settings shows a warning banner (Chrome/Edge recommended; Ollama is the reliable alternative) but **Install is still allowed** so you can try. If it fails, you get the real mapped error (`[shellui.ai]` console + toast) instead of a generic “Model download failed.”
+**Recommended browsers for in-browser Install:** **Chrome**, **Edge**, and **Safari** (mature WebGPU). Firefox also ships WebGPU, but its implementation is less mature for WebLLM engine init, so Install there is **experimental**. Shellui no longer hard-blocks Firefox: Settings shows a warning banner (Chrome/Edge/Safari recommended; Ollama is the reliable alternative) but **Install is still allowed** so you can try. If it fails, you get the real mapped error (`[shellui.ai]` console + toast) instead of a generic “Model download failed.”
 
 **Debugging Install:** Hugging Face weight requests run **inside the WebLLM worker**, so they may not appear on the main-document Network list — check the worker’s Network/console in DevTools. Failures log as `console.error('[shellui.ai]', …)` on the page and show the real message in the transfer toaster (WebGPU worker failures map to a clear “WebGPU failed in the WebLLM worker” message).
 
@@ -75,7 +75,7 @@ Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, 
 
 **v1 limit:** one browser model warm at a time (switching models reloads the worker engine).
 
-Browser installs need **WebGPU** on a Chromium browser.
+Browser installs need **WebGPU** (Chrome, Edge, or Safari recommended).
 
 ## Why apps don't load WebLLM themselves
 
@@ -118,7 +118,7 @@ You can:
 - List Ollama models when reachable
 - Install / cancel / remove browser catalog models (real WebLLM download + worker inference)
 
-**Try it locally:** use **Chrome or Edge** with WebGPU → Settings → AI → Install a catalog model → wait for the toaster / panel to finish → Settings → Develop → AI test tools, or call `shellui.ai` from an iframe app. On Firefox/Safari, use Ollama instead of browser Install.
+**Try it locally:** use **Chrome, Edge, or Safari** with WebGPU → Settings → AI → Install a catalog model → wait for the toaster / panel to finish → Settings → Develop → AI test tools, or call `shellui.ai` from an iframe app. On Firefox, Install is experimental — prefer Ollama if it fails.
 
 **Settings → Develop** has **AI test tools** (probe, list, one-shot and stream prompt) for developers. Day-to-day setup stays on Settings → AI.
 

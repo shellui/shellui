@@ -9,7 +9,7 @@ vi.mock('../status.js', () => ({
 }));
 
 /**
- * Non-Chromium browsers (Firefox/Safari) are experimental, NOT hard-blocked.
+ * Firefox is experimental, NOT hard-blocked.
  * Catalog models stay installable; failures surface via mapped errors instead.
  */
 describe('WebLLMAdapter on experimental browsers', () => {

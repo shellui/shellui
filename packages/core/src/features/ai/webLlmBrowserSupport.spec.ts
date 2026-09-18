@@ -30,13 +30,14 @@ describe('probeWebLlmBrowserSupport', () => {
     expect(result.detail).toBe(WEBLLM_EXPERIMENTAL_BROWSER_MESSAGE);
   });
 
-  it('marks Safari experimental but still installable', () => {
+  it('recommends Safari like Chromium (Install allowed, no experimental warning)', () => {
     const result = probeWebLlmBrowserSupport(
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
     );
-    expect(result.recommended).toBe(false);
+    expect(result.recommended).toBe(true);
     expect(result.canInstall).toBe(true);
-    expect(result.reason).toBe('safari');
+    expect(result.reason).toBeUndefined();
+    expect(result.detail).toBe('');
   });
 });
 
@@ -55,6 +56,15 @@ describe('mapWebLlmRuntimeError', () => {
       mapWebLlmRuntimeError(
         new Error('Unable to find a compatible GPU'),
         'Mozilla/5.0 Chrome/131.0.0.0 Safari/537.36',
+      ),
+    ).toBe(WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE);
+  });
+
+  it('maps WebGPU-ish errors on Safari to the worker WebGPU message (not experimental)', () => {
+    expect(
+      mapWebLlmRuntimeError(
+        new Error('Failed to get GPU adapter'),
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15',
       ),
     ).toBe(WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE);
   });

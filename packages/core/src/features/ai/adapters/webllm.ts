@@ -26,7 +26,7 @@ export type WebLLMAdapterOptions = {
  * model library), reports `initProgressCallback` progress, and keeps the model
  * warm so `prompt` / `promptStreaming` work immediately after Install.
  *
- * Firefox/Safari: catalog shows `unsupported` — WebLLM needs Chromium WebGPU.
+ * Firefox: Install is experimental (warning banner); Chrome/Edge/Safari are recommended.
  */
 export class WebLLMAdapter implements AiAdapter {
   readonly id = 'webllm' as const;
@@ -79,8 +79,8 @@ export class WebLLMAdapter implements AiAdapter {
     modelId: string,
     options?: { signal?: AbortSignal; onProgress?: (progress: number) => void },
   ): Promise<void> {
-    // Non-Chromium browsers are experimental, not blocked: let the user try and
-    // surface the real error (mapped below) instead of an opaque pre-emptive block.
+    // Firefox is experimental, not blocked: let the user try and surface the
+    // real error (mapped below) instead of an opaque pre-emptive block.
     const gpu = await probeWebGpu();
     if (!gpu.available) {
       throw new Error(

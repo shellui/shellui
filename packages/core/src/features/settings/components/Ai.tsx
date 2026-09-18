@@ -228,8 +228,8 @@ export const Ai = () => {
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
 
   const startDownload = async (model: AiModel) => {
-    // Non-Chromium browsers are experimental, not blocked: attempt Install and let
-    // the real error surface (mapped) rather than pre-emptively refusing.
+    // Firefox is experimental, not blocked: attempt Install and let the real
+    // error surface (mapped) rather than pre-emptively refusing.
     setDownload({ modelId: model.id, progress: 0 });
     const controller = new AbortController();
     downloadAbortRef.current = controller;

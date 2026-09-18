@@ -222,8 +222,8 @@
       "delete": "Remove",
       "downloadProgress": "{{percent}}%",
       "needsWebGpuAction": "This browser needs WebGPU before catalog installs.",
-      "unsupportedBrowser": "Browser models need Chrome or Edge (WebGPU). Use Ollama on this browser.",
-      "experimentalBrowser": "Browser models work best in Chrome or Edge (WebGPU). Support in this browser is experimental — you can still try Install; if it fails, use Ollama.",
+      "unsupportedBrowser": "Browser models need Chrome, Edge, or Safari (WebGPU). Use Ollama on this browser.",
+      "experimentalBrowser": "Browser models work best in Chrome, Edge, or Safari (WebGPU). Support in this browser is experimental — you can still try Install; if it fails, use Ollama.",
       "status": {
         "ready": "Ready",
         "downloadable": "Not installed",
