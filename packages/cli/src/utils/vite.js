@@ -304,8 +304,10 @@ export function createIsolatedViteConfig({
   };
   if (aiEnabled) {
     // Force prebundle so the first Install does not fail on unresolved nested deps.
+    // Do NOT put `@mlc-ai/web-llm` in needsInterop — it is pure ESM with named exports;
+    // needsInterop can hide CreateWebWorkerMLCEngine (only under .default) → TypeError.
     optimizeDeps.include = ['@mlc-ai/web-llm', 'loglevel'];
-    optimizeDeps.needsInterop = ['@mlc-ai/web-llm', 'loglevel'];
+    optimizeDeps.needsInterop = ['loglevel'];
   }
 
   return {

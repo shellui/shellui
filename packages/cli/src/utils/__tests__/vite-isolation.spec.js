@@ -57,6 +57,8 @@ describe('createIsolatedViteConfig', () => {
 
   test('prebundles @mlc-ai/web-llm when AI is enabled (default)', () => {
     expect(isolated.optimizeDeps.include).toContain('@mlc-ai/web-llm');
+    expect(isolated.optimizeDeps.needsInterop).not.toContain('@mlc-ai/web-llm');
+    expect(isolated.optimizeDeps.needsInterop).toContain('loglevel');
     expect(isolated.worker.format).toBe('es');
   });
 

@@ -17,6 +17,7 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 - **Diagnosable WebLLM Install failures:** Worker `error` / `messageerror` and `CreateWebWorkerMLCEngine` rejections (including WebLLM’s string throws) are logged as `console.error('[shellui.ai]', …)` and shown in the transfer toaster / Settings error — with an explicit **WebGPU failed in the WebLLM worker** mapping when applicable. HF traffic is expected under the **Worker** Network tab, not the main document.
 - **Sequential WebLLM prompts:** `prompt` / `promptStreaming` are serialized on the shared worker; streams are fully drained and `interruptGenerate()` runs after each turn so a second Chat question does not hang. `AiSession` accumulates message history for multi-turn context.
 - **WebLLM conversation switch:** LanguageModel `destroy` / `create` call `resetChat` (under the generation lock) so a new playground chat does not hang on stale worker KV state — weights stay warm.
+- **WebLLM Vite interop:** drop `@mlc-ai/web-llm` from `optimizeDeps.needsInterop` (pure ESM named exports); normalize dynamic import so `CreateWebWorkerMLCEngine` resolves even if wrapped under `.default`.
 
 ### 📚 Documentation
 

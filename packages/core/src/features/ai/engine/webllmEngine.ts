@@ -73,7 +73,36 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-const defaultLoadModule: LoadWebLLMModule = () => import('@mlc-ai/web-llm');
+const defaultLoadModule: LoadWebLLMModule = async () => {
+  const mod = await import('@mlc-ai/web-llm');
+  return normalizeWebLlmModule(mod);
+};
+
+/**
+ * Vite `optimizeDeps.needsInterop` (or CJS interop) can wrap the ESM namespace so
+ * named exports like `CreateWebWorkerMLCEngine` only appear on `.default`.
+ */
+export function normalizeWebLlmModule(mod: unknown): WebLLMModule {
+  const candidate =
+    mod &&
+    typeof mod === 'object' &&
+    typeof (mod as { CreateWebWorkerMLCEngine?: unknown }).CreateWebWorkerMLCEngine === 'function'
+      ? (mod as WebLLMModule)
+      : mod &&
+          typeof mod === 'object' &&
+          (mod as { default?: unknown }).default &&
+          typeof (mod as { default: { CreateWebWorkerMLCEngine?: unknown } }).default
+            .CreateWebWorkerMLCEngine === 'function'
+        ? ((mod as { default: WebLLMModule }).default as WebLLMModule)
+        : null;
+
+  if (!candidate || typeof candidate.CreateWebWorkerMLCEngine !== 'function') {
+    throw new Error(
+      'Failed to load @mlc-ai/web-llm: CreateWebWorkerMLCEngine is missing (check Vite optimizeDeps / export interop — do not put @mlc-ai/web-llm in needsInterop)',
+    );
+  }
+  return candidate;
+}
 
 /**
  * Spawn the dedicated worker only at install/load time (never on module import).
