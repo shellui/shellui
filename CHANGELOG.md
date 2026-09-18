@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🛠 Improvements
+
+- **identity-service 0.5.0 auth:** shell and CLI complete OAuth via one-time `shellui_auth_code` → `POST /api/v1/oauth/session` (default delivery). Legacy URL-fragment bounce and provider `?code=` exchange remain supported during rollout. Token refresh persists rotated refresh tokens; logout sends refresh for server-side revocation when available.
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.

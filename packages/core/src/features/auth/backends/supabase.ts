@@ -107,6 +107,7 @@ export const createSupabaseAuthBackend = ({
       const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
       return buildSessionFromParams(hashParams, nowSeconds);
     },
+    exchangeOAuthSessionCode: async () => null,
     exchangeOAuthCode: async () => null,
     restoreSession: async (storedSession, nowSeconds) => {
       if (!storedSession) return null;

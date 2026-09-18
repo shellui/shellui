@@ -136,7 +136,11 @@ function Example() {
 }
 ```
 
-Sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open. With identity-service, the provider redirects to `/api/v1/oauth/callback`, which bounces to the shell `/login/callback` with tokens in the URL hash. The shell persists them and strips the hash. Older IdP configs that still send `?code=` to the shell continue to use `POST /oauth/exchange`.
+Sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open and persists rotated refresh tokens from `POST /api/v1/token`.
+
+With identity-service **0.5.0+**, the default OAuth delivery is a one-time `shellui_auth_code` query param on `/login/callback`. The shell exchanges it via `POST /api/v1/oauth/session` and stores the returned JSON tokens. Legacy fragment delivery (`#access_token=…&refresh_token=…`) still works when identity is configured with `OAUTH_TOKEN_DELIVERY=fragment` or `token_delivery=fragment` on authorize. Older shells that receive provider `?code=` on the frontend continue to use `POST /api/v1/oauth/exchange`.
+
+Logout sends the refresh token in the request body when available so identity can revoke the server-side session.
 
 Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
 

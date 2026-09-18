@@ -106,7 +106,9 @@ shellui login --config ./config
 shellui login --provider github
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback`. Loopback is always allowlisted.
+Walks from `[root]` (or cwd) up to `.git` looking for config. Opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback`. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+
+After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The CLI callback page exchanges it at `POST /api/v1/oauth/session` and stores the tokens. Legacy fragment delivery (`#access_token=…`) still works during rollout.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
@@ -114,7 +116,7 @@ Credentials: `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/
 
 ### shellui logout / whoami
 
-`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` when a token is present. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired.
+`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
 ### shellui deploy [root]
 
