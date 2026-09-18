@@ -56,3 +56,19 @@ export function clearBrowserInstalledForTests(): void {
   if (typeof localStorage === 'undefined') return;
   localStorage.removeItem(BROWSER_INSTALL_STORAGE_KEY);
 }
+
+/** Sum of catalog `sizeBytes` for install records (estimate until real OPFS weights). */
+export function estimateInstalledCatalogBytes(
+  catalog: ReadonlyArray<{ id: string; sizeBytes?: number }> = [],
+): number {
+  const installed = new Set(listBrowserInstalledIds());
+  let total = 0;
+  for (const model of catalog) {
+    const localId = model.id.replace(/^webllm:/, '');
+    if (!installed.has(localId)) continue;
+    if (typeof model.sizeBytes === 'number' && Number.isFinite(model.sizeBytes)) {
+      total += model.sizeBytes;
+    }
+  }
+  return total;
+}

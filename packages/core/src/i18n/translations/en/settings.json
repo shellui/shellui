@@ -146,6 +146,7 @@
   },
   "storage": {
     "description": "See how much of your storage quota is in use.",
+    "remoteTitle": "File storage",
     "yourUsage": "Your usage",
     "organization": "Organization",
     "noPersonalLimit": "No personal limit. Your files count toward the organization quota.",
@@ -154,7 +155,19 @@
     "signInRequired": "Sign in to see your storage usage.",
     "loading": "Loading storage usage…",
     "error": "Unable to load storage usage.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "aiModels": {
+      "title": "Local AI models",
+      "description": "Browser and catalog usage for on-device models. Catalog sizes are estimates until real weights are stored.",
+      "originUsage": "This browser origin",
+      "originHint": "Total space this site reports via the browser storage API (includes more than AI).",
+      "catalogEstimate": "Installed catalog estimate",
+      "catalogEstimateHint": "Sum of listed model sizes for catalog entries marked installed. Not exact disk use until downloads store real weights.",
+      "catalogUsed": "{{used}} estimated · {{count}} installed",
+      "noneInstalled": "No browser catalog models are installed yet.",
+      "estimateUnavailable": "Browser storage estimate is unavailable.",
+      "loading": "Checking local storage…"
+    }
   },
   "ai": {
     "description": "On-device models for apps in this shell. Nothing is sent to a cloud AI service from Shellui itself.",

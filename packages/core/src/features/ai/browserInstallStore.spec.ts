@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import {
   BROWSER_INSTALL_STORAGE_KEY,
   clearBrowserInstalledForTests,
+  estimateInstalledCatalogBytes,
   isBrowserModelInstalled,
   listBrowserInstalledIds,
   markBrowserModelInstalled,
@@ -43,5 +44,15 @@ describe('browserInstallStore', () => {
   it('is shared for second-app reuse of the same origin catalog', () => {
     markBrowserModelInstalled('Phi-3.5-mini-instruct-q4f16_1-MLC');
     expect(isBrowserModelInstalled('webllm:Phi-3.5-mini-instruct-q4f16_1-MLC')).toBe(true);
+  });
+
+  it('estimates catalog bytes for installed records', () => {
+    markBrowserModelInstalled('webllm:a');
+    expect(
+      estimateInstalledCatalogBytes([
+        { id: 'webllm:a', sizeBytes: 100 },
+        { id: 'webllm:b', sizeBytes: 200 },
+      ]),
+    ).toBe(100);
   });
 });

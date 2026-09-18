@@ -171,8 +171,15 @@ export const Ai = () => {
   }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, webllm]);
 
   useEffect(() => {
+    if (!ai.enabled) {
+      setStatus(null);
+      setError(false);
+      setLoading(false);
+      setDownload(null);
+      return;
+    }
     void load();
-  }, [load]);
+  }, [ai.enabled, load]);
 
   useEffect(() => {
     if (ai.defaultModelId || !status) return;
@@ -250,309 +257,320 @@ export const Ai = () => {
         />
       </div>
 
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between gap-3">
-          <h2
-            className="text-sm font-medium leading-none"
-            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-          >
-            {t('ai.status.title')}
-          </h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 gap-1.5 text-xs"
-            disabled={loading}
-            onClick={() => void load()}
-            aria-label={t('ai.status.refresh')}
-          >
-            <RefreshCwIcon />
-            {t('ai.status.refresh')}
-          </Button>
-        </div>
-
-        {loading && !status ? (
-          <p className="text-sm text-muted-foreground">{t('ai.status.loading')}</p>
-        ) : null}
-        {error ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
-            <p className="text-sm text-destructive">{t('ai.status.error')}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void load()}
-            >
-              {t('ai.status.retry')}
-            </Button>
-          </div>
-        ) : null}
-
-        {status ? (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {(
-              [
-                {
-                  key: 'webGpu',
-                  title: t('ai.status.webGpu'),
-                  hint: t('ai.status.webGpuHint'),
-                  ok: status.webGpu.available,
-                  okLabel: t('ai.status.available'),
-                  badLabel: t('ai.status.unavailable'),
-                },
-                {
-                  key: 'ollama',
-                  title: t('ai.status.ollama'),
-                  hint: status.ollama.reachable
-                    ? t('ai.status.ollamaOnlineHint')
-                    : t('ai.status.ollamaOffline'),
-                  ok: status.ollama.reachable,
-                  okLabel: t('ai.status.connected'),
-                  badLabel: t('ai.status.offline'),
-                },
-                {
-                  key: 'storage',
-                  title: t('ai.status.storage'),
-                  hint: t('ai.status.storageHint'),
-                  ok: status.storage.available,
-                  okLabel: t('ai.status.available'),
-                  badLabel: t('ai.status.unavailable'),
-                },
-              ] as const
-            ).map((item) => (
-              <div
-                key={item.key}
-                className="rounded-lg border border-border/60 px-3 py-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-medium">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.hint}</p>
-                  </div>
-                  <StatusBadge
-                    ok={item.ok}
-                    okLabel={item.okLabel}
-                    badLabel={item.badLabel}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="ai-default-model"
-          className="text-sm font-medium leading-none"
-          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+      <div
+        data-shellui-ai-details={ai.enabled ? 'open' : 'closed'}
+        aria-hidden={!ai.enabled}
+      >
+        <div
+          data-shellui-ai-details-inner
+          className="space-y-5"
+          inert={!ai.enabled ? true : undefined}
         >
-          {t('ai.defaultModel.title')}
-        </label>
-        <p className="text-sm text-muted-foreground">{t('ai.defaultModel.description')}</p>
-        <Select
-          id="ai-default-model"
-          value={ai.defaultModelId ?? ''}
-          disabled={readyModels.length === 0}
-          onChange={(event) =>
-            updateSetting('ai', {
-              defaultModelId: event.target.value || null,
-            })
-          }
-        >
-          <option value="">{t('ai.defaultModel.none')}</option>
-          {readyModels.map((model) => (
-            <option
-              key={model.id}
-              value={model.id}
-            >
-              {model.name} ({model.provider})
-            </option>
-          ))}
-        </Select>
-        {readyModels.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('ai.defaultModel.empty')}</p>
-        ) : null}
-      </div>
-
-      <div className="space-y-3">
-        <h2
-          className="text-sm font-medium leading-none"
-          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-        >
-          {t('ai.providers.title')}
-        </h2>
-
-        <section className="space-y-3 rounded-lg border border-border/60 p-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <label
-                htmlFor="ai-ollama-enabled"
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <h2
                 className="text-sm font-medium leading-none"
                 style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
               >
-                {t('ai.providers.ollama')}
-              </label>
-              <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
+                {t('ai.status.title')}
+              </h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                disabled={loading}
+                onClick={() => void load()}
+                aria-label={t('ai.status.refresh')}
+              >
+                <RefreshCwIcon />
+                {t('ai.status.refresh')}
+              </Button>
             </div>
-            <Switch
-              id="ai-ollama-enabled"
-              checked={ai.ollamaEnabled}
-              onCheckedChange={(checked) => updateSetting('ai', { ollamaEnabled: checked })}
-            />
-          </div>
-          {ai.ollamaEnabled ? (
-            ollamaModels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {status?.ollama.reachable
-                  ? t('ai.models.ollamaEmptyReady')
-                  : t('ai.models.ollamaEmpty')}
-              </p>
-            ) : (
-              <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
-                {ollamaModels.map((model) => (
-                  <li
-                    key={model.id}
-                    className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
+
+            {loading && !status ? (
+              <p className="text-sm text-muted-foreground">{t('ai.status.loading')}</p>
+            ) : null}
+            {error ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                <p className="text-sm text-destructive">{t('ai.status.error')}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void load()}
+                >
+                  {t('ai.status.retry')}
+                </Button>
+              </div>
+            ) : null}
+
+            {status ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {(
+                  [
+                    {
+                      key: 'webGpu',
+                      title: t('ai.status.webGpu'),
+                      hint: t('ai.status.webGpuHint'),
+                      ok: status.webGpu.available,
+                      okLabel: t('ai.status.available'),
+                      badLabel: t('ai.status.unavailable'),
+                    },
+                    {
+                      key: 'ollama',
+                      title: t('ai.status.ollama'),
+                      hint: status.ollama.reachable
+                        ? t('ai.status.ollamaOnlineHint')
+                        : t('ai.status.ollamaOffline'),
+                      ok: status.ollama.reachable,
+                      okLabel: t('ai.status.connected'),
+                      badLabel: t('ai.status.offline'),
+                    },
+                    {
+                      key: 'storage',
+                      title: t('ai.status.storage'),
+                      hint: t('ai.status.storageHint'),
+                      ok: status.storage.available,
+                      okLabel: t('ai.status.available'),
+                      badLabel: t('ai.status.unavailable'),
+                    },
+                  ] as const
+                ).map((item) => (
+                  <div
+                    key={item.key}
+                    className="rounded-lg border border-border/60 px-3 py-2.5"
                   >
-                    <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
-                    <div className="flex items-center gap-2">
-                      {formatBytes(model.sizeBytes, locale) ? (
-                        <span className="text-xs tabular-nums text-muted-foreground">
-                          {formatBytes(model.sizeBytes, locale)}
-                        </span>
-                      ) : null}
-                      <ModelStatusBadge
-                        status={model.status}
-                        t={t}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-sm font-medium">{item.title}</p>
+                        <p className="text-xs text-muted-foreground">{item.hint}</p>
+                      </div>
+                      <StatusBadge
+                        ok={item.ok}
+                        okLabel={item.okLabel}
+                        badLabel={item.badLabel}
                       />
                     </div>
-                  </li>
+                  </div>
                 ))}
-              </ul>
-            )
-          ) : null}
-        </section>
-
-        <section className="space-y-3 rounded-lg border border-border/60 p-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <label
-                htmlFor="ai-browser-enabled"
-                className="text-sm font-medium leading-none"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {t('ai.providers.browser')}
-              </label>
-              <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
-            </div>
-            <Switch
-              id="ai-browser-enabled"
-              checked={ai.browserEnabled}
-              onCheckedChange={(checked) => updateSetting('ai', { browserEnabled: checked })}
-            />
+              </div>
+            ) : null}
           </div>
-          {ai.browserEnabled && status && !status.webGpu.available ? (
-            <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
-          ) : null}
-          {ai.browserEnabled ? (
-            browserModels.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('ai.models.browserEmpty')}</p>
-            ) : (
-              <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
-                {browserModels.map((model) => {
-                  const size = formatBytes(model.sizeBytes, locale);
-                  const isDownloading = download?.modelId === model.id;
-                  const progress = isDownloading
-                    ? download.progress
-                    : (webllm.getDownloadProgress(model.id) ?? null);
-                  const installed = isBrowserModelInstalled(model.id);
-                  const canDownload = !installed && model.status !== 'downloading';
-                  return (
-                    <li
-                      key={model.id}
-                      className="space-y-2 px-3 py-2.5"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{model.name}</p>
-                          {size ? (
-                            <p className="text-xs tabular-nums text-muted-foreground">{size}</p>
-                          ) : null}
-                        </div>
-                        <ModelStatusBadge
-                          status={isDownloading ? 'downloading' : model.status}
-                          t={t}
-                        />
-                      </div>
 
-                      {isDownloading || typeof progress === 'number' ? (
-                        <div className="space-y-2">
-                          <div
-                            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-                            role="progressbar"
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-valuenow={Math.round((progress ?? 0) * 100)}
-                            aria-label={t('ai.models.downloadProgress', {
-                              percent: Math.round((progress ?? 0) * 100),
-                            })}
-                          >
-                            <div
-                              className="h-full rounded-full bg-primary transition-[width]"
-                              style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
+          <div className="space-y-2">
+            <label
+              htmlFor="ai-default-model"
+              className="text-sm font-medium leading-none"
+              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+            >
+              {t('ai.defaultModel.title')}
+            </label>
+            <p className="text-sm text-muted-foreground">{t('ai.defaultModel.description')}</p>
+            <Select
+              id="ai-default-model"
+              value={ai.defaultModelId ?? ''}
+              disabled={readyModels.length === 0}
+              onChange={(event) =>
+                updateSetting('ai', {
+                  defaultModelId: event.target.value || null,
+                })
+              }
+            >
+              <option value="">{t('ai.defaultModel.none')}</option>
+              {readyModels.map((model) => (
+                <option
+                  key={model.id}
+                  value={model.id}
+                >
+                  {model.name} ({model.provider})
+                </option>
+              ))}
+            </Select>
+            {readyModels.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t('ai.defaultModel.empty')}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-3">
+            <h2
+              className="text-sm font-medium leading-none"
+              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+            >
+              {t('ai.providers.title')}
+            </h2>
+
+            <section className="space-y-3 rounded-lg border border-border/60 p-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <label
+                    htmlFor="ai-ollama-enabled"
+                    className="text-sm font-medium leading-none"
+                    style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                  >
+                    {t('ai.providers.ollama')}
+                  </label>
+                  <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
+                </div>
+                <Switch
+                  id="ai-ollama-enabled"
+                  checked={ai.ollamaEnabled}
+                  onCheckedChange={(checked) => updateSetting('ai', { ollamaEnabled: checked })}
+                />
+              </div>
+              {ai.ollamaEnabled ? (
+                ollamaModels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {status?.ollama.reachable
+                      ? t('ai.models.ollamaEmptyReady')
+                      : t('ai.models.ollamaEmpty')}
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                    {ollamaModels.map((model) => (
+                      <li
+                        key={model.id}
+                        className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
+                      >
+                        <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
+                        <div className="flex items-center gap-2">
+                          {formatBytes(model.sizeBytes, locale) ? (
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {formatBytes(model.sizeBytes, locale)}
+                            </span>
+                          ) : null}
+                          <ModelStatusBadge
+                            status={model.status}
+                            t={t}
+                          />
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+            </section>
+
+            <section className="space-y-3 rounded-lg border border-border/60 p-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1">
+                  <label
+                    htmlFor="ai-browser-enabled"
+                    className="text-sm font-medium leading-none"
+                    style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                  >
+                    {t('ai.providers.browser')}
+                  </label>
+                  <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
+                </div>
+                <Switch
+                  id="ai-browser-enabled"
+                  checked={ai.browserEnabled}
+                  onCheckedChange={(checked) => updateSetting('ai', { browserEnabled: checked })}
+                />
+              </div>
+              {ai.browserEnabled && status && !status.webGpu.available ? (
+                <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
+              ) : null}
+              {ai.browserEnabled ? (
+                browserModels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('ai.models.browserEmpty')}</p>
+                ) : (
+                  <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                    {browserModels.map((model) => {
+                      const size = formatBytes(model.sizeBytes, locale);
+                      const isDownloading = download?.modelId === model.id;
+                      const progress = isDownloading
+                        ? download.progress
+                        : (webllm.getDownloadProgress(model.id) ?? null);
+                      const installed = isBrowserModelInstalled(model.id);
+                      const canDownload = !installed && model.status !== 'downloading';
+                      return (
+                        <li
+                          key={model.id}
+                          className="space-y-2 px-3 py-2.5"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium">{model.name}</p>
+                              {size ? (
+                                <p className="text-xs tabular-nums text-muted-foreground">{size}</p>
+                              ) : null}
+                            </div>
+                            <ModelStatusBadge
+                              status={isDownloading ? 'downloading' : model.status}
+                              t={t}
                             />
                           </div>
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs text-muted-foreground">
-                              {t('ai.models.downloadProgress', {
-                                percent: Math.round((progress ?? 0) * 100),
-                              })}
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => cancelDownload(model.id)}
-                            >
-                              {t('ai.models.cancel')}
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {canDownload ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              disabled={!status?.webGpu.available}
-                              onClick={() => void startDownload(model)}
-                            >
-                              {t('ai.models.download')}
-                            </Button>
+
+                          {isDownloading || typeof progress === 'number' ? (
+                            <div className="space-y-2">
+                              <div
+                                className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                                role="progressbar"
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                                aria-valuenow={Math.round((progress ?? 0) * 100)}
+                                aria-label={t('ai.models.downloadProgress', {
+                                  percent: Math.round((progress ?? 0) * 100),
+                                })}
+                              >
+                                <div
+                                  className="h-full rounded-full bg-primary transition-[width]"
+                                  style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {t('ai.models.downloadProgress', {
+                                    percent: Math.round((progress ?? 0) * 100),
+                                  })}
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                  onClick={() => cancelDownload(model.id)}
+                                >
+                                  {t('ai.models.cancel')}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {canDownload ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                  disabled={!status?.webGpu.available}
+                                  onClick={() => void startDownload(model)}
+                                >
+                                  {t('ai.models.download')}
+                                </Button>
+                              ) : null}
+                              {installed ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-destructive"
+                                  onClick={() => void deleteModel(model.id)}
+                                >
+                                  {t('ai.models.delete')}
+                                </Button>
+                              ) : null}
+                            </div>
+                          )}
+                          {download?.modelId === model.id && download.error ? (
+                            <p className="text-xs text-destructive">{download.error}</p>
                           ) : null}
-                          {installed ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-destructive"
-                              onClick={() => void deleteModel(model.id)}
-                            >
-                              {t('ai.models.delete')}
-                            </Button>
-                          ) : null}
-                        </div>
-                      )}
-                      {download?.modelId === model.id && download.error ? (
-                        <p className="text-xs text-destructive">{download.error}</p>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )
-          ) : null}
-        </section>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
+              ) : null}
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );

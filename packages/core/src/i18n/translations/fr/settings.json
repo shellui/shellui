@@ -146,6 +146,7 @@
   },
   "storage": {
     "description": "Consultez l'utilisation de votre quota de stockage.",
+    "remoteTitle": "Stockage de fichiers",
     "yourUsage": "Votre utilisation",
     "organization": "Organisation",
     "noPersonalLimit": "Aucune limite personnelle. Vos fichiers comptent dans le quota de l'organisation.",
@@ -154,7 +155,19 @@
     "signInRequired": "Connectez-vous pour voir votre utilisation du stockage.",
     "loading": "Chargement de l'utilisation du stockage…",
     "error": "Impossible de charger l'utilisation du stockage.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "aiModels": {
+      "title": "Modèles IA locaux",
+      "description": "Utilisation navigateur et catalogue pour les modèles sur cet appareil. Les tailles catalogue sont des estimations tant que les poids ne sont pas stockés.",
+      "originUsage": "Cette origine navigateur",
+      "originHint": "Espace total signalé par l'API de stockage du navigateur pour ce site (inclut plus que l'IA).",
+      "catalogEstimate": "Estimation catalogue installé",
+      "catalogEstimateHint": "Somme des tailles listées pour les entrées catalogue marquées installées. Pas une mesure exacte tant que les téléchargements ne stockent pas les vrais poids.",
+      "catalogUsed": "{{used}} estimés · {{count}} installés",
+      "noneInstalled": "Aucun modèle catalogue navigateur n'est encore installé.",
+      "estimateUnavailable": "L'estimation de stockage navigateur est indisponible.",
+      "loading": "Vérification du stockage local…"
+    }
   },
   "ai": {
     "description": "Modèles sur cet appareil pour les applications du shell. Shellui n'envoie rien à un service d'IA cloud de lui-même.",
