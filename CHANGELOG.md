@@ -20,6 +20,16 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🔒 Security
+
+- **Track F (#65) — companion isolation + CLI hardening (M-18, L-10..L-14):**
+  - **M-18:** Tighten content iframe sandbox (drop `allow-popups-to-escape-sandbox`); document distinct-origin dev companions and production same-origin plan ([companion isolation](./docs/features/companion-isolation.md)).
+  - **L-10:** Document CLI credential plaintext-at-rest residual (`0600`/`0700` permissions); OS keychain follow-up noted.
+  - **L-11:** Loopback `/capture` requires one-time session nonce (`X-Shellui-Login-Nonce` + JSON `nonce`); OAuth `state` bound to the same nonce.
+  - **L-12:** Loopback login pages and terminal output show port/nonce and anti-phishing guidance.
+  - **L-13:** Trusted config path checks — warn on out-of-tree config, reject world-writable / symlink-escaped paths; document TS execution threat model.
+  - **L-14:** Validate `dev.url` / `--follow` (loopback default, warn on remote, reject metadata/link-local); new `--allow-remote-companion` flag.
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.

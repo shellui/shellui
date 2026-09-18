@@ -13,6 +13,7 @@ import { useLocation, useNavigate } from 'react-router';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
 import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
+import { resolveContentIframeSandbox } from './contentIframeSandbox';
 
 const logger = getLogger('shellcore');
 
@@ -347,10 +348,7 @@ export const ContentView = ({
       style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}
       className="min-h-0 flex-1 bg-background"
     >
-      {/* Note: allow-same-origin is required for same-origin iframe content (e.g., Vite dev server, cookies, localStorage).
-          While this allows the iframe to remove its own sandboxing, it's acceptable here because the iframe content
-          is trusted microfrontend content from the same application origin.
-          Browser security warnings about this combination cannot be suppressed programmatically. */}
+      {/* Sandbox policy: see contentIframeSandbox.ts and docs/features/companion-isolation.md */}
       {/* Strategy to prevent browser deprioritizing iframe rendering:
           - loading="eager" explicitly requests immediate loading (not deferred)
           - opacity:0 hides the iframe during loading while keeping it in the rendering pipeline
@@ -368,7 +366,7 @@ export const ContentView = ({
           display: 'block',
           opacity: isLoading ? 0 : 1,
         }}
-        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+        sandbox={resolveContentIframeSandbox(iframeUrl)}
         referrerPolicy="no-referrer-when-downgrade"
       />
       {isLoading && <LoadingOverlay />}

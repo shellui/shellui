@@ -67,11 +67,12 @@ shellui start --host
 shellui start --app
 shellui start --run vite --follow http://localhost:5173
 shellui start --shell-only
+shellui start --follow https://staging.example.com --allow-remote-companion
 ```
 
 Starts Vite with HMR for `@shellui/core`, opens the browser on first start, watches config, and uses `port` from config (default **3000** if unset). Does not load the project's Vite / PostCSS / TypeScript / Tailwind files - see [Tooling isolation](#tooling-isolation). `--app` starts the [desktop wrapper](/tauri).
 
-**Options:** `[root]`; `--host` (`0.0.0.0`); `--app`; `--target web|tauri` (default `web`; `tauri` with `--app`); `--config` / `SHELLUI_CONFIG`; `--run`; `--follow`; `--shell-only`. Do not pass `--no-run` - cac treats that as a negation of `--run <command>` and breaks plain `shellui start`.
+**Options:** `[root]`; `--host` (`0.0.0.0`); `--app`; `--target web|tauri` (default `web`; `tauri` with `--app`); `--config` / `SHELLUI_CONFIG`; `--run`; `--follow`; `--allow-remote-companion`; `--shell-only`. Do not pass `--no-run` - cac treats that as a negation of `--run <command>` and breaks plain `shellui start`.
 
 ### Companion process
 
@@ -89,8 +90,11 @@ CLI-only. Never sent to the browser. `shellui build` ignores it.
 
 - **Spawn** (`run` set): `shellui start` is the parent. If `url` is set, the CLI waits for it before listening. Child **exit** (not a brief port blip) shuts down the shell.
 - **Follow** (`url` only): start the shell as usual. After the URL has been healthy once, if it stays down (~2s), the CLI exits. A URL that never comes up does not kill the shell.
+- **URL validation (Track F / L-14):** `dev.url` and `--follow` must be valid `http`/`https` URLs (or `host:port` shorthand). Loopback (`localhost`, `127.0.0.1`, `::1`) is the expected default. Non-loopback URLs print a warning; cloud metadata and link-local hosts are **rejected**. Pass `--allow-remote-companion` when you intentionally follow a remote staging URL.
 - Config-file restarts restart shell Vite only; the companion keeps running.
 - `--app` does not spawn a companion itself. The nested `shellui start` from Tauri will, if `dev.run` is set.
+
+See also [Companion origin isolation](/features/companion-isolation) for iframe sandbox notes (M-18).
 
 ### shellui build [root]
 
@@ -106,11 +110,17 @@ shellui login --config ./config
 shellui login --provider github
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback`. Loopback is always allowlisted.
+Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>`. Loopback is always allowlisted on the identity service.
+
+**Loopback threat model (Track F / L-11, L-12):**
+
+- The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
+- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce — verify they match your terminal before completing sign-in.
+- Tokens in the callback URL fragment are cleared with `history.replaceState` after capture.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
-Credentials: `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are never printed.
+**Credentials (Track F / L-10):** `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are stored as **plaintext JSON** with Unix mode `0600` (directory `0700`). This limits exposure to the same user account but does **not** protect against root, malware, or backups. OS keychain integration is planned separately. Tokens are never printed.
 
 ### shellui logout / whoami
 
@@ -204,6 +214,14 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
+
+### Trusted config paths (Track F / L-13)
+
+Shellui config can execute code: TypeScript configs run via `tsx` with the CLI's privileges; JSON still controls dev companions and deploy targets.
+
+- Prefer **`shellui.config.json`** (or split JSON). Run `shellui config migrate` to move off TypeScript for CI-safe configs.
+- **`--config` / `SHELLUI_CONFIG`:** loading config from outside the project root prints a warning. World-writable config paths are rejected; symlink escapes outside the project root are rejected.
+- TypeScript load prints an additional warning. Treat config like source code — only from trusted repositories.
 
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 
