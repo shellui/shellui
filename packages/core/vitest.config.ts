@@ -15,6 +15,8 @@ export default defineConfig({
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
+      'src/features/security/**/*.spec.ts',
+      'src/routes/utils/**/*.spec.ts',
       'src/features/overlays/**/*.spec.ts',
       'src/features/theme/**/*.spec.ts',
       'src/features/layouts/chrome/**/*.spec.ts',

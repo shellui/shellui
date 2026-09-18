@@ -73,19 +73,19 @@ Local Supabase CLI commonly uses `url: "http://localhost:54321"` and the publish
 
 ## backend fields
 
-| Field                  | Required               | Description                                                                               |
-| ---------------------- | ---------------------- | ----------------------------------------------------------------------------------------- |
-| `type`                 | yes                    | `"shellui"` or `"supabase"`                                                               |
-| `url`                  | yes                    | API base URL, no trailing slash                                                           |
-| `publishableKey`       | Supabase               | Public key sent as `apikey` on auth requests                                              |
-| `companyId`            | identity-service OAuth | Tenant id on authorize and code exchange                                                  |
-| `adminPathname`        | no                     | Shell route for the admin iframe (account menu entry)                                     |
-| `adminUrl`             | no                     | URL loaded in that route                                                                  |
-| `loginUrl`             | no                     | Public origin of this shell for `shellui login` (not `adminUrl`)                          |
-| `login.methods`        | no                     | `password` \| `oauth` \| `magic_link` \| `web3`. Intersected with backend settings        |
-| `login.oauthProviders` | no                     | Provider ids for buttons and order (`github`, `google`, …)                                |
-| `login.panelUrl`       | no                     | Full-bleed iframe for the desktop login left panel. Wins over `panelImage`                |
-| `login.panelImage`     | no                     | Centered image path or URL for that panel (for example `/login-panel.jpg` from `static/`) |
+| Field                  | Required               | Description                                                                                                                                                                                            |
+| ---------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `type`                 | yes                    | `"shellui"` or `"supabase"`                                                                                                                                                                            |
+| `url`                  | yes                    | API base URL, no trailing slash                                                                                                                                                                        |
+| `publishableKey`       | Supabase               | Public key sent as `apikey` on auth requests                                                                                                                                                           |
+| `companyId`            | identity-service OAuth | Tenant id on authorize and code exchange                                                                                                                                                               |
+| `adminPathname`        | no                     | Shell route for the admin iframe (account menu entry)                                                                                                                                                  |
+| `adminUrl`             | no                     | URL loaded in that route                                                                                                                                                                               |
+| `loginUrl`             | no                     | Public origin of this shell for `shellui login` (not `adminUrl`)                                                                                                                                       |
+| `login.methods`        | no                     | `password` \| `oauth` \| `magic_link` \| `web3`. Intersected with backend settings                                                                                                                     |
+| `login.oauthProviders` | no                     | Provider ids for buttons and order (`github`, `google`, …)                                                                                                                                             |
+| `login.panelUrl`       | no                     | Full-bleed iframe for the desktop login left panel. Wins over `panelImage`. Must be same-origin, a configured backend/login/storage origin, or (development only) loopback; untrusted URLs are ignored |
+| `login.panelImage`     | no                     | Centered image path or URL for that panel (for example `/login-panel.jpg` from `static/`)                                                                                                              |
 
 Types: `BackendConfig` and `BackendLoginConfig` in `@shellui/core`. The stock login view does not render a password form even if `password` is listed.
 
