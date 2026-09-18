@@ -151,7 +151,9 @@ export const AiTestTools = () => {
           {diagnostics
             ? yesNo(diagnostics.ollamaReachable, yes, no)
             : t('develop.testing.ai.loading')}
-          {diagnostics?.ollamaLatencyMs != null ? ` (${diagnostics.ollamaLatencyMs} ms)` : null}
+          {typeof diagnostics?.ollamaLatencyMs === 'number'
+            ? ` (${diagnostics.ollamaLatencyMs} ms)`
+            : null}
           {diagnostics?.ollamaDetail ? (
             <span className="text-muted-foreground"> — {diagnostics.ollamaDetail}</span>
           ) : null}

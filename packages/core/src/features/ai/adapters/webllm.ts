@@ -92,12 +92,12 @@ export class WebLLMAdapter implements AiAdapter {
         }
         await new Promise<void>((resolve, reject) => {
           const timer = setTimeout(() => resolve(), 80);
-          const onAbort = () => {
+          const onStepAbort = () => {
             clearTimeout(timer);
             reject(new DOMException('Download cancelled', 'AbortError'));
           };
-          controller.signal.addEventListener('abort', onAbort, { once: true });
-          options?.signal?.addEventListener('abort', onAbort, { once: true });
+          controller.signal.addEventListener('abort', onStepAbort, { once: true });
+          options?.signal?.addEventListener('abort', onStepAbort, { once: true });
         });
         const value = step / 10;
         this.progress.set(localId, value);

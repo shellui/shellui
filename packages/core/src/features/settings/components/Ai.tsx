@@ -77,7 +77,7 @@ function StatusBadge({
       className={cn(
         'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
         ok
-          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+          ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
           : 'bg-muted text-muted-foreground',
       )}
     >
@@ -105,9 +105,9 @@ function ModelStatusBadge({
             : t('ai.models.status.unavailable');
   const tone =
     status === 'ready'
-      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+      ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
       : status === 'downloading'
-        ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+        ? 'bg-amber-500/15 text-amber-900 dark:text-amber-100'
         : 'bg-muted text-muted-foreground';
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium', tone)}>
@@ -288,7 +288,7 @@ export const Ai = () => {
         ) : null}
 
         {status ? (
-          <div className="grid gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(
               [
                 {
@@ -385,15 +385,17 @@ export const Ai = () => {
         <section className="space-y-3 rounded-lg border border-border/60 p-3">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p
+              <label
+                htmlFor="ai-ollama-enabled"
                 className="text-sm font-medium leading-none"
                 style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
               >
                 {t('ai.providers.ollama')}
-              </p>
+              </label>
               <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
             </div>
             <Switch
+              id="ai-ollama-enabled"
               checked={ai.ollamaEnabled}
               onCheckedChange={(checked) => updateSetting('ai', { ollamaEnabled: checked })}
             />
@@ -434,15 +436,17 @@ export const Ai = () => {
         <section className="space-y-3 rounded-lg border border-border/60 p-3">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <p
+              <label
+                htmlFor="ai-browser-enabled"
                 className="text-sm font-medium leading-none"
                 style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
               >
                 {t('ai.providers.browser')}
-              </p>
+              </label>
               <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
             </div>
             <Switch
+              id="ai-browser-enabled"
               checked={ai.browserEnabled}
               onCheckedChange={(checked) => updateSetting('ai', { browserEnabled: checked })}
             />
@@ -481,7 +485,7 @@ export const Ai = () => {
                         />
                       </div>
 
-                      {isDownloading || progress != null ? (
+                      {isDownloading || typeof progress === 'number' ? (
                         <div className="space-y-2">
                           <div
                             className="h-1.5 w-full overflow-hidden rounded-full bg-muted"

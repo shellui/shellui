@@ -4,7 +4,7 @@ sidebar_label: On-device AI
 description: 'Settings → AI, Ollama and browser models, and shellui.ai Prompt API messaging from iframe apps.'
 ---
 
-Shellui can run language models **on the user's device** so every embedded app shares one download and one GPU session. Apps never talk to Ollama or WebGPU directly - they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.
+Shellui can run language models **on the user's device** so every embedded app shares one install and one GPU session. Apps never talk to Ollama or WebGPU directly - they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.
 
 Local AI ships as a **default core feature**. You do not install a separate AI package. Turn providers on or off in **Settings → AI**.
 
@@ -20,11 +20,11 @@ There are two optional paths. Neither requires a Shellui cloud AI backend.
 
 Models stay in Ollama's own storage. The browser only calls a local HTTP API (`http://127.0.0.1:11434` by default). If Ollama is not running, Shellui soft-fails - the rest of the shell still works.
 
-### Browser models (files in the tab)
+### Browser models (catalog in this profile)
 
-Later slices will let you download a curated model into **this browser's storage** (OPFS / Cache). Those files are large (hundreds of MB to a few GB). They are not uploaded to Shellui servers; they live on the device for that browser profile.
+**Settings → AI** lists a curated browser catalog. **Install** records a catalog entry on this device (survives reload; shared by every app on this origin). **Remove** deletes that record.
 
-The Settings panel already shows a **catalog stub** (not downloaded yet). Download, pause, resume, and delete come next.
+Browser **weight download and inference are not wired yet**. Use Ollama for prompts until the WebLLM engine lands. Install still needs WebGPU available in the browser.
 
 ## Why apps don't load WebLLM themselves
 
@@ -34,21 +34,21 @@ If every iframe downloaded and warmed its own copy:
 - Phones would thrash GPU memory
 - Users would re-download the same weights
 
-The shell keeps **one** registry and **one** runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, future Transformers.js, …) stay in core.
+The shell keeps **one** registry and **one** runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, …) stay in core. AI requests use the same privileged companion + trusted-frame policy as storage (`safeForAuthToken`).
 
 ## WebGPU and soft degradation
 
-Browser inference needs **WebGPU**. Settings → AI shows whether WebGPU is available. If it is not:
+Browser catalog installs need **WebGPU**. Settings → AI shows WebGPU, Ollama, and browser storage status. If WebGPU is missing:
 
 - Ollama can still work when installed
-- Browser catalog models show as needing WebGPU / not ready
+- Browser catalog models show as needing WebGPU
 - Apps see `availability()` as `unavailable` or `downloadable` instead of hard crashes
 
 ## What you should know (risks)
 
 | Topic             | Plain language                                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| Disk size         | Browser models are big. Confirm size before download (when download lands).                                   |
+| Disk size         | Browser models are big once real downloads land.                                                              |
 | First-load time   | Loading weights into the GPU can take a while the first time.                                                 |
 | Battery / heat    | Local inference uses the CPU/GPU; laptops and phones can get warm.                                            |
 | Untrusted prompts | Apps send the text. Treat it like any other untrusted input (prompt injection, sensitive data in the prompt). |
@@ -61,12 +61,13 @@ Open the built-in settings route (default `/__settings`), then **Preferences →
 You can:
 
 - Allow or block apps from using AI
-- See WebGPU and Ollama status
-- Toggle Ollama / browser providers
-- Pick a default model when more than one is ready
-- Browse Ollama tags (when reachable) and the browser catalog stub
+- Scan WebGPU / Ollama / browser storage status
+- Pick a default model (automatic when only one is ready)
+- Toggle Ollama and browser providers
+- List Ollama models when reachable
+- Install / cancel / remove browser catalog entries (inference still Ollama-only for now)
 
-**Settings → Develop** also has an **On-device AI** harness (probe, list models, one-shot and stream prompt) over the same shell path apps use.
+**Settings → Develop** has **AI test tools** (probe, list, one-shot and stream prompt) for developers. Day-to-day setup stays on Settings → AI.
 
 ## Developer SDK sketch
 
@@ -97,11 +98,11 @@ Messaging (for implementers): `SHELLUI_AI_REQUEST` → shell → `SHELLUI_AI_RES
 ```
 App iframe
   └─ shellui.ai / LanguageModel (packages/sdk/src/ai)
-       └─ postMessage
+       └─ postMessage (privileged + trusted-frame)
             └─ AiBridge (packages/core/src/features/ai)
                  ├─ registry + adapters/
                  │    ├─ OllamaAdapter
-                 │    └─ WebLLMAdapter (catalog stub → download TODO)
+                 │    └─ WebLLMAdapter (catalog install stub; inference TODO)
                  └─ Settings → AI panel
 ```
 
@@ -109,6 +110,6 @@ Module map and notes: `packages/core/src/features/ai/README.md`.
 
 ## Related
 
-- Issue [#47](https://github.com/shellui/shellui/issues/47) - full v1 acceptance (download pipeline, playground, etc.)
+- Issue [#47](https://github.com/shellui/shellui/issues/47) - full v1 acceptance (real download pipeline, playground, etc.)
 - [SDK](/sdk) - general iframe APIs
 - [Storage](/features/storage) - similar shell-owned bridge pattern
