@@ -63,6 +63,14 @@ export type AiAdapter = {
   prompt(options: AiPromptOptions): Promise<string>;
   promptStreaming(options: AiPromptOptions): AsyncIterable<AiStreamChunk>;
   unload(modelId?: string): Promise<void>;
+  /** Optional browser/catalog download with 0–1 progress. */
+  download?(
+    modelId: string,
+    options?: { signal?: AbortSignal; onProgress?: (progress: number) => void },
+  ): Promise<void>;
+  cancelDownload?(modelId: string): void;
+  deleteInstalled?(modelId: string): Promise<void>;
+  getDownloadProgress?(modelId: string): number | null;
 };
 
 export type AiRegistryOptions = {

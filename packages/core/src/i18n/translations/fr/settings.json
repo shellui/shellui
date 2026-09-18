@@ -158,6 +158,7 @@
   },
   "ai": {
     "description": "Exécutez des modèles de langage sur cet appareil pour les applications du shell. Shellui n'envoie pas les invites à un service d'IA cloud de lui-même.",
+    "unknownError": "Une erreur s’est produite.",
     "enabled": {
       "title": "Autoriser les applications à utiliser l'IA",
       "description": "Lorsque c'est désactivé, les applications intégrées ne peuvent pas créer de sessions IA même si un modèle est prêt."
@@ -169,7 +170,11 @@
       "retry": "Réessayer",
       "refresh": "Actualiser",
       "webGpu": "WebGPU",
+      "webGpuHint": "Nécessaire pour les modèles navigateur.",
       "ollama": "Ollama",
+      "ollamaOnlineHint": "Les modèles locaux peuvent être listés.",
+      "storage": "Stockage navigateur",
+      "storageHint": "Espace pour les installations catalogue sur cet appareil.",
       "available": "Disponible",
       "unavailable": "Indisponible",
       "connected": "Connecté",
@@ -180,27 +185,34 @@
       "ollamaDisabled": "Ollama est désactivé ci-dessus."
     },
     "providers": {
-      "title": "Modèles",
+      "title": "Fournisseurs",
       "ollama": "Ollama",
       "ollamaHint": "Modèles déjà installés dans l'application Ollama sur cet ordinateur.",
       "browser": "Modèles navigateur",
-      "browserHint": "Catalogue des modèles stockés dans ce navigateur. Le téléchargement arrivera plus tard."
+      "browserHint": "Catalogue stocké dans ce profil navigateur.",
+      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites."
     },
     "defaultModel": {
       "title": "Modèle par défaut",
-      "description": "Utilisé lorsqu'une application ne choisit pas de modèle.",
+      "description": "Utilisé lorsqu'une application ne choisit pas de modèle. Choisi automatiquement s'il n'y a qu'un modèle prêt.",
       "none": "Automatique (premier modèle prêt)",
-      "empty": "Aucun modèle prêt pour l'instant. Démarrez Ollama ou activez un modèle navigateur."
+      "empty": "Aucun modèle prêt pour l'instant. Démarrez Ollama ou installez une entrée catalogue."
     },
     "models": {
       "ollama": "Modèles Ollama",
-      "ollamaEmpty": "Aucun modèle Ollama trouvé. Installez Ollama et tirez un modèle, ou activez Ollama.",
+      "ollamaEmpty": "Ollama est hors ligne. Démarrez-le, puis actualisez.",
+      "ollamaEmptyReady": "Ollama est connecté, mais aucun modèle n'est installé. Tirez-en un avec ollama pull.",
       "browser": "Catalogue navigateur",
       "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
+      "download": "Installer",
+      "cancel": "Annuler",
+      "delete": "Retirer",
+      "downloadProgress": "{{percent}} % enregistré",
+      "needsWebGpuAction": "Activez WebGPU dans ce navigateur, puis installez.",
       "status": {
         "ready": "Prêt",
-        "downloadable": "Non téléchargé",
-        "downloading": "Téléchargement",
+        "downloadable": "Non installé",
+        "downloading": "Installation",
         "needsWebGpu": "WebGPU requis",
         "unavailable": "Indisponible"
       }

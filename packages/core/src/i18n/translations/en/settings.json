@@ -158,6 +158,7 @@
   },
   "ai": {
     "description": "Run language models on this device for apps in the shell. Shellui does not send prompts to a cloud AI service on its own.",
+    "unknownError": "Something went wrong.",
     "enabled": {
       "title": "Allow apps to use AI",
       "description": "When off, embedded apps cannot create AI sessions even if a model is ready."
@@ -169,7 +170,11 @@
       "retry": "Try again",
       "refresh": "Refresh",
       "webGpu": "WebGPU",
+      "webGpuHint": "Needed for browser models.",
       "ollama": "Ollama",
+      "ollamaOnlineHint": "Local models can be listed.",
+      "storage": "Browser storage",
+      "storageHint": "Space for catalog installs on this device.",
       "available": "Available",
       "unavailable": "Not available",
       "connected": "Connected",
@@ -180,27 +185,34 @@
       "ollamaDisabled": "Ollama is turned off above."
     },
     "providers": {
-      "title": "Models",
+      "title": "Providers",
       "ollama": "Ollama",
       "ollamaHint": "Models already installed in the Ollama app on this computer.",
       "browser": "Browser models",
-      "browserHint": "Catalog for models stored in this browser. Download support comes later."
+      "browserHint": "Curated catalog stored in this browser profile.",
+      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts."
     },
     "defaultModel": {
       "title": "Default model",
-      "description": "Used when an app does not pick a model.",
+      "description": "Used when an app does not pick a model. Chosen automatically when only one model is ready.",
       "none": "Automatic (first ready model)",
-      "empty": "No ready models yet. Start Ollama or enable a browser model."
+      "empty": "No ready models yet. Start Ollama or install a browser catalog entry."
     },
     "models": {
       "ollama": "Ollama models",
-      "ollamaEmpty": "No Ollama models found. Install Ollama and pull a model, or turn Ollama on.",
+      "ollamaEmpty": "Ollama is offline. Start it, then refresh.",
+      "ollamaEmptyReady": "Ollama is connected, but no models are installed. Pull one with ollama pull.",
       "browser": "Browser catalog",
       "browserEmpty": "No browser models in the catalog.",
+      "download": "Install",
+      "cancel": "Cancel",
+      "delete": "Remove",
+      "downloadProgress": "{{percent}}% recorded",
+      "needsWebGpuAction": "Turn on WebGPU support in this browser, then install.",
       "status": {
         "ready": "Ready",
-        "downloadable": "Not downloaded",
-        "downloading": "Downloading",
+        "downloadable": "Not installed",
+        "downloading": "Installing",
         "needsWebGpu": "Needs WebGPU",
         "unavailable": "Unavailable"
       }

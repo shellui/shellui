@@ -1,19 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/button';
 import { Select } from '../../../components/ui/select';
 import { Switch } from '../../../components/ui/switch';
 import { cn } from '../../../lib/utils';
-import { createDefaultAiRegistry } from '../../ai/createRegistry';
+import { isBrowserModelInstalled } from '../../ai/browserInstallStore';
+import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
-import { ChevronDownIcon } from '../SettingsIcons';
+import { HardDriveIcon, RefreshCwIcon, SparklesIcon } from '../SettingsIcons';
 import { useSettings } from '../hooks/useSettings';
 
 type AiPanelStatus = {
   webGpu: { available: boolean; detail?: string };
   ollama: { reachable: boolean; baseUrl: string; detail?: string; latencyMs?: number };
+  storage: { available: boolean; detail?: string };
   models: AiModel[];
+};
+
+type DownloadState = {
+  modelId: string;
+  progress: number;
+  error?: string;
 };
 
 function formatBytes(bytes: number | undefined, locale: string): string | null {
@@ -28,72 +36,83 @@ function formatBytes(bytes: number | undefined, locale: string): string | null {
   return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)} ${units[unit]}`;
 }
 
-function StatusDot({ ok }: { ok: boolean }) {
+async function probeBrowserStorage(): Promise<{ available: boolean; detail?: string }> {
+  const storage = (
+    globalThis as {
+      navigator?: { storage?: { estimate?: () => Promise<{ quota?: number; usage?: number }> } };
+    }
+  ).navigator?.storage;
+  if (!storage?.estimate) {
+    return { available: false, detail: 'Browser storage estimate is unavailable.' };
+  }
+  try {
+    const estimate = await storage.estimate();
+    const quota = estimate.quota ?? 0;
+    if (quota <= 0) {
+      return { available: false, detail: 'No durable storage quota reported.' };
+    }
+    return {
+      available: true,
+      detail: `${formatBytes(estimate.usage ?? 0, 'en') ?? '0 B'} / ${formatBytes(quota, 'en')}`,
+    };
+  } catch (error) {
+    return {
+      available: false,
+      detail: error instanceof Error ? error.message : 'Storage probe failed.',
+    };
+  }
+}
+
+function StatusBadge({
+  ok,
+  okLabel,
+  badLabel,
+}: {
+  ok: boolean;
+  okLabel: string;
+  badLabel: string;
+}) {
   return (
     <span
       className={cn(
-        'mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full',
-        ok ? 'bg-emerald-500' : 'bg-muted-foreground/40',
+        'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium',
+        ok
+          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+          : 'bg-muted text-muted-foreground',
       )}
-      aria-hidden
-    />
+    >
+      {ok ? okLabel : badLabel}
+    </span>
   );
 }
 
-function modelStatusLabel(status: AiModel['status'], t: (key: string) => string): string {
-  switch (status) {
-    case 'ready':
-      return t('ai.models.status.ready');
-    case 'downloadable':
-      return t('ai.models.status.downloadable');
-    case 'downloading':
-      return t('ai.models.status.downloading');
-    case 'needs-webgpu':
-      return t('ai.models.status.needsWebGpu');
-    case 'unavailable':
-    default:
-      return t('ai.models.status.unavailable');
-  }
-}
-
-function ModelRows({
-  models,
-  locale,
-  empty,
+function ModelStatusBadge({
+  status,
   t,
 }: {
-  models: AiModel[];
-  locale: string;
-  empty: string;
+  status: AiModel['status'];
   t: (key: string) => string;
 }) {
-  if (models.length === 0) {
-    return <p className="text-sm text-muted-foreground">{empty}</p>;
-  }
-
+  const label =
+    status === 'ready'
+      ? t('ai.models.status.ready')
+      : status === 'downloadable'
+        ? t('ai.models.status.downloadable')
+        : status === 'downloading'
+          ? t('ai.models.status.downloading')
+          : status === 'needs-webgpu'
+            ? t('ai.models.status.needsWebGpu')
+            : t('ai.models.status.unavailable');
+  const tone =
+    status === 'ready'
+      ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+      : status === 'downloading'
+        ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+        : 'bg-muted text-muted-foreground';
   return (
-    <ul className="divide-y divide-border/60 rounded-md border border-border/60">
-      {models.map((model) => {
-        const size = formatBytes(model.sizeBytes, locale);
-        return (
-          <li
-            key={model.id}
-            className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm"
-          >
-            <div className="min-w-0 space-y-0.5">
-              <p className="truncate font-medium">{model.name}</p>
-              {model.description ? (
-                <p className="text-muted-foreground">{model.description}</p>
-              ) : null}
-            </div>
-            <div className="shrink-0 space-y-0.5 text-right text-muted-foreground">
-              <p>{modelStatusLabel(model.status, t)}</p>
-              {size ? <p className="tabular-nums text-xs">{size}</p> : null}
-            </div>
-          </li>
-        );
-      })}
-    </ul>
+    <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium', tone)}>
+      {label}
+    </span>
   );
 }
 
@@ -108,10 +127,12 @@ export const Ai = () => {
     browserEnabled: true,
   };
 
+  const webllm = useMemo(() => getSharedWebLLMAdapter(), []);
   const [status, setStatus] = useState<AiPanelStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [download, setDownload] = useState<DownloadState | null>(null);
+  const downloadAbortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -120,8 +141,10 @@ export const Ai = () => {
       const registry = createDefaultAiRegistry({
         ollama: { baseUrl: ai.ollamaBaseUrl ?? DEFAULT_OLLAMA_BASE_URL },
         includeWebLLM: ai.browserEnabled,
+        webllmAdapter: webllm,
+        defaultModelId: ai.defaultModelId,
       });
-      const [webGpu, ollama, models] = await Promise.all([
+      const [webGpu, ollama, storage, models] = await Promise.all([
         probeWebGpu(),
         ai.ollamaEnabled
           ? probeOllama({ baseUrl: ai.ollamaBaseUrl ?? DEFAULT_OLLAMA_BASE_URL })
@@ -130,6 +153,7 @@ export const Ai = () => {
               baseUrl: ai.ollamaBaseUrl ?? DEFAULT_OLLAMA_BASE_URL,
               detail: 'disabled',
             }),
+        probeBrowserStorage(),
         registry.listModels(),
       ]);
       const filtered = models.filter((model) => {
@@ -137,69 +161,112 @@ export const Ai = () => {
         if (model.provider === 'webllm') return ai.browserEnabled;
         return true;
       });
-      setStatus({ webGpu, ollama, models: filtered });
+      setStatus({ webGpu, ollama, storage, models: filtered });
     } catch {
       setStatus(null);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled]);
+  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, webllm]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (ai.defaultModelId || !status) return;
+    const ready = status.models.filter((model) => model.status === 'ready');
+    if (ready.length === 1) {
+      updateSetting('ai', { defaultModelId: ready[0].id });
+    }
+  }, [ai.defaultModelId, status, updateSetting]);
+
   const readyModels = (status?.models ?? []).filter((m) => m.status === 'ready');
   const ollamaModels = (status?.models ?? []).filter((m) => m.provider === 'ollama');
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
 
-  const ollamaPlainDetail =
-    status == null
-      ? null
-      : status.ollama.reachable
-        ? status.ollama.baseUrl
-        : status.ollama.detail === 'disabled'
-          ? t('ai.status.ollamaDisabled')
-          : (status.ollama.detail ?? t('ai.status.ollamaOffline'));
+  const startDownload = async (model: AiModel) => {
+    setDownload({ modelId: model.id, progress: 0 });
+    const controller = new AbortController();
+    downloadAbortRef.current = controller;
+    try {
+      await webllm.download(model.id, {
+        signal: controller.signal,
+        onProgress: (progress) => setDownload({ modelId: model.id, progress }),
+      });
+      setDownload(null);
+      await load();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setDownload(null);
+        await load();
+        return;
+      }
+      setDownload({
+        modelId: model.id,
+        progress: 0,
+        error: err instanceof Error ? err.message : t('ai.unknownError'),
+      });
+      await load();
+    } finally {
+      downloadAbortRef.current = null;
+    }
+  };
+
+  const cancelDownload = (modelId: string) => {
+    webllm.cancelDownload(modelId);
+    downloadAbortRef.current?.abort();
+    setDownload(null);
+  };
+
+  const deleteModel = async (modelId: string) => {
+    await webllm.deleteInstalled(modelId);
+    if (ai.defaultModelId === modelId) {
+      updateSetting('ai', { defaultModelId: null });
+    }
+    await load();
+  };
 
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="space-y-0.5">
-          <label
-            htmlFor="ai-enabled"
-            className="text-sm font-medium leading-none"
-            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-          >
-            {t('ai.enabled.title')}
-          </label>
-          <p className="text-sm text-muted-foreground">{t('ai.enabled.description')}</p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
+          <div className="space-y-0.5">
+            <label
+              htmlFor="ai-enabled"
+              className="text-sm font-medium leading-none"
+              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+            >
+              {t('ai.enabled.title')}
+            </label>
+            <p className="text-sm text-muted-foreground">{t('ai.enabled.description')}</p>
+          </div>
+          <Switch
+            id="ai-enabled"
+            checked={ai.enabled}
+            onCheckedChange={(checked) => updateSetting('ai', { enabled: checked })}
+          />
         </div>
-        <Switch
-          id="ai-enabled"
-          checked={ai.enabled}
-          onCheckedChange={(checked) => updateSetting('ai', { enabled: checked })}
-        />
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <label
+          <h2
             className="text-sm font-medium leading-none"
             style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
           >
             {t('ai.status.title')}
-          </label>
+          </h2>
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 text-xs"
+            className="h-8 gap-1.5 text-xs"
             disabled={loading}
             onClick={() => void load()}
           >
+            <RefreshCwIcon />
             {t('ai.status.refresh')}
           </Button>
         </div>
@@ -207,9 +274,8 @@ export const Ai = () => {
         {loading && !status ? (
           <p className="text-sm text-muted-foreground">{t('ai.status.loading')}</p>
         ) : null}
-
         {error ? (
-          <div className="space-y-3">
+          <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
             <p className="text-sm text-destructive">{t('ai.status.error')}</p>
             <Button
               variant="outline"
@@ -222,34 +288,57 @@ export const Ai = () => {
         ) : null}
 
         {status ? (
-          <div className="rounded-md border border-border/50 bg-muted/40 px-3 py-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex items-start gap-2.5">
-                <StatusDot ok={status.webGpu.available} />
-                <div className="min-w-0 space-y-0.5">
-                  <p className="text-sm font-medium leading-none">{t('ai.status.webGpu')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {status.webGpu.available
-                      ? t('ai.status.available')
-                      : t('ai.status.unavailable')}
-                  </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{t('ai.status.webGpu')}</p>
+                  <p className="text-xs text-muted-foreground">{t('ai.status.webGpuHint')}</p>
                 </div>
+                <StatusBadge
+                  ok={status.webGpu.available}
+                  okLabel={t('ai.status.available')}
+                  badLabel={t('ai.status.unavailable')}
+                />
               </div>
-              <div className="flex items-start gap-2.5">
-                <StatusDot ok={status.ollama.reachable} />
-                <div className="min-w-0 space-y-0.5">
-                  <p className="text-sm font-medium leading-none">{t('ai.status.ollama')}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {status.ollama.reachable ? t('ai.status.connected') : t('ai.status.offline')}
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{t('ai.status.ollama')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {status.ollama.reachable
+                      ? t('ai.status.ollamaOnlineHint')
+                      : t('ai.status.ollamaOffline')}
                   </p>
                 </div>
+                <StatusBadge
+                  ok={status.ollama.reachable}
+                  okLabel={t('ai.status.connected')}
+                  badLabel={t('ai.status.offline')}
+                />
+              </div>
+            </div>
+            <div className="rounded-lg border border-border/60 bg-background p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">{t('ai.status.storage')}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {status.storage.detail ?? t('ai.status.storageHint')}
+                  </p>
+                </div>
+                <StatusBadge
+                  ok={status.storage.available}
+                  okLabel={t('ai.status.available')}
+                  badLabel={t('ai.status.unavailable')}
+                />
               </div>
             </div>
           </div>
         ) : null}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-3">
         <label
           htmlFor="ai-default-model"
           className="text-sm font-medium leading-none"
@@ -283,24 +372,29 @@ export const Ai = () => {
         ) : null}
       </div>
 
-      <div className="space-y-4">
-        <label
+      <div className="space-y-3">
+        <h2
           className="text-sm font-medium leading-none"
           style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
         >
           {t('ai.providers.title')}
-        </label>
+        </h2>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <p
-                className="text-sm font-medium leading-none"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {t('ai.providers.ollama')}
-              </p>
-              <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
+        <section className="space-y-3 rounded-lg border border-border/60 bg-background p-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <HardDriveIcon />
+              </div>
+              <div className="space-y-1">
+                <p
+                  className="text-sm font-medium leading-none"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
+                  {t('ai.providers.ollama')}
+                </p>
+                <p className="text-sm text-muted-foreground">{t('ai.providers.ollamaHint')}</p>
+              </div>
             </div>
             <Switch
               checked={ai.ollamaEnabled}
@@ -308,80 +402,178 @@ export const Ai = () => {
             />
           </div>
           {ai.ollamaEnabled ? (
-            <ModelRows
-              models={ollamaModels}
-              locale={locale}
-              empty={t('ai.models.ollamaEmpty')}
-              t={t}
-            />
-          ) : null}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="space-y-0.5">
-              <p
-                className="text-sm font-medium leading-none"
-                style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-              >
-                {t('ai.providers.browser')}
+            ollamaModels.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
+                {status?.ollama.reachable
+                  ? t('ai.models.ollamaEmptyReady')
+                  : t('ai.models.ollamaEmpty')}
               </p>
-              <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
+            ) : (
+              <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                {ollamaModels.map((model) => (
+                  <li
+                    key={model.id}
+                    className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate text-sm font-medium">{model.name}</p>
+                      {model.description ? (
+                        <p className="text-xs text-muted-foreground">{model.description}</p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {formatBytes(model.sizeBytes, locale) ? (
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {formatBytes(model.sizeBytes, locale)}
+                        </span>
+                      ) : null}
+                      <ModelStatusBadge
+                        status={model.status}
+                        t={t}
+                      />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : null}
+        </section>
+
+        <section className="space-y-3 rounded-lg border border-border/60 bg-background p-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <SparklesIcon />
+              </div>
+              <div className="space-y-1">
+                <p
+                  className="text-sm font-medium leading-none"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
+                  {t('ai.providers.browser')}
+                </p>
+                <p className="text-sm text-muted-foreground">{t('ai.providers.browserHint')}</p>
+              </div>
             </div>
             <Switch
               checked={ai.browserEnabled}
               onCheckedChange={(checked) => updateSetting('ai', { browserEnabled: checked })}
             />
           </div>
+          <p className="text-xs text-muted-foreground">{t('ai.providers.browserStubNote')}</p>
           {ai.browserEnabled ? (
-            <ModelRows
-              models={browserModels}
-              locale={locale}
-              empty={t('ai.models.browserEmpty')}
-              t={t}
-            />
+            browserModels.length === 0 ? (
+              <p className="rounded-md border border-dashed border-border/70 px-3 py-3 text-sm text-muted-foreground">
+                {t('ai.models.browserEmpty')}
+              </p>
+            ) : (
+              <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                {browserModels.map((model) => {
+                  const size = formatBytes(model.sizeBytes, locale);
+                  const isDownloading = download?.modelId === model.id;
+                  const progress = isDownloading
+                    ? download.progress
+                    : (webllm.getDownloadProgress(model.id) ?? null);
+                  const installed = isBrowserModelInstalled(model.id);
+                  const canDownload = !installed && model.status !== 'downloading';
+                  return (
+                    <li
+                      key={model.id}
+                      className="space-y-2 px-3 py-2.5"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <p className="truncate text-sm font-medium">{model.name}</p>
+                          {model.description ? (
+                            <p className="text-xs text-muted-foreground">{model.description}</p>
+                          ) : null}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {size ? (
+                            <span className="text-xs tabular-nums text-muted-foreground">
+                              {size}
+                            </span>
+                          ) : null}
+                          <ModelStatusBadge
+                            status={isDownloading ? 'downloading' : model.status}
+                            t={t}
+                          />
+                        </div>
+                      </div>
+
+                      {isDownloading || progress != null ? (
+                        <div className="space-y-2">
+                          <div
+                            className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                            role="progressbar"
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={Math.round((progress ?? 0) * 100)}
+                          >
+                            <div
+                              className="h-full rounded-full bg-primary transition-[width]"
+                              style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {t('ai.models.downloadProgress', {
+                                percent: Math.round((progress ?? 0) * 100),
+                              })}
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => cancelDownload(model.id)}
+                            >
+                              {t('ai.models.cancel')}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {canDownload ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              disabled={!status?.webGpu.available}
+                              onClick={() => void startDownload(model)}
+                            >
+                              {t('ai.models.download')}
+                            </Button>
+                          ) : null}
+                          {installed ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-destructive"
+                              onClick={() => void deleteModel(model.id)}
+                            >
+                              {t('ai.models.delete')}
+                            </Button>
+                          ) : null}
+                        </div>
+                      )}
+                      {download?.modelId === model.id && download.error ? (
+                        <p className="text-xs text-destructive">{download.error}</p>
+                      ) : null}
+                      {!status?.webGpu.available && canDownload ? (
+                        <p className="text-xs text-muted-foreground">
+                          {t('ai.models.needsWebGpuAction')}
+                        </p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            )
           ) : null}
-        </div>
+        </section>
       </div>
 
-      <div className="rounded-md border border-border/60">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
-          aria-expanded={detailsOpen}
-          onClick={() => setDetailsOpen((open) => !open)}
-        >
-          <span
-            className="text-sm font-medium"
-            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-          >
-            {t('ai.details.title')}
-          </span>
-          <ChevronDownIcon
-            className={cn(
-              'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-              detailsOpen && 'rotate-180',
-            )}
-          />
-        </button>
-        {detailsOpen ? (
-          <div className="space-y-2 border-t border-border/60 px-3 py-3 text-sm text-muted-foreground">
-            <p>{t('ai.footnote')}</p>
-            {status?.webGpu.detail ? (
-              <p>
-                {t('ai.details.webGpuDetail')}: {status.webGpu.detail}
-              </p>
-            ) : null}
-            {ollamaPlainDetail ? (
-              <p>
-                {t('ai.details.ollamaDetail')}: {ollamaPlainDetail}
-                {status?.ollama.latencyMs != null ? ` (${status.ollama.latencyMs} ms)` : null}
-              </p>
-            ) : null}
-            {!status?.webGpu.detail && !ollamaPlainDetail ? <p>{t('ai.details.empty')}</p> : null}
-          </div>
-        ) : null}
-      </div>
+      <p className="text-xs text-muted-foreground">{t('ai.footnote')}</p>
     </div>
   );
 };

@@ -8,13 +8,25 @@ export type CreateDefaultAiRegistryOptions = {
   /** When false, skip registering the WebLLM stub (tests). Default true. */
   includeWebLLM?: boolean;
   defaultModelId?: string | null;
+  /** Inject a WebLLM adapter (Settings keeps one instance for download progress). */
+  webllmAdapter?: WebLLMAdapter;
 };
+
+let sharedWebLLMAdapter: WebLLMAdapter | null = null;
+
+/** Shared browser adapter so Settings download progress survives remounts. */
+export function getSharedWebLLMAdapter(): WebLLMAdapter {
+  if (!sharedWebLLMAdapter) {
+    sharedWebLLMAdapter = new WebLLMAdapter();
+  }
+  return sharedWebLLMAdapter;
+}
 
 /** Shell entry: Ollama + WebLLM stub behind one registry. */
 export function createDefaultAiRegistry(options: CreateDefaultAiRegistryOptions = {}): AiRegistry {
   const adapters = [
     new OllamaAdapter(options.ollama ?? { baseUrl: DEFAULT_OLLAMA_BASE_URL }),
-    ...(options.includeWebLLM === false ? [] : [new WebLLMAdapter()]),
+    ...(options.includeWebLLM === false ? [] : [options.webllmAdapter ?? getSharedWebLLMAdapter()]),
   ];
   return new AiRegistry({
     adapters,
