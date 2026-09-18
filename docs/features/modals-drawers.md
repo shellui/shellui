@@ -139,6 +139,15 @@ Overlay chrome uses existing design tokens. Light and dark apply without hardcod
 
 Do not nest overlays. When you disable Escape or backdrop click, document how to dismiss. Types: `OpenModalOptions`, `OpenDrawerOptions` from `@shellui/sdk`.
 
+## Modal URL validation
+
+`shellui.openModal` and navigation items with `openIn: 'modal'` pass iframe URLs through the same allowlist as the host (`validateAndNormalizeUrl`):
+
+- **Development builds** — loopback origins (`localhost`, `127.0.0.1`, `::1`) are allowed so companions on `http://localhost:5173` work during `shellui start`.
+- **Production builds** — loopback modal URLs are **rejected** unless the origin matches the shell (same-origin relative paths resolve to the host), `backend.url` / `backend.loginUrl`, `storage.url` / `storage.filesUrl`, or a configured administration / admin panel URL.
+
+Untrusted absolute URLs fail closed (the modal does not load the iframe). Use same-origin paths or explicitly configured service origins in shipped builds.
+
 ## Related pages
 
 - [Navigation](/features/navigation), [Toasts](/features/toasts), [Dialogs](/features/dialogs), [SDK](/sdk)
