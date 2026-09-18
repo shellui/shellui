@@ -1,5 +1,6 @@
 import { shellui } from '../index.js';
 import { generateUuid } from '../utils/uuid.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 import type {
   StorageSelectMode,
   StorageSelectOptions,
@@ -13,11 +14,7 @@ function postSelectMessage(payload: StorageSelectRequestPayload): void {
     type: 'SHELLUI_SELECT_STORAGE',
     payload,
   };
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-    return;
-  }
-  window.postMessage(message, '*');
+  postShellMessage(message);
 }
 
 function normalizeMode(options: StorageSelectOptions = {}): StorageSelectMode {

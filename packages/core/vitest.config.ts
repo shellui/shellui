@@ -23,6 +23,7 @@ export default defineConfig({
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       'src/features/chromeActions/**/*.spec.ts',
+      'src/features/messaging/**/*.spec.ts',
       '../sdk/src/**/*.spec.ts',
     ],
   },
