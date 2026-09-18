@@ -43,4 +43,44 @@ describe('deriveAllowedMessageOrigins', () => {
     expect(origins).toContain('https://files.example.com');
     expect(origins).toContain('https://storage.example.com');
   });
+
+  it('unions security.allowedMessageOrigins with derived origins', () => {
+    const config = {
+      navigation: [{ label: 'App', path: 'app', url: 'http://localhost:3000/' }],
+      security: {
+        allowedMessageOrigins: ['https://preview.example.com', 'http://127.0.0.1:4173/preview/'],
+      },
+    } as ShellUIConfig;
+
+    const origins = deriveAllowedMessageOrigins(config);
+    expect(origins).toContain('http://localhost:3000');
+    expect(origins).toContain('https://preview.example.com');
+    expect(origins).toContain('http://127.0.0.1:4173');
+  });
+
+  it('keeps derive-only behavior when security.allowedMessageOrigins is empty or omitted', () => {
+    const base = {
+      navigation: [{ label: 'App', path: 'app', url: 'http://localhost:3000/' }],
+    } as ShellUIConfig;
+
+    const derivedOnly = deriveAllowedMessageOrigins(base);
+    expect(derivedOnly).toContain('http://localhost:3000');
+    expect(
+      deriveAllowedMessageOrigins({ ...base, security: { allowedMessageOrigins: [] } }),
+    ).toEqual(derivedOnly);
+  });
+
+  it('skips invalid security.allowedMessageOrigins entries without throwing', () => {
+    const config = {
+      navigation: [{ label: 'App', path: 'app', url: 'http://localhost:3000/' }],
+      security: {
+        allowedMessageOrigins: ['https://preview.example.com', 'javascript:alert(1)', '', 42],
+      },
+    } as unknown as ShellUIConfig;
+
+    const origins = deriveAllowedMessageOrigins(config);
+    expect(origins).toContain('http://localhost:3000');
+    expect(origins).toContain('https://preview.example.com');
+    expect(origins).not.toContain('javascript:alert(1)');
+  });
 });

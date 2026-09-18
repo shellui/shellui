@@ -1,6 +1,45 @@
-import { collectOriginsFromUrls } from '@shellui/sdk';
+import { collectOriginsFromUrls, getLogger } from '@shellui/sdk';
 import { getAdminContentUrl } from '../admin/config';
 import type { ShellUIConfig } from '../config/types';
+
+const logger = getLogger('shellcore');
+
+function collectConfiguredMessageOrigins(config?: ShellUIConfig | null): string[] {
+  const raw = config?.security?.allowedMessageOrigins;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return [];
+  }
+
+  const valid = new Set<string>();
+  const invalid: string[] = [];
+
+  for (const entry of raw) {
+    if (typeof entry !== 'string') {
+      invalid.push(String(entry));
+      continue;
+    }
+    const trimmed = entry.trim();
+    if (!trimmed) {
+      invalid.push(entry);
+      continue;
+    }
+    const [origin] = collectOriginsFromUrls(trimmed);
+    if (origin) {
+      valid.add(origin);
+    } else {
+      invalid.push(trimmed);
+    }
+  }
+
+  if (invalid.length > 0) {
+    logger.warn(
+      'Ignoring invalid security.allowedMessageOrigins entries (expected http(s) origins or URLs)',
+      { invalid },
+    );
+  }
+
+  return [...valid];
+}
 
 /** Origins permitted for inbound/outbound Shellui postMessage traffic on this host. */
 export function deriveAllowedMessageOrigins(config?: ShellUIConfig | null): string[] {
@@ -29,5 +68,7 @@ export function deriveAllowedMessageOrigins(config?: ShellUIConfig | null): stri
     }
   }
 
-  return collectOriginsFromUrls(...urls);
+  const derived = collectOriginsFromUrls(...urls);
+  const configured = collectConfiguredMessageOrigins(config);
+  return [...new Set([...derived, ...configured])];
 }

@@ -22,7 +22,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🔒 Security
 
-- **postMessage hardening (H-06 / M-13 / M-14):** inbound `SHELLUI_*` messages now require an allowed origin and a trusted source (registered iframe, parent shell, or same-window). Privileged companion commands (`SHELLUI_LOGIN` / `LOGOUT`, modal/drawer, toast/dialog, chrome actions, etc.) reject unregistered frames. Outbound SDK and shell replies use concrete target origins instead of `'*'`. Host apps can extend the allowlist via `shellui.configureMessageSecurity({ allowedOrigins: [...] })` or `shellui.init({ allowedMessageOrigins: [...] })`; the Shellui host auto-derives companion origins from `shellui.config.json` navigation and storage URLs.
+- **postMessage hardening (H-06 / M-13 / M-14):** inbound `SHELLUI_*` messages now require an allowed origin and a trusted source (registered iframe, parent shell, or same-window). Privileged companion commands (`SHELLUI_LOGIN` / `LOGOUT`, modal/drawer, toast/dialog, chrome actions, etc.) reject unregistered frames. Outbound SDK and shell replies use concrete target origins instead of `'*'`. The Shellui host auto-derives companion origins from `shellui.config.json` navigation and storage URLs, plus optional `security.allowedMessageOrigins` for manual extras (preview/staging hosts, etc.). Standalone SDK embeds can still use `shellui.configureMessageSecurity({ allowedOrigins: [...] })` or `shellui.init({ allowedMessageOrigins: [...] })`.
 
 ### 🐛 Bug Fixes
 

@@ -88,7 +88,7 @@ shellui.actions.set({
 
 ## Message security
 
-`SHELLUI_ACTIONS_SET` / `CLEAR` follow the shared Shellui messaging policy: outbound posts target the parent shell origin, and inbound privileged messages require an allowed origin plus a registered iframe (or same-window Settings → Develop). See [SDK messaging](/sdk#host-chrome-from-the-iframe) for `allowedMessageOrigins` / `configureMessageSecurity`.
+`SHELLUI_ACTIONS_SET` / `CLEAR` follow the shared Shellui messaging policy: outbound posts target the parent shell origin, and inbound privileged messages require an allowed origin plus a registered iframe (or same-window Settings → Develop). Host apps: add extras in `shellui.config.json` under `security.allowedMessageOrigins`. See [SDK messaging](/sdk#host-chrome-from-the-iframe).
 
 ## Try it locally
 

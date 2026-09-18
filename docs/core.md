@@ -35,7 +35,7 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-`ShellUIConfig` includes `port`, `title`, `version`, `favicon`, `appIcon`, `logo`, `language`, `layout`, `start_url`, `navigation`, `administration`, `storage`, `hosting`, theme fields, `sentry`, `backend`, `cookieConsent`, `legalDocuments`, and CLI-only `dev`. Item-level fields such as `requiresAuth` and `openIn` live on `NavigationItem`. Prefer the JSON schema at `@shellui/core/schemas/shellui.config.schema.json` over copying a partial interface into docs.
+`ShellUIConfig` includes `port`, `title`, `version`, `favicon`, `appIcon`, `logo`, `language`, `layout`, `start_url`, `navigation`, `administration`, `storage`, `hosting`, theme fields, `sentry`, `backend`, `cookieConsent`, `legalDocuments`, `security` (e.g. `allowedMessageOrigins` for postMessage allowlist extras), and CLI-only `dev`. Item-level fields such as `requiresAuth` and `openIn` live on `NavigationItem`. Prefer the JSON schema at `@shellui/core/schemas/shellui.config.schema.json` over copying a partial interface into docs.
 
 Subpath exports:
 

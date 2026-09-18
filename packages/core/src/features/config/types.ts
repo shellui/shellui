@@ -141,6 +141,17 @@ export interface LegalDocumentsConfig {
   dataProcessingAgreement?: string;
 }
 
+/**
+ * Host security options. Additive namespace for postMessage, CSP, BFF auth, etc.
+ */
+export interface SecurityConfig {
+  /**
+   * Extra http(s) origins (or absolute URLs) allowed for Shellui postMessage traffic.
+   * Unioned with origins derived from navigation, storage, and admin URLs.
+   */
+  allowedMessageOrigins?: string[];
+}
+
 /** Supported backend providers for auth/API communication. */
 export type BackendType = 'shellui' | 'supabase';
 
@@ -327,6 +338,8 @@ export interface ShellUIConfig {
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
   legalDocuments?: LegalDocumentsConfig;
+  /** Host security settings (postMessage allowlist extras, etc.). */
+  security?: SecurityConfig;
   /**
    * CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`.
    * Stripped before the config is sent to the browser.
