@@ -35,6 +35,7 @@ import { cn } from '../../lib/utils';
 import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
 import { shouldShowStorageSettings } from './utils/shouldShowStorageSettings';
+import { isAiFeatureEnabled } from '../ai/isAiFeatureEnabled';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -85,12 +86,15 @@ export const SettingsView = () => {
     if (getLegalDocuments(config).length === 0) {
       routes = routes.filter((route) => route.path !== 'legal-documents');
     }
-    const aiEnabled = settings.ai?.enabled !== false;
+    if (!isAiFeatureEnabled(config)) {
+      routes = routes.filter((route) => route.path !== 'ai');
+    }
+    const aiEnabledForStorage = isAiFeatureEnabled(config) && settings.ai?.enabled !== false;
     if (
       !shouldShowStorageSettings({
         config,
         isAuthenticated,
-        aiEnabled,
+        aiEnabled: aiEnabledForStorage,
       })
     ) {
       routes = routes.filter((route) => route.path !== 'storage');

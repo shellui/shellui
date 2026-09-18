@@ -7,14 +7,16 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 ### ✨ Feature
 
 - **WebLLM browser engine:** Settings → AI **Install** fetches curated MLC/WebLLM catalog weights via `@mlc-ai/web-llm` (Hugging Face URLs from WebLLM’s prebuilt library), runs inference in a dedicated Web Worker, and marks models ready for `shellui.ai.languageModel` prompt/streaming immediately after install. Refs #47.
+- **Config AI kill-switch:** `shellui.config` `"ai": { "enabled": false }` (default **true**) hides Settings → AI, skips the full AiBridge, answers SDK AI with `unavailable` / `ai_disabled`, and never loads the WebLLM chunk/worker. Distinct from Settings → AI “Allow apps to use AI”.
 
 ### 🛠 Improvements
 
 - **Shared transfer toaster:** storage uploads and AI model downloads share `TransferToaster` / `transferQueue` progress UI (accurate engine progress; downloads continue after leaving Settings).
+- **Lazy WebLLM:** `@mlc-ai/web-llm` is dynamically imported only on first browser Install/load; opening Settings → AI alone does not fetch the library. `AiBridge` itself is lazy-loaded when config AI is enabled.
 
 ### 📚 Documentation
 
-- Update on-device AI docs for the real WebLLM install / worker / toaster path.
+- Update on-device AI docs for the real WebLLM install / worker / toaster path and config vs Settings disable.
 
 <!---
 ## [Unreleased] - yyyy-mm-dd

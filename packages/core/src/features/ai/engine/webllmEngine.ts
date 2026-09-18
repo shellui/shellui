@@ -59,6 +59,10 @@ function toLocalId(modelId: string): string {
 
 const defaultLoadModule: LoadWebLLMModule = () => import('@mlc-ai/web-llm');
 
+/**
+ * Spawn the dedicated worker only at install/load time (never on module import).
+ * The worker entry statically imports WebLLM; constructing it is what pulls that chunk.
+ */
 const defaultCreateWorker: CreateWorkerFn = () =>
   new Worker(new URL('./webllm.worker.ts', import.meta.url), {
     type: 'module',

@@ -6,7 +6,37 @@ description: 'Settings → AI, Ollama and browser models, and shellui.ai Prompt 
 
 Shellui can run language models **on the user's device** so every embedded app shares one install and one GPU session. Apps never talk to Ollama or WebGPU directly - they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.
 
-Local AI ships as a **default core feature**. You do not install a separate AI package. Turn providers on or off in **Settings → AI**.
+Local AI ships as a **default core feature**. You do not install a separate AI package. Turn providers on or off in **Settings → AI**, or disable the whole product in config (see below).
+
+## Disable AI entirely (config kill-switch)
+
+In `shellui.config.json` (default is **enabled** when omitted):
+
+```json
+{
+  "ai": {
+    "enabled": false
+  }
+}
+```
+
+When `ai.enabled` is `false`:
+
+- Settings → AI is hidden
+- Develop AI test tools are hidden
+- The full `AiBridge` is not mounted (a tiny responder answers `shellui.ai` with `unavailable` / `ai_disabled` so apps do not hang)
+- `@mlc-ai/web-llm` is never imported and the WebLLM worker is never started
+- Storage nav is **not** shown solely for local AI disk usage
+
+This is separate from the in-app **Settings → AI → Allow apps to use AI** toggle, which soft-disables inference while keeping the AI settings panel available (when the config feature is on).
+
+## Lazy loading (when AI is enabled in config)
+
+Even with config AI on:
+
+- Opening Settings → AI lists the catalog and probes WebGPU / Ollama **without** downloading the WebLLM library
+- `@mlc-ai/web-llm` is loaded via dynamic `import()` only on first browser-model **Install** or **load** (and best-effort on delete cache wipe)
+- The dedicated Web Worker is constructed only at that same time
 
 ## What you install or download
 

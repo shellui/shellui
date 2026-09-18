@@ -167,6 +167,22 @@ describe('WebLLMAdapter + engine', () => {
     expect(isBrowserModelInstalled('Llama-3.2-1B-Instruct-q4f16_1-MLC')).toBe(false);
   });
 
+  it('does not import WebLLM until install', async () => {
+    const loadModule = vi.fn(async () => createFakeWebLLMModule() as never);
+    const lazyEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule,
+      createWorker: fakeWorker,
+    });
+    expect(loadModule).not.toHaveBeenCalled();
+    const adapter = new WebLLMAdapter({ engine: lazyEngine });
+    await adapter.listModels();
+    expect(loadModule).not.toHaveBeenCalled();
+    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    expect(loadModule).toHaveBeenCalledTimes(1);
+    await lazyEngine.resetForTests();
+  });
+
   it('refuses prompt when the model is not installed', async () => {
     const adapter = new WebLLMAdapter({ engine });
     removeBrowserModelInstalled('Llama-3.2-1B-Instruct-q4f16_1-MLC');

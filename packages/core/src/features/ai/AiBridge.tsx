@@ -41,6 +41,8 @@ export const AiBridge = () => {
   const registry = useMemo(
     () => createShellAiRegistry(settings),
     // Rebuild when provider toggles / base URL / default change.
+    // Listing models / opening Settings must not import @mlc-ai/web-llm —
+    // that happens only inside WebLLMEngineService install/load/delete.
     [
       settings.ai?.ollamaBaseUrl,
       settings.ai?.ollamaEnabled,

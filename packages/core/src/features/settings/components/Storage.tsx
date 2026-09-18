@@ -7,6 +7,7 @@ import {
 } from '../../ai/browserInstallStore';
 import { BROWSER_MODEL_CATALOG } from '../../ai/catalog';
 import { useAuth } from '../../auth/hooks/useAuth';
+import { isAiFeatureEnabled } from '../../ai/isAiFeatureEnabled';
 import { useConfig } from '../../config/useConfig';
 import {
   fetchStorageQuota,
@@ -200,7 +201,7 @@ export const Storage = () => {
   const { session, isAuthenticated } = useAuth();
   const storageBaseUrl = getStorageBaseUrl(config);
   const accessToken = session?.accessToken ?? null;
-  const aiEnabled = settings.ai?.enabled !== false;
+  const aiEnabled = isAiFeatureEnabled(config) && settings.ai?.enabled !== false;
   const remoteConfigured = isStorageSettingsEnabled(config);
   const showRemoteQuota = remoteConfigured && isAuthenticated && Boolean(accessToken);
   const showLocalAi = aiEnabled;
