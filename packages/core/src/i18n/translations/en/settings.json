@@ -15,7 +15,6 @@
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
     "storage": "Storage",
-    "ai": "AI",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
@@ -146,7 +145,6 @@
   },
   "storage": {
     "description": "See how much of your storage quota is in use.",
-    "remoteTitle": "File storage",
     "yourUsage": "Your usage",
     "organization": "Organization",
     "noPersonalLimit": "No personal limit. Your files count toward the organization quota.",
@@ -155,88 +153,7 @@
     "signInRequired": "Sign in to see your storage usage.",
     "loading": "Loading storage usage…",
     "error": "Unable to load storage usage.",
-    "retry": "Try again",
-    "aiModels": {
-      "title": "Local AI models",
-      "description": "Browser and catalog usage for on-device models. Catalog sizes are estimates until real weights are stored.",
-      "originUsage": "This browser origin",
-      "originHint": "Total space this site reports via the browser storage API (includes more than AI).",
-      "catalogEstimate": "Installed catalog estimate",
-      "catalogEstimateHint": "Sum of listed model sizes for catalog entries marked installed. Not exact disk use until downloads store real weights.",
-      "catalogUsed": "{{used}} estimated · {{count}} installed",
-      "noneInstalled": "No browser catalog models are installed yet.",
-      "estimateUnavailable": "Browser storage estimate is unavailable.",
-      "loading": "Checking local storage…"
-    }
-  },
-  "ai": {
-    "description": "On-device models for apps in this shell. Nothing is sent to a cloud AI service from Shellui itself.",
-    "unknownError": "Something went wrong.",
-    "enabled": {
-      "title": "Allow apps to use AI",
-      "description": "Apps cannot open AI sessions while this is off."
-    },
-    "status": {
-      "title": "Status",
-      "loading": "Checking status…",
-      "error": "Unable to check AI status.",
-      "retry": "Try again",
-      "refresh": "Refresh",
-      "webGpu": "WebGPU",
-      "webGpuHint": "Required for browser models",
-      "ollama": "Ollama",
-      "ollamaOnlineHint": "Ready to list local models",
-      "storage": "Browser storage",
-      "storageHint": "Holds catalog installs on this device",
-      "available": "Available",
-      "unavailable": "Not available",
-      "connected": "Connected",
-      "offline": "Offline",
-      "reachable": "Connected",
-      "notReachable": "Offline",
-      "ollamaOffline": "Start Ollama, then refresh",
-      "ollamaDisabled": "Ollama is turned off above."
-    },
-    "providers": {
-      "title": "Providers",
-      "ollama": "Ollama",
-      "ollamaHint": "Models already on this computer via the Ollama app.",
-      "browser": "Browser models",
-      "browserHint": "Catalog installs stay in this browser. Inference is not wired yet; use Ollama for prompts.",
-      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts."
-    },
-    "defaultModel": {
-      "title": "Default model",
-      "description": "Used when an app does not choose one.",
-      "none": "Automatic (first ready model)",
-      "empty": "No ready models yet. Start Ollama or install a catalog entry."
-    },
-    "models": {
-      "ollama": "Ollama models",
-      "ollamaEmpty": "Ollama is offline. Start it, then refresh.",
-      "ollamaEmptyReady": "Connected, but no models yet. Run ollama pull.",
-      "browser": "Browser catalog",
-      "browserEmpty": "No browser models in the catalog.",
-      "download": "Install",
-      "cancel": "Cancel",
-      "delete": "Remove",
-      "downloadProgress": "{{percent}}%",
-      "needsWebGpuAction": "This browser needs WebGPU before catalog installs.",
-      "status": {
-        "ready": "Ready",
-        "downloadable": "Not installed",
-        "downloading": "Installing",
-        "needsWebGpu": "Needs WebGPU",
-        "unavailable": "Unavailable"
-      }
-    },
-    "details": {
-      "title": "Details",
-      "webGpuDetail": "WebGPU",
-      "ollamaDetail": "Ollama",
-      "empty": "No extra probe details right now."
-    },
-    "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
+    "retry": "Try again"
   },
   "dataPrivacy": {
     "title": "Data Privacy",
@@ -554,37 +471,6 @@
           "openDrawer": "Open demo (drawer iframe)",
           "close": "Close demo"
         }
-      },
-      "ai": {
-        "title": "AI test tools",
-        "description": "Developer probes over the same shell AI path as apps. Day-to-day setup lives in Settings → AI.",
-        "webGpu": "WebGPU",
-        "ollama": "Ollama",
-        "defaultModel": "Default model",
-        "adapters": "Registered adapters",
-        "aiEnabled": "Apps allowed to use AI",
-        "yes": "Yes",
-        "no": "No",
-        "none": "None",
-        "loading": "Checking…",
-        "unknownError": "Something went wrong.",
-        "promptHint": "Prompt test sends: “Reply with exactly: pong”.",
-        "buttons": {
-          "refresh": "Refresh status",
-          "listModels": "List models",
-          "prompt": "Run prompt test",
-          "stream": "Run stream test",
-          "clear": "Clear log"
-        },
-        "logRefreshed": "Status refreshed.",
-        "logNoModels": "No models found (start Ollama or enable a browser model).",
-        "logModels": "Models: {{list}}",
-        "logPromptResult": "Prompt via {{model}}: {{text}}",
-        "logPromptError": "Prompt failed: {{message}}",
-        "logStreamStart": "Streaming…",
-        "logStreamChunk": "chunk: {{chunk}}",
-        "logStreamDone": "Stream via {{model}} done: {{text}}",
-        "logStreamError": "Stream failed: {{message}}"
       }
     }
   }

@@ -8,7 +8,6 @@ import {
   PackageIcon,
   RefreshDoubleIcon,
   HardDriveIcon,
-  SparklesIcon,
 } from './SettingsIcons';
 import { Appearance } from './components/Appearance';
 import { LanguageAndRegion } from './components/LanguageAndRegion';
@@ -19,7 +18,6 @@ import { DataPrivacy } from './components/DataPrivacy';
 import { ServiceWorker } from './components/ServiceWorker';
 import { LegalDocumentsPanel } from './components/LegalDocumentsPanel';
 import { Storage } from './components/Storage';
-import { Ai } from './components/Ai';
 import { isTauri } from '../../service-worker/register';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
@@ -40,12 +38,6 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     icon: ShieldIcon,
     path: 'data-privacy',
     element: <DataPrivacy />,
-  },
-  {
-    name: t('routes.ai'),
-    icon: SparklesIcon,
-    path: 'ai',
-    element: <Ai />,
   },
   {
     name: t('routes.storage'),

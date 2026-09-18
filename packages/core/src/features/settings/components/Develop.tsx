@@ -16,7 +16,6 @@ import { DialogTestButtons } from './develop/DialogTestButtons';
 import { ModalTestButtons } from './develop/ModalTestButtons';
 import { DrawerTestButtons } from './develop/DrawerTestButtons';
 import { StoragePickerTestButtons } from './develop/StoragePickerTestButtons';
-import { AiTestTools } from './develop/AiTestTools';
 import { ChromeActionsTestButtons } from './develop/ChromeActionsTestButtons';
 import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
@@ -234,7 +233,6 @@ export const Develop = () => {
           <DrawerTestButtons />
           <StoragePickerTestButtons />
           <ChromeActionsTestButtons />
-          <AiTestTools />
           {errorReportingConfigured && (
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

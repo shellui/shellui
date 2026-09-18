@@ -1193,29 +1193,6 @@ html.shellui-theme-switching
   }
 }
 
-/* Settings → AI: collapse detail when the master switch is off. */
-[data-shellui-ai-details] {
-  display: grid;
-  grid-template-rows: 0fr;
-  opacity: 0;
-  transition:
-    grid-template-rows 280ms ease,
-    opacity 200ms ease;
-}
-[data-shellui-ai-details='open'] {
-  grid-template-rows: 1fr;
-  opacity: 1;
-}
-[data-shellui-ai-details] > [data-shellui-ai-details-inner] {
-  min-height: 0;
-  overflow: hidden;
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-shellui-ai-details] {
-    transition: none;
-  }
-}
-
 /* Auth account dropdown menu animation (LoginButton) */
 @keyframes auth-menu-in {
   from {

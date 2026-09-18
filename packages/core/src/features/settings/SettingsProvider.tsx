@@ -1,12 +1,4 @@
-import {
-  useRef,
-  useState,
-  useEffect,
-  useLayoutEffect,
-  useCallback,
-  useMemo,
-  type ReactNode,
-} from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import {
   getLogger,
   shellui,
@@ -78,12 +70,6 @@ const defaultSettings: Settings = {
   },
   serviceWorker: {
     enabled: false,
-  },
-  ai: {
-    enabled: true,
-    defaultModelId: null,
-    ollamaEnabled: true,
-    browserEnabled: true,
   },
   user: null,
   accessToken: null,
@@ -164,16 +150,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             serviceWorker: {
               // Migrate from legacy "caching" key if present; default off for new installs
               enabled: parsed.serviceWorker?.enabled ?? parsed.caching?.enabled ?? false,
-            },
-            ai: {
-              enabled: parsed.ai?.enabled ?? defaultSettings.ai.enabled,
-              defaultModelId:
-                parsed.ai?.defaultModelId !== undefined
-                  ? parsed.ai.defaultModelId
-                  : defaultSettings.ai.defaultModelId,
-              ollamaEnabled: parsed.ai?.ollamaEnabled ?? defaultSettings.ai.ollamaEnabled,
-              browserEnabled: parsed.ai?.browserEnabled ?? defaultSettings.ai.browserEnabled,
-              ollamaBaseUrl: parsed.ai?.ollamaBaseUrl ?? defaultSettings.ai.ollamaBaseUrl,
             },
             user: parsed.user ?? null,
             accessToken: null,
@@ -412,9 +388,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [authUser, config]);
 
-  // Listen for settings updates from parent/other nodes.
-  // useLayoutEffect so SETTINGS_REQUESTED handlers exist before companion paint races.
-  useLayoutEffect(() => {
+  // Listen for settings updates from parent/other nodes
+  useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }

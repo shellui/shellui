@@ -77,21 +77,3 @@ export function getStorageRequestTrustDenial(
   }
   return null;
 }
-
-export type AiTrustDenial = { message: string; code: 'untrusted_frame' };
-
-/**
- * Returns an AI error when the request sender is missing from the frame
- * registry or fails the trusted-frame policy (same opt-in as JWT / storage).
- */
-export function getAiRequestTrustDenial(
-  from: string[] | undefined,
-  frameRegistry: FrameRegistryLike,
-  config?: ShellUIConfig,
-): AiTrustDenial | null {
-  const frameSrc = resolveRegisteredFrameSrc(from, frameRegistry);
-  if (!isRegisteredTrustedFrame(frameSrc, config)) {
-    return { message: 'AI request rejected: untrusted frame', code: 'untrusted_frame' };
-  }
-  return null;
-}

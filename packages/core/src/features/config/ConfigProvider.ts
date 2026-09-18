@@ -1,8 +1,7 @@
 import { createContext, useState, createElement, type ReactNode } from 'react';
-import { getLogger, shellui } from '@shellui/sdk';
+import { getLogger } from '@shellui/sdk';
 import type { ShellUIConfig } from './types';
 import shelluiConfig from '@shellui/config';
-import { deriveAllowedMessageOrigins } from '../messaging/deriveAllowedMessageOrigins';
 
 const logger = getLogger('shellcore');
 
@@ -30,13 +29,6 @@ export function ConfigProvider(props: ConfigProviderProps): ReturnType<typeof cr
       const resolved = shelluiConfig ?? ({} as ShellUIConfig);
       if (typeof window !== 'undefined' && __SHELLUI_TARGET__ === 'tauri') {
         (window as Window & { __SHELLUI_TAURI__?: boolean }).__SHELLUI_TAURI__ = true;
-      }
-      // Allowlist companion origins before any child mounts iframes (avoids dropping
-      // early SHELLUI_SETTINGS_REQUESTED from localhost companions).
-      if (typeof window !== 'undefined') {
-        shellui.configureMessageSecurity({
-          allowedOrigins: deriveAllowedMessageOrigins(resolved),
-        });
       }
       if (process.env.NODE_ENV === 'development' && !configLogged) {
         configLogged = true;

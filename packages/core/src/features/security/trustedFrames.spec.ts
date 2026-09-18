@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ShellUIConfig } from '../config/types';
 import {
-  getAiRequestTrustDenial,
   getStorageRequestTrustDenial,
   isRegisteredTrustedFrame,
   isTrustedFrameForAuthToken,
@@ -125,26 +124,6 @@ describe('getStorageRequestTrustDenial', () => {
     expect(getStorageRequestTrustDenial(['missing-uuid'], registry, config)).toEqual({
       message: 'Storage request rejected: untrusted frame',
       status: 403,
-    });
-  });
-});
-
-describe('getAiRequestTrustDenial', () => {
-  it('allows trusted companion frames', () => {
-    expect(getAiRequestTrustDenial(['trusted-uuid'], registry, config)).toBeNull();
-  });
-
-  it('denies default (non-opt-in) companion frames', () => {
-    expect(getAiRequestTrustDenial(['default-uuid'], registry, config)).toEqual({
-      message: 'AI request rejected: untrusted frame',
-      code: 'untrusted_frame',
-    });
-  });
-
-  it('denies unregistered senders', () => {
-    expect(getAiRequestTrustDenial(['missing-uuid'], registry, config)).toEqual({
-      message: 'AI request rejected: untrusted frame',
-      code: 'untrusted_frame',
     });
   });
 });

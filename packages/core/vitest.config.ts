@@ -14,7 +14,6 @@ export default defineConfig({
       'src/features/auth/utils/**/*.spec.ts',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
-      'src/features/ai/**/*.spec.ts',
       'src/features/security/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
       'src/routes/utils/**/*.spec.ts',

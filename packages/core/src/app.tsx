@@ -11,7 +11,6 @@ import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { StorageBridge } from './features/storage/StorageBridge';
-import { AiBridge } from './features/ai/AiBridge';
 import { SonnerProvider } from './features/sonner/SonnerContext';
 import { ChromeActionsHost, ChromeActionsProvider } from './features/chromeActions';
 import { Toaster } from './components/ui/sonner';
@@ -136,7 +135,6 @@ const App = () => {
       <AuthProvider>
         <StorageBridge />
         <SettingsProvider>
-          <AiBridge />
           <ThemeProvider>
             <I18nProvider>
               <DialogProvider>
