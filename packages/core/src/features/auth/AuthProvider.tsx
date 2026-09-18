@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getLogger, shellui, type Settings } from '@shellui/sdk';
+import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { createAuthBackend } from './backends';
@@ -345,6 +345,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const persistOAuthSession = useCallback(
+    async (nextSession: AuthSession) => {
+      const now = Math.floor(Date.now() / 1000);
+      try {
+        const committed = await commitAuthSession(nextSession, now);
+        setSession(committed);
+      } catch {
+        persistAuthSession(nextSession, { storeRefreshToken: !bffAuthEnabled });
+        setSession(nextSession);
+      }
+      setAuthEvent('oauth_callback');
+    },
+    [bffAuthEnabled, commitAuthSession],
+  );
+
+  const mapOAuthCallbackError = useCallback((err: unknown): OAuthCallbackResult => {
+    const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
+    const oauthErrorCode =
+      getAuthRequestErrorCode(err) ??
+      inferAccessPendingErrorCode(message) ??
+      (err instanceof AuthRequestError ? err.code : null);
+    setError(message);
+    setErrorCode(oauthErrorCode);
+    return { ok: false, error: message, errorCode: oauthErrorCode };
+  }, []);
+
+  const completeOAuthSessionCallback = useCallback(
+    async ({
+      authCode,
+      redirectTo,
+    }: {
+      authCode: string;
+      redirectTo: string;
+    }): Promise<OAuthCallbackResult> => {
+      try {
+        setError(null);
+        setErrorCode(null);
+        const now = Math.floor(Date.now() / 1000);
+        const nextSession = await backend.exchangeOAuthSessionCode({
+          authCode,
+          redirectTo,
+          nowSeconds: now,
+        });
+        if (!nextSession) {
+          const message = 'Unable to complete OAuth login.';
+          setError(message);
+          setErrorCode(null);
+          return { ok: false, error: message, errorCode: null };
+        }
+        await persistOAuthSession(nextSession);
+        return { ok: true };
+      } catch (err) {
+        return mapOAuthCallbackError(err);
+      }
+    },
+    [backend, mapOAuthCallbackError, persistOAuthSession],
+  );
+
   const completeOAuthCallback = useCallback(
     async ({
       provider,
@@ -374,22 +432,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setErrorCode(null);
           return { ok: false, error: message, errorCode: null };
         }
-        const committed = await commitAuthSession(nextSession, now);
-        setSession(committed);
-        setAuthEvent('oauth_callback');
+        await persistOAuthSession(nextSession);
         return { ok: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
-        const oauthErrorCode =
-          getAuthRequestErrorCode(err) ??
-          inferAccessPendingErrorCode(message) ??
-          (err instanceof AuthRequestError ? err.code : null);
-        setError(message);
-        setErrorCode(oauthErrorCode);
-        return { ok: false, error: message, errorCode: oauthErrorCode };
+        return mapOAuthCallbackError(err);
       }
     },
-    [backend, commitAuthSession],
+    [backend, mapOAuthCallbackError, persistOAuthSession],
   );
 
   const startWeb3Ethereum = useCallback(async () => {
@@ -522,7 +571,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         void (async () => {
           const started = await startWeb3Ethereum();
           if (started && typeof window !== 'undefined') {
-            window.postMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} }, '*');
+            postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
           }
         })();
         return;
@@ -570,6 +619,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,
@@ -587,6 +637,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,

@@ -104,8 +104,24 @@ const readyPromise = new Promise<void>((r) => {
   resolveReady = r;
 });
 
+const resolveParentTargetOrigin = (): string => {
+  if (parent === window) return location.origin;
+  const ancestors = (document.location as Location & { ancestorOrigins?: DOMStringList })
+    .ancestorOrigins;
+  const ancestorOrigin = ancestors?.[0];
+  if (ancestorOrigin) return ancestorOrigin;
+  if (document.referrer) {
+    try {
+      return new URL(document.referrer).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return location.origin;
+};
+
 const post = (type: string, payload: object = {}) => {
-  if (parent !== window) parent.postMessage({ type, payload }, '*');
+  if (parent !== window) parent.postMessage({ type, payload }, resolveParentTargetOrigin());
 };
 
 const emit = (event: string, data: unknown) => {
@@ -297,6 +313,11 @@ addEventListener('message', (event: MessageEvent) => {
   const data = event.data;
   if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
   const type = data.type as string;
+  if (!type.startsWith('SHELLUI_')) return;
+
+  const allowedOrigins = new Set<string>([location.origin, resolveParentTargetOrigin()]);
+  if (!allowedOrigins.has(event.origin)) return;
+  if (embedded && event.source !== parent) return;
 
   if (type === 'SHELLUI_SETTINGS' || type === 'SHELLUI_SETTINGS_UPDATED') {
     applySettings(data.payload?.settings);

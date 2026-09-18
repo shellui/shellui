@@ -18,6 +18,10 @@ export interface AuthContextValue {
   errorCode: string | null;
   authEvent: AuthEvent;
   clearAuthEvent: () => void;
+  completeOAuthSessionCallback: (params: {
+    authCode: string;
+    redirectTo: string;
+  }) => Promise<OAuthCallbackResult>;
   completeOAuthCallback: (params: {
     provider: string;
     code: string;

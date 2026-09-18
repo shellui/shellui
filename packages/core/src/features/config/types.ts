@@ -58,8 +58,8 @@ export interface NavigationItem {
   settings?: string;
   /**
    * Trust control for auth token sharing to iframe apps.
-   * - undefined/true: trusted (default), token can be shared
-   * - false: untrusted, token is never shared
+   * - undefined/false: untrusted (default), access token is not shared
+   * - true: trusted, access token can be shared (opt-in)
    */
   safeForAuthToken?: boolean;
 }
@@ -191,8 +191,15 @@ export interface CspConfig {
   frameSrc?: string[];
 }
 
-/** Security-related shell configuration (auth storage, CSP). */
+/**
+ * Host security options. Additive namespace for postMessage, CSP, BFF auth, etc.
+ */
 export interface SecurityConfig {
+  /**
+   * Extra http(s) origins (or absolute URLs) allowed for Shellui postMessage traffic.
+   * Unioned with origins derived from navigation, storage, and admin URLs.
+   */
+  allowedMessageOrigins?: string[];
   bffAuth?: BffAuthConfig;
   csp?: CspConfig;
 }
@@ -361,7 +368,7 @@ export interface ShellUIConfig {
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */
   backend?: BackendConfig;
-  /** Auth storage hardening and shell CSP (see docs/features/security.md). */
+  /** Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md). */
   security?: SecurityConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;

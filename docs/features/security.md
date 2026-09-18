@@ -10,7 +10,7 @@ This guide covers **H-09 / M-17** hardening shipped incrementally in the shell:
 2. **Optional same-origin BFF** for HttpOnly refresh cookies
 3. **Shell Content-Security-Policy** with inline script hash (staged report-only by default)
 
-Companion sandbox isolation ([#65](https://github.com/shellui/shellui/issues/65)) and Track D `postMessage` origin checks are out of scope here.
+Companion sandbox isolation ([#65](https://github.com/shellui/shellui/issues/65)) is out of scope here. For postMessage origin allowlists (`security.allowedMessageOrigins`), see the postMessage hardening notes in the changelog and [Authentication](/features/authentication).
 
 ## Token storage (default)
 

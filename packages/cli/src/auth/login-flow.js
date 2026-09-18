@@ -46,7 +46,8 @@ function waitingPageHtml() {
 </html>`;
 }
 
-function callbackPageHtml() {
+function callbackPageHtml(backendUrl) {
+  const backendJson = JSON.stringify(backendUrl.replace(/\/$/, ''));
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -73,6 +74,7 @@ function callbackPageHtml() {
       var title = document.getElementById('title');
       var msg = document.getElementById('msg');
       var params = new URLSearchParams(window.location.search);
+      var backend = ${backendJson};
       var err = params.get('shellui_oauth_error');
       var errCode = params.get('shellui_oauth_error_code');
       if (err) {
@@ -87,9 +89,54 @@ function callbackPageHtml() {
         } catch (e) {}
         return;
       }
-      var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-      var access_token = hash.get('access_token');
-      var refresh_token = hash.get('refresh_token');
+      var authCode = params.get('shellui_auth_code');
+      var access_token;
+      var refresh_token;
+      var expires_at;
+      var token_type = 'bearer';
+      if (authCode) {
+        var redirect_to = window.location.origin + window.location.pathname;
+        try {
+          var sessionRes = await fetch(backend + '/api/v1/oauth/session', {
+            method: 'POST',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ auth_code: authCode, redirect_to: redirect_to }),
+          });
+          var sessionPayload = await sessionRes.json().catch(function () { return null; });
+          if (!sessionRes.ok) {
+            var sessionErr =
+              (sessionPayload && (sessionPayload.error || sessionPayload.detail)) ||
+              ('Session exchange failed (HTTP ' + sessionRes.status + ').');
+            throw new Error(String(sessionErr));
+          }
+          access_token = sessionPayload && sessionPayload.access_token;
+          refresh_token = sessionPayload && sessionPayload.refresh_token;
+          expires_at = sessionPayload && sessionPayload.expires_at;
+          token_type =
+            (sessionPayload && sessionPayload.token_type) || 'bearer';
+        } catch (exchangeErr) {
+          title.textContent = 'Sign-in failed';
+          msg.textContent =
+            (exchangeErr && exchangeErr.message) ||
+            'Could not exchange auth code. Close this window and try again.';
+          try {
+            await fetch('/error', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                error: (exchangeErr && exchangeErr.message) || 'Session exchange failed.',
+              }),
+            });
+          } catch (e) {}
+          return;
+        }
+      } else {
+        var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        access_token = hash.get('access_token');
+        refresh_token = hash.get('refresh_token');
+        expires_at = hash.get('expires_at');
+        token_type = hash.get('token_type') || 'bearer';
+      }
       if (!access_token || !refresh_token) {
         title.textContent = 'Sign-in failed';
         msg.textContent = 'Missing tokens in callback. Close this window and try again.';
@@ -102,8 +149,6 @@ function callbackPageHtml() {
         } catch (e) {}
         return;
       }
-      var expires_at = hash.get('expires_at');
-      var token_type = hash.get('token_type') || 'bearer';
       try {
         var res = await fetch('/capture', {
           method: 'POST',
@@ -186,7 +231,7 @@ export function buildAuthorizeUrl(opts) {
 }
 
 /**
- * Browser OAuth via identity authorize → loopback fragment bounce.
+ * Browser OAuth via identity authorize → loopback session-code or fragment bounce.
  * @param {{
  *   backendUrl: string,
  *   companyId: string,
@@ -233,7 +278,7 @@ export async function runLoginFlow(opts) {
 
       if (req.method === 'GET' && url.pathname === '/callback') {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(callbackPageHtml());
+        res.end(callbackPageHtml(backendUrl));
         return;
       }
 
