@@ -14,6 +14,7 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 - **Shared transfer toaster:** storage uploads and AI model downloads share `TransferToaster` / `transferQueue` progress UI (accurate engine progress; downloads continue after leaving Settings).
 - **Lazy WebLLM:** `@mlc-ai/web-llm` is dynamically imported only on first browser Install/load; opening Settings → AI alone does not fetch the library. `AiBridge` itself is lazy-loaded when config AI is enabled.
 - **Chromium-only browser Install:** Firefox/Safari catalog rows show **unsupported** with a clear “use Chrome/Edge or Ollama” message instead of opaque “Model download failed.” Richer `[shellui.ai]` console errors + CSP extras (Ollama localhost, HF, worker-src, wasm-unsafe-eval) when AI is enabled; Vite resolves/prebundles `@mlc-ai/web-llm` for the shell.
+- **Diagnosable WebLLM Install failures:** Worker `error` / `messageerror` and `CreateWebWorkerMLCEngine` rejections (including WebLLM’s string throws) are logged as `console.error('[shellui.ai]', …)` and shown in the transfer toaster / Settings error — with an explicit **WebGPU failed in the WebLLM worker** mapping when applicable. HF traffic is expected under the **Worker** Network tab, not the main document.
 
 ### 📚 Documentation
 

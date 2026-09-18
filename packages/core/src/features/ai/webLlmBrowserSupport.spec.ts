@@ -3,6 +3,7 @@ import {
   mapWebLlmRuntimeError,
   probeWebLlmBrowserSupport,
   WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
+  WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE,
 } from './webLlmBrowserSupport.js';
 
 describe('probeWebLlmBrowserSupport', () => {
@@ -47,12 +48,21 @@ describe('mapWebLlmRuntimeError', () => {
     ).toBe(WEBLLM_UNSUPPORTED_BROWSER_MESSAGE);
   });
 
-  it('does not remap on Chromium', () => {
+  it('maps WebGPU-ish errors on Chromium to the worker WebGPU message', () => {
     expect(
       mapWebLlmRuntimeError(
-        new Error('Failed to get GPU adapter'),
+        new Error('Unable to find a compatible GPU'),
         'Mozilla/5.0 Chrome/131.0.0.0 Safari/537.36',
       ),
-    ).toBeNull();
+    ).toBe(WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE);
+  });
+
+  it('maps WebLLM string rejections (worker err.toString())', () => {
+    expect(
+      mapWebLlmRuntimeError(
+        'WebGPUNotAvailableError: WebGPU is not supported in your current environment',
+        'Mozilla/5.0 Chrome/131.0.0.0 Safari/537.36',
+      ),
+    ).toBe(WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE);
   });
 });

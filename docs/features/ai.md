@@ -56,6 +56,8 @@ Models stay in Ollama's own storage. The browser only calls a local HTTP API (`h
 
 **Supported browsers for in-browser Install:** Chromium with usable WebGPU — **Chrome** and **Edge**. Firefox often exposes a basic WebGPU probe but is still too immature for WebLLM engine init in v1; Safari is unsupported too. On those browsers, Settings shows catalog models as **unsupported** and points you to **Ollama** instead of failing with a generic “Model download failed.”
 
+**Debugging Install:** Hugging Face weight requests run **inside the WebLLM worker**, so they may not appear on the main-document Network list — check the worker’s Network/console in DevTools. Failures log as `console.error('[shellui.ai]', …)` on the page and show the real message in the transfer toaster (WebGPU worker failures map to a clear “WebGPU failed in the WebLLM worker” message).
+
 Closing Settings does **not** cancel the download. Progress continues in the shell root **transfer toaster** (same UI as storage uploads). In-panel progress returns if you reopen Settings mid-download.
 
 After Install completes, apps can call `shellui.ai.languageModel` immediately — no second “load” step on the happy path (the worker keeps the model warm). Reloading the tab may need a short cache warm on first prompt; the install record survives in `localStorage` and weights stay in WebLLM’s browser cache.

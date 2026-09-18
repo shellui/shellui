@@ -190,4 +190,73 @@ describe('WebLLMAdapter + engine', () => {
       adapter.prompt({ modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', prompt: 'Hi' }),
     ).rejects.toThrow(/not installed/i);
   });
+
+  it('surfaces WebLLM string rejections (worker err.toString) in the Install error', async () => {
+    const module = createFakeWebLLMModule({
+      fail: 'WebGPUNotAvailableError: WebGPU is not supported in your current environment' as unknown as Error,
+    });
+    // Override to reject with a string like the real WebWorkerMLCEngine client.
+    module.CreateWebWorkerMLCEngine = vi.fn(async () => {
+      throw 'WebGPUNotAvailableError: WebGPU is not supported in your current environment';
+    });
+    const failingEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    const adapter = new WebLLMAdapter({ engine: failingEngine });
+    await expect(adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC')).rejects.toThrow(
+      /WebGPU failed in the WebLLM worker/i,
+    );
+    await failingEngine.resetForTests();
+  });
+
+  it('surfaces worker.onerror on the main thread instead of hanging', async () => {
+    const listeners = new Map<string, Set<EventListener>>();
+    const worker = {
+      terminate: vi.fn(),
+      postMessage: vi.fn(),
+      addEventListener: vi.fn((type: string, listener: EventListener) => {
+        const set = listeners.get(type) ?? new Set();
+        set.add(listener);
+        listeners.set(type, set);
+      }),
+      removeEventListener: vi.fn((type: string, listener: EventListener) => {
+        listeners.get(type)?.delete(listener);
+      }),
+    } as unknown as Worker;
+
+    const module = {
+      CreateWebWorkerMLCEngine: vi.fn(
+        () =>
+          new Promise(() => {
+            /* hang until worker error */
+          }),
+      ),
+      deleteModelAllInfoInCache: vi.fn(async () => undefined),
+    };
+    const crashEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: () => worker,
+    });
+    const adapter = new WebLLMAdapter({ engine: crashEngine });
+    const download = adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+    // Wait until createAndLoad attaches the worker error guard.
+    await vi.waitFor(() => {
+      expect(listeners.get('error')?.size).toBeGreaterThan(0);
+    });
+
+    const event = {
+      type: 'error',
+      message: 'Script error in worker',
+      filename: 'webllm.worker.ts',
+      lineno: 1,
+      error: null,
+    } as unknown as Event;
+    listeners.get('error')?.forEach((listener) => listener(event));
+    await expect(download).rejects.toThrow(/WebLLM worker crashed/i);
+    await crashEngine.resetForTests();
+  });
 });

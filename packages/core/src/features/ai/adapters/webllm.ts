@@ -105,6 +105,15 @@ export class WebLLMAdapter implements AiAdapter {
     try {
       await this.engine.install(modelId, options);
     } catch (error) {
+      // Engine already mapped Firefox / WebGPU cases; only remap raw leftover throws.
+      if (
+        error instanceof Error &&
+        /WebLLM worker crashed|WebGPU failed in the WebLLM worker|Browser models need Chrome/i.test(
+          error.message,
+        )
+      ) {
+        throw error;
+      }
       const mapped = mapWebLlmRuntimeError(error);
       if (mapped) {
         throw new Error(mapped, { cause: error instanceof Error ? error : undefined });

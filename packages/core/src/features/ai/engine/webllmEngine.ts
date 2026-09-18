@@ -246,10 +246,18 @@ export class WebLLMEngineService {
           : new DOMException('Download cancelled', 'AbortError');
       }
       const mapped = mapWebLlmRuntimeError(error);
+      // Keep explicit worker-crash / engine messages; only remap raw WebGPU-ish throws.
+      const keepAsIs =
+        error instanceof Error &&
+        (/^WebLLM worker crashed/i.test(error.message) ||
+          /^CreateWebWorkerMLCEngine failed/i.test(error.message) ||
+          /^Failed to (load|start) WebLLM/i.test(error.message));
+      const beforeModelFetch = !active.progressText && active.progress <= 0;
       const message =
-        mapped ??
+        (!keepAsIs ? mapped : null) ??
         formatInstallFailureMessage(error, {
           progressText: active.progressText,
+          beforeModelFetch,
           fallback: 'Model download failed',
         });
       this.lastInstallError = message;
@@ -257,6 +265,7 @@ export class WebLLMEngineService {
         modelId: localId,
         stage: 'install',
         progressText: active.progressText,
+        beforeModelFetch,
       });
       if (this.useTransferToast) {
         failTransfer(transferId, message);
@@ -462,28 +471,115 @@ export class WebLLMEngineService {
     }
     this.worker = worker;
 
+    let lastProgressText: string | undefined;
+    let sawProgress = false;
+    const reportProgress = (ratio: number, text?: string) => {
+      if (text) lastProgressText = text;
+      if (ratio > 0 || (text && text.length > 0)) sawProgress = true;
+      options.onProgress?.(ratio, text);
+    };
+
     let settled = false;
     const abortError = () => new DOMException('Download cancelled', 'AbortError');
+
+    // Worker script / uncaught failures never reach CreateWebWorkerMLCEngine's getPromise —
+    // surface them on the main thread so Install does not hang or collapse to a generic toast.
+    let detachWorkerGuards: () => void = () => undefined;
+    const workerCrashPromise = new Promise<never>((_, reject) => {
+      const onError = (event: Event) => {
+        const detail = formatUnknownError(event);
+        logAiError('worker.onerror', event, {
+          modelId: localId,
+          stage: 'worker.onerror',
+          progressText: lastProgressText,
+          beforeModelFetch: !sawProgress,
+        });
+        reject(
+          new Error(
+            `WebLLM worker crashed: ${detail || 'see DevTools → Worker console'}. ` +
+              (!sawProgress
+                ? 'No init progress yet — failure was before Hugging Face fetch (often GPU init).'
+                : `Last progress: ${lastProgressText ?? '(none)'}`),
+            {
+              cause:
+                typeof ErrorEvent !== 'undefined' &&
+                event instanceof ErrorEvent &&
+                event.error instanceof Error
+                  ? event.error
+                  : undefined,
+            },
+          ),
+        );
+      };
+      const onMessageError = (event: MessageEvent) => {
+        logAiError('worker.onmessageerror', event, {
+          modelId: localId,
+          stage: 'worker.onmessageerror',
+          progressText: lastProgressText,
+          beforeModelFetch: !sawProgress,
+        });
+        reject(
+          new Error(
+            `WebLLM worker messageerror: ${formatUnknownError(event)}. ` +
+              'A non-cloneable value may have been posted between worker and main thread.',
+          ),
+        );
+      };
+      worker.addEventListener('error', onError);
+      worker.addEventListener('messageerror', onMessageError);
+      detachWorkerGuards = () => {
+        worker.removeEventListener('error', onError);
+        worker.removeEventListener('messageerror', onMessageError);
+      };
+    });
+
+    // eslint-disable-next-line no-console -- stage breadcrumb for Install debugging
+    console.info('[shellui.ai]', 'CreateWebWorkerMLCEngine starting', {
+      modelId: localId,
+      hint: 'HF fetches (if any) appear under the Worker Network tab, not the main document',
+    });
 
     let enginePromise: Promise<WebLLMEngineLike>;
     try {
       enginePromise = webllm.CreateWebWorkerMLCEngine(worker, localId, {
+        logLevel: 'INFO',
         initProgressCallback: (report) => {
           if (options.signal?.aborted) return;
           const ratio = mapInitProgress(report);
-          options.onProgress?.(ratio, report.text);
+          reportProgress(ratio, report.text);
         },
       }) as Promise<WebLLMEngineLike>;
     } catch (error) {
+      detachWorkerGuards();
       await this.disposeWorker();
       logAiError('CreateWebWorkerMLCEngine', error, {
         modelId: localId,
-        stage: 'CreateWebWorkerMLCEngine',
+        stage: 'CreateWebWorkerMLCEngine.sync',
+        beforeModelFetch: true,
       });
       throw new Error(`CreateWebWorkerMLCEngine failed before load: ${formatUnknownError(error)}`, {
         cause: error instanceof Error ? error : undefined,
       });
     }
+
+    // WebLLM rejects with a string (worker err.toString()) — always log the raw rejection.
+    enginePromise = enginePromise.catch((rejection) => {
+      logAiError('CreateWebWorkerMLCEngine.rejected', rejection, {
+        modelId: localId,
+        stage: 'CreateWebWorkerMLCEngine / reload',
+        progressText: lastProgressText,
+        beforeModelFetch: !sawProgress,
+      });
+      const mapped = mapWebLlmRuntimeError(rejection);
+      const detail = formatInstallFailureMessage(rejection, {
+        progressText: lastProgressText,
+        beforeModelFetch: !sawProgress,
+        fallback: 'WebLLM CreateWebWorkerMLCEngine rejected (see [shellui.ai] console)',
+      });
+      throw new Error(mapped ?? detail, {
+        cause: rejection instanceof Error ? rejection : undefined,
+      });
+    });
 
     const abortPromise = new Promise<never>((_, reject) => {
       if (options.signal?.aborted) {
@@ -501,8 +597,9 @@ export class WebLLMEngineService {
     });
 
     try {
-      const engine = await Promise.race([enginePromise, abortPromise]);
+      const engine = await Promise.race([enginePromise, abortPromise, workerCrashPromise]);
       settled = true;
+      detachWorkerGuards();
 
       if (options.signal?.aborted) {
         try {
@@ -518,16 +615,29 @@ export class WebLLMEngineService {
       this.warmModelId = localId;
       options.onProgress?.(1, 'Ready');
     } catch (error) {
+      detachWorkerGuards();
       await this.disposeWorker();
       this.engine = null;
       this.warmModelId = null;
       if (options.signal?.aborted || isAbortError(error)) {
         throw abortError();
       }
-      logAiError('createAndLoad', error, { modelId: localId, stage: 'engine.reload' });
-      throw error instanceof Error
-        ? error
-        : new Error(formatInstallFailureMessage(error, { fallback: 'Model download failed' }));
+      logAiError('createAndLoad', error, {
+        modelId: localId,
+        stage: 'engine.reload',
+        progressText: lastProgressText,
+        beforeModelFetch: !sawProgress,
+      });
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error(
+        formatInstallFailureMessage(error, {
+          progressText: lastProgressText,
+          beforeModelFetch: !sawProgress,
+          fallback: 'Model download failed',
+        }),
+      );
     } finally {
       // If create eventually resolves after abort, drop the late engine.
       if (!settled) {

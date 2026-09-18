@@ -279,7 +279,9 @@ function FileRow({ item, locale }: { item: TransferItem; locale: string }) {
           <p
             className={cn(
               'mt-0.5 text-xs',
-              item.status === 'error' ? 'text-destructive' : 'text-muted-foreground',
+              item.status === 'error'
+                ? 'break-words text-destructive whitespace-normal'
+                : 'text-muted-foreground',
             )}
           >
             {item.status === 'error'
