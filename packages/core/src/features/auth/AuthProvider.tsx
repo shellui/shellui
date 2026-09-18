@@ -275,6 +275,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend],
   );
 
+  const persistOAuthSession = useCallback((nextSession: AuthSession) => {
+    persistAuthSession(nextSession);
+    setSession(nextSession);
+    setAuthEvent('oauth_callback');
+  }, []);
+
+  const mapOAuthCallbackError = useCallback((err: unknown): OAuthCallbackResult => {
+    const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
+    const oauthErrorCode =
+      getAuthRequestErrorCode(err) ??
+      inferAccessPendingErrorCode(message) ??
+      (err instanceof AuthRequestError ? err.code : null);
+    setError(message);
+    setErrorCode(oauthErrorCode);
+    return { ok: false, error: message, errorCode: oauthErrorCode };
+  }, []);
+
+  const completeOAuthSessionCallback = useCallback(
+    async ({
+      authCode,
+      redirectTo,
+    }: {
+      authCode: string;
+      redirectTo: string;
+    }): Promise<OAuthCallbackResult> => {
+      try {
+        setError(null);
+        setErrorCode(null);
+        const now = Math.floor(Date.now() / 1000);
+        const nextSession = await backend.exchangeOAuthSessionCode({
+          authCode,
+          redirectTo,
+          nowSeconds: now,
+        });
+        if (!nextSession) {
+          const message = 'Unable to complete OAuth login.';
+          setError(message);
+          setErrorCode(null);
+          return { ok: false, error: message, errorCode: null };
+        }
+        persistOAuthSession(nextSession);
+        return { ok: true };
+      } catch (err) {
+        return mapOAuthCallbackError(err);
+      }
+    },
+    [backend, mapOAuthCallbackError, persistOAuthSession],
+  );
+
   const completeOAuthCallback = useCallback(
     async ({
       provider,
@@ -304,22 +353,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setErrorCode(null);
           return { ok: false, error: message, errorCode: null };
         }
-        persistAuthSession(nextSession);
-        setSession(nextSession);
-        setAuthEvent('oauth_callback');
+        persistOAuthSession(nextSession);
         return { ok: true };
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unable to complete OAuth login.';
-        const oauthErrorCode =
-          getAuthRequestErrorCode(err) ??
-          inferAccessPendingErrorCode(message) ??
-          (err instanceof AuthRequestError ? err.code : null);
-        setError(message);
-        setErrorCode(oauthErrorCode);
-        return { ok: false, error: message, errorCode: oauthErrorCode };
+        return mapOAuthCallbackError(err);
       }
     },
-    [backend],
+    [backend, mapOAuthCallbackError, persistOAuthSession],
   );
 
   const startWeb3Ethereum = useCallback(async () => {
@@ -498,6 +538,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,
@@ -515,6 +556,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       errorCode,
       authEvent,
       clearAuthEvent,
+      completeOAuthSessionCallback,
       completeOAuthCallback,
       startOAuth,
       startWeb3Ethereum,

@@ -4,7 +4,12 @@ export {
   getShellUILoginDeviceId,
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
+export { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
 export { buildSessionFromParams } from './buildSessionFromParams';
+export {
+  buildSessionFromTokenPayload,
+  tokenPayloadToUrlParams,
+} from './buildSessionFromTokenPayload';
 export { hashHasOAuthTokens } from './hashHasOAuthTokens';
 export {
   AuthRequestError,

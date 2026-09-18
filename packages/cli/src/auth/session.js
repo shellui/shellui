@@ -105,7 +105,7 @@ export async function authFetch(path, init = {}) {
 
 /**
  * Best-effort remote logout (ignore network errors).
- * @param {{ backendUrl: string, accessToken: string }} session
+ * @param {{ backendUrl: string, accessToken: string, refreshToken?: string }} session
  */
 export async function remoteLogout(session) {
   try {
@@ -113,8 +113,12 @@ export async function remoteLogout(session) {
       method: 'POST',
       headers: {
         Accept: 'application/json',
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${session.accessToken}`,
       },
+      body: JSON.stringify({
+        ...(session.refreshToken ? { refresh_token: session.refreshToken } : {}),
+      }),
     });
   } catch {
     // ignore

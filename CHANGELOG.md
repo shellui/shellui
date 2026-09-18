@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🛠 Improvements
+
+- **identity-service 0.5.0 auth:** shell and CLI complete OAuth via one-time `shellui_auth_code` → `POST /api/v1/oauth/session` (default delivery). Legacy URL-fragment bounce and provider `?code=` exchange remain supported during rollout. Token refresh persists rotated refresh tokens; logout sends refresh for server-side revocation when available.
+
 ### 🔒 Security
 
 - **Modal iframe allowlist:** localhost origins are allowed only in development builds; production shells reject loopback modal URLs unless they match configured storage, admin, or same-origin targets. (#63)
