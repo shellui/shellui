@@ -28,6 +28,17 @@ const LOCAL_PARENT_MESSAGE_TYPES = new Set([
   'SHELLUI_ACTIONS_CLEAR',
 ]);
 
+/** High-frequency traffic — skip per-event debug logs when shellsdk logging is on. */
+const QUIET_MESSAGE_TYPES = new Set([
+  'SHELLUI_CONTENT_SCROLL',
+  'SHELLUI_AI_STREAM',
+  'SHELLUI_OVERLAY_SIZE',
+]);
+
+function shouldLogMessageTraffic(messageType: string): boolean {
+  return !QUIET_MESSAGE_TYPES.has(messageType);
+}
+
 export class MessageListenerRegistry {
   private listeners = new Map<string, Set<MessageListener>>();
   private messageHandler: ((event: MessageEvent) => void) | null = null;
@@ -63,10 +74,22 @@ export class MessageListenerRegistry {
         return;
       }
 
-      if (!this.messageSecurity.isTrustedInboundMessage(event, this.frameRegistry, messageType)) {
+      // Companion scripts can run (and postMessage) before React registers the
+      // iframe. Adopt any DOM iframe that matches contentWindow or a unique src origin.
+      if (this.frameRegistry && this.messageSecurity.isOriginAllowed(event.origin)) {
+        this.frameRegistry.adoptWindow(event.source as Window | null, event.origin);
+      }
+
+      const rejectReason = this.messageSecurity.explainUntrustedInboundMessage(
+        event,
+        this.frameRegistry,
+        messageType,
+      );
+      if (rejectReason) {
         logger.warn('Rejected untrusted SHELLUI message', {
           type: messageType,
           origin: event.origin,
+          reason: rejectReason,
         });
         return;
       }
@@ -98,7 +121,9 @@ export class MessageListenerRegistry {
         }
       });
 
-      logger.debug('Message received:', event.data);
+      if (shouldLogMessageTraffic(messageType)) {
+        logger.debug('Message received:', event.data);
+      }
 
       // Immediate-parent ownership — do not bubble to outer shells.
       if (isLocalParentMessage) {
@@ -255,7 +280,9 @@ export class MessageListenerRegistry {
               targetOrigin,
             );
             sentCount++;
-            logger.debug(`Sent message ${message.type} to iframe ${uuid}`);
+            if (shouldLogMessageTraffic(message.type)) {
+              logger.debug(`Sent message ${message.type} to iframe ${uuid}`);
+            }
           } else {
             logger.warn(`Iframe ${uuid} has no contentWindow, skipping`);
           }
@@ -265,7 +292,9 @@ export class MessageListenerRegistry {
       }
     }
 
-    logger.debug(`Sent message ${message.type} to ${sentCount} iframe(s)`);
+    if (shouldLogMessageTraffic(message.type)) {
+      logger.debug(`Sent message ${message.type} to ${sentCount} iframe(s)`);
+    }
     return sentCount;
   }
 
@@ -285,7 +314,9 @@ export class MessageListenerRegistry {
 
     if (window.parent !== window) {
       window.parent.postMessage(message, resolveParentTargetOrigin());
-      logger.debug(`Sent message ${message.type} to parent window`);
+      if (shouldLogMessageTraffic(message.type)) {
+        logger.debug(`Sent message ${message.type} to parent window`);
+      }
       return true;
     }
     return false;

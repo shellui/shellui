@@ -1,4 +1,12 @@
-import { useRef, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import {
+  useRef,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from 'react';
 import {
   getLogger,
   shellui,
@@ -404,8 +412,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   }, [authUser, config]);
 
-  // Listen for settings updates from parent/other nodes
-  useEffect(() => {
+  // Listen for settings updates from parent/other nodes.
+  // useLayoutEffect so SETTINGS_REQUESTED handlers exist before companion paint races.
+  useLayoutEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }

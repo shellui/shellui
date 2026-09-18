@@ -51,6 +51,7 @@ import {
   setLayoutChromeAnimationsEnabled,
   LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
+import { waitForInitialSettings } from './utils/waitForInitialSettings.js';
 
 import packageJson from '../package.json';
 
@@ -126,6 +127,16 @@ export {
 } from './utils/messageSecurity.js';
 export type { MessageSourceKind } from './utils/messageSecurity.js';
 export { postShellMessage } from './utils/postShellMessage.js';
+export {
+  waitForInitialSettings,
+  SETTINGS_HANDSHAKE_TIMEOUT_MS,
+  SETTINGS_REQUEST_RETRY_MS,
+  SETTINGS_REQUEST_MAX_ATTEMPTS,
+} from './utils/waitForInitialSettings.js';
+export type {
+  InitialSettingsHandshakeResult,
+  WaitForInitialSettingsOptions,
+} from './utils/waitForInitialSettings.js';
 
 export {
   applyLayoutChromeStyles,
@@ -398,10 +409,6 @@ export class ShellUISDK {
   }
 
   private async _setupInitialSettings(): Promise<void> {
-    if (window.parent === window) {
-      return;
-    }
-
     const applySettings = (data: ShellUIMessage) => {
       const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
       if (settings) {
@@ -417,15 +424,20 @@ export class ShellUISDK {
     this.addMessageListener('SHELLUI_SETTINGS', applySettings);
     this.addMessageListener('SHELLUI_SETTINGS_UPDATED', applySettings);
 
-    return new Promise((resolve) => {
-      const cleanup = this.addMessageListener('SHELLUI_SETTINGS', () => {
-        cleanup();
-        resolve();
-      });
-      this.sendMessageToParent({
-        type: 'SHELLUI_SETTINGS_REQUESTED',
-        payload: {},
-      });
+    await waitForInitialSettings({
+      isEmbedded: typeof window !== 'undefined' && window.parent !== window,
+      requestSettings: () => {
+        this.sendMessageToParent({
+          type: 'SHELLUI_SETTINGS_REQUESTED',
+          payload: {},
+        });
+      },
+      onSettings: (listener) => this.addMessageListener('SHELLUI_SETTINGS', () => listener()),
+      onTimeout: () => {
+        logger.warn(
+          'Timed out waiting for SHELLUI_SETTINGS from parent; continuing init with defaults',
+        );
+      },
     });
   }
 
