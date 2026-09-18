@@ -496,10 +496,11 @@ export class WebLLMEngineService {
         });
         reject(
           new Error(
-            `WebLLM worker crashed: ${detail || 'see DevTools → Worker console'}. ` +
-              (!sawProgress
+            `WebLLM worker crashed: ${detail || 'see DevTools → Worker console'}. ${
+              !sawProgress
                 ? 'No init progress yet — failure was before Hugging Face fetch (often GPU init).'
-                : `Last progress: ${lastProgressText ?? '(none)'}`),
+                : `Last progress: ${lastProgressText ?? '(none)'}`
+            }`,
             {
               cause:
                 typeof ErrorEvent !== 'undefined' &&

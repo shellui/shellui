@@ -196,9 +196,11 @@ describe('WebLLMAdapter + engine', () => {
       fail: 'WebGPUNotAvailableError: WebGPU is not supported in your current environment' as unknown as Error,
     });
     // Override to reject with a string like the real WebWorkerMLCEngine client.
-    module.CreateWebWorkerMLCEngine = vi.fn(async () => {
-      throw 'WebGPUNotAvailableError: WebGPU is not supported in your current environment';
-    });
+    module.CreateWebWorkerMLCEngine = vi.fn(() =>
+      Promise.reject(
+        'WebGPUNotAvailableError: WebGPU is not supported in your current environment',
+      ),
+    );
     const failingEngine = new WebLLMEngineService({
       useTransferToast: false,
       loadModule: async () => module as never,
