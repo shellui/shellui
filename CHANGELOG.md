@@ -20,8 +20,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
-## [0.6.0-alpha.1] - 2026-09-18
-
 ### ✨ Feature
 
 - **On-device AI foundation (#48):** local language models run in the shell so every embedded companion shares one install and one inference path. Apps call `shellui.ai` / the Prompt API–shaped `LanguageModel` API on `@shellui/sdk`; `@shellui/core` owns discovery, lifecycle, and adapters via `AiBridge` (`SHELLUI_AI_*`). Providers: **Ollama** (real prompts when the local daemon is running) and a curated **browser** catalog (Install/Remove UX; weight download and inference still stubbed — use Ollama until WebLLM lands). Configure in **Settings → AI** (master switch, provider cards, default model). AI requests use the same privileged companion + trusted-frame policy as storage (`safeForAuthToken`).
