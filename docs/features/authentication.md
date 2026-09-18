@@ -169,7 +169,7 @@ If your companion relied on the previous default (token shared without config), 
 }
 ```
 
-When [postMessage trust policy](https://github.com/shellui/shellui/issues/60) is enabled via `security.allowedMessageOrigins`, token sharing still requires `safeForAuthToken: true`; allowed origins are enforced separately for postMessage traffic.
+From **0.5.1** onward, postMessage origin and trusted-frame policy is **on by default**. The Shellui host derives companion origins from navigation, storage, and admin URLs in `shellui.config.json`; add preview or staging hosts with `security.allowedMessageOrigins` — see [SDK messaging](/sdk) (`security.allowedMessageOrigins`). Token sharing still requires `safeForAuthToken: true`; allowed origins are enforced separately for postMessage traffic.
 
 ```typescript
 import { shellui } from '@shellui/sdk';
