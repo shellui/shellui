@@ -521,6 +521,15 @@
           "filesAndFolders": "Select files and folders"
         }
       },
+      "chromeActions": {
+        "title": "Chrome actions",
+        "description": "Opens a shell-owned demo page inside a modal or drawer iframe. That iframe calls shellui.actions.set/clear so chrome and click round-trips use the real postMessage path. Use Set / Update / Clear inside the demo; narrow the viewport for ··· overflow.",
+        "buttons": {
+          "openModal": "Open demo (modal iframe)",
+          "openDrawer": "Open demo (drawer iframe)",
+          "close": "Close demo"
+        }
+      },
       "ai": {
         "title": "On-device AI",
         "description": "Probe WebGPU and Ollama, list models, and run a tiny prompt through the same shell AI path apps use. Needs a ready model (usually Ollama).",

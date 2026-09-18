@@ -59,6 +59,8 @@ On desktop and tablet, modals are movable (drag the top edge) and resizable (edg
 
 Close paths: overlay × when `showCloseButton` is true (default); backdrop when `closeOnOverlayClick` is true; Escape and swipe when `dismissible` is true. If `showCloseButton` is false, your iframe should call `shellui.closeModal()`.
 
+On mobile sheets, the drag handle also expands and collapses height: drag up until about `60px` plus the top safe-area inset remain above the sheet (tappable overlay), drag down from expanded to restore the configured size, or keep dragging down to dismiss. Sheets that are already that tall skip the expand snap.
+
 ## Drawers
 
 Desktop and tablet honor `left` / `right` / `top` / `bottom`. Below 768px every drawer is a bottom sheet (same chrome as mobile `openModal`).
@@ -85,6 +87,8 @@ shellui.closeDrawer();
 ```
 
 When `dismissible` is true, top/bottom drawers show a drag handle: drag down on bottom (and all mobile drawers); drag up on top (desktop/tablet). Left/right drawers on desktop have no Vaul handle - dismiss with ×, backdrop, or Escape. Set `showDragHandle: false` to hide the bar. Desktop drawers resize from the free edge by default (`resizable: false` to lock). They are not movable. Resize is off on mobile.
+
+Bottom sheets (including every mobile drawer) also snap taller from the handle: drag up to expand (leaving ~60px + top safe-area for the overlay), drag down to the original size, or drag further to close. Expand snaps are skipped when the sheet is already that tall, while pending, or when desktop free-edge resize is enabled.
 
 Left/right freeform widths (`"60vw"`, `"400px"`) map to the default bottom-sheet height (80% of `--shellui-overlay-max-height`) on mobile. Presets and top/bottom heights keep their vertical meaning.
 
@@ -134,6 +138,15 @@ Avoid `vh` / `%` height in iframe content with dynamic sizing: those units track
 Overlay chrome uses existing design tokens. Light and dark apply without hardcoded colors.
 
 Do not nest overlays. When you disable Escape or backdrop click, document how to dismiss. Types: `OpenModalOptions`, `OpenDrawerOptions` from `@shellui/sdk`.
+
+## Modal URL validation
+
+`shellui.openModal` and navigation items with `openIn: 'modal'` pass iframe URLs through the same allowlist as the host (`validateAndNormalizeUrl`):
+
+- **Development builds** — loopback origins (`localhost`, `127.0.0.1`, `::1`) are allowed so companions on `http://localhost:5173` work during `shellui start`.
+- **Production builds** — loopback modal URLs are **rejected** unless the origin matches the shell (same-origin relative paths resolve to the host), `backend.url` / `backend.loginUrl`, `storage.url` / `storage.filesUrl`, or a configured administration / admin panel URL.
+
+Untrusted absolute URLs fail closed (the modal does not load the iframe). Use same-origin paths or explicitly configured service origins in shipped builds.
 
 ## Related pages
 

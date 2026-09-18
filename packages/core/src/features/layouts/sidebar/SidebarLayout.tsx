@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { shellui } from '@shellui/sdk';
 import {
   Sidebar,
   SidebarInset,
@@ -32,6 +33,8 @@ import {
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
 } from '../chrome/SafeAreaTopbar';
+import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
+import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   MAC_TRAFFIC_LIGHTS_GAP_PX,
@@ -39,6 +42,7 @@ import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
 } from '../chrome/constants';
+import { WindowTitleBarActions } from '../../chromeActions';
 import { cn } from '../../../lib/utils';
 
 /** Close the mobile sheet when the route changes. */
@@ -89,6 +93,7 @@ const SidebarLayoutContent = ({
   variant = 'sidebar',
 }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
@@ -100,6 +105,33 @@ const SidebarLayoutContent = ({
     : undefined;
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
+  const scrollHideLayout = variant === 'inset' ? 'sidebar-inset' : 'sidebar';
+  const { chromeVisible } = useScrollHideChrome({
+    enabled: isMobile,
+    layout: scrollHideLayout,
+    includeSafeArea: showSafeAreaTopbar,
+  });
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [frameUuid, setFrameUuid] = useState<string | null>(null);
+
+  // Bind title-bar actions to the main content iframe (mobile only).
+  useEffect(() => {
+    if (!isMobile) {
+      setFrameUuid(null);
+      return;
+    }
+    const sync = () => {
+      const iframe = contentRef.current?.querySelector('iframe');
+      if (!iframe) {
+        setFrameUuid(null);
+        return;
+      }
+      setFrameUuid(shellui.getUuidByIframe(iframe.contentWindow) ?? null);
+    };
+    sync();
+    const id = window.setInterval(sync, 400);
+    return () => window.clearInterval(id);
+  }, [isMobile, location.pathname]);
 
   const currentLanguage = useMemo(() => {
     return i18n.language || 'en';
@@ -178,40 +210,64 @@ const SidebarLayoutContent = ({
           {variant !== 'inset' ? <SidebarRail /> : null}
         </Sidebar>
 
-        <SidebarInset className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <SidebarInset
+          className={cn(
+            'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
+            // Mobile inset: keep the darkened chrome tray behind the header + card radius.
+            variant === 'inset' && 'max-md:bg-transparent',
+          )}
+        >
           {variant === 'inset' ? <SidebarRail placement="inset" /> : null}{' '}
           {/*
-            Mobile top chrome: extend the header background into the status-bar band
-            so there is no empty strip. Interactive controls stay below the inset via
-            padding. Overlays are fixed full-screen and still cover this band.
-            Nested iframe shells skip top safe-area — the host already cleared it.
+            Mobile: header + inset tray/radius slide as one stack; action row follows
+            the same CSS var. Stable inset-top — no jump when chrome hides.
           */}
-          <header
-            className="relative z-[46] flex shrink-0 items-center gap-0.5 border-b border-border bg-background px-3 select-none md:hidden"
-            style={{
-              paddingTop: showSafeAreaTopbar
-                ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
-                : DESKTOP_TITLEBAR_PAD_TOP_PX,
-              height: showSafeAreaTopbar
-                ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
-                : DESKTOP_TITLEBAR_HEIGHT_PX,
-              ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
-            }}
-            {...(trafficLights
-              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-              : {})}
+          <div
+            data-shellui-mobile-chrome-stack=""
+            data-chrome-visible={chromeVisible ? 'true' : 'false'}
+            className="pointer-events-none absolute inset-0 z-[45] md:hidden"
           >
-            <SidebarTrigger
-              data-shellui-no-drag=""
-              className="relative size-8 touch-manipulation text-foreground"
-            />
-            {isTauriEnv ? <DesktopHistoryButtons /> : null}
-          </header>
-          {/*
-            Fill to the physical bottom — do not pad safe-area here or the iframe
-            looks cut off. In-app content (settings, etc.) owns bottom safe insets.
-          */}
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <header
+              data-shellui-scroll-hide-header=""
+              className={cn(
+                'pointer-events-auto relative z-[1] flex items-center gap-0.5 px-3 select-none',
+                variant === 'inset'
+                  ? 'border-transparent bg-transparent text-sidebar-foreground'
+                  : 'border-b border-border bg-background',
+              )}
+              style={{
+                paddingTop: showSafeAreaTopbar
+                  ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
+                  : DESKTOP_TITLEBAR_PAD_TOP_PX,
+                height: showSafeAreaTopbar
+                  ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
+                  : DESKTOP_TITLEBAR_HEIGHT_PX,
+                ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
+              }}
+              {...(trafficLights
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            >
+              <SidebarTrigger
+                data-shellui-no-drag=""
+                className="relative size-8 shrink-0 touch-manipulation text-foreground"
+              />
+              {isTauriEnv ? <DesktopHistoryButtons /> : null}
+              {isMobile ? (
+                <div
+                  data-shellui-no-drag=""
+                  className="flex min-w-0 flex-1 items-center"
+                >
+                  <WindowTitleBarActions frameUuid={frameUuid} />
+                </div>
+              ) : null}
+            </header>
+            {variant === 'inset' ? <InsetMobileRadiusOverlay /> : null}
+          </div>
+          <div
+            ref={contentRef}
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          >
             <Outlet />
           </div>
         </SidebarInset>

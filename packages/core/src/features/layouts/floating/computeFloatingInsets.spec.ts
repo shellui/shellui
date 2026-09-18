@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   computeFloatingInsets,
   FLOATING_CHROME_MARGIN,
-  FLOATING_COLLAPSED_TOP_INSET,
   FLOATING_CONTENT_CLEARANCE,
   FLOATING_SIDEBAR_WIDTH,
   FLOATING_TAB_BAR_HEIGHT,
+  FLOATING_TAB_BAR_HEIGHT_TABLET,
 } from './computeFloatingInsets';
 
 describe('computeFloatingInsets', () => {
@@ -38,7 +38,7 @@ describe('computeFloatingInsets', () => {
     });
   });
 
-  it('adds bottom tab bar on tablet when visible (full bottom pad)', () => {
+  it('adds bottom tab bar on tablet when visible (full bottom pad, taller dock)', () => {
     expect(
       computeFloatingInsets({ viewport: 'tablet', chromeVisible: true, safeArea: safe }),
     ).toEqual({
@@ -47,7 +47,7 @@ describe('computeFloatingInsets', () => {
       bottom:
         20 +
         FLOATING_CHROME_MARGIN +
-        FLOATING_TAB_BAR_HEIGHT +
+        FLOATING_TAB_BAR_HEIGHT_TABLET +
         FLOATING_CHROME_MARGIN +
         FLOATING_CONTENT_CLEARANCE,
       left: 3,
@@ -65,7 +65,7 @@ describe('computeFloatingInsets', () => {
     });
   });
 
-  it('drops left sidebar inset when desktop sidebar is collapsed', () => {
+  it('keeps content full-bleed when desktop sidebar is collapsed', () => {
     expect(
       computeFloatingInsets({
         viewport: 'desktop',
@@ -74,7 +74,7 @@ describe('computeFloatingInsets', () => {
         safeArea: safe,
       }),
     ).toEqual({
-      top: 10 + FLOATING_COLLAPSED_TOP_INSET,
+      top: 10,
       right: 2,
       bottom: 20,
       left: 3,

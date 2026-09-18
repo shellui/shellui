@@ -21,7 +21,6 @@ shellui init next
 shellui init nuxt
 shellui init svelte
 shellui init alpine
-shellui init flutter
 shellui init empty
 ```
 
@@ -35,16 +34,15 @@ shellui init react ./my-project
 shellui init --force
 ```
 
-Without flags, the wizard asks for framework and backend. JS starters are fetched from the GitHub tag that matches the CLI version (not bundled in the npm tarball). They wire `@shellui/sdk/tiny` for theme and language, plus `dev.run` / `dev.url` so `shellui start` launches the companion. Empty stays shell-only (`Home` at `/`, no `dev` block). After a JS scaffold, init detects the package manager and runs install unless `--no-install`. Flutter Web runs `flutter pub get` instead of npm. There is no Dart SDK; handshake, theme, and i18n stay JS-only.
+Without flags, the wizard asks for framework and backend. JS starters are fetched from the GitHub tag that matches the CLI version (not bundled in the npm tarball). They wire `@shellui/sdk/tiny` for theme and language, plus `dev.run` / `dev.url` so `shellui start` launches the companion. Empty stays shell-only (`Home` at `/`, no `dev` block). After a JS scaffold, init detects the package manager and runs install unless `--no-install`.
 
-| Framework                        | Default `dev.run`                                                    | `dev.url`               |
-| -------------------------------- | -------------------------------------------------------------------- | ----------------------- |
-| React / Vue / SvelteKit / Alpine | `{pm} run dev`                                                       | `http://localhost:5173` |
-| Angular                          | `{pm} run dev`                                                       | `http://localhost:4200` |
-| Next.js / Nuxt                   | `{pm} run dev`                                                       | `http://localhost:3000` |
-| Flutter Web                      | `flutter run -d web-server --web-hostname=localhost --web-port=8080` | `http://localhost:8080` |
+| Framework                        | Default `dev.run` | `dev.url`               |
+| -------------------------------- | ----------------- | ----------------------- |
+| React / Vue / SvelteKit / Alpine | `{pm} run dev`    | `http://localhost:5173` |
+| Angular                          | `{pm} run dev`    | `http://localhost:4200` |
+| Next.js / Nuxt                   | `{pm} run dev`    | `http://localhost:3000` |
 
-The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Flutter's first web compile can exceed the default 60s companion wait - see the Flutter template README. Nuxt 4 expects a recent Node 22.x / 24.x.
+The shell stays on port **4000** in generated config. Next.js and Nuxt companions pin port 3000. Nuxt 4 expects a recent Node 22.x / 24.x. Per-framework theme / i18n wiring, icons, and run notes: [Framework starters](/framework-starters).
 
 **Options:** positional `framework` or `--framework`; `--backend none|shellui|supabase`; `--company-id`; `--supabase-url`; `--force`; `--no-install`; `--config`.
 
@@ -69,11 +67,12 @@ shellui start --host
 shellui start --app
 shellui start --run vite --follow http://localhost:5173
 shellui start --shell-only
+shellui start --follow https://staging.example.com --allow-remote-companion
 ```
 
 Starts Vite with HMR for `@shellui/core`, opens the browser on first start, watches config, and uses `port` from config (default **3000** if unset). Does not load the project's Vite / PostCSS / TypeScript / Tailwind files - see [Tooling isolation](#tooling-isolation). `--app` starts the [desktop wrapper](/tauri).
 
-**Options:** `[root]`; `--host` (`0.0.0.0`); `--app`; `--target web|tauri` (default `web`; `tauri` with `--app`); `--config` / `SHELLUI_CONFIG`; `--run`; `--follow`; `--shell-only`. Do not pass `--no-run` - cac treats that as a negation of `--run <command>` and breaks plain `shellui start`.
+**Options:** `[root]`; `--host` (`0.0.0.0`); `--app`; `--target web|tauri` (default `web`; `tauri` with `--app`); `--config` / `SHELLUI_CONFIG`; `--run`; `--follow`; `--allow-remote-companion`; `--shell-only`. Do not pass `--no-run` - cac treats that as a negation of `--run <command>` and breaks plain `shellui start`.
 
 ### Companion process
 
@@ -91,12 +90,17 @@ CLI-only. Never sent to the browser. `shellui build` ignores it.
 
 - **Spawn** (`run` set): `shellui start` is the parent. If `url` is set, the CLI waits for it before listening. Child **exit** (not a brief port blip) shuts down the shell.
 - **Follow** (`url` only): start the shell as usual. After the URL has been healthy once, if it stays down (~2s), the CLI exits. A URL that never comes up does not kill the shell.
+- **URL validation (Track F / L-14):** `dev.url` and `--follow` must be valid `http`/`https` URLs (or `host:port` shorthand). Loopback (`localhost`, `127.0.0.1`, `::1`) is the expected default. Non-loopback URLs print a warning; cloud metadata and link-local hosts are **rejected**. Pass `--allow-remote-companion` when you intentionally follow a remote staging URL.
 - Config-file restarts restart shell Vite only; the companion keeps running.
 - `--app` does not spawn a companion itself. The nested `shellui start` from Tauri will, if `dev.run` is set.
+
+See also [Companion origin isolation](/features/companion-isolation) for iframe sandbox notes (M-18).
 
 ### shellui build [root]
 
 Build a production static site to `dist/web/`. Same isolated toolchain as `start`. `--app` also builds native bundles under `dist/app/`. `--bundles` selects desktop formats (default `app`; `app,dmg` on macOS). See [Desktop app - bundle targets](/tauri#bundle-targets).
+
+The build uses Vite `base: './'` so `dist/web` works from any deploy path. It writes `404.html` (copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for **navigation paths** plus **shell built-in routes** (`/login`, `/login/callback`, `/__settings`, legal pages, …). Each nested copy rewrites `./assets/…` to the correct `../` depth so trailing-slash hosts (GitHub Pages, S3 website) load JS/CSS from the dist root. Unknown deep routes still rely on `404.html` with root-relative assets — only known shell and navigation entrypoints are pre-generated.
 
 ### shellui login [root]
 
@@ -108,15 +112,23 @@ shellui login --config ./config
 shellui login --provider github
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback`. Loopback is always allowlisted.
+Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>`. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+
+After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The CLI callback page exchanges it at `POST /api/v1/oauth/session`, then posts tokens to `/capture`. Legacy fragment delivery (`#access_token=…`) still works during rollout.
+
+**Loopback threat model (Track F / L-11, L-12):**
+
+- The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
+- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce — verify they match your terminal before completing sign-in.
+- Auth codes and URL fragments are cleared with `history.replaceState` after capture.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
-Credentials: `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are never printed.
+**Credentials (Track F / L-10):** `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are stored as **plaintext JSON** with Unix mode `0600` (directory `0700`). This limits exposure to the same user account but does **not** protect against root, malware, or backups. OS keychain integration is planned separately. Tokens are never printed.
 
 ### shellui logout / whoami
 
-`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` when a token is present. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired.
+`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
 ### shellui deploy [root]
 
@@ -206,6 +218,14 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
+
+### Trusted config paths (Track F / L-13)
+
+Shellui config can execute code: TypeScript configs run via `tsx` with the CLI's privileges; JSON still controls dev companions and deploy targets.
+
+- Prefer **`shellui.config.json`** (or split JSON). Run `shellui config migrate` to move off TypeScript for CI-safe configs.
+- **`--config` / `SHELLUI_CONFIG`:** loading config from outside the project root prints a warning. World-writable config paths are rejected; symlink escapes outside the project root are rejected.
+- TypeScript load prints an additional warning. Treat config like source code — only from trusted repositories.
 
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 

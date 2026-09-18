@@ -14,6 +14,19 @@ import {
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
+import { prepareBuildEnvironment } from '../utils/project-env.js';
+
+/**
+ * Normalize a URL path for dist subfolders (no leading/trailing slashes, no traversal).
+ * @param {string} routePath
+ * @returns {string | null}
+ */
+export function normalizeRoutePath(routePath) {
+  if (typeof routePath !== 'string') return null;
+  const normalized = routePath.replace(/^\/+|\/+$/g, '').trim();
+  if (!normalized || normalized.includes('..')) return null;
+  return normalized;
+}
 
 /**
  * Collect all unique path values from navigation config (items and nested groups).
@@ -21,25 +34,108 @@ import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
  * @param {Array<{ path?: string; items?: Array<{ path?: string }> }>} navigation - Config navigation array
  * @returns {string[]} Unique path segments safe for dist subfolders
  */
-function getNavigationPaths(navigation) {
+export function getNavigationPaths(navigation) {
   if (!Array.isArray(navigation)) return [];
   const paths = new Set();
   for (const item of navigation) {
     if (!item || typeof item !== 'object') continue;
     if ('path' in item && typeof item.path === 'string') {
-      const normalized = item.path.replace(/^\/+|\/+$/g, '').trim();
-      if (normalized && !normalized.includes('..')) paths.add(normalized);
+      const normalized = normalizeRoutePath(item.path);
+      if (normalized) paths.add(normalized);
     }
     if (Array.isArray(item.items)) {
       for (const sub of item.items) {
         if (sub && typeof sub.path === 'string') {
-          const normalized = sub.path.replace(/^\/+|\/+$/g, '').trim();
-          if (normalized && !normalized.includes('..')) paths.add(normalized);
+          const normalized = normalizeRoutePath(sub.path);
+          if (normalized) paths.add(normalized);
         }
       }
     }
   }
   return [...paths];
+}
+
+/** Fallback when @shellui/core constants/urls.ts is unavailable (keep in sync). */
+const SHELL_BUILTIN_ROUTE_FALLBACK = [
+  '__settings',
+  '__cookie-preferences',
+  '__overlay-demo',
+  '__chrome-actions-demo',
+  'login',
+  'login/callback',
+  'admin',
+  'legal',
+  'legal/privacy-policy',
+  'legal/terms-of-service',
+  'legal/legal-notice',
+  'legal/data-processing-agreement',
+];
+
+/**
+ * Shell React routes from @shellui/core/src/constants/urls.ts (login, settings, legal, …).
+ * Parsed at build time so the CLI does not need to import TypeScript sources.
+ * @param {string} corePackagePath - Resolved @shellui/core package root
+ * @returns {string[]}
+ */
+export function getShellBuiltinRoutePaths(corePackagePath) {
+  const urlsPath = path.join(corePackagePath, 'src', 'constants', 'urls.ts');
+  if (!fs.existsSync(urlsPath)) {
+    return [...SHELL_BUILTIN_ROUTE_FALLBACK];
+  }
+
+  const source = fs.readFileSync(urlsPath, 'utf-8');
+  const paths = new Set();
+  for (const match of source.matchAll(/:\s*'(\/[^']*)'/g)) {
+    const normalized = normalizeRoutePath(match[1]);
+    if (normalized) paths.add(normalized);
+  }
+
+  return paths.size > 0 ? [...paths].sort() : [...SHELL_BUILTIN_ROUTE_FALLBACK];
+}
+
+/**
+ * Optional admin pathname override from shell config (defaults to urls.admin).
+ * @param {{ backend?: { adminPathname?: string } }} config
+ * @returns {string | null}
+ */
+function getConfigAdminRoutePath(config) {
+  const configured = config?.backend?.adminPathname?.trim();
+  if (!configured || !configured.startsWith('/')) return null;
+  return normalizeRoutePath(configured);
+}
+
+/**
+ * Union of navigation paths and shell built-in routes to materialize as dist/<path>/index.html.
+ * @param {Array<{ path?: string; items?: Array<{ path?: string }> }>} navigation
+ * @param {string} corePackagePath
+ * @param {{ backend?: { adminPathname?: string } }} [config]
+ * @returns {string[]}
+ */
+export function getMaterializedRoutePaths(navigation, corePackagePath, config = {}) {
+  const paths = new Set([
+    ...getShellBuiltinRoutePaths(corePackagePath),
+    ...getNavigationPaths(navigation),
+  ]);
+  const adminOverride = getConfigAdminRoutePath(config);
+  if (adminOverride) paths.add(adminOverride);
+  return [...paths].sort();
+}
+
+/**
+ * Rewrite root-relative-to-index asset references (emitted by Vite `base: './'`)
+ * so a copy of index.html placed `depth` folders deep still resolves assets.
+ * A file at `dist/web/<seg1>/<seg2>/index.html` must reach `dist/web/assets/...`
+ * via `../../assets/...`. Without this, hosts that serve `/<path>/` with a
+ * trailing slash resolve `./assets` under the subfolder and 404.
+ * @param {string} html - index.html content built with relative base
+ * @param {number} depth - number of path segments the copy is nested under
+ * @returns {string}
+ */
+export function rewriteRelativeAssetDepth(html, depth) {
+  if (depth <= 0) return html;
+  const prefix = '../'.repeat(depth);
+  // Match attribute values that start with `./` (e.g. src="./assets/…", href='./favicon.svg').
+  return html.replace(/(\s(?:src|href)=)(["'])\.\//g, `$1$2${prefix}`);
 }
 
 /**
@@ -101,6 +197,8 @@ export async function buildCommand(root = '.', options = {}) {
   // This allows shellui.config.ts (advanced) to detect build mode and generate build ID
   process.env.SHELLUI_BUILD = 'true';
   process.env.NODE_ENV = 'production';
+
+  prepareBuildEnvironment(projectRoot);
 
   // Load configuration
   const config = await loadConfig(root, { config: options.config });
@@ -235,17 +333,22 @@ export async function buildCommand(root = '.', options = {}) {
       fs.copyFileSync(indexPath, notFoundPath);
       console.log(pc.green('404.html created!'));
 
-      // Create dist/<path>/index.html for each navigation path so those URLs return 200
-      const routePaths = getNavigationPaths(config.navigation);
+      // Materialize dist/<path>/index.html for shell built-ins (login/callback, settings, …)
+      // and navigation paths so static hosts return 200 with correct relative asset depth.
+      const routePaths = getMaterializedRoutePaths(config.navigation, corePackagePath, config);
       if (routePaths.length > 0) {
         console.log(pc.blue(`Creating route folders for ${routePaths.length} path(s)...`));
+        const indexHtml = fs.readFileSync(indexPath, 'utf-8');
         for (const routePath of routePaths) {
           const routeDir = path.join(distPath, routePath);
           const routeIndexPath = path.join(routeDir, 'index.html');
           if (!fs.existsSync(routeDir)) {
             fs.mkdirSync(routeDir, { recursive: true });
           }
-          fs.copyFileSync(indexPath, routeIndexPath);
+          // Relative `base: './'` assets must climb back to dist/web for nested routes
+          // so `/<path>/` (trailing slash) serving still resolves them.
+          const depth = routePath.split('/').filter(Boolean).length;
+          fs.writeFileSync(routeIndexPath, rewriteRelativeAssetDepth(indexHtml, depth), 'utf-8');
         }
         console.log(pc.green(`Route folders created: ${routePaths.join(', ')}`));
       }

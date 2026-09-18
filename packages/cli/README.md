@@ -39,7 +39,7 @@ shellui start --config ./config
 
 `dev` is an alias for `start`. `--shell-only` ignores `config.dev.run`. Do not pass `--no-run`.
 
-**init frameworks:** `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`, `flutter` (Flutter **Web only**; needs the Flutter SDK).
+**init frameworks:** `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. Each JS starter wires theme and i18n with `@shellui/sdk/tiny`. See [Framework starters](https://docs.shellui.com/framework-starters).
 
 Full command and config reference: [CLI docs](https://docs.shellui.com/cli). Desktop: [Tauri / desktop app](https://docs.shellui.com/tauri). `shellui start` / `build` ignore the project `vite.config`, PostCSS, Tailwind, `tsconfig`, and `VITE_*` - see [tooling isolation](https://docs.shellui.com/cli#tooling-isolation).
 

@@ -16,30 +16,16 @@
   <body>
     <div
       id="app"
-      x-data="shelluiHome"
+      x-data="{ count: 0 }"
     >
-      <main class="home">
-        <p class="eyebrow">Shellui</p>
-        <h1 x-text="t('title')"></h1>
-        <p
-          class="blurb"
-          x-text="t('blurb')"
-        ></p>
-        <dl class="meta">
-          <div>
-            <dt x-text="t('themeLabel')"></dt>
-            <dd x-text="themeLabel"></dd>
-          </div>
-          <div>
-            <dt x-text="t('languageLabel')"></dt>
-            <dd x-text="languageLabel"></dd>
-          </div>
-        </dl>
-        <p
-          class="hint"
-          x-text="t('hint')"
-        ></p>
-      </main>
+      <h1>Get started</h1>
+      <p>Edit <code>index.html</code> and save to test <code>HMR</code></p>
+      <button
+        type="button"
+        @click="count++"
+      >
+        Count is <span x-text="count"></span>
+      </button>
     </div>
     <script
       type="module"

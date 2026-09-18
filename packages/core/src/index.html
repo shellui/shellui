@@ -6,7 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
-    <!-- iOS home-screen / standalone: draw under a translucent status bar -->
+    <!-- iOS home-screen / standalone: draw under a translucent status bar.
+         On iOS 26/27 Home Screen PWAs, the system may still paint Liquid Glass
+         status chrome; App Store / Tauri WKWebView does not get that treatment.
+         See docs/tauri.md (Browser PWA vs native). -->
     <meta
       name="apple-mobile-web-app-capable"
       content="yes"
@@ -19,9 +22,8 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <!-- No theme-color here on purpose: in an installed iOS web app it overrides
-         black-translucent and paints a slab overlays cannot cover. applyTheme adds
-         one at runtime for the platforms that still honour it. -->
+    <!-- No static theme-color: on installed iOS PWAs it can override
+         black-translucent. applyTheme sets it only for browser tabs (not PWA / Tauri). -->
     <title></title>
     <link
       rel="icon"

@@ -51,16 +51,15 @@ import {
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
 } from '../chrome/SafeAreaTopbar';
+import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
+import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import {
-  DESKTOP_TITLEBAR_HEIGHT_PX,
-  DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
-} from '../chrome/constants';
+import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
-/** App-bar chrome height — matches the Tauri / sidebar titlebar strip. */
-const APP_BAR_HEIGHT_PX = DESKTOP_TITLEBAR_HEIGHT_PX;
+/** App-bar chrome height — taller than the 42px Tauri/sidebar title strip. */
+const APP_BAR_HEIGHT_PX = 56;
+/** Extra top inset so controls aren’t flush against the window edge / notch band. */
+const APP_BAR_PAD_TOP_PX = 6;
 
 export type AppBarChromeVariant = 'app-bar' | 'inset';
 
@@ -239,8 +238,8 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
 
 const navTriggerClass = (active: boolean) =>
   cn(
-    // h-7 leaves air in the 42px chrome after the 2px top pad.
-    'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors',
+    // h-8 fills the taller app-bar after the top pad.
+    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     active
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
@@ -689,7 +688,7 @@ function TopBarEndItem({
   );
 
   const buttonClass = cn(
-    'flex size-7 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+    'flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     isActive
       ? 'bg-sidebar-accent text-sidebar-accent-foreground'
       : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground',
@@ -762,6 +761,15 @@ export function AppBarLayout({
   const currentLanguage = i18n.language || 'en';
   const isInset = variant === 'inset';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
+  // Nested shell-in-iframe must not repeat the root safe-area top band.
+  const showSafeAreaTopbar = isShellUiRootWindow();
+  const scrollHideLayout = isInset ? 'app-bar-inset' : 'app-bar';
+  const { chromeVisible } = useScrollHideChrome({
+    enabled: isMobile,
+    layout: scrollHideLayout,
+    barHeightPx: APP_BAR_HEIGHT_PX,
+    includeSafeArea: showSafeAreaTopbar,
+  });
   const authAwareNavigation = useMemo(
     () =>
       filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
@@ -808,27 +816,29 @@ export function AppBarLayout({
     : undefined;
 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
-  // Nested shell-in-iframe must not repeat the root safe-area top band.
-  const showSafeAreaTopbar = isShellUiRootWindow();
-  // Keep in sync with <main> `md:mx-3` — bar content aligns to the inset card border.
+  // Keep in sync with <main> inset frame pad — bar content aligns to the card border.
   // Extra inset from the frame edge: 20px left (brand/nav), 10px right (end links already have control padding).
-  const insetFramePadPx = 12;
+  // Mobile inset is full-bleed (top radius only); desktop uses 12px (md:mx-3).
+  const insetFramePadPx = isMobile ? 0 : 12;
   const insetBarContentOffsetLeftPx = 20;
   const insetBarContentOffsetRightPx = 10;
   // md+: strip owns the inset; mobile pads the header into the status band.
+  // Mobile inset is full-bleed — use the same control insets as the flush app-bar.
   const headerStyle = {
     paddingLeft: isInset
-      ? (chromeInset ?? insetFramePadPx) + insetBarContentOffsetLeftPx
+      ? isMobile
+        ? (chromeInset ?? 12)
+        : (chromeInset ?? insetFramePadPx) + insetBarContentOffsetLeftPx
       : (chromeInset ?? 12),
-    paddingRight: isInset ? insetFramePadPx + insetBarContentOffsetRightPx : 8,
+    paddingRight: isInset ? (isMobile ? 8 : insetFramePadPx + insetBarContentOffsetRightPx) : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
-          paddingTop: `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`,
+          paddingTop: `calc(var(--shellui-safe-area-top) + ${APP_BAR_PAD_TOP_PX}px)`,
           height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
         }
       : {
           height: APP_BAR_HEIGHT_PX,
-          paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+          paddingTop: APP_BAR_PAD_TOP_PX,
         }),
   } as const;
 
@@ -837,7 +847,7 @@ export function AppBarLayout({
       data-shellui-app-bar-layout=""
       data-shellui-layout-variant={variant}
       className={cn(
-        'flex h-full max-h-full flex-col overflow-hidden',
+        'relative flex h-full max-h-full flex-col overflow-hidden',
         isInset ? 'bg-shellui-inset-chrome' : 'bg-background',
       )}
     >
@@ -848,89 +858,184 @@ export function AppBarLayout({
           isInset ? '[&>div]:border-transparent [&>div]:bg-shellui-inset-chrome' : undefined
         }
       />
-      <header
-        className={cn(
-          'relative z-[46] flex w-full shrink-0 items-center gap-1.5 text-sidebar-foreground select-none',
-          isInset
-            ? 'border-b border-transparent bg-transparent'
-            : 'border-b border-sidebar-border bg-sidebar',
-        )}
-        style={headerStyle}
-        data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
-        {...(trafficLights ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
-      >
-        {appIcon ? (
-          <AppBrandIcon
-            appIcon={appIcon}
-            title={title}
-            data-shellui-no-drag=""
-            className="mr-1 shrink-0"
-            imgClassName="app-bar-app-icon"
-          />
-        ) : null}
-
-        {hasStartNav ? (
-          <AppBarNav
-            sections={startSections}
-            activePathPrefix={activePathPrefix}
-            currentLanguage={currentLanguage}
-          />
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
-
-        {isTauriRuntime ? (
-          <div
-            data-shellui-no-drag=""
-            className="shrink-0"
-          >
-            <DesktopHistoryButtons />
-          </div>
-        ) : null}
-
+      {/*
+        Mobile: header + inset tray/radius slide as one stack; action row follows
+        the same CSS var. Desktop: header stays in normal document flow.
+      */}
+      {isMobile ? (
         <div
-          aria-hidden
-          className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
-          {...(trafficLights || overlay
+          data-shellui-mobile-chrome-stack=""
+          data-chrome-visible={chromeVisible ? 'true' : 'false'}
+          className="pointer-events-none absolute inset-0 z-[45]"
+        >
+          <header
+            data-shellui-scroll-hide-header=""
+            className={cn(
+              'pointer-events-auto relative z-[1] flex w-full items-center gap-1.5 text-sidebar-foreground select-none',
+              isInset
+                ? 'border-b border-transparent bg-transparent'
+                : 'border-b border-sidebar-border bg-sidebar',
+            )}
+            style={headerStyle}
+            data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
+            {...(trafficLights
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
+          >
+            {appIcon ? (
+              <AppBrandIcon
+                appIcon={appIcon}
+                title={title}
+                data-shellui-no-drag=""
+                className="mr-1 shrink-0"
+                imgClassName="app-bar-app-icon size-6"
+              />
+            ) : null}
+
+            {hasStartNav ? (
+              <AppBarNav
+                sections={startSections}
+                activePathPrefix={activePathPrefix}
+                currentLanguage={currentLanguage}
+              />
+            ) : (
+              <div className="min-w-0 flex-1" />
+            )}
+
+            {isTauriRuntime ? (
+              <div
+                data-shellui-no-drag=""
+                className="shrink-0"
+              >
+                <DesktopHistoryButtons />
+              </div>
+            ) : null}
+
+            <div
+              aria-hidden
+              className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
+              {...(trafficLights || overlay
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            />
+
+            <div
+              data-shellui-no-drag=""
+              className="flex shrink-0 items-center gap-0.5"
+            >
+              {endNavItems.length > 0 ? (
+                <TooltipProvider
+                  delayDuration={200}
+                  skipDelayDuration={0}
+                >
+                  <div className="flex items-center gap-0.5">
+                    {endNavItems.map((item) => (
+                      <TopBarEndItem
+                        key={item.path}
+                        item={item}
+                        label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                        activePathPrefix={activePathPrefix}
+                      />
+                    ))}
+                  </div>
+                </TooltipProvider>
+              ) : null}
+              <LoginButton
+                variant="appbar"
+                hideWhenLoggedOut={hasCustomLoginNav}
+              />
+            </div>
+          </header>
+          {isInset ? <InsetMobileRadiusOverlay /> : null}
+        </div>
+      ) : (
+        <header
+          className={cn(
+            'relative z-[46] flex w-full shrink-0 items-center gap-1.5 text-sidebar-foreground select-none',
+            isInset
+              ? 'border-b border-transparent bg-transparent'
+              : 'border-b border-sidebar-border bg-sidebar',
+          )}
+          style={headerStyle}
+          data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
+          {...(trafficLights
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
             : {})}
-        />
-
-        <div
-          data-shellui-no-drag=""
-          className="flex shrink-0 items-center gap-0.5"
         >
-          {endNavItems.length > 0 ? (
-            <TooltipProvider
-              delayDuration={200}
-              skipDelayDuration={0}
-            >
-              <div className="flex items-center gap-0.5">
-                {endNavItems.map((item) => (
-                  <TopBarEndItem
-                    key={item.path}
-                    item={item}
-                    label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
-                    activePathPrefix={activePathPrefix}
-                  />
-                ))}
-              </div>
-            </TooltipProvider>
+          {appIcon ? (
+            <AppBrandIcon
+              appIcon={appIcon}
+              title={title}
+              data-shellui-no-drag=""
+              className="mr-1 shrink-0"
+              imgClassName="app-bar-app-icon size-6"
+            />
           ) : null}
-          <LoginButton
-            variant="appbar"
-            hideWhenLoggedOut={hasCustomLoginNav}
+
+          {hasStartNav ? (
+            <AppBarNav
+              sections={startSections}
+              activePathPrefix={activePathPrefix}
+              currentLanguage={currentLanguage}
+            />
+          ) : (
+            <div className="min-w-0 flex-1" />
+          )}
+
+          {isTauriRuntime ? (
+            <div
+              data-shellui-no-drag=""
+              className="shrink-0"
+            >
+              <DesktopHistoryButtons />
+            </div>
+          ) : null}
+
+          <div
+            aria-hidden
+            className="min-h-full min-w-[8px] shrink-0 grow-0 basis-2"
+            {...(trafficLights || overlay
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
           />
-        </div>
-      </header>
+
+          <div
+            data-shellui-no-drag=""
+            className="flex shrink-0 items-center gap-0.5"
+          >
+            {endNavItems.length > 0 ? (
+              <TooltipProvider
+                delayDuration={200}
+                skipDelayDuration={0}
+              >
+                <div className="flex items-center gap-0.5">
+                  {endNavItems.map((item) => (
+                    <TopBarEndItem
+                      key={item.path}
+                      item={item}
+                      label={resolveNavLabel(item.label, currentLanguage) || item.path || ''}
+                      activePathPrefix={activePathPrefix}
+                    />
+                  ))}
+                </div>
+              </TooltipProvider>
+            ) : null}
+            <LoginButton
+              variant="appbar"
+              hideWhenLoggedOut={hasCustomLoginNav}
+            />
+          </div>
+        </header>
+      )}
 
       <main
         className={cn(
           'flex min-h-0 flex-1 flex-col overflow-hidden',
-          // Desktop inset: float the content frame on the chrome tray (same as sidebar-inset).
-          // `md:mx-3` (12px) must match `insetFramePadPx` on the header above.
+          // Mobile inset: full-bleed iframe; radius is a non-interactive overlay.
+          // Desktop inset: padded rounded card below the in-flow header.
           isInset &&
-            'bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
+            !isMobile &&
+            'relative bg-background md:mx-3 md:mb-3 md:rounded-2xl md:border md:border-border md:shadow-sm',
         )}
       >
         <Outlet />

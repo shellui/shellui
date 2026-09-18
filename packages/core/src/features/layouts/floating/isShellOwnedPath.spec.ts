@@ -13,6 +13,8 @@ describe('isShellOwnedPath', () => {
     expect(isShellOwnedPath('/login')).toBe(true);
     expect(isShellOwnedPath('/admin')).toBe(true);
     expect(isShellOwnedPath('/legal/privacy-policy')).toBe(true);
+    expect(isShellOwnedPath('/__overlay-demo')).toBe(true);
+    expect(isShellOwnedPath('/__chrome-actions-demo')).toBe(true);
   });
 
   it('rejects embedded app paths', () => {

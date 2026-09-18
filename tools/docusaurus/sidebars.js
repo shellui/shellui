@@ -36,6 +36,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'framework-starters',
+          label: 'Framework Starters',
+        },
+        {
+          type: 'doc',
           id: 'backend',
           label: 'Backend',
         },
@@ -43,6 +48,11 @@ const sidebars = {
           type: 'doc',
           id: 'features/authentication',
           label: 'Authentication',
+        },
+        {
+          type: 'doc',
+          id: 'features/security',
+          label: 'Security',
         },
       ],
     },
@@ -70,6 +80,11 @@ const sidebars = {
               type: 'doc',
               id: 'features/modals-drawers',
               label: 'Modals & Drawers',
+            },
+            {
+              type: 'doc',
+              id: 'features/companion-isolation',
+              label: 'Companion isolation',
             },
           ],
         },
@@ -104,6 +119,11 @@ const sidebars = {
               type: 'doc',
               id: 'features/dialogs',
               label: 'Dialogs',
+            },
+            {
+              type: 'doc',
+              id: 'features/chrome-actions',
+              label: 'Floating chrome actions',
             },
           ],
         },

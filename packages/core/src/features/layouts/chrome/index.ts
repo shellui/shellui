@@ -17,10 +17,16 @@ export {
   useIsTauriClient,
   useIsTauriRuntime,
   useIsTauriFullscreen,
+  useIsHomeScreenPwa,
   useMacOverlayChrome,
   useMacTrafficLights,
   isMacOSDesktop,
   isTauriRuntime,
+  isStandaloneDisplayMode,
+  isHomeScreenPwa,
+  getShelluiHostKind,
+  syncShelluiHostAttribute,
+  type ShelluiHostKind,
 } from './runtime';
 export { DesktopBackButton } from './DesktopBackButton';
 export { DesktopForwardButton } from './DesktopForwardButton';
@@ -29,3 +35,5 @@ export { ContentDragOverlay } from './ContentDragOverlay';
 export { DesktopChrome } from './DesktopChrome';
 export { CollapsedDesktopTitlebar } from './CollapsedDesktopTitlebar';
 export { isShellUiRootWindow, SafeAreaTopbarOffset, SafeAreaTopbarStrip } from './SafeAreaTopbar';
+export { useScrollHideChrome, type ScrollHideLayoutId } from './useScrollHideChrome';
+export { InsetMobileRadiusOverlay } from './InsetMobileRadiusOverlay';

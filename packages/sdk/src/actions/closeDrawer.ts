@@ -1,3 +1,5 @@
+import { postShellMessage } from '../utils/postShellMessage.js';
+
 /**
  * Closes the drawer.
  * If inside an iframe, sends a message to the parent to close the drawer.
@@ -12,9 +14,5 @@ export function closeDrawer(): void {
     payload: {},
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }

@@ -1,4 +1,5 @@
 import {
+  buildSessionFromTokenPayload,
   buildSessionFromParams,
   getShellUILoginClientTimezone,
   getShellUILoginDeviceId,
@@ -13,6 +14,20 @@ import type { AuthBackend } from './types';
 
 const USER_PREFERENCES_ENDPOINT = '/api/v1/preferences';
 const OAUTH_EXCHANGE_ENDPOINT = '/api/v1/oauth/exchange';
+const OAUTH_SESSION_ENDPOINT = '/api/v1/oauth/session';
+
+const parseAuthErrorPayload = (
+  payload: Record<string, unknown> | null,
+  response: Response,
+): never => {
+  const err = payload?.error ?? payload?.detail;
+  const message = typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`;
+  let errorCode = typeof payload?.error_code === 'string' ? payload.error_code.trim() : null;
+  if (!errorCode && response.status === 403) {
+    errorCode = 'access_pending';
+  }
+  throw new AuthRequestError(message, errorCode);
+};
 
 export const createShellUIAuthBackend = ({
   backendUrl,
@@ -46,19 +61,7 @@ export const createShellUIAuthBackend = ({
     }
 
     const payload = (await response.json()) as Record<string, unknown>;
-    const refreshParams = new URLSearchParams();
-    if (typeof payload.access_token === 'string')
-      refreshParams.set('access_token', payload.access_token);
-    if (typeof payload.refresh_token === 'string')
-      refreshParams.set('refresh_token', payload.refresh_token);
-    if (typeof payload.expires_at === 'number' || typeof payload.expires_at === 'string') {
-      refreshParams.set('expires_at', String(payload.expires_at));
-    }
-    if (typeof payload.expires_in === 'number' || typeof payload.expires_in === 'string') {
-      refreshParams.set('expires_in', String(payload.expires_in));
-    }
-    if (typeof payload.token_type === 'string') refreshParams.set('token_type', payload.token_type);
-    return buildSessionFromParams(refreshParams, nowSeconds);
+    return buildSessionFromTokenPayload(payload, nowSeconds);
   };
 
   return {
@@ -66,6 +69,27 @@ export const createShellUIAuthBackend = ({
     readSessionFromCallback: (locationHash, nowSeconds) => {
       const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
       return buildSessionFromParams(hashParams, nowSeconds);
+    },
+    exchangeOAuthSessionCode: async ({ authCode, redirectTo, nowSeconds }) => {
+      if (!backendUrl) {
+        throw new Error('Missing Shellui backend URL.');
+      }
+      const response = await fetch(`${backendUrl}${OAUTH_SESSION_ENDPOINT}`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          auth_code: authCode,
+          redirect_to: redirectTo,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!response.ok) {
+        parseAuthErrorPayload(payload, response);
+      }
+      return buildSessionFromTokenPayload(payload, nowSeconds);
     },
     exchangeOAuthCode: async ({ provider, code, redirectUri, oauthClientId, nowSeconds }) => {
       if (!backendUrl) {
@@ -100,29 +124,9 @@ export const createShellUIAuthBackend = ({
       });
       const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
       if (!response.ok) {
-        const err = payload?.error ?? payload?.detail;
-        const message = typeof err === 'string' && err.trim() ? err : `HTTP ${response.status}`;
-        let errorCode = typeof payload?.error_code === 'string' ? payload.error_code.trim() : null;
-        // Exchange uses 403 only for company join denial; default the code if omitted.
-        if (!errorCode && response.status === 403) {
-          errorCode = 'access_pending';
-        }
-        throw new AuthRequestError(message, errorCode);
+        parseAuthErrorPayload(payload, response);
       }
-      const refreshParams = new URLSearchParams();
-      if (typeof payload?.access_token === 'string')
-        refreshParams.set('access_token', payload.access_token);
-      if (typeof payload?.refresh_token === 'string')
-        refreshParams.set('refresh_token', payload.refresh_token);
-      if (typeof payload?.expires_at === 'number' || typeof payload?.expires_at === 'string') {
-        refreshParams.set('expires_at', String(payload.expires_at));
-      }
-      if (typeof payload?.expires_in === 'number' || typeof payload?.expires_in === 'string') {
-        refreshParams.set('expires_in', String(payload.expires_in));
-      }
-      if (typeof payload?.token_type === 'string')
-        refreshParams.set('token_type', payload.token_type);
-      return buildSessionFromParams(refreshParams, nowSeconds);
+      return buildSessionFromTokenPayload(payload, nowSeconds);
     },
     restoreSession: async (storedSession, nowSeconds) => {
       if (!storedSession) return null;
@@ -188,8 +192,12 @@ export const createShellUIAuthBackend = ({
         method: 'POST',
         headers: {
           Accept: 'application/json',
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${session.accessToken}`,
         },
+        body: JSON.stringify({
+          ...(session.refreshToken ? { refresh_token: session.refreshToken } : {}),
+        }),
       });
     },
     getAuthSettings: async () => {

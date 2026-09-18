@@ -521,6 +521,15 @@
           "filesAndFolders": "Sélectionner fichiers et dossiers"
         }
       },
+      "chromeActions": {
+        "title": "Actions chrome",
+        "description": "Ouvre une page démo Shellui dans un modal ou un tiroir (iframe). Cette iframe appelle shellui.actions.set/clear pour exercer le chrome et le round-trip postMessage. Utilisez Set / Update / Clear dans la démo ; réduisez la fenêtre pour le menu ···.",
+        "buttons": {
+          "openModal": "Ouvrir la démo (modal iframe)",
+          "openDrawer": "Ouvrir la démo (tiroir iframe)",
+          "close": "Fermer la démo"
+        }
+      },
       "ai": {
         "title": "IA locale",
         "description": "Sonde WebGPU et Ollama, liste les modèles et envoie un petit prompt via le même chemin AI que les applications. Il faut un modèle prêt (souvent Ollama).",

@@ -1,6 +1,6 @@
 {
   "name": "shellui",
-  "version": "0.5.0-beta.3",
+  "version": "0.5.2",
   "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
@@ -22,7 +22,7 @@
     "docs:start": "pnpm run build:sdk && cd tools/docusaurus && pnpm start",
     "docs:build": "pnpm run build:sdk && cd tools/docusaurus && pnpm run build",
     "docs:serve": "cd tools/docusaurus && pnpm run serve",
-    "serve:dist": "node tools/serve/server.js",
+    "serve:dist": "node packages/cli/scripts/serve-dist.mjs",
     "tauri:install": "pnpm --filter @shellui/tauri run install:deps",
     "tauri:dev": "pnpm --filter @shellui/tauri run dev",
     "tauri:build": "pnpm --filter @shellui/tauri run build",

@@ -41,6 +41,12 @@ describe('resolveCompanion', () => {
     });
   });
 
+  test('rejects blocked companion URLs', () => {
+    expect(() => resolveCompanion({ dev: { url: 'http://169.254.169.254/' } })).toThrow(
+      /169\.254\.169\.254/,
+    );
+  });
+
   test('flags override config; --shell-only drops spawn', () => {
     const config = { dev: { run: 'vite', url: 'http://localhost:5173' } };
     expect(resolveCompanion(config, { run: 'pnpm start:app' }).run).toBe('pnpm start:app');

@@ -4,15 +4,18 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
+    "start": "shellui start",
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "shellui build && vite build",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "preview": "vite preview",
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch"
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^7.0.1",
+    "@shellui/cli": "^0.5.0",
+    "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "svelte": "^5.56.1",
@@ -21,6 +24,6 @@
     "vite": "^8.0.16"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.5.0-beta.3"
+    "@shellui/sdk": "^0.5.0"
   }
 }

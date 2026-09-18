@@ -13,6 +13,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { StorageBridge } from './features/storage/StorageBridge';
 import { AiBridge } from './features/ai/AiBridge';
 import { SonnerProvider } from './features/sonner/SonnerContext';
+import { ChromeActionsHost, ChromeActionsProvider } from './features/chromeActions';
 import { Toaster } from './components/ui/sonner';
 import { UploadToaster } from './features/storage/uploads/UploadToaster';
 import './features/sentry/initSentry';
@@ -27,6 +28,7 @@ import {
 } from './service-worker/register';
 import { useSettings } from './features/settings/hooks/useSettings';
 import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
+import { MessagingSecurityBootstrap } from './features/messaging/MessagingSecurityBootstrap';
 
 const AppContent = () => {
   const { config } = useConfig();
@@ -130,6 +132,7 @@ const App = () => {
 
   return (
     <ConfigProvider>
+      <MessagingSecurityBootstrap />
       <AuthProvider>
         <StorageBridge />
         <SettingsProvider>
@@ -138,10 +141,13 @@ const App = () => {
             <I18nProvider>
               <DialogProvider>
                 <SonnerProvider>
-                  {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
-                  <Toaster />
-                  <UploadToaster />
-                  <AppContent />
+                  <ChromeActionsProvider>
+                    {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
+                    <Toaster />
+                    <UploadToaster />
+                    <ChromeActionsHost />
+                    <AppContent />
+                  </ChromeActionsProvider>
                 </SonnerProvider>
               </DialogProvider>
             </I18nProvider>

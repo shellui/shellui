@@ -60,13 +60,12 @@ describe('template helpers', () => {
     expect(fs.existsSync(path.join(local, 'package.json'))).toBe(true);
   });
 
-  test('resolveLocalTemplatePath finds flutter template via pubspec.yaml', () => {
+  test('resolveLocalTemplatePath does not find a flutter template', () => {
     const local = resolveLocalTemplatePath('flutter', {
       cwd: repoRoot,
       cliPackageRoot,
     });
-    expect(local).toBeTruthy();
-    expect(fs.existsSync(path.join(local, 'pubspec.yaml'))).toBe(true);
+    expect(local).toBeNull();
   });
 
   test('fetchTemplateFiles writes only successful responses', async () => {

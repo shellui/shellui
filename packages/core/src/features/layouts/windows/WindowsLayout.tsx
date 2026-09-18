@@ -34,6 +34,8 @@ import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
 import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { readSafeAreaInsetBottom, readSafeAreaInsetTop } from '../chrome/viewport';
+import { WindowTitleBarActions } from '../../chromeActions';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -88,31 +90,37 @@ const MIN_HEIGHT = 200;
 const DEFAULT_WIDTH = 720;
 const DEFAULT_HEIGHT = 480;
 const TASKBAR_HEIGHT = 48;
+/** Taskbar content row + home-indicator safe-area (CSS). */
+const TASKBAR_SLOT_CSS = `calc(${TASKBAR_HEIGHT}px + var(--shellui-safe-area-bottom, 0px))`;
 
 type WindowBounds = WindowState['bounds'];
 
 function getDesktopSize(): { width: number; height: number } {
   if (typeof window === 'undefined') return { width: 800, height: 600 };
+  const safeBottom = readSafeAreaInsetBottom();
   return {
     width: window.innerWidth,
-    height: Math.max(0, window.innerHeight - TASKBAR_HEIGHT),
+    height: Math.max(0, window.innerHeight - TASKBAR_HEIGHT - safeBottom),
   };
 }
 
 function getMaximizedBounds(): WindowBounds {
   const { width, height } = getDesktopSize();
-  return { x: 0, y: 0, w: width, h: height };
+  const safeTop = readSafeAreaInsetTop();
+  return { x: 0, y: safeTop, w: width, h: Math.max(0, height - safeTop) };
 }
 
 /** Keep a window fully inside the desktop (never larger than the viewport). */
 function clampBounds(bounds: WindowBounds): WindowBounds {
   const { width: maxW, height: maxH } = getDesktopSize();
+  const safeTop = readSafeAreaInsetTop();
+  const usableH = Math.max(0, maxH - safeTop);
   const minW = Math.min(MIN_WIDTH, maxW);
-  const minH = Math.min(MIN_HEIGHT, maxH);
+  const minH = Math.min(MIN_HEIGHT, usableH);
   const w = Math.min(Math.max(bounds.w, minW), maxW);
-  const h = Math.min(Math.max(bounds.h, minH), maxH);
+  const h = Math.min(Math.max(bounds.h, minH), usableH);
   const x = Math.min(Math.max(0, bounds.x), Math.max(0, maxW - w));
-  const y = Math.min(Math.max(0, bounds.y), Math.max(0, maxH - h));
+  const y = Math.min(Math.max(safeTop, bounds.y), Math.max(safeTop, safeTop + usableH - h));
   return { x, y, w, h };
 }
 
@@ -136,6 +144,30 @@ function isCompactDesktop(): boolean {
   return width < DEFAULT_WIDTH || height < DEFAULT_HEIGHT;
 }
 
+/**
+ * Phone-style windows chrome: width below md **or** a short/narrow desktop
+ * (iPhone landscape is often ≥768px wide but still too short for window mode).
+ */
+function useWindowsPhoneMode(): boolean {
+  const isMobile = useIsMobile();
+  const [isCompact, setIsCompact] = useState(() =>
+    typeof window !== 'undefined' ? isCompactDesktop() : false,
+  );
+
+  useEffect(() => {
+    const sync = () => setIsCompact(isCompactDesktop());
+    window.addEventListener('resize', sync);
+    window.addEventListener('orientationchange', sync);
+    sync();
+    return () => {
+      window.removeEventListener('resize', sync);
+      window.removeEventListener('orientationchange', sync);
+    };
+  }, []);
+
+  return isMobile || isCompact;
+}
+
 function buildFinalUrl(baseUrl: string, path: string, pathname: string): string {
   const pathPrefix = getNavPathPrefix({ path } as NavigationItem);
   const subPath = pathname.length > pathPrefix.length ? pathname.slice(pathPrefix.length + 1) : '';
@@ -144,7 +176,7 @@ function buildFinalUrl(baseUrl: string, path: string, pathname: string): string 
   return `${base}${subPath}`;
 }
 
-/** Single draggable/resizable window */
+/** Single draggable/resizable window (fullscreen + locked on mobile). */
 function AppWindow({
   win,
   navItem,
@@ -155,6 +187,8 @@ function AppWindow({
   onBoundsChange,
   maxZIndex,
   zIndex,
+  mobileFullscreen,
+  cascadeIndex,
 }: {
   win: WindowState;
   navItem: NavigationItem;
@@ -165,33 +199,38 @@ function AppWindow({
   onBoundsChange: (bounds: WindowState['bounds']) => void;
   maxZIndex: number;
   zIndex: number;
+  /** Phone: fill desktop, no drag/resize/restore. */
+  mobileFullscreen: boolean;
+  /** Used to cascade normal size when leaving mobile. */
+  cascadeIndex: number;
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
+  const [frameUuid, setFrameUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(() => {
-    if (isCompactDesktop()) return true;
-    const desktop = getDesktopSize();
+    if (mobileFullscreen || isCompactDesktop()) return true;
+    const maximized = getMaximizedBounds();
     return (
-      win.bounds.x === 0 &&
-      win.bounds.y === 0 &&
-      win.bounds.w >= desktop.width &&
-      win.bounds.h >= desktop.height
+      win.bounds.x === maximized.x &&
+      win.bounds.y === maximized.y &&
+      win.bounds.w >= maximized.w &&
+      win.bounds.h >= maximized.h
     );
   });
   const [bounds, setBounds] = useState(() => {
-    if (isCompactDesktop()) return getMaximizedBounds();
-    const desktop = getDesktopSize();
+    if (mobileFullscreen || isCompactDesktop()) return getMaximizedBounds();
+    const maximized = getMaximizedBounds();
     if (
-      win.bounds.x === 0 &&
-      win.bounds.y === 0 &&
-      win.bounds.w >= desktop.width &&
-      win.bounds.h >= desktop.height
+      win.bounds.x === maximized.x &&
+      win.bounds.y === maximized.y &&
+      win.bounds.w >= maximized.w &&
+      win.bounds.h >= maximized.h
     ) {
       return getMaximizedBounds();
     }
     return clampBounds(win.bounds);
   });
   const boundsBeforeMaximizeRef = useRef<WindowBounds>(
-    isCompactDesktop()
+    mobileFullscreen || isCompactDesktop()
       ? clampBounds({
           x: 8,
           y: 8,
@@ -215,6 +254,21 @@ function AppWindow({
     startBounds: WindowBounds;
   } | null>(null);
   const resizeRafRef = useRef<number | null>(null);
+
+  // Resolve the content iframe UUID so title-bar actions can bind to this window.
+  useEffect(() => {
+    const sync = () => {
+      const iframe = containerRef.current?.querySelector('iframe');
+      if (!iframe) {
+        setFrameUuid(null);
+        return;
+      }
+      setFrameUuid(shellui.getUuidByIframe(iframe.contentWindow) ?? null);
+    };
+    sync();
+    const id = window.setInterval(sync, 400);
+    return () => window.clearInterval(id);
+  }, [win.id, win.pathname]);
   const pendingResizeBoundsRef = useRef<WindowBounds | null>(null);
 
   // Use a ref for onBoundsChange to avoid it in effect deps (prevents infinite render loop).
@@ -228,19 +282,58 @@ function AppWindow({
     onBoundsChangeRef.current(bounds);
   }, [bounds]);
 
-  // Keep windows inside the viewport on browser / orientation resize
+  // Keep windows inside the viewport on browser / orientation resize.
+  // Use refs so iOS orientation (resize before React re-renders phone mode) still
+  // applies fullscreen when phone mode is active or about to be.
+  const mobileFullscreenRef = useRef(mobileFullscreen);
+  mobileFullscreenRef.current = mobileFullscreen;
+  const isMaximizedRef = useRef(isMaximized);
+  isMaximizedRef.current = isMaximized;
+
   useEffect(() => {
     const onResize = () => {
-      if (isMaximized) {
+      if (mobileFullscreenRef.current) {
+        setIsMaximized(true);
+        setBounds(getMaximizedBounds());
+        return;
+      }
+      if (isMaximizedRef.current) {
         setBounds(getMaximizedBounds());
         return;
       }
       setBounds((prev) => clampBounds(prev));
     };
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [isMaximized]);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
 
+  // Phone ↔ desktop: fullscreen stack on phone; restore a normal cascaded size on desktop.
+  // Accidental resize must not close windows — only change chrome / bounds.
+  const wasMobileFullscreenRef = useRef(mobileFullscreen);
+  useEffect(() => {
+    if (mobileFullscreen) {
+      setIsMaximized(true);
+      setBounds(getMaximizedBounds());
+    } else if (wasMobileFullscreenRef.current) {
+      // Only leave fullscreen when there is real room for window mode.
+      if (isCompactDesktop()) {
+        setIsMaximized(true);
+        setBounds(getMaximizedBounds());
+      } else {
+        const normal = getDefaultOpenBounds(cascadeIndex);
+        boundsBeforeMaximizeRef.current = normal;
+        setIsMaximized(false);
+        setBounds(normal);
+      }
+    }
+    wasMobileFullscreenRef.current = mobileFullscreen;
+  }, [mobileFullscreen, cascadeIndex]);
+
+  const lockedChrome = mobileFullscreen || isMaximized;
   const onPointerMove = useCallback((e: PointerEvent) => {
     if (!dragRef.current) return;
     const d = dragRef.current;
@@ -283,7 +376,7 @@ function AppWindow({
 
   const handleTitlePointerDown = useCallback(
     (e: ReactPointerEvent) => {
-      if (e.button !== 0 || isMaximized) return;
+      if (e.button !== 0 || lockedChrome) return;
       // Don't start drag when clicking a button (close, maximize) so their click handlers run
       if ((e.target as Element).closest('button')) return;
       e.preventDefault();
@@ -302,10 +395,11 @@ function AppWindow({
         el.addEventListener('pointerup', onPointerUp as (e: Event) => void);
       }
     },
-    [bounds, isMaximized, onFocus, onPointerMove, onPointerUp],
+    [bounds, lockedChrome, onFocus, onPointerMove, onPointerUp],
   );
 
   const handleMaximizeToggle = useCallback(() => {
+    if (mobileFullscreen) return;
     if (isMaximized) {
       setBounds(clampBounds(boundsBeforeMaximizeRef.current));
       setIsMaximized(false);
@@ -314,7 +408,7 @@ function AppWindow({
       setBounds(getMaximizedBounds());
       setIsMaximized(true);
     }
-  }, [isMaximized, bounds]);
+  }, [mobileFullscreen, isMaximized, bounds]);
 
   const onResizePointerMove = useCallback((e: PointerEvent) => {
     if (!resizeRef.current) return;
@@ -371,7 +465,7 @@ function AppWindow({
 
   const handleResizePointerDown = useCallback(
     (e: ReactPointerEvent, edge: string) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || lockedChrome) return;
       e.preventDefault();
       e.stopPropagation();
       onFocus();
@@ -390,7 +484,7 @@ function AppWindow({
         el.addEventListener('pointerup', onResizePointerUp as (e: Event) => void);
       }
     },
-    [bounds, onFocus, onResizePointerMove, onResizePointerUp],
+    [bounds, lockedChrome, onFocus, onResizePointerMove, onResizePointerUp],
   );
 
   const finalUrl = useMemo(
@@ -403,7 +497,12 @@ function AppWindow({
   return (
     <div
       ref={containerRef}
-      className="absolute flex flex-col rounded-lg border border-border bg-card shadow-lg overflow-hidden"
+      className={cn(
+        'absolute flex flex-col overflow-hidden bg-card',
+        mobileFullscreen
+          ? 'rounded-none border-0 shadow-none'
+          : 'rounded-lg border border-border shadow-lg',
+      )}
       style={{
         left: bounds.x,
         top: bounds.y,
@@ -416,7 +515,10 @@ function AppWindow({
     >
       {/* Title bar: pointer capture so drag continues when cursor is over iframe or outside window */}
       <div
-        className="flex items-center gap-2 pl-2 pr-1 py-1 bg-muted/80 border-b border-border cursor-move select-none shrink-0"
+        className={cn(
+          'flex items-center gap-2 pl-2 pr-1 py-1 bg-muted/80 border-b border-border select-none shrink-0',
+          lockedChrome ? 'cursor-default' : 'cursor-move',
+        )}
         onPointerDown={handleTitlePointerDown}
       >
         {win.icon && (
@@ -429,18 +531,27 @@ function AppWindow({
             )}
           />
         )}
-        <span className="flex-1 text-sm font-medium truncate min-w-0">{windowLabel}</span>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleMaximizeToggle();
-          }}
-          className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label={isMaximized ? 'Restore' : 'Maximize'}
-        >
-          {isMaximized ? <RestoreIcon className="h-4 w-4" /> : <MaximizeIcon className="h-4 w-4" />}
-        </button>
+        <WindowTitleBarActions
+          frameUuid={frameUuid}
+          fallbackTitle={windowLabel}
+        />
+        {!mobileFullscreen && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMaximizeToggle();
+            }}
+            className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label={isMaximized ? 'Restore' : 'Maximize'}
+          >
+            {isMaximized ? (
+              <RestoreIcon className="h-4 w-4" />
+            ) : (
+              <MaximizeIcon className="h-4 w-4" />
+            )}
+          </button>
+        )}
         <button
           type="button"
           onClick={(e) => {
@@ -474,8 +585,8 @@ function AppWindow({
           navItem={navItem}
         />
       </div>
-      {/* Resize handles (hidden when maximized) */}
-      {!isMaximized &&
+      {/* Resize handles (hidden when maximized or mobile fullscreen) */}
+      {!lockedChrome &&
         (['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const).map((edge) => (
           <div
             key={edge}
@@ -618,7 +729,8 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   const { i18n } = useTranslation();
   const { isAuthenticated } = useAuth();
   const { settings } = useSettings();
-  const isMobile = useIsMobile();
+  /** Fullscreen phone chrome — includes iPhone landscape (wide but short). */
+  const phoneMode = useWindowsPhoneMode();
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -635,11 +747,11 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
       navigationItems: flattenNavigationItems(authAwareNavigation),
     };
   }, [authAwareNavigation]);
-  /** On mobile, end (taskbar) links live in the start menu — the bar is too narrow. */
+  /** On phone, end (taskbar) links live in the start menu — the bar is too narrow. */
   const menuSections = useMemo((): StartSection[] => {
-    if (!isMobile || endNavItems.length === 0) return startSections;
+    if (!phoneMode || endNavItems.length === 0) return startSections;
     return [...startSections, { type: 'items', items: endNavItems }];
-  }, [startSections, endNavItems, isMobile]);
+  }, [startSections, endNavItems, phoneMode]);
 
   const [windows, setWindows] = useState<WindowState[]>([]);
   /** Id of the window that is on top (first plan). Clicking a window or its taskbar button sets this. */
@@ -670,23 +782,22 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
       const icon = item.icon ?? faviconUrl ?? null;
       const id = genId();
-      const bounds = getDefaultOpenBounds(windows.length);
-      setWindows((prev) => [
-        ...prev,
-        {
-          id,
-          path: item.path,
-          pathname: getNavPathPrefix(item),
-          baseUrl: item.url,
-          label,
-          icon,
-          bounds,
-        },
-      ]);
+      const bounds = phoneMode ? getMaximizedBounds() : getDefaultOpenBounds(windows.length);
+      const next: WindowState = {
+        id,
+        path: item.path,
+        pathname: getNavPathPrefix(item),
+        baseUrl: item.url,
+        label,
+        icon,
+        bounds,
+      };
+      // Phone: one page at a time — opening a new app closes the others.
+      setWindows((prev) => (phoneMode ? [next] : [...prev, next]));
       setFrontWindowId(id);
       setStartMenuOpen(false);
     },
-    [currentLanguage, windows.length],
+    [currentLanguage, phoneMode, windows.length],
   );
 
   // On first load only: open a window for the current URL if it matches a nav item (no reaction to later URL changes)
@@ -760,20 +871,25 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
       }
       const existing = windows.find((w) => w.path === item.path);
       if (existing) {
+        // Phone navigate: keep only the chosen window (drop the stacked leftovers).
+        if (phoneMode) {
+          setWindows((prev) => prev.filter((w) => w.id === existing.id));
+        }
         focusWindow(existing.id);
         setStartMenuOpen(false);
         return;
       }
       openWindow(item);
     },
-    [openWindow, windows, focusWindow],
+    [openWindow, windows, focusWindow, phoneMode],
   );
 
   return (
     <>
       <div
+        data-shellui-windows-layout=""
         className="fixed inset-0 overflow-hidden bg-background"
-        style={{ paddingBottom: TASKBAR_HEIGHT }}
+        style={{ paddingBottom: TASKBAR_SLOT_CSS }}
       >
         {/* Organic primary wash behind windows — follows --primary with the active theme. */}
         <div
@@ -808,6 +924,8 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
               onBoundsChange={(bounds) => updateWindowBounds(win.id, bounds)}
               maxZIndex={maxZIndex}
               zIndex={zIndex}
+              mobileFullscreen={phoneMode}
+              cascadeIndex={index}
             />
           );
         })}
@@ -817,10 +935,19 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
       <div
         className="fixed left-0 right-0 bottom-0 flex items-center gap-1 px-2 border-t border-border bg-sidebar-background"
         style={{
-          height: TASKBAR_HEIGHT,
+          height: TASKBAR_SLOT_CSS,
+          paddingBottom: 'var(--shellui-safe-area-bottom, 0px)',
           zIndex: Z_INDEX.WINDOWS_TASKBAR,
         }}
       >
+        {/* Temporary: separate taskbar content from the home-indicator safe-area band on phone. */}
+        {phoneMode && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-0 right-0 border-b border-border"
+            style={{ bottom: 'var(--shellui-safe-area-bottom, 0px)' }}
+          />
+        )}
         {/* Start button */}
         <div
           className="relative shrink-0"
@@ -883,7 +1010,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                         ? resolveNavLabel(section.title, currentLanguage)
                         : null;
                     const isEndSection =
-                      isMobile &&
+                      phoneMode &&
                       endNavItems.length > 0 &&
                       sectionIndex === menuSections.length - 1 &&
                       section.type === 'items' &&
@@ -975,51 +1102,54 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
           )}
         </div>
 
-        {/* Window list */}
-        <div className="flex-1 flex items-center gap-1 min-w-0 overflow-x-auto">
-          {windows.map((win) => {
-            const navItem = navigationItems.find((n) => n.path === win.path);
-            const windowLabel = navItem
-              ? resolveNavLabel(navItem.label, currentLanguage)
-              : win.label;
-            const isFocused = win.id === frontWindowId;
-            return (
-              <button
-                key={win.id}
-                type="button"
-                onClick={() => focusWindow(win.id)}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  closeWindow(win.id);
-                }}
-                className={cn(
-                  'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  isFocused
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                )}
-                title={windowLabel}
-              >
-                {win.icon ? (
-                  <img
-                    src={win.icon}
-                    alt=""
-                    className={cn(
-                      'h-4 w-4 shrink-0 rounded-sm object-cover',
-                      isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                    )}
-                  />
-                ) : (
-                  <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
-                )}
-                <span className="text-xs truncate">{windowLabel}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Window list — desktop only; phone switches via the start menu */}
+        {!phoneMode && (
+          <div className="flex-1 flex items-center gap-1 min-w-0 overflow-x-auto">
+            {windows.map((win) => {
+              const navItem = navigationItems.find((n) => n.path === win.path);
+              const windowLabel = navItem
+                ? resolveNavLabel(navItem.label, currentLanguage)
+                : win.label;
+              const isFocused = win.id === frontWindowId;
+              return (
+                <button
+                  key={win.id}
+                  type="button"
+                  onClick={() => focusWindow(win.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    closeWindow(win.id);
+                  }}
+                  className={cn(
+                    'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isFocused
+                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+                  )}
+                  title={windowLabel}
+                >
+                  {win.icon ? (
+                    <img
+                      src={win.icon}
+                      alt=""
+                      className={cn(
+                        'h-4 w-4 shrink-0 rounded-sm object-cover',
+                        isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
+                      )}
+                    />
+                  ) : (
+                    <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
+                  )}
+                  <span className="text-xs truncate">{windowLabel}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {phoneMode && <div className="flex-1 min-w-0" />}
 
-        {/* End navigation items (right side of taskbar) — desktop only; mobile uses start menu */}
-        {!isMobile && endNavItems.length > 0 && (
+        {/* End navigation items (right side of taskbar) — desktop only; phone uses start menu */}
+        {!phoneMode && endNavItems.length > 0 && (
           <div className="flex items-center gap-0.5 shrink-0 border-l border-sidebar-border pl-2 ml-1">
             {endNavItems.map((item) => {
               const label =

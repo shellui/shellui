@@ -10,10 +10,11 @@ Shellui is an open-source web app development platform - a microfrontend shell t
 
 1. [Install the CLI](/installation) - add `@shellui/cli` globally or in a project
 2. [Create a project](/quickstart) - run `shellui init`, start the dev server, and build
-3. [Connect a backend](/backend) - Shellui identity-service, Supabase Auth, or no backend
-4. [Configure authentication](/features/authentication) - `/login`, sessions, and `requiresAuth`
-5. [Configure navigation](/features/navigation) - sidebar items, groups, and iframe URLs
-6. [Use the SDK](/sdk) - toasts, overlays, storage, and settings from the iframe
+3. [Framework starters](/framework-starters) - per-framework companions, ports, theme, and i18n
+4. [Connect a backend](/backend) - Shellui identity-service, Supabase Auth, or no backend
+5. [Configure authentication](/features/authentication) - `/login`, sessions, and `requiresAuth`
+6. [Configure navigation](/features/navigation) - sidebar items, groups, and iframe URLs
+7. [Use the SDK](/sdk) - toasts, overlays, storage, and settings from the iframe
 
 Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a running shell on [playground.shellui.com](https://playground.shellui.com). Source is on [GitHub](https://github.com/shellui/shellui).
 
@@ -34,6 +35,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 - [Toasts](/features/toasts) - host toasts from `@shellui/sdk`
 - [Dialogs](/features/dialogs) - confirm and alert dialogs in host chrome
+- [Floating chrome actions](/features/chrome-actions) - back / title / trailing / primary FAB via the SDK
 
 ### Platform
 

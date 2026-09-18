@@ -6,6 +6,8 @@ import type { AuthBackend } from './types';
 const createNoopBackend = (): AuthBackend => ({
   type: 'none',
   readSessionFromCallback: () => null,
+  exchangeOAuthSessionCode: async () => null,
+  exchangeOAuthCode: async () => null,
   restoreSession: async () => null,
   refreshAuthSession: async () => null,
   startOAuth: () => {

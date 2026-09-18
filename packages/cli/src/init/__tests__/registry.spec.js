@@ -14,10 +14,10 @@ import {
   DEFAULT_SHELLUI_LOGIN_METHODS,
 } from '../registry.js';
 
-const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'alpine', 'flutter'];
+const FETCH_FRAMEWORKS = ['react', 'vue', 'angular', 'next', 'nuxt', 'svelte', 'alpine'];
 
 describe('init registry', () => {
-  test('registers empty, react, vue, angular, next, nuxt, svelte, alpine, and flutter frameworks', () => {
+  test('registers empty, react, vue, angular, next, nuxt, svelte, and alpine frameworks', () => {
     const ids = FRAMEWORKS.map((f) => f.id);
     expect(ids).toEqual(
       expect.arrayContaining([
@@ -29,9 +29,9 @@ describe('init registry', () => {
         'nuxt',
         'svelte',
         'alpine',
-        'flutter',
       ]),
     );
+    expect(ids).not.toContain('flutter');
   });
 
   test('positional shortcuts cover empty and all fetch frameworks', () => {
@@ -44,8 +44,8 @@ describe('init registry', () => {
       'nuxt',
       'svelte',
       'alpine',
-      'flutter',
     ]);
+    expect(getPositionalFrameworkIds()).not.toContain('flutter');
   });
 
   test('fetch frameworks have template file lists and companions', () => {
@@ -57,14 +57,10 @@ describe('init registry', () => {
     }
   });
 
-  test('flutter companion is fixed-run Flutter Web server on 8080', () => {
-    expect(FRAMEWORK_COMPANIONS.flutter).toMatchObject({
-      fixedRun: true,
-      install: 'flutter',
-      manifest: 'pubspec.yaml',
-      url: 'http://localhost:8080',
-      run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-    });
+  test('flutter is not a registered framework or companion', () => {
+    expect(getFramework('flutter')).toBeUndefined();
+    expect(FRAMEWORK_COMPANIONS.flutter).toBeUndefined();
+    expect(TEMPLATE_FILES.flutter).toBeUndefined();
   });
 
   test('next/nuxt use port 3000; svelte and alpine use 5173', () => {
@@ -89,21 +85,18 @@ describe('init registry', () => {
   test('prompt options are derived from the same registry', () => {
     expect(getFrameworkPromptOptions().map((o) => o.value)).toEqual(FRAMEWORKS.map((f) => f.id));
     expect(getBackendPromptOptions().map((o) => o.value)).toEqual(BACKENDS.map((b) => b.id));
+    expect(getFrameworkPromptOptions().map((o) => o.value)).not.toContain('flutter');
   });
 
-  test('getFrameworkIdsList includes all registered ids', () => {
+  test('getFrameworkIdsList includes all registered ids and excludes flutter', () => {
     expect(getFrameworkIdsList()).toContain('next');
     expect(getFrameworkIdsList()).toContain('alpine');
-    expect(getFrameworkIdsList()).toContain('flutter');
+    expect(getFrameworkIdsList()).not.toContain('flutter');
   });
 
   test('shellui defaults match BackendConfig shape expectations', () => {
     expect(DEFAULT_SHELLUI_BACKEND_URL).toMatch(/^https:\/\//);
     expect([...DEFAULT_SHELLUI_LOGIN_METHODS]).toEqual(['password', 'oauth']);
-  });
-
-  test('flutter hint documents Web-only', () => {
-    expect(getFramework('flutter')?.hint).toMatch(/Web only/i);
   });
 
   test('svelte TEMPLATE_FILES includes svelte.config.js and vscode extensions', () => {
@@ -116,34 +109,29 @@ describe('init registry', () => {
     expect(TEMPLATE_FILES.next).toContain('scripts/ensure-port.mjs');
   });
 
-  test('alpine TEMPLATE_FILES includes i18n and SDK entry', () => {
+  test('alpine TEMPLATE_FILES includes SDK entry and deploy env example', () => {
     expect(TEMPLATE_FILES.alpine).toEqual(
-      expect.arrayContaining(['src/main.js', 'src/i18n.js', 'vite.config.js', 'static/logo.svg']),
+      expect.arrayContaining(['.env.example', 'src/main.js', 'vite.config.js', 'static/logo.svg']),
     );
   });
 
-  test('JS templates list theme/i18n wiring files', () => {
+  test('JS templates list boilerplate, CLI, and SDK handshake files', () => {
     expect(TEMPLATE_FILES.react).toEqual(
-      expect.arrayContaining(['src/i18n.js', 'src/useShellui.js']),
+      expect.arrayContaining(['.env.example', 'src/assets/hero.png', 'src/main.jsx']),
     );
     expect(TEMPLATE_FILES.vue).toEqual(
-      expect.arrayContaining(['src/i18n.js', 'src/composables/useShellui.js']),
+      expect.arrayContaining(['src/components/HelloWorld.vue', 'src/assets/hero.png']),
     );
     expect(TEMPLATE_FILES.angular).toEqual(
-      expect.arrayContaining(['src/app/i18n.ts', 'src/app/shellui.service.ts']),
+      expect.arrayContaining(['scripts/copy-browser.mjs', 'src/app/app.component.html']),
     );
-    expect(TEMPLATE_FILES.next).toEqual(expect.arrayContaining(['app/home.js', 'app/i18n.js']));
-    expect(TEMPLATE_FILES.next).not.toContain('app/shellui-client.js');
-    expect(TEMPLATE_FILES.nuxt).toEqual(
-      expect.arrayContaining([
-        'app/i18n.ts',
-        'app/composables/useShellui.ts',
-        'app/plugins/shellui.client.ts',
-      ]),
+    expect(TEMPLATE_FILES.next).toEqual(
+      expect.arrayContaining(['app/shellui-client.js', 'scripts/copy-export.mjs']),
     );
+    expect(TEMPLATE_FILES.next).not.toContain('app/home.js');
+    expect(TEMPLATE_FILES.nuxt).toEqual(expect.arrayContaining(['app/plugins/shellui.client.ts']));
     expect(TEMPLATE_FILES.svelte).toEqual(
-      expect.arrayContaining(['src/lib/i18n.js', 'src/lib/shellui.js', 'src/app.css']),
+      expect.arrayContaining(['svelte.config.js', 'src/routes/+layout.svelte']),
     );
-    expect(TEMPLATE_FILES.alpine).toEqual(expect.arrayContaining(['src/main.js', 'src/i18n.js']));
   });
 });

@@ -110,65 +110,6 @@ export function hasPackageJson(projectRoot) {
 }
 
 /**
- * Whether the project root has a Flutter pubspec.yaml.
- * @param {string} projectRoot
- * @returns {boolean}
- */
-export function hasPubspec(projectRoot) {
-  return fs.existsSync(path.join(projectRoot, 'pubspec.yaml'));
-}
-
-/**
- * Install command for Flutter projects.
- * @returns {string}
- */
-export function formatFlutterInstallCommand() {
-  return 'flutter pub get';
-}
-
-/**
- * Run `flutter pub get` in projectRoot.
- * @param {string} projectRoot
- * @returns {Promise<void>}
- */
-export function installFlutterDependencies(projectRoot) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('flutter', ['pub', 'get'], {
-      cwd: projectRoot,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
-      env: process.env,
-    });
-
-    let stderr = '';
-    if (child.stderr) {
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString();
-      });
-    }
-
-    child.on('error', (err) => {
-      reject(err);
-    });
-
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      const detail = stderr.trim();
-      reject(
-        new Error(
-          detail
-            ? `${formatFlutterInstallCommand()} failed: ${detail}`
-            : `${formatFlutterInstallCommand()} failed with exit code ${code}`,
-        ),
-      );
-    });
-  });
-}
-
-/**
  * Run `{packageManager} install` in projectRoot.
  * @param {string} projectRoot
  * @param {PackageManager | string} packageManager

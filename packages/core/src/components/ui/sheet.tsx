@@ -12,7 +12,7 @@ import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
 
 const PORTALED_OVERLAY_SELECTOR =
-  '[data-dropdown-menu-content], [data-auth-menu-content], [data-sonner-toaster], [data-upload-toast]';
+  '[data-dropdown-menu-content], [data-auth-menu-content], [data-sonner-toaster], [data-upload-toast], [data-shellui-chrome-actions]';
 
 function isPortaledOverlayTarget(target: EventTarget | null): boolean {
   const element = target instanceof Element ? target : (target as Node | null)?.parentElement;

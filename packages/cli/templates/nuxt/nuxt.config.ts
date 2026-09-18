@@ -2,6 +2,10 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  ssr: false,
+  app: {
+    baseURL: process.env.NODE_ENV === 'production' ? '/app/' : '/',
+  },
   // Stable companion URL for Shellui iframe embedding — must match shellui.config.json
   // `dev.url` (http://localhost:3000). vite.server.strictPort fails if 3000 is busy
   // instead of silently hopping (which would break waitForUrl).
@@ -19,6 +23,10 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    preset: 'static',
+    output: {
+      dir: 'dist/web/app',
+    },
     routeRules: {
       '/**': {
         headers: {

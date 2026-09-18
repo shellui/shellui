@@ -27,6 +27,10 @@ function getTauriInternals(): TauriInternals | null {
  * Unlike `isTauri()`, this ignores the CLI `--target tauri` build flag
  * (`__SHELLUI_TAURI__`) so a browser tab opened against the same URL does not
  * get traffic-light padding.
+ *
+ * Use this for native-specific UI (macOS traffic lights, iOS App Store WKWebView
+ * adjustments). Prefer over `isTauri()` whenever behavior must differ between a
+ * live native shell and a browser tab of a tauri-targeted build.
  */
 export function isTauriRuntime(): boolean {
   if (typeof window === 'undefined') return false;
@@ -35,6 +39,50 @@ export function isTauriRuntime(): boolean {
     __TAURI_INTERNALS__?: unknown;
   };
   return !!(w.__TAURI__ ?? w.__TAURI_INTERNALS__);
+}
+
+/**
+ * Installed web app display mode (Safari "Add to Home Screen", Android TWA, etc.).
+ * Includes `navigator.standalone` for older iOS. Does not imply Tauri.
+ */
+export function isStandaloneDisplayMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  const nav = window.navigator as Navigator & { standalone?: boolean };
+  if (nav.standalone === true) return true;
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safari / Android Home Screen PWA — not a Tauri native WKWebView.
+ *
+ * iOS 26/27 applies Liquid Glass status-bar sampling / gradients only to these
+ * standalone web apps. Tauri iOS hosts the same React UI in a native webview and
+ * does not get that Home Screen PWA system treatment — gate PWA-only chrome
+ * workarounds with this helper, not with `isTauri()` alone.
+ */
+export function isHomeScreenPwa(): boolean {
+  return isStandaloneDisplayMode() && !isTauriRuntime();
+}
+
+/** How the shell is hosted: browser tab, installed PWA, or Tauri native. */
+export type ShelluiHostKind = 'browser' | 'pwa' | 'tauri';
+
+export function getShelluiHostKind(): ShelluiHostKind {
+  if (isTauriRuntime()) return 'tauri';
+  if (isStandaloneDisplayMode()) return 'pwa';
+  return 'browser';
+}
+
+/** Sync `html[data-shellui-host]` for CSS / debugging. */
+export function syncShelluiHostAttribute(): ShelluiHostKind {
+  if (typeof document === 'undefined') return 'browser';
+  const kind = getShelluiHostKind();
+  document.documentElement.setAttribute('data-shellui-host', kind);
+  return kind;
 }
 
 function currentWindowLabel(internals: TauriInternals): string {
@@ -109,6 +157,31 @@ export function useIsTauriRuntime(): boolean {
     // __TAURI_INTERNALS__ can appear slightly after first paint in dev.
     const timer = window.setTimeout(() => setValue(isTauriRuntime()), 200);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  return value;
+}
+
+/** Home Screen / installed PWA (excludes Tauri native). */
+export function useIsHomeScreenPwa(): boolean {
+  const [value, setValue] = useState(() => isHomeScreenPwa());
+
+  useEffect(() => {
+    const sync = () => setValue(isHomeScreenPwa());
+    sync();
+    // Late __TAURI__ injection can flip PWA → tauri in the same document.
+    const timer = window.setTimeout(sync, 200);
+    let mql: MediaQueryList | undefined;
+    try {
+      mql = window.matchMedia('(display-mode: standalone)');
+      mql.addEventListener('change', sync);
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      window.clearTimeout(timer);
+      mql?.removeEventListener('change', sync);
+    };
   }, []);
 
   return value;

@@ -534,8 +534,9 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
       data-slot="sidebar-inset"
       className={cn(
         'relative flex w-full flex-1 flex-col bg-background',
-        // Inset layout: float the main frame on a darkened chrome tray.
-        // Expanded: ml-0 — sidebar's own right pad is the gap. Collapsed: ml-3 matches right/top/bottom.
+        // Inset layout: float the main frame on a darkened chrome tray (desktop).
+        // Mobile inset rounding lives on the content card in SidebarLayout so the
+        // header can sit on the chrome tray above a radiused iframe frame.
         'md:peer-data-[variant=inset]:m-3 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-2xl md:peer-data-[variant=inset]:border md:peer-data-[variant=inset]:border-border md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-3',
         className,
       )}

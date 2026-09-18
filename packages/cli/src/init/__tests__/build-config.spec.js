@@ -11,7 +11,7 @@ import {
 import { DEFAULT_SHELLUI_BACKEND_URL } from '../registry.js';
 
 describe('parseInitArgs', () => {
-  test('treats framework ids as shortcuts including next/nuxt/svelte/alpine/flutter', () => {
+  test('treats framework ids as shortcuts including next/nuxt/svelte/alpine', () => {
     expect(parseInitArgs('react')).toEqual({ root: '.', frameworkShortcut: 'react' });
     expect(parseInitArgs('vue')).toEqual({ root: '.', frameworkShortcut: 'vue' });
     expect(parseInitArgs('angular')).toEqual({ root: '.', frameworkShortcut: 'angular' });
@@ -19,8 +19,11 @@ describe('parseInitArgs', () => {
     expect(parseInitArgs('nuxt')).toEqual({ root: '.', frameworkShortcut: 'nuxt' });
     expect(parseInitArgs('svelte')).toEqual({ root: '.', frameworkShortcut: 'svelte' });
     expect(parseInitArgs('alpine')).toEqual({ root: '.', frameworkShortcut: 'alpine' });
-    expect(parseInitArgs('flutter')).toEqual({ root: '.', frameworkShortcut: 'flutter' });
     expect(parseInitArgs('empty')).toEqual({ root: '.', frameworkShortcut: 'empty' });
+  });
+
+  test('treats flutter as a root directory, not a framework shortcut', () => {
+    expect(parseInitArgs('flutter')).toEqual({ root: 'flutter', frameworkShortcut: null });
   });
 
   test('treats other strings as root directories', () => {
@@ -48,6 +51,9 @@ describe('applyInitDefaults', () => {
 describe('validateInitOptions', () => {
   test('rejects unknown framework/backend', () => {
     expect(() => validateInitOptions({ framework: 'ember', backend: 'none' })).toThrow(
+      /Unknown framework/,
+    );
+    expect(() => validateInitOptions({ framework: 'flutter', backend: 'none' })).toThrow(
       /Unknown framework/,
     );
     expect(() => validateInitOptions({ framework: 'empty', backend: 'firebase' })).toThrow(
@@ -170,37 +176,13 @@ describe('buildInitConfig / companion wiring', () => {
       name: framework,
     });
     expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
-      `${companionUrl}/`,
+      `\${SHELLUI_APP_URL:-${companionUrl}}/`,
     );
     expect(config.navigation.find((n) => n.path === 'settings').url).toBe('/__settings');
 
     const shellPort = new URL(`http://localhost:${config.port}`).port;
     const companionPort = new URL(companionUrl).port;
     expect(companionPort).not.toBe(shellPort);
-  });
-
-  test('flutter uses fixed web-server run command and Home at companion origin', () => {
-    const config = buildInitConfig({ framework: 'flutter', backend: 'none' });
-    expect(config.dev).toEqual({
-      run: 'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-      url: 'http://localhost:8080',
-      name: 'flutter',
-    });
-    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
-      'http://localhost:8080/',
-    );
-    expect(config.navigation.find((n) => n.path === '' || n.path === '/').path).toBe('');
-  });
-
-  test('flutter ignores packageManager for fixedRun companion', () => {
-    const config = buildInitConfig({
-      framework: 'flutter',
-      backend: 'none',
-      packageManager: 'pnpm',
-    });
-    expect(config.dev.run).toBe(
-      'flutter run -d web-server --web-hostname=localhost --web-port=8080',
-    );
   });
 
   test('dev.run uses detected package manager when provided', () => {
@@ -213,9 +195,17 @@ describe('buildInitConfig / companion wiring', () => {
     expect(config.navigation.find((n) => n.path === '').path).toBe('');
   });
 
-  test('alpine enables en/fr shell language for sample i18n UI', () => {
+  test('alpine wires companion like other vite starters', () => {
     const config = buildInitConfig({ framework: 'alpine', backend: 'none' });
-    expect(config.language).toEqual(['en', 'fr']);
+    expect(config.layout).toBe('fullscreen');
     expect(config.dev.name).toBe('alpine');
+    expect(config.navigation.find((n) => n.path === '' || n.path === '/').url).toBe(
+      '${SHELLUI_APP_URL:-http://localhost:5173}/',
+    );
+  });
+
+  test('defaults to fullscreen layout', () => {
+    const config = buildInitConfig({ backend: 'none' });
+    expect(config.layout).toBe('fullscreen');
   });
 });

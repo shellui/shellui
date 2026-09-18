@@ -3,11 +3,14 @@ import {
   DYNAMIC_DRAWER_PENDING_PX,
   DYNAMIC_OVERLAY_PENDING_PX,
   isOverlaySizePreset,
+  resolveBottomSheetSnapPoints,
   resolveDialogSize,
   resolveDismissOptions,
   resolveDrawerSize,
   resolveDrawerSizeForViewport,
   resolveEffectiveDrawerPosition,
+  sheetExpandedSnapFraction,
+  SHEET_EXPANDED_TOP_GAP_PX,
   toCssLength,
 } from './overlaySize';
 
@@ -93,5 +96,20 @@ describe('overlaySize', () => {
       closeOnOverlayClick: true,
       showDragHandle: false,
     });
+  });
+
+  it('resolves bottom sheet snap points for expand / collapse', () => {
+    // viewport 1000, no safe-area → expanded = 1000 - 60
+    const expanded = sheetExpandedSnapFraction(1000, 0);
+    expect(expanded).toBe(Number(((1000 - SHEET_EXPANDED_TOP_GAP_PX) / 1000).toFixed(4)));
+    expect(resolveBottomSheetSnapPoints({ size: 'md' }, null, 1000, 0)).toEqual([0.55, expanded]);
+    expect(resolveBottomSheetSnapPoints(null, null, 1000, 0)).toEqual([0.8, expanded]);
+    expect(resolveBottomSheetSnapPoints({ size: '400px' }, null, 1000, 0)).toEqual([0.4, expanded]);
+    expect(resolveBottomSheetSnapPoints({ size: 'full' }, null, 1000, 0)).toBeNull();
+    expect(resolveBottomSheetSnapPoints({ size: 'sm' }, 700, 1000, 0)).toEqual([0.7, expanded]);
+    // With notch inset, expanded shrinks further
+    expect(sheetExpandedSnapFraction(1000, 47)).toBe(
+      Number(((1000 - 47 - SHEET_EXPANDED_TOP_GAP_PX) / 1000).toFixed(4)),
+    );
   });
 });

@@ -17,6 +17,7 @@ import { ModalTestButtons } from './develop/ModalTestButtons';
 import { DrawerTestButtons } from './develop/DrawerTestButtons';
 import { StoragePickerTestButtons } from './develop/StoragePickerTestButtons';
 import { AiTestTools } from './develop/AiTestTools';
+import { ChromeActionsTestButtons } from './develop/ChromeActionsTestButtons';
 import { captureException } from '../../sentry/initSentry';
 import { useCookieConsent } from '../../cookieConsent/useCookieConsent';
 import { normalizeLayoutType, type LayoutType } from '../../config/types';
@@ -232,6 +233,7 @@ export const Develop = () => {
           <ModalTestButtons />
           <DrawerTestButtons />
           <StoragePickerTestButtons />
+          <ChromeActionsTestButtons />
           <AiTestTools />
           {errorReportingConfigured && (
             <div className="flex items-center justify-between">

@@ -13,6 +13,7 @@ import { validateConfig } from './config-validate.js';
 import { mergeSplitConfigs, readJsonConfigFile } from './config-split.js';
 import { substituteEnvInConfig } from './config-env.js';
 import { resolveConfigThemes } from './resolve-themes.js';
+import { checkConfigPathTrust, emitConfigPathWarnings } from './config-trust.js';
 
 /**
  * Merge Sentry config from env into the loaded config. Only adds sentry when
@@ -101,7 +102,7 @@ function normalizeConfigPathArg(configOrOptions) {
 export async function loadConfig(root = '.', configOrOptions) {
   const configPath = normalizeConfigPathArg(configOrOptions);
   const location = resolveConfigLocation(root, configPath);
-  const { configDir, mainPath, tsPath } = location;
+  const { projectRoot, configDir, mainPath, tsPath } = location;
 
   let discovery;
   try {
@@ -113,6 +114,24 @@ export async function loadConfig(root = '.', configOrOptions) {
 
   let config = {};
   let sourceLabel = null;
+
+  const activeConfigPath =
+    discovery.mode === 'ts'
+      ? discovery.tsPath
+      : discovery.mode === 'main'
+        ? discovery.mainPath
+        : discovery.mode === 'split'
+          ? configDir
+          : undefined;
+
+  emitConfigPathWarnings(
+    checkConfigPathTrust({
+      projectRoot,
+      configDir,
+      configPath: activeConfigPath,
+      isTypeScript: discovery.mode === 'ts',
+    }),
+  );
 
   if (discovery.mode === 'main') {
     try {

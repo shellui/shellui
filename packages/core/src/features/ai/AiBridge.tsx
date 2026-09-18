@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef } from 'react';
 import {
+  postShellMessage,
   shellui,
   type AiRequestPayload,
   type AiResponsePayload,
   type AiStreamPayload,
   type ShellUIMessage,
 } from '@shellui/sdk';
+import { useConfig } from '../config/useConfig';
+import { getAiRequestTrustDenial } from '../security/trustedFrames';
 import { useSettings } from '../settings/hooks/useSettings';
 import { createShellAiRegistry, handleAiRequest, type AiSession } from './handleRequest';
 
@@ -20,14 +23,16 @@ function replyToSender(
     shellui.sendMessage({ ...reply, to: from });
     return;
   }
-  window.postMessage(reply, '*');
+  postShellMessage(reply);
 }
 
 /**
  * Root-window bridge: iframe `SHELLUI_AI_*` messages are handled here.
  * Adapters/registry live in this core feature module; the SDK only postMessages.
+ * Requests use the same privileged + trusted-frame policy as storage.
  */
 export const AiBridge = () => {
+  const { config } = useConfig();
   const { settings } = useSettings();
   const sessionsRef = useRef(new Map<string, AiSession>());
   const settingsRef = useRef(settings);
@@ -57,6 +62,19 @@ export const AiBridge = () => {
       const payload = message.payload as AiRequestPayload | undefined;
       if (!payload?.id || !payload.op) return;
 
+      const trustDenial = getAiRequestTrustDenial(message.from, shellui.frameRegistry, config);
+      if (trustDenial) {
+        replyToSender(
+          message,
+          {
+            id: payload.id,
+            error: { message: trustDenial.message, code: trustDenial.code },
+          },
+          'SHELLUI_AI_RESPONSE',
+        );
+        return;
+      }
+
       void handleAiRequest(
         {
           registry,
@@ -78,7 +96,7 @@ export const AiBridge = () => {
     };
 
     return shellui.addMessageListener('SHELLUI_AI_REQUEST', listener);
-  }, [registry]);
+  }, [registry, config]);
 
   return null;
 };

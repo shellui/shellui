@@ -4,6 +4,7 @@ const SHELL_OWNED_PREFIXES = [
   urls.settings,
   urls.cookiePreferences,
   urls.overlayDemo,
+  urls.chromeActionsDemo,
   urls.login,
   urls.admin,
   urls.legalDocuments,

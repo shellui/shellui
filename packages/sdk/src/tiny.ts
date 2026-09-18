@@ -104,8 +104,24 @@ const readyPromise = new Promise<void>((r) => {
   resolveReady = r;
 });
 
+const resolveParentTargetOrigin = (): string => {
+  if (parent === window) return location.origin;
+  const ancestors = (document.location as Location & { ancestorOrigins?: DOMStringList })
+    .ancestorOrigins;
+  const ancestorOrigin = ancestors?.[0];
+  if (ancestorOrigin) return ancestorOrigin;
+  if (document.referrer) {
+    try {
+      return new URL(document.referrer).origin;
+    } catch {
+      /* ignore */
+    }
+  }
+  return location.origin;
+};
+
 const post = (type: string, payload: object = {}) => {
-  if (parent !== window) parent.postMessage({ type, payload }, '*');
+  if (parent !== window) parent.postMessage({ type, payload }, resolveParentTargetOrigin());
 };
 
 const emit = (event: string, data: unknown) => {
@@ -122,41 +138,76 @@ const emit = (event: string, data: unknown) => {
 
 const LAYOUT_CHROME_PAD_CLASS = 'shellui-apply-layout-chrome-pad';
 const LAYOUT_CHROME_PAD_STYLE_ID = 'shellui-layout-chrome-pad-styles';
+const LAYOUT_CHROME_INSET_MS = 200;
+const LAYOUT_CHROME_ANIMATE_ATTR = 'data-shellui-layout-chrome-animate';
+const LAYOUT_CHROME_ANIMATE_READY_MS = 150;
+
+let layoutChromeAnimateReady = false;
+let layoutChromeAnimateTimer: ReturnType<typeof setTimeout> | null = null;
+
+const LAYOUT_CHROME_PAD_CSS = `
+@property --shellui-inset-top{syntax:'<length>';inherits:true;initial-value:0px}
+@property --shellui-inset-right{syntax:'<length>';inherits:true;initial-value:0px}
+@property --shellui-inset-bottom{syntax:'<length>';inherits:true;initial-value:0px}
+@property --shellui-inset-left{syntax:'<length>';inherits:true;initial-value:0px}
+.${LAYOUT_CHROME_PAD_CLASS}{padding-top:var(--shellui-inset-top,0px);padding-right:var(--shellui-inset-right,0px);padding-bottom:var(--shellui-inset-bottom,0px);padding-left:var(--shellui-inset-left,0px);box-sizing:border-box}
+html[${LAYOUT_CHROME_ANIMATE_ATTR}]{transition:--shellui-inset-top ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),--shellui-inset-right ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),--shellui-inset-bottom ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),--shellui-inset-left ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1)}
+html[${LAYOUT_CHROME_ANIMATE_ATTR}] .${LAYOUT_CHROME_PAD_CLASS}{transition:padding-top ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),padding-right ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),padding-bottom ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1),padding-left ${LAYOUT_CHROME_INSET_MS}ms cubic-bezier(0.22,1,0.36,1)}
+@media (prefers-reduced-motion:reduce){html[${LAYOUT_CHROME_ANIMATE_ATTR}]{transition:none}html[${LAYOUT_CHROME_ANIMATE_ATTR}] .${LAYOUT_CHROME_PAD_CLASS}{transition:none}}
+`.trim();
 
 const ensurePadStyles = () => {
-  if (document.getElementById(LAYOUT_CHROME_PAD_STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = LAYOUT_CHROME_PAD_STYLE_ID;
-  style.textContent = `.${LAYOUT_CHROME_PAD_CLASS}{padding-top:var(--shellui-inset-top,0px);padding-right:var(--shellui-inset-right,0px);padding-bottom:var(--shellui-inset-bottom,0px);padding-left:var(--shellui-inset-left,0px);box-sizing:border-box}`;
-  (document.head || document.documentElement).appendChild(style);
+  let style = document.getElementById(LAYOUT_CHROME_PAD_STYLE_ID) as HTMLStyleElement | null;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = LAYOUT_CHROME_PAD_STYLE_ID;
+    (document.head || document.documentElement).appendChild(style);
+  }
+  style.textContent = LAYOUT_CHROME_PAD_CSS;
+};
+
+const scheduleLayoutChromeAnimations = () => {
+  if (layoutChromeAnimateReady) return;
+  if (layoutChromeAnimateTimer !== null) clearTimeout(layoutChromeAnimateTimer);
+  layoutChromeAnimateTimer = setTimeout(() => {
+    layoutChromeAnimateReady = true;
+    layoutChromeAnimateTimer = null;
+    document.documentElement.setAttribute(LAYOUT_CHROME_ANIMATE_ATTR, '');
+  }, LAYOUT_CHROME_ANIMATE_READY_MS);
 };
 
 const setChromeVars = (chrome: LayoutChromeSnapshot | null, withPadding: boolean) => {
   ensurePadStyles();
   const el = document.documentElement;
+  if (layoutChromeAnimateReady) el.setAttribute(LAYOUT_CHROME_ANIMATE_ATTR, '');
+  else el.removeAttribute(LAYOUT_CHROME_ANIMATE_ATTR);
+
   const insets = chrome?.insets ?? { top: 0, right: 0, bottom: 0, left: 0 };
   el.style.setProperty('--shellui-inset-top', `${insets.top}px`);
   el.style.setProperty('--shellui-inset-right', `${insets.right}px`);
   el.style.setProperty('--shellui-inset-bottom', `${insets.bottom}px`);
   el.style.setProperty('--shellui-inset-left', `${insets.left}px`);
 
+  // Positive insets alone activate chrome (action buttons on non-floating layouts).
   const active = Boolean(
-    chrome &&
-    chrome.layout !== 'none' &&
-    (insets.top > 0 || insets.right > 0 || insets.bottom > 0 || insets.left > 0),
+    chrome && (insets.top > 0 || insets.right > 0 || insets.bottom > 0 || insets.left > 0),
   );
   if (active) el.setAttribute('data-shellui-layout-chrome', '');
   else el.removeAttribute('data-shellui-layout-chrome');
 
-  // Iframe stays 100%×100%; padding is inside the app via CSS class / inset vars.
-  const shouldPad = withPadding && active;
+  // Keep pad class at 0px so inset CSS transitions can run on show/hide.
+  const shouldPad = withPadding;
   if (shouldPad) el.setAttribute('data-shellui-layout-chrome-pad', '');
   else el.removeAttribute('data-shellui-layout-chrome-pad');
 
   const body = document.body;
-  if (!body) return;
+  if (!body) {
+    scheduleLayoutChromeAnimations();
+    return;
+  }
   if (shouldPad) body.classList.add(LAYOUT_CHROME_PAD_CLASS);
   else body.classList.remove(LAYOUT_CHROME_PAD_CLASS);
+  scheduleLayoutChromeAnimations();
 };
 
 const applySettings = (settings?: {
@@ -262,6 +313,11 @@ addEventListener('message', (event: MessageEvent) => {
   const data = event.data;
   if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
   const type = data.type as string;
+  if (!type.startsWith('SHELLUI_')) return;
+
+  const allowedOrigins = new Set<string>([location.origin, resolveParentTargetOrigin()]);
+  if (!allowedOrigins.has(event.origin)) return;
+  if (embedded && event.source !== parent) return;
 
   if (type === 'SHELLUI_SETTINGS' || type === 'SHELLUI_SETTINGS_UPDATED') {
     applySettings(data.payload?.settings);

@@ -6,6 +6,7 @@ import {
   clearCredentials,
   getCredentialsDir,
   getCredentialsPath,
+  getCredentialStorageInfo,
   isCredentialsShape,
   readCredentials,
   writeCredentials,
@@ -91,6 +92,13 @@ describe('credentials', () => {
         refreshToken: 'r',
       }),
     ).toBe(true);
+  });
+
+  test('getCredentialStorageInfo documents plaintext residual', () => {
+    const info = getCredentialStorageInfo();
+    expect(info.format).toBe('plaintext-json');
+    expect(info.unixPermissions.file).toBe('0600');
+    expect(info.followUp).toMatch(/keychain/i);
   });
 
   test('readCredentials returns null for corrupt file', () => {
