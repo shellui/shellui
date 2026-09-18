@@ -23,6 +23,12 @@ export type AiHandlerContext = {
   registry: AiRegistry;
   sessions: Map<string, AiSession>;
   getSettings: () => Settings;
+  /**
+   * Currently active LanguageModel session. Updated on create; cleared when that
+   * session is destroyed. Late destroy of a superseded session must not call
+   * resetConversation / interruptGenerate (would kill the new chat’s generation).
+   */
+  activeSessionId: { current: string | null };
 };
 
 function replyOk(id: string, data: unknown): AiResponsePayload {
@@ -144,7 +150,10 @@ export async function handleAiRequest(
             ),
           };
         }
-        // Clean slate before a new session prompts on a warm WebLLM worker.
+        // Claim active before reset so a late destroy of the previous session
+        // cannot interrupt this conversation's upcoming generation.
+        const sessionId = createSessionId();
+        ctx.activeSessionId.current = sessionId;
         try {
           await ctx.registry.resetConversation(pick.id);
         } catch (error) {
@@ -163,7 +172,7 @@ export async function handleAiRequest(
               content: p.content,
             })) ?? [];
         const session: AiSession = {
-          id: createSessionId(),
+          id: sessionId,
           modelId: pick.id,
           systemPrompt: systemPrompt || undefined,
           messages: seedMessages,
@@ -265,16 +274,23 @@ export async function handleAiRequest(
       case 'destroy': {
         const session = payload.sessionId ? ctx.sessions.get(payload.sessionId) : undefined;
         if (session) {
+          const wasActive = ctx.activeSessionId.current === session.id;
           session.abortController.abort();
           ctx.sessions.delete(session.id);
-          // Await reset under the generation lock so the next session's prompt
-          // cannot start until WebLLM chat/KV is cleared (keep weights warm).
-          try {
-            await ctx.registry.resetConversation(session.modelId);
-          } catch (error) {
-            // eslint-disable-next-line no-console -- destroy still acks; log for operators
-            console.error('[shellui.ai]', 'resetConversation on destroy failed', error);
+          if (wasActive) {
+            ctx.activeSessionId.current = null;
+            // Only the active session may reset/interrupt — a late destroy of a
+            // superseded chat must not kill the new conversation's generation.
+            try {
+              await ctx.registry.resetConversation(session.modelId);
+            } catch (error) {
+              // eslint-disable-next-line no-console -- destroy still acks; log for operators
+              console.error('[shellui.ai]', 'resetConversation on destroy failed', error);
+            }
           }
+        } else if (payload.sessionId && ctx.activeSessionId.current === payload.sessionId) {
+          // Session already gone from map but still marked active.
+          ctx.activeSessionId.current = null;
         }
         return { response: replyOk(id, { destroyed: true }) };
       }

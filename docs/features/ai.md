@@ -66,6 +66,8 @@ Reused sessions (e.g. playground Chat asking a second question) serialize genera
 
 Switching or creating a new playground conversation `destroy()`s the LanguageModel session; core then awaits WebLLM `resetChat` (still under the generation lock) so the next chat starts with a clean KV/chat state without unloading weights. Refresh is no longer required to start a new conversation.
 
+A fire-and-forget `destroy` of the **previous** session must not interrupt the **new** one: core tracks `activeSessionId` and skips `resetConversation` / `interruptGenerate` for stale destroys. Prefer awaiting `session.destroy()` before `create()` in apps.
+
 Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, for example:
 
 - `Llama-3.2-1B-Instruct-q4f16_1-MLC`

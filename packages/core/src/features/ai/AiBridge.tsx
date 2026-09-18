@@ -35,6 +35,7 @@ export const AiBridge = () => {
   const { config } = useConfig();
   const { settings } = useSettings();
   const sessionsRef = useRef(new Map<string, AiSession>());
+  const activeSessionIdRef = useRef<string | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -81,6 +82,7 @@ export const AiBridge = () => {
         {
           registry,
           sessions: sessionsRef.current,
+          activeSessionId: activeSessionIdRef,
           getSettings: () => settingsRef.current,
         },
         payload,
