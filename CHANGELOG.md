@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🔒 Security
+
+- **StorageBridge trusted-frame gate (H-07):** `SHELLUI_STORAGE_REQUEST` is honored only from registered iframe companions that pass the same trusted-frame policy as session JWT sharing (`safeForAuthToken`, admin URLs, `storage.filesUrl`). Untrusted senders receive `403` without storage I/O. Shared helpers live in `features/security/trustedFrames` for upcoming postMessage allowlist work (#60).
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.
