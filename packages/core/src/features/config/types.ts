@@ -141,17 +141,6 @@ export interface LegalDocumentsConfig {
   dataProcessingAgreement?: string;
 }
 
-/**
- * Host security options. Additive namespace for postMessage, CSP, BFF auth, etc.
- */
-export interface SecurityConfig {
-  /**
-   * Extra http(s) origins (or absolute URLs) allowed for Shellui postMessage traffic.
-   * Unioned with origins derived from navigation, storage, and admin URLs.
-   */
-  allowedMessageOrigins?: string[];
-}
-
 /** Supported backend providers for auth/API communication. */
 export type BackendType = 'shellui' | 'supabase';
 
@@ -168,6 +157,51 @@ export interface BackendLoginConfig {
   panelUrl?: string;
   /** Centered, ratio-preserving image for the login left panel. */
   panelImage?: string;
+}
+
+/** Same-origin BFF auth for HttpOnly refresh cookies (see docs/features/security.md). */
+export interface BffAuthConfig {
+  /**
+   * When true, refresh tokens are stored in an HttpOnly cookie via `/api/auth/*`
+   * served by the shell host (CLI dev server or your production reverse proxy).
+   * Default: false (refresh stays in sessionStorage until you enable BFF).
+   */
+  enabled?: boolean;
+  /** HttpOnly cookie name. Default: `shellui_refresh`. */
+  cookieName?: string;
+}
+
+/** Shell document security headers (CSP, staged rollout). */
+export interface CspConfig {
+  /**
+   * Emit an enforcing `Content-Security-Policy` header.
+   * Default: false (report-only) so playgrounds keep working during rollout.
+   */
+  enforce?: boolean;
+  /**
+   * Emit `Content-Security-Policy-Report-Only`.
+   * Default: true when `security.csp` is present.
+   */
+  reportOnly?: boolean;
+  /** Optional CSP violation report endpoint (`report-uri` / `report-to`). */
+  reportUri?: string;
+  /** Extra hosts for `connect-src` (companion APIs, analytics, etc.). */
+  connectSrc?: string[];
+  /** Extra hosts for `frame-src` (companion iframes). */
+  frameSrc?: string[];
+}
+
+/**
+ * Host security options. Additive namespace for postMessage, CSP, BFF auth, etc.
+ */
+export interface SecurityConfig {
+  /**
+   * Extra http(s) origins (or absolute URLs) allowed for Shellui postMessage traffic.
+   * Unioned with origins derived from navigation, storage, and admin URLs.
+   */
+  allowedMessageOrigins?: string[];
+  bffAuth?: BffAuthConfig;
+  csp?: CspConfig;
 }
 
 /** Backend API configuration. */
@@ -334,12 +368,12 @@ export interface ShellUIConfig {
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */
   backend?: BackendConfig;
+  /** Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md). */
+  security?: SecurityConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
   legalDocuments?: LegalDocumentsConfig;
-  /** Host security settings (postMessage allowlist extras, etc.). */
-  security?: SecurityConfig;
   /**
    * CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`.
    * Stripped before the config is sent to the browser.

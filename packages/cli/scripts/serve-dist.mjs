@@ -7,6 +7,12 @@
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { loadConfig } from '../src/utils/config.js';
+import { handleAuthBffRequest } from '../src/utils/auth-bff-plugin.js';
+import { resolveShellCspHeaders } from '../src/utils/csp.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const port = process.argv[2] ? parseInt(process.argv[2], 10) : 8000;
 const distDir = path.resolve(process.cwd(), 'dist', 'web');
@@ -29,9 +35,25 @@ const mimeTypes = {
   '.webp': 'image/webp',
 };
 
+/** @type {object | null} */
+let shelluiConfig = null;
+
+async function loadShelluiConfig() {
+  try {
+    shelluiConfig = await loadConfig(process.cwd());
+  } catch {
+    shelluiConfig = null;
+  }
+}
+
 function getMimeType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   return mimeTypes[ext] || 'application/octet-stream';
+}
+
+function securityHeaders() {
+  if (!shelluiConfig) return {};
+  return resolveShellCspHeaders(shelluiConfig, { useScriptHash: true });
 }
 
 function serveFile(filePath, res) {
@@ -42,6 +64,7 @@ function serveFile(filePath, res) {
   const content = fs.readFileSync(filePath);
 
   res.writeHead(200, {
+    ...securityHeaders(),
     'Content-Type': mimeType,
     'Content-Length': stat.size,
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -73,14 +96,20 @@ if (!fs.existsSync(indexFile)) {
 
 const spaFallbackPath = resolveSpaFallbackPath();
 
-const server = http.createServer((req, res) => {
+await loadShelluiConfig();
+
+const server = http.createServer(async (req, res) => {
+  if (shelluiConfig && (await handleAuthBffRequest(req, res, shelluiConfig))) {
+    return;
+  }
+
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   let requestedPath = parsedUrl.pathname;
   let filePath = path.join(distDir, requestedPath);
   filePath = path.normalize(filePath);
 
   if (!filePath.startsWith(distDir)) {
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.writeHead(403, { ...securityHeaders(), 'Content-Type': 'text/plain' });
     res.end('Forbidden');
     return;
   }
@@ -98,7 +127,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.writeHead(404, { ...securityHeaders(), 'Content-Type': 'text/plain' });
   res.end('404 Not Found');
 });
 
@@ -106,6 +135,9 @@ server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);
   console.log(`Serving from: ${distDir}`);
   console.log(`Unknown routes fall back to ${path.basename(spaFallbackPath)}`);
+  if (shelluiConfig?.security?.bffAuth?.enabled) {
+    console.log('Auth BFF routes enabled at /api/auth/*');
+  }
   console.log('Press Ctrl+C to stop the server');
 });
 

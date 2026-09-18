@@ -26,6 +26,9 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🔒 Security
 
+- **Auth token storage (H-09 / M-17):** split persisted session — profile metadata in `localStorage`, refresh token in tab-scoped `sessionStorage`, access token memory-only. Legacy `shellui.auth.session` auto-migrates.
+- **Optional BFF auth:** `security.bffAuth.enabled` routes `/api/auth/{session,refresh,logout}` through the shell host with HttpOnly refresh cookies (CLI dev + `serve:dist`). Identity-native cookie OAuth remains a documented follow-up.
+- **Shell CSP:** report-only by default with SHA-256 hash for the inline theme bootstrap; opt into enforcing via `security.csp.enforce`. See [Security hardening](./docs/features/security.md).
 - **Modal iframe allowlist:** localhost origins are allowed only in development builds; production shells reject loopback modal URLs unless they match configured storage, admin, or same-origin targets. (#63)
 - **Navigation route guard:** routes with `requiresStaff` now show an access-forbidden view for signed-out and non-staff users (client-side UX guard; APIs must still enforce authorization). (#63)
 - **Login branding `panelUrl`:** restricted to same-origin relative paths, configured backend/login/storage origins, and loopback URLs in development only. Untrusted absolute URLs are ignored. (#63)
