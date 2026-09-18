@@ -58,8 +58,8 @@ export interface NavigationItem {
   settings?: string;
   /**
    * Trust control for auth token sharing to iframe apps.
-   * - undefined/true: trusted (default), token can be shared
-   * - false: untrusted, token is never shared
+   * - undefined/false: untrusted (default), access token is not shared
+   * - true: trusted, access token can be shared (opt-in)
    */
   safeForAuthToken?: boolean;
 }

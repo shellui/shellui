@@ -8,10 +8,7 @@ import {
 } from '@shellui/sdk';
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
-import type { NavigationItem } from '../config/types';
 import { useAuth } from '../auth/hooks/useAuth';
-import { isAdminFrame } from '../admin/utils';
-import { isFrameForAppUrl } from '../layouts/utils';
 import { isMainLayoutFrame } from '../layouts/floating/layoutChromeStore';
 import { defaultTheme } from '../theme/themes';
 import {
@@ -21,6 +18,7 @@ import {
   isSameUser,
   mergePreferencesIntoSettings,
   toSettingsUser,
+  isTrustedFrameForAuthToken,
 } from './utils';
 import { unregisterServiceWorker } from '../../service-worker/register';
 
@@ -29,9 +27,6 @@ const logger = getLogger('shellcore');
 const STORAGE_KEY = 'shellui:settings';
 const AUTH_SESSION_STORAGE_KEY = 'shellui.auth.session';
 const AUTH_LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
-
-const isFrameForNavigationItem = (frameSrc: string, itemUrl: string): boolean =>
-  isFrameForAppUrl(frameSrc, itemUrl);
 
 const stripSensitiveUserFields = (settings: Settings): Settings => {
   return {
@@ -170,40 +165,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     return defaultSettings;
   });
 
-  const navigationItems = useMemo<NavigationItem[]>(
-    () =>
-      config?.navigation?.flatMap((item) =>
-        'title' in item && 'items' in item ? item.items : [item],
-      ) ?? [],
-    [config?.navigation],
-  );
-
-  const isTrustedFrameForAuthToken = useCallback(
-    (frameSrc: string): boolean => {
-      if (isAdminFrame(frameSrc, config)) {
-        return true;
-      }
-      // Trust admin-panel iframe apps (navigation + storage files explorer / viewer modals).
-      const adminNavItems = config?.administration?.navigation ?? [];
-      if (
-        adminNavItems.some(
-          (item) =>
-            item.openIn !== 'external' &&
-            Boolean(item.url?.trim()) &&
-            isFrameForNavigationItem(frameSrc, item.url),
-        )
-      ) {
-        return true;
-      }
-      const filesUrl = config?.storage?.filesUrl?.trim();
-      if (filesUrl && isFrameForNavigationItem(frameSrc, filesUrl)) {
-        return true;
-      }
-      return navigationItems.some(
-        (item) => item.safeForAuthToken !== false && isFrameForNavigationItem(frameSrc, item.url),
-      );
-    },
-    [config, navigationItems],
+  const isFrameTrustedForAuthToken = useCallback(
+    (frameSrc: string): boolean => isTrustedFrameForAuthToken(frameSrc, config),
+    [config],
   );
 
   const accessTokenRef = useRef<string | null>(session?.accessToken ?? null);
@@ -217,7 +181,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const accessToken = accessTokenRef.current;
       for (const [uuid, iframe] of iframes) {
         const frameSrc = iframe?.src ?? '';
-        const includeAuthAccessToken = isTrustedFrameForAuthToken(frameSrc);
+        const includeAuthAccessToken = isFrameTrustedForAuthToken(frameSrc);
         const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
           includeAuthAccessToken,
           accessToken,
@@ -230,7 +194,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [config, isTrustedFrameForAuthToken],
+    [config, isFrameTrustedForAuthToken],
   );
 
   const pushSettingsToFrame = useCallback(
@@ -251,7 +215,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         to: [iframeUuid],
       });
     },
-    [config, isTrustedFrameForAuthToken],
+    [config, isFrameTrustedForAuthToken],
   );
 
   // When the shell rotates the JWT, `authUser` often does not change, so the user-sync effect
@@ -471,7 +435,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             .find(([uuid]) => uuid === firstHopIframeUuid)?.[1];
           const lang = currentSettings.language?.code || 'en';
           const includeAuthAccessToken = frame
-            ? isTrustedFrameForAuthToken(frame.src ?? '')
+            ? isFrameTrustedForAuthToken(frame.src ?? '')
             : false;
           const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
             includeAuthAccessToken,
@@ -541,7 +505,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, [
     config,
-    isTrustedFrameForAuthToken,
+    isFrameTrustedForAuthToken,
     propagateSettingsToIframes,
     pushSettingsToFrame,
     schedulePropagateSettingsToIframes,

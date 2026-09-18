@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🔒 Security
+
+- **`safeForAuthToken` default is now opt-in (breaking):** companion iframe apps no longer receive `settings.accessToken` unless their navigation item sets `safeForAuthToken: true`. First-party admin and storage file explorer frames are unchanged. The refresh token was never shared with companions and still is not. See [Authentication — Iframe apps](./docs/features/authentication.md#iframe-apps) for migration.
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.

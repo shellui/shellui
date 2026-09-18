@@ -257,7 +257,7 @@
         },
         "safeForAuthToken": {
           "type": "boolean",
-          "description": "Trust control for auth token sharing to iframe apps.\n- undefined/true: trusted (default), token can be shared\n- false: untrusted, token is never shared"
+          "description": "Trust control for auth token sharing to iframe apps.\n- undefined/false: untrusted (default), access token is not shared\n- true: trusted (opt-in), access token can be shared to this companion"
         }
       },
       "required": ["label", "path", "url"],
