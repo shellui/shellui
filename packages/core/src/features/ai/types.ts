@@ -10,7 +10,9 @@ export type AiModelStatus =
   | 'downloadable'
   | 'downloading'
   | 'unavailable'
-  | 'needs-webgpu';
+  | 'needs-webgpu'
+  /** Browser present but WebLLM runtime unsupported (e.g. Firefox). */
+  | 'unsupported';
 
 export type AiModel = {
   id: string;

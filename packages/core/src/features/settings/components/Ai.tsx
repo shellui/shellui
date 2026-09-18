@@ -9,6 +9,8 @@ import { BROWSER_MODEL_CATALOG } from '../../ai/catalog';
 import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
+import { formatUnknownError, logAiError } from '../../ai/engine/formatAiError';
+import { probeWebLlmBrowserSupport } from '../../ai/webLlmBrowserSupport';
 import { RefreshCwIcon } from '../SettingsIcons';
 import { useSettings } from '../hooks/useSettings';
 
@@ -107,13 +109,17 @@ function ModelStatusBadge({
           ? t('ai.models.status.downloading')
           : status === 'needs-webgpu'
             ? t('ai.models.status.needsWebGpu')
-            : t('ai.models.status.unavailable');
+            : status === 'unsupported'
+              ? t('ai.models.status.unsupported')
+              : t('ai.models.status.unavailable');
   const tone =
     status === 'ready'
       ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
       : status === 'downloading'
         ? 'bg-amber-500/15 text-amber-900 dark:text-amber-100'
-        : 'bg-muted text-muted-foreground';
+        : status === 'unsupported'
+          ? 'bg-amber-500/15 text-amber-900 dark:text-amber-100'
+          : 'bg-muted text-muted-foreground';
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium', tone)}>
       {label}
@@ -222,6 +228,15 @@ export const Ai = () => {
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
 
   const startDownload = async (model: AiModel) => {
+    const browser = probeWebLlmBrowserSupport();
+    if (!browser.supported) {
+      setDownload({
+        modelId: model.id,
+        progress: 0,
+        error: browser.detail,
+      });
+      return;
+    }
     setDownload({ modelId: model.id, progress: 0 });
     const controller = new AbortController();
     downloadAbortRef.current = controller;
@@ -238,10 +253,11 @@ export const Ai = () => {
         await load();
         return;
       }
+      logAiError('settings.install', err, { modelId: model.id, stage: 'settings.startDownload' });
       setDownload({
         modelId: model.id,
         progress: 0,
-        error: err instanceof Error ? err.message : t('ai.unknownError'),
+        error: formatUnknownError(err) || t('ai.unknownError'),
       });
       await load();
     } finally {
@@ -498,6 +514,9 @@ export const Ai = () => {
               {ai.browserEnabled && status && !status.webGpu.available ? (
                 <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
               ) : null}
+              {ai.browserEnabled && !probeWebLlmBrowserSupport().supported ? (
+                <p className="text-xs text-muted-foreground">{t('ai.models.unsupportedBrowser')}</p>
+              ) : null}
               {ai.browserEnabled ? (
                 browserModels.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t('ai.models.browserEmpty')}</p>
@@ -510,7 +529,12 @@ export const Ai = () => {
                         ? download.progress
                         : (webllm.getDownloadProgress(model.id) ?? null);
                       const installed = isBrowserModelInstalled(model.id);
-                      const canDownload = !installed && model.status !== 'downloading';
+                      const unsupported = model.status === 'unsupported';
+                      const canDownload =
+                        !installed &&
+                        !unsupported &&
+                        model.status !== 'downloading' &&
+                        model.status !== 'needs-webgpu';
                       return (
                         <li
                           key={model.id}
@@ -521,6 +545,11 @@ export const Ai = () => {
                               <p className="truncate text-sm font-medium">{model.name}</p>
                               {size ? (
                                 <p className="text-xs tabular-nums text-muted-foreground">{size}</p>
+                              ) : null}
+                              {unsupported ? (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {model.description || t('ai.models.unsupportedBrowser')}
+                                </p>
                               ) : null}
                             </div>
                             <ModelStatusBadge
@@ -571,6 +600,17 @@ export const Ai = () => {
                                   className="h-8"
                                   disabled={!status?.webGpu.available}
                                   onClick={() => void startDownload(model)}
+                                >
+                                  {t('ai.models.download')}
+                                </Button>
+                              ) : null}
+                              {unsupported && !installed ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                  disabled
+                                  title={t('ai.models.unsupportedBrowser')}
                                 >
                                   {t('ai.models.download')}
                                 </Button>

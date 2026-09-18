@@ -66,6 +66,8 @@ export {
   SHELLUI_VITE_CACHE_DIR,
   getShelluiTargetDefine,
   resolveShelluiTarget,
+  isAiEnabledInConfig,
+  resolveWebLlmPackage,
 } from './vite.js';
 export {
   getTauriTemplateDir,

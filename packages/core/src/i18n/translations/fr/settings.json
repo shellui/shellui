@@ -222,11 +222,13 @@
       "delete": "Retirer",
       "downloadProgress": "{{percent}} %",
       "needsWebGpuAction": "Ce navigateur a besoin de WebGPU avant les installations catalogue.",
+      "unsupportedBrowser": "Les modèles navigateur nécessitent Chrome ou Edge (WebGPU). Utilisez Ollama sur ce navigateur.",
       "status": {
         "ready": "Prêt",
         "downloadable": "Non installé",
         "downloading": "Installation",
         "needsWebGpu": "WebGPU requis",
+        "unsupported": "Navigateur non pris en charge",
         "unavailable": "Indisponible"
       }
     },

@@ -54,6 +54,8 @@ Models stay in Ollama's own storage. The browser only calls a local HTTP API (`h
 
 **Settings → AI** lists a curated browser catalog. **Install** uses [`@mlc-ai/web-llm`](https://webllm.mlc.ai/) to fetch MLC weights from Hugging Face (via WebLLM’s prebuilt model library — not a custom HF downloader), warms a **dedicated Web Worker** engine, and marks the model ready when inference can run.
 
+**Supported browsers for in-browser Install:** Chromium with usable WebGPU — **Chrome** and **Edge**. Firefox often exposes a basic WebGPU probe but is still too immature for WebLLM engine init in v1; Safari is unsupported too. On those browsers, Settings shows catalog models as **unsupported** and points you to **Ollama** instead of failing with a generic “Model download failed.”
+
 Closing Settings does **not** cancel the download. Progress continues in the shell root **transfer toaster** (same UI as storage uploads). In-panel progress returns if you reopen Settings mid-download.
 
 After Install completes, apps can call `shellui.ai.languageModel` immediately — no second “load” step on the happy path (the worker keeps the model warm). Reloading the tab may need a short cache warm on first prompt; the install record survives in `localStorage` and weights stay in WebLLM’s browser cache.
@@ -65,7 +67,7 @@ Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, 
 
 **v1 limit:** one browser model warm at a time (switching models reloads the worker engine).
 
-Browser installs need **WebGPU**.
+Browser installs need **WebGPU** on a Chromium browser.
 
 ## Why apps don't load WebLLM themselves
 
@@ -108,7 +110,7 @@ You can:
 - List Ollama models when reachable
 - Install / cancel / remove browser catalog models (real WebLLM download + worker inference)
 
-**Try it locally:** use a WebGPU-capable browser → Settings → AI → Install a catalog model → wait for the toaster / panel to finish → Settings → Develop → AI test tools, or call `shellui.ai` from an iframe app.
+**Try it locally:** use **Chrome or Edge** with WebGPU → Settings → AI → Install a catalog model → wait for the toaster / panel to finish → Settings → Develop → AI test tools, or call `shellui.ai` from an iframe app. On Firefox/Safari, use Ollama instead of browser Install.
 
 **Settings → Develop** has **AI test tools** (probe, list, one-shot and stream prompt) for developers. Day-to-day setup stays on Settings → AI.
 

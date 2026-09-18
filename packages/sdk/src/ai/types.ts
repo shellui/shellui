@@ -12,7 +12,8 @@ export type AiModelStatus =
   | 'downloadable'
   | 'downloading'
   | 'unavailable'
-  | 'needs-webgpu';
+  | 'needs-webgpu'
+  | 'unsupported';
 
 export type AiModelInfo = {
   id: string;

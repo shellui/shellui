@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import { createRequire } from 'module';
 import tailwindcssPlugin from '@tailwindcss/postcss';
 import autoprefixerPlugin from 'autoprefixer';
 import { resolvePackagePath, resolveSdkEntry } from './index.js';
@@ -202,6 +203,44 @@ export function createViteResolveConfig() {
 }
 
 /**
+ * Whether on-device AI is enabled in shellui config (default true).
+ * @param {object | undefined} shelluiConfig
+ * @returns {boolean}
+ */
+export function isAiEnabledInConfig(shelluiConfig) {
+  return shelluiConfig?.ai?.enabled !== false;
+}
+
+/**
+ * Resolve `@mlc-ai/web-llm` package root from core or the consumer project.
+ * Returns null when AI is disabled or the package is missing.
+ * @param {string} corePackagePath
+ * @param {string} projectRoot
+ * @returns {{ packageDir: string, entry: string } | null}
+ */
+export function resolveWebLlmPackage(corePackagePath, projectRoot) {
+  const candidates = [
+    path.join(corePackagePath, 'package.json'),
+    path.join(projectRoot, 'package.json'),
+  ];
+  for (const from of candidates) {
+    if (!fs.existsSync(from)) continue;
+    try {
+      const req = createRequire(from);
+      const pkgJson = req.resolve('@mlc-ai/web-llm/package.json');
+      const packageDir = fs.realpathSync(path.dirname(pkgJson));
+      const entry = path.join(packageDir, 'lib', 'index.js');
+      if (fs.existsSync(entry)) {
+        return { packageDir, entry };
+      }
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
+/**
  * Vite cache directory for the shell (under the consumer project, not shared with the app).
  * @param {string} projectRoot
  * @returns {string}
@@ -232,9 +271,42 @@ export function createIsolatedViteConfig({
   const staticPath = path.join(projectRoot, 'static');
   const publicDir = fs.existsSync(staticPath) ? staticPath : false;
   const nodeModulesDir = path.join(projectRoot, 'node_modules');
+  const aiEnabled = isAiEnabledInConfig(shelluiConfig);
+  const webLlm = aiEnabled ? resolveWebLlmPackage(corePackagePath, projectRoot) : null;
+
   const fsAllow = [corePackagePath, nodeModulesDir, cacheDir];
   if (publicDir) fsAllow.push(staticPath);
   if (shelluiConfig?.__themesDirAbs) fsAllow.push(shelluiConfig.__themesDirAbs);
+  if (webLlm?.packageDir) {
+    fsAllow.push(webLlm.packageDir);
+    // pnpm nests deps beside the package; allow the parent .pnpm node_modules too.
+    const pnpmNodeModules = path.resolve(webLlm.packageDir, '..', '..');
+    if (pnpmNodeModules.includes(`${path.sep}.pnpm${path.sep}`)) {
+      fsAllow.push(pnpmNodeModules);
+    }
+  }
+
+  /** @type {Record<string, string>} */
+  const alias = {
+    ...createResolveAlias(),
+    ...getShelluiConfigAlias(),
+    '@shellui/core': corePackagePath,
+  };
+  if (webLlm?.entry) {
+    alias['@mlc-ai/web-llm'] = webLlm.entry;
+  }
+
+  /** @type {import('vite').DepOptimizationOptions} */
+  const optimizeDeps = {
+    esbuildOptions: {
+      tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
+    },
+  };
+  if (aiEnabled) {
+    // Force prebundle so the first Install does not fail on unresolved nested deps.
+    optimizeDeps.include = ['@mlc-ai/web-llm', 'loglevel'];
+    optimizeDeps.needsInterop = ['@mlc-ai/web-llm', 'loglevel'];
+  }
 
   return {
     configFile: false,
@@ -250,19 +322,16 @@ export function createIsolatedViteConfig({
     esbuild: {
       tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
     },
-    optimizeDeps: {
-      esbuildOptions: {
-        tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
-      },
+    optimizeDeps,
+    // Module workers (WebLLM) must be ES format for `type: 'module'` + import.meta.url.
+    worker: {
+      format: 'es',
     },
     define: getShelluiTargetDefine(shelluiConfig),
     resolve: {
       ...createViteResolveConfig(),
-      alias: {
-        ...createResolveAlias(),
-        ...getShelluiConfigAlias(),
-        '@shellui/core': corePackagePath,
-      },
+      dedupe: aiEnabled ? ['@mlc-ai/web-llm', 'loglevel'] : [],
+      alias,
     },
     server: {
       fs: {

@@ -72,6 +72,24 @@ export function computeThemeInitScriptHash() {
 }
 
 /**
+ * connect-src hosts used by `@mlc-ai/web-llm` 0.2.x + local Ollama.
+ * Documented for operators enabling enforce mode later.
+ */
+export const AI_CSP_CONNECT_SRC = [
+  // Ollama soft probe / generate (any local port)
+  'http://127.0.0.1:*',
+  'http://localhost:*',
+  // Hugging Face model weights (WebLLM prebuiltAppConfig)
+  'https://huggingface.co',
+  'https://*.huggingface.co',
+  // HF CDN / Xet bridge hosts used for large LFS blobs
+  'https://hf.co',
+  'https://*.hf.co',
+  // WebLLM wasm / binary libs
+  'https://raw.githubusercontent.com',
+];
+
+/**
  * Build shell CSP suitable for dev/playground (permissive frame/connect for localhost companions).
  * @param {object} opts
  * @param {string} [opts.nonce] - Per-request nonce for inline scripts (dev).
@@ -80,6 +98,7 @@ export function computeThemeInitScriptHash() {
  * @param {string[]} [opts.connectSrc]
  * @param {string[]} [opts.frameSrc]
  * @param {string} [opts.reportUri]
+ * @param {boolean} [opts.aiEnabled] - Widen CSP for WebLLM / Ollama when on-device AI is enabled.
  */
 export function buildShellContentSecurityPolicy(opts = {}) {
   const scriptParts = ["'self'"];
@@ -89,6 +108,10 @@ export function buildShellContentSecurityPolicy(opts = {}) {
   if (opts.useScriptHash) {
     scriptParts.push(computeThemeInitScriptHash());
   }
+  if (opts.aiEnabled) {
+    // Chromium requires this for WebAssembly used by WebLLM.
+    scriptParts.push("'wasm-unsafe-eval'");
+  }
 
   const connectParts = ["'self'", 'ws:', 'wss:'];
   if (opts.backendUrl) {
@@ -96,6 +119,11 @@ export function buildShellContentSecurityPolicy(opts = {}) {
       connectParts.push(new URL(opts.backendUrl).origin);
     } catch {
       // ignore invalid backend url
+    }
+  }
+  if (opts.aiEnabled) {
+    for (const extra of AI_CSP_CONNECT_SRC) {
+      connectParts.push(extra);
     }
   }
   for (const extra of opts.connectSrc ?? []) {
@@ -121,6 +149,11 @@ export function buildShellContentSecurityPolicy(opts = {}) {
     "object-src 'none'",
   ];
 
+  if (opts.aiEnabled) {
+    // Module workers (WebLLM) + blob: workers Vite may emit.
+    directives.push("worker-src 'self' blob:");
+  }
+
   if (opts.reportUri) {
     directives.push(`report-uri ${opts.reportUri}`);
   }
@@ -138,13 +171,19 @@ export function resolveShellCspHeaders(shelluiConfig, cspOpts = {}) {
   const cspConfig = shelluiConfig?.security?.csp ?? {};
   const enforce = cspConfig.enforce === true;
   const reportOnly = cspConfig.reportOnly !== false && !enforce;
+  const aiEnabled =
+    cspOpts.aiEnabled !== undefined
+      ? Boolean(cspOpts.aiEnabled)
+      : shelluiConfig?.ai?.enabled !== false;
 
   const policy = buildShellContentSecurityPolicy({
-    backendUrl: shelluiConfig?.backend?.url,
-    connectSrc: cspConfig.connectSrc,
-    frameSrc: cspConfig.frameSrc,
-    reportUri: cspConfig.reportUri,
-    ...cspOpts,
+    useScriptHash: cspOpts.useScriptHash,
+    nonce: cspOpts.nonce,
+    backendUrl: cspOpts.backendUrl ?? shelluiConfig?.backend?.url,
+    connectSrc: cspOpts.connectSrc ?? cspConfig.connectSrc,
+    frameSrc: cspOpts.frameSrc ?? cspConfig.frameSrc,
+    reportUri: cspOpts.reportUri ?? cspConfig.reportUri,
+    aiEnabled,
   });
 
   const headers = {};

@@ -14,7 +14,9 @@ import {
   markTransferCancelled,
   setTransferProgress,
 } from '../../transfers/transferQueue.js';
+import { formatInstallFailureMessage, formatUnknownError, logAiError } from './formatAiError.js';
 import { mapInitProgress } from './mapInitProgress.js';
+import { mapWebLlmRuntimeError } from '../webLlmBrowserSupport.js';
 
 export type WebLLMModule = typeof import('@mlc-ai/web-llm');
 
@@ -28,7 +30,7 @@ export type WebLLMEngineLike = Pick<
 
 export type LoadWebLLMModule = () => Promise<WebLLMModule>;
 
-export type CreateWorkerFn = () => Worker;
+export type CreateWorkerFn = () => Worker | Promise<Worker>;
 
 export type WebLLMEngineServiceOptions = {
   loadModule?: LoadWebLLMModule;
@@ -57,17 +59,48 @@ function toLocalId(modelId: string): string {
   return modelId.replace(/^webllm:/, '');
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
+}
+
 const defaultLoadModule: LoadWebLLMModule = () => import('@mlc-ai/web-llm');
 
 /**
  * Spawn the dedicated worker only at install/load time (never on module import).
- * The worker entry statically imports WebLLM; constructing it is what pulls that chunk.
+ * Prefer Vite's `?worker` constructor (shows a Network request for the worker chunk),
+ * then fall back to `new Worker(new URL(..., import.meta.url))`.
  */
-const defaultCreateWorker: CreateWorkerFn = () =>
-  new Worker(new URL('./webllm.worker.ts', import.meta.url), {
-    type: 'module',
-    name: 'shellui-webllm',
-  });
+async function defaultCreateWorker(): Promise<Worker> {
+  let viteWorkerError: unknown;
+  try {
+    // Vite transforms this to a Worker constructor that fetches a bundled module worker.
+    const mod = await import('./webllm.worker.ts?worker&module');
+    const WorkerCtor = (mod as { default?: new () => Worker }).default;
+    if (typeof WorkerCtor === 'function') {
+      return new WorkerCtor();
+    }
+    viteWorkerError = new Error('Vite worker module did not export a Worker constructor');
+  } catch (error) {
+    viteWorkerError = error;
+  }
+
+  try {
+    return new Worker(new URL('./webllm.worker.ts', import.meta.url), {
+      type: 'module',
+      name: 'shellui-webllm',
+    });
+  } catch (error) {
+    throw new Error(
+      `Failed to start WebLLM worker: ${formatUnknownError(error)}. ` +
+        `Vite ?worker fallback: ${formatUnknownError(viteWorkerError)}. ` +
+        'Check that shell Vite uses worker.format = "es" and can resolve webllm.worker.ts.',
+      { cause: error instanceof Error ? error : undefined },
+    );
+  }
+}
 
 /**
  * Shell-owned WebLLM runtime: one warm browser model + in-flight installs.
@@ -85,6 +118,7 @@ export class WebLLMEngineService {
   private warmModelId: string | null = null;
   private loadPromise: Promise<void> | null = null;
   private loadingModelId: string | null = null;
+  private lastInstallError: string | null = null;
   private readonly installs = new Map<string, ActiveInstall>();
   private readonly progressListeners = new Set<(localId: string, progress: number) => void>();
 
@@ -92,6 +126,10 @@ export class WebLLMEngineService {
     this.loadModule = options.loadModule ?? defaultLoadModule;
     this.createWorker = options.createWorker ?? defaultCreateWorker;
     this.useTransferToast = options.useTransferToast !== false;
+  }
+
+  getLastInstallError(): string | null {
+    return this.lastInstallError;
   }
 
   subscribeProgress(listener: (localId: string, progress: number) => void): () => void {
@@ -187,6 +225,7 @@ export class WebLLMEngineService {
       if (controller.signal.aborted || options?.signal?.aborted) {
         throw new DOMException('Download cancelled', 'AbortError');
       }
+      this.lastInstallError = null;
       await this.ensureEngine(localId, {
         signal: controller.signal,
         onProgress: report,
@@ -197,10 +236,7 @@ export class WebLLMEngineService {
         completeTransfer(transferId);
       }
     } catch (error) {
-      const aborted =
-        controller.signal.aborted ||
-        (error instanceof DOMException && error.name === 'AbortError') ||
-        (error instanceof Error && error.name === 'AbortError');
+      const aborted = controller.signal.aborted || isAbortError(error);
       if (aborted) {
         if (this.useTransferToast) {
           markTransferCancelled(transferId);
@@ -209,11 +245,23 @@ export class WebLLMEngineService {
           ? error
           : new DOMException('Download cancelled', 'AbortError');
       }
-      const message = error instanceof Error ? error.message : 'Model download failed';
+      const mapped = mapWebLlmRuntimeError(error);
+      const message =
+        mapped ??
+        formatInstallFailureMessage(error, {
+          progressText: active.progressText,
+          fallback: 'Model download failed',
+        });
+      this.lastInstallError = message;
+      logAiError('install', error, {
+        modelId: localId,
+        stage: 'install',
+        progressText: active.progressText,
+      });
       if (this.useTransferToast) {
         failTransfer(transferId, message);
       }
-      throw error instanceof Error ? error : new Error(message);
+      throw new Error(message, { cause: error instanceof Error ? error : undefined });
     } finally {
       options?.signal?.removeEventListener('abort', onAbort);
       this.installs.delete(localId);
@@ -388,20 +436,54 @@ export class WebLLMEngineService {
 
     await this.disposeWorker();
 
-    const webllm = await this.loadModule();
-    const worker = this.createWorker();
+    let webllm: WebLLMModule;
+    try {
+      webllm = await this.loadModule();
+    } catch (error) {
+      logAiError('loadModule', error, { modelId: localId, stage: 'import(@mlc-ai/web-llm)' });
+      throw new Error(
+        `Failed to load @mlc-ai/web-llm: ${formatUnknownError(error)}. ` +
+          'Is it installed and visible to the shell Vite app? ' +
+          '(shellui start should optimizeDeps.include @mlc-ai/web-llm and alias it from @shellui/core)',
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
+
+    let worker: Worker;
+    try {
+      worker = await this.createWorker();
+    } catch (error) {
+      logAiError('createWorker', error, { modelId: localId, stage: 'new Worker' });
+      throw new Error(
+        `Failed to start WebLLM worker: ${formatUnknownError(error)}. ` +
+          'If Network shows no worker script, Vite module-worker bundling is broken.',
+        { cause: error instanceof Error ? error : undefined },
+      );
+    }
     this.worker = worker;
 
     let settled = false;
     const abortError = () => new DOMException('Download cancelled', 'AbortError');
 
-    const enginePromise = webllm.CreateWebWorkerMLCEngine(worker, localId, {
-      initProgressCallback: (report) => {
-        if (options.signal?.aborted) return;
-        const ratio = mapInitProgress(report);
-        options.onProgress?.(ratio, report.text);
-      },
-    });
+    let enginePromise: Promise<WebLLMEngineLike>;
+    try {
+      enginePromise = webllm.CreateWebWorkerMLCEngine(worker, localId, {
+        initProgressCallback: (report) => {
+          if (options.signal?.aborted) return;
+          const ratio = mapInitProgress(report);
+          options.onProgress?.(ratio, report.text);
+        },
+      }) as Promise<WebLLMEngineLike>;
+    } catch (error) {
+      await this.disposeWorker();
+      logAiError('CreateWebWorkerMLCEngine', error, {
+        modelId: localId,
+        stage: 'CreateWebWorkerMLCEngine',
+      });
+      throw new Error(`CreateWebWorkerMLCEngine failed before load: ${formatUnknownError(error)}`, {
+        cause: error instanceof Error ? error : undefined,
+      });
+    }
 
     const abortPromise = new Promise<never>((_, reject) => {
       if (options.signal?.aborted) {
@@ -439,13 +521,13 @@ export class WebLLMEngineService {
       await this.disposeWorker();
       this.engine = null;
       this.warmModelId = null;
-      if (
-        options.signal?.aborted ||
-        (error instanceof DOMException && error.name === 'AbortError')
-      ) {
+      if (options.signal?.aborted || isAbortError(error)) {
         throw abortError();
       }
-      throw error;
+      logAiError('createAndLoad', error, { modelId: localId, stage: 'engine.reload' });
+      throw error instanceof Error
+        ? error
+        : new Error(formatInstallFailureMessage(error, { fallback: 'Model download failed' }));
     } finally {
       // If create eventually resolves after abort, drop the late engine.
       if (!settled) {

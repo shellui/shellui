@@ -55,6 +55,21 @@ describe('createIsolatedViteConfig', () => {
     expect(allow).not.toContain(path.join(projectRoot, 'src'));
   });
 
+  test('prebundles @mlc-ai/web-llm when AI is enabled (default)', () => {
+    expect(isolated.optimizeDeps.include).toContain('@mlc-ai/web-llm');
+    expect(isolated.worker.format).toBe('es');
+  });
+
+  test('does not prebundle WebLLM when ai.enabled is false', () => {
+    const disabled = createIsolatedViteConfig({
+      projectRoot,
+      coreSrcPath,
+      corePackagePath,
+      shelluiConfig: { ai: { enabled: false } },
+    });
+    expect(disabled.optimizeDeps.include).toBeUndefined();
+  });
+
   test('allows custom themes dir when configured', () => {
     const themesDir = '/tmp/consumer-app/themes';
     const withThemes = createIsolatedViteConfig({
