@@ -144,6 +144,13 @@ export async function handleAiRequest(
             ),
           };
         }
+        // Clean slate before a new session prompts on a warm WebLLM worker.
+        try {
+          await ctx.registry.resetConversation(pick.id);
+        } catch (error) {
+          // eslint-disable-next-line no-console -- create should still proceed; next prompt may hang otherwise
+          console.error('[shellui.ai]', 'resetConversation on create failed', error);
+        }
         const systemPrompt = payload.initialPrompts
           ?.filter((p) => p.role === 'system')
           .map((p) => p.content)
@@ -260,6 +267,14 @@ export async function handleAiRequest(
         if (session) {
           session.abortController.abort();
           ctx.sessions.delete(session.id);
+          // Await reset under the generation lock so the next session's prompt
+          // cannot start until WebLLM chat/KV is cleared (keep weights warm).
+          try {
+            await ctx.registry.resetConversation(session.modelId);
+          } catch (error) {
+            // eslint-disable-next-line no-console -- destroy still acks; log for operators
+            console.error('[shellui.ai]', 'resetConversation on destroy failed', error);
+          }
         }
         return { response: replyOk(id, { destroyed: true }) };
       }

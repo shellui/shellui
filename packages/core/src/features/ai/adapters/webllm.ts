@@ -150,6 +150,10 @@ export class WebLLMAdapter implements AiAdapter {
     await this.engine.unload(modelId);
   }
 
+  async resetConversation(modelId?: string): Promise<void> {
+    await this.engine.resetConversation(modelId);
+  }
+
   /** Test helper. */
   markInstalled(modelId: string): void {
     markBrowserModelInstalled(modelId);

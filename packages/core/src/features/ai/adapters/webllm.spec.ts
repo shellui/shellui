@@ -93,6 +93,7 @@ function createFakeWebLLMModule(options?: {
           reload: vi.fn(async () => undefined),
           setInitProgressCallback: vi.fn(),
           interruptGenerate: vi.fn(),
+          resetChat: vi.fn(async () => undefined),
         };
       },
     ),
@@ -390,5 +391,42 @@ describe('WebLLMAdapter + engine', () => {
     expect(seen[1]?.some((m) => m.role === 'assistant')).toBe(true);
     expect(seen[1]?.at(-1)).toEqual({ role: 'user', content: 'second' });
     await histEngine.resetForTests();
+  });
+
+  it('resetConversation calls interruptGenerate + resetChat without unloading', async () => {
+    const module = createFakeWebLLMModule();
+    const resetEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    const adapter = new WebLLMAdapter({ engine: resetEngine });
+    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
+      .results[0]?.value;
+
+    for await (const _ of adapter.promptStreaming({
+      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      prompt: 'hi',
+    })) {
+      // drain
+    }
+
+    await adapter.resetConversation('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    expect(engineHandle.interruptGenerate).toHaveBeenCalled();
+    expect(engineHandle.resetChat).toHaveBeenCalledWith(false, 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    expect(engineHandle.unload).not.toHaveBeenCalled();
+    expect(resetEngine.getWarmModelId()).toBe('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+    // Second session-style stream still completes after reset.
+    const parts: string[] = [];
+    for await (const chunk of adapter.promptStreaming({
+      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      prompt: 'again',
+    })) {
+      if (chunk.text) parts.push(chunk.text);
+    }
+    expect(parts.join('')).toBe('Hello world');
+    await resetEngine.resetForTests();
   });
 });

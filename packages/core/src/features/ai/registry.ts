@@ -108,4 +108,21 @@ export class AiRegistry {
       yield* adapter.promptStreaming({ ...options, modelId });
     })();
   }
+
+  /**
+   * Clear conversation state on the adapter that owns `modelId` (WebLLM resetChat).
+   * No-op when the adapter does not implement resetConversation.
+   */
+  async resetConversation(modelId?: string | null): Promise<void> {
+    if (!modelId) {
+      // Reset every adapter that supports it (destroy without a clear model).
+      await Promise.all(
+        this.listAdapters().map((adapter) => adapter.resetConversation?.() ?? Promise.resolve()),
+      );
+      return;
+    }
+    const resolved = this.resolveModel(modelId);
+    if (!resolved) return;
+    await resolved.adapter.resetConversation?.(resolved.modelId);
+  }
 }

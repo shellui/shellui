@@ -26,6 +26,11 @@ export type WebLLMEngineLike = Pick<
 > & {
   /** Clears an in-flight decode so the next chat.completions.create can start. */
   interruptGenerate?: () => void;
+  /**
+   * Clears WebLLM chat / KV cache for a fresh conversation without unloading weights.
+   * WebWorkerMLCEngine returns a Promise; some doubles may be sync.
+   */
+  resetChat?: (keepStats?: boolean, modelId?: string) => void | Promise<void>;
   /** Optional terminate for test doubles / worker clients. */
   worker?: Worker;
 };
@@ -411,6 +416,34 @@ export class WebLLMEngineService {
     await this.disposeWorker();
     this.engine = null;
     this.warmModelId = null;
+  }
+
+  /**
+   * Clear WebLLM chat / KV state for a new conversation without unloading weights.
+   * Runs under the generation lock so a following prompt cannot start mid-reset.
+   */
+  async resetConversation(modelId?: string): Promise<void> {
+    return this.withGenerationLock(async () => {
+      const engine = this.engine;
+      if (!engine) return;
+      const localId = modelId ? toLocalId(modelId) : (this.warmModelId ?? undefined);
+      try {
+        engine.interruptGenerate?.();
+      } catch (error) {
+        // eslint-disable-next-line no-console -- interrupt failures are easy to miss otherwise
+        console.error('[shellui.ai]', 'interruptGenerate during resetConversation failed', error);
+      }
+      if (typeof engine.resetChat !== 'function') return;
+      try {
+        await engine.resetChat(false, localId);
+      } catch (error) {
+        // eslint-disable-next-line no-console -- reset failures leave stale KV / hang risk
+        console.error('[shellui.ai]', 'resetChat during resetConversation failed', error);
+        throw error instanceof Error
+          ? error
+          : new Error(`WebLLM resetChat failed: ${formatUnknownError(error)}`);
+      }
+    });
   }
 
   /** Test helper — reset singleton state. */

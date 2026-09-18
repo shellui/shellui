@@ -71,6 +71,11 @@ export type AiAdapter = {
   prompt(options: AiPromptOptions): Promise<string>;
   promptStreaming(options: AiPromptOptions): AsyncIterable<AiStreamChunk>;
   unload(modelId?: string): Promise<void>;
+  /**
+   * Clear adapter-owned conversation state (e.g. WebLLM chat/KV) without unloading
+   * weights. Optional — Ollama is a no-op. Called on LanguageModel session destroy/create.
+   */
+  resetConversation?(modelId?: string): Promise<void>;
   /** Optional browser/catalog download with 0–1 progress. */
   download?(
     modelId: string,

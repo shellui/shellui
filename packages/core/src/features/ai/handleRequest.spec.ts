@@ -184,4 +184,53 @@ describe('handleAiRequest', () => {
       seen[1]?.messages?.some((m) => m.role === 'assistant' && m.content === 'reply:one'),
     ).toBe(true);
   });
+
+  it('destroy and create call resetConversation so a new session starts clean', async () => {
+    const resets: Array<string | undefined> = [];
+    class ResetTrackingAdapter extends ReadyAdapter {
+      async resetConversation(modelId?: string): Promise<void> {
+        resets.push(modelId);
+      }
+    }
+
+    const registry = new AiRegistry({ adapters: [new ResetTrackingAdapter()] });
+    const sessions = new Map<string, AiSession>();
+
+    const createdA = await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'd1', op: 'create' },
+    );
+    // create resets for the picked model
+    expect(resets).toEqual(['llama']);
+    const sessionA = (createdA.response.data as { sessionId: string }).sessionId;
+
+    await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'd2', op: 'prompt', sessionId: sessionA, prompt: 'from A' },
+    );
+
+    await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'd3', op: 'destroy', sessionId: sessionA },
+    );
+    expect(sessions.has(sessionA)).toBe(false);
+    expect(resets).toEqual(['llama', 'llama']);
+
+    const createdB = await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'd4', op: 'create' },
+    );
+    expect(resets).toEqual(['llama', 'llama', 'llama']);
+    const sessionB = (createdB.response.data as { sessionId: string }).sessionId;
+
+    const streamed = await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'd5', op: 'promptStreaming', sessionId: sessionB, prompt: 'from B' },
+    );
+    const chunks: string[] = [];
+    for await (const part of streamed.stream ?? []) {
+      if (part.chunk) chunks.push(part.chunk);
+    }
+    expect(chunks).toContain('s:from B');
+  });
 });

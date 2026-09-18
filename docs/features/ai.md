@@ -64,6 +64,8 @@ After Install completes, apps can call `shellui.ai.languageModel` immediately â€
 
 Reused sessions (e.g. playground Chat asking a second question) serialize generations on the shared WebLLM worker, drain each stream fully, and call `interruptGenerate()` between turns so the next `promptStreaming` does not hang. The shell also accumulates user/assistant history on the `AiSession` and passes full `messages` into WebLLM for multi-turn context.
 
+Switching or creating a new playground conversation `destroy()`s the LanguageModel session; core then awaits WebLLM `resetChat` (still under the generation lock) so the next chat starts with a clean KV/chat state without unloading weights. Refresh is no longer required to start a new conversation.
+
 Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, for example:
 
 - `Llama-3.2-1B-Instruct-q4f16_1-MLC`
