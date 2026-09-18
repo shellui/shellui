@@ -225,8 +225,10 @@ export class WebLLMEngineService {
   private generationTail: Promise<void> = Promise.resolve();
   /**
    * LanguageModel session that last generated on the warm engine. When a prompt
-   * or reset arrives for a different session we hard-reset (interrupt + reload)
-   * so a new conversation never inherits the previous one's KV/chat state.
+   * or reset arrives for a different session we **fully dispose the worker** and
+   * recreate a fresh engine (weights come from the WebLLM browser cache) so a new
+   * conversation never inherits the previous one's KV/chat state — or, worse, a
+   * stuck streaming/generation lock (upstream mlc-ai/web-llm#701, mlc-ai/mlc-llm#3113).
    */
   private servingSessionId: string | null = null;
 
@@ -436,12 +438,13 @@ export class WebLLMEngineService {
     messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
     sessionId?: string;
   }): Promise<string> {
-    const localId = toLocalId(options.modelId);
     this.interruptForSessionSwitch(options.sessionId);
     return this.withGenerationLock(async () => {
-      await this.load(options.modelId, options.signal);
-      const engine = this.requireEngine();
-      await this.hardResetIfSessionSwitched(engine, localId, options.sessionId);
+      const engine = await this.ensureEngineForSession(
+        options.modelId,
+        options.sessionId,
+        options.signal,
+      );
       const messages = resolveMessages(options);
       try {
         const response = await engine.chat.completions.create({
@@ -454,7 +457,12 @@ export class WebLLMEngineService {
         const choice = response.choices?.[0]?.message?.content;
         return typeof choice === 'string' ? choice : '';
       } finally {
-        this.clearGeneration(engine, 'prompt');
+        if (options.signal?.aborted) {
+          // Dispose so the next prompt cannot inherit a stuck WebLLM lock.
+          await this.disposeEngineAndWorker();
+        } else {
+          this.clearGeneration(engine, 'prompt');
+        }
       }
     });
   }
@@ -467,16 +475,17 @@ export class WebLLMEngineService {
     messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
     sessionId?: string;
   }): AsyncIterable<{ text: string; done: boolean }> {
-    const localId = toLocalId(options.modelId);
     // Break any in-flight (or stuck) generation from a prior conversation BEFORE
     // we queue behind the generation lock, so a switch cannot deadlock.
     this.interruptForSessionSwitch(options.sessionId);
     const release = await this.acquireGenerationLock();
     let engine: WebLLMEngineLike | null = null;
     try {
-      await this.load(options.modelId, options.signal);
-      engine = this.requireEngine();
-      await this.hardResetIfSessionSwitched(engine, localId, options.sessionId);
+      engine = await this.ensureEngineForSession(
+        options.modelId,
+        options.sessionId,
+        options.signal,
+      );
       const messages = resolveMessages(options);
       const stream = (await engine.chat.completions.create({
         messages,
@@ -507,7 +516,12 @@ export class WebLLMEngineService {
         yield { text: '', done: true };
       }
     } finally {
-      if (engine) {
+      if (options.signal?.aborted) {
+        // Stop / abort: fully dispose the worker so the next prompt starts on a
+        // fresh engine instead of hitting a possibly-stuck WebLLM streaming lock
+        // (upstream mlc-ai/web-llm#701, mlc-ai/mlc-llm#3113). Weights stay cached.
+        await this.disposeEngineAndWorker();
+      } else if (engine) {
         this.clearGeneration(engine, 'promptStreaming');
       }
       release();
@@ -529,35 +543,35 @@ export class WebLLMEngineService {
   }
 
   /**
-   * Prepare the warm engine for a new LanguageModel conversation.
+   * Prepare for a new LanguageModel conversation (called on `create` / `destroy`).
    *
    * WebLLM's worker engine keeps chat + KV cache state between `chat.completions.create`
    * calls and holds a per-model generation lock that only releases when the previous
    * async stream fully drains. Ollama has none of this (each HTTP generate is
    * independent), which is why only WebLLM hangs on conversation switch.
    *
-   * We (1) eagerly `interruptGenerate()` outside the lock to break any in-flight or
-   * stuck generation (freeing the worker lock), then (2) under our generation lock
-   * hard-reset by reloading the same model id — this clears KV/chat reliably while
-   * weights stay in the browser cache. `resetChat` alone proved insufficient in the
-   * field, so reload is the primary path with `resetChat` as a fallback.
+   * Soft `resetChat` and even `reload` on the *living* worker proved unreliable in
+   * the field: an upstream streaming-lock bug (mlc-ai/web-llm#701 — the model lock
+   * is not always released after a streamed completion — and mlc-ai/mlc-llm#3113 —
+   * `interruptGenerate` can leave `interruptSignal`/the lock stuck) means the worker
+   * can stay wedged and the next `create()` hangs forever. `@mlc-ai/web-llm@0.2.85`
+   * (our pinned version) still ships this class of bug (#701 is not merged).
+   *
+   * The reliable v1 fix is **nuclear**: fully dispose the worker (terminate) so the
+   * stuck lock dies with it, then let the next prompt recreate a fresh engine —
+   * weights are served from the WebLLM browser cache (short warm, not a full HF
+   * re-download). We do NOT await `engine.unload()` because a wedged worker may
+   * never ack; `terminate()` forcibly kills it.
    *
    * `sessionId` (from `create`) becomes the engine's owning session so the first
-   * prompt of that session does not redundantly reload.
+   * prompt of that session does not redundantly recreate again.
    */
-  async resetConversation(modelId?: string, sessionId?: string): Promise<void> {
-    const localId = modelId ? toLocalId(modelId) : (this.warmModelId ?? undefined);
+  async resetConversation(_modelId?: string, sessionId?: string): Promise<void> {
     // Eager interrupt BEFORE queuing behind the lock so a stuck stream unblocks.
     this.safeInterrupt('resetConversation');
     await this.withGenerationLock(async () => {
-      const engine = this.engine;
-      if (
-        engine &&
-        localId &&
-        this.servingSessionId !== null &&
-        this.servingSessionId !== sessionId
-      ) {
-        await this.hardResetEngine(engine, localId);
+      if (this.engine) {
+        await this.disposeEngineAndWorker();
       }
       this.servingSessionId = sessionId ?? null;
     });
@@ -581,49 +595,69 @@ export class WebLLMEngineService {
   }
 
   /**
-   * Under the generation lock: if this prompt's session differs from the engine's
-   * owning session, hard-reset (reload) before generating, then claim the session.
+   * Ensure a fresh-enough engine is warm and owned by `sessionId`, called under the
+   * generation lock. On a genuine conversation switch (same model, different session)
+   * we take the **nuclear** path: dispose the worker and recreate a fresh engine from
+   * the WebLLM browser cache. First-ever conversation and same-session multi-turn just
+   * load/reuse the warm engine (no recreate, no lost KV within the turn).
    */
-  private async hardResetIfSessionSwitched(
-    engine: WebLLMEngineLike,
-    localId: string,
-    sessionId?: string,
-  ): Promise<void> {
-    if (!sessionId) return;
-    if (this.servingSessionId !== null && this.servingSessionId !== sessionId) {
-      await this.hardResetEngine(engine, localId);
+  private async ensureEngineForSession(
+    modelId: string,
+    sessionId: string | undefined,
+    signal?: AbortSignal,
+  ): Promise<WebLLMEngineLike> {
+    const localId = toLocalId(modelId);
+    const switching =
+      sessionId !== undefined &&
+      this.servingSessionId !== null &&
+      this.servingSessionId !== sessionId;
+
+    if (switching && this.engine && this.warmModelId === localId) {
+      await this.recreateEngineForSwitch(localId, signal);
+    } else {
+      // First load, same-session multi-turn, or model switch (ensureEngine already
+      // spins a fresh worker when the model id changes).
+      await this.load(modelId, signal);
     }
-    this.servingSessionId = sessionId;
+
+    if (sessionId !== undefined) {
+      this.servingSessionId = sessionId;
+    }
+    return this.requireEngine();
   }
 
   /**
-   * Reliable "new chat": interrupt then reload the same model id (clears KV/chat,
-   * weights stay cached). Falls back to soft resetChat. Best-effort — never throws
-   * so a reset failure cannot itself wedge the next conversation.
+   * Reliable "new chat" on a switch: break any in-flight generation, terminate the
+   * worker (killing any stuck streaming lock — mlc-ai/web-llm#701 / mlc-ai/mlc-llm#3113),
+   * then recreate a fresh engine for the same model. Weights come from the WebLLM
+   * browser cache, so this is a short warm rather than a full HF re-download.
    */
-  private async hardResetEngine(engine: WebLLMEngineLike, localId: string): Promise<void> {
-    try {
-      engine.interruptGenerate?.();
-    } catch {
-      // ignore — reload below re-inits regardless
-    }
-    try {
-      await engine.reload(localId);
-      return;
-    } catch (reloadError) {
-      logAiError('resetConversation.reload', reloadError, {
-        modelId: localId,
-        stage: 'engine.reload',
-      });
-    }
-    try {
-      await engine.resetChat?.(false, localId);
-    } catch (resetError) {
-      logAiError('resetConversation.resetChat', resetError, {
-        modelId: localId,
-        stage: 'engine.resetChat',
-      });
-    }
+  private async recreateEngineForSwitch(localId: string, signal?: AbortSignal): Promise<void> {
+    this.safeInterrupt('recreateEngineForSwitch');
+    await this.disposeEngineAndWorker();
+    // eslint-disable-next-line no-console -- operator-facing breadcrumb for switch recreate
+    console.info(
+      '[shellui.ai]',
+      'conversation switch — recreating WebLLM worker (weights from cache)',
+      { modelId: localId },
+    );
+    await this.ensureEngine(localId, {
+      signal,
+      onProgress: (ratio) => {
+        this.progressListeners.forEach((listener) => listener(localId, ratio));
+      },
+    });
+  }
+
+  /**
+   * Forcibly tear down the worker + engine. Deliberately does NOT await
+   * `engine.unload()`: a wedged worker (stuck streaming lock) may never ack, so we
+   * rely on `worker.terminate()`. Weights persist in the WebLLM browser cache.
+   */
+  private async disposeEngineAndWorker(): Promise<void> {
+    await this.disposeWorker();
+    this.engine = null;
+    this.warmModelId = null;
   }
 
   /** Test helper — reset singleton state. */

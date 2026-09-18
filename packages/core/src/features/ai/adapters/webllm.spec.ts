@@ -393,8 +393,9 @@ describe('WebLLMAdapter + engine', () => {
     await histEngine.resetForTests();
   });
 
-  it('hard-resets (reload) the engine only when the conversation session switches', async () => {
+  it('recreates the worker only when the conversation session switches', async () => {
     const module = createFakeWebLLMModule();
+    const createEngine = module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>;
     const switchEngine = new WebLLMEngineService({
       useTransferToast: false,
       loadModule: async () => module as never,
@@ -402,9 +403,8 @@ describe('WebLLMAdapter + engine', () => {
     });
     const adapter = new WebLLMAdapter({ engine: switchEngine });
     await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
-    const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
-      .results[0]?.value;
-    const reload = engineHandle.reload as ReturnType<typeof vi.fn>;
+    // Install created the first engine.
+    expect(createEngine).toHaveBeenCalledTimes(1);
 
     const model = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
     async function ask(sessionId: string, prompt: string): Promise<string> {
@@ -415,30 +415,29 @@ describe('WebLLMAdapter + engine', () => {
       return parts.join('');
     }
 
-    // Session A: first ever conversation — no reload (engine fresh from install).
+    // Session A: first ever conversation — no recreate (engine fresh from install).
     expect(await ask('A', 'a1')).toBe('Hello world');
-    expect(reload).toHaveBeenCalledTimes(0);
+    expect(createEngine).toHaveBeenCalledTimes(1);
 
-    // Same session A multi-turn — still no reload.
+    // Same session A multi-turn — still no recreate (KV kept within the conversation).
     expect(await ask('A', 'a2')).toBe('Hello world');
-    expect(reload).toHaveBeenCalledTimes(0);
+    expect(createEngine).toHaveBeenCalledTimes(1);
 
-    // Switch to B — must hard-reset (reload) once, weights stay warm.
+    // Switch to B — dispose the worker + recreate a fresh engine once (weights cached).
     expect(await ask('B', 'b1')).toBe('Hello world');
-    expect(reload).toHaveBeenCalledTimes(1);
-    expect(reload).toHaveBeenCalledWith(model);
+    expect(createEngine).toHaveBeenCalledTimes(2);
 
-    // Switch back to A — reload again.
+    // Switch back to A — recreate again (no living-worker reload to get wedged).
     expect(await ask('A', 'a3')).toBe('Hello world');
-    expect(reload).toHaveBeenCalledTimes(2);
+    expect(createEngine).toHaveBeenCalledTimes(3);
 
-    expect(engineHandle.unload).not.toHaveBeenCalled();
     expect(switchEngine.getWarmModelId()).toBe(model);
     await switchEngine.resetForTests();
   });
 
-  it('resetConversation reloads when switching sessions and claims the new one', async () => {
+  it('resetConversation disposes the worker and defers recreate to the next prompt', async () => {
     const module = createFakeWebLLMModule();
+    const createEngine = module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>;
     const resetEngine = new WebLLMEngineService({
       useTransferToast: false,
       loadModule: async () => module as never,
@@ -447,9 +446,8 @@ describe('WebLLMAdapter + engine', () => {
     const adapter = new WebLLMAdapter({ engine: resetEngine });
     const model = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
     await adapter.download(`webllm:${model}`);
-    const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
-      .results[0]?.value;
-    const reload = engineHandle.reload as ReturnType<typeof vi.fn>;
+    const engineHandle = await createEngine.mock.results[0]?.value;
+    expect(createEngine).toHaveBeenCalledTimes(1);
 
     // Serve session A first.
     for await (const _ of adapter.promptStreaming({
@@ -459,16 +457,17 @@ describe('WebLLMAdapter + engine', () => {
     })) {
       // drain
     }
-    expect(reload).toHaveBeenCalledTimes(0);
+    expect(createEngine).toHaveBeenCalledTimes(1);
 
-    // create B → resetConversation(model, 'B'): switches away from A → reload, claim B.
+    // create B → resetConversation(model, 'B'): interrupt + dispose the worker, claim B.
+    // Recreate is deferred to B's first prompt (nuclear switch — no living-worker reset).
     await adapter.resetConversation(model, 'B');
     expect(engineHandle.interruptGenerate).toHaveBeenCalled();
-    expect(reload).toHaveBeenCalledTimes(1);
-    expect(engineHandle.unload).not.toHaveBeenCalled();
-    expect(resetEngine.getWarmModelId()).toBe(model);
+    expect(createEngine).toHaveBeenCalledTimes(1);
+    expect(resetEngine.getWarmModelId()).toBeNull();
 
-    // First prompt of B does NOT reload again (session already claimed).
+    // First prompt of B recreates a fresh engine once, then does NOT recreate again
+    // (session already claimed as B).
     const parts: string[] = [];
     for await (const chunk of adapter.promptStreaming({
       modelId: model,
@@ -478,7 +477,51 @@ describe('WebLLMAdapter + engine', () => {
       if (chunk.text) parts.push(chunk.text);
     }
     expect(parts.join('')).toBe('Hello world');
-    expect(reload).toHaveBeenCalledTimes(1);
+    expect(createEngine).toHaveBeenCalledTimes(2);
+    expect(resetEngine.getWarmModelId()).toBe(model);
     await resetEngine.resetForTests();
+  });
+
+  it('disposes the worker after Stop/abort so the next prompt recreates cleanly', async () => {
+    const module = createFakeWebLLMModule({ chunks: ['Hel', 'lo', ' wor', 'ld'] });
+    const createEngine = module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>;
+    const abortEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    const adapter = new WebLLMAdapter({ engine: abortEngine });
+    const model = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+    await adapter.download(`webllm:${model}`);
+    expect(createEngine).toHaveBeenCalledTimes(1);
+
+    // Abort mid-stream (Stop button) after the first chunk.
+    const controller = new AbortController();
+    await expect(async () => {
+      for await (const chunk of adapter.promptStreaming({
+        modelId: model,
+        prompt: 'hi',
+        sessionId: 'A',
+        signal: controller.signal,
+      })) {
+        if (chunk.text) controller.abort();
+      }
+    }).rejects.toThrow(/abort/i);
+
+    // Worker fully disposed on abort — no lingering (possibly wedged) engine.
+    expect(abortEngine.getWarmModelId()).toBeNull();
+
+    // A brand-new chat recreates a fresh engine from cache and streams fine.
+    const parts: string[] = [];
+    for await (const chunk of adapter.promptStreaming({
+      modelId: model,
+      prompt: 'fresh',
+      sessionId: 'B',
+    })) {
+      if (chunk.text) parts.push(chunk.text);
+    }
+    expect(parts.join('')).toBe('Hello world');
+    expect(createEngine).toHaveBeenCalledTimes(2);
+    await abortEngine.resetForTests();
   });
 });

@@ -155,8 +155,8 @@ export async function handleAiRequest(
         const sessionId = createSessionId();
         ctx.activeSessionId.current = sessionId;
         try {
-          // Pass the new sessionId so the engine hard-resets when switching away
-          // from a prior conversation and claims this one (no redundant reload).
+          // Pass the new sessionId so the engine disposes the prior conversation's
+          // worker when switching away and claims this one (recreate on next prompt).
           await ctx.registry.resetConversation(pick.id, sessionId);
         } catch (error) {
           // eslint-disable-next-line no-console -- create should still proceed; next prompt may hang otherwise

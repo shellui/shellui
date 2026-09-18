@@ -37,9 +37,9 @@ export type AiPromptOptions = {
    */
   messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
   /**
-   * Owning LanguageModel session id. Stateful adapters (WebLLM) hard-reset the
-   * engine (interrupt + reload) when this changes so a new conversation never
-   * inherits the previous conversation's KV/chat state.
+   * Owning LanguageModel session id. Stateful adapters (WebLLM) fully dispose and
+   * recreate the worker engine when this changes so a new conversation never
+   * inherits the previous conversation's KV/chat state (or a stuck generation lock).
    */
   sessionId?: string;
 };
@@ -78,9 +78,10 @@ export type AiAdapter = {
   promptStreaming(options: AiPromptOptions): AsyncIterable<AiStreamChunk>;
   unload(modelId?: string): Promise<void>;
   /**
-   * Clear adapter-owned conversation state (e.g. WebLLM chat/KV) without unloading
-   * weights. Optional — Ollama is a no-op. Called on LanguageModel session destroy/create.
-   * `sessionId` (when provided, from `create`) becomes the new owning session.
+   * Clear adapter-owned conversation state (e.g. WebLLM chat/KV). WebLLM disposes the
+   * whole worker (weights persist in the browser cache and reload fast). Optional —
+   * Ollama is a no-op. Called on LanguageModel session destroy/create. `sessionId`
+   * (when provided, from `create`) becomes the new owning session.
    */
   resetConversation?(modelId?: string, sessionId?: string): Promise<void>;
   /** Optional browser/catalog download with 0–1 progress. */
