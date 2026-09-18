@@ -30,6 +30,12 @@ export type AiPromptOptions = {
   prompt: string;
   signal?: AbortSignal;
   systemPrompt?: string;
+  /**
+   * Full chat history for this turn (including the latest user message).
+   * When set, adapters that support multi-turn (WebLLM) should prefer this
+   * over building `[system?, user: prompt]` alone.
+   */
+  messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
 };
 
 export type AiStreamChunk = {

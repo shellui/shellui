@@ -124,12 +124,64 @@ describe('handleAiRequest', () => {
     expect(chunks).toContain('s:x');
   });
 
-  it('rejects unknown ops', async () => {
-    const registry = new AiRegistry({ adapters: [new ReadyAdapter()] });
-    const result = await handleAiRequest(
-      { registry, sessions: new Map(), getSettings: () => baseSettings },
-      { id: '7', op: 'nope' as 'status' },
+  it('accumulates multi-turn history on a reused session', async () => {
+    const seen: AiPromptOptions[] = [];
+    class CaptureAdapter extends ReadyAdapter {
+      async prompt(options: AiPromptOptions): Promise<string> {
+        seen.push(options);
+        return `reply:${options.prompt}`;
+      }
+
+      async *promptStreaming(options: AiPromptOptions): AsyncIterable<AiStreamChunk> {
+        seen.push(options);
+        yield { text: `s:${options.prompt}`, done: true };
+      }
+    }
+
+    const registry = new AiRegistry({ adapters: [new CaptureAdapter()] });
+    const sessions = new Map<string, AiSession>();
+    const created = await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      {
+        id: 'h1',
+        op: 'create',
+        initialPrompts: [{ role: 'system', content: 'sys' }],
+      },
     );
-    expect(result.response.error?.code).toBe('unknown_op');
+    const sessionId = (created.response.data as { sessionId: string }).sessionId;
+    const session = sessions.get(sessionId);
+    expect(session?.systemPrompt).toBe('sys');
+    expect(session?.messages).toEqual([]);
+
+    await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'h2', op: 'prompt', sessionId, prompt: 'one' },
+    );
+    expect(session?.messages).toEqual([
+      { role: 'user', content: 'one' },
+      { role: 'assistant', content: 'reply:one' },
+    ]);
+    expect(seen[0]?.messages).toEqual([
+      { role: 'system', content: 'sys' },
+      { role: 'user', content: 'one' },
+    ]);
+
+    const streamed = await handleAiRequest(
+      { registry, sessions, getSettings: () => baseSettings },
+      { id: 'h3', op: 'promptStreaming', sessionId, prompt: 'two' },
+    );
+    for await (const _ of streamed.stream ?? []) {
+      // drain
+    }
+    expect(session?.messages).toEqual([
+      { role: 'user', content: 'one' },
+      { role: 'assistant', content: 'reply:one' },
+      { role: 'user', content: 'two' },
+      { role: 'assistant', content: 's:two' },
+    ]);
+    expect(seen[1]?.messages?.at(-1)).toEqual({ role: 'user', content: 'two' });
+    expect(
+      seen[1]?.messages?.some((m) => m.role === 'assistant' && m.content === 'reply:one'),
+    ).toBe(true);
   });
 });

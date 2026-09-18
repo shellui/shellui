@@ -62,6 +62,8 @@ Closing Settings does **not** cancel the download. Progress continues in the she
 
 After Install completes, apps can call `shellui.ai.languageModel` immediately — no second “load” step on the happy path (the worker keeps the model warm). Reloading the tab may need a short cache warm on first prompt; the install record survives in `localStorage` and weights stay in WebLLM’s browser cache.
 
+Reused sessions (e.g. playground Chat asking a second question) serialize generations on the shared WebLLM worker, drain each stream fully, and call `interruptGenerate()` between turns so the next `promptStreaming` does not hang. The shell also accumulates user/assistant history on the `AiSession` and passes full `messages` into WebLLM for multi-turn context.
+
 Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, for example:
 
 - `Llama-3.2-1B-Instruct-q4f16_1-MLC`

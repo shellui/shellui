@@ -24,6 +24,8 @@ export type WebLLMEngineLike = Pick<
   MLCEngineInterface,
   'chat' | 'unload' | 'reload' | 'setInitProgressCallback'
 > & {
+  /** Clears an in-flight decode so the next chat.completions.create can start. */
+  interruptGenerate?: () => void;
   /** Optional terminate for test doubles / worker clients. */
   worker?: Worker;
 };
@@ -121,6 +123,8 @@ export class WebLLMEngineService {
   private lastInstallError: string | null = null;
   private readonly installs = new Map<string, ActiveInstall>();
   private readonly progressListeners = new Set<(localId: string, progress: number) => void>();
+  /** Serializes prompt / promptStreaming on the shared worker (WebLLM holds a generation lock). */
+  private generationTail: Promise<void> = Promise.resolve();
 
   constructor(options: WebLLMEngineServiceOptions = {}) {
     this.loadModule = options.loadModule ?? defaultLoadModule;
@@ -325,19 +329,26 @@ export class WebLLMEngineService {
     prompt: string;
     systemPrompt?: string;
     signal?: AbortSignal;
+    messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
   }): Promise<string> {
-    await this.load(options.modelId, options.signal);
-    const engine = this.requireEngine();
-    const messages = buildMessages(options.systemPrompt, options.prompt);
-    const response = await engine.chat.completions.create({
-      messages,
-      stream: false,
+    return this.withGenerationLock(async () => {
+      await this.load(options.modelId, options.signal);
+      const engine = this.requireEngine();
+      const messages = resolveMessages(options);
+      try {
+        const response = await engine.chat.completions.create({
+          messages,
+          stream: false,
+        });
+        if (options.signal?.aborted) {
+          throw new DOMException('Prompt aborted', 'AbortError');
+        }
+        const choice = response.choices?.[0]?.message?.content;
+        return typeof choice === 'string' ? choice : '';
+      } finally {
+        this.clearGeneration(engine, 'prompt');
+      }
     });
-    if (options.signal?.aborted) {
-      throw new DOMException('Prompt aborted', 'AbortError');
-    }
-    const choice = response.choices?.[0]?.message?.content;
-    return typeof choice === 'string' ? choice : '';
   }
 
   async *promptStreaming(options: {
@@ -345,31 +356,48 @@ export class WebLLMEngineService {
     prompt: string;
     systemPrompt?: string;
     signal?: AbortSignal;
+    messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
   }): AsyncIterable<{ text: string; done: boolean }> {
-    await this.load(options.modelId, options.signal);
-    const engine = this.requireEngine();
-    const messages = buildMessages(options.systemPrompt, options.prompt);
-    const stream = (await engine.chat.completions.create({
-      messages,
-      stream: true,
-      stream_options: { include_usage: false },
-    })) as AsyncIterable<ChatCompletionChunk>;
+    const release = await this.acquireGenerationLock();
+    let engine: WebLLMEngineLike | null = null;
+    try {
+      await this.load(options.modelId, options.signal);
+      engine = this.requireEngine();
+      const messages = resolveMessages(options);
+      const stream = (await engine.chat.completions.create({
+        messages,
+        stream: true,
+        stream_options: { include_usage: false },
+      })) as AsyncIterable<ChatCompletionChunk>;
 
-    for await (const chunk of stream) {
-      if (options.signal?.aborted) {
-        throw new DOMException('Prompt aborted', 'AbortError');
+      let finished = false;
+      for await (const chunk of stream) {
+        if (options.signal?.aborted) {
+          // eslint-disable-next-line no-console -- operator-facing interrupt signal
+          console.error('[shellui.ai]', 'promptStreaming aborted — interrupting WebLLM generation');
+          throw new DOMException('Prompt aborted', 'AbortError');
+        }
+        const delta = chunk.choices?.[0]?.delta?.content ?? '';
+        const finish = chunk.choices?.[0]?.finish_reason;
+        if (delta && !finished) {
+          yield { text: delta, done: false };
+        }
+        if (finish && !finished) {
+          finished = true;
+          yield { text: '', done: true };
+          // Keep draining the WebLLM async generator so its internal lock clears.
+          // Do not return early — abandoning the iterator leaves the next create() hanging.
+        }
       }
-      const delta = chunk.choices?.[0]?.delta?.content ?? '';
-      const finish = chunk.choices?.[0]?.finish_reason;
-      if (delta) {
-        yield { text: delta, done: false };
-      }
-      if (finish) {
+      if (!finished) {
         yield { text: '', done: true };
-        return;
       }
+    } finally {
+      if (engine) {
+        this.clearGeneration(engine, 'promptStreaming');
+      }
+      release();
     }
-    yield { text: '', done: true };
   }
 
   async unload(modelId?: string): Promise<void> {
@@ -396,6 +424,36 @@ export class WebLLMEngineService {
     this.warmModelId = null;
     this.loadPromise = null;
     this.loadingModelId = null;
+    this.generationTail = Promise.resolve();
+  }
+
+  private async acquireGenerationLock(): Promise<() => void> {
+    const previous = this.generationTail;
+    let release!: () => void;
+    this.generationTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    return release;
+  }
+
+  private async withGenerationLock<T>(fn: () => Promise<T>): Promise<T> {
+    const release = await this.acquireGenerationLock();
+    try {
+      return await fn();
+    } finally {
+      release();
+    }
+  }
+
+  /** Best-effort clear of WebLLM's in-flight decode lock between turns. */
+  private clearGeneration(engine: WebLLMEngineLike, context: string): void {
+    try {
+      engine.interruptGenerate?.();
+    } catch (error) {
+      // eslint-disable-next-line no-console -- interrupt failures are easy to miss otherwise
+      console.error('[shellui.ai]', `interruptGenerate after ${context} failed`, error);
+    }
   }
 
   private requireEngine(): WebLLMEngineLike {
@@ -667,11 +725,22 @@ export class WebLLMEngineService {
   }
 }
 
+function resolveMessages(options: {
+  systemPrompt?: string;
+  prompt: string;
+  messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+}): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  if (options.messages && options.messages.length > 0) {
+    return options.messages;
+  }
+  return buildMessages(options.systemPrompt, options.prompt);
+}
+
 function buildMessages(
   systemPrompt: string | undefined,
   prompt: string,
-): Array<{ role: 'system' | 'user'; content: string }> {
-  const messages: Array<{ role: 'system' | 'user'; content: string }> = [];
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
   if (systemPrompt) {
     messages.push({ role: 'system', content: systemPrompt });
   }

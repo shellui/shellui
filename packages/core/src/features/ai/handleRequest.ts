@@ -14,6 +14,8 @@ export type AiSession = {
   id: string;
   modelId: string;
   systemPrompt?: string;
+  /** Accumulated multi-turn history (user/assistant; system lives in systemPrompt). */
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   abortController: AbortController;
 };
 
@@ -146,10 +148,18 @@ export async function handleAiRequest(
           ?.filter((p) => p.role === 'system')
           .map((p) => p.content)
           .join('\n');
+        const seedMessages =
+          payload.initialPrompts
+            ?.filter((p) => p.role === 'user' || p.role === 'assistant')
+            .map((p) => ({
+              role: p.role as 'user' | 'assistant',
+              content: p.content,
+            })) ?? [];
         const session: AiSession = {
           id: createSessionId(),
           modelId: pick.id,
           systemPrompt: systemPrompt || undefined,
+          messages: seedMessages,
           abortController: new AbortController(),
         };
         ctx.sessions.set(session.id, session);
@@ -166,13 +176,23 @@ export async function handleAiRequest(
         if (!payload.prompt) {
           return { response: replyErr(id, 'Missing prompt', 'invalid_request') };
         }
-        const text = await ctx.registry.prompt({
-          modelId: session.modelId,
-          prompt: payload.prompt,
-          systemPrompt: session.systemPrompt,
-          signal: session.abortController.signal,
-        });
-        return { response: replyOk(id, { text }) };
+        session.messages.push({ role: 'user', content: payload.prompt });
+        const messages = buildSessionMessages(session);
+        try {
+          const text = await ctx.registry.prompt({
+            modelId: session.modelId,
+            prompt: payload.prompt,
+            systemPrompt: session.systemPrompt,
+            messages,
+            signal: session.abortController.signal,
+          });
+          session.messages.push({ role: 'assistant', content: text });
+          return { response: replyOk(id, { text }) };
+        } catch (error) {
+          // Drop the user turn if generation failed so a retry can re-send cleanly.
+          session.messages.pop();
+          throw error;
+        }
       }
 
       case 'promptStreaming': {
@@ -184,16 +204,22 @@ export async function handleAiRequest(
           return { response: replyErr(id, 'Missing prompt', 'invalid_request') };
         }
 
+        session.messages.push({ role: 'user', content: payload.prompt });
+        const messages = buildSessionMessages(session);
+
         const iterable = ctx.registry.promptStreaming({
           modelId: session.modelId,
           prompt: payload.prompt,
           systemPrompt: session.systemPrompt,
+          messages,
           signal: session.abortController.signal,
         });
 
         async function* mapStream(): AsyncIterable<AiStreamPayload> {
+          let assistant = '';
           try {
             for await (const chunk of iterable) {
+              if (chunk.text) assistant += chunk.text;
               yield {
                 id,
                 chunk: chunk.text,
@@ -201,7 +227,12 @@ export async function handleAiRequest(
               };
             }
             yield { id, chunk: '', done: true };
+            session.messages.push({ role: 'assistant', content: assistant });
           } catch (error) {
+            // Drop the pending user turn on failure.
+            if (session.messages.at(-1)?.role === 'user') {
+              session.messages.pop();
+            }
             yield {
               id,
               done: true,
@@ -241,4 +272,17 @@ export async function handleAiRequest(
       response: replyErr(id, error instanceof Error ? error.message : 'AI request failed'),
     };
   }
+}
+
+function buildSessionMessages(
+  session: AiSession,
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+  if (session.systemPrompt) {
+    messages.push({ role: 'system', content: session.systemPrompt });
+  }
+  for (const turn of session.messages) {
+    messages.push(turn);
+  }
+  return messages;
 }

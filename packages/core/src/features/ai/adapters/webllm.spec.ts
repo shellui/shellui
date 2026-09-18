@@ -12,7 +12,19 @@ vi.mock('../status.js', () => ({
   probeWebGpu: vi.fn(async () => ({ available: true })),
 }));
 
-function createFakeWebLLMModule(options?: { chunks?: string[]; fail?: Error }) {
+function createFakeWebLLMModule(options?: {
+  chunks?: string[];
+  fail?: Error;
+  /** Extra chunks after finish_reason — must be drained by the engine. */
+  afterFinishChunks?: number;
+  onCreate?: (request: {
+    stream?: boolean;
+    messages?: Array<{ role: string; content: string }>;
+  }) => void;
+  /** Shared concurrency counters for serialization tests. */
+  concurrency?: { active: number; max: number };
+}) {
+  const concurrency = options?.concurrency;
   return {
     CreateWebWorkerMLCEngine: vi.fn(
       async (
@@ -28,29 +40,59 @@ function createFakeWebLLMModule(options?: { chunks?: string[]; fail?: Error }) {
         return {
           chat: {
             completions: {
-              create: vi.fn(async (request: { stream?: boolean }) => {
-                if (request.stream) {
-                  const chunks = options?.chunks ?? ['Hello', ' world'];
-                  return (async function* () {
-                    for (const text of chunks) {
-                      yield {
-                        choices: [{ delta: { content: text }, finish_reason: null }],
-                      };
-                    }
-                    yield {
-                      choices: [{ delta: {}, finish_reason: 'stop' }],
+              create: vi.fn(
+                async (request: {
+                  stream?: boolean;
+                  messages?: Array<{ role: string; content: string }>;
+                }) => {
+                  options?.onCreate?.(request);
+                  if (concurrency) {
+                    concurrency.active += 1;
+                    concurrency.max = Math.max(concurrency.max, concurrency.active);
+                  }
+                  const release = () => {
+                    if (concurrency) concurrency.active -= 1;
+                  };
+                  if (request.stream) {
+                    const chunks = options?.chunks ?? ['Hello', ' world'];
+                    const after = options?.afterFinishChunks ?? 0;
+                    return (async function* () {
+                      try {
+                        for (const text of chunks) {
+                          await Promise.resolve();
+                          yield {
+                            choices: [{ delta: { content: text }, finish_reason: null }],
+                          };
+                        }
+                        yield {
+                          choices: [{ delta: {}, finish_reason: 'stop' }],
+                        };
+                        for (let i = 0; i < after; i++) {
+                          await Promise.resolve();
+                          yield {
+                            choices: [{ delta: { content: '' }, finish_reason: null }],
+                          };
+                        }
+                      } finally {
+                        release();
+                      }
+                    })();
+                  }
+                  try {
+                    return {
+                      choices: [{ message: { content: (options?.chunks ?? ['Hello']).join('') } }],
                     };
-                  })();
-                }
-                return {
-                  choices: [{ message: { content: (options?.chunks ?? ['Hello']).join('') } }],
-                };
-              }),
+                  } finally {
+                    release();
+                  }
+                },
+              ),
             },
           },
           unload: vi.fn(async () => undefined),
           reload: vi.fn(async () => undefined),
           setInitProgressCallback: vi.fn(),
+          interruptGenerate: vi.fn(),
         };
       },
     ),
@@ -260,5 +302,93 @@ describe('WebLLMAdapter + engine', () => {
     listeners.get('error')?.forEach((listener) => listener(event));
     await expect(download).rejects.toThrow(/WebLLM worker crashed/i);
     await crashEngine.resetForTests();
+  });
+
+  it('runs two sequential promptStreaming calls without overlapping create()', async () => {
+    const concurrency = { active: 0, max: 0 };
+    const module = createFakeWebLLMModule({
+      chunks: ['A', '1'],
+      afterFinishChunks: 2,
+      concurrency,
+    });
+    const lockedEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    setSharedWebLLMEngineForTests(lockedEngine);
+    const adapter = new WebLLMAdapter({ engine: lockedEngine });
+    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+    const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
+      .results[0]?.value;
+    const interrupt = engineHandle.interruptGenerate as ReturnType<typeof vi.fn>;
+
+    async function collect(prompt: string): Promise<string> {
+      const parts: string[] = [];
+      for await (const chunk of adapter.promptStreaming({
+        modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+        prompt,
+      })) {
+        if (chunk.text) parts.push(chunk.text);
+      }
+      return parts.join('');
+    }
+
+    // Start both nearly together — mutex must serialize so create() never overlaps.
+    const first = collect('one');
+    const second = collect('two');
+    await expect(Promise.all([first, second])).resolves.toEqual(['A1', 'A1']);
+    expect(concurrency.max).toBe(1);
+    expect(interrupt.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+    await lockedEngine.resetForTests();
+  });
+
+  it('passes accumulated messages into WebLLM on later turns', async () => {
+    const seen: Array<Array<{ role: string; content: string }> | undefined> = [];
+    const module = createFakeWebLLMModule({
+      onCreate: (request) => {
+        seen.push(request.messages);
+      },
+    });
+    const histEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    const adapter = new WebLLMAdapter({ engine: histEngine });
+    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+    for await (const _ of adapter.promptStreaming({
+      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      prompt: 'first',
+      messages: [
+        { role: 'system', content: 'be brief' },
+        { role: 'user', content: 'first' },
+      ],
+    })) {
+      // drain
+    }
+    for await (const _ of adapter.promptStreaming({
+      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      prompt: 'second',
+      messages: [
+        { role: 'system', content: 'be brief' },
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'Hello world' },
+        { role: 'user', content: 'second' },
+      ],
+    })) {
+      // drain
+    }
+
+    expect(seen[0]).toEqual([
+      { role: 'system', content: 'be brief' },
+      { role: 'user', content: 'first' },
+    ]);
+    expect(seen[1]?.some((m) => m.role === 'assistant')).toBe(true);
+    expect(seen[1]?.at(-1)).toEqual({ role: 'user', content: 'second' });
+    await histEngine.resetForTests();
   });
 });
