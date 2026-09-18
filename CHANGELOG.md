@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.5.2] - 2026-09-18
+
+### 🐛 Bug Fixes
+
+- **OAuth callback / deep shell routes on static hosts:** `shellui build` now materializes nested `dist/web/<path>/index.html` for built-in shell routes (`/login`, `/login/callback`, settings, legal, …) in addition to navigation paths, with `rewriteRelativeAssetDepth` so `./assets/…` resolves correctly on GitHub Pages and similar hosts. Without this, `/login/callback` fell through to root `404.html` and loaded assets from `/login/assets/…` → white page.
+
 ## [0.5.1] - 2026-09-18
 
 ### 🛠 Improvements

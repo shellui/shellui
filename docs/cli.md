@@ -100,6 +100,8 @@ See also [Companion origin isolation](/features/companion-isolation) for iframe 
 
 Build a production static site to `dist/web/`. Same isolated toolchain as `start`. `--app` also builds native bundles under `dist/app/`. `--bundles` selects desktop formats (default `app`; `app,dmg` on macOS). See [Desktop app - bundle targets](/tauri#bundle-targets).
 
+The build uses Vite `base: './'` so `dist/web` works from any deploy path. It writes `404.html` (copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for **navigation paths** plus **shell built-in routes** (`/login`, `/login/callback`, `/__settings`, legal pages, …). Each nested copy rewrites `./assets/…` to the correct `../` depth so trailing-slash hosts (GitHub Pages, S3 website) load JS/CSS from the dist root. Unknown deep routes still rely on `404.html` with root-relative assets — only known shell and navigation entrypoints are pre-generated.
+
 ### shellui login [root]
 
 Sign in against identity-service and store CLI credentials (mode `0600`) for later commands such as `deploy`.
