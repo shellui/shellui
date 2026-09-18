@@ -6,6 +6,8 @@ description: 'Set backend.login, use /login and /login/callback, guard routes wi
 
 Configure sign-in on the shell: `backend` in `shellui.config.json`, built-in routes at `/login` and `/login/callback`, and navigation guards. The shell stores the session, refreshes tokens, and shares the signed-in user with trusted iframe apps. Choose a provider on [Connect a backend](/backend) first.
 
+For token storage hardening, optional HttpOnly refresh (BFF), and shell CSP, see [Security hardening](/features/security).
+
 ## Enable authentication
 
 Add a `backend` block. Without it, `useAuth()` reports signed out and login actions are unavailable.

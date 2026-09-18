@@ -19,6 +19,8 @@ import {
 } from '../utils/index.js';
 import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
+import { authBffPlugin } from '../utils/auth-bff-plugin.js';
+import { shellCspPlugin } from '../utils/shell-csp-plugin.js';
 import { initCommand } from './init.js';
 import { tauriDevCommand } from '../utils/tauri.js';
 
@@ -74,6 +76,8 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       createShelluiConfigPlugin(config),
       serviceWorkerDevPlugin(corePackagePath, coreSrcPath, projectRoot),
       sentryTunnelPlugin(),
+      authBffPlugin(config),
+      shellCspPlugin(config),
     ],
     esbuild: {
       ...isolated.esbuild,

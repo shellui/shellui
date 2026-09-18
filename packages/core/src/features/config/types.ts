@@ -159,6 +159,44 @@ export interface BackendLoginConfig {
   panelImage?: string;
 }
 
+/** Same-origin BFF auth for HttpOnly refresh cookies (see docs/features/security.md). */
+export interface BffAuthConfig {
+  /**
+   * When true, refresh tokens are stored in an HttpOnly cookie via `/api/auth/*`
+   * served by the shell host (CLI dev server or your production reverse proxy).
+   * Default: false (refresh stays in sessionStorage until you enable BFF).
+   */
+  enabled?: boolean;
+  /** HttpOnly cookie name. Default: `shellui_refresh`. */
+  cookieName?: string;
+}
+
+/** Shell document security headers (CSP, staged rollout). */
+export interface CspConfig {
+  /**
+   * Emit an enforcing `Content-Security-Policy` header.
+   * Default: false (report-only) so playgrounds keep working during rollout.
+   */
+  enforce?: boolean;
+  /**
+   * Emit `Content-Security-Policy-Report-Only`.
+   * Default: true when `security.csp` is present.
+   */
+  reportOnly?: boolean;
+  /** Optional CSP violation report endpoint (`report-uri` / `report-to`). */
+  reportUri?: string;
+  /** Extra hosts for `connect-src` (companion APIs, analytics, etc.). */
+  connectSrc?: string[];
+  /** Extra hosts for `frame-src` (companion iframes). */
+  frameSrc?: string[];
+}
+
+/** Security-related shell configuration (auth storage, CSP). */
+export interface SecurityConfig {
+  bffAuth?: BffAuthConfig;
+  csp?: CspConfig;
+}
+
 /** Backend API configuration. */
 export interface BackendConfig {
   /** Backend provider type. */
@@ -323,6 +361,8 @@ export interface ShellUIConfig {
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */
   backend?: BackendConfig;
+  /** Auth storage hardening and shell CSP (see docs/features/security.md). */
+  security?: SecurityConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */

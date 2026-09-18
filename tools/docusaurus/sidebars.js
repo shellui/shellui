@@ -49,6 +49,11 @@ const sidebars = {
           id: 'features/authentication',
           label: 'Authentication',
         },
+        {
+          type: 'doc',
+          id: 'features/security',
+          label: 'Security',
+        },
       ],
     },
     {

@@ -20,6 +20,12 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.1] - Unreleased
 
+### 🔒 Security
+
+- **Auth token storage (H-09 / M-17):** split persisted session — profile metadata in `localStorage`, refresh token in tab-scoped `sessionStorage`, access token memory-only. Legacy `shellui.auth.session` auto-migrates.
+- **Optional BFF auth:** `security.bffAuth.enabled` routes `/api/auth/{session,refresh,logout}` through the shell host with HttpOnly refresh cookies (CLI dev + `serve:dist`). Identity-native cookie OAuth remains a documented follow-up.
+- **Shell CSP:** report-only by default with SHA-256 hash for the inline theme bootstrap; opt into enforcing via `security.csp.enforce`. See [Security hardening](./docs/features/security.md).
+
 ### 🐛 Bug Fixes
 
 - **`shellui init` scaffolding:** restore `@shellui/cli` in generated projects; `pnpm build` builds shell + app into deployable `dist/web/` with relative / `${SHELLUI_APP_URL:-…}` companion URLs; restore native framework boilerplate home (drop Welcome to Shellui); default `layout: "fullscreen"`. Also fix deep-route relative asset paths after `base: './'`, Next static export `images.unoptimized`, and stale template READMEs.

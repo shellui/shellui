@@ -111,6 +111,10 @@
           "$ref": "#/definitions/BackendConfig",
           "description": "Backend communication config. Defaults to undefined (no backend integration)."
         },
+        "security": {
+          "$ref": "#/definitions/SecurityConfig",
+          "description": "Auth storage hardening (BFF / HttpOnly refresh) and shell Content-Security-Policy."
+        },
         "cookieConsent": {
           "$ref": "#/definitions/CookieConsentConfig",
           "description": "Cookie consent: list of cookies by category; accepted ids are stored in settings."
@@ -873,6 +877,61 @@
       "required": ["dsn"],
       "additionalProperties": false,
       "description": "Sentry error reporting configuration. Only used in production; ignored in dev."
+    },
+    "SecurityConfig": {
+      "type": "object",
+      "properties": {
+        "bffAuth": {
+          "$ref": "#/definitions/BffAuthConfig"
+        },
+        "csp": {
+          "$ref": "#/definitions/CspConfig"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Security-related shell configuration."
+    },
+    "BffAuthConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "When true, refresh tokens are stored in an HttpOnly cookie via same-origin /api/auth/* routes."
+        },
+        "cookieName": {
+          "type": "string",
+          "description": "HttpOnly refresh cookie name. Default: shellui_refresh."
+        }
+      },
+      "additionalProperties": false
+    },
+    "CspConfig": {
+      "type": "object",
+      "properties": {
+        "enforce": {
+          "type": "boolean",
+          "description": "Emit enforcing Content-Security-Policy. Default false (report-only rollout)."
+        },
+        "reportOnly": {
+          "type": "boolean",
+          "description": "Emit Content-Security-Policy-Report-Only. Default true when security.csp is set."
+        },
+        "reportUri": {
+          "type": "string",
+          "description": "Optional CSP violation report endpoint."
+        },
+        "connectSrc": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra connect-src hosts (companions, analytics)."
+        },
+        "frameSrc": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Extra frame-src hosts for companion iframes."
+        }
+      },
+      "additionalProperties": false
     },
     "BackendConfig": {
       "type": "object",
