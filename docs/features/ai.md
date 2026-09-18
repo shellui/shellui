@@ -20,11 +20,22 @@ There are two optional paths. Neither requires a Shellui cloud AI backend.
 
 Models stay in Ollama's own storage. The browser only calls a local HTTP API (`http://127.0.0.1:11434` by default). If Ollama is not running, Shellui soft-fails - the rest of the shell still works.
 
-### Browser models (catalog in this profile)
+### Browser models (WebLLM / WebGPU)
 
-**Settings → AI** lists a curated browser catalog. **Install** records a catalog entry on this device (survives reload; shared by every app on this origin). **Remove** deletes that record.
+**Settings → AI** lists a curated browser catalog. **Install** uses [`@mlc-ai/web-llm`](https://webllm.mlc.ai/) to fetch MLC weights from Hugging Face (via WebLLM’s prebuilt model library — not a custom HF downloader), warms a **dedicated Web Worker** engine, and marks the model ready when inference can run.
 
-Browser **weight download and inference are not wired yet**. Use Ollama for prompts until the WebLLM engine lands. Install still needs WebGPU available in the browser.
+Closing Settings does **not** cancel the download. Progress continues in the shell root **transfer toaster** (same UI as storage uploads). In-panel progress returns if you reopen Settings mid-download.
+
+After Install completes, apps can call `shellui.ai.languageModel` immediately — no second “load” step on the happy path (the worker keeps the model warm). Reloading the tab may need a short cache warm on first prompt; the install record survives in `localStorage` and weights stay in WebLLM’s browser cache.
+
+Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, for example:
+
+- `Llama-3.2-1B-Instruct-q4f16_1-MLC`
+- `Phi-3.5-mini-instruct-q4f16_1-MLC`
+
+**v1 limit:** one browser model warm at a time (switching models reloads the worker engine).
+
+Browser installs need **WebGPU**.
 
 ## Why apps don't load WebLLM themselves
 
@@ -34,7 +45,7 @@ If every iframe downloaded and warmed its own copy:
 - Phones would thrash GPU memory
 - Users would re-download the same weights
 
-The shell keeps **one** registry and **one** runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, …) stay in core. AI requests use the same privileged companion + trusted-frame policy as storage (`safeForAuthToken`).
+The shell keeps **one** registry and **one** WebLLM worker runtime. Apps call `shellui.ai.languageModel` (Prompt API / `LanguageModel` shape). The SDK only `postMessage`s to the parent; adapters (`OllamaAdapter`, `WebLLMAdapter`, …) stay in core. AI requests use the same privileged companion + trusted-frame policy as storage (`safeForAuthToken`).
 
 ## WebGPU and soft degradation
 
@@ -48,8 +59,8 @@ Browser catalog installs need **WebGPU**. Settings → AI shows WebGPU, Ollama, 
 
 | Topic             | Plain language                                                                                                |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- |
-| Disk size         | Browser models are big once real downloads land.                                                              |
-| First-load time   | Loading weights into the GPU can take a while the first time.                                                 |
+| Disk size         | Browser models are large (hundreds of MB to multi-GB).                                                        |
+| First-load time   | First Install downloads weights; later loads use WebLLM’s cache when possible.                                |
 | Battery / heat    | Local inference uses the CPU/GPU; laptops and phones can get warm.                                            |
 | Untrusted prompts | Apps send the text. Treat it like any other untrusted input (prompt injection, sensitive data in the prompt). |
 | Privacy           | v1 stays on-device. A later hosted backend is out of scope for this feature's first version.                  |
@@ -65,7 +76,9 @@ You can:
 - Pick a default model (automatic when only one is ready)
 - Toggle Ollama and browser providers
 - List Ollama models when reachable
-- Install / cancel / remove browser catalog entries (inference still Ollama-only for now)
+- Install / cancel / remove browser catalog models (real WebLLM download + worker inference)
+
+**Try it locally:** use a WebGPU-capable browser → Settings → AI → Install a catalog model → wait for the toaster / panel to finish → Settings → Develop → AI test tools, or call `shellui.ai` from an iframe app.
 
 **Settings → Develop** has **AI test tools** (probe, list, one-shot and stream prompt) for developers. Day-to-day setup stays on Settings → AI.
 
@@ -102,7 +115,8 @@ App iframe
             └─ AiBridge (packages/core/src/features/ai)
                  ├─ registry + adapters/
                  │    ├─ OllamaAdapter
-                 │    └─ WebLLMAdapter (catalog install stub; inference TODO)
+                 │    └─ WebLLMAdapter → WebLLMEngineService (worker)
+                 ├─ transfer toaster (shared with storage uploads)
                  └─ Settings → AI panel
 ```
 
@@ -110,6 +124,6 @@ Module map and notes: `packages/core/src/features/ai/README.md`.
 
 ## Related
 
-- Issue [#47](https://github.com/shellui/shellui/issues/47) - full v1 acceptance (real download pipeline, playground, etc.)
+- Issue [#47](https://github.com/shellui/shellui/issues/47) - full v1 acceptance
 - [SDK](/sdk) - general iframe APIs
 - [Storage](/features/storage) - similar shell-owned bridge pattern

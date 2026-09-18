@@ -15,7 +15,7 @@ import { AiBridge } from './features/ai/AiBridge';
 import { SonnerProvider } from './features/sonner/SonnerContext';
 import { ChromeActionsHost, ChromeActionsProvider } from './features/chromeActions';
 import { Toaster } from './components/ui/sonner';
-import { UploadToaster } from './features/storage/uploads/UploadToaster';
+import { TransferToaster } from './features/transfers/TransferToaster';
 import './features/sentry/initSentry';
 import './i18n/config'; // Initialize i18n
 import './index.css';
@@ -142,9 +142,9 @@ const App = () => {
               <DialogProvider>
                 <SonnerProvider>
                   <ChromeActionsProvider>
-                    {/* Toaster + upload progress live at Shellui root so they survive navigation. */}
+                    {/* Toaster + transfer progress (uploads / AI downloads) live at Shellui root. */}
                     <Toaster />
-                    <UploadToaster />
+                    <TransferToaster />
                     <ChromeActionsHost />
                     <AppContent />
                   </ChromeActionsProvider>

@@ -5,11 +5,16 @@ import { Select } from '../../../components/ui/select';
 import { Switch } from '../../../components/ui/switch';
 import { cn } from '../../../lib/utils';
 import { isBrowserModelInstalled } from '../../ai/browserInstallStore';
+import { BROWSER_MODEL_CATALOG } from '../../ai/catalog';
 import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
 import { RefreshCwIcon } from '../SettingsIcons';
 import { useSettings } from '../hooks/useSettings';
+
+const BROWSER_MODEL_LOCAL_IDS = BROWSER_MODEL_CATALOG.map((model) =>
+  model.id.replace(/^webllm:/, ''),
+);
 
 type AiPanelStatus = {
   webGpu: { available: boolean; detail?: string };
@@ -168,7 +173,30 @@ export const Ai = () => {
     } finally {
       setLoading(false);
     }
-  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, webllm]);
+  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, ai.defaultModelId, webllm]);
+
+  // Keep in-panel progress in sync when Settings remounts mid-download (toaster owns the job).
+  useEffect(() => {
+    if (!ai.enabled) return;
+    const engine = webllm.getEngine();
+    const syncFromEngine = () => {
+      for (const localId of BROWSER_MODEL_LOCAL_IDS) {
+        const progress = engine.getDownloadProgress(localId);
+        if (progress !== null) {
+          setDownload({ modelId: `webllm:${localId}`, progress });
+          return;
+        }
+      }
+    };
+    syncFromEngine();
+    return engine.subscribeProgress((localId, progress) => {
+      setDownload({ modelId: `webllm:${localId}`, progress });
+      if (progress >= 1) {
+        setDownload(null);
+        void load();
+      }
+    });
+  }, [ai.enabled, load, webllm]);
 
   useEffect(() => {
     if (!ai.enabled) {

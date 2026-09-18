@@ -5,7 +5,7 @@ import { DEFAULT_OLLAMA_BASE_URL } from './status.js';
 
 export type CreateDefaultAiRegistryOptions = {
   ollama?: OllamaAdapterOptions;
-  /** When false, skip registering the WebLLM stub (tests). Default true. */
+  /** When false, skip registering the WebLLM adapter (tests). Default true. */
   includeWebLLM?: boolean;
   defaultModelId?: string | null;
   /** Inject a WebLLM adapter (Settings keeps one instance for download progress). */
@@ -22,7 +22,7 @@ export function getSharedWebLLMAdapter(): WebLLMAdapter {
   return sharedWebLLMAdapter;
 }
 
-/** Shell entry: Ollama + WebLLM stub behind one registry. */
+/** Shell entry: Ollama + WebLLM behind one registry. */
 export function createDefaultAiRegistry(options: CreateDefaultAiRegistryOptions = {}): AiRegistry {
   const adapters = [
     new OllamaAdapter(options.ollama ?? { baseUrl: DEFAULT_OLLAMA_BASE_URL }),

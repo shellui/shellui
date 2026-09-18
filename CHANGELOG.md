@@ -2,6 +2,20 @@
 
 Notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### ✨ Feature
+
+- **WebLLM browser engine:** Settings → AI **Install** fetches curated MLC/WebLLM catalog weights via `@mlc-ai/web-llm` (Hugging Face URLs from WebLLM’s prebuilt library), runs inference in a dedicated Web Worker, and marks models ready for `shellui.ai.languageModel` prompt/streaming immediately after install. Refs #47.
+
+### 🛠 Improvements
+
+- **Shared transfer toaster:** storage uploads and AI model downloads share `TransferToaster` / `transferQueue` progress UI (accurate engine progress; downloads continue after leaving Settings).
+
+### 📚 Documentation
+
+- Update on-device AI docs for the real WebLLM install / worker / toaster path.
+
 <!---
 ## [Unreleased] - yyyy-mm-dd
 
