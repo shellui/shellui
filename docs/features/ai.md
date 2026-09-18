@@ -54,7 +54,7 @@ Models stay in Ollama's own storage. The browser only calls a local HTTP API (`h
 
 **Settings → AI** lists a curated browser catalog. **Install** uses [`@mlc-ai/web-llm`](https://webllm.mlc.ai/) to fetch MLC weights from Hugging Face (via WebLLM’s prebuilt model library — not a custom HF downloader), warms a **dedicated Web Worker** engine, and marks the model ready when inference can run.
 
-**Supported browsers for in-browser Install:** Chromium with usable WebGPU — **Chrome** and **Edge**. Firefox often exposes a basic WebGPU probe but is still too immature for WebLLM engine init in v1; Safari is unsupported too. On those browsers, Settings shows catalog models as **unsupported** and points you to **Ollama** instead of failing with a generic “Model download failed.”
+**Recommended browsers for in-browser Install:** Chromium with mature WebGPU — **Chrome** and **Edge**. Firefox and Safari now ship WebGPU too, but their implementations are less mature for WebLLM engine init, so Install there is **experimental** — note that desktop Safari uses **WebKit**, not Chrome's **Blink**, so behavior can differ. Shellui no longer hard-blocks them: Settings shows a warning banner (Chrome/Edge recommended; Ollama is the reliable alternative) but **Install is still allowed** so you can try. If it fails, you get the real mapped error (`[shellui.ai]` console + toast) instead of a generic “Model download failed.”
 
 **Debugging Install:** Hugging Face weight requests run **inside the WebLLM worker**, so they may not appear on the main-document Network list — check the worker’s Network/console in DevTools. Failures log as `console.error('[shellui.ai]', …)` on the page and show the real message in the transfer toaster (WebGPU worker failures map to a clear “WebGPU failed in the WebLLM worker” message).
 
@@ -64,9 +64,9 @@ After Install completes, apps can call `shellui.ai.languageModel` immediately �
 
 Reused sessions (e.g. playground Chat asking a second question) serialize generations on the shared WebLLM worker, drain each stream fully, and call `interruptGenerate()` between turns so the next `promptStreaming` does not hang. The shell also accumulates user/assistant history on the `AiSession` and passes full `messages` into WebLLM for multi-turn context.
 
-Switching or creating a new playground conversation `destroy()`s the LanguageModel session; core then awaits WebLLM `resetChat` (still under the generation lock) so the next chat starts with a clean KV/chat state without unloading weights. Refresh is no longer required to start a new conversation.
+**Conversation switching (WebLLM vs Ollama).** Ollama is stateless — each `/api/generate` HTTP call is independent, so switching chats never carries state over. WebLLM's worker keeps engine **chat + KV cache** state between `chat.completions.create` calls and holds a per-model generation lock, so a new conversation can inherit the previous one's state (or deadlock behind an undrained lock). To make switching reliable, core tracks the **owning session id** on the engine and, when a prompt or `create` targets a different session, it eagerly `interruptGenerate()`s (breaking any stuck generation) and then **reloads the same model id** — which clears KV/chat while weights stay in the browser cache. Soft `resetChat` alone proved insufficient in the field; reload is the primary path (with `resetChat` as a fallback). The very first conversation and same-session multi-turn never reload.
 
-A fire-and-forget `destroy` of the **previous** session must not interrupt the **new** one: core tracks `activeSessionId` and skips `resetConversation` / `interruptGenerate` for stale destroys. Prefer awaiting `session.destroy()` before `create()` in apps.
+A fire-and-forget `destroy` of the **previous** session must not interrupt the **new** one: core tracks `activeSessionId` and skips reset/interrupt for stale destroys. Prefer awaiting `session.destroy()` before `create()` in apps (`session.destroy()` returns a Promise).
 
 Catalog model ids (after the `webllm:` prefix) match WebLLM `model_id` strings, for example:
 

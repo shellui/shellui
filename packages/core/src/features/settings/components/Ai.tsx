@@ -228,15 +228,8 @@ export const Ai = () => {
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
 
   const startDownload = async (model: AiModel) => {
-    const browser = probeWebLlmBrowserSupport();
-    if (!browser.supported) {
-      setDownload({
-        modelId: model.id,
-        progress: 0,
-        error: browser.detail,
-      });
-      return;
-    }
+    // Non-Chromium browsers are experimental, not blocked: attempt Install and let
+    // the real error surface (mapped) rather than pre-emptively refusing.
     setDownload({ modelId: model.id, progress: 0 });
     const controller = new AbortController();
     downloadAbortRef.current = controller;
@@ -514,8 +507,10 @@ export const Ai = () => {
               {ai.browserEnabled && status && !status.webGpu.available ? (
                 <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
               ) : null}
-              {ai.browserEnabled && !probeWebLlmBrowserSupport().supported ? (
-                <p className="text-xs text-muted-foreground">{t('ai.models.unsupportedBrowser')}</p>
+              {ai.browserEnabled && !probeWebLlmBrowserSupport().recommended ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-900 dark:text-amber-100">
+                  {t('ai.models.experimentalBrowser')}
+                </p>
               ) : null}
               {ai.browserEnabled ? (
                 browserModels.length === 0 ? (
@@ -529,10 +524,8 @@ export const Ai = () => {
                         ? download.progress
                         : (webllm.getDownloadProgress(model.id) ?? null);
                       const installed = isBrowserModelInstalled(model.id);
-                      const unsupported = model.status === 'unsupported';
                       const canDownload =
                         !installed &&
-                        !unsupported &&
                         model.status !== 'downloading' &&
                         model.status !== 'needs-webgpu';
                       return (
@@ -545,11 +538,6 @@ export const Ai = () => {
                               <p className="truncate text-sm font-medium">{model.name}</p>
                               {size ? (
                                 <p className="text-xs tabular-nums text-muted-foreground">{size}</p>
-                              ) : null}
-                              {unsupported ? (
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                  {model.description || t('ai.models.unsupportedBrowser')}
-                                </p>
                               ) : null}
                             </div>
                             <ModelStatusBadge
@@ -600,17 +588,6 @@ export const Ai = () => {
                                   className="h-8"
                                   disabled={!status?.webGpu.available}
                                   onClick={() => void startDownload(model)}
-                                >
-                                  {t('ai.models.download')}
-                                </Button>
-                              ) : null}
-                              {unsupported && !installed ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8"
-                                  disabled
-                                  title={t('ai.models.unsupportedBrowser')}
                                 >
                                   {t('ai.models.download')}
                                 </Button>

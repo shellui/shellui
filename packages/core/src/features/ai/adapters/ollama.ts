@@ -164,7 +164,7 @@ export class OllamaAdapter implements AiAdapter {
     // No persistent engine process in the browser adapter.
   }
 
-  async resetConversation(_modelId?: string): Promise<void> {
+  async resetConversation(_modelId?: string, _sessionId?: string): Promise<void> {
     // Stateless HTTP — nothing to clear between LanguageModel sessions.
   }
 }

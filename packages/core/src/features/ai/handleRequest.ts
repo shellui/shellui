@@ -155,7 +155,9 @@ export async function handleAiRequest(
         const sessionId = createSessionId();
         ctx.activeSessionId.current = sessionId;
         try {
-          await ctx.registry.resetConversation(pick.id);
+          // Pass the new sessionId so the engine hard-resets when switching away
+          // from a prior conversation and claims this one (no redundant reload).
+          await ctx.registry.resetConversation(pick.id, sessionId);
         } catch (error) {
           // eslint-disable-next-line no-console -- create should still proceed; next prompt may hang otherwise
           console.error('[shellui.ai]', 'resetConversation on create failed', error);
@@ -200,6 +202,7 @@ export async function handleAiRequest(
             prompt: payload.prompt,
             systemPrompt: session.systemPrompt,
             messages,
+            sessionId: session.id,
             signal: session.abortController.signal,
           });
           session.messages.push({ role: 'assistant', content: text });
@@ -228,6 +231,7 @@ export async function handleAiRequest(
           prompt: payload.prompt,
           systemPrompt: session.systemPrompt,
           messages,
+          sessionId: session.id,
           signal: session.abortController.signal,
         });
 

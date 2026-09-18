@@ -223,6 +223,12 @@ export class WebLLMEngineService {
   private readonly progressListeners = new Set<(localId: string, progress: number) => void>();
   /** Serializes prompt / promptStreaming on the shared worker (WebLLM holds a generation lock). */
   private generationTail: Promise<void> = Promise.resolve();
+  /**
+   * LanguageModel session that last generated on the warm engine. When a prompt
+   * or reset arrives for a different session we hard-reset (interrupt + reload)
+   * so a new conversation never inherits the previous one's KV/chat state.
+   */
+  private servingSessionId: string | null = null;
 
   constructor(options: WebLLMEngineServiceOptions = {}) {
     this.loadModule = options.loadModule ?? defaultLoadModule;
@@ -428,10 +434,14 @@ export class WebLLMEngineService {
     systemPrompt?: string;
     signal?: AbortSignal;
     messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    sessionId?: string;
   }): Promise<string> {
+    const localId = toLocalId(options.modelId);
+    this.interruptForSessionSwitch(options.sessionId);
     return this.withGenerationLock(async () => {
       await this.load(options.modelId, options.signal);
       const engine = this.requireEngine();
+      await this.hardResetIfSessionSwitched(engine, localId, options.sessionId);
       const messages = resolveMessages(options);
       try {
         const response = await engine.chat.completions.create({
@@ -455,12 +465,18 @@ export class WebLLMEngineService {
     systemPrompt?: string;
     signal?: AbortSignal;
     messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    sessionId?: string;
   }): AsyncIterable<{ text: string; done: boolean }> {
+    const localId = toLocalId(options.modelId);
+    // Break any in-flight (or stuck) generation from a prior conversation BEFORE
+    // we queue behind the generation lock, so a switch cannot deadlock.
+    this.interruptForSessionSwitch(options.sessionId);
     const release = await this.acquireGenerationLock();
     let engine: WebLLMEngineLike | null = null;
     try {
       await this.load(options.modelId, options.signal);
       engine = this.requireEngine();
+      await this.hardResetIfSessionSwitched(engine, localId, options.sessionId);
       const messages = resolveMessages(options);
       const stream = (await engine.chat.completions.create({
         messages,
@@ -509,34 +525,105 @@ export class WebLLMEngineService {
     await this.disposeWorker();
     this.engine = null;
     this.warmModelId = null;
+    this.servingSessionId = null;
   }
 
   /**
-   * Clear WebLLM chat / KV state for a new conversation without unloading weights.
-   * Runs under the generation lock so a following prompt cannot start mid-reset.
+   * Prepare the warm engine for a new LanguageModel conversation.
+   *
+   * WebLLM's worker engine keeps chat + KV cache state between `chat.completions.create`
+   * calls and holds a per-model generation lock that only releases when the previous
+   * async stream fully drains. Ollama has none of this (each HTTP generate is
+   * independent), which is why only WebLLM hangs on conversation switch.
+   *
+   * We (1) eagerly `interruptGenerate()` outside the lock to break any in-flight or
+   * stuck generation (freeing the worker lock), then (2) under our generation lock
+   * hard-reset by reloading the same model id — this clears KV/chat reliably while
+   * weights stay in the browser cache. `resetChat` alone proved insufficient in the
+   * field, so reload is the primary path with `resetChat` as a fallback.
+   *
+   * `sessionId` (from `create`) becomes the engine's owning session so the first
+   * prompt of that session does not redundantly reload.
    */
-  async resetConversation(modelId?: string): Promise<void> {
-    return this.withGenerationLock(async () => {
+  async resetConversation(modelId?: string, sessionId?: string): Promise<void> {
+    const localId = modelId ? toLocalId(modelId) : (this.warmModelId ?? undefined);
+    // Eager interrupt BEFORE queuing behind the lock so a stuck stream unblocks.
+    this.safeInterrupt('resetConversation');
+    await this.withGenerationLock(async () => {
       const engine = this.engine;
-      if (!engine) return;
-      const localId = modelId ? toLocalId(modelId) : (this.warmModelId ?? undefined);
-      try {
-        engine.interruptGenerate?.();
-      } catch (error) {
-        // eslint-disable-next-line no-console -- interrupt failures are easy to miss otherwise
-        console.error('[shellui.ai]', 'interruptGenerate during resetConversation failed', error);
+      if (
+        engine &&
+        localId &&
+        this.servingSessionId !== null &&
+        this.servingSessionId !== sessionId
+      ) {
+        await this.hardResetEngine(engine, localId);
       }
-      if (typeof engine.resetChat !== 'function') return;
-      try {
-        await engine.resetChat(false, localId);
-      } catch (error) {
-        // eslint-disable-next-line no-console -- reset failures leave stale KV / hang risk
-        console.error('[shellui.ai]', 'resetChat during resetConversation failed', error);
-        throw error instanceof Error
-          ? error
-          : new Error(`WebLLM resetChat failed: ${formatUnknownError(error)}`);
-      }
+      this.servingSessionId = sessionId ?? null;
     });
+  }
+
+  /** Fire interruptGenerate on the warm engine, swallowing errors. */
+  private safeInterrupt(context: string): void {
+    try {
+      this.engine?.interruptGenerate?.();
+    } catch (error) {
+      // eslint-disable-next-line no-console -- interrupt failures are easy to miss otherwise
+      console.error('[shellui.ai]', `interruptGenerate (${context}) failed`, error);
+    }
+  }
+
+  /** Eager (pre-lock) interrupt when a prompt targets a different session than the warm one. */
+  private interruptForSessionSwitch(sessionId?: string): void {
+    if (sessionId && this.servingSessionId !== null && sessionId !== this.servingSessionId) {
+      this.safeInterrupt('sessionSwitch');
+    }
+  }
+
+  /**
+   * Under the generation lock: if this prompt's session differs from the engine's
+   * owning session, hard-reset (reload) before generating, then claim the session.
+   */
+  private async hardResetIfSessionSwitched(
+    engine: WebLLMEngineLike,
+    localId: string,
+    sessionId?: string,
+  ): Promise<void> {
+    if (!sessionId) return;
+    if (this.servingSessionId !== null && this.servingSessionId !== sessionId) {
+      await this.hardResetEngine(engine, localId);
+    }
+    this.servingSessionId = sessionId;
+  }
+
+  /**
+   * Reliable "new chat": interrupt then reload the same model id (clears KV/chat,
+   * weights stay cached). Falls back to soft resetChat. Best-effort — never throws
+   * so a reset failure cannot itself wedge the next conversation.
+   */
+  private async hardResetEngine(engine: WebLLMEngineLike, localId: string): Promise<void> {
+    try {
+      engine.interruptGenerate?.();
+    } catch {
+      // ignore — reload below re-inits regardless
+    }
+    try {
+      await engine.reload(localId);
+      return;
+    } catch (reloadError) {
+      logAiError('resetConversation.reload', reloadError, {
+        modelId: localId,
+        stage: 'engine.reload',
+      });
+    }
+    try {
+      await engine.resetChat?.(false, localId);
+    } catch (resetError) {
+      logAiError('resetConversation.resetChat', resetError, {
+        modelId: localId,
+        stage: 'engine.resetChat',
+      });
+    }
   }
 
   /** Test helper — reset singleton state. */
@@ -551,6 +638,7 @@ export class WebLLMEngineService {
     this.loadPromise = null;
     this.loadingModelId = null;
     this.generationTail = Promise.resolve();
+    this.servingSessionId = null;
   }
 
   private async acquireGenerationLock(): Promise<() => void> {

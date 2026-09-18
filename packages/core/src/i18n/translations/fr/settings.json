@@ -223,6 +223,7 @@
       "downloadProgress": "{{percent}} %",
       "needsWebGpuAction": "Ce navigateur a besoin de WebGPU avant les installations catalogue.",
       "unsupportedBrowser": "Les modèles navigateur nécessitent Chrome ou Edge (WebGPU). Utilisez Ollama sur ce navigateur.",
+      "experimentalBrowser": "Les modèles navigateur fonctionnent mieux dans Chrome ou Edge (WebGPU). La prise en charge de ce navigateur est expérimentale — vous pouvez tout de même essayer l’installation ; en cas d’échec, utilisez Ollama.",
       "status": {
         "ready": "Prêt",
         "downloadable": "Non installé",

@@ -7,7 +7,7 @@ import {
 import { getSharedWebLLMEngine, type WebLLMEngineService } from '../engine/webllmEngine.js';
 import { probeWebGpu } from '../status.js';
 import type { AiAdapter, AiModel, AiPromptOptions, AiStreamChunk } from '../types.js';
-import { mapWebLlmRuntimeError, probeWebLlmBrowserSupport } from '../webLlmBrowserSupport.js';
+import { mapWebLlmRuntimeError } from '../webLlmBrowserSupport.js';
 
 export type BrowserDownloadProgress = {
   modelId: string;
@@ -41,14 +41,13 @@ export class WebLLMAdapter implements AiAdapter {
   }
 
   async isAvailable(): Promise<boolean> {
-    if (!probeWebLlmBrowserSupport().supported) return false;
+    // Install is allowed on any browser now; availability tracks WebGPU only.
     const gpu = await probeWebGpu();
     return gpu.available;
   }
 
   async listModels(): Promise<AiModel[]> {
     const gpu = await probeWebGpu();
-    const browser = probeWebLlmBrowserSupport();
     const installed = new Set(listBrowserInstalledIds());
     return BROWSER_MODEL_CATALOG.map((model) => {
       const localName = model.id.replace(/^webllm:/, '');
@@ -60,23 +59,9 @@ export class WebLLMAdapter implements AiAdapter {
         isBrowserModelInstalled(localName) ||
         this.engine.getWarmModelId() === localName
       ) {
-        if (!browser.supported) {
-          return {
-            ...model,
-            status: 'unsupported' as const,
-            description: browser.detail,
-          };
-        }
         return {
           ...model,
           status: gpu.available ? ('ready' as const) : ('needs-webgpu' as const),
-        };
-      }
-      if (!browser.supported) {
-        return {
-          ...model,
-          status: 'unsupported' as const,
-          description: browser.detail,
         };
       }
       if (!gpu.available) {
@@ -94,13 +79,13 @@ export class WebLLMAdapter implements AiAdapter {
     modelId: string,
     options?: { signal?: AbortSignal; onProgress?: (progress: number) => void },
   ): Promise<void> {
-    const browser = probeWebLlmBrowserSupport();
-    if (!browser.supported) {
-      throw new Error(browser.detail);
-    }
+    // Non-Chromium browsers are experimental, not blocked: let the user try and
+    // surface the real error (mapped below) instead of an opaque pre-emptive block.
     const gpu = await probeWebGpu();
     if (!gpu.available) {
-      throw new Error('WebGPU is required before a browser model can be installed.');
+      throw new Error(
+        'WebGPU is not available in this browser. Enable WebGPU (chrome://gpu / about:config) or use Ollama.',
+      );
     }
     try {
       await this.engine.install(modelId, options);
@@ -131,10 +116,6 @@ export class WebLLMAdapter implements AiAdapter {
   }
 
   async load(modelId: string, signal?: AbortSignal): Promise<void> {
-    const browser = probeWebLlmBrowserSupport();
-    if (!browser.supported) {
-      throw new Error(browser.detail);
-    }
     await this.engine.load(modelId, signal);
   }
 
@@ -150,8 +131,8 @@ export class WebLLMAdapter implements AiAdapter {
     await this.engine.unload(modelId);
   }
 
-  async resetConversation(modelId?: string): Promise<void> {
-    await this.engine.resetConversation(modelId);
+  async resetConversation(modelId?: string, sessionId?: string): Promise<void> {
+    await this.engine.resetConversation(modelId, sessionId);
   }
 
   /** Test helper. */

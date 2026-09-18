@@ -1,23 +1,29 @@
 /**
- * WebLLM / MLC in-browser runtime support for Shellui v1.
+ * WebLLM / MLC in-browser runtime support for Shellui.
  *
- * Chrome and Edge (Chromium + usable WebGPU) are the practical targets.
- * Firefox often exposes `navigator.gpu` but WebGPU is still too immature for
- * `@mlc-ai/web-llm` engine init — Install fails with opaque errors. Safari is
- * similarly unsupported for v1; use Ollama there.
+ * Chrome and Edge (Chromium + mature WebGPU) are the **recommended** runtime.
+ * Firefox and Safari ship WebGPU too, but their implementations are less mature
+ * for `@mlc-ai/web-llm` — Install may fail. We no longer hard-block them: Install
+ * is allowed everywhere (experimental) and real failures surface via the clear
+ * `[shellui.ai]` error mapping. Desktop Safari (WebKit) ≠ Chrome (Blink).
  */
 
-export const WEBLLM_UNSUPPORTED_BROWSER_MESSAGE =
-  'Browser models need Chrome or Edge (WebGPU). Use Ollama on this browser.';
+/** Shown as a non-blocking warning on non-Chromium browsers (Install still allowed). */
+export const WEBLLM_EXPERIMENTAL_BROWSER_MESSAGE =
+  'Browser models work best in Chrome or Edge (WebGPU). Support in this browser is experimental — if Install fails, use Ollama.';
 
-/** Chromium (or any browser) when WebGPU fails inside the WebLLM worker. */
+/** Any browser when WebGPU fails inside the WebLLM worker. */
 export const WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE =
-  'WebGPU failed in the WebLLM worker. Check chrome://gpu (or about:support), or use Ollama.';
+  'WebGPU failed in the WebLLM worker. Check chrome://gpu (or about:support), try Chrome/Edge, or use Ollama.';
 
 export type WebLlmBrowserSupport = {
-  supported: boolean;
-  /** Why Install is blocked when supported is false. */
+  /** Chromium + mature WebGPU — the recommended runtime. */
+  recommended: boolean;
+  /** Install is always allowed now; non-Chromium is experimental. */
+  canInstall: true;
+  /** Why the browser is not recommended (when `recommended` is false). */
   reason?: 'firefox' | 'safari' | 'other';
+  /** Warning text when `recommended` is false (empty string when recommended). */
   detail: string;
 };
 
@@ -25,7 +31,8 @@ const WEBGPU_ERROR_RE =
   /webgpu|gpuadapter|gpudevice|device lost|adapter|wgpu|vulkan|metal|dawn|compatible gpu|gpu vendor/i;
 
 /**
- * Cheap UA check for WebLLM Install eligibility (distinct from soft WebGPU probe).
+ * Cheap UA check for whether WebLLM Install is *recommended* (distinct from the
+ * soft WebGPU probe). Install is allowed regardless; this only drives warnings.
  * Injectable `userAgent` for tests.
  */
 export function probeWebLlmBrowserSupport(
@@ -36,9 +43,10 @@ export function probeWebLlmBrowserSupport(
   // Firefox desktop + Firefox on iOS (FxiOS).
   if (/firefox\//i.test(ua) || /fxios\//i.test(ua)) {
     return {
-      supported: false,
+      recommended: false,
+      canInstall: true,
       reason: 'firefox',
-      detail: WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
+      detail: WEBLLM_EXPERIMENTAL_BROWSER_MESSAGE,
     };
   }
 
@@ -46,19 +54,20 @@ export function probeWebLlmBrowserSupport(
   const isSafari = /safari\//i.test(ua) && !/chrome|chromium|crios|edg|android/i.test(ua);
   if (isSafari) {
     return {
-      supported: false,
+      recommended: false,
+      canInstall: true,
       reason: 'safari',
-      detail: WEBLLM_UNSUPPORTED_BROWSER_MESSAGE,
+      detail: WEBLLM_EXPERIMENTAL_BROWSER_MESSAGE,
     };
   }
 
-  return { supported: true, detail: '' };
+  return { recommended: true, canInstall: true, detail: '' };
 }
 
 /**
  * Map engine / worker throws to a clear user-facing message.
- * - Firefox/Safari + WebGPU-ish → use Ollama / Chromium
- * - Any browser + WebGPU-ish → “WebGPU failed in the WebLLM worker”
+ * - Non-Chromium + WebGPU-ish → experimental-browser guidance (try Chrome/Edge or Ollama)
+ * - Chromium + WebGPU-ish → “WebGPU failed in the WebLLM worker”
  * WebLLM often rejects with a **string** (`err.toString()` from the worker).
  */
 export function mapWebLlmRuntimeError(error: unknown, userAgent?: string): string | null {
@@ -80,7 +89,7 @@ export function mapWebLlmRuntimeError(error: unknown, userAgent?: string): strin
   if (!looksLikeWebGpu) return null;
 
   const support = probeWebLlmBrowserSupport(userAgent);
-  if (!support.supported) {
+  if (!support.recommended) {
     return support.detail;
   }
   return WEBLLM_WEBGPU_WORKER_FAILED_MESSAGE;

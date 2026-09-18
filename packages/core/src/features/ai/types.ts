@@ -36,6 +36,12 @@ export type AiPromptOptions = {
    * over building `[system?, user: prompt]` alone.
    */
   messages?: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+  /**
+   * Owning LanguageModel session id. Stateful adapters (WebLLM) hard-reset the
+   * engine (interrupt + reload) when this changes so a new conversation never
+   * inherits the previous conversation's KV/chat state.
+   */
+  sessionId?: string;
 };
 
 export type AiStreamChunk = {
@@ -74,8 +80,9 @@ export type AiAdapter = {
   /**
    * Clear adapter-owned conversation state (e.g. WebLLM chat/KV) without unloading
    * weights. Optional — Ollama is a no-op. Called on LanguageModel session destroy/create.
+   * `sessionId` (when provided, from `create`) becomes the new owning session.
    */
-  resetConversation?(modelId?: string): Promise<void>;
+  resetConversation?(modelId?: string, sessionId?: string): Promise<void>;
   /** Optional browser/catalog download with 0–1 progress. */
   download?(
     modelId: string,

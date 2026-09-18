@@ -393,7 +393,51 @@ describe('WebLLMAdapter + engine', () => {
     await histEngine.resetForTests();
   });
 
-  it('resetConversation calls interruptGenerate + resetChat without unloading', async () => {
+  it('hard-resets (reload) the engine only when the conversation session switches', async () => {
+    const module = createFakeWebLLMModule();
+    const switchEngine = new WebLLMEngineService({
+      useTransferToast: false,
+      loadModule: async () => module as never,
+      createWorker: fakeWorker,
+    });
+    const adapter = new WebLLMAdapter({ engine: switchEngine });
+    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
+      .results[0]?.value;
+    const reload = engineHandle.reload as ReturnType<typeof vi.fn>;
+
+    const model = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+    async function ask(sessionId: string, prompt: string): Promise<string> {
+      const parts: string[] = [];
+      for await (const chunk of adapter.promptStreaming({ modelId: model, prompt, sessionId })) {
+        if (chunk.text) parts.push(chunk.text);
+      }
+      return parts.join('');
+    }
+
+    // Session A: first ever conversation — no reload (engine fresh from install).
+    expect(await ask('A', 'a1')).toBe('Hello world');
+    expect(reload).toHaveBeenCalledTimes(0);
+
+    // Same session A multi-turn — still no reload.
+    expect(await ask('A', 'a2')).toBe('Hello world');
+    expect(reload).toHaveBeenCalledTimes(0);
+
+    // Switch to B — must hard-reset (reload) once, weights stay warm.
+    expect(await ask('B', 'b1')).toBe('Hello world');
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(reload).toHaveBeenCalledWith(model);
+
+    // Switch back to A — reload again.
+    expect(await ask('A', 'a3')).toBe('Hello world');
+    expect(reload).toHaveBeenCalledTimes(2);
+
+    expect(engineHandle.unload).not.toHaveBeenCalled();
+    expect(switchEngine.getWarmModelId()).toBe(model);
+    await switchEngine.resetForTests();
+  });
+
+  it('resetConversation reloads when switching sessions and claims the new one', async () => {
     const module = createFakeWebLLMModule();
     const resetEngine = new WebLLMEngineService({
       useTransferToast: false,
@@ -401,32 +445,40 @@ describe('WebLLMAdapter + engine', () => {
       createWorker: fakeWorker,
     });
     const adapter = new WebLLMAdapter({ engine: resetEngine });
-    await adapter.download('webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    const model = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+    await adapter.download(`webllm:${model}`);
     const engineHandle = await (module.CreateWebWorkerMLCEngine as ReturnType<typeof vi.fn>).mock
       .results[0]?.value;
+    const reload = engineHandle.reload as ReturnType<typeof vi.fn>;
 
+    // Serve session A first.
     for await (const _ of adapter.promptStreaming({
-      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      modelId: model,
       prompt: 'hi',
+      sessionId: 'A',
     })) {
       // drain
     }
+    expect(reload).toHaveBeenCalledTimes(0);
 
-    await adapter.resetConversation('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    // create B → resetConversation(model, 'B'): switches away from A → reload, claim B.
+    await adapter.resetConversation(model, 'B');
     expect(engineHandle.interruptGenerate).toHaveBeenCalled();
-    expect(engineHandle.resetChat).toHaveBeenCalledWith(false, 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    expect(reload).toHaveBeenCalledTimes(1);
     expect(engineHandle.unload).not.toHaveBeenCalled();
-    expect(resetEngine.getWarmModelId()).toBe('Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    expect(resetEngine.getWarmModelId()).toBe(model);
 
-    // Second session-style stream still completes after reset.
+    // First prompt of B does NOT reload again (session already claimed).
     const parts: string[] = [];
     for await (const chunk of adapter.promptStreaming({
-      modelId: 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      modelId: model,
       prompt: 'again',
+      sessionId: 'B',
     })) {
       if (chunk.text) parts.push(chunk.text);
     }
     expect(parts.join('')).toBe('Hello world');
+    expect(reload).toHaveBeenCalledTimes(1);
     await resetEngine.resetForTests();
   });
 });
