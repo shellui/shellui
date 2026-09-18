@@ -4,15 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "shellui start",
     "dev": "vite",
-    "build": "vite build",
+    "build": "shellui build && vite build",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
-    "alpinejs": "^3.14.9",
-    "@shellui/sdk": "^0.5.0-beta.3"
+    "@shellui/sdk": "^0.5.0",
+    "alpinejs": "^3.14.9"
   },
   "devDependencies": {
+    "@shellui/cli": "^0.5.0",
     "vite": "^8.3.0"
   }
 }

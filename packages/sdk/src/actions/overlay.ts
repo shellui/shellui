@@ -4,6 +4,7 @@
  */
 
 import type { OverlayAutoSizeOptions, OverlayReportSizeOptions } from '../types.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 
 const OVERLAY_SIZE_TYPE = 'SHELLUI_OVERLAY_SIZE';
 
@@ -12,11 +13,7 @@ let lastReported: { height: number; width?: number } | null = null;
 
 function postToParent(message: { type: string; payload: Record<string, unknown> }): void {
   if (typeof window === 'undefined') return;
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }
 
 function resolveTarget(target?: Element | string | null): Element | null {

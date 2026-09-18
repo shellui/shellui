@@ -37,6 +37,12 @@ export {
   GENERATED_FRONTEND_CONFIG_FILE,
 } from './config-env.js';
 export {
+  loadProjectEnvFiles,
+  applyProductionBuildEnvDefaults,
+  prepareBuildEnvironment,
+  DEFAULT_PRODUCTION_APP_URL,
+} from './project-env.js';
+export {
   DIST_DIR,
   WEB_DIST_DIR,
   DESKTOP_APP_DIR,

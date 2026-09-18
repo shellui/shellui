@@ -3,16 +3,21 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build",
+    "start": "shellui start",
+    "build": "shellui build && nuxt generate",
+    "serve:dist": "node node_modules/@shellui/cli/scripts/serve-dist.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.5.0-beta.3",
+    "@shellui/sdk": "^0.5.0",
     "nuxt": "^4.5.2",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
+  },
+  "devDependencies": {
+    "@shellui/cli": "^0.5.0"
   }
 }

@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  cacheDir: 'node_modules/.vite-app',
+  base: mode === 'production' ? '/app/' : '/',
   server: {
     port: 5173,
     strictPort: true,
     cors: true,
   },
-});
+  build: {
+    outDir: 'dist/web/app',
+    emptyOutDir: true,
+  },
+}));

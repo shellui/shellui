@@ -1,7 +1,13 @@
 import { useEffect } from 'react';
-import { shellui, type ShellUIMessage, type StorageRequestPayload } from '@shellui/sdk';
+import {
+  postShellMessage,
+  shellui,
+  type ShellUIMessage,
+  type StorageRequestPayload,
+} from '@shellui/sdk';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
+import { getStorageRequestTrustDenial } from '../security/trustedFrames';
 import { handleStorageRequest } from './handleRequest';
 import { getStorageBaseUrl } from './quota';
 import { handleTrackedUpload, isUploadPayload } from './uploads/handleTrackedUpload';
@@ -25,6 +31,22 @@ export const StorageBridge = () => {
       const payload = message.payload as StorageRequestPayload | undefined;
       if (!payload?.id || !payload.op) return;
 
+      const trustDenial = getStorageRequestTrustDenial(message.from, shellui.frameRegistry, config);
+      if (trustDenial) {
+        const response = { id: payload.id, error: trustDenial };
+        const reply = {
+          type: 'SHELLUI_STORAGE_RESPONSE' as const,
+          payload: response,
+        };
+        const from = message.from?.filter(Boolean) as string[] | undefined;
+        if (from?.length) {
+          shellui.sendMessage({ ...reply, to: from });
+          return;
+        }
+        window.postMessage(reply, '*');
+        return;
+      }
+
       const run = isUploadPayload(payload)
         ? handleTrackedUpload({ storageUrl, accessToken, payload })
         : handleStorageRequest({ storageUrl, accessToken, payload });
@@ -39,12 +61,12 @@ export const StorageBridge = () => {
           shellui.sendMessage({ ...reply, to: from });
           return;
         }
-        window.postMessage(reply, '*');
+        postShellMessage(reply);
       });
     };
 
     return shellui.addMessageListener('SHELLUI_STORAGE_REQUEST', listener);
-  }, [storageUrl, accessToken]);
+  }, [storageUrl, accessToken, config]);
 
   return null;
 };

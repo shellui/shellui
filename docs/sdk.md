@@ -131,7 +131,31 @@ Every action needs a non-empty `id`. Provide `label` and/or `icon` (`icon` may b
 
 Protocol: app → shell `SHELLUI_ACTIONS_SET` / `SHELLUI_ACTIONS_CLEAR`; shell → that iframe only `SHELLUI_ACTION` `{ id }` (SDK runs matching `onClick`). Types: `ChromeActionItem`, `ChromeActionsSpec`, `ChromeActionsPayload`.
 
-Messages currently use `postMessage(..., '*')` (same as toasts/dialogs). Treat action ids/labels as observable by any same-page parent listener — see [known limitations](/features/chrome-actions#known-limitations).
+SDK → shell messages use concrete target origins (parent shell origin). Inbound shell → iframe traffic is accepted only from allowed origins and trusted sources (registered iframe, parent, or same-window).
+
+**Shellui host apps** — prefer `shellui.config.json` (unioned with navigation, storage, and admin URLs):
+
+```json
+{
+  "security": {
+    "allowedMessageOrigins": ["https://preview.example.com", "http://127.0.0.1:4173"]
+  }
+}
+```
+
+Each entry may be an absolute `http(s)` origin or URL; invalid values are skipped at boot.
+
+**Standalone / embedded SDK** (non-Shellui host) — use init or runtime APIs:
+
+```typescript
+await shellui.init({
+  allowedMessageOrigins: ['https://companion.example.com'],
+});
+
+shellui.configureMessageSecurity({
+  allowedOrigins: ['https://companion.example.com'],
+});
+```
 
 See [Floating chrome actions](/features/chrome-actions) for density caps, multi-view lifecycle, and Settings → Develop smoke buttons.
 

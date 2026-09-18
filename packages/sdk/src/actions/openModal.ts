@@ -1,4 +1,5 @@
 import type { OpenModalOptions } from '../types.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 
 /**
  * Opens a URL in a modal overlay.
@@ -37,9 +38,5 @@ export function openModal(urlOrOptions?: string | OpenModalOptions): void {
     },
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }

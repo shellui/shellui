@@ -49,6 +49,11 @@ const sidebars = {
           id: 'features/authentication',
           label: 'Authentication',
         },
+        {
+          type: 'doc',
+          id: 'features/security',
+          label: 'Security',
+        },
       ],
     },
     {
@@ -75,6 +80,11 @@ const sidebars = {
               type: 'doc',
               id: 'features/modals-drawers',
               label: 'Modals & Drawers',
+            },
+            {
+              type: 'doc',
+              id: 'features/companion-isolation',
+              label: 'Companion isolation',
             },
           ],
         },

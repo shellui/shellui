@@ -25,6 +25,7 @@ import {
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
 import { useMacTrafficLights } from '../../layouts/chrome/runtime';
+import { validateLoginPanelUrl } from '../../security/urlAllowlist';
 import { AccessPendingView } from './AccessPendingView';
 import { LoginPreferencesControls } from './LoginPreferencesControls';
 
@@ -416,7 +417,10 @@ export const LoginView = () => {
     }
   };
 
-  const panelUrl = config.backend?.login?.panelUrl?.trim() || null;
+  const panelUrl = useMemo(
+    () => validateLoginPanelUrl(config.backend?.login?.panelUrl, config),
+    [config],
+  );
   const panelImage = config.backend?.login?.panelImage?.trim() || null;
   const hasCustomPanel = Boolean(panelUrl || panelImage);
   const legalDocuments = useMemo(() => getLegalDocuments(config), [config]);

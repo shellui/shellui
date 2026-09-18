@@ -95,7 +95,7 @@ await bucket.remove(['archive/2024/q1.pdf']);
 await bucket.removeFolder('archive/reports');
 ```
 
-The SDK posts `SHELLUI_STORAGE_REQUEST` (including `File` / `Blob`) to the parent. Nested iframes forward until the root shell replies with `SHELLUI_STORAGE_RESPONSE`. Unsigned-in callers or missing `storage.url` get `{ data: null, error }` with status `401` or `503`.
+The SDK posts `SHELLUI_STORAGE_REQUEST` (including `File` / `Blob`) to the parent. Nested iframes forward until the root shell replies with `SHELLUI_STORAGE_RESPONSE`. The root **StorageBridge** only honors requests from registered iframe companions that pass the same trusted-frame policy as session JWT sharing (navigation companions with `safeForAuthToken: true`, admin URLs, and `storage.filesUrl`). Untrusted or unregistered senders get `{ data: null, error }` with status `403` and no storage I/O. Unsigned-in callers or missing `storage.url` get status `401` or `503`.
 
 | Call                                         | Purpose                                         |
 | -------------------------------------------- | ----------------------------------------------- |

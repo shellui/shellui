@@ -1,8 +1,8 @@
 # Shellui Alpine.js starter
 
-Vite + Alpine.js companion app for [Shellui](https://shellui.com).
+Default Vite + Alpine.js starter, embedded in the Shellui shell. `src/main.js` starts Alpine and does a light `@shellui/sdk/tiny` `shellui.ready` handshake (no-op standalone). Edit `index.html` to build your app.
 
-**Boilerplate:** [Vite vanilla](https://vite.dev/guide/#scaffolding-your-first-vite-project) + [official Alpine npm module init](https://alpinejs.dev/essentials/installation) —
+**Boilerplate:** [Vite vanilla](https://vite.dev/guide/#scaffolding-your-first-vite-project) + [official Alpine npm module init](https://alpinejs.dev/essentials/installation):
 
 ```js
 import Alpine from 'alpinejs';
@@ -10,20 +10,22 @@ window.Alpine = Alpine;
 Alpine.start();
 ```
 
-Community starters ([create-alpine-app](https://github.com/thedevdojo/create-alpine-app), Vite+Alpine sketches like dvd101x/vite-alpine) were reviewed; this template stays lean (no Tailwind) and adds Shellui SDK theme + en/fr i18n.
-
 ## Scripts
 
 ```bash
-npm run dev      # http://localhost:5173 (strictPort)
-npm run build
+npm run dev      # Vite dev server on http://localhost:5173 (strictPort)
+npm run build    # shellui build (shell → dist/web) then vite build (app → dist/web/app)
+npm run serve:dist  # serve dist/web on http://localhost:8000 (404.html SPA fallback)
 npm run preview
 ```
 
-## Shellui integration
+## With Shellui
 
-- `@shellui/sdk/tiny` handshake (`shellui.ready`)
-- Theme follows the shell via `shellui.applyTheme()` / `shellui.on('theme', …)`
-- Language follows the shell (`en` / `fr` sample UI) via `shellui.language` / `shellui.on('language', …)`
+From the project root after `shellui init alpine`:
 
-When embedded, open Shell Settings to change theme or language and watch this page update.
+```bash
+shellui start    # runs the shell (:4000) + this companion (:5173)
+shellui deploy   # uploads dist/web to a Shellui hosting preview
+```
+
+`SHELLUI_APP_URL` (see `.env.example`) sets where the built companion is served (default `/app`). `shellui build` applies that default automatically. After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally (unknown routes fall back to `404.html`).

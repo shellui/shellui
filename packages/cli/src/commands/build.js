@@ -14,6 +14,7 @@ import {
 } from '../utils/index.js';
 import { tauriBuildCommand } from '../utils/tauri.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
+import { prepareBuildEnvironment } from '../utils/project-env.js';
 
 /**
  * Collect all unique path values from navigation config (items and nested groups).
@@ -40,6 +41,23 @@ function getNavigationPaths(navigation) {
     }
   }
   return [...paths];
+}
+
+/**
+ * Rewrite root-relative-to-index asset references (emitted by Vite `base: './'`)
+ * so a copy of index.html placed `depth` folders deep still resolves assets.
+ * A file at `dist/web/<seg1>/<seg2>/index.html` must reach `dist/web/assets/...`
+ * via `../../assets/...`. Without this, hosts that serve `/<path>/` with a
+ * trailing slash resolve `./assets` under the subfolder and 404.
+ * @param {string} html - index.html content built with relative base
+ * @param {number} depth - number of path segments the copy is nested under
+ * @returns {string}
+ */
+export function rewriteRelativeAssetDepth(html, depth) {
+  if (depth <= 0) return html;
+  const prefix = '../'.repeat(depth);
+  // Match attribute values that start with `./` (e.g. src="./assets/…", href='./favicon.svg').
+  return html.replace(/(\s(?:src|href)=)(["'])\.\//g, `$1$2${prefix}`);
 }
 
 /**
@@ -101,6 +119,8 @@ export async function buildCommand(root = '.', options = {}) {
   // This allows shellui.config.ts (advanced) to detect build mode and generate build ID
   process.env.SHELLUI_BUILD = 'true';
   process.env.NODE_ENV = 'production';
+
+  prepareBuildEnvironment(projectRoot);
 
   // Load configuration
   const config = await loadConfig(root, { config: options.config });
@@ -239,13 +259,17 @@ export async function buildCommand(root = '.', options = {}) {
       const routePaths = getNavigationPaths(config.navigation);
       if (routePaths.length > 0) {
         console.log(pc.blue(`Creating route folders for ${routePaths.length} path(s)...`));
+        const indexHtml = fs.readFileSync(indexPath, 'utf-8');
         for (const routePath of routePaths) {
           const routeDir = path.join(distPath, routePath);
           const routeIndexPath = path.join(routeDir, 'index.html');
           if (!fs.existsSync(routeDir)) {
             fs.mkdirSync(routeDir, { recursive: true });
           }
-          fs.copyFileSync(indexPath, routeIndexPath);
+          // Relative `base: './'` assets must climb back to dist/web for nested routes
+          // so `/<path>/` (trailing slash) serving still resolves them.
+          const depth = routePath.split('/').filter(Boolean).length;
+          fs.writeFileSync(routeIndexPath, rewriteRelativeAssetDepth(indexHtml, depth), 'utf-8');
         }
         console.log(pc.green(`Route folders created: ${routePaths.join(', ')}`));
       }

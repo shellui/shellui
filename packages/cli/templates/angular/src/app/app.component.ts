@@ -1,16 +1,11 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { ShelluiService } from './shellui.service';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-root',
   imports: [],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit {
-  readonly shellui = inject(ShelluiService);
-
-  ngOnInit(): void {
-    this.shellui.start();
-  }
+export class AppComponent {
+  title = 'shellui-angular-app';
 }
