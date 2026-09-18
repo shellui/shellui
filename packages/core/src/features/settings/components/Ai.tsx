@@ -6,7 +6,12 @@ import { Switch } from '../../../components/ui/switch';
 import { cn } from '../../../lib/utils';
 import { isBrowserModelInstalled } from '../../ai/browserInstallStore';
 import { BROWSER_MODEL_CATALOG } from '../../ai/catalog';
-import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
+import {
+  createDefaultAiRegistry,
+  getSharedPromptApiAdapter,
+  getSharedWebLLMAdapter,
+  isPromptApiPresent,
+} from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
 import { formatUnknownError, logAiError } from '../../ai/engine/formatAiError';
@@ -22,6 +27,8 @@ type AiPanelStatus = {
   webGpu: { available: boolean; detail?: string };
   ollama: { reachable: boolean; baseUrl: string; detail?: string; latencyMs?: number };
   storage: { available: boolean; detail?: string };
+  /** Whether the Chrome built-in Prompt API global is present (Chromium only). */
+  promptApiPresent: boolean;
   models: AiModel[];
 };
 
@@ -139,6 +146,7 @@ export const Ai = () => {
   };
 
   const webllm = useMemo(() => getSharedWebLLMAdapter(), []);
+  const promptApi = useMemo(() => getSharedPromptApiAdapter(), []);
   const [status, setStatus] = useState<AiPanelStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -153,8 +161,10 @@ export const Ai = () => {
         ollama: { baseUrl: ai.ollamaBaseUrl ?? DEFAULT_OLLAMA_BASE_URL },
         includeWebLLM: ai.browserEnabled,
         webllmAdapter: webllm,
+        promptApiAdapter: promptApi,
         defaultModelId: ai.defaultModelId,
       });
+      const promptApiPresent = isPromptApiPresent();
       const [webGpu, ollama, storage, models] = await Promise.all([
         probeWebGpu(),
         ai.ollamaEnabled
@@ -170,16 +180,25 @@ export const Ai = () => {
       const filtered = models.filter((model) => {
         if (model.provider === 'ollama') return ai.ollamaEnabled;
         if (model.provider === 'webllm') return ai.browserEnabled;
+        if (model.provider === 'prompt-api') return ai.promptApiEnabled !== false;
         return true;
       });
-      setStatus({ webGpu, ollama, storage, models: filtered });
+      setStatus({ webGpu, ollama, storage, promptApiPresent, models: filtered });
     } catch {
       setStatus(null);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, ai.defaultModelId, webllm]);
+  }, [
+    ai.browserEnabled,
+    ai.ollamaBaseUrl,
+    ai.ollamaEnabled,
+    ai.promptApiEnabled,
+    ai.defaultModelId,
+    webllm,
+    promptApi,
+  ]);
 
   // Keep in-panel progress in sync when Settings remounts mid-download (toaster owns the job).
   useEffect(() => {
@@ -226,6 +245,7 @@ export const Ai = () => {
   const readyModels = (status?.models ?? []).filter((m) => m.status === 'ready');
   const ollamaModels = (status?.models ?? []).filter((m) => m.provider === 'ollama');
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
+  const promptApiModels = (status?.models ?? []).filter((m) => m.provider === 'prompt-api');
 
   const startDownload = async (model: AiModel) => {
     // Firefox is experimental, not blocked: attempt Install and let the real
@@ -262,6 +282,38 @@ export const Ai = () => {
     webllm.cancelDownload(modelId);
     downloadAbortRef.current?.abort();
     setDownload(null);
+  };
+
+  const startPromptApiDownload = async (model: AiModel) => {
+    setDownload({ modelId: model.id, progress: 0 });
+    const controller = new AbortController();
+    downloadAbortRef.current = controller;
+    try {
+      await promptApi.download(model.id, {
+        signal: controller.signal,
+        onProgress: (progress) => setDownload({ modelId: model.id, progress }),
+      });
+      setDownload(null);
+      await load();
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        setDownload(null);
+        await load();
+        return;
+      }
+      logAiError('settings.promptApi.install', err, {
+        modelId: model.id,
+        stage: 'settings.startPromptApiDownload',
+      });
+      setDownload({
+        modelId: model.id,
+        progress: 0,
+        error: formatUnknownError(err) || t('ai.unknownError'),
+      });
+      await load();
+    } finally {
+      downloadAbortRef.current = null;
+    }
   };
 
   const deleteModel = async (modelId: string) => {
@@ -614,6 +666,99 @@ export const Ai = () => {
                 )
               ) : null}
             </section>
+
+            {status?.promptApiPresent ? (
+              <section className="space-y-3 rounded-lg border border-border/60 p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="ai-prompt-api-enabled"
+                      className="text-sm font-medium leading-none"
+                      style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                    >
+                      {t('ai.providers.promptApi')}
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('ai.providers.promptApiHint')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="ai-prompt-api-enabled"
+                    checked={ai.promptApiEnabled !== false}
+                    onCheckedChange={(checked) =>
+                      updateSetting('ai', { promptApiEnabled: checked })
+                    }
+                  />
+                </div>
+                {ai.promptApiEnabled !== false ? (
+                  promptApiModels.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('ai.models.promptApiEmpty')}</p>
+                  ) : (
+                    <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                      {promptApiModels.map((model) => {
+                        const isDownloading = download?.modelId === model.id;
+                        const progress = isDownloading
+                          ? download.progress
+                          : (promptApi.getDownloadProgress(model.id) ?? null);
+                        const canDownload = !isDownloading && model.status === 'downloadable';
+                        return (
+                          <li
+                            key={model.id}
+                            className="space-y-2 px-3 py-2.5"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
+                              <ModelStatusBadge
+                                status={isDownloading ? 'downloading' : model.status}
+                                t={t}
+                              />
+                            </div>
+                            {isDownloading || typeof progress === 'number' ? (
+                              <div className="space-y-2">
+                                <div
+                                  className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                                  role="progressbar"
+                                  aria-valuemin={0}
+                                  aria-valuemax={100}
+                                  aria-valuenow={Math.round((progress ?? 0) * 100)}
+                                  aria-label={t('ai.models.downloadProgress', {
+                                    percent: Math.round((progress ?? 0) * 100),
+                                  })}
+                                >
+                                  <div
+                                    className="h-full rounded-full bg-primary transition-[width]"
+                                    style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {t('ai.models.downloadProgress', {
+                                    percent: Math.round((progress ?? 0) * 100),
+                                  })}
+                                </p>
+                              </div>
+                            ) : canDownload ? (
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                  onClick={() => void startPromptApiDownload(model)}
+                                >
+                                  {t('ai.models.download')}
+                                </Button>
+                              </div>
+                            ) : null}
+                            {download?.modelId === model.id && download.error ? (
+                              <p className="text-xs text-destructive">{download.error}</p>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )
+                ) : null}
+              </section>
+            ) : null}
           </div>
         </div>
       </div>

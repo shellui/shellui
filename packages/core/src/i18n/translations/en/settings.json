@@ -203,7 +203,9 @@
       "ollamaHint": "Models already on this computer via the Ollama app.",
       "browser": "Browser models",
       "browserHint": "Catalog installs stay in this browser. Inference is not wired yet; use Ollama for prompts.",
-      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts."
+      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts.",
+      "promptApi": "Built-in browser model",
+      "promptApiHint": "Built-in browser model (Chrome Prompt API). Runs on-device; shown only when your browser provides it."
     },
     "defaultModel": {
       "title": "Default model",
@@ -217,6 +219,7 @@
       "ollamaEmptyReady": "Connected, but no models yet. Run ollama pull.",
       "browser": "Browser catalog",
       "browserEmpty": "No browser models in the catalog.",
+      "promptApiEmpty": "The built-in browser model is turned off above.",
       "download": "Install",
       "cancel": "Cancel",
       "delete": "Remove",

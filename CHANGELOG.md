@@ -8,6 +8,7 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 
 - **WebLLM browser engine:** Settings → AI **Install** fetches curated MLC/WebLLM catalog weights via `@mlc-ai/web-llm` (Hugging Face URLs from WebLLM’s prebuilt library), runs inference in a dedicated Web Worker, and marks models ready for `shellui.ai.languageModel` prompt/streaming immediately after install. Refs #47.
 - **Config AI kill-switch:** `shellui.config` `"ai": { "enabled": false }` (default **true**) hides Settings → AI, skips the full AiBridge, answers SDK AI with `unavailable` / `ai_disabled`, and never loads the WebLLM chunk/worker. Distinct from Settings → AI “Allow apps to use AI”.
+- **Chrome built-in Prompt API provider:** new `PromptApiAdapter` (provider id `prompt-api`) surfaces the browser's on-device `LanguageModel` (Gemini Nano) as a model that routes through the same `shellui.ai` path as Ollama/WebLLM. Feature-detected and **shown only when present and usable** (`LanguageModel` / legacy `ai.languageModel` with `availability()` ≠ `unavailable`) — omitted entirely (no warning, no stub) on Firefox/Safari/iPhone/older Chrome. Stateless sessions (fresh session per turn, no wedge-prone lock); `download` triggers the browser's own model download with progress. New optional `ai.promptApiEnabled` setting (default true).
 
 ### 🛠 Improvements
 

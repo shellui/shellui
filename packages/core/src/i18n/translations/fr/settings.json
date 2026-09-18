@@ -203,7 +203,9 @@
       "ollamaHint": "Modèles déjà présents via l'application Ollama.",
       "browser": "Modèles navigateur",
       "browserHint": "Les installations catalogue restent dans ce navigateur. L'inférence n'est pas encore branchée ; utilisez Ollama pour les invites.",
-      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites."
+      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites.",
+      "promptApi": "Modèle intégré du navigateur",
+      "promptApiHint": "Modèle intégré du navigateur (API Prompt de Chrome). S'exécute sur l'appareil ; affiché uniquement lorsque votre navigateur le fournit."
     },
     "defaultModel": {
       "title": "Modèle par défaut",
@@ -217,6 +219,7 @@
       "ollamaEmptyReady": "Connecté, mais aucun modèle. Lancez ollama pull.",
       "browser": "Catalogue navigateur",
       "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
+      "promptApiEmpty": "Le modèle intégré du navigateur est désactivé ci-dessus.",
       "download": "Installer",
       "cancel": "Annuler",
       "delete": "Retirer",

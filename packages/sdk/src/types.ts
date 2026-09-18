@@ -307,6 +307,11 @@ export interface Settings {
     ollamaEnabled: boolean;
     /** Soft-enable browser catalog (WebLLM adapter). */
     browserEnabled: boolean;
+    /**
+     * Soft-enable the Chrome built-in Prompt API provider. Defaults to true when
+     * omitted; the provider only appears when the browser exposes `LanguageModel`.
+     */
+    promptApiEnabled?: boolean;
     /** Override Ollama base URL (default http://127.0.0.1:11434). */
     ollamaBaseUrl?: string;
   };

@@ -40,7 +40,11 @@ Even with config AI on:
 
 ## What you install or download
 
-There are two optional paths. Neither requires a Shellui cloud AI backend.
+There are three optional paths. None requires a Shellui cloud AI backend:
+
+- **Ollama** — the reliable, recommended path when a model is installed on the machine.
+- **Chrome built-in Prompt API** — the browser's own on-device model (`LanguageModel` / Gemini Nano). Shown **only when Chrome provides it**; it will not appear on Firefox, Safari, or iPhone.
+- **Browser models (WebLLM)** — a curated in-browser catalog downloaded to WebGPU.
 
 ### Ollama (app on the machine)
 
@@ -49,6 +53,12 @@ There are two optional paths. Neither requires a Shellui cloud AI backend.
 3. Open **Settings → AI** in Shellui. If Ollama is running locally, the shell lists those models.
 
 Models stay in Ollama's own storage. The browser only calls a local HTTP API (`http://127.0.0.1:11434` by default). If Ollama is not running, Shellui soft-fails - the rest of the shell still works.
+
+### Chrome built-in Prompt API (Gemini Nano)
+
+Recent Chromium exposes a built-in on-device model through the **Prompt API** (`LanguageModel`, formerly `window.ai.languageModel`). When present, Shellui feature-detects it and shows a **Built-in browser model** row under **Settings → AI → Providers** with the hint “Built-in browser model (Chrome Prompt API)”. If the model is `downloadable`, an **Install** button triggers the browser's own download (with progress); once `available`, prompts run through the same `shellui.ai` path as any other provider — apps do not care which provider answers.
+
+**Show only when present.** Shellui feature-detects the global (`LanguageModel`, or the legacy `ai.languageModel`) and its `availability()`. If the API is missing or reports `unavailable` — **Firefox, Safari, iPhone, Chrome without the model, older Chrome** — the row is **omitted entirely**: no warning, no disabled stub. Conversations are stateless (a fresh `LanguageModel` session per turn, seeded with history), so there is no per-session lock to get wedged.
 
 ### Browser models (WebLLM / WebGPU)
 

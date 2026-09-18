@@ -3,7 +3,7 @@
  * SDK protocol payloads live in `@shellui/sdk` so iframes never import these types.
  */
 
-export type AiProviderId = 'ollama' | 'webllm';
+export type AiProviderId = 'ollama' | 'webllm' | 'prompt-api';
 
 export type AiModelStatus =
   | 'ready'

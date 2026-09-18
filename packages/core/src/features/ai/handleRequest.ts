@@ -49,9 +49,11 @@ function filterModelsBySettings<T extends { provider: string }>(
 ): T[] {
   const ollamaEnabled = settings.ai?.ollamaEnabled !== false;
   const browserEnabled = settings.ai?.browserEnabled !== false;
+  const promptApiEnabled = settings.ai?.promptApiEnabled !== false;
   return models.filter((model) => {
     if (model.provider === 'ollama') return ollamaEnabled;
     if (model.provider === 'webllm') return browserEnabled;
+    if (model.provider === 'prompt-api') return promptApiEnabled;
     return true;
   });
 }
