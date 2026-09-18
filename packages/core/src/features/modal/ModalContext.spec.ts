@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_ADMIN_URL } from '../admin/config';
 import type { ShellUIConfig } from '../config/types';
 import { validateAndNormalizeUrl } from './validateAndNormalizeUrl';
@@ -36,10 +36,21 @@ describe('validateAndNormalizeUrl', () => {
     expect(validateAndNormalizeUrl('/settings')).toBe('/settings');
   });
 
-  it('allows localhost urls', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('allows localhost urls in development builds', () => {
+    vi.stubEnv('NODE_ENV', 'development');
     expect(validateAndNormalizeUrl('http://localhost:5175/#/select')).toBe(
       'http://localhost:5175/#/select',
     );
+  });
+
+  it('rejects localhost urls in production builds', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(validateAndNormalizeUrl('http://localhost:5175/#/select', config)).toBeNull();
+    expect(validateAndNormalizeUrl('http://127.0.0.1:5175/#/select', config)).toBeNull();
   });
 
   it('rejects unrelated origins', () => {

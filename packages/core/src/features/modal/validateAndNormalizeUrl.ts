@@ -1,20 +1,6 @@
 import { getAdminContentUrl } from '../admin/config';
 import type { ShellUIConfig } from '../config/types';
-
-const originFromAbsoluteUrl = (value: string | undefined | null): string | null => {
-  if (!value || typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-    return null;
-  }
-  try {
-    return new URL(trimmed).origin;
-  } catch {
-    return null;
-  }
-};
+import { isAllowedIframeOrigin, originFromAbsoluteUrl } from '../security/urlAllowlist';
 
 /** Origins allowed in modal iframes: storage service/files app, admin panel, and administration nav apps. */
 const getAllowedModalOrigins = (config?: ShellUIConfig | null): Set<string> => {
@@ -41,7 +27,7 @@ const getAllowedModalOrigins = (config?: ShellUIConfig | null): Set<string> => {
 };
 
 /**
- * Validates and normalizes a URL to ensure it's from the same domain, localhost,
+ * Validates and normalizes a URL to ensure it's from the same domain, localhost (dev only),
  * storage, or administration origins configured on the host.
  * @param url - The URL or path to validate
  * @param config - Host config used to allow storage and administration origins
@@ -61,13 +47,13 @@ export const validateAndNormalizeUrl = (
       const urlObj = new URL(url);
       const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
-      // Allow same origin
-      if (urlObj.origin === currentOrigin) {
-        return url;
-      }
-
-      // Allow localhost URLs (for development)
-      if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
+      if (
+        isAllowedIframeOrigin(urlObj.origin, {
+          allowLocalhost: true,
+          config,
+          currentOrigin,
+        })
+      ) {
         return url;
       }
 

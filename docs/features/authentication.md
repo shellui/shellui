@@ -52,11 +52,11 @@ Protected routes redirect to `/login?next=<encoded-path>`. After sign-in, the sh
 
 On desktop, `/login` shows a full-height left panel. Both branding fields are optional.
 
-| Field        | Behavior                                                   |
-| ------------ | ---------------------------------------------------------- |
-| `panelUrl`   | Full-bleed iframe. Wins when both fields are set           |
-| `panelImage` | Centered `object-contain` image                            |
-| neither      | Muted panel with clickable `appIcon` top left (links home) |
+| Field        | Behavior                                                                                                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `panelUrl`   | Full-bleed iframe. Wins when both fields are set. Must be a same-origin relative path, a configured backend/login/storage origin, or (development only) a loopback URL; untrusted URLs are ignored |
+| `panelImage` | Centered `object-contain` image                                                                                                                                                                    |
+| neither      | Muted panel with clickable `appIcon` top left (links home)                                                                                                                                         |
 
 On mobile, the square `appIcon` is pinned top-left and the form stays centered. Language (when multiple languages are configured) and light/dark controls sit at the top right of the form column. The form uses `.shellui-safe-pad` for notches. Relative image paths are served from `static/`. The left panel is hidden on mobile and when login is embedded in a modal iframe.
 
@@ -152,7 +152,22 @@ The backend returns `error_code` `access_pending` or `access_denied` (also as `s
 
 ## Iframe apps
 
-Iframes do not read storage directly. They receive `user` and `accessToken` through SDK settings after the shell initializes auth.
+Iframes do not read storage directly. They receive `user` through SDK settings after the shell initializes auth. The session **access token** is included only when the companion navigation item sets `safeForAuthToken: true` (opt-in). The refresh token stays in the shell and is never sent to iframe apps.
+
+### Migration (breaking change)
+
+If your companion relied on the previous default (token shared without config), add `safeForAuthToken: true` on its navigation item after upgrading:
+
+```typescript
+{
+  label: 'My app',
+  path: 'my-app',
+  url: 'http://localhost:5173/',
+  safeForAuthToken: true,
+}
+```
+
+When [postMessage trust policy](https://github.com/shellui/shellui/issues/60) is enabled via `security.allowedMessageOrigins`, token sharing still requires `safeForAuthToken: true`; allowed origins are enforced separately for postMessage traffic.
 
 ```typescript
 import { shellui } from '@shellui/sdk';

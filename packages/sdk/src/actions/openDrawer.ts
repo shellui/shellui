@@ -1,4 +1,5 @@
 import type { OpenDrawerOptions } from '../types.js';
+import { postShellMessage } from '../utils/postShellMessage.js';
 
 /**
  * Opens the drawer with optional url, position, size, and dismiss options.
@@ -35,9 +36,5 @@ export function openDrawer(options?: OpenDrawerOptions): void {
     payload,
   };
 
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-  } else {
-    window.postMessage(message, '*');
-  }
+  postShellMessage(message);
 }

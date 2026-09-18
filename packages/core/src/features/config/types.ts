@@ -58,8 +58,8 @@ export interface NavigationItem {
   settings?: string;
   /**
    * Trust control for auth token sharing to iframe apps.
-   * - undefined/true: trusted (default), token can be shared
-   * - false: untrusted, token is never shared
+   * - undefined/false: untrusted (default), access token is not shared
+   * - true: trusted, access token can be shared (opt-in)
    */
   safeForAuthToken?: boolean;
 }
@@ -139,6 +139,17 @@ export interface LegalDocumentsConfig {
   termsOfService?: string;
   legalNotice?: string;
   dataProcessingAgreement?: string;
+}
+
+/**
+ * Host security options. Additive namespace for postMessage, CSP, BFF auth, etc.
+ */
+export interface SecurityConfig {
+  /**
+   * Extra http(s) origins (or absolute URLs) allowed for Shellui postMessage traffic.
+   * Unioned with origins derived from navigation, storage, and admin URLs.
+   */
+  allowedMessageOrigins?: string[];
 }
 
 /** Supported backend providers for auth/API communication. */
@@ -327,6 +338,8 @@ export interface ShellUIConfig {
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
   legalDocuments?: LegalDocumentsConfig;
+  /** Host security settings (postMessage allowlist extras, etc.). */
+  security?: SecurityConfig;
   /**
    * CLI-only companion for `shellui start`. Spawn `run` and/or follow `url`.
    * Stripped before the config is sent to the browser.
