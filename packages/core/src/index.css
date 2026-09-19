@@ -1220,6 +1220,14 @@ html.shellui-theme-switching
 [data-shellui-ai-details] > [data-shellui-ai-details-inner] {
   min-height: 0;
   overflow: hidden;
+  /* Room for focus-visible ring + ring-offset on full-width Select/Input.
+   * Without this, the gold focus outline is clipped flush left/right by
+   * overflow:hidden (collapse animation). 0.25rem keeps the control full-width-ish. */
+  padding-inline: 0.25rem;
+}
+/* Once open, stop clipping focus rings / shadows on full-width controls. */
+[data-shellui-ai-details='open'] > [data-shellui-ai-details-inner] {
+  overflow: visible;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-shellui-ai-details] {
