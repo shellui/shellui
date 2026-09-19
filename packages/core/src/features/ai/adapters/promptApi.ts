@@ -27,6 +27,11 @@ export type PromptApiAdapterOptions = {
  * the global is missing (Firefox/Safari/iPhone/older Chrome) or `availability()`
  * is `unavailable`, so Settings omits the provider entirely — no warning, no stub.
  *
+ * Settings UX is **Enable** (not Install/Download): Chrome often reports no
+ * transferable download progress, so a stuck 0% bar is wrong. The adapter's
+ * `download()` method is the warm/`create({ monitor })` path; callers must treat
+ * missing/zero progress as indeterminate setup.
+ *
  * Conversations are **stateless** here: like Ollama, each prompt spins a fresh
  * `LanguageModel` session seeded with the full history and is destroyed after the
  * turn, so there is no per-session lock to get wedged (unlike WebLLM).
@@ -95,17 +100,21 @@ export class PromptApiAdapter implements AiAdapter {
       options?.onProgress?.(1);
       return;
     }
-    // Creating a session with a monitor triggers the built-in model download and
-    // reports progress (0–1). We destroy the session immediately after.
-    this.downloadProgress = 0;
+    // Creating a session with a monitor warms the built-in model. Chrome may or
+    // may not fire transferable downloadprogress events — callers should treat
+    // missing/zero progress as indeterminate setup, not a stuck 0% download.
+    this.downloadProgress = null;
     try {
       const session = await api.create({
         signal: options?.signal,
         monitor: (monitor) => {
           monitor.addEventListener('downloadprogress', (event) => {
             const ratio = typeof event.loaded === 'number' ? event.loaded : 0;
-            this.downloadProgress = ratio;
-            options?.onProgress?.(ratio);
+            // Ignore 0 — that is what produced a stuck “0%” Install bar in Settings.
+            if (ratio > 0) {
+              this.downloadProgress = ratio;
+              options?.onProgress?.(ratio);
+            }
           });
         },
       });

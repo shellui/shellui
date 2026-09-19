@@ -38,6 +38,17 @@ type DownloadState = {
   error?: string;
 };
 
+/** Prompt API setup (not a weight download — Chrome often reports no transferable progress). */
+type PromptApiSetupState = {
+  modelId: string;
+  /**
+   * Real 0–1 progress only after Chrome fires `downloadprogress` with `loaded` > 0.
+   * `null` means indeterminate (“Setting up…”), never a stuck 0% bar.
+   */
+  progress: number | null;
+  error?: string;
+};
+
 function formatBytes(bytes: number | undefined, locale: string): string | null {
   if (bytes === undefined || !Number.isFinite(bytes)) return null;
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -151,7 +162,9 @@ export const Ai = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [download, setDownload] = useState<DownloadState | null>(null);
+  const [promptApiSetup, setPromptApiSetup] = useState<PromptApiSetupState | null>(null);
   const downloadAbortRef = useRef<AbortController | null>(null);
+  const promptApiAbortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -229,6 +242,7 @@ export const Ai = () => {
       setError(false);
       setLoading(false);
       setDownload(null);
+      setPromptApiSetup(null);
       return;
     }
     void load();
@@ -284,36 +298,67 @@ export const Ai = () => {
     setDownload(null);
   };
 
-  const startPromptApiDownload = async (model: AiModel) => {
-    setDownload({ modelId: model.id, progress: 0 });
-    const controller = new AbortController();
-    downloadAbortRef.current = controller;
-    try {
-      await promptApi.download(model.id, {
-        signal: controller.signal,
-        onProgress: (progress) => setDownload({ modelId: model.id, progress }),
-      });
-      setDownload(null);
-      await load();
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') {
-        setDownload(null);
+  const startPromptApiEnable = useCallback(
+    async (model: AiModel) => {
+      // Indeterminate until Chrome fires a real downloadprogress with loaded > 0.
+      setPromptApiSetup({ modelId: model.id, progress: null });
+      const controller = new AbortController();
+      promptApiAbortRef.current = controller;
+      try {
+        await promptApi.download(model.id, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            // Only promote to a determinate bar once progress actually advances.
+            if (progress > 0) {
+              setPromptApiSetup({ modelId: model.id, progress });
+            }
+          },
+        });
+        setPromptApiSetup(null);
         await load();
-        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          setPromptApiSetup(null);
+          await load();
+          return;
+        }
+        logAiError('settings.promptApi.enable', err, {
+          modelId: model.id,
+          stage: 'settings.startPromptApiEnable',
+        });
+        setPromptApiSetup({
+          modelId: model.id,
+          progress: null,
+          error: formatUnknownError(err) || t('ai.unknownError'),
+        });
+        await load();
+      } finally {
+        promptApiAbortRef.current = null;
       }
-      logAiError('settings.promptApi.install', err, {
-        modelId: model.id,
-        stage: 'settings.startPromptApiDownload',
-      });
-      setDownload({
-        modelId: model.id,
-        progress: 0,
-        error: formatUnknownError(err) || t('ai.unknownError'),
-      });
-      await load();
-    } finally {
-      downloadAbortRef.current = null;
+    },
+    [load, promptApi, t],
+  );
+
+  const onPromptApiEnabledChange = (checked: boolean) => {
+    updateSetting('ai', { promptApiEnabled: checked });
+    if (!checked) {
+      promptApiAbortRef.current?.abort();
+      setPromptApiSetup(null);
+      return;
     }
+    // Turning the switch on: if the built-in model still needs a one-shot create()
+    // warm, run Enable automatically (no separate “Install” step).
+    void (async () => {
+      const models = await promptApi.listModels();
+      const needsSetup = models.find(
+        (model) => model.status === 'downloadable' || model.status === 'downloading',
+      );
+      if (needsSetup) {
+        await startPromptApiEnable(needsSetup);
+      } else {
+        await load();
+      }
+    })();
   };
 
   const deleteModel = async (modelId: string) => {
@@ -685,9 +730,7 @@ export const Ai = () => {
                   <Switch
                     id="ai-prompt-api-enabled"
                     checked={ai.promptApiEnabled !== false}
-                    onCheckedChange={(checked) =>
-                      updateSetting('ai', { promptApiEnabled: checked })
-                    }
+                    onCheckedChange={onPromptApiEnabledChange}
                   />
                 </div>
                 {ai.promptApiEnabled !== false ? (
@@ -696,11 +739,18 @@ export const Ai = () => {
                   ) : (
                     <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
                       {promptApiModels.map((model) => {
-                        const isDownloading = download?.modelId === model.id;
-                        const progress = isDownloading
-                          ? download.progress
-                          : (promptApi.getDownloadProgress(model.id) ?? null);
-                        const canDownload = !isDownloading && model.status === 'downloadable';
+                        const isEnabling = promptApiSetup?.modelId === model.id;
+                        const realProgress =
+                          isEnabling &&
+                          typeof promptApiSetup?.progress === 'number' &&
+                          promptApiSetup.progress > 0
+                            ? promptApiSetup.progress
+                            : null;
+                        // Enable only when the model still needs a one-shot create() warm —
+                        // already-ready models rely on the provider switch alone.
+                        const canEnable =
+                          !isEnabling &&
+                          (model.status === 'downloadable' || model.status === 'downloading');
                         return (
                           <li
                             key={model.id}
@@ -708,48 +758,60 @@ export const Ai = () => {
                           >
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
-                              <ModelStatusBadge
-                                status={isDownloading ? 'downloading' : model.status}
-                                t={t}
-                              />
+                              {isEnabling ? (
+                                <span className="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:text-amber-100">
+                                  {t('ai.models.enabling')}
+                                </span>
+                              ) : (
+                                <ModelStatusBadge
+                                  status={model.status}
+                                  t={t}
+                                />
+                              )}
                             </div>
-                            {isDownloading || typeof progress === 'number' ? (
-                              <div className="space-y-2">
-                                <div
-                                  className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
-                                  role="progressbar"
-                                  aria-valuemin={0}
-                                  aria-valuemax={100}
-                                  aria-valuenow={Math.round((progress ?? 0) * 100)}
-                                  aria-label={t('ai.models.downloadProgress', {
-                                    percent: Math.round((progress ?? 0) * 100),
-                                  })}
-                                >
+                            {isEnabling ? (
+                              realProgress !== null ? (
+                                <div className="space-y-2">
                                   <div
-                                    className="h-full rounded-full bg-primary transition-[width]"
-                                    style={{ width: `${Math.round((progress ?? 0) * 100)}%` }}
-                                  />
+                                    className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                                    role="progressbar"
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.round(realProgress * 100)}
+                                    aria-label={t('ai.models.downloadProgress', {
+                                      percent: Math.round(realProgress * 100),
+                                    })}
+                                  >
+                                    <div
+                                      className="h-full rounded-full bg-primary transition-[width]"
+                                      style={{ width: `${Math.round(realProgress * 100)}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('ai.models.downloadProgress', {
+                                      percent: Math.round(realProgress * 100),
+                                    })}
+                                  </p>
                                 </div>
+                              ) : (
                                 <p className="text-xs text-muted-foreground">
-                                  {t('ai.models.downloadProgress', {
-                                    percent: Math.round((progress ?? 0) * 100),
-                                  })}
+                                  {t('ai.models.promptApiSettingUp')}
                                 </p>
-                              </div>
-                            ) : canDownload ? (
+                              )
+                            ) : canEnable ? (
                               <div className="flex flex-wrap gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   className="h-8"
-                                  onClick={() => void startPromptApiDownload(model)}
+                                  onClick={() => void startPromptApiEnable(model)}
                                 >
-                                  {t('ai.models.download')}
+                                  {t('ai.models.enable')}
                                 </Button>
                               </div>
                             ) : null}
-                            {download?.modelId === model.id && download.error ? (
-                              <p className="text-xs text-destructive">{download.error}</p>
+                            {promptApiSetup?.modelId === model.id && promptApiSetup.error ? (
+                              <p className="text-xs text-destructive">{promptApiSetup.error}</p>
                             ) : null}
                           </li>
                         );

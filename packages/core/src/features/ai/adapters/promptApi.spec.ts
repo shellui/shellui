@@ -65,6 +65,33 @@ describe('PromptApiAdapter', () => {
     expect((await downloading.listModels())[0]?.status).toBe('downloading');
   });
 
+  it('warm/enable ignores zero downloadprogress and only reports real loaded > 0', async () => {
+    const progressEvents: number[] = [];
+    const adapter = new PromptApiAdapter({
+      getApi: () => ({
+        availability: async () => 'downloadable' as const,
+        create: async (opts) => {
+          opts?.monitor?.({
+            addEventListener: (_type, listener) => {
+              listener({ loaded: 0 });
+              listener({ loaded: 0.4 });
+            },
+          });
+          return {
+            prompt: async () => '',
+            promptStreaming: () => (async function* () {})(),
+            destroy: vi.fn(),
+          };
+        },
+      }),
+    });
+    await adapter.download('default', {
+      onProgress: (p) => progressEvents.push(p),
+    });
+    // 0 must not surface (would render a stuck “0%” Install bar); 0.4 and final 1 do.
+    expect(progressEvents).toEqual([0.4, 1]);
+  });
+
   it('prompts via a fresh session and seeds history as initialPrompts', async () => {
     const created: unknown[] = [];
     const adapter = new PromptApiAdapter({
