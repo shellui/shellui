@@ -370,7 +370,7 @@ export const Ai = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="w-full shrink-0 space-y-5">
       <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
 
       <div className="flex items-center justify-between gap-4">
@@ -393,6 +393,7 @@ export const Ai = () => {
 
       <div
         data-shellui-ai-details={ai.enabled ? 'open' : 'closed'}
+        className="w-full shrink-0 self-start"
         aria-hidden={!ai.enabled}
       >
         <div
