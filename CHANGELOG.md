@@ -2,6 +2,29 @@
 
 Notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### ✨ Feature
+
+- **WebLLM browser engine:** Settings → AI **Install** fetches curated MLC/WebLLM catalog weights via `@mlc-ai/web-llm` (Hugging Face URLs from WebLLM’s prebuilt library), runs inference in a dedicated Web Worker, and marks models ready for `shellui.ai.languageModel` prompt/streaming immediately after install. Refs #47.
+- **Config AI kill-switch:** `shellui.config` `"ai": { "enabled": false }` (default **true**) hides Settings → AI, skips the full AiBridge, answers SDK AI with `unavailable` / `ai_disabled`, and never loads the WebLLM chunk/worker. Distinct from Settings → AI “Allow apps to use AI”.
+- **Chrome built-in Prompt API provider:** new `PromptApiAdapter` (provider id `prompt-api`) surfaces the browser's on-device `LanguageModel` (Gemini Nano) as a model that routes through the same `shellui.ai` path as Ollama/WebLLM. Feature-detected and **shown only when present and usable** (`LanguageModel` / legacy `ai.languageModel` with `availability()` ≠ `unavailable`) — omitted entirely (no warning, no stub) on Firefox/Safari/iPhone/older Chrome. Stateless sessions (fresh session per turn, no wedge-prone lock). Settings uses the provider **Enable** switch (plus an **Enable** warm when `downloadable`); never Install/0% — indeterminate “Setting up…” unless Chrome fires real `downloadprogress`. New optional `ai.promptApiEnabled` setting (default true).
+
+### 🛠 Improvements
+
+- **Shared transfer toaster:** storage uploads and AI model downloads share `TransferToaster` / `transferQueue` progress UI (accurate engine progress; downloads continue after leaving Settings).
+- **Lazy WebLLM:** `@mlc-ai/web-llm` is dynamically imported only on first browser Install/load; opening Settings → AI alone does not fetch the library. `AiBridge` itself is lazy-loaded when config AI is enabled.
+- **Experimental (not blocked) browser Install:** Chrome/Edge/**Safari** are recommended; **Firefox** shows a **warning banner** but Install is still **allowed**. Failures surface the real mapped `[shellui.ai]` error instead of a pre-emptive block. Richer console errors + CSP extras (Ollama localhost, HF, worker-src, wasm-unsafe-eval) when AI is enabled; Vite resolves/prebundles `@mlc-ai/web-llm` for the shell.
+- **Reliable WebLLM conversation switch (worker recreate):** the engine tracks the owning LanguageModel session and, on a genuine switch (create/destroy or a prompt for a different `sessionId`) — and on **Stop/abort** — **fully disposes the WebLLM worker** (`worker.terminate()`) and recreates a fresh engine for the same model on the next prompt (weights from the browser cache, short warm). This defeats an upstream streaming-lock bug ([mlc-ai/web-llm#701](https://github.com/mlc-ai/web-llm/pull/701), [mlc-ai/mlc-llm#3113](https://github.com/mlc-ai/mlc-llm/issues/3113)) that `resetChat` and living-worker `reload` could not — fixing “new chat stuck on Thinking…”. Same-session multi-turn keeps the warm worker; Ollama is unaffected (stateless HTTP).
+- **Diagnosable WebLLM Install failures:** Worker `error` / `messageerror` and `CreateWebWorkerMLCEngine` rejections (including WebLLM’s string throws) are logged as `console.error('[shellui.ai]', …)` and shown in the transfer toaster / Settings error — with an explicit **WebGPU failed in the WebLLM worker** mapping when applicable. HF traffic is expected under the **Worker** Network tab, not the main document.
+- **Sequential WebLLM prompts:** `prompt` / `promptStreaming` are serialized on the shared worker; streams are fully drained and `interruptGenerate()` runs after each turn so a second Chat question does not hang. `AiSession` accumulates message history for multi-turn context.
+- **WebLLM conversation switch:** LanguageModel `destroy` / `create` call `resetChat` (under the generation lock) so a new playground chat does not hang on stale worker KV state — weights stay warm. Late `destroy` of a superseded session skips `resetConversation` / `interruptGenerate` (activeSessionId guard) so it cannot kill the new chat’s in-flight generation. SDK `destroy()` is awaitable.
+- **WebLLM Vite interop:** **exclude** `@mlc-ai/web-llm` from `optimizeDeps` (esbuild prebundle mangles named exports); keep package alias + `loglevel` include. Normalize dynamic import (`.default` / nested / `CreateMLCEngine` fallback). After pull: `rm -rf node_modules/.vite-shellui`.
+
+### 📚 Documentation
+
+- Update on-device AI docs for the real WebLLM install / worker / toaster path and config vs Settings disable.
+
 <!---
 ## [Unreleased] - yyyy-mm-dd
 
@@ -17,6 +40,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
+
+## [0.5.2] - 2026-09-18
+
+### 🐛 Bug Fixes
+
+- **OAuth callback / deep shell routes on static hosts:** `shellui build` now materializes nested `dist/web/<path>/index.html` for built-in shell routes (`/login`, `/login/callback`, settings, legal, …) in addition to navigation paths, with `rewriteRelativeAssetDepth` so `./assets/…` resolves correctly on GitHub Pages and similar hosts. Without this, `/login/callback` fell through to root `404.html` and loaded assets from `/login/assets/…` → white page.
 
 ## [0.5.1] - 2026-09-18
 

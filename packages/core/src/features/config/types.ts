@@ -247,6 +247,19 @@ export interface StorageConfig {
 }
 
 /**
+ * On-device AI product feature (Ollama + browser / WebLLM).
+ * Distinct from the per-user Settings → AI “Allow apps to use AI” toggle.
+ */
+export interface AiConfig {
+  /**
+   * Deploy-time kill-switch for the whole AI feature.
+   * When false: no AiBridge, no Settings → AI, no WebLLM chunk/worker on normal shell use.
+   * Default: true (omit or set true). Opt out with `"ai": { "enabled": false }`.
+   */
+  enabled?: boolean;
+}
+
+/**
  * Optional hosting-service wiring for `shellui deploy` preview uploads.
  * Preview sites expire after 7 days unless redeployed to the same slug.
  */
@@ -333,6 +346,12 @@ export interface ShellUIConfig {
    * when `url` is set unless `storage.showInSettings` is false.
    */
   storage?: StorageConfig;
+  /**
+   * On-device AI (Ollama + browser WebLLM). Default enabled; set `enabled: false` to
+   * omit AI UI/bridge and avoid loading `@mlc-ai/web-llm` for shells that do not want AI.
+   * See docs/features/ai.md. Distinct from Settings → AI “Allow apps to use AI”.
+   */
+  ai?: AiConfig;
   /**
    * Hosting-service connection. Propagated to iframes via SDK settings.
    * Enables `shellui deploy` when `url` is set.

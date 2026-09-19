@@ -34,7 +34,8 @@ import type { NavigationItem } from '../config/types';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
-import { isStorageSettingsEnabled } from '../storage/quota';
+import { shouldShowStorageSettings } from './utils/shouldShowStorageSettings';
+import { isAiFeatureEnabled } from '../ai/isAiFeatureEnabled';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -85,11 +86,21 @@ export const SettingsView = () => {
     if (getLegalDocuments(config).length === 0) {
       routes = routes.filter((route) => route.path !== 'legal-documents');
     }
-    if (!isStorageSettingsEnabled(config) || !isAuthenticated) {
+    if (!isAiFeatureEnabled(config)) {
+      routes = routes.filter((route) => route.path !== 'ai');
+    }
+    const aiEnabledForStorage = isAiFeatureEnabled(config) && settings.ai?.enabled !== false;
+    if (
+      !shouldShowStorageSettings({
+        config,
+        isAuthenticated,
+        aiEnabled: aiEnabledForStorage,
+      })
+    ) {
       routes = routes.filter((route) => route.path !== 'storage');
     }
     return routes;
-  }, [filteredRoutes, config, isAuthenticated]);
+  }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled]);
 
   // Application settings from navigation items with settings URL
   const applicationRoutes = useMemo(() => {
@@ -158,6 +169,7 @@ export const SettingsView = () => {
           ),
           ...userRoute,
           ...settingsNavRoutes.filter((route) => route.path === 'storage'),
+          ...settingsNavRoutes.filter((route) => route.path === 'ai'),
         ],
       },
       {

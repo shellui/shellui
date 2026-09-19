@@ -78,6 +78,12 @@ const baseSettings: Settings = {
   region: { timezone: 'UTC' },
   cookieConsent: { acceptedHosts: [], consentedCookieHosts: [] },
   serviceWorker: { enabled: false },
+  ai: {
+    enabled: true,
+    defaultModelId: null,
+    ollamaEnabled: true,
+    browserEnabled: true,
+  },
   user: null,
 };
 

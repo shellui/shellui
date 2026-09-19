@@ -107,6 +107,7 @@ describe('MessageSecurityPolicy', () => {
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_DIALOG')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_TOAST')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_OPEN_MODAL')).toBe(true);
+    expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_AI_REQUEST')).toBe(true);
   });
 });
 
@@ -142,13 +143,101 @@ describe('resolveIframeTargetOrigin', () => {
 });
 
 describe('resolveParentTargetOrigin', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('returns self origin when not embedded', () => {
-    vi.stubGlobal('window', {
-      parent: globalThis,
-      location: { origin: 'https://shell.example.com', ancestorOrigins: undefined },
-    } as Window);
+    const self = {
+      location: { origin: 'https://shell.example.com' },
+    } as Window & { parent: Window };
+    self.parent = self;
+    vi.stubGlobal('window', self);
     vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
 
     expect(resolveParentTargetOrigin()).toBe('https://shell.example.com');
+  });
+
+  it('uses ancestorOrigins when embedded', () => {
+    const parentWin = {} as Window;
+    vi.stubGlobal('window', {
+      parent: parentWin,
+      location: { origin: 'http://localhost:5173' },
+    } as Window);
+    vi.stubGlobal('document', {
+      referrer: '',
+      location: { ancestorOrigins: { 0: 'http://localhost:4000', length: 1 } },
+    });
+
+    expect(resolveParentTargetOrigin()).toBe('http://localhost:4000');
+  });
+
+  it('falls back to * when embedded without ancestorOrigins or referrer', () => {
+    const parentWin = {} as Window;
+    vi.stubGlobal('window', {
+      parent: parentWin,
+      location: { origin: 'http://localhost:5173' },
+    } as Window);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+
+    expect(resolveParentTargetOrigin()).toBe('*');
+  });
+});
+
+describe('explainUntrustedInboundMessage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('explains allowlist rejection for early localhost companion messages', () => {
+    const policy = new MessageSecurityPolicy();
+    // Only shell origin from window — companion not configured yet (pre-bootstrap race).
+    vi.stubGlobal('window', {
+      location: { origin: 'http://localhost:4000' },
+      parent: {} as Window,
+    } as Window);
+    policy.configure({ allowedOrigins: [] });
+
+    const iframeWindow = {} as Window;
+    const frameRegistry = {
+      getUuidByIframe: (win: Window | null | undefined) =>
+        win === iframeWindow ? 'frame-1' : undefined,
+    } as FrameRegistry;
+
+    const event = {
+      origin: 'http://localhost:5173',
+      source: iframeWindow,
+      data: { type: 'SHELLUI_SETTINGS_REQUESTED' },
+    } as MessageEvent;
+
+    expect(
+      policy.explainUntrustedInboundMessage(event, frameRegistry, 'SHELLUI_SETTINGS_REQUESTED'),
+    ).toMatch(/origin not allowlisted/);
+
+    policy.configure({ allowedOrigins: ['http://localhost:5173'] });
+    expect(
+      policy.explainUntrustedInboundMessage(event, frameRegistry, 'SHELLUI_SETTINGS_REQUESTED'),
+    ).toBeNull();
+  });
+
+  it('accepts shell SETTINGS from parent even when parent origin was not pre-allowlisted', () => {
+    const parentWin = {} as Window;
+    const companionWin = {
+      location: { origin: 'http://localhost:5173' },
+      parent: parentWin,
+    } as Window;
+    vi.stubGlobal('window', companionWin);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+
+    const policy = new MessageSecurityPolicy();
+    policy.configure({ allowedOrigins: [] });
+
+    const event = {
+      origin: 'http://localhost:4000',
+      source: parentWin,
+      data: { type: 'SHELLUI_SETTINGS' },
+    } as MessageEvent;
+
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toBe(true);
   });
 });

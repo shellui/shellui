@@ -294,6 +294,27 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
+  /**
+   * On-device AI preferences (Settings → AI).
+   * When `enabled` is false, apps get `unavailable` from `shellui.ai.languageModel.availability()`.
+   */
+  ai: {
+    /** Allow embedded apps to call shell AI once a model is ready. */
+    enabled: boolean;
+    /** Qualified model id (`ollama:…` / `webllm:…`) used when apps omit a model. */
+    defaultModelId: string | null;
+    /** Soft-enable Ollama probing and listing. */
+    ollamaEnabled: boolean;
+    /** Soft-enable browser catalog (WebLLM adapter). */
+    browserEnabled: boolean;
+    /**
+     * Soft-enable the Chrome built-in Prompt API provider. Defaults to true when
+     * omitted; the provider only appears when the browser exposes `LanguageModel`.
+     */
+    promptApiEnabled?: boolean;
+    /** Override Ollama base URL (default http://127.0.0.1:11434). */
+    ollamaBaseUrl?: string;
+  };
   /** Override layout at runtime. When set, overrides config.layout (e.g. from Develop settings). */
   layout?:
     | 'sidebar'
@@ -637,7 +658,10 @@ export type ShellUIMessageType =
   | 'SHELLUI_CONTENT_SCROLL'
   | 'SHELLUI_ACTIONS_SET'
   | 'SHELLUI_ACTIONS_CLEAR'
-  | 'SHELLUI_ACTION';
+  | 'SHELLUI_ACTION'
+  | 'SHELLUI_AI_REQUEST'
+  | 'SHELLUI_AI_RESPONSE'
+  | 'SHELLUI_AI_STREAM';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

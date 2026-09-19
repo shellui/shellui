@@ -8,6 +8,16 @@ import { generateUuid } from './uuid.js';
 
 const logger = getLogger('shellsdk');
 
+function originFromIframeSrc(iframe: HTMLIFrameElement): string | null {
+  const src = iframe?.src?.trim();
+  if (!src || src === 'about:blank') return null;
+  try {
+    return new URL(src, typeof window !== 'undefined' ? window.location.href : undefined).origin;
+  } catch {
+    return null;
+  }
+}
+
 export class FrameRegistry {
   private iframes = new Map<string, HTMLIFrameElement>();
 
@@ -25,9 +35,65 @@ export class FrameRegistry {
     return undefined;
   }
 
+  /**
+   * If `source` is an iframe browsing context already in the DOM but not yet
+   * registered (React commit vs companion init race), register it and return
+   * its UUID.
+   *
+   * Falls back to a unique `src` origin match when `contentWindow === source`
+   * fails (seen across some browsers / sandbox edge cases).
+   */
+  adoptWindow(source: Window | null | undefined, origin?: string | null): string | undefined {
+    if (!source && !origin) return undefined;
+
+    if (source) {
+      const existing = this.getUuidByIframe(source);
+      if (existing) return existing;
+    }
+
+    if (typeof document === 'undefined') return undefined;
+
+    const domIframes = Array.from(document.querySelectorAll('iframe'));
+
+    if (source) {
+      for (const node of domIframes) {
+        if (node.contentWindow === source) {
+          return this.addIframe(node);
+        }
+      }
+    }
+
+    if (origin) {
+      const byOrigin = domIframes.filter((node) => originFromIframeSrc(node) === origin);
+      if (byOrigin.length === 1) {
+        return this.addIframe(byOrigin[0]);
+      }
+      if (byOrigin.length > 1) {
+        logger.debug('adoptWindow: multiple iframes share origin, need contentWindow match', {
+          origin,
+          count: byOrigin.length,
+        });
+      }
+    }
+
+    return undefined;
+  }
+
   addIframe(iframe: HTMLIFrameElement): string {
-    if (!iframe || !(iframe instanceof HTMLIFrameElement)) {
+    if (!iframe) {
       throw new Error('addIframe requires a valid HTMLIFrameElement');
+    }
+    const isIframe =
+      (typeof HTMLIFrameElement !== 'undefined' && iframe instanceof HTMLIFrameElement) ||
+      (iframe as unknown as { tagName?: string }).tagName === 'IFRAME';
+    if (!isIframe) {
+      throw new Error('addIframe requires a valid HTMLIFrameElement');
+    }
+
+    for (const [uuid, existing] of this.iframes.entries()) {
+      if (existing === iframe) {
+        return uuid;
+      }
     }
 
     const uuid = generateUuid();
