@@ -3,9 +3,11 @@
 export const BROWSER_INSTALL_STORAGE_KEY = 'shellui:ai:browserInstalled';
 
 export type BrowserInstallRecord = {
-  /** Local model id without `webllm:` prefix. */
+  /** Local model id without `webllm:` prefix (WebLLM `model_id`). */
   id: string;
   installedAt: number;
+  /** Cache backend hint — WebLLM IndexedDB / Cache API for v1. */
+  cache?: 'webllm';
 };
 
 function readStore(): BrowserInstallRecord[] {
@@ -43,7 +45,7 @@ export function isBrowserModelInstalled(modelId: string): boolean {
 export function markBrowserModelInstalled(modelId: string): void {
   const localId = modelId.replace(/^webllm:/, '');
   const existing = readStore().filter((record) => record.id !== localId);
-  existing.push({ id: localId, installedAt: Date.now() });
+  existing.push({ id: localId, installedAt: Date.now(), cache: 'webllm' });
   writeStore(existing);
 }
 
@@ -57,7 +59,7 @@ export function clearBrowserInstalledForTests(): void {
   localStorage.removeItem(BROWSER_INSTALL_STORAGE_KEY);
 }
 
-/** Sum of catalog `sizeBytes` for install records (estimate until real OPFS weights). */
+/** Sum of catalog `sizeBytes` for install records (estimate until real OPFS meters). */
 export function estimateInstalledCatalogBytes(
   catalog: ReadonlyArray<{ id: string; sizeBytes?: number }> = [],
 ): number {

@@ -5,22 +5,47 @@ import { Select } from '../../../components/ui/select';
 import { Switch } from '../../../components/ui/switch';
 import { cn } from '../../../lib/utils';
 import { isBrowserModelInstalled } from '../../ai/browserInstallStore';
-import { createDefaultAiRegistry, getSharedWebLLMAdapter } from '../../ai/createRegistry';
+import { BROWSER_MODEL_CATALOG } from '../../ai/catalog';
+import {
+  createDefaultAiRegistry,
+  getSharedPromptApiAdapter,
+  getSharedWebLLMAdapter,
+  isPromptApiPresent,
+} from '../../ai/createRegistry';
 import { DEFAULT_OLLAMA_BASE_URL, probeOllama, probeWebGpu } from '../../ai/status';
 import type { AiModel } from '../../ai/types';
+import { formatUnknownError, logAiError } from '../../ai/engine/formatAiError';
+import { probeWebLlmBrowserSupport } from '../../ai/webLlmBrowserSupport';
 import { RefreshCwIcon } from '../SettingsIcons';
 import { useSettings } from '../hooks/useSettings';
+
+const BROWSER_MODEL_LOCAL_IDS = BROWSER_MODEL_CATALOG.map((model) =>
+  model.id.replace(/^webllm:/, ''),
+);
 
 type AiPanelStatus = {
   webGpu: { available: boolean; detail?: string };
   ollama: { reachable: boolean; baseUrl: string; detail?: string; latencyMs?: number };
   storage: { available: boolean; detail?: string };
+  /** Whether the Chrome built-in Prompt API global is present (Chromium only). */
+  promptApiPresent: boolean;
   models: AiModel[];
 };
 
 type DownloadState = {
   modelId: string;
   progress: number;
+  error?: string;
+};
+
+/** Prompt API setup (not a weight download — Chrome often reports no transferable progress). */
+type PromptApiSetupState = {
+  modelId: string;
+  /**
+   * Real 0–1 progress only after Chrome fires `downloadprogress` with `loaded` > 0.
+   * `null` means indeterminate (“Setting up…”), never a stuck 0% bar.
+   */
+  progress: number | null;
   error?: string;
 };
 
@@ -102,13 +127,17 @@ function ModelStatusBadge({
           ? t('ai.models.status.downloading')
           : status === 'needs-webgpu'
             ? t('ai.models.status.needsWebGpu')
-            : t('ai.models.status.unavailable');
+            : status === 'unsupported'
+              ? t('ai.models.status.unsupported')
+              : t('ai.models.status.unavailable');
   const tone =
     status === 'ready'
       ? 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-200'
       : status === 'downloading'
         ? 'bg-amber-500/15 text-amber-900 dark:text-amber-100'
-        : 'bg-muted text-muted-foreground';
+        : status === 'unsupported'
+          ? 'bg-amber-500/15 text-amber-900 dark:text-amber-100'
+          : 'bg-muted text-muted-foreground';
   return (
     <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium', tone)}>
       {label}
@@ -128,11 +157,14 @@ export const Ai = () => {
   };
 
   const webllm = useMemo(() => getSharedWebLLMAdapter(), []);
+  const promptApi = useMemo(() => getSharedPromptApiAdapter(), []);
   const [status, setStatus] = useState<AiPanelStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [download, setDownload] = useState<DownloadState | null>(null);
+  const [promptApiSetup, setPromptApiSetup] = useState<PromptApiSetupState | null>(null);
   const downloadAbortRef = useRef<AbortController | null>(null);
+  const promptApiAbortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -142,8 +174,10 @@ export const Ai = () => {
         ollama: { baseUrl: ai.ollamaBaseUrl ?? DEFAULT_OLLAMA_BASE_URL },
         includeWebLLM: ai.browserEnabled,
         webllmAdapter: webllm,
+        promptApiAdapter: promptApi,
         defaultModelId: ai.defaultModelId,
       });
+      const promptApiPresent = isPromptApiPresent();
       const [webGpu, ollama, storage, models] = await Promise.all([
         probeWebGpu(),
         ai.ollamaEnabled
@@ -159,16 +193,48 @@ export const Ai = () => {
       const filtered = models.filter((model) => {
         if (model.provider === 'ollama') return ai.ollamaEnabled;
         if (model.provider === 'webllm') return ai.browserEnabled;
+        if (model.provider === 'prompt-api') return ai.promptApiEnabled !== false;
         return true;
       });
-      setStatus({ webGpu, ollama, storage, models: filtered });
+      setStatus({ webGpu, ollama, storage, promptApiPresent, models: filtered });
     } catch {
       setStatus(null);
       setError(true);
     } finally {
       setLoading(false);
     }
-  }, [ai.browserEnabled, ai.ollamaBaseUrl, ai.ollamaEnabled, webllm]);
+  }, [
+    ai.browserEnabled,
+    ai.ollamaBaseUrl,
+    ai.ollamaEnabled,
+    ai.promptApiEnabled,
+    ai.defaultModelId,
+    webllm,
+    promptApi,
+  ]);
+
+  // Keep in-panel progress in sync when Settings remounts mid-download (toaster owns the job).
+  useEffect(() => {
+    if (!ai.enabled) return;
+    const engine = webllm.getEngine();
+    const syncFromEngine = () => {
+      for (const localId of BROWSER_MODEL_LOCAL_IDS) {
+        const progress = engine.getDownloadProgress(localId);
+        if (progress !== null) {
+          setDownload({ modelId: `webllm:${localId}`, progress });
+          return;
+        }
+      }
+    };
+    syncFromEngine();
+    return engine.subscribeProgress((localId, progress) => {
+      setDownload({ modelId: `webllm:${localId}`, progress });
+      if (progress >= 1) {
+        setDownload(null);
+        void load();
+      }
+    });
+  }, [ai.enabled, load, webllm]);
 
   useEffect(() => {
     if (!ai.enabled) {
@@ -176,6 +242,7 @@ export const Ai = () => {
       setError(false);
       setLoading(false);
       setDownload(null);
+      setPromptApiSetup(null);
       return;
     }
     void load();
@@ -192,8 +259,11 @@ export const Ai = () => {
   const readyModels = (status?.models ?? []).filter((m) => m.status === 'ready');
   const ollamaModels = (status?.models ?? []).filter((m) => m.provider === 'ollama');
   const browserModels = (status?.models ?? []).filter((m) => m.provider === 'webllm');
+  const promptApiModels = (status?.models ?? []).filter((m) => m.provider === 'prompt-api');
 
   const startDownload = async (model: AiModel) => {
+    // Firefox is experimental, not blocked: attempt Install and let the real
+    // error surface (mapped) rather than pre-emptively refusing.
     setDownload({ modelId: model.id, progress: 0 });
     const controller = new AbortController();
     downloadAbortRef.current = controller;
@@ -210,10 +280,11 @@ export const Ai = () => {
         await load();
         return;
       }
+      logAiError('settings.install', err, { modelId: model.id, stage: 'settings.startDownload' });
       setDownload({
         modelId: model.id,
         progress: 0,
-        error: err instanceof Error ? err.message : t('ai.unknownError'),
+        error: formatUnknownError(err) || t('ai.unknownError'),
       });
       await load();
     } finally {
@@ -227,6 +298,69 @@ export const Ai = () => {
     setDownload(null);
   };
 
+  const startPromptApiEnable = useCallback(
+    async (model: AiModel) => {
+      // Indeterminate until Chrome fires a real downloadprogress with loaded > 0.
+      setPromptApiSetup({ modelId: model.id, progress: null });
+      const controller = new AbortController();
+      promptApiAbortRef.current = controller;
+      try {
+        await promptApi.download(model.id, {
+          signal: controller.signal,
+          onProgress: (progress) => {
+            // Only promote to a determinate bar once progress actually advances.
+            if (progress > 0) {
+              setPromptApiSetup({ modelId: model.id, progress });
+            }
+          },
+        });
+        setPromptApiSetup(null);
+        await load();
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          setPromptApiSetup(null);
+          await load();
+          return;
+        }
+        logAiError('settings.promptApi.enable', err, {
+          modelId: model.id,
+          stage: 'settings.startPromptApiEnable',
+        });
+        setPromptApiSetup({
+          modelId: model.id,
+          progress: null,
+          error: formatUnknownError(err) || t('ai.unknownError'),
+        });
+        await load();
+      } finally {
+        promptApiAbortRef.current = null;
+      }
+    },
+    [load, promptApi, t],
+  );
+
+  const onPromptApiEnabledChange = (checked: boolean) => {
+    updateSetting('ai', { promptApiEnabled: checked });
+    if (!checked) {
+      promptApiAbortRef.current?.abort();
+      setPromptApiSetup(null);
+      return;
+    }
+    // Turning the switch on: if the built-in model still needs a one-shot create()
+    // warm, run Enable automatically (no separate “Install” step).
+    void (async () => {
+      const models = await promptApi.listModels();
+      const needsSetup = models.find(
+        (model) => model.status === 'downloadable' || model.status === 'downloading',
+      );
+      if (needsSetup) {
+        await startPromptApiEnable(needsSetup);
+      } else {
+        await load();
+      }
+    })();
+  };
+
   const deleteModel = async (modelId: string) => {
     await webllm.deleteInstalled(modelId);
     if (ai.defaultModelId === modelId) {
@@ -236,7 +370,7 @@ export const Ai = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="w-full shrink-0 space-y-5">
       <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
 
       <div className="flex items-center justify-between gap-4">
@@ -259,6 +393,7 @@ export const Ai = () => {
 
       <div
         data-shellui-ai-details={ai.enabled ? 'open' : 'closed'}
+        className="w-full shrink-0 self-start"
         aria-hidden={!ai.enabled}
       >
         <div
@@ -470,6 +605,11 @@ export const Ai = () => {
               {ai.browserEnabled && status && !status.webGpu.available ? (
                 <p className="text-xs text-muted-foreground">{t('ai.models.needsWebGpuAction')}</p>
               ) : null}
+              {ai.browserEnabled && !probeWebLlmBrowserSupport().recommended ? (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-900 dark:text-amber-100">
+                  {t('ai.models.experimentalBrowser')}
+                </p>
+              ) : null}
               {ai.browserEnabled ? (
                 browserModels.length === 0 ? (
                   <p className="text-sm text-muted-foreground">{t('ai.models.browserEmpty')}</p>
@@ -482,7 +622,10 @@ export const Ai = () => {
                         ? download.progress
                         : (webllm.getDownloadProgress(model.id) ?? null);
                       const installed = isBrowserModelInstalled(model.id);
-                      const canDownload = !installed && model.status !== 'downloading';
+                      const canDownload =
+                        !installed &&
+                        model.status !== 'downloading' &&
+                        model.status !== 'needs-webgpu';
                       return (
                         <li
                           key={model.id}
@@ -569,6 +712,116 @@ export const Ai = () => {
                 )
               ) : null}
             </section>
+
+            {status?.promptApiPresent ? (
+              <section className="space-y-3 rounded-lg border border-border/60 p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="ai-prompt-api-enabled"
+                      className="text-sm font-medium leading-none"
+                      style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                    >
+                      {t('ai.providers.promptApi')}
+                    </label>
+                    <p className="text-sm text-muted-foreground">
+                      {t('ai.providers.promptApiHint')}
+                    </p>
+                  </div>
+                  <Switch
+                    id="ai-prompt-api-enabled"
+                    checked={ai.promptApiEnabled !== false}
+                    onCheckedChange={onPromptApiEnabledChange}
+                  />
+                </div>
+                {ai.promptApiEnabled !== false ? (
+                  promptApiModels.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{t('ai.models.promptApiEmpty')}</p>
+                  ) : (
+                    <ul className="divide-y divide-border/60 overflow-hidden rounded-md border border-border/60">
+                      {promptApiModels.map((model) => {
+                        const isEnabling = promptApiSetup?.modelId === model.id;
+                        const realProgress =
+                          isEnabling &&
+                          typeof promptApiSetup?.progress === 'number' &&
+                          promptApiSetup.progress > 0
+                            ? promptApiSetup.progress
+                            : null;
+                        // Enable only when the model still needs a one-shot create() warm —
+                        // already-ready models rely on the provider switch alone.
+                        const canEnable =
+                          !isEnabling &&
+                          (model.status === 'downloadable' || model.status === 'downloading');
+                        return (
+                          <li
+                            key={model.id}
+                            className="space-y-2 px-3 py-2.5"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="min-w-0 truncate text-sm font-medium">{model.name}</p>
+                              {isEnabling ? (
+                                <span className="inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:text-amber-100">
+                                  {t('ai.models.enabling')}
+                                </span>
+                              ) : (
+                                <ModelStatusBadge
+                                  status={model.status}
+                                  t={t}
+                                />
+                              )}
+                            </div>
+                            {isEnabling ? (
+                              realProgress !== null ? (
+                                <div className="space-y-2">
+                                  <div
+                                    className="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+                                    role="progressbar"
+                                    aria-valuemin={0}
+                                    aria-valuemax={100}
+                                    aria-valuenow={Math.round(realProgress * 100)}
+                                    aria-label={t('ai.models.downloadProgress', {
+                                      percent: Math.round(realProgress * 100),
+                                    })}
+                                  >
+                                    <div
+                                      className="h-full rounded-full bg-primary transition-[width]"
+                                      style={{ width: `${Math.round(realProgress * 100)}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('ai.models.downloadProgress', {
+                                      percent: Math.round(realProgress * 100),
+                                    })}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  {t('ai.models.promptApiSettingUp')}
+                                </p>
+                              )
+                            ) : canEnable ? (
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                  onClick={() => void startPromptApiEnable(model)}
+                                >
+                                  {t('ai.models.enable')}
+                                </Button>
+                              </div>
+                            ) : null}
+                            {promptApiSetup?.modelId === model.id && promptApiSetup.error ? (
+                              <p className="text-xs text-destructive">{promptApiSetup.error}</p>
+                            ) : null}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )
+                ) : null}
+              </section>
+            ) : null}
           </div>
         </div>
       </div>

@@ -13,7 +13,7 @@ const Switch = forwardRef<HTMLInputElement, SwitchProps>(
     };
 
     return (
-      <label className="inline-flex items-center cursor-pointer">
+      <label className="inline-flex items-center cursor-pointer relative">
         <input
           type="checkbox"
           ref={ref}

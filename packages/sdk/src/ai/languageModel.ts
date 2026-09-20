@@ -11,7 +11,8 @@ import type {
 export type LanguageModelSession = {
   prompt: (input: string) => Promise<string>;
   promptStreaming: (input: string) => AsyncIterable<string>;
-  destroy: () => void;
+  /** Awaitable so callers can finish destroy before create (avoids WebLLM interrupt races). */
+  destroy: () => void | Promise<void>;
 };
 
 /**
@@ -90,11 +91,12 @@ export class LanguageModelApi {
         })();
       },
       destroy: () => {
-        if (destroyed) return;
+        if (destroyed) return Promise.resolve();
         destroyed = true;
-        void transport.request({ op: 'destroy', sessionId }).catch(() => {
-          // best-effort
-        });
+        return transport.request({ op: 'destroy', sessionId }).then(
+          () => undefined,
+          () => undefined,
+        );
       },
     };
   }

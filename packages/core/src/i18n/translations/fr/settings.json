@@ -203,7 +203,9 @@
       "ollamaHint": "Modèles déjà présents via l'application Ollama.",
       "browser": "Modèles navigateur",
       "browserHint": "Les installations catalogue restent dans ce navigateur. L'inférence n'est pas encore branchée ; utilisez Ollama pour les invites.",
-      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites."
+      "browserStubNote": "Installer enregistre une entrée catalogue sur cet appareil. L'inférence navigateur n'est pas encore branchée ; utilisez Ollama pour les invites.",
+      "promptApi": "Modèle intégré du navigateur",
+      "promptApiHint": "Modèle intégré du navigateur (API Prompt de Chrome). S'exécute sur l'appareil ; affiché uniquement lorsque votre navigateur le fournit."
     },
     "defaultModel": {
       "title": "Modèle par défaut",
@@ -217,16 +219,23 @@
       "ollamaEmptyReady": "Connecté, mais aucun modèle. Lancez ollama pull.",
       "browser": "Catalogue navigateur",
       "browserEmpty": "Aucun modèle navigateur dans le catalogue.",
+      "promptApiEmpty": "Le modèle intégré du navigateur est désactivé ci-dessus.",
+      "enable": "Activer",
+      "enabling": "Activation…",
+      "promptApiSettingUp": "Configuration du modèle intégré…",
       "download": "Installer",
       "cancel": "Annuler",
       "delete": "Retirer",
       "downloadProgress": "{{percent}} %",
       "needsWebGpuAction": "Ce navigateur a besoin de WebGPU avant les installations catalogue.",
+      "unsupportedBrowser": "Les modèles navigateur nécessitent Chrome, Edge ou Safari (WebGPU). Utilisez Ollama sur ce navigateur.",
+      "experimentalBrowser": "Les modèles navigateur fonctionnent mieux dans Chrome, Edge ou Safari (WebGPU). La prise en charge de ce navigateur est expérimentale — vous pouvez tout de même essayer l’installation ; en cas d’échec, utilisez Ollama.",
       "status": {
         "ready": "Prêt",
         "downloadable": "Non installé",
         "downloading": "Installation",
         "needsWebGpu": "WebGPU requis",
+        "unsupported": "Navigateur non pris en charge",
         "unavailable": "Indisponible"
       }
     },

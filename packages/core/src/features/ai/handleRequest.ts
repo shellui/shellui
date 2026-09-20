@@ -14,6 +14,8 @@ export type AiSession = {
   id: string;
   modelId: string;
   systemPrompt?: string;
+  /** Accumulated multi-turn history (user/assistant; system lives in systemPrompt). */
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   abortController: AbortController;
 };
 
@@ -21,6 +23,12 @@ export type AiHandlerContext = {
   registry: AiRegistry;
   sessions: Map<string, AiSession>;
   getSettings: () => Settings;
+  /**
+   * Currently active LanguageModel session. Updated on create; cleared when that
+   * session is destroyed. Late destroy of a superseded session must not call
+   * resetConversation / interruptGenerate (would kill the new chat’s generation).
+   */
+  activeSessionId: { current: string | null };
 };
 
 function replyOk(id: string, data: unknown): AiResponsePayload {
@@ -41,9 +49,11 @@ function filterModelsBySettings<T extends { provider: string }>(
 ): T[] {
   const ollamaEnabled = settings.ai?.ollamaEnabled !== false;
   const browserEnabled = settings.ai?.browserEnabled !== false;
+  const promptApiEnabled = settings.ai?.promptApiEnabled !== false;
   return models.filter((model) => {
     if (model.provider === 'ollama') return ollamaEnabled;
     if (model.provider === 'webllm') return browserEnabled;
+    if (model.provider === 'prompt-api') return promptApiEnabled;
     return true;
   });
 }
@@ -142,14 +152,34 @@ export async function handleAiRequest(
             ),
           };
         }
+        // Claim active before reset so a late destroy of the previous session
+        // cannot interrupt this conversation's upcoming generation.
+        const sessionId = createSessionId();
+        ctx.activeSessionId.current = sessionId;
+        try {
+          // Pass the new sessionId so the engine disposes the prior conversation's
+          // worker when switching away and claims this one (recreate on next prompt).
+          await ctx.registry.resetConversation(pick.id, sessionId);
+        } catch (error) {
+          // eslint-disable-next-line no-console -- create should still proceed; next prompt may hang otherwise
+          console.error('[shellui.ai]', 'resetConversation on create failed', error);
+        }
         const systemPrompt = payload.initialPrompts
           ?.filter((p) => p.role === 'system')
           .map((p) => p.content)
           .join('\n');
+        const seedMessages =
+          payload.initialPrompts
+            ?.filter((p) => p.role === 'user' || p.role === 'assistant')
+            .map((p) => ({
+              role: p.role as 'user' | 'assistant',
+              content: p.content,
+            })) ?? [];
         const session: AiSession = {
-          id: createSessionId(),
+          id: sessionId,
           modelId: pick.id,
           systemPrompt: systemPrompt || undefined,
+          messages: seedMessages,
           abortController: new AbortController(),
         };
         ctx.sessions.set(session.id, session);
@@ -166,13 +196,24 @@ export async function handleAiRequest(
         if (!payload.prompt) {
           return { response: replyErr(id, 'Missing prompt', 'invalid_request') };
         }
-        const text = await ctx.registry.prompt({
-          modelId: session.modelId,
-          prompt: payload.prompt,
-          systemPrompt: session.systemPrompt,
-          signal: session.abortController.signal,
-        });
-        return { response: replyOk(id, { text }) };
+        session.messages.push({ role: 'user', content: payload.prompt });
+        const messages = buildSessionMessages(session);
+        try {
+          const text = await ctx.registry.prompt({
+            modelId: session.modelId,
+            prompt: payload.prompt,
+            systemPrompt: session.systemPrompt,
+            messages,
+            sessionId: session.id,
+            signal: session.abortController.signal,
+          });
+          session.messages.push({ role: 'assistant', content: text });
+          return { response: replyOk(id, { text }) };
+        } catch (error) {
+          // Drop the user turn if generation failed so a retry can re-send cleanly.
+          session.messages.pop();
+          throw error;
+        }
       }
 
       case 'promptStreaming': {
@@ -184,16 +225,23 @@ export async function handleAiRequest(
           return { response: replyErr(id, 'Missing prompt', 'invalid_request') };
         }
 
+        session.messages.push({ role: 'user', content: payload.prompt });
+        const messages = buildSessionMessages(session);
+
         const iterable = ctx.registry.promptStreaming({
           modelId: session.modelId,
           prompt: payload.prompt,
           systemPrompt: session.systemPrompt,
+          messages,
+          sessionId: session.id,
           signal: session.abortController.signal,
         });
 
         async function* mapStream(): AsyncIterable<AiStreamPayload> {
+          let assistant = '';
           try {
             for await (const chunk of iterable) {
+              if (chunk.text) assistant += chunk.text;
               yield {
                 id,
                 chunk: chunk.text,
@@ -201,7 +249,12 @@ export async function handleAiRequest(
               };
             }
             yield { id, chunk: '', done: true };
+            session.messages.push({ role: 'assistant', content: assistant });
           } catch (error) {
+            // Drop the pending user turn on failure.
+            if (session.messages.at(-1)?.role === 'user') {
+              session.messages.pop();
+            }
             yield {
               id,
               done: true,
@@ -227,8 +280,23 @@ export async function handleAiRequest(
       case 'destroy': {
         const session = payload.sessionId ? ctx.sessions.get(payload.sessionId) : undefined;
         if (session) {
+          const wasActive = ctx.activeSessionId.current === session.id;
           session.abortController.abort();
           ctx.sessions.delete(session.id);
+          if (wasActive) {
+            ctx.activeSessionId.current = null;
+            // Only the active session may reset/interrupt — a late destroy of a
+            // superseded chat must not kill the new conversation's generation.
+            try {
+              await ctx.registry.resetConversation(session.modelId);
+            } catch (error) {
+              // eslint-disable-next-line no-console -- destroy still acks; log for operators
+              console.error('[shellui.ai]', 'resetConversation on destroy failed', error);
+            }
+          }
+        } else if (payload.sessionId && ctx.activeSessionId.current === payload.sessionId) {
+          // Session already gone from map but still marked active.
+          ctx.activeSessionId.current = null;
         }
         return { response: replyOk(id, { destroyed: true }) };
       }
@@ -241,4 +309,17 @@ export async function handleAiRequest(
       response: replyErr(id, error instanceof Error ? error.message : 'AI request failed'),
     };
   }
+}
+
+function buildSessionMessages(
+  session: AiSession,
+): Array<{ role: 'system' | 'user' | 'assistant'; content: string }> {
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+  if (session.systemPrompt) {
+    messages.push({ role: 'system', content: session.systemPrompt });
+  }
+  for (const turn of session.messages) {
+    messages.push(turn);
+  }
+  return messages;
 }

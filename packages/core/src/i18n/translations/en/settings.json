@@ -203,7 +203,9 @@
       "ollamaHint": "Models already on this computer via the Ollama app.",
       "browser": "Browser models",
       "browserHint": "Catalog installs stay in this browser. Inference is not wired yet; use Ollama for prompts.",
-      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts."
+      "browserStubNote": "Install records a catalog entry on this device. Browser inference is not wired yet; use Ollama for prompts.",
+      "promptApi": "Built-in browser model",
+      "promptApiHint": "Built-in browser model (Chrome Prompt API). Runs on-device; shown only when your browser provides it."
     },
     "defaultModel": {
       "title": "Default model",
@@ -217,16 +219,23 @@
       "ollamaEmptyReady": "Connected, but no models yet. Run ollama pull.",
       "browser": "Browser catalog",
       "browserEmpty": "No browser models in the catalog.",
+      "promptApiEmpty": "The built-in browser model is turned off above.",
+      "enable": "Enable",
+      "enabling": "Enabling…",
+      "promptApiSettingUp": "Setting up built-in model…",
       "download": "Install",
       "cancel": "Cancel",
       "delete": "Remove",
       "downloadProgress": "{{percent}}%",
       "needsWebGpuAction": "This browser needs WebGPU before catalog installs.",
+      "unsupportedBrowser": "Browser models need Chrome, Edge, or Safari (WebGPU). Use Ollama on this browser.",
+      "experimentalBrowser": "Browser models work best in Chrome, Edge, or Safari (WebGPU). Support in this browser is experimental — you can still try Install; if it fails, use Ollama.",
       "status": {
         "ready": "Ready",
         "downloadable": "Not installed",
         "downloading": "Installing",
         "needsWebGpu": "Needs WebGPU",
+        "unsupported": "Unsupported browser",
         "unavailable": "Unavailable"
       }
     },

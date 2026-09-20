@@ -35,7 +35,7 @@ describe('LanguageModelApi', () => {
     const api = new LanguageModelApi(transport);
     const session = await api.create({ model: 'ollama:llama' });
     await expect(session.prompt('Summarize')).resolves.toBe('ok');
-    session.destroy();
+    await session.destroy();
     expect(transport.request).toHaveBeenCalledWith({ op: 'destroy', sessionId: 'sess-1' });
   });
 

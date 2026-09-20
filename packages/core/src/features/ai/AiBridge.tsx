@@ -35,12 +35,15 @@ export const AiBridge = () => {
   const { config } = useConfig();
   const { settings } = useSettings();
   const sessionsRef = useRef(new Map<string, AiSession>());
+  const activeSessionIdRef = useRef<string | null>(null);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
   const registry = useMemo(
     () => createShellAiRegistry(settings),
     // Rebuild when provider toggles / base URL / default change.
+    // Listing models / opening Settings must not import @mlc-ai/web-llm —
+    // that happens only inside WebLLMEngineService install/load/delete.
     [
       settings.ai?.ollamaBaseUrl,
       settings.ai?.ollamaEnabled,
@@ -79,6 +82,7 @@ export const AiBridge = () => {
         {
           registry,
           sessions: sessionsRef.current,
+          activeSessionId: activeSessionIdRef,
           getSettings: () => settingsRef.current,
         },
         payload,

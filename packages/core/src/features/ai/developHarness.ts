@@ -80,6 +80,7 @@ export async function runDevelopAiPrompt(
   const ctx = {
     registry,
     sessions,
+    activeSessionId: { current: null as string | null },
     getSettings: () => settings,
   };
 
@@ -118,6 +119,7 @@ export async function runDevelopAiStream(
   const ctx = {
     registry,
     sessions,
+    activeSessionId: { current: null as string | null },
     getSettings: () => settings,
   };
 

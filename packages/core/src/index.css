@@ -1193,11 +1193,22 @@ html.shellui-theme-switching
   }
 }
 
-/* Settings → AI: collapse detail when the master switch is off. */
+/* Settings → AI: collapse detail when the master switch is off.
+ *
+ * Keep the 0fr → 1fr height animation, but do NOT let the open track eat leftover
+ * viewport/panel height. This grid sits in a Settings flex column (`flex-1` scroll
+ * body); without content-sizing, `grid-template-rows: 1fr` expands to fill free
+ * space → a huge empty white slab under the last provider (e.g. after toggling
+ * the Prompt API section). */
 [data-shellui-ai-details] {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
+  /* Hug content in the settings flex column — never stretch to fill free space. */
+  align-self: start;
+  width: 100%;
+  flex: 0 0 auto;
+  height: max-content;
   transition:
     grid-template-rows 280ms ease,
     opacity 200ms ease;
@@ -1209,6 +1220,14 @@ html.shellui-theme-switching
 [data-shellui-ai-details] > [data-shellui-ai-details-inner] {
   min-height: 0;
   overflow: hidden;
+  /* Room for focus-visible ring + ring-offset on full-width Select/Input.
+   * Without this, the gold focus outline is clipped flush left/right by
+   * overflow:hidden (collapse animation). 0.25rem keeps the control full-width-ish. */
+  padding-inline: 0.25rem;
+}
+/* Once open, stop clipping focus rings / shadows on full-width controls. */
+[data-shellui-ai-details='open'] > [data-shellui-ai-details-inner] {
+  overflow: visible;
 }
 @media (prefers-reduced-motion: reduce) {
   [data-shellui-ai-details] {
