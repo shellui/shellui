@@ -5,10 +5,9 @@
 
 import { getLogger } from '../logger/logger.js';
 import type { ShellUIMessage } from '../types.js';
-import type { FrameRegistry } from './frameRegistry.js';
+import { FRAME_LIVE_MESSAGE_TYPES, type FrameRegistry } from './frameRegistry.js';
 import {
   MessageSecurityPolicy,
-  isIframeReadyForTargetOrigin,
   resolveIframeTargetOrigin,
   resolveParentTargetOrigin,
 } from './messageSecurity.js';
@@ -74,6 +73,12 @@ export class MessageListenerRegistry {
 
       const fromUuid = this.frameRegistry?.getUuidByIframe(event.source as Window);
       const isLocalParentMessage = LOCAL_PARENT_MESSAGE_TYPES.has(messageType);
+
+      // Request-driven handshake: mark the frame live before listeners reply
+      // (e.g. SETTINGS response) so outbound sendMessage is allowed.
+      if (fromUuid && FRAME_LIVE_MESSAGE_TYPES.has(messageType)) {
+        this.frameRegistry?.markLive(fromUuid);
+      }
 
       const typeListeners = this.listeners.get(messageType) ?? [];
 
@@ -241,16 +246,17 @@ export class MessageListenerRegistry {
     for (const [uuid, iframe] of allIframes) {
       if (sendToAll || message.to?.includes(uuid)) {
         try {
+          // Only talk to frames that have asked for settings / finished init.
+          if (!this.frameRegistry.isLive(uuid)) {
+            logger.debug(
+              `Skipped message ${message.type} to iframe ${uuid}: frame has not started handshake`,
+            );
+            continue;
+          }
           if (iframe?.contentWindow) {
             const targetOrigin = resolveIframeTargetOrigin(iframe);
             if (!targetOrigin) {
               logger.warn(`Skipped message ${message.type} to iframe ${uuid}: no target origin`);
-              continue;
-            }
-            if (!isIframeReadyForTargetOrigin(iframe, targetOrigin)) {
-              logger.debug(
-                `Skipped message ${message.type} to iframe ${uuid}: document not yet at ${targetOrigin}`,
-              );
               continue;
             }
             iframe.contentWindow.postMessage(

@@ -180,7 +180,9 @@ export function publishLayoutChrome(chrome: LayoutChrome | null): void {
   // Host shell document: vars only (no padding on the outer shell).
   applyLayoutChromeStyles(payload, { autoPadding: false });
 
-  for (const [uuid, iframe] of shellui.frameRegistry.getAllIframes()) {
+  // Request-driven: only push chrome to frames that have started the handshake.
+  // Initial chrome is delivered inside SHELLUI_SETTINGS on SETTINGS_REQUESTED.
+  for (const [uuid, iframe] of shellui.frameRegistry.getLiveIframes()) {
     if (isMainLayoutFrame(iframe)) {
       shellui.sendMessage({
         type: 'SHELLUI_LAYOUT_CHROME',

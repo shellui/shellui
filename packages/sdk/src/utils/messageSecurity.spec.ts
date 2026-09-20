@@ -13,8 +13,9 @@ describe('MessageSecurityPolicy', () => {
   let policy: MessageSecurityPolicy;
   const shellWindow = {
     location: { origin: 'https://app.example.com' },
-    parent: {} as Window,
+    parent: null as unknown as Window,
   } as Window;
+  shellWindow.parent = shellWindow;
 
   beforeEach(() => {
     policy = new MessageSecurityPolicy();
@@ -91,7 +92,18 @@ describe('MessageSecurityPolicy', () => {
   });
 
   it('allows parent source for shell → companion responses', () => {
-    const parentWindow = shellWindow.parent;
+    // Companion view: embedded under a distinct parent window at the same origin
+    // (prod same-origin embed) — source is parent, origin is allowed via window origin.
+    const parentWindow = { location: { origin: 'https://app.example.com' } } as Window;
+    const companionWindow = {
+      location: { origin: 'https://app.example.com' },
+      parent: parentWindow,
+    } as Window;
+    vi.stubGlobal('window', companionWindow);
+    vi.stubGlobal('document', {
+      location: companionWindow.location,
+      referrer: '',
+    });
 
     const event = {
       origin: 'https://app.example.com',
@@ -108,6 +120,37 @@ describe('MessageSecurityPolicy', () => {
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_DIALOG')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_TOAST')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_OPEN_MODAL')).toBe(true);
+  });
+});
+
+describe('MessageSecurityPolicy embedded companion', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('auto-allows cross-origin parent shell (:4000 → :5173)', () => {
+    const parentWindow = { location: { origin: 'http://localhost:4000' } } as Window;
+    const companionWindow = {
+      location: { origin: 'http://localhost:5173', ancestorOrigins: ['http://localhost:4000'] },
+      parent: parentWindow,
+    } as Window;
+    vi.stubGlobal('window', companionWindow);
+    vi.stubGlobal('document', {
+      location: companionWindow.location,
+      referrer: 'http://localhost:4000/',
+    });
+
+    const policy = new MessageSecurityPolicy();
+    expect(policy.isOriginAllowed('http://localhost:5173')).toBe(true);
+    expect(policy.isOriginAllowed('http://localhost:4000')).toBe(true);
+    expect(policy.isOriginAllowed('https://evil.example.com')).toBe(false);
+
+    const event = {
+      origin: 'http://localhost:4000',
+      source: parentWindow,
+      data: { type: 'SHELLUI_SETTINGS' },
+    } as MessageEvent;
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toBe(true);
   });
 });
 

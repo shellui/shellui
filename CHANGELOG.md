@@ -20,9 +20,13 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.3] - 2026-09-20
 
+### 🚨 Changed
+
+- **Request-driven iframe handshake:** the shell sets the companion iframe URL and waits. The first shell→iframe message is the reply to `SHELLUI_SETTINGS_REQUESTED` (`SHELLUI_SETTINGS`, including layout chrome for main frames). Outbound chrome/settings pushes only go to **live** frames (after `SETTINGS_REQUESTED` / `INITIALIZED`). Removed the ContentView load nudge and reveal-on-timeout fallback — the iframe reveals only on `SHELLUI_INITIALIZED`.
+
 ### 🐛 Bug Fixes
 
-- **Localhost iframe white screen:** fix shell ↔ companion settings handshake so `await shellui.init()` no longer hangs when postMessage races `about:blank` or rejects shell `SHELLUI_SETTINGS` (wrong parent target origin / missing parent allowlist).
+- **Localhost iframe white screen:** embedded companions now auto-trust the parent shell origin (same as tiny), so cross-origin dev (`:4000` ↔ `:5173`) accepts `SHELLUI_SETTINGS` and `await shellui.init()` completes. Proactive `SHELLUI_LAYOUT_CHROME` posts no longer race `about:blank`.
 
 ## [0.5.2] - 2026-09-18
 
