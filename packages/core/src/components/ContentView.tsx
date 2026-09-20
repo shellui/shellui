@@ -11,6 +11,7 @@ import {
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { LoadingOverlay } from './LoadingOverlay';
+import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
 import { resolveContentIframeSandbox } from './contentIframeSandbox';
 
@@ -302,6 +303,25 @@ export const ContentView = ({
       cleanup();
     };
   }, [ignoreMessages]);
+
+  // Non-shellui pages never send SHELLUI_INITIALIZED — reveal once the bar finishes
+  // (one pass, no loop) so the iframe is not stuck behind a looping overlay.
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      cancelRevealRef.current?.();
+      let cancelled = false;
+      cancelRevealRef.current = () => {
+        cancelled = true;
+        cancelRevealRef.current = null;
+      };
+      scheduleReveal(() => {
+        if (!cancelled) setIsLoading(false);
+        cancelRevealRef.current = null;
+      });
+    }, LOADING_OVERLAY_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [isLoading, iframeUrl, frameGeneration]);
 
   // After the first load, a cross-origin document (OAuth/login) cannot be inspected.
   // Flag it so desktop Back can restore the iframe to its assigned app URL.

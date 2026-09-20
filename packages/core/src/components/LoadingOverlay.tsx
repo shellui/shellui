@@ -7,7 +7,7 @@ export function LoadingOverlay() {
         <div
           className="h-full w-0 bg-muted-foreground/50"
           style={{
-            animation: `loading-bar-slide ${LOADING_OVERLAY_DURATION_MS}ms linear infinite`,
+            animation: `loading-bar-slide ${LOADING_OVERLAY_DURATION_MS}ms linear forwards`,
           }}
         />
       </div>
