@@ -18,11 +18,13 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.5.3] - 2026-09-20
+## [0.5.4] - Unreleased
 
 ### 🚨 Changed
 
 - **Request-driven iframe handshake:** the shell sets the companion iframe URL and waits. The first shell→iframe message is the reply to `SHELLUI_SETTINGS_REQUESTED` (`SHELLUI_SETTINGS`, including layout chrome for main frames). Outbound chrome/settings pushes only go to **live** frames (after `SETTINGS_REQUESTED` / `INITIALIZED`). Removed the ContentView load nudge and reveal-on-timeout fallback — the iframe reveals only on `SHELLUI_INITIALIZED`.
+
+## [0.5.3] - 2026-09-20
 
 ### 🐛 Bug Fixes
 

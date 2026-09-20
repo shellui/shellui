@@ -1,6 +1,6 @@
 {
   "name": "shellui",
-  "version": "0.5.3-alpha.1",
+  "version": "0.5.4-alpha.1",
   "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
