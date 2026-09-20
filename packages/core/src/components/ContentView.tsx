@@ -326,6 +326,8 @@ export const ContentView = ({
 
   // After the first load, a cross-origin document (OAuth/login) cannot be inspected.
   // Flag it so desktop Back can restore the iframe to its assigned app URL.
+  // Also nudge the settings handshake once the companion document has loaded —
+  // early shell→iframe posts are skipped while the frame is still about:blank.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -337,6 +339,15 @@ export const ContentView = ({
         iframe.removeAttribute(IFRAME_FOREIGN_ATTR);
       } catch {
         if (loads > 1) iframe.setAttribute(IFRAME_FOREIGN_ATTR, 'true');
+      }
+
+      // Same-window SETTINGS_REQUESTED → SettingsProvider pushes to registered frames.
+      // Harmless if settings already arrived; unblocks companions that raced about:blank.
+      if (typeof window !== 'undefined' && window.parent === window) {
+        window.postMessage(
+          { type: 'SHELLUI_SETTINGS_REQUESTED', payload: {} },
+          window.location.origin,
+        );
       }
     };
     iframe.addEventListener('load', onLoad);

@@ -152,3 +152,26 @@ export function resolveIframeTargetOrigin(
     return fallback;
   }
 }
+
+/**
+ * Whether `iframe.contentWindow` is ready for `postMessage(..., targetOrigin)`.
+ *
+ * Fresh iframes start at `about:blank`, which inherits the shell origin. Posting
+ * with the companion `src` origin then fails with:
+ * "The target origin provided (…) does not match the recipient window’s origin (…)"
+ * and the message is dropped — a common localhost white-screen handshake race.
+ */
+export function isIframeReadyForTargetOrigin(
+  iframe: HTMLIFrameElement,
+  targetOrigin: string,
+): boolean {
+  const win = iframe?.contentWindow;
+  if (!win || !targetOrigin || targetOrigin === 'null') return false;
+  try {
+    // Readable ⇒ same-origin with the caller (shell). about:blank inherits shell origin.
+    return win.location.origin === targetOrigin;
+  } catch {
+    // Cross-origin document — browsing context left the shell origin.
+    return true;
+  }
+}

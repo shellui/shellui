@@ -4,6 +4,7 @@ import {
   MessageSecurityPolicy,
   collectOriginsFromUrls,
   PRIVILEGED_COMPANION_MESSAGE_TYPES,
+  isIframeReadyForTargetOrigin,
   resolveIframeTargetOrigin,
   resolveParentTargetOrigin,
 } from './messageSecurity.js';
@@ -138,6 +139,43 @@ describe('resolveIframeTargetOrigin', () => {
     expect(resolveIframeTargetOrigin(iframe, 'https://shell.example.com')).toBe(
       'https://shell.example.com',
     );
+  });
+});
+
+describe('isIframeReadyForTargetOrigin', () => {
+  it('returns false while about:blank still inherits the shell origin', () => {
+    const iframe = {
+      src: 'http://localhost:5173/#/',
+      contentWindow: {
+        location: { origin: 'http://localhost:4000' },
+      },
+    } as HTMLIFrameElement;
+
+    expect(isIframeReadyForTargetOrigin(iframe, 'http://localhost:5173')).toBe(false);
+  });
+
+  it('returns true when the readable origin matches the target', () => {
+    const iframe = {
+      src: 'http://localhost:4000/app/',
+      contentWindow: {
+        location: { origin: 'http://localhost:4000' },
+      },
+    } as HTMLIFrameElement;
+
+    expect(isIframeReadyForTargetOrigin(iframe, 'http://localhost:4000')).toBe(true);
+  });
+
+  it('returns true when location is cross-origin (SecurityError)', () => {
+    const iframe = {
+      src: 'http://localhost:5173/#/',
+      contentWindow: {
+        get location() {
+          throw new DOMException('Blocked a frame', 'SecurityError');
+        },
+      },
+    } as HTMLIFrameElement;
+
+    expect(isIframeReadyForTargetOrigin(iframe, 'http://localhost:5173')).toBe(true);
   });
 });
 

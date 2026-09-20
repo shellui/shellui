@@ -119,6 +119,7 @@ export {
   PRIVILEGED_COMPANION_MESSAGE_TYPES,
   collectOriginsFromUrls,
   resolveIframeTargetOrigin,
+  isIframeReadyForTargetOrigin,
   resolveParentTargetOrigin,
   resolveSelfTargetOrigin,
 } from './utils/messageSecurity.js';

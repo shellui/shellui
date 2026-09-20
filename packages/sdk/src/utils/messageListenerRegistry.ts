@@ -8,6 +8,7 @@ import type { ShellUIMessage } from '../types.js';
 import type { FrameRegistry } from './frameRegistry.js';
 import {
   MessageSecurityPolicy,
+  isIframeReadyForTargetOrigin,
   resolveIframeTargetOrigin,
   resolveParentTargetOrigin,
 } from './messageSecurity.js';
@@ -244,6 +245,12 @@ export class MessageListenerRegistry {
             const targetOrigin = resolveIframeTargetOrigin(iframe);
             if (!targetOrigin) {
               logger.warn(`Skipped message ${message.type} to iframe ${uuid}: no target origin`);
+              continue;
+            }
+            if (!isIframeReadyForTargetOrigin(iframe, targetOrigin)) {
+              logger.debug(
+                `Skipped message ${message.type} to iframe ${uuid}: document not yet at ${targetOrigin}`,
+              );
               continue;
             }
             iframe.contentWindow.postMessage(
