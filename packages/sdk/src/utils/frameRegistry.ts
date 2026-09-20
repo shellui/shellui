@@ -8,6 +8,16 @@ import { generateUuid } from './uuid.js';
 
 const logger = getLogger('shellsdk');
 
+function originFromIframeSrc(iframe: HTMLIFrameElement): string | null {
+  const src = iframe?.src?.trim();
+  if (!src || src === 'about:blank') return null;
+  try {
+    return new URL(src, typeof window !== 'undefined' ? window.location.href : undefined).origin;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Companion messages that prove the iframe document is alive and listening.
  * Shell must not send outbound traffic to a frame before one of these arrives.
