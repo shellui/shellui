@@ -72,6 +72,12 @@ await shellui.init({ autoLayoutPadding: false });
 
 Concurrent `init()` calls share one in-flight promise (e.g. React StrictMode). **Only the first caller's options apply** — a second `init({ autoLayoutPadding: false })` while the first is still running is ignored. Await the first `init` (or check `initialized`) before relying on option overrides.
 
+### Handshake (request-driven)
+
+When embedded, `init()` posts `SHELLUI_SETTINGS_REQUESTED` and waits for `SHELLUI_SETTINGS`, then posts `SHELLUI_INITIALIZED`. The shell does **not** push messages into the iframe before that request — it only sets `iframe.src` from navigation and reacts. Layout chrome for the main frame arrives inside the settings payload; later chrome/settings updates go only to frames that have started the handshake.
+
+Embedded companions automatically allow the parent shell origin (same as tiny), so cross-origin local dev (`localhost:4000` shell ↔ `localhost:5173` app) works without passing `allowedMessageOrigins`. Use that option only for extra hosts.
+
 ## Layout chrome (safe insets)
 
 Floating layout publishes `layoutChrome` to the **main** content iframe only (not modals / drawers). The iframe stays 100% × 100%; padding is applied **inside** the app.

@@ -10,7 +10,6 @@ import {
 } from '@shellui/sdk';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { LoadingOverlay } from './LoadingOverlay';
 import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
 import { resolveContentIframeSandbox } from './contentIframeSandbox';
@@ -305,30 +304,10 @@ export const ContentView = ({
     };
   }, [ignoreMessages]);
 
-  // Fallback: hide overlay after LOADING_OVERLAY_DURATION_MS if SHELLUI_INITIALIZED was not received.
-  // Also used after location.replace syncs (no full remount / INITIALIZED).
-  useEffect(() => {
-    if (!isLoading) return;
-    const timeoutId = setTimeout(() => {
-      logger.info('ContentView: Timeout expired, hiding loading overlay');
-      cancelRevealRef.current?.();
-      let cancelled = false;
-      cancelRevealRef.current = () => {
-        cancelled = true;
-        cancelRevealRef.current = null;
-      };
-      scheduleReveal(() => {
-        if (!cancelled) setIsLoading(false);
-        cancelRevealRef.current = null;
-      });
-    }, LOADING_OVERLAY_DURATION_MS);
-    return () => clearTimeout(timeoutId);
-  }, [isLoading]);
-
   // After the first load, a cross-origin document (OAuth/login) cannot be inspected.
   // Flag it so desktop Back can restore the iframe to its assigned app URL.
-  // Also nudge the settings handshake once the companion document has loaded —
-  // early shell→iframe posts are skipped while the frame is still about:blank.
+  // Handshake is request-driven: the companion posts SETTINGS_REQUESTED when ready;
+  // we do not nudge or send anything on load.
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -340,15 +319,6 @@ export const ContentView = ({
         iframe.removeAttribute(IFRAME_FOREIGN_ATTR);
       } catch {
         if (loads > 1) iframe.setAttribute(IFRAME_FOREIGN_ATTR, 'true');
-      }
-
-      // Same-window SETTINGS_REQUESTED → SettingsProvider pushes to registered frames.
-      // Harmless if settings already arrived; unblocks companions that raced about:blank.
-      if (typeof window !== 'undefined' && window.parent === window) {
-        window.postMessage(
-          { type: 'SHELLUI_SETTINGS_REQUESTED', payload: {} },
-          window.location.origin,
-        );
       }
     };
     iframe.addEventListener('load', onLoad);

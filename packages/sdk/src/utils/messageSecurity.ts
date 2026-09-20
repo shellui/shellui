@@ -72,10 +72,11 @@ export class MessageSecurityPolicy {
     const origins = new Set<string>();
     if (typeof window !== 'undefined') {
       origins.add(window.location.origin);
-      // Embedded companions must accept shell → iframe replies (SETTINGS, etc.).
-      if (window.parent !== window && typeof document !== 'undefined') {
+      // Embedded companions always trust the parent shell origin (same as tiny).
+      // Cross-origin dev (e.g. :4000 ↔ :5173) otherwise rejects SHELLUI_SETTINGS.
+      if (window.parent !== window) {
         const parentOrigin = resolveParentTargetOrigin();
-        if (parentOrigin && parentOrigin !== '*') {
+        if (parentOrigin && parentOrigin !== '*' && parentOrigin !== 'null') {
           origins.add(parentOrigin);
         }
       }
@@ -162,18 +163,20 @@ export function resolveParentTargetOrigin(): string {
   if (window.parent === window) return window.location.origin;
   if (typeof document === 'undefined') return '*';
 
-  const locationWithAncestors = document.location as Location & {
-    ancestorOrigins?: DOMStringList;
-  };
-  const ancestors = locationWithAncestors.ancestorOrigins;
-  const ancestorOrigin = ancestors?.[0];
-  if (ancestorOrigin) return ancestorOrigin;
+  if (typeof document !== 'undefined') {
+    const locationWithAncestors = document.location as Location & {
+      ancestorOrigins?: DOMStringList;
+    };
+    const ancestors = locationWithAncestors.ancestorOrigins;
+    const ancestorOrigin = ancestors?.[0];
+    if (ancestorOrigin) return ancestorOrigin;
 
-  if (document.referrer) {
-    try {
-      return new URL(document.referrer).origin;
-    } catch {
-      /* ignore */
+    if (document.referrer) {
+      try {
+        return new URL(document.referrer).origin;
+      } catch {
+        /* ignore */
+      }
     }
   }
 

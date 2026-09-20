@@ -1,67 +1,41 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
-import { FrameRegistry } from './frameRegistry.js';
+import { describe, expect, it, beforeAll, vi } from 'vitest';
+import { FrameRegistry, FRAME_LIVE_MESSAGE_TYPES } from './frameRegistry.js';
 
-function fakeIframe(src: string, contentWindow: Window = {} as Window): HTMLIFrameElement {
-  return { src, contentWindow, tagName: 'IFRAME' } as HTMLIFrameElement;
+class FakeIFrameElement {
+  src = '';
+  contentWindow: Window | null = null;
 }
 
-describe('FrameRegistry.adoptWindow', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+beforeAll(() => {
+  vi.stubGlobal('HTMLIFrameElement', FakeIFrameElement);
+});
 
-  it('registers an iframe found by contentWindow', () => {
-    const contentWindow = {} as Window;
-    const iframe = fakeIframe('http://localhost:5173/#/dialog', contentWindow);
-
-    vi.stubGlobal('document', {
-      querySelectorAll: () => [iframe],
-    });
-    vi.stubGlobal('window', { location: { href: 'http://localhost:4000/' } });
-
+describe('FrameRegistry live handshake', () => {
+  it('marks frames live and clears on remove', () => {
     const registry = new FrameRegistry();
-    const uuid = registry.adoptWindow(contentWindow, 'http://localhost:5173');
-    expect(uuid).toBeTruthy();
-    expect(registry.getUuidByIframe(contentWindow)).toBe(uuid);
-  });
+    const iframe = new FakeIFrameElement() as unknown as HTMLIFrameElement;
+    const uuid = registry.addIframe(iframe);
 
-  it('falls back to unique src origin when contentWindow identity does not match', () => {
-    const eventSource = {} as Window;
-    const iframe = fakeIframe('http://localhost:5173/#/dialog', {} as Window);
+    expect(registry.isLive(uuid)).toBe(false);
+    expect(registry.getLiveIframes()).toHaveLength(0);
 
-    vi.stubGlobal('document', {
-      querySelectorAll: () => [iframe],
-    });
-    vi.stubGlobal('window', { location: { href: 'http://localhost:4000/' } });
+    registry.markLive(uuid);
+    expect(registry.isLive(uuid)).toBe(true);
+    expect(registry.getLiveIframes()).toEqual([[uuid, iframe]]);
 
-    const registry = new FrameRegistry();
-    const uuid = registry.adoptWindow(eventSource, 'http://localhost:5173');
-    expect(uuid).toBeTruthy();
-    expect(registry.getAllIframes()).toHaveLength(1);
-    expect(registry.getAllIframes()[0][1]).toBe(iframe);
-  });
-
-  it('does not guess when multiple iframes share the same origin', () => {
-    const eventSource = {} as Window;
-    const a = fakeIframe('http://localhost:5173/#/a');
-    const b = fakeIframe('http://localhost:5173/#/b');
-
-    vi.stubGlobal('document', {
-      querySelectorAll: () => [a, b],
-    });
-    vi.stubGlobal('window', { location: { href: 'http://localhost:4000/' } });
-
-    const registry = new FrameRegistry();
-    expect(registry.adoptWindow(eventSource, 'http://localhost:5173')).toBeUndefined();
+    registry.removeIframe(uuid);
+    expect(registry.isLive(uuid)).toBe(false);
     expect(registry.getAllIframes()).toHaveLength(0);
   });
 
-  it('addIframe is idempotent for the same element', () => {
-    const iframe = fakeIframe('http://localhost:5173/');
+  it('ignores markLive for unknown uuids', () => {
     const registry = new FrameRegistry();
-    const a = registry.addIframe(iframe);
-    const b = registry.addIframe(iframe);
-    expect(a).toBe(b);
-    expect(registry.getAllIframes()).toHaveLength(1);
+    registry.markLive('missing');
+    expect(registry.isLive('missing')).toBe(false);
+  });
+
+  it('defines handshake live message types', () => {
+    expect(FRAME_LIVE_MESSAGE_TYPES.has('SHELLUI_SETTINGS_REQUESTED')).toBe(true);
+    expect(FRAME_LIVE_MESSAGE_TYPES.has('SHELLUI_INITIALIZED')).toBe(true);
   });
 });

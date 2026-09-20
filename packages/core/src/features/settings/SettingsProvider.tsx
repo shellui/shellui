@@ -199,7 +199,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const propagateSettingsToIframes = useCallback(
     (baseSettings: Settings) => {
-      const iframes = shellui.frameRegistry.getAllIframes();
+      const iframes = shellui.frameRegistry.getLiveIframes();
       if (iframes.length === 0) return;
       const lang = baseSettings.language?.code || 'en';
       const accessToken = accessTokenRef.current;
