@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.5.3] - 2026-09-20
+
+### 🐛 Bug Fixes
+
+- **Localhost iframe white screen:** fix shell ↔ companion settings handshake so `await shellui.init()` no longer hangs when postMessage races `about:blank` or rejects shell `SHELLUI_SETTINGS` (wrong parent target origin / missing parent allowlist).
+
 ## [0.5.2] - 2026-09-18
 
 ### 🐛 Bug Fixes
