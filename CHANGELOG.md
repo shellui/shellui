@@ -42,6 +42,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 📚 Documentation
 
+- Add root `AGENTS.md` with Shellui writing and design guideline links for coding agents.
 - Update on-device AI docs for the real WebLLM install / worker / toaster path and config vs Settings disable.
 
 ## [0.5.4] - Unreleased
