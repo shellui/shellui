@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.5.4] - Unreleased
 
+### 🐛 Bug Fixes
+
+- **Session restore on reload (dev):** React StrictMode was starting two concurrent refresh-token exchanges; identity refresh rotation treats the second as reuse and revokes the family (401), so local `shellui start` logged users out on every F5. Restore now shares one in-flight refresh and only clears storage from the active mount.
+
 ### 🚨 Changed
 
 - **Request-driven iframe handshake:** the shell sets the companion iframe URL and waits. The first shell→iframe message is the reply to `SHELLUI_SETTINGS_REQUESTED` (`SHELLUI_SETTINGS`, including layout chrome for main frames). Outbound chrome/settings pushes only go to **live** frames (after `SETTINGS_REQUESTED` / `INITIALIZED`). Removed the ContentView load nudge — shellui companions reveal on `SHELLUI_INITIALIZED`; non-shellui pages reveal after one loading-bar pass (no loop).
