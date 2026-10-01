@@ -20,7 +20,9 @@ import {
   persistAuthSession,
   readStoredAuthSession,
   refreshBffAuthSession,
+  shareInFlight,
   toAuthSessionFromSettingsUser,
+  type InFlightSlot,
 } from './utils';
 
 const logger = getLogger('shellcore');
@@ -29,6 +31,12 @@ const logger = getLogger('shellcore');
 const PROACTIVE_REFRESH_LEEWAY_SECONDS = 90;
 /** Periodic check while the shell tab is open (also mitigates background-tab timer throttling). */
 const TOKEN_REFRESH_TICK_MS = 45_000;
+
+/**
+ * Shared across StrictMode remounts (component refs reset). Prevents two restore refreshes
+ * with the same refresh token — identity rotation revokes the family on reuse (401 → logout).
+ */
+const restoreRefreshSlot: InFlightSlot<AuthSession | null> = { current: null };
 
 type LoginMessagePayload = {
   method?: 'oauth' | 'web3';
@@ -139,6 +147,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      const applyRestoredSession = async (source: AuthSession) => {
+        try {
+          const restored = await shareInFlight(restoreRefreshSlot, () =>
+            refreshAuthSession(source, now),
+          );
+          if (!restored) {
+            // Only the active mount may clear — a cancelled StrictMode pass must not wipe
+            // storage after a sibling mount already rotated the refresh token.
+            if (!cancelled) {
+              clearStoredAuthSession();
+              setSession(null);
+              setIsLoading(false);
+            }
+            return;
+          }
+          // Persist even when cancelled so a rotated refresh token is not lost mid-remount.
+          persistAuthSession(restored, { storeRefreshToken: !bffAuthEnabled });
+          if (!cancelled) {
+            setSession(restored);
+            setIsLoading(false);
+          }
+        } catch {
+          if (!cancelled) {
+            clearStoredAuthSession();
+            setSession(null);
+            setIsLoading(false);
+          }
+        }
+      };
+
       if (!stored.accessToken && (stored.refreshToken || bffAuthEnabled)) {
         if (isTokenAutoRefreshDisabled()) {
           if (!cancelled) {
@@ -147,30 +185,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
           return;
         }
-        try {
-          const restored = await refreshAuthSession(stored, now);
-          if (!restored) {
-            clearStoredAuthSession();
-            if (!cancelled) {
-              setSession(null);
-              setIsLoading(false);
-            }
-            return;
-          }
-          persistAuthSession(restored, { storeRefreshToken: !bffAuthEnabled });
-          if (!cancelled) {
-            setSession(restored);
-            setIsLoading(false);
-          }
-          return;
-        } catch {
-          clearStoredAuthSession();
-          if (!cancelled) {
-            setSession(null);
-            setIsLoading(false);
-          }
-          return;
-        }
+        await applyRestoredSession(stored);
+        return;
       }
 
       if (!isSessionExpired(stored)) {
@@ -193,29 +209,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      try {
-        const restored = await refreshAuthSession(stored, now);
-        if (!restored) {
-          clearStoredAuthSession();
-          if (!cancelled) {
-            setSession(null);
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        if (!cancelled) {
-          persistAuthSession(restored, { storeRefreshToken: !bffAuthEnabled });
-          setSession(restored);
-          setIsLoading(false);
-        }
-      } catch {
-        clearStoredAuthSession();
-        if (!cancelled) {
-          setSession(null);
-          setIsLoading(false);
-        }
-      }
+      await applyRestoredSession(stored);
     };
 
     void initializeSession();

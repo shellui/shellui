@@ -49,4 +49,6 @@ export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';
 export { normalizeNextPath } from './normalizeNextPath';
 export { normalizeRedirectPath } from './normalizeRedirectPath';
+export { shareInFlight } from './shareInFlight';
+export type { InFlightSlot } from './shareInFlight';
 export { toAuthSessionFromSettingsUser } from './toAuthSessionFromSettingsUser';
