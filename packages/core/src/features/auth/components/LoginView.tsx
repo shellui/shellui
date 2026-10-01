@@ -35,6 +35,8 @@ const LOGIN_CHROME_PAD_Y = '2rem';
 const LOGIN_BRAND_BELOW_TITLEBAR_GAP = '0.75rem';
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
+/** Seconds before the user can go back to the form and request another magic link. */
+const MAGIC_LINK_RESEND_COOLDOWN_SECONDS = 60;
 
 const SHELLUI_OAUTH_ERROR_PARAM = 'shellui_oauth_error';
 const SHELLUI_OAUTH_ERROR_CODE_PARAM = 'shellui_oauth_error_code';
@@ -128,7 +130,8 @@ export const LoginView = () => {
   const [web3Loading, setWeb3Loading] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
-  const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
+  const [magicLinkSentTo, setMagicLinkSentTo] = useState<string | null>(null);
+  const [magicLinkCooldown, setMagicLinkCooldown] = useState(0);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [methodError, setMethodError] = useState<string | null>(null);
   const [oauthBounceError, setOauthBounceError] = useState<string | null>(null);
@@ -313,11 +316,16 @@ export const LoginView = () => {
     [getAuthSettings, supportsWeb3, t],
   );
 
+  useEffect(() => {
+    if (magicLinkCooldown <= 0) return;
+    const timer = window.setTimeout(() => setMagicLinkCooldown((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [magicLinkCooldown]);
+
   const handleOAuthLogin = async (provider: string) => {
     setMethodError(null);
     setOauthBounceError(null);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setOauthLoadingProvider(provider);
     const support = await verifyMethodSupport('oauth', provider);
     if (!support.isSupported) {
@@ -348,7 +356,6 @@ export const LoginView = () => {
   const handleWeb3Login = async () => {
     setMethodError(null);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setWeb3Loading(true);
     const support = await verifyMethodSupport('web3');
     if (!support.isSupported) {
@@ -383,13 +390,11 @@ export const LoginView = () => {
     const email = magicLinkEmail.trim();
     if (!email) {
       setMagicLinkError(t('loginPage.enterEmail'));
-      setMagicLinkMessage(null);
       setMethodError(null);
       return;
     }
     setMagicLinkLoading(true);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setMethodError(null);
 
     try {
@@ -403,13 +408,88 @@ export const LoginView = () => {
         localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
       }
       await sendMagicLink(email, oauthCallbackPathWithNext);
-      setMagicLinkMessage(t('loginPage.magicLinkSent'));
+      setMagicLinkSentTo(email);
+      setMagicLinkCooldown(MAGIC_LINK_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setMagicLinkError(err instanceof Error ? err.message : t('loginPage.couldNotSendMagicLink'));
     } finally {
       setMagicLinkLoading(false);
     }
   };
+
+  const magicLinkContent = magicLinkSentTo ? (
+    <div
+      role="status"
+      className="space-y-3 rounded-xl border border-border bg-background p-4 text-center"
+    >
+      <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <rect
+            width="20"
+            height="16"
+            x="2"
+            y="4"
+            rx="2"
+          />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </svg>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{t('loginPage.magicLinkSentTitle')}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('loginPage.magicLinkSentDescription')}{' '}
+          <span className="break-all font-medium text-foreground">{magicLinkSentTo}</span>
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={magicLinkCooldown > 0}
+        onClick={() => setMagicLinkSentTo(null)}
+      >
+        {magicLinkCooldown > 0
+          ? t('loginPage.magicLinkChangeEmailIn', { seconds: magicLinkCooldown })
+          : t('loginPage.magicLinkChangeEmail')}
+      </Button>
+    </div>
+  ) : (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => void handleMagicLinkLogin(event)}
+    >
+      <input
+        id="magic-link-email"
+        type="email"
+        value={magicLinkEmail}
+        onChange={(event) => setMagicLinkEmail(event.target.value)}
+        placeholder={t('loginPage.emailPlaceholder')}
+        autoComplete="email"
+        required
+        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+      <Button
+        type="submit"
+        variant="secondary"
+        className="w-full"
+        disabled={isActionPending || magicLinkCooldown > 0}
+      >
+        {magicLinkLoading ? t('loginPage.sendingMagicLink') : t('loginPage.sendMagicLink')}
+      </Button>
+      {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
+    </form>
+  );
 
   const panelUrl = useMemo(
     () => validateLoginPanelUrl(config.backend?.login?.panelUrl, config),
@@ -578,35 +658,7 @@ export const LoginView = () => {
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {t('loginPage.lastUsed')}
                   </p>
-                  <form
-                    className="space-y-2"
-                    onSubmit={(event) => void handleMagicLinkLogin(event)}
-                  >
-                    <input
-                      id="magic-link-email"
-                      type="email"
-                      value={magicLinkEmail}
-                      onChange={(event) => setMagicLinkEmail(event.target.value)}
-                      placeholder={t('loginPage.emailPlaceholder')}
-                      autoComplete="email"
-                      required
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    />
-                    <Button
-                      type="submit"
-                      variant="secondary"
-                      className="w-full"
-                      disabled={isActionPending}
-                    >
-                      {magicLinkLoading
-                        ? t('loginPage.sendingMagicLink')
-                        : t('loginPage.sendMagicLink')}
-                    </Button>
-                    {magicLinkMessage && (
-                      <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                    )}
-                    {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
-                  </form>
+                  {magicLinkContent}
                 </section>
               )}
 
@@ -783,37 +835,7 @@ export const LoginView = () => {
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t('loginPage.emailMagicLink')}
                         </p>
-                        <form
-                          className="space-y-2"
-                          onSubmit={(event) => void handleMagicLinkLogin(event)}
-                        >
-                          <input
-                            id="magic-link-email"
-                            type="email"
-                            value={magicLinkEmail}
-                            onChange={(event) => setMagicLinkEmail(event.target.value)}
-                            placeholder={t('loginPage.emailPlaceholder')}
-                            autoComplete="email"
-                            required
-                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          />
-                          <Button
-                            type="submit"
-                            variant="secondary"
-                            className="w-full"
-                            disabled={isActionPending}
-                          >
-                            {magicLinkLoading
-                              ? t('loginPage.sendingMagicLink')
-                              : t('loginPage.sendMagicLink')}
-                          </Button>
-                          {magicLinkMessage && (
-                            <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                          )}
-                          {magicLinkError && (
-                            <p className="text-sm text-destructive">{magicLinkError}</p>
-                          )}
-                        </form>
+                        {magicLinkContent}
                       </section>
                     )}
                   </div>
