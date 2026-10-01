@@ -12,6 +12,7 @@ export default defineConfig({
     environment: 'node',
     include: [
       'src/features/auth/utils/**/*.spec.ts',
+      'src/features/auth/backends/**/*.spec.ts',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
       'src/features/transfers/**/*.spec.ts',

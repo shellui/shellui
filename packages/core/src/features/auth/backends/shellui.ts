@@ -15,6 +15,7 @@ import type { AuthBackend } from './types';
 const USER_PREFERENCES_ENDPOINT = '/api/v1/preferences';
 const OAUTH_EXCHANGE_ENDPOINT = '/api/v1/oauth/exchange';
 const OAUTH_SESSION_ENDPOINT = '/api/v1/oauth/session';
+const MAGIC_LINK_REQUEST_ENDPOINT = '/api/v1/magic-link/request';
 
 const parseAuthErrorPayload = (
   payload: Record<string, unknown> | null,
@@ -223,31 +224,37 @@ export const createShellUIAuthBackend = ({
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');
       }
-      const emailRedirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
-      const response = await fetch(`${backendUrl}/api/v1/otp`, {
+      const selectedCompanyId = getShellUILoginCompanyId(companyId);
+      if (!selectedCompanyId) {
+        throw new Error('Missing company_id for magic link request.');
+      }
+      const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+      const clientTz = getShellUILoginClientTimezone();
+      const clientDeviceId = getShellUILoginDeviceId();
+      const response = await fetch(`${backendUrl}${MAGIC_LINK_REQUEST_ENDPOINT}`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          company_id: Number(selectedCompanyId),
           email,
-          create_user: true,
-          email_redirect_to: emailRedirectTo,
+          redirect_to: redirectTo,
+          ...(clientTz ? { client_timezone: clientTz } : {}),
+          ...(clientDeviceId ? { client_device_id: clientDeviceId } : {}),
         }),
       });
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          msg?: string;
-          message?: string;
-          error?: string;
-        } | null;
-        throw new Error(
-          payload?.msg ??
-            payload?.message ??
-            payload?.error ??
-            `Could not send magic link (HTTP ${response.status}).`,
-        );
+        const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+        const err = payload?.error ?? payload?.detail;
+        const message =
+          typeof err === 'string' && err.trim()
+            ? err
+            : `Could not send magic link (HTTP ${response.status}).`;
+        const errorCode =
+          typeof payload?.error_code === 'string' ? payload.error_code.trim() || null : null;
+        throw new AuthRequestError(message, errorCode);
       }
     },
     syncUserPreferences: async (session, preferences: UserPreferences) => {

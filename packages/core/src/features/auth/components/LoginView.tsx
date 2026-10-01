@@ -408,7 +408,7 @@ export const LoginView = () => {
       if (typeof window !== 'undefined') {
         localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
       }
-      await sendMagicLink(email, loginPathWithNext);
+      await sendMagicLink(email, oauthCallbackPathWithNext);
       setMagicLinkMessage(t('loginPage.magicLinkSent'));
     } catch (err) {
       setMagicLinkError(err instanceof Error ? err.message : t('loginPage.couldNotSendMagicLink'));

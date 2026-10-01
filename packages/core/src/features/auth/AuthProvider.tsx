@@ -459,10 +459,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const getAuthSettings = useCallback(() => backend.getAuthSettings(), [backend]);
 
   const sendMagicLink = useCallback(
-    async (email: string, redirectPath = urls.login) => {
+    async (email: string, redirectPath = urls.loginCallback) => {
       try {
         await backend.sendMagicLink(email, redirectPath);
       } catch (err) {
+        if (err instanceof AuthRequestError) throw err;
         const message = err instanceof Error ? err.message : 'Could not send magic link.';
         throw new Error(message);
       }
