@@ -226,18 +226,12 @@ export const LoginView = () => {
     if (!featuredOAuthProvider) return allOAuthProviders;
     return allOAuthProviders.filter((provider) => provider !== featuredOAuthProvider);
   }, [allOAuthProviders, featuredOAuthProvider, supportsOAuth]);
-  const hasAlternativeMethods = useMemo(() => {
-    if (featuredMethod === 'oauth') {
-      return otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3;
-    }
-    if (featuredMethod === 'web3') {
-      return supportsOAuth || supportsMagicLink;
-    }
-    if (featuredMethod === 'magic_link') {
-      return (supportsOAuth && otherOAuthProviders.length > 0) || supportsWeb3;
-    }
-    return false;
-  }, [featuredMethod, otherOAuthProviders.length, supportsMagicLink, supportsOAuth, supportsWeb3]);
+  const showWeb3Section = supportsWeb3 && featuredMethod !== 'web3';
+  const showOAuthSection = supportsOAuth && otherOAuthProviders.length > 0;
+  const showMagicLinkSection = supportsMagicLink && featuredMethod !== 'magic_link';
+  const hasAlternativeMethods =
+    featuredMethod !== null && (showWeb3Section || showOAuthSection || showMagicLinkSection);
+  const showMagicLinkDivider = showMagicLinkSection && (showWeb3Section || showOAuthSection);
   const showAlternatives = featuredMethod === null || showAlternativeMethods;
   const alternativesAreCollapsible = featuredMethod !== null && hasAlternativeMethods;
   useEffect(() => {
@@ -681,7 +675,8 @@ export const LoginView = () => {
                     : 'grid-rows-[1fr] opacity-100',
                 )}
               >
-                <div className="min-h-0 overflow-hidden">
+                {/* Inset matches focus ring + offset (4px) so overflow-hidden does not clip it. */}
+                <div className="-m-1 min-h-0 overflow-hidden p-1">
                   <div
                     className={cn(
                       'space-y-4 transition-transform duration-500 ease-out',
@@ -690,17 +685,7 @@ export const LoginView = () => {
                         : 'translate-y-0',
                     )}
                   >
-                    {featuredMethod === 'oauth' &&
-                      (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
-                        <div className="relative py-1">
-                          <div className="border-t border-border" />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            {t('loginPage.or')}
-                          </span>
-                        </div>
-                      )}
-
-                    {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
+                    {hasAlternativeMethods && (
                       <div className="relative py-1">
                         <div className="border-t border-border" />
                         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -709,16 +694,7 @@ export const LoginView = () => {
                       </div>
                     )}
 
-                    {featuredMethod === 'web3' && (supportsOAuth || supportsMagicLink) && (
-                      <div className="relative py-1">
-                        <div className="border-t border-border" />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                          {t('loginPage.or')}
-                        </span>
-                      </div>
-                    )}
-
-                    {supportsWeb3 && featuredMethod !== 'web3' && (
+                    {showWeb3Section && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t('loginPage.walletLogin')}
@@ -750,7 +726,7 @@ export const LoginView = () => {
                       </section>
                     )}
 
-                    {supportsOAuth && otherOAuthProviders.length > 0 && (
+                    {showOAuthSection && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {featuredMethod === 'oauth'
@@ -793,18 +769,16 @@ export const LoginView = () => {
                       </section>
                     )}
 
-                    {(supportsOAuth || supportsWeb3) &&
-                      supportsMagicLink &&
-                      featuredMethod !== 'magic_link' && (
-                        <div className="relative py-1">
-                          <div className="border-t border-border" />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            {t('loginPage.or')}
-                          </span>
-                        </div>
-                      )}
+                    {showMagicLinkDivider && (
+                      <div className="relative py-1">
+                        <div className="border-t border-border" />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                          {t('loginPage.or')}
+                        </span>
+                      </div>
+                    )}
 
-                    {supportsMagicLink && featuredMethod !== 'magic_link' && (
+                    {showMagicLinkSection && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t('loginPage.emailMagicLink')}

@@ -1,4 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
@@ -48,6 +49,7 @@ type LoginMessagePayload = {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
+  const { i18n } = useTranslation();
   const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
@@ -461,14 +463,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sendMagicLink = useCallback(
     async (email: string, redirectPath = urls.loginCallback) => {
       try {
-        await backend.sendMagicLink(email, redirectPath);
+        await backend.sendMagicLink(email, redirectPath, {
+          language: i18n.resolvedLanguage ?? i18n.language,
+        });
       } catch (err) {
         if (err instanceof AuthRequestError) throw err;
         const message = err instanceof Error ? err.message : 'Could not send magic link.';
         throw new Error(message);
       }
     },
-    [backend],
+    [backend, i18n],
   );
 
   const syncUserPreferences = useCallback(

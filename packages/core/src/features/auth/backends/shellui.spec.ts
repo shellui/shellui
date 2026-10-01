@@ -49,6 +49,21 @@ describe('shellui backend sendMagicLink', () => {
       client_device_id: 'device-1',
     });
     expect(body).not.toHaveProperty('email_redirect_to');
+    expect(body).not.toHaveProperty('language');
+  });
+
+  test('sends the UI language so the email is localized', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { ok: true }));
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+
+    await backend.sendMagicLink('ada@acme.com', '/login/callback', { language: 'fr' });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.language).toBe('fr');
   });
 
   test('throws AuthRequestError with error_code when disabled', async () => {

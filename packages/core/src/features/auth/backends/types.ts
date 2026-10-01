@@ -29,7 +29,11 @@ export interface AuthBackend {
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
   getAuthSettings: () => Promise<AuthSettings>;
-  sendMagicLink: (email: string, redirectPath: string) => Promise<void>;
+  sendMagicLink: (
+    email: string,
+    redirectPath: string,
+    options?: { language?: string },
+  ) => Promise<void>;
   syncUserPreferences: (session: AuthSession | null, preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: (session: AuthSession | null) => Promise<UserPreferences | null>;
 }

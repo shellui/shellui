@@ -220,7 +220,7 @@ export const createShellUIAuthBackend = ({
       const payload = (await response.json()) as unknown;
       return normalizeAuthSettings(payload);
     },
-    sendMagicLink: async (email, redirectPath) => {
+    sendMagicLink: async (email, redirectPath, options) => {
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');
       }
@@ -231,6 +231,7 @@ export const createShellUIAuthBackend = ({
       const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
       const clientTz = getShellUILoginClientTimezone();
       const clientDeviceId = getShellUILoginDeviceId();
+      const language = options?.language?.trim();
       const response = await fetch(`${backendUrl}${MAGIC_LINK_REQUEST_ENDPOINT}`, {
         method: 'POST',
         headers: {
@@ -243,6 +244,7 @@ export const createShellUIAuthBackend = ({
           redirect_to: redirectTo,
           ...(clientTz ? { client_timezone: clientTz } : {}),
           ...(clientDeviceId ? { client_device_id: clientDeviceId } : {}),
+          ...(language ? { language } : {}),
         }),
       });
       if (!response.ok) {
