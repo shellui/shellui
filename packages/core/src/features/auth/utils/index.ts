@@ -44,6 +44,7 @@ export { getOAuthProviderCandidates } from './getOAuthProviderCandidates';
 export { getPreferredBackendProvider } from './getPreferredBackendProvider';
 export { getProviderVisual } from './getProviderVisual';
 export { isLoginMethod } from './isLoginMethod';
+export { resolveLoginSettings } from './resolveLoginSettings';
 export { isSessionExpired } from './isSessionExpired';
 export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';

@@ -26,7 +26,7 @@ Add a `backend` block. Without it, `useAuth()` reports signed out and login acti
 }
 ```
 
-`backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden.
+`backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden. When `methods` is missing or empty, the login page defaults to `magic_link`, plus `oauth` if `oauthProviders` is set.
 
 | Method       | Login UI         | Notes                                                                     |
 | ------------ | ---------------- | ------------------------------------------------------------------------- |

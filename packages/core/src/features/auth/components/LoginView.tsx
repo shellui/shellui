@@ -18,9 +18,9 @@ import {
   getPreferredBackendProvider,
   getProviderVisual,
   isAccessPendingErrorCode,
-  isLoginMethod,
   normalizeNextPath,
   redirectToCliCallback,
+  resolveLoginSettings,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
@@ -107,25 +107,10 @@ export const LoginView = () => {
     sendMagicLink,
     session,
   } = useAuth();
-  const configuredSettings = useMemo<AuthSettings>(() => {
-    const configuredMethods = Array.isArray(config.backend?.login?.methods)
-      ? config.backend.login.methods.filter(isLoginMethod)
-      : [];
-    const configuredProvidersRaw = Array.isArray(config.backend?.login?.oauthProviders)
-      ? config.backend.login.oauthProviders
-          .filter(
-            (provider): provider is string =>
-              typeof provider === 'string' && provider.trim() !== '',
-          )
-          .map((provider) => provider.toLowerCase())
-      : [];
-    const configuredProviders = Array.from(new Set(configuredProvidersRaw));
-    return {
-      methods: configuredMethods,
-      oauthProviders: configuredProviders,
-      oauthClients: [],
-    };
-  }, [config.backend?.login?.methods, config.backend?.login?.oauthProviders]);
+  const configuredSettings = useMemo<AuthSettings>(
+    () => resolveLoginSettings(config.backend),
+    [config.backend],
+  );
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
   const [web3Loading, setWeb3Loading] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
