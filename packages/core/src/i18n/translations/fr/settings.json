@@ -59,7 +59,24 @@
     },
     "actions": {
       "loggingOut": "Déconnexion...",
-      "logout": "Se déconnecter"
+      "logout": "Se déconnecter",
+      "deleteAccount": "Supprimer le compte",
+      "deletingAccount": "Suppression du compte…"
+    },
+    "deleteAccount": {
+      "title": "Supprimer votre compte ?",
+      "description": "Vous serez retiré de {{appName}} et vos données seront supprimées. Cette action est irréversible.",
+      "adminWarning": "Vous êtes administrateur de {{appName}}. Supprimer votre compte vous retire l'accès à l'application, y compris à son administration.",
+      "confirm": "Supprimer le compte",
+      "cancel": "Annuler",
+      "successTitle": "Compte supprimé",
+      "successDescription": "Votre compte {{appName}} a été supprimé.",
+      "reauthTitle": "Reconnectez-vous pour continuer",
+      "reauthDescription": "Pour votre sécurité, la suppression du compte nécessite une connexion récente. Reconnectez-vous, puis réessayez depuis les paramètres de votre compte.",
+      "reauthAction": "Se reconnecter",
+      "lastOwnerTitle": "Ajoutez d'abord un autre propriétaire",
+      "lastOwnerDescription": "Vous êtes le seul propriétaire de {{companies}}. Supprimer votre compte la laisserait sans personne pour la gérer. Désignez un autre membre comme propriétaire, puis supprimez votre compte.",
+      "errorTitle": "Impossible de supprimer votre compte"
     }
   },
   "updateApp": {

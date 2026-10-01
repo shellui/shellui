@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { AuthSession } from '../types';
 import { AuthRequestError } from '../utils/authRequestError';
 import { createShellUIAuthBackend } from './shellui';
 
@@ -92,6 +93,72 @@ describe('shellui backend sendMagicLink', () => {
     await expect(backend.sendMagicLink('ada@acme.com', '/login/callback')).rejects.toThrow(
       'Missing company_id for magic link request.',
     );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('shellui backend deleteAccount', () => {
+  const fetchMock = vi.fn();
+  const session = { accessToken: 'access-1', refreshToken: 'refresh-1' } as AuthSession;
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  test('sends DELETE /api/v1/user with bearer token and no company id', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+
+    await backend.deleteAccount(session);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://auth.example.com/api/v1/user');
+    expect(init.method).toBe('DELETE');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer access-1');
+    expect(JSON.parse(init.body as string)).toEqual({ confirm: true, refresh_token: 'refresh-1' });
+  });
+
+  test('surfaces recent_login_required as an AuthRequestError', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(403, {
+        error: 'Sign in again before deleting your account.',
+        error_code: 'recent_login_required',
+      }),
+    );
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+
+    const error = await backend.deleteAccount(session).catch((e) => e);
+    expect(error).toBeInstanceOf(AuthRequestError);
+    expect((error as AuthRequestError).code).toBe('recent_login_required');
+  });
+
+  test('keeps the companies list when the user is the last owner', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(409, {
+        error: 'You are the only owner of Acme. Add another owner before deleting your account.',
+        error_code: 'last_company_owner',
+        companies: [{ id: 7, name: 'Acme' }],
+      }),
+    );
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+
+    const error = (await backend.deleteAccount(session).catch((e) => e)) as AuthRequestError;
+    expect(error.code).toBe('last_company_owner');
+    expect(error.details.companies).toEqual([{ id: 7, name: 'Acme' }]);
+  });
+
+  test('requires a session', async () => {
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+
+    await expect(backend.deleteAccount(null)).rejects.toBeInstanceOf(AuthRequestError);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

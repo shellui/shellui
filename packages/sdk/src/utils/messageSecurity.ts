@@ -13,6 +13,7 @@ export type MessageSourceKind = 'same-window' | 'parent' | 'registered-frame' | 
 export const PRIVILEGED_COMPANION_MESSAGE_TYPES = new Set([
   'SHELLUI_LOGIN',
   'SHELLUI_LOGOUT',
+  'SHELLUI_DELETE_ACCOUNT_REQUEST',
   'SHELLUI_OPEN_MODAL',
   'SHELLUI_CLOSE_MODAL',
   'SHELLUI_OPEN_DRAWER',

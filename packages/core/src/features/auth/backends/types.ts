@@ -28,6 +28,10 @@ export interface AuthBackend {
   startOAuth: (provider: string, redirectPath: string, oauthClientId?: number) => void;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
+  /** Whether {@link deleteAccount} is implemented for this backend. */
+  supportsAccountDeletion: boolean;
+  /** Permanently delete the signed-in user for the session's company. */
+  deleteAccount: (session: AuthSession | null) => Promise<void>;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (
     email: string,

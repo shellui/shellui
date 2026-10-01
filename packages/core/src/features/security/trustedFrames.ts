@@ -60,6 +60,40 @@ export function isRegisteredTrustedFrame(frameSrc: string | null, config?: Shell
   return Boolean(frameSrc && isTrustedFrameForAuthToken(frameSrc, config));
 }
 
+/**
+ * Whether a message came from the shell window itself or directly from a shell-owned
+ * frame under `settingsPath` (e.g. the user settings modal). Messages relayed through
+ * a nested frame (more than one hop) are rejected, so embedded apps cannot trigger
+ * account-level actions.
+ */
+export function isShellSettingsFrameMessage(
+  from: string[] | undefined,
+  frameRegistry: FrameRegistryLike,
+  settingsPath: string,
+  shellOrigin: string,
+): boolean {
+  const hops = (from ?? []).filter(Boolean);
+  if (hops.length === 0) {
+    return true;
+  }
+  if (hops.length !== 1) {
+    return false;
+  }
+  const frameSrc = resolveRegisteredFrameSrc(hops, frameRegistry);
+  if (!frameSrc) {
+    return false;
+  }
+  try {
+    const url = new URL(frameSrc, shellOrigin);
+    const base = `/${settingsPath.replace(/^\/+|\/+$/g, '')}`;
+    return (
+      url.origin === shellOrigin && (url.pathname === base || url.pathname.startsWith(`${base}/`))
+    );
+  } catch {
+    return false;
+  }
+}
+
 export type StorageTrustDenial = { message: string; status: 403 };
 
 /**

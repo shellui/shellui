@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
+import { isShellSettingsFrameMessage } from '../security/trustedFrames';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
@@ -25,6 +26,8 @@ import {
   toAuthSessionFromSettingsUser,
   type InFlightSlot,
 } from './utils';
+import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
+import type { DeleteAccountResultStatus } from './deleteAccountMessages';
 
 const logger = getLogger('shellcore');
 
@@ -556,6 +559,132 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => cleanup();
   }, [logout]);
 
+  const deleteAccount = useCallback(async () => {
+    await backend.deleteAccount(session);
+    await logout();
+  }, [backend, logout, session]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_DELETE_ACCOUNT_REQUEST', (message) => {
+      const id = (message.payload as { id?: unknown } | undefined)?.id;
+      if (typeof id !== 'string' || !id) {
+        return;
+      }
+      const from = message.from?.filter(Boolean) as string[] | undefined;
+      const reply = (status: DeleteAccountResultStatus) => {
+        const result = {
+          type: 'SHELLUI_DELETE_ACCOUNT_RESULT' as const,
+          payload: { id, status },
+        };
+        if (from?.length) {
+          shellui.sendMessage({ ...result, to: from });
+          return;
+        }
+        postShellMessage(result);
+      };
+
+      if (
+        !backend.supportsAccountDeletion ||
+        !session ||
+        !isShellSettingsFrameMessage(
+          from,
+          shellui.frameRegistry,
+          urls.settings,
+          window.location.origin,
+        )
+      ) {
+        logger.warn('Rejected account deletion request', { from });
+        reply('error');
+        return;
+      }
+
+      const t = i18n.getFixedT(null, 'settings');
+      const appName = config.title?.trim() || window.location.host;
+      const isAdmin = session.userIsCompanyOwner === true || session.userIsStaff === true;
+      const description = [
+        t('userAccount.deleteAccount.description', { appName }),
+        isAdmin ? t('userAccount.deleteAccount.adminWarning', { appName }) : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      shellui.dialog({
+        title: t('userAccount.deleteAccount.title'),
+        description,
+        mode: 'delete',
+        size: 'sm',
+        okLabel: t('userAccount.deleteAccount.confirm'),
+        cancelLabel: t('userAccount.deleteAccount.cancel'),
+        onOk: () => {
+          void (async () => {
+            try {
+              await deleteAccount();
+              reply('deleted');
+              postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
+              postShellMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} });
+              shellui.toast({
+                type: 'success',
+                title: t('userAccount.deleteAccount.successTitle'),
+                description: t('userAccount.deleteAccount.successDescription', { appName }),
+              });
+            } catch (err) {
+              reply('error');
+              const errorCode = getAuthRequestErrorCode(err);
+              if (errorCode === 'last_company_owner') {
+                const companies =
+                  err instanceof AuthRequestError && Array.isArray(err.details.companies)
+                    ? (err.details.companies as Array<{ name?: unknown }>)
+                        .map((c) => (typeof c?.name === 'string' ? c.name : ''))
+                        .filter(Boolean)
+                        .join(', ')
+                    : '';
+                shellui.dialog({
+                  title: t('userAccount.deleteAccount.lastOwnerTitle'),
+                  description: t('userAccount.deleteAccount.lastOwnerDescription', {
+                    companies: companies || appName,
+                  }),
+                  mode: 'ok',
+                  size: 'sm',
+                });
+                return;
+              }
+              if (errorCode === 'recent_login_required') {
+                shellui.dialog({
+                  title: t('userAccount.deleteAccount.reauthTitle'),
+                  description: t('userAccount.deleteAccount.reauthDescription'),
+                  mode: 'okCancel',
+                  size: 'sm',
+                  okLabel: t('userAccount.deleteAccount.reauthAction'),
+                  cancelLabel: t('userAccount.deleteAccount.cancel'),
+                  onOk: () => {
+                    void logout().then(() => {
+                      window.location.assign(
+                        buildAuthUrlWithNext(urls.login, `${urls.settings}/user`),
+                      );
+                    });
+                  },
+                });
+                return;
+              }
+              logger.error('Account deletion failed', { err });
+              shellui.toast({
+                type: 'error',
+                title: t('userAccount.deleteAccount.errorTitle'),
+                description: err instanceof Error ? err.message : undefined,
+              });
+            }
+          })();
+        },
+        onCancel: () => reply('cancelled'),
+      });
+    });
+
+    return () => cleanup();
+  }, [backend, config.title, deleteAccount, i18n, logout, session]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
       return;
@@ -627,8 +756,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       syncUserPreferences,
       loadUserPreferences,
       logout,
+      supportsAccountDeletion: backend.supportsAccountDeletion,
+      deleteAccount,
     }),
     [
+      backend.supportsAccountDeletion,
+      deleteAccount,
       session,
       user,
       isLoading,

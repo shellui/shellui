@@ -59,7 +59,24 @@
     },
     "actions": {
       "loggingOut": "Logging out...",
-      "logout": "Logout"
+      "logout": "Logout",
+      "deleteAccount": "Delete account",
+      "deletingAccount": "Deleting account…"
+    },
+    "deleteAccount": {
+      "title": "Delete your account?",
+      "description": "You will be removed from {{appName}} and your data will be deleted. This cannot be undone.",
+      "adminWarning": "You are an administrator of {{appName}}. Deleting your account removes your access to it, including its admin settings.",
+      "confirm": "Delete account",
+      "cancel": "Cancel",
+      "successTitle": "Account deleted",
+      "successDescription": "Your {{appName}} account has been deleted.",
+      "reauthTitle": "Sign in again to continue",
+      "reauthDescription": "For your security, deleting your account requires a recent sign-in. Sign in again, then retry from your account settings.",
+      "reauthAction": "Sign in again",
+      "lastOwnerTitle": "Add another owner first",
+      "lastOwnerDescription": "You are the only owner of {{companies}}. Deleting your account would leave it without anyone who can manage it. Make another member an owner, then delete your account.",
+      "errorTitle": "Could not delete your account"
     }
   },
   "updateApp": {

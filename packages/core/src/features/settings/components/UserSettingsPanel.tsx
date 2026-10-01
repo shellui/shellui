@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui, type Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
+import { requestAccountDeletion } from '../../auth/deleteAccountMessages';
 import { decodeJwtPayload } from '../../auth/utils/decodeJwtPayload';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
@@ -180,6 +181,7 @@ export const UserSettingsPanel = ({
   accessToken,
   settingsAccessToken,
   rawUserSettings,
+  canDeleteAccount,
 }: {
   user: AuthUser;
   onLogout: () => Promise<void>;
@@ -187,10 +189,12 @@ export const UserSettingsPanel = ({
   accessToken: string | null;
   settingsAccessToken: string | null;
   rawUserSettings: Settings['user'];
+  canDeleteAccount: boolean;
 }) => {
   const { t, i18n } = useTranslation('settings');
   const { settings } = useSettings();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const decodedJwtPayload = useMemo(
     () => (accessToken ? decodeJwtPayload(accessToken) : null),
     [accessToken],
@@ -231,6 +235,14 @@ export const UserSettingsPanel = ({
       setIsLoggingOut(false);
     }
   }, [onLogout]);
+  const handleDeleteAccount = useCallback(async () => {
+    setIsDeletingAccount(true);
+    try {
+      await requestAccountDeletion();
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }, []);
   const handleCopyDeveloperDiagnostics = useCallback(
     async (label: string, value: string) => {
       if (!navigator?.clipboard?.writeText) {
@@ -424,15 +436,30 @@ export const UserSettingsPanel = ({
 
       {developerDiagnostics}
 
-      <Button
-        type="button"
-        variant="secondary"
-        className="mt-4 w-full sm:w-auto"
-        onClick={() => void handleLogout()}
-        disabled={isLoggingOut}
-      >
-        {isLoggingOut ? t('userAccount.actions.loggingOut') : t('userAccount.actions.logout')}
-      </Button>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full sm:w-auto"
+          onClick={() => void handleLogout()}
+          disabled={isLoggingOut || isDeletingAccount}
+        >
+          {isLoggingOut ? t('userAccount.actions.loggingOut') : t('userAccount.actions.logout')}
+        </Button>
+        {canDeleteAccount ? (
+          <Button
+            type="button"
+            variant="destructive"
+            className="w-full sm:w-auto"
+            onClick={() => void handleDeleteAccount()}
+            disabled={isLoggingOut || isDeletingAccount}
+          >
+            {isDeletingAccount
+              ? t('userAccount.actions.deletingAccount')
+              : t('userAccount.actions.deleteAccount')}
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 };

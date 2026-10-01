@@ -117,6 +117,7 @@ describe('MessageSecurityPolicy', () => {
   it('covers privileged companion message types used by auth/modal/dialog/toast', () => {
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_LOGIN')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_LOGOUT')).toBe(true);
+    expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_DELETE_ACCOUNT_REQUEST')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_DIALOG')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_TOAST')).toBe(true);
     expect(PRIVILEGED_COMPANION_MESSAGE_TYPES.has('SHELLUI_OPEN_MODAL')).toBe(true);

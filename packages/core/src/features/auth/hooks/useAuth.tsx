@@ -35,6 +35,10 @@ export interface AuthContextValue {
   syncUserPreferences: (preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: () => Promise<UserPreferences | null>;
   logout: () => Promise<void>;
+  /** Whether the configured auth backend supports self-service account deletion. */
+  supportsAccountDeletion: boolean;
+  /** Delete the signed-in account for the current company, then sign out. */
+  deleteAccount: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
