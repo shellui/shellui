@@ -238,6 +238,37 @@ export const createShellUIAuthBackend = ({
         throw new AuthRequestError(message, errorCode, payload ?? undefined);
       }
     },
+    supportsProfileUpdate: true,
+    updateProfile: async (session, { name }) => {
+      if (!backendUrl) {
+        throw new Error('Missing Shellui backend URL.');
+      }
+      if (!session?.accessToken) {
+        throw new AuthRequestError('Sign in again, then update your name.', 'unauthorized');
+      }
+      const response = await fetch(`${backendUrl}${USER_ENDPOINT}`, {
+        method: 'PATCH',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify({ name }),
+      });
+      const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+      if (!response.ok) {
+        const fieldErrors = Array.isArray(payload?.name) ? payload.name : [];
+        const err = payload?.error ?? payload?.detail ?? fieldErrors[0];
+        const message =
+          typeof err === 'string' && err.trim()
+            ? err
+            : `Could not update name (HTTP ${response.status}).`;
+        throw new AuthRequestError(message, null, payload ?? undefined);
+      }
+      const metadata = payload?.user_metadata as Record<string, unknown> | undefined;
+      const savedName = typeof metadata?.name === 'string' ? metadata.name : name;
+      return { name: savedName };
+    },
     getAuthSettings: async () => {
       if (!backendUrl) {
         return { methods: [], oauthProviders: [], oauthClients: [] };

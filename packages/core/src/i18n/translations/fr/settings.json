@@ -34,6 +34,15 @@
       "groups": "Groupes",
       "noGroups": "Aucun"
     },
+    "name": {
+      "edit": "Modifier le nom",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "cancel": "Annuler",
+      "savedTitle": "Nom mis à jour",
+      "savedDescription": "Votre nom est désormais {{name}}.",
+      "errorTitle": "Impossible de mettre à jour votre nom"
+    },
     "loginMethods": {
       "unknown": "Inconnue",
       "magicLinkEmail": "Lien magique (e-mail)",

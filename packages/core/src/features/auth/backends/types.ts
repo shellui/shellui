@@ -32,6 +32,13 @@ export interface AuthBackend {
   supportsAccountDeletion: boolean;
   /** Permanently delete the signed-in user for the session's company. */
   deleteAccount: (session: AuthSession | null) => Promise<void>;
+  /** Whether {@link updateProfile} is implemented for this backend. */
+  supportsProfileUpdate: boolean;
+  /** Update the signed-in user's display name; resolves with the name as stored. */
+  updateProfile: (
+    session: AuthSession | null,
+    profile: { name: string },
+  ) => Promise<{ name: string }>;
   getAuthSettings: () => Promise<AuthSettings>;
   sendMagicLink: (
     email: string,

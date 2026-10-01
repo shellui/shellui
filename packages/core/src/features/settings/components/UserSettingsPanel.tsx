@@ -1,11 +1,12 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui, type Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
-import { requestAccountDeletion } from '../../auth/deleteAccountMessages';
+import { requestAccountDeletion, requestProfileUpdate } from '../../auth/shellAccountRequests';
 import { decodeJwtPayload } from '../../auth/utils/decodeJwtPayload';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
 import {
   Tooltip,
   TooltipContent,
@@ -182,6 +183,7 @@ export const UserSettingsPanel = ({
   settingsAccessToken,
   rawUserSettings,
   canDeleteAccount,
+  canEditName,
 }: {
   user: AuthUser;
   onLogout: () => Promise<void>;
@@ -190,11 +192,19 @@ export const UserSettingsPanel = ({
   settingsAccessToken: string | null;
   rawUserSettings: Settings['user'];
   canDeleteAccount: boolean;
+  canEditName: boolean;
 }) => {
   const { t, i18n } = useTranslation('settings');
   const { settings } = useSettings();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  // Shown until the shell propagates the updated user back to this panel.
+  const [savedName, setSavedName] = useState<string | null>(null);
+  useEffect(() => setSavedName(null), [user.name]);
+  const displayName = savedName ?? user.name;
   const decodedJwtPayload = useMemo(
     () => (accessToken ? decodeJwtPayload(accessToken) : null),
     [accessToken],
@@ -235,6 +245,43 @@ export const UserSettingsPanel = ({
       setIsLoggingOut(false);
     }
   }, [onLogout]);
+  const startEditingName = useCallback(() => {
+    setNameDraft(displayName ?? '');
+    setIsEditingName(true);
+  }, [displayName]);
+  const cancelEditingName = useCallback(() => {
+    setIsEditingName(false);
+    setNameDraft('');
+  }, []);
+  const handleSaveName = useCallback(async () => {
+    const name = nameDraft.trim().replace(/\s+/g, ' ');
+    if (!name) return;
+    if (name === displayName) {
+      cancelEditingName();
+      return;
+    }
+    setIsSavingName(true);
+    try {
+      const result = await requestProfileUpdate(name);
+      if (result.status === 'saved') {
+        setSavedName(result.name);
+        cancelEditingName();
+        shellui.toast({
+          type: 'success',
+          title: t('userAccount.name.savedTitle'),
+          description: t('userAccount.name.savedDescription', { name: result.name }),
+        });
+        return;
+      }
+      shellui.toast({
+        type: 'error',
+        title: t('userAccount.name.errorTitle'),
+        description: result.error,
+      });
+    } finally {
+      setIsSavingName(false);
+    }
+  }, [cancelEditingName, displayName, nameDraft, t]);
   const handleDeleteAccount = useCallback(async () => {
     setIsDeletingAccount(true);
     try {
@@ -391,7 +438,7 @@ export const UserSettingsPanel = ({
         )}
         <div className="min-w-0">
           <p className="truncate text-base font-medium text-foreground">
-            {user.name || t('userAccount.profile.unknownUser')}
+            {displayName || t('userAccount.profile.unknownUser')}
           </p>
           <p className="truncate text-sm text-muted-foreground">
             {user.email || t('userAccount.profile.noEmail')}
@@ -402,7 +449,81 @@ export const UserSettingsPanel = ({
       <dl className="space-y-3 text-sm">
         <div>
           <dt className="text-muted-foreground">{t('userAccount.fields.name')}</dt>
-          <dd className="mt-0.5 text-foreground">{user.name || '-'}</dd>
+          <dd className="mt-0.5 text-foreground">
+            {isEditingName ? (
+              <form
+                className="mt-1 flex items-center gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void handleSaveName();
+                }}
+              >
+                <Input
+                  autoFocus
+                  value={nameDraft}
+                  onChange={(event) => setNameDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') {
+                      event.preventDefault();
+                      cancelEditingName();
+                    }
+                  }}
+                  maxLength={150}
+                  autoComplete="name"
+                  aria-label={t('userAccount.fields.name')}
+                  disabled={isSavingName}
+                  className="h-8 max-w-xs"
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-8"
+                  disabled={isSavingName || !nameDraft.trim()}
+                >
+                  {isSavingName ? t('userAccount.name.saving') : t('userAccount.name.save')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
+                  onClick={cancelEditingName}
+                  disabled={isSavingName}
+                >
+                  {t('userAccount.name.cancel')}
+                </Button>
+              </form>
+            ) : (
+              <span className="inline-flex items-center gap-1.5">
+                {displayName || '-'}
+                {canEditName ? (
+                  <button
+                    type="button"
+                    onClick={startEditingName}
+                    className="inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={t('userAccount.name.edit')}
+                    title={t('userAccount.name.edit')}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+                      <path d="m15 5 4 4" />
+                    </svg>
+                  </button>
+                ) : null}
+              </span>
+            )}
+          </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">{t('userAccount.fields.email')}</dt>

@@ -27,7 +27,7 @@ import {
   type InFlightSlot,
 } from './utils';
 import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
-import type { DeleteAccountResultStatus } from './deleteAccountMessages';
+import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
 
 const logger = getLogger('shellcore');
 
@@ -564,6 +564,72 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await logout();
   }, [backend, logout, session]);
 
+  const updateProfile = useCallback(
+    async ({ name }: { name: string }) => {
+      const saved = await backend.updateProfile(session, { name });
+      const current = sessionRef.current;
+      if (current) {
+        const next = { ...current, userName: saved.name };
+        persistAuthSession(next, bffAuthEnabled ? { storeRefreshToken: false } : undefined);
+        setSession(next);
+      }
+      return saved;
+    },
+    [backend, bffAuthEnabled, session],
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_UPDATE_PROFILE_REQUEST', (message) => {
+      const payload = message.payload as { id?: unknown; name?: unknown } | undefined;
+      const id = payload?.id;
+      if (typeof id !== 'string' || !id) {
+        return;
+      }
+      const from = message.from?.filter(Boolean) as string[] | undefined;
+      const reply = (result: UpdateProfileResult) => {
+        const response = {
+          type: 'SHELLUI_UPDATE_PROFILE_RESULT' as const,
+          payload: { id, ...result },
+        };
+        if (from?.length) {
+          shellui.sendMessage({ ...response, to: from });
+          return;
+        }
+        postShellMessage(response);
+      };
+
+      if (
+        !backend.supportsProfileUpdate ||
+        !session ||
+        typeof payload?.name !== 'string' ||
+        !isShellSettingsFrameMessage(
+          from,
+          shellui.frameRegistry,
+          urls.settings,
+          window.location.origin,
+        )
+      ) {
+        logger.warn('Rejected profile update request', { from });
+        reply({ status: 'error' });
+        return;
+      }
+
+      void updateProfile({ name: payload.name }).then(
+        (saved) => reply({ status: 'saved', name: saved.name }),
+        (err: unknown) => {
+          logger.error('Profile update failed', { err });
+          reply({ status: 'error', error: err instanceof Error ? err.message : undefined });
+        },
+      );
+    });
+
+    return () => cleanup();
+  }, [backend, session, updateProfile]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
       return;
@@ -758,10 +824,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       supportsAccountDeletion: backend.supportsAccountDeletion,
       deleteAccount,
+      supportsProfileUpdate: backend.supportsProfileUpdate,
+      updateProfile,
     }),
     [
       backend.supportsAccountDeletion,
       deleteAccount,
+      backend.supportsProfileUpdate,
+      updateProfile,
       session,
       user,
       isLoading,

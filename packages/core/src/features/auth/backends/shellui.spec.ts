@@ -97,6 +97,43 @@ describe('shellui backend sendMagicLink', () => {
   });
 });
 
+describe('shellui backend updateProfile', () => {
+  const fetchMock = vi.fn();
+  const session = { accessToken: 'access-1' } as AuthSession;
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  test('sends PATCH /api/v1/user and returns the stored name', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { user_metadata: { name: 'Ada Lovelace' } }));
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+
+    const result = await backend.updateProfile(session, { name: ' Ada  Lovelace ' });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://auth.example.com/api/v1/user');
+    expect(init.method).toBe('PATCH');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer access-1');
+    expect(JSON.parse(init.body as string)).toEqual({ name: ' Ada  Lovelace ' });
+    expect(result).toEqual({ name: 'Ada Lovelace' });
+  });
+
+  test('surfaces field validation messages', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(400, { name: ['Name cannot be blank.'] }));
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+
+    await expect(backend.updateProfile(session, { name: ' ' })).rejects.toThrow(
+      'Name cannot be blank.',
+    );
+  });
+});
+
 describe('shellui backend deleteAccount', () => {
   const fetchMock = vi.fn();
   const session = { accessToken: 'access-1', refreshToken: 'refresh-1' } as AuthSession;

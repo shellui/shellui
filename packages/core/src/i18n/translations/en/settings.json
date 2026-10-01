@@ -34,6 +34,15 @@
       "groups": "Groups",
       "noGroups": "None"
     },
+    "name": {
+      "edit": "Edit name",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "savedTitle": "Name updated",
+      "savedDescription": "Your name is now {{name}}.",
+      "errorTitle": "Could not update your name"
+    },
     "loginMethods": {
       "unknown": "Unknown",
       "magicLinkEmail": "Magic link (Email)",

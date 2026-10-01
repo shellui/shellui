@@ -42,7 +42,8 @@ export const SettingsView = () => {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { config } = useConfig();
-  const { user, session, logout, isAuthenticated, supportsAccountDeletion } = useAuth();
+  const { user, session, logout, isAuthenticated, supportsAccountDeletion, supportsProfileUpdate } =
+    useAuth();
   const { t, i18n } = useTranslation('settings');
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
@@ -137,12 +138,14 @@ export const SettingsView = () => {
         settingsAccessToken: settings.accessToken ?? null,
         rawUserSettings: settings.user ?? null,
         canDeleteAccount: supportsAccountDeletion,
+        canEditName: supportsProfileUpdate,
       }),
     [
       user,
       logout,
       t,
       supportsAccountDeletion,
+      supportsProfileUpdate,
       settings.developerFeatures.enabled,
       settings.accessToken,
       settings.user,

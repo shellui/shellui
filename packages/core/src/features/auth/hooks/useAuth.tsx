@@ -39,6 +39,10 @@ export interface AuthContextValue {
   supportsAccountDeletion: boolean;
   /** Delete the signed-in account for the current company, then sign out. */
   deleteAccount: () => Promise<void>;
+  /** Whether the configured auth backend supports editing the display name. */
+  supportsProfileUpdate: boolean;
+  /** Update the signed-in user's display name and the local session. */
+  updateProfile: (profile: { name: string }) => Promise<{ name: string }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

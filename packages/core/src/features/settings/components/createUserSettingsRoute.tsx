@@ -21,6 +21,7 @@ export const createUserSettingsRoute = (
     settingsAccessToken: string | null;
     rawUserSettings: Settings['user'];
     canDeleteAccount: boolean;
+    canEditName: boolean;
   },
 ): SettingsRouteItem[] =>
   user
@@ -38,6 +39,7 @@ export const createUserSettingsRoute = (
               settingsAccessToken={options.settingsAccessToken}
               rawUserSettings={options.rawUserSettings}
               canDeleteAccount={options.canDeleteAccount}
+              canEditName={options.canEditName}
             />
           ),
         },
