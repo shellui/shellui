@@ -43,6 +43,7 @@ export const SECTION_KEYS = [
   'storage',
   'ai',
   'hosting',
+  'email',
   'backend',
   'themes',
   'cookieConsent',

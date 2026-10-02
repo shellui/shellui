@@ -286,6 +286,24 @@ export interface HostingConfig {
 }
 
 /**
+ * Optional email-service wiring for Admin → Email and iframe apps.
+ * When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`.
+ */
+export interface EmailConfig {
+  /**
+   * Base URL of email-service.
+   * Default: `https://email.shellui.com` when `email` is set and this is omitted.
+   * Local: `http://localhost:8003`.
+   */
+  url?: string;
+  /**
+   * When false, hide Admin → Email.
+   * Default: true (shown) when `email` is set.
+   */
+  showInAdmin?: boolean;
+}
+
+/**
  * Custom navigation section for the staff administration panel.
  * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
  * v1 is a flat list only (no nested groups).
@@ -357,6 +375,12 @@ export interface ShellUIConfig {
    * Enables `shellui deploy` when `url` is set.
    */
   hosting?: HostingConfig;
+  /**
+   * Email-service connection. Propagated to iframes via SDK settings.
+   * When `email` is set and `url` is omitted, the shell sends `https://email.shellui.com`.
+   * `showInAdmin: false` hides Admin → Email.
+   */
+  email?: EmailConfig;
   /**
    * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
    * When set without `themes`, only this theme is available in the selector.

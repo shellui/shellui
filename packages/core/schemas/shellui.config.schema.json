@@ -77,6 +77,10 @@
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting-service connection. Propagated to iframes via SDK settings. Enables `shellui deploy` when `url` is set."
         },
+        "email": {
+          "$ref": "#/definitions/EmailConfig",
+          "description": "Email-service connection. Propagated to iframes via SDK settings. When `email` is set and `url` is omitted, the shell sends `https://email.shellui.com`. `showInAdmin: false` hides Admin → Email."
+        },
         "theme": {
           "$ref": "#/definitions/ThemeRef",
           "description": "Single theme: built-in name, path to a theme JSON/folder, or inline theme object. When set without `themes`, only this theme is available in the selector."
@@ -391,6 +395,21 @@
       "required": ["url"],
       "additionalProperties": false,
       "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
+    },
+    "EmailConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of email-service. Default: `https://email.shellui.com` when `email` is set and this is omitted. Local: `http://localhost:8003`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → Email. Default: true (shown) when `email` is set."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional email-service wiring for Admin → Email and iframe apps. When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`."
     },
     "ThemeRef": {
       "anyOf": [

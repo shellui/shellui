@@ -95,6 +95,7 @@ export type {
   SettingsAdministrationNavigationItem,
   SettingsStorage,
   SettingsHosting,
+  SettingsEmail,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,

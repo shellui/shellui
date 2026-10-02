@@ -94,6 +94,21 @@ describe('split and unsplit config', () => {
     expect(() => unsplitConfig(testDir)).toThrow(/No split config files/);
   });
 
+  test('split writes shellui.email.config.json', () => {
+    fs.writeFileSync(
+      MAIN_CONFIG_FILE,
+      JSON.stringify({
+        title: 'App',
+        email: { url: 'http://localhost:8003', showInAdmin: false },
+      }),
+    );
+
+    const { written } = splitConfig(testDir);
+    expect(written.some((p) => p.endsWith(splitConfigFileName('email')))).toBe(true);
+    const email = JSON.parse(fs.readFileSync(splitConfigFileName('email'), 'utf8'));
+    expect(email.email).toEqual({ url: 'http://localhost:8003', showInAdmin: false });
+  });
+
   test('split writes shellui.dev.config.json', () => {
     fs.writeFileSync(
       MAIN_CONFIG_FILE,
