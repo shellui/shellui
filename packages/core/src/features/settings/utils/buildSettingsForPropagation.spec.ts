@@ -241,10 +241,11 @@ describe('buildSettingsForPropagation', () => {
     });
   });
 
-  it('sets administration and storage to null when not configured', () => {
+  it('sets administration, storage, and email to null when not configured', () => {
     const result = buildSettingsForPropagation(baseSettings, undefined, 'en');
     expect(result.administration).toBeNull();
     expect(result.storage).toBeNull();
+    expect(result.email).toBeNull();
   });
 
   it('propagates showInAdmin false when hosting admin is disabled', () => {
@@ -271,5 +272,51 @@ describe('buildSettingsForPropagation', () => {
 
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
     expect(result.hosting).toEqual({ url: 'http://localhost:8002' });
+  });
+
+  it('propagates email url and strips a trailing slash', () => {
+    const config = {
+      email: {
+        url: 'http://localhost:8003/',
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.email).toEqual({ url: 'http://localhost:8003' });
+  });
+
+  it('uses the production email url when email is set without url', () => {
+    const config = {
+      email: {},
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+  });
+
+  it('propagates showInAdmin false for email and keeps the default url', () => {
+    const config = {
+      email: {
+        showInAdmin: false,
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.email).toEqual({
+      url: 'https://email.shellui.com',
+      showInAdmin: false,
+    });
+  });
+
+  it('omits showInAdmin from propagated email by default', () => {
+    const config = {
+      email: {
+        url: 'https://email.shellui.com',
+        showInAdmin: true,
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
   });
 });

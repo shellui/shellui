@@ -84,7 +84,7 @@ The shell sends a language-resolved `administration` object on `SHELLUI_SETTINGS
 
 Staff (`isStaff`) also see a **Django admin** link under Identity that opens `{backend.url}/admin/` in a **new tab** (Django sets `X-Frame-Options` / CSP that blocks framing). Mirror that with `requiresStaff: true`, `url: "/admin/"`, and `openIn: "external"`.
 
-Admin → Storage appears when `storage.url` is set - see [Storage](/features/storage). Optional `hosting.showInAdmin: false` hides Admin → Hosting even if `hosting.url` is set.
+Admin → Storage appears when `storage.url` is set - see [Storage](/features/storage). Optional `hosting.showInAdmin: false` hides Admin → Hosting even if `hosting.url` is set. Optional `email.showInAdmin: false` hides Admin → Email (default origin `https://email.shellui.com`, local `http://localhost:8003`).
 
 ## Related pages
 

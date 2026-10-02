@@ -310,7 +310,7 @@ shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
 });
 ```
 
-Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`.
+Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`. `settings.email` copies config `email` (`url` defaults to `https://email.shellui.com` when `email` is set; `null` when `email` is omitted).
 
 ```typescript
 const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
