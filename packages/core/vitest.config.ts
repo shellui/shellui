@@ -29,6 +29,7 @@ export default defineConfig({
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       'src/features/chromeActions/**/*.spec.ts',
       'src/components/**/*.spec.ts',
+      'src/components/**/*.spec.tsx',
       'src/features/messaging/**/*.spec.ts',
       '../sdk/src/**/*.spec.ts',
     ],
