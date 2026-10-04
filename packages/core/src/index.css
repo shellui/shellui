@@ -676,10 +676,21 @@ html.shellui-theme-switching
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
   }
 
-  /* Toaster must receive pointer events when a modal has body pointer-events: none (e.g. Radix).
-   * Without this, pointerdown never fires on iPad when a modal is open. */
-  [data-sonner-toaster],
-  [data-upload-toast] {
+  /* The position list can be wider than the cards (mobile spans the viewport).
+   * Keep the list itself inert so clicks outside the cards reach the app, including
+   * the gaps around a stack. Cards and their buttons opt back in so they stay
+   * clickable when a Radix modal sets pointer-events: none on body. That also
+   * keeps the iPad pointerdown path (elementFromPoint) on the buttons. */
+  [data-sonner-toaster] {
+    pointer-events: none !important;
+  }
+
+  [data-sonner-toast],
+  [data-sonner-toast] [data-button],
+  [data-sonner-toast] [data-cancel],
+  [data-sonner-toast] [data-close-button],
+  [data-upload-toast],
+  [data-upload-toast] button {
     pointer-events: auto !important;
   }
 

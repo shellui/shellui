@@ -66,12 +66,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={settings.appearance.colorScheme as 'light' | 'dark' | 'system'}
       className="toaster group"
       style={{
+        // Stacking only. Sonner copies `style` onto every position list. An inline
+        // `top` plus a bottom list's own `bottom` stretches that list over the
+        // viewport, and pointer-events on the list then block clicks outside the
+        // cards. Safe-area offset is `offset` / `mobileOffset`. Pointer events live
+        // on the toast cards (see index.css) so they stay clickable over a modal.
         zIndex: Z_INDEX.TOAST,
-        // Re-enable pointer events so toasts stay clickable when a Radix modal is open
-        // (Radix sets body.style.pointerEvents = 'none' and only the dialog content gets 'auto')
-        pointerEvents: 'auto',
-        // Clear the safe-area topbar / notch, then keep a 1rem gap below it
-        top: 'calc(var(--shellui-safe-area-top, env(safe-area-inset-top, 0px)) + 1rem)',
       }}
       offset={{
         top: 'calc(var(--shellui-safe-area-top, env(safe-area-inset-top, 0px)) + 1rem)',

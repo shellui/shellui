@@ -49,6 +49,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - Add root `AGENTS.md` with Shellui writing and design guideline links for coding agents.
 - Update on-device AI docs for the real WebLLM install / worker / toaster path and config vs Settings disable.
 
+### 🐛 Bug Fixes
+
+- **Toast click-through:** a bottom toast list no longer stretches over the page. Sonner was given an inline `top` (and `pointer-events: auto`) that it copies onto every position, so bottom lists with their own `bottom` became a full-height hit box. Clicks outside the cards now reach the app in every position, on desktop and on mobile. Cards, actions, and close buttons stay clickable while a modal is open.
+
 ## [0.5.4] - Unreleased
 
 ### 🐛 Bug Fixes
