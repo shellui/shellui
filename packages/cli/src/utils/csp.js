@@ -174,7 +174,7 @@ export function resolveShellCspHeaders(shelluiConfig, cspOpts = {}) {
   const aiEnabled =
     cspOpts.aiEnabled !== undefined
       ? Boolean(cspOpts.aiEnabled)
-      : shelluiConfig?.ai?.enabled !== false;
+      : shelluiConfig?.ai?.enabled === true;
 
   const policy = buildShellContentSecurityPolicy({
     useScriptHash: cspOpts.useScriptHash,

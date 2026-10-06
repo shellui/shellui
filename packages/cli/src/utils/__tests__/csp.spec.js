@@ -68,8 +68,18 @@ describe('resolveShellCspHeaders', () => {
     expect(headers['Content-Security-Policy-Report-Only']).toBeUndefined();
   });
 
-  it('includes AI CSP extras by default (ai.enabled omitted)', () => {
+  it('omits AI CSP extras by default (ai.enabled omitted)', () => {
     const headers = resolveShellCspHeaders({ security: { csp: {} } }, { useScriptHash: true });
+    const policy = headers['Content-Security-Policy-Report-Only'];
+    expect(policy).not.toContain('huggingface.co');
+    expect(policy).not.toContain("'wasm-unsafe-eval'");
+  });
+
+  it('includes AI CSP extras when ai.enabled is true', () => {
+    const headers = resolveShellCspHeaders(
+      { ai: { enabled: true }, security: { csp: {} } },
+      { useScriptHash: true },
+    );
     const policy = headers['Content-Security-Policy-Report-Only'];
     expect(policy).toContain('huggingface.co');
     expect(policy).toContain("'wasm-unsafe-eval'");

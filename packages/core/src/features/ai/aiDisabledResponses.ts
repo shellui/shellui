@@ -1,6 +1,6 @@
 import type { AiRequestPayload, AiResponsePayload } from '@shellui/sdk';
 
-/** Pure responses when `config.ai.enabled === false` (no adapters / WebLLM). */
+/** Pure responses when `config.ai.enabled` is not `true` (no adapters / WebLLM). */
 export function buildAiDisabledResponse(payload: AiRequestPayload): AiResponsePayload {
   const { id, op } = payload;
 
@@ -25,7 +25,7 @@ export function buildAiDisabledResponse(payload: AiRequestPayload): AiResponsePa
   return {
     id,
     error: {
-      message: 'On-device AI is disabled in shellui.config (ai.enabled: false).',
+      message: 'On-device AI is not enabled in shellui.config (set ai.enabled: true).',
       code: 'ai_disabled',
     },
   };

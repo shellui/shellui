@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { isAiFeatureEnabled } from './isAiFeatureEnabled.js';
 
 describe('isAiFeatureEnabled', () => {
-  it('defaults to true when config.ai is omitted', () => {
-    expect(isAiFeatureEnabled(undefined)).toBe(true);
-    expect(isAiFeatureEnabled({})).toBe(true);
-    expect(isAiFeatureEnabled({ ai: {} })).toBe(true);
+  it('defaults to false when config.ai or ai.enabled is omitted', () => {
+    expect(isAiFeatureEnabled(undefined)).toBe(false);
+    expect(isAiFeatureEnabled({})).toBe(false);
+    expect(isAiFeatureEnabled({ ai: {} })).toBe(false);
   });
 
-  it('is false only when config.ai.enabled is explicitly false', () => {
-    expect(isAiFeatureEnabled({ ai: { enabled: false } })).toBe(false);
+  it('is true only when config.ai.enabled is explicitly true', () => {
     expect(isAiFeatureEnabled({ ai: { enabled: true } })).toBe(true);
+    expect(isAiFeatureEnabled({ ai: { enabled: false } })).toBe(false);
   });
 });

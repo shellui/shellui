@@ -18,7 +18,7 @@ function reply(message: ShellUIMessage, payload: ReturnType<typeof buildAiDisabl
 }
 
 /**
- * Lightweight stand-in when `config.ai.enabled === false`.
+ * Lightweight stand-in when `config.ai.enabled` is not `true`.
  * Answers SDK AI requests immediately so apps do not hang waiting for AiBridge,
  * without importing adapters, registry, or `@mlc-ai/web-llm`.
  */

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Syncs the root version to all packages, builds, then publishes SDK, Core,
- * and CLI in order. The npm dist-tag is chosen from the root package.json version:
+ * Checks CHANGELOG.md, syncs the root version to all packages, builds, then
+ * publishes SDK, Core, and CLI in order. The npm dist-tag is chosen from the root package.json version:
  * - Prerelease versions (e.g. 1.0.0-alpha.0, 0.2.0-beta.1, 1.0.0-rc.0): tag is
  *   derived from the prerelease identifier (alpha, beta, rc, next, or first segment).
  * - Stable versions: --tag latest
@@ -34,6 +34,15 @@ function tagFromVersion(v) {
 }
 
 const tag = tagFromVersion(version);
+
+console.log('Checking CHANGELOG.md...');
+const changelogResult = spawnSync('node', [path.join(__dirname, 'check-changelog.js')], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+});
+if (changelogResult.status !== 0) {
+  process.exit(changelogResult.status);
+}
 
 // Sync root version to all packages so we never publish out of sync
 console.log('Syncing version across packages...');

@@ -1,0 +1,6 @@
+{
+  "$schema": "./node_modules/@shellui/core/schemas/shellui.config.schema.json",
+  "ai": {
+    "enabled": false
+  }
+}

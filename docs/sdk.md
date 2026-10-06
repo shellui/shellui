@@ -271,7 +271,7 @@ Folders are path prefixes. `list()` returns folders with `id: null` and a `folde
 
 ### On-device AI (Prompt API shape)
 
-Embedded apps call a LanguageModel-shaped API. The shell owns Ollama / browser adapters - the SDK only postMessages. See [On-device AI](/features/ai).
+Embedded apps call a LanguageModel-shaped API. The shell owns Ollama / browser adapters - the SDK only postMessages. AI is a preview that the host turns on with `"ai": { "enabled": true }`; otherwise `availability()` returns `unavailable` and other calls fail with `ai_disabled`. See [On-device AI](/features/ai).
 
 ```typescript
 import { shellui } from '@shellui/sdk';

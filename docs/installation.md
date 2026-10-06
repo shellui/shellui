@@ -27,6 +27,18 @@ npx shellui build --app --bundles app,dmg
 
 `dev` is an alias for `start`. `--host` listens on `0.0.0.0`. `--app` starts or builds the [desktop wrapper](/tauri).
 
+## Install the beta
+
+These docs describe Shellui **0.6.0**, currently published as `0.6.0-beta.1` on the npm `beta` tag. A plain install picks the `latest` tag (0.5.x), which lacks 0.6 features such as [account management](/features/authentication#account-management). Add `@beta` to get the pre-release:
+
+```bash
+npm install -g @shellui/cli@beta
+npm install --save-dev @shellui/cli@beta
+npm install @shellui/sdk@beta
+```
+
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.0.
+
 ## Install in a project
 
 Add the CLI as a dev dependency when the version should stay with the repo:

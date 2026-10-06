@@ -69,6 +69,8 @@ function AccountSummary() {
 }
 ```
 
+`isLoading` is `true` only during the first session restore after a page load, never during background token refreshes. Account actions are `updateProfile` and `deleteAccount`, gated by `supportsProfileUpdate` and `supportsAccountDeletion` - see [Account management](/features/authentication#account-management).
+
 `AuthUser` includes `id`, `email`, `name`, `profilePicture`, `isStaff`, `isCompanyOwner`, `authProvider`, and `groups`. Session tokens stay on `AuthSession`. Iframe apps should read the signed-in profile from SDK settings instead of importing core.
 
 Cookie helpers: `useCookieConsent(host)`, `getCookieConsentAccepted(host)`. See [Cookie consent](/features/cookie-consent).

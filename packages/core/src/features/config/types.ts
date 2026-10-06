@@ -252,9 +252,9 @@ export interface StorageConfig {
  */
 export interface AiConfig {
   /**
-   * Deploy-time kill-switch for the whole AI feature.
-   * When false: no AiBridge, no Settings → AI, no WebLLM chunk/worker on normal shell use.
-   * Default: true (omit or set true). Opt out with `"ai": { "enabled": false }`.
+   * Deploy-time opt-in for the whole AI feature. Default: false.
+   * Only `true` enables it. Otherwise: no AiBridge, no Settings → AI, SDK AI calls answer
+   * `unavailable`, and no WebLLM chunk/worker is loaded. Opt in with `"ai": { "enabled": true }`.
    */
   enabled?: boolean;
 }
@@ -365,8 +365,8 @@ export interface ShellUIConfig {
    */
   storage?: StorageConfig;
   /**
-   * On-device AI (Ollama + browser WebLLM). Default enabled; set `enabled: false` to
-   * omit AI UI/bridge and avoid loading `@mlc-ai/web-llm` for shells that do not want AI.
+   * On-device AI (Ollama + browser WebLLM). Disabled by default; set `enabled: true` to
+   * show Settings → AI and accept SDK AI calls. `@mlc-ai/web-llm` is never loaded otherwise.
    * See docs/features/ai.md. Distinct from Settings → AI “Allow apps to use AI”.
    */
   ai?: AiConfig;

@@ -1,6 +1,6 @@
 {
   "name": "shellui",
-  "version": "0.6.0-alpha.1",
+  "version": "0.6.0-beta.1",
   "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
@@ -31,7 +31,9 @@
     "format:check": "pnpm exec prettier --check .",
     "lint": "pnpm exec eslint . && pnpm run format:check",
     "prepare": "husky",
-    "version:sync": "node scripts/sync-package-versions.js"
+    "version:sync": "node scripts/sync-package-versions.js",
+    "changelog:check": "node scripts/check-changelog.js",
+    "test:scripts": "node --test scripts/check-changelog.test.js"
   },
   "lint-staged": {
     "*": "pnpm exec prettier --write --ignore-unknown"

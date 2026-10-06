@@ -5,7 +5,7 @@ import { isAiFeatureEnabled } from './isAiFeatureEnabled';
 
 /**
  * Lazy-load the full AiBridge (adapters / WebLLM engine graph) only when
- * `config.ai.enabled` is not false. Disabled shells get a tiny unavailable responder.
+ * `config.ai.enabled` is true. Other shells get a tiny unavailable responder.
  */
 const AiBridgeLazy = lazy(() => import('./AiBridge').then((mod) => ({ default: mod.AiBridge })));
 

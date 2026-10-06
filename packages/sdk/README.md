@@ -1,12 +1,14 @@
 # @shellui/sdk
 
-JavaScript/TypeScript SDK for iframe apps hosted in Shellui. Call `init`, then use host chrome (toasts, dialogs, overlays) and storage. Do not reach into host DOM.
+JavaScript/TypeScript SDK for iframe apps hosted in Shellui. Call `init`, then use host chrome (toasts, dialogs, overlays), storage, and on-device AI (`shellui.ai`, a preview the host must enable). Do not reach into host DOM.
 
 ## Installation
 
 ```bash
 npm install @shellui/sdk
 ```
+
+The 0.6.0 pre-release is on the `beta` tag: `npm install @shellui/sdk@beta`.
 
 ## Full SDK
 

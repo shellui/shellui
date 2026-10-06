@@ -5,8 +5,12 @@
 This monorepo contains the Shellui packages:
 
 - **@shellui/cli** - Command-line tool for Shellui
-- **@shellui/core** - Core React application runtime (includes on-device AI)
+- **@shellui/core** - Core React application runtime (includes an opt-in on-device AI preview)
 - **@shellui/sdk** - JavaScript SDK for Shellui integration
+
+## Current release
+
+**0.6.0-beta.1** is published on the npm `beta` tag. Install it with `npm install -g @shellui/cli@beta` (and `@shellui/sdk@beta` in iframe apps). A plain install still gets the stable `latest` tag (0.5.x). What's new in 0.6.0: account management in Settings, magic link login by default, email service settings, and a loading state while the session restores. See the [changelog](CHANGELOG.md) and [docs.shellui.com](https://docs.shellui.com).
 
 ## Structure
 

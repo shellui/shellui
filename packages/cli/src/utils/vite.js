@@ -203,12 +203,12 @@ export function createViteResolveConfig() {
 }
 
 /**
- * Whether on-device AI is enabled in shellui config (default true).
+ * Whether on-device AI is enabled in shellui config (opt-in: only `ai.enabled: true`).
  * @param {object | undefined} shelluiConfig
  * @returns {boolean}
  */
 export function isAiEnabledInConfig(shelluiConfig) {
-  return shelluiConfig?.ai?.enabled !== false;
+  return shelluiConfig?.ai?.enabled === true;
 }
 
 /**

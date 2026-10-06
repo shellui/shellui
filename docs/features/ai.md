@@ -6,26 +6,27 @@ description: 'Settings → AI, Ollama and browser models, and shellui.ai Prompt 
 
 Shellui can run language models **on the user's device** so every embedded app shares one install and one GPU session. Apps never talk to Ollama or WebGPU directly - they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.
 
-Local AI ships as a **default core feature**. You do not install a separate AI package. Turn providers on or off in **Settings → AI**, or disable the whole product in config (see below).
+Local AI is part of `@shellui/core`, so there is no separate package to install. It is a **preview** and is **off by default**: turn it on in config (see below), then manage providers in **Settings → AI**.
 
-## Disable AI entirely (config kill-switch)
+## Enable AI (config opt-in)
 
-In `shellui.config.json` (default is **enabled** when omitted):
+In `shellui.config.json`:
 
 ```json
 {
   "ai": {
-    "enabled": false
+    "enabled": true
   }
 }
 ```
 
-When `ai.enabled` is `false`:
+Only `true` turns AI on. When `ai` or `ai.enabled` is omitted, or set to `false`:
 
 - Settings → AI is hidden
 - Develop AI test tools are hidden
 - The full `AiBridge` is not mounted (a tiny responder answers `shellui.ai` with `unavailable` / `ai_disabled` so apps do not hang)
 - `@mlc-ai/web-llm` is never imported and the WebLLM worker is never started
+- The CLI does not widen the shell CSP for Ollama, Hugging Face, or WebAssembly
 - Storage nav is **not** shown solely for local AI disk usage
 
 This is separate from the in-app **Settings → AI → Allow apps to use AI** toggle, which soft-disables inference while keeping the AI settings panel available (when the config feature is on).

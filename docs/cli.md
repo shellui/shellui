@@ -217,6 +217,7 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`storage`**: `url` (required when set), optional `filesUrl`, `showInSettings`. See [Storage](/features/storage).
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
 - **`email`**: optional `url`, optional `showInAdmin`.
+- **`ai`**: optional `enabled` (default `false`). Set `true` to turn on the on-device AI preview. See [On-device AI](/features/ai).
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
 

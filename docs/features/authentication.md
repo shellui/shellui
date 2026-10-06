@@ -28,6 +28,8 @@ Add a `backend` block. Without it, `useAuth()` reports signed out and login acti
 
 `backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden. When `methods` is missing or empty, the login page defaults to `magic_link`, plus `oauth` if `oauthProviders` is set.
 
+After a magic link is sent, the login page replaces the email field with a "Check your email" message showing the address. **Use a different email** unlocks after 60 seconds so users can't resend links in a loop.
+
 | Method       | Login UI         | Notes                                                                     |
 | ------------ | ---------------- | ------------------------------------------------------------------------- |
 | `oauth`      | Provider buttons | Needs `oauthProviders` and a backend-enabled provider                     |
@@ -96,6 +98,10 @@ When a session exists, login entries whose URL matches the shell login route are
 
 Layouts with a sidebar, app bar, or Windows taskbar render that control: signed-out users go to `/login`; signed-in users get profile, settings, optional administration, and logout. Logout from a `requiresAuth` route navigates to `/` first so you are not sent straight back to login.
 
+### Loading state on reload
+
+After a page load with a stored session, the shell exchanges the refresh token before it knows who is signed in. During that first restore, the account control shows a skeleton instead of **Login**, login nav entries stay hidden, and Admin shows a "Restoring your session…" spinner instead of "Access forbidden". Visitors without a stored session see **Login** right away. Later token refreshes run in the background and never show a loading state.
+
 ## Guard routes
 
 See [Navigation](/features/navigation) for the full item shape.
@@ -137,6 +143,8 @@ function Example() {
   );
 }
 ```
+
+`isLoading` is `true` only during the first session restore after a page load. Background token refreshes leave it `false`, so it is safe to drive loading placeholders.
 
 Sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open and persists rotated refresh tokens from `POST /api/v1/token`.
 
@@ -184,6 +192,15 @@ shellui.login({
 Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL.
 
 Signed-in users open **Settings** for account fields, theme, language, and region. Preferences sync with the backend when configured. Legal links on the login page come from `legalDocuments` - see [Legal documents](/features/legal-documents).
+
+## Account management
+
+With the identity-service backend (`backend.type: "shellui"`), **Settings → user account** lets users manage their own account:
+
+- **Edit name:** an edit button next to the name opens an inline field. The shell saves it with `PATCH /api/v1/user` and confirms with a toast.
+- **Delete account:** a **Delete account** button next to logout asks for confirmation, then calls `DELETE /api/v1/user`. It removes the account for the current company only. A stale sign-in prompts the user to sign in again, and the only owner of a company must make another member an owner first.
+
+Both requests are accepted only from the shell window or its own Settings frame, never from embedded apps. In host code, `useAuth()` exposes `supportsProfileUpdate` / `updateProfile` and `supportsAccountDeletion` / `deleteAccount`. Supabase backends hide both controls.
 
 ## Checklist
 

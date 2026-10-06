@@ -47,6 +47,8 @@ pnpm run publish
 
 This runs `scripts/publish-with-tag.js`, which publishes `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` in order with the tag derived from the root version. You don’t need to pass the tag manually.
 
+It first runs `pnpm run changelog:check`, which stops the release unless the root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`, `CHANGELOG.md` has no active `## [Unreleased]` section, and the topmost release heading is `## [<root version>] - YYYY-MM-DD` (for example `## [0.6.0-beta.1] - 2026-10-06`).
+
 ## Version management
 
 1. **Bump the root version** in `package.json` (e.g. `0.2.0-alpha.0` → `0.2.0-alpha.1`).
@@ -91,3 +93,4 @@ If this release changes agent-relevant APIs or config (CLI, SDK, config schema),
 - **"Access denied"**: Ensure you’re logged in (`npm login`) and have publish access to the `@shellui` scope.
 - **Wrong tag on npm**: Check that the root version contains `alpha` or `beta` for pre-releases; the script uses only the version string to pick the tag.
 - **"Missing files"**: Check the `files` field in each package’s `package.json`.
+- **"CHANGELOG.md is not ready"**: Rename the top release heading to the root version with today's date, and move any `## [Unreleased]` notes into it.

@@ -1,16 +1,16 @@
 # On-device AI (core module)
 
-Local AI is a **default `@shellui/core` feature**. Embedded apps call `@shellui/sdk` (`shellui.ai`); this module owns adapters, registry, and the shell bridge. Requests use the same privileged companion + trusted-frame policy as storage.
+Local AI is an **opt-in `@shellui/core` preview**. Embedded apps call `@shellui/sdk` (`shellui.ai`); this module owns adapters, registry, and the shell bridge. Requests use the same privileged companion + trusted-frame policy as storage.
 
-## Config kill-switch
+## Config opt-in
 
 `shellui.config.json`:
 
 ```json
-{ "ai": { "enabled": false } }
+{ "ai": { "enabled": true } }
 ```
 
-Default is **enabled** (`enabled` omitted or `true`). When false, `ShellAiHost` mounts `AiUnavailableResponder` instead of lazily loading `AiBridge`, Settings → AI is hidden, and WebLLM is never imported.
+Default is **disabled** (`ai` or `enabled` omitted, or `false`). Unless `enabled` is `true`, `ShellAiHost` mounts `AiUnavailableResponder` instead of lazily loading `AiBridge`, Settings → AI is hidden, and WebLLM is never imported.
 
 ## Layout
 
@@ -46,7 +46,7 @@ Developer harness: `features/settings/components/develop/AiTestTools.tsx` (Devel
 
 ## Disable (not uninstall)
 
-- **Config:** `"ai": { "enabled": false }` — removes AI product surface and never loads WebLLM.
+- **Config:** omit `ai` or set `"ai": { "enabled": false }` — removes AI product surface and never loads WebLLM.
 - **Settings → AI:** turn off "Allow apps to use AI" or toggle Ollama / browser providers (config AI must still be on).
 
 There is no separate `@shellui/ai` package to remove.

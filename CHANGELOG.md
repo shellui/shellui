@@ -18,12 +18,11 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.6.0] - 2026-10-06
+## [0.6.0-beta.1] - 2026-10-06
 
 ### ✨ Feature
 
-- **On-device AI:** embedded apps share local language models through `shellui.ai` in `@shellui/sdk`, set up in Settings → AI. Providers are Ollama, in-browser WebLLM models, and Chrome's built-in Gemini Nano when available. (#47, #48)
-- **AI kill-switch:** `"ai": { "enabled": false }` in `shellui.config` turns AI off entirely.
+- **On-device AI (preview, off by default):** embedded apps share local language models through `shellui.ai` in `@shellui/sdk`, set up in Settings → AI. Providers are Ollama, in-browser WebLLM models, and Chrome's built-in Gemini Nano when available. Opt in with `"ai": { "enabled": true }` in `shellui.config`; otherwise Settings → AI is hidden and SDK AI calls answer `unavailable`. (#47, #48)
 - **Account management:** users can edit their name and delete their account from Settings → user account (shellui auth backend).
 - **Magic link login:** used by default when no login method is configured, with a "Check your email" state and a 60-second resend delay.
 - **Email service settings:** optional `email.url` and `email.showInAdmin` in `shellui.config`, exposed to apps as `settings.email`.
@@ -41,7 +40,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 📚 Documentation
 
 - **Agent guidelines:** new root `AGENTS.md` linking the Shellui writing and design guidelines.
-- **On-device AI:** docs cover WebLLM installs and how to turn AI off in config or Settings.
+- **On-device AI:** docs cover WebLLM installs and how to opt in through config.
 
 ### 🐛 Bug Fixes
 

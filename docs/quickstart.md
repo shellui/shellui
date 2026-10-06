@@ -4,7 +4,7 @@ sidebar_label: Create a Project
 description: 'Run shellui init, start the development server, and build a production shell with an optional colocated iframe app.'
 ---
 
-Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation).
+Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation). To follow these docs with the 0.6.0 pre-release, install `@shellui/cli@beta` - see [Install the beta](/installation#install-the-beta).
 
 ## Scaffold with shellui init
 
