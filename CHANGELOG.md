@@ -18,52 +18,35 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.6.0] - 2026-10-06
 
 ### ✨ Feature
 
-- **Email service settings:** `shellui.config` accepts optional `email.url` and `email.showInAdmin`. The shell forwards that block on SDK `settings.email` (`https://email.shellui.com` when `url` is omitted, `http://localhost:8003` for local, `null` when `email` is omitted). `showInAdmin: false` hides Admin → Email.
-- **Magic link by default:** when `backend.login.methods` is missing or empty for a shellui or Supabase backend, the login page shows the magic link form instead of "no sign-in methods". If `oauthProviders` is listed, the provider buttons are shown too.
-- **Magic link sent state:** after sending a magic link, the login page replaces the email field with a "Check your email" message showing the address. A "Use a different email" button unlocks after 60 seconds, so users can't resend links repeatedly from the page.
-- **Edit name:** Settings → user account shows an edit button next to the name (shellui auth backend only). It opens an inline field with Save and Cancel, and a toast confirms the change. The shell saves it with `PATCH /api/v1/user` through `SHELLUI_UPDATE_PROFILE_REQUEST`, which follows the same rule as delete: only the shell window or its own settings frame can send it.
-- **Delete account:** Settings → user account has a red **Delete account** button next to logout (shellui auth backend only). The shell asks for confirmation with a `delete` dialog, then calls `DELETE /api/v1/user`, which removes the account for the current company only. Accounts in other companies are kept. A stale sign-in prompts the user to sign in again. The only owner of a company is told to make another member an owner first. The request travels as `SHELLUI_DELETE_ACCOUNT_REQUEST` and is accepted only from the shell window or its own settings frame, never from embedded apps.
-- **WebLLM browser engine:** Settings → AI **Install** fetches curated MLC/WebLLM catalog weights via `@mlc-ai/web-llm` (Hugging Face URLs from WebLLM’s prebuilt library), runs inference in a dedicated Web Worker, and marks models ready for `shellui.ai.languageModel` prompt/streaming immediately after install. Refs #47.
-- **Config AI kill-switch:** `shellui.config` `"ai": { "enabled": false }` (default **true**) hides Settings → AI, skips the full AiBridge, answers SDK AI with `unavailable` / `ai_disabled`, and never loads the WebLLM chunk/worker. Distinct from Settings → AI “Allow apps to use AI”.
-- **Chrome built-in Prompt API provider:** new `PromptApiAdapter` (provider id `prompt-api`) surfaces the browser's on-device `LanguageModel` (Gemini Nano) as a model that routes through the same `shellui.ai` path as Ollama/WebLLM. Feature-detected and **shown only when present and usable** (`LanguageModel` / legacy `ai.languageModel` with `availability()` ≠ `unavailable`) — omitted entirely (no warning, no stub) on Firefox/Safari/iPhone/older Chrome. Stateless sessions (fresh session per turn, no wedge-prone lock). Settings uses the provider **Enable** switch (plus an **Enable** warm when `downloadable`); never Install/0% — indeterminate “Setting up…” unless Chrome fires real `downloadprogress`. New optional `ai.promptApiEnabled` setting (default true).
-- **On-device AI foundation (#48):** local language models run in the shell so every embedded companion shares one install and one inference path. Apps call `shellui.ai` / the Prompt API–shaped `LanguageModel` API on `@shellui/sdk`; `@shellui/core` owns discovery, lifecycle, and adapters via `AiBridge` (`SHELLUI_AI_*`). Providers: **Ollama** (real prompts when the local daemon is running) and a curated **browser** catalog (Install/Remove UX; weight download and inference still stubbed — use Ollama until WebLLM lands). Configure in **Settings → AI** (master switch, provider cards, default model). AI requests use the same privileged companion + trusted-frame policy as storage (`safeForAuthToken`).
+- **On-device AI:** embedded apps share local language models through `shellui.ai` in `@shellui/sdk`, set up in Settings → AI. Providers are Ollama, in-browser WebLLM models, and Chrome's built-in Gemini Nano when available. (#47, #48)
+- **AI kill-switch:** `"ai": { "enabled": false }` in `shellui.config` turns AI off entirely.
+- **Account management:** users can edit their name and delete their account from Settings → user account (shellui auth backend).
+- **Magic link login:** used by default when no login method is configured, with a "Check your email" state and a 60-second resend delay.
+- **Email service settings:** optional `email.url` and `email.showInAdmin` in `shellui.config`, exposed to apps as `settings.email`.
 
 ### 🛠 Improvements
 
-- **Shared transfer toaster:** storage uploads and AI model downloads share `TransferToaster` / `transferQueue` progress UI (accurate engine progress; downloads continue after leaving Settings).
-- **Lazy WebLLM:** `@mlc-ai/web-llm` is dynamically imported only on first browser Install/load; opening Settings → AI alone does not fetch the library. `AiBridge` itself is lazy-loaded when config AI is enabled.
-- **Experimental (not blocked) browser Install:** Chrome/Edge/**Safari** are recommended; **Firefox** shows a **warning banner** but Install is still **allowed**. Failures surface the real mapped `[shellui.ai]` error instead of a pre-emptive block. Richer console errors + CSP extras (Ollama localhost, HF, worker-src, wasm-unsafe-eval) when AI is enabled; Vite resolves/prebundles `@mlc-ai/web-llm` for the shell.
-- **Reliable WebLLM conversation switch (worker recreate):** the engine tracks the owning LanguageModel session and, on a genuine switch (create/destroy or a prompt for a different `sessionId`) — and on **Stop/abort** — **fully disposes the WebLLM worker** (`worker.terminate()`) and recreates a fresh engine for the same model on the next prompt (weights from the browser cache, short warm). This defeats an upstream streaming-lock bug ([mlc-ai/web-llm#701](https://github.com/mlc-ai/web-llm/pull/701), [mlc-ai/mlc-llm#3113](https://github.com/mlc-ai/mlc-llm/issues/3113)) that `resetChat` and living-worker `reload` could not — fixing “new chat stuck on Thinking…”. Same-session multi-turn keeps the warm worker; Ollama is unaffected (stateless HTTP).
-- **Diagnosable WebLLM Install failures:** Worker `error` / `messageerror` and `CreateWebWorkerMLCEngine` rejections (including WebLLM’s string throws) are logged as `console.error('[shellui.ai]', …)` and shown in the transfer toaster / Settings error — with an explicit **WebGPU failed in the WebLLM worker** mapping when applicable. HF traffic is expected under the **Worker** Network tab, not the main document.
-- **Sequential WebLLM prompts:** `prompt` / `promptStreaming` are serialized on the shared worker; streams are fully drained and `interruptGenerate()` runs after each turn so a second Chat question does not hang. `AiSession` accumulates message history for multi-turn context.
-- **WebLLM conversation switch:** LanguageModel `destroy` / `create` call `resetChat` (under the generation lock) so a new playground chat does not hang on stale worker KV state — weights stay warm. Late `destroy` of a superseded session skips `resetConversation` / `interruptGenerate` (activeSessionId guard) so it cannot kill the new chat’s in-flight generation. SDK `destroy()` is awaitable.
-- **WebLLM Vite interop:** **exclude** `@mlc-ai/web-llm` from `optimizeDeps` (esbuild prebundle mangles named exports); keep package alias + `loglevel` include. Normalize dynamic import (`.default` / nested / `CreateMLCEngine` fallback). After pull: `rm -rf node_modules/.vite-shellui`.
-- **Settings → AI panel:** when “Allow apps to use AI” is off, the rest of the AI panel collapses so only the master switch remains.
-- **Settings → Storage:** nav stays visible when AI is enabled (even without remote storage) or when remote storage is configured; shows origin / local catalog estimate meters for on-device model usage.
-
-### 📚 Documentation
-
-- Add root `AGENTS.md` with Shellui writing and design guideline links for coding agents.
-- Update on-device AI docs for the real WebLLM install / worker / toaster path and config vs Settings disable.
-
-### 🐛 Bug Fixes
-
-- **Signed-out flash on reload:** while the shell restores a stored session after a page load, the account button shows a loading skeleton in every layout instead of "Login". Custom login nav entries stay hidden until the session is known, and Admin shows a "Restoring your session…" spinner instead of "Access forbidden". A route that only exists for signed-in users shows the loading bar instead of a 404. Signed-out visitors see the login entry right away, and background token refreshes stay silent.
-- **Toast click-through:** a bottom toast list no longer stretches over the page. Sonner was given an inline `top` (and `pointer-events: auto`) that it copies onto every position, so bottom lists with their own `bottom` became a full-height hit box. Clicks outside the cards now reach the app in every position, on desktop and on mobile. Cards, actions, and close buttons stay clickable while a modal is open.
-
-## [0.5.4] - Unreleased
-
-### 🐛 Bug Fixes
-
-- **Session restore on reload (dev):** React StrictMode was starting two concurrent refresh-token exchanges; identity refresh rotation treats the second as reuse and revokes the family (401), so local `shellui start` logged users out on every F5. Restore now shares one in-flight refresh and only clears storage from the active mount.
+- **Transfer toaster:** uploads and AI model downloads share one progress toaster, and downloads keep going after leaving Settings.
+- **WebLLM reliability:** the library loads only when needed, chats no longer hang when switching conversations, and install errors are clearer. Firefox can install with a warning.
+- **Settings:** the AI panel collapses when apps aren't allowed to use AI, and Storage shows on-device model usage.
 
 ### 🚨 Changed
 
-- **Request-driven iframe handshake:** the shell sets the companion iframe URL and waits. The first shell→iframe message is the reply to `SHELLUI_SETTINGS_REQUESTED` (`SHELLUI_SETTINGS`, including layout chrome for main frames). Outbound chrome/settings pushes only go to **live** frames (after `SETTINGS_REQUESTED` / `INITIALIZED`). Removed the ContentView load nudge — shellui companions reveal on `SHELLUI_INITIALIZED`; non-shellui pages reveal after one loading-bar pass (no loop).
+- **Iframe handshake:** the shell now waits for each embedded app to request its settings before messaging it, and only sends updates to frames that are ready.
+
+### 📚 Documentation
+
+- **Agent guidelines:** new root `AGENTS.md` linking the Shellui writing and design guidelines.
+- **On-device AI:** docs cover WebLLM installs and how to turn AI off in config or Settings.
+
+### 🐛 Bug Fixes
+
+- **Session restore on reload:** reloading no longer logs users out in local dev, and the shell shows a loading state instead of a signed-out flash while the session restores.
+- **Toast click-through:** bottom toast lists no longer block clicks on the page behind them.
 
 ## [0.5.3] - 2026-09-20
 
