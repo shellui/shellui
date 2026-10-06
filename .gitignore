@@ -19,3 +19,6 @@ shellui.backend.config.json
 shellui.themes.config.json
 shellui.cookieConsent.config.json
 shellui.legalDocuments.config.json
+
+# Service docs fetched at build time by tools/docusaurus/scripts/fetch-service-docs.js
+tools/docusaurus/.services/
