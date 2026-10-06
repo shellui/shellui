@@ -22,6 +22,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### ✨ Feature
 
+- **Email service settings:** `shellui.config` accepts optional `email.url` and `email.showInAdmin`. The shell forwards that block on SDK `settings.email` (`https://email.shellui.com` when `url` is omitted, `http://localhost:8003` for local, `null` when `email` is omitted). `showInAdmin: false` hides Admin → Email.
 - **Magic link by default:** when `backend.login.methods` is missing or empty for a shellui or Supabase backend, the login page shows the magic link form instead of "no sign-in methods". If `oauthProviders` is listed, the provider buttons are shown too.
 - **Magic link sent state:** after sending a magic link, the login page replaces the email field with a "Check your email" message showing the address. A "Use a different email" button unlocks after 60 seconds, so users can't resend links repeatedly from the page.
 - **Edit name:** Settings → user account shows an edit button next to the name (shellui auth backend only). It opens an inline field with Save and Cancel, and a toast confirms the change. The shell saves it with `PATCH /api/v1/user` through `SHELLUI_UPDATE_PROFILE_REQUEST`, which follows the same rule as delete: only the shell window or its own settings frame can send it.

@@ -29,6 +29,7 @@ export type {
   AdministrationConfig,
   StorageConfig,
   HostingConfig,
+  EmailConfig,
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,

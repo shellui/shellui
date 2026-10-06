@@ -117,6 +117,17 @@ export interface SettingsHosting {
   showInAdmin?: boolean;
 }
 
+/**
+ * Email-service connection from host `email` in shellui.config.json.
+ * Used by iframe apps that need the email API base URL.
+ */
+export interface SettingsEmail {
+  /** Base URL of email-service (no trailing slash). */
+  url: string;
+  /** When false, admin panel hides Email navigation. */
+  showInAdmin?: boolean;
+}
+
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
 export interface ThemeColorsMode {
   background: string;
@@ -350,6 +361,12 @@ export interface Settings {
    * Omitted or null when hosting is not configured.
    */
   hosting?: SettingsHosting | null;
+  /**
+   * Email-service connection (from host `email` in shellui.config.json).
+   * Omitted or null when `email` is not set.
+   * When `email` is set and `url` is omitted, `url` is `https://email.shellui.com`.
+   */
+  email?: SettingsEmail | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**
