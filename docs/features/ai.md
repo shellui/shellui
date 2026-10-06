@@ -2,6 +2,7 @@
 title: Run on-device AI
 sidebar_label: On-device AI
 description: 'Settings → AI, Ollama and browser models, and shellui.ai Prompt API messaging from iframe apps.'
+draft: true
 ---
 
 Shellui can run language models **on the user's device** so every embedded app shares one install and one GPU session. Apps never talk to Ollama or WebGPU directly - they call a browser-shaped API on `@shellui/sdk`, and the **shell** (in `@shellui/core`) owns discovery, model lifecycle, and inference.

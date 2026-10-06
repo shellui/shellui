@@ -22,7 +22,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### ✨ Feature
 
-- **On-device AI (preview, off by default):** embedded apps share local language models through `shellui.ai` in `@shellui/sdk`, set up in Settings → AI. Providers are Ollama, in-browser WebLLM models, and Chrome's built-in Gemini Nano when available. Opt in with `"ai": { "enabled": true }` in `shellui.config`; otherwise Settings → AI is hidden and SDK AI calls answer `unavailable`. (#47, #48)
 - **Account management:** users can edit their name and delete their account from Settings → user account (shellui auth backend).
 - **Magic link login:** used by default when no login method is configured, with a "Check your email" state and a 60-second resend delay.
 - **Email service settings:** optional `email.url` and `email.showInAdmin` in `shellui.config`, exposed to apps as `settings.email`.
@@ -30,7 +29,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🛠 Improvements
 
 - **Transfer toaster:** uploads and AI model downloads share one progress toaster, and downloads keep going after leaving Settings.
-- **WebLLM reliability:** the library loads only when needed, chats no longer hang when switching conversations, and install errors are clearer. Firefox can install with a warning.
 - **Settings:** the AI panel collapses when apps aren't allowed to use AI, and Storage shows on-device model usage.
 
 ### 🚨 Changed
@@ -40,7 +38,6 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 📚 Documentation
 
 - **Agent guidelines:** new root `AGENTS.md` linking the Shellui writing and design guidelines.
-- **On-device AI:** docs cover WebLLM installs and how to opt in through config.
 
 ### 🐛 Bug Fixes
 
