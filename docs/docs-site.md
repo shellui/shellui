@@ -13,7 +13,7 @@ The site at [docs.shellui.com](https://docs.shellui.com) is the Docusaurus site 
 | Hosting  | [shellui/hosting-service](https://github.com/shellui/hosting-service)   | [docs.shellui.com/hosting/actions](https://docs.shellui.com/hosting/actions) |
 | Email    | [shellui/email-service](https://github.com/shellui/email-service)       | [docs.shellui.com/email](https://docs.shellui.com/email)                     |
 
-Each service shows up under **Services** in the navbar, with its own sidebar. Page paths match the old per-service sites, so `identity.docs.shellui.com/scim` becomes `docs.shellui.com/identity/scim`.
+Each service shows up under **Services** in the navbar, with its own sidebar. The **Shellui** navbar item links to the main docs. The navbar shows which docs you are reading: **Shellui** is highlighted on main docs pages, and on a service page the dropdown takes that service's name, for example **Identity**, and highlights it. Page paths match the old per-service sites, so `identity.docs.shellui.com/scim` becomes `docs.shellui.com/identity/scim`.
 
 ## Build locally
 

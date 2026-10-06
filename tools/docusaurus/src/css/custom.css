@@ -207,7 +207,6 @@ html[data-theme='dark'] .navbar {
     padding-right: 1.25rem;
   }
 
-  .navbar__docs-link,
   .navbar__mobile-only-link {
     display: none;
   }
@@ -432,6 +431,38 @@ html[data-theme='dark'] .navbar__link {
 html[data-theme='dark'] .navbar__link:hover,
 html[data-theme='dark'] .navbar__link--active {
   color: #ffffff;
+}
+
+/* Selected docs in the top bar: the "Shellui" item on main docs pages, or the
+   Services dropdown (labelled with the service name) on service pages. */
+@media (min-width: 997px) {
+  .navbar__items > .navbar__link,
+  .navbar__items > .dropdown > .navbar__link {
+    border-radius: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .navbar__items > .navbar__link + .navbar__link,
+  .navbar__items > .navbar__link + .dropdown {
+    margin-left: 0.25rem;
+  }
+
+  .navbar__link--active {
+    background: #f3f4f6;
+    color: #111827;
+  }
+
+  html[data-theme='dark'] .navbar__link--active {
+    background: #1f2937;
+    color: #ffffff;
+  }
+}
+
+.dropdown__link--active,
+.dropdown__link--active:hover {
+  background: var(--ifm-menu-color-background-active);
+  font-weight: 600;
 }
 
 .navbar__toggle,

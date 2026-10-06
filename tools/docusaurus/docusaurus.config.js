@@ -52,6 +52,21 @@ const services = serviceManifest.services.map((service) => ({
   sidebarId: firstSidebarId(service.sidebarPath),
 }));
 
+/**
+ * Matches every path under a service's route prefix, for example `/identity/scim`.
+ * @param {{routeBasePath: string}} service
+ */
+function serviceActiveRegex(service) {
+  return `^/${service.routeBasePath}(/|$)`;
+}
+
+// Matches every path that is not part of a service, so the "Shellui" navbar
+// item is active on the main docs only.
+const mainDocsActiveRegex =
+  services.length > 0
+    ? `^/(?!(${services.map((service) => service.routeBasePath).join('|')})(/|$))`
+    : '^/';
+
 const hostRoutes = Object.fromEntries(
   services.map((service) => [service.legacyHost, `/${service.routeBasePath}`]),
 );
@@ -191,16 +206,18 @@ const config = {
         },
         items: [
           {
-            type: 'docSidebar',
-            sidebarId: 'tutorialSidebar',
+            to: '/',
+            label: 'Shellui',
             position: 'left',
-            label: 'Documentation',
-            className: 'navbar__docs-link',
+            // Active on every main docs page, not on service pages.
+            activeBaseRegex: mainDocsActiveRegex,
           },
           ...(services.length > 0
             ? [
                 {
-                  type: 'dropdown',
+                  // See src/theme/NavbarItem/ServicesDropdownNavbarItem.js. The label
+                  // becomes the current service's name while a service page is open.
+                  type: 'custom-servicesDropdown',
                   label: 'Services',
                   position: 'left',
                   items: services.map((service) => ({
@@ -208,6 +225,7 @@ const config = {
                     docsPluginId: service.id,
                     sidebarId: service.sidebarId,
                     label: service.label,
+                    activeBaseRegex: serviceActiveRegex(service),
                   })),
                 },
               ]
