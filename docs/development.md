@@ -46,3 +46,5 @@ pnpm test
 `@shellui/cli` depends on `@shellui/core`. `@shellui/core` depends on `@shellui/sdk`. Workspace links mean a core change is visible to the CLI without publishing.
 
 Useful root scripts: `pnpm start` / `pnpm run serve` (CLI `start`), `pnpm run docs:start`, `pnpm run tauri:dev`. See the root README for the full list. Format and lint: `pnpm run format`, `pnpm run lint`.
+
+The docs site also renders the service docs from `identity-service`, `storage-service`, `hosting-service`, and `email-service`. See [Docs site](/docs-site) for how they are fetched and how to edit them with live reload.

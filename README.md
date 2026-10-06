@@ -138,8 +138,9 @@ Keep versions in sync across packages with `pnpm run version:sync` before publis
 ### Documentation Scripts
 
 - `pnpm run docs:install` - Install documentation dependencies
-- `pnpm run docs:start` - Start documentation development server
-- `pnpm run docs:build` - Build documentation site
+- `pnpm run docs:fetch` - Fetch the identity, storage, hosting, and email service docs (sibling checkouts or GitHub)
+- `pnpm run docs:start` - Fetch service docs, then start documentation development server
+- `pnpm run docs:build` - Fetch service docs, then build documentation site
 - `pnpm run docs:serve` - Serve built documentation
 
 ### Utility Scripts

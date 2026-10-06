@@ -220,6 +220,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'docs-site',
+          label: 'Docs site',
+        },
+        {
+          type: 'doc',
           id: 'sentry',
           label: 'Sentry',
         },
