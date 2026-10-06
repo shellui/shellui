@@ -117,6 +117,17 @@ export interface SettingsHosting {
   showInAdmin?: boolean;
 }
 
+/**
+ * Email-service connection from host `email` in shellui.config.json.
+ * Used by iframe apps that need the email API base URL.
+ */
+export interface SettingsEmail {
+  /** Base URL of email-service (no trailing slash). */
+  url: string;
+  /** When false, admin panel hides Email navigation. */
+  showInAdmin?: boolean;
+}
+
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
 export interface ThemeColorsMode {
   background: string;
@@ -294,6 +305,27 @@ export interface Settings {
     /** Whether the service worker is enabled */
     enabled: boolean;
   };
+  /**
+   * On-device AI preferences (Settings → AI).
+   * When `enabled` is false, apps get `unavailable` from `shellui.ai.languageModel.availability()`.
+   */
+  ai: {
+    /** Allow embedded apps to call shell AI once a model is ready. */
+    enabled: boolean;
+    /** Qualified model id (`ollama:…` / `webllm:…`) used when apps omit a model. */
+    defaultModelId: string | null;
+    /** Soft-enable Ollama probing and listing. */
+    ollamaEnabled: boolean;
+    /** Soft-enable browser catalog (WebLLM adapter). */
+    browserEnabled: boolean;
+    /**
+     * Soft-enable the Chrome built-in Prompt API provider. Defaults to true when
+     * omitted; the provider only appears when the browser exposes `LanguageModel`.
+     */
+    promptApiEnabled?: boolean;
+    /** Override Ollama base URL (default http://127.0.0.1:11434). */
+    ollamaBaseUrl?: string;
+  };
   /** Override layout at runtime. When set, overrides config.layout (e.g. from Develop settings). */
   layout?:
     | 'sidebar'
@@ -329,6 +361,12 @@ export interface Settings {
    * Omitted or null when hosting is not configured.
    */
   hosting?: SettingsHosting | null;
+  /**
+   * Email-service connection (from host `email` in shellui.config.json).
+   * Omitted or null when `email` is not set.
+   * When `email` is set and `url` is omitted, `url` is `https://email.shellui.com`.
+   */
+  email?: SettingsEmail | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**
@@ -628,6 +666,10 @@ export type ShellUIMessageType =
   | 'SHELLUI_REFRESH_PAGE'
   | 'SHELLUI_LOGOUT'
   | 'SHELLUI_LOGIN'
+  | 'SHELLUI_DELETE_ACCOUNT_REQUEST'
+  | 'SHELLUI_DELETE_ACCOUNT_RESULT'
+  | 'SHELLUI_UPDATE_PROFILE_REQUEST'
+  | 'SHELLUI_UPDATE_PROFILE_RESULT'
   | 'SHELLUI_STORAGE_REQUEST'
   | 'SHELLUI_STORAGE_RESPONSE'
   | 'SHELLUI_SELECT_STORAGE'
@@ -637,7 +679,10 @@ export type ShellUIMessageType =
   | 'SHELLUI_CONTENT_SCROLL'
   | 'SHELLUI_ACTIONS_SET'
   | 'SHELLUI_ACTIONS_CLEAR'
-  | 'SHELLUI_ACTION';
+  | 'SHELLUI_ACTION'
+  | 'SHELLUI_AI_REQUEST'
+  | 'SHELLUI_AI_RESPONSE'
+  | 'SHELLUI_AI_STREAM';
 
 export interface ShellUIMessage {
   type: ShellUIMessageType | string;

@@ -460,7 +460,9 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
                   )}
                   <AlertDialogTitle>{dialogState.title}</AlertDialogTitle>
                   {dialogState.description && (
-                    <AlertDialogDescription>{dialogState.description}</AlertDialogDescription>
+                    <AlertDialogDescription className="whitespace-pre-line">
+                      {dialogState.description}
+                    </AlertDialogDescription>
                   )}
                 </AlertDialogHeader>
                 <AlertDialogFooter>{renderButtons()}</AlertDialogFooter>

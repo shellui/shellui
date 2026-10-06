@@ -1,12 +1,38 @@
-import { postShellMessage } from '@shellui/sdk';
+/**
+ * Upload-shaped façade over the shared transfer queue.
+ * Prefer `features/transfers` for new code; these helpers keep storage callers stable.
+ */
+import type { TransferItem, TransferQueueSummary } from '../../transfers/types.js';
+import {
+  addTransfer,
+  closeTransferToaster,
+  completeTransfer,
+  dismissFinishedTransfers,
+  failTransfer,
+  getItemPercent as getTransferItemPercent,
+  getTransferQueue,
+  getTransferSummary,
+  interruptAllTransfers,
+  interruptTransfer,
+  isTransferSignalAborted,
+  isTransferToastExpanded,
+  markTransferCancelled,
+  removeTransfer,
+  requestUploadToastDemo as requestDemo,
+  resetTransferQueue,
+  setTransferProgress,
+  setTransferToastExpanded,
+  startUploadToastDemo as startDemo,
+  subscribeTransferQueue,
+  TRANSFER_TOAST_AUTO_DISMISS_MS,
+  TRANSFER_TOAST_ID,
+  UPLOAD_TOAST_DEMO_MESSAGE as DEMO_MESSAGE,
+} from '../../transfers/transferQueue.js';
 import type { UploadItem, UploadItemStatus, UploadQueueSummary } from './types';
 
-export const UPLOAD_TOAST_ID = 'shellui-upload-progress';
-export const UPLOAD_TOAST_DEMO_MESSAGE = 'SHELLUI_UPLOAD_TOAST_DEMO';
-/** Brief pause so the success state is visible before the toaster hides. */
-export const UPLOAD_TOAST_AUTO_DISMISS_MS = 2500;
-
-type UploadListener = () => void;
+export const UPLOAD_TOAST_ID = TRANSFER_TOAST_ID;
+export const UPLOAD_TOAST_DEMO_MESSAGE = DEMO_MESSAGE;
+export const UPLOAD_TOAST_AUTO_DISMISS_MS = TRANSFER_TOAST_AUTO_DISMISS_MS;
 
 type AddUploadInput = {
   id?: string;
@@ -17,125 +43,94 @@ type AddUploadInput = {
   demo?: boolean;
 };
 
-const listeners = new Set<UploadListener>();
-const abortControllers = new Map<string, AbortController>();
-const demoTimers = new Map<string, ReturnType<typeof setInterval>>();
-const demoStartTimeouts: ReturnType<typeof setTimeout>[] = [];
-
-let items: UploadItem[] = [];
-let expanded = false;
-let autoDismissTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function clearAutoDismissTimeout(): void {
-  if (autoDismissTimeout === null) return;
-  clearTimeout(autoDismissTimeout);
-  autoDismissTimeout = null;
+function toUploadStatus(status: TransferItem['status']): UploadItemStatus {
+  return status === 'active' ? 'uploading' : status;
 }
 
-/**
- * Hide the toaster a few seconds after every upload finishes successfully.
- * Errors and in-progress uploads keep the panel open; cancelled-only queues stay too.
- */
-function scheduleAutoDismissIfNeeded(): void {
-  clearAutoDismissTimeout();
-  const summary = getUploadSummary();
-  if (summary.uploading > 0 || summary.error > 0 || summary.success === 0) {
-    return;
-  }
-  autoDismissTimeout = setTimeout(() => {
-    autoDismissTimeout = null;
-    const current = getUploadSummary();
-    if (current.uploading > 0 || current.error > 0 || current.success === 0) {
-      return;
-    }
-    resetUploadQueue();
-  }, UPLOAD_TOAST_AUTO_DISMISS_MS);
-}
-
-function emit(): void {
-  listeners.forEach((listener) => listener());
-}
-
-function createId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `upload-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function patchItem(id: string, patch: Partial<UploadItem>): void {
-  const index = items.findIndex((item) => item.id === id);
-  if (index === -1) return;
-  items = items.map((item) => (item.id === id ? { ...item, ...patch } : item));
-  emit();
-}
-
-function clearDemoStartTimeouts(): void {
-  demoStartTimeouts.forEach((timeout) => clearTimeout(timeout));
-  demoStartTimeouts.length = 0;
-}
-
-function clearDemoTimer(id: string): void {
-  const timer = demoTimers.get(id);
-  if (timer !== undefined) {
-    clearInterval(timer);
-    demoTimers.delete(id);
-  }
-}
-
-export function subscribeUploadQueue(listener: UploadListener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
+function toUploadItem(item: TransferItem): UploadItem {
+  return {
+    id: item.id,
+    name: item.name,
+    path: item.detail ?? item.meta?.path ?? '',
+    bucket: item.meta?.bucket ?? '',
+    size: item.size,
+    bytesUploaded: item.bytesTransferred,
+    status: toUploadStatus(item.status),
+    error: item.error,
+    demo: item.demo,
   };
+}
+
+function toUploadSummary(summary: TransferQueueSummary): UploadQueueSummary {
+  return {
+    total: summary.total,
+    uploading: summary.active,
+    success: summary.success,
+    error: summary.error,
+    cancelled: summary.cancelled,
+    bytesUploaded: summary.bytesTransferred,
+    bytesTotal: summary.bytesTotal,
+    percent: summary.percent,
+  };
+}
+
+export function subscribeUploadQueue(listener: () => void): () => void {
+  return subscribeTransferQueue(listener);
 }
 
 export function getUploadQueue(): UploadItem[] {
-  return items;
+  return getTransferQueue()
+    .filter((item) => item.kind === 'upload')
+    .map(toUploadItem);
+}
+
+/** All transfer items as upload-shaped rows (tests / legacy callers that expect the full queue). */
+export function getUploadQueueIncludingDownloads(): UploadItem[] {
+  return getTransferQueue().map(toUploadItem);
 }
 
 export function isUploadToastExpanded(): boolean {
-  return expanded;
+  return isTransferToastExpanded();
 }
 
 export function setUploadToastExpanded(value: boolean): void {
-  if (expanded === value) return;
-  expanded = value;
-  emit();
+  setTransferToastExpanded(value);
 }
 
-export function getUploadSummary(list: UploadItem[] = items): UploadQueueSummary {
-  const uploading = list.filter((item) => item.status === 'uploading').length;
-  const success = list.filter((item) => item.status === 'success').length;
-  const error = list.filter((item) => item.status === 'error').length;
-  const cancelled = list.filter((item) => item.status === 'cancelled').length;
-  const bytesUploaded = list.reduce((sum, item) => {
-    if (item.status === 'success') return sum + item.size;
-    if (item.status === 'uploading') {
-      return sum + Math.min(item.bytesUploaded, item.size || item.bytesUploaded);
-    }
-    return sum;
-  }, 0);
-  const bytesTotal = list.reduce((sum, item) => sum + item.size, 0);
-  const percent =
-    bytesTotal > 0
-      ? Math.min(100, Math.max(0, Math.round((bytesUploaded / bytesTotal) * 100)))
-      : uploading > 0
-        ? 0
-        : list.length > 0
-          ? 100
-          : 0;
-
-  return {
-    total: list.length,
-    uploading,
-    success,
-    error,
-    cancelled,
-    bytesUploaded,
-    bytesTotal,
-    percent,
-  };
+export function getUploadSummary(list?: UploadItem[]): UploadQueueSummary {
+  if (list) {
+    const active = list.filter((item) => item.status === 'uploading').length;
+    const success = list.filter((item) => item.status === 'success').length;
+    const error = list.filter((item) => item.status === 'error').length;
+    const cancelled = list.filter((item) => item.status === 'cancelled').length;
+    const bytesUploaded = list.reduce((sum, item) => {
+      if (item.status === 'success') return sum + item.size;
+      if (item.status === 'uploading') {
+        return sum + Math.min(item.bytesUploaded, item.size || item.bytesUploaded);
+      }
+      return sum;
+    }, 0);
+    const bytesTotal = list.reduce((sum, item) => sum + item.size, 0);
+    const percent =
+      bytesTotal > 0
+        ? Math.min(100, Math.max(0, Math.round((bytesUploaded / bytesTotal) * 100)))
+        : active > 0
+          ? 0
+          : list.length > 0
+            ? 100
+            : 0;
+    return {
+      total: list.length,
+      uploading: active,
+      success,
+      error,
+      cancelled,
+      bytesUploaded,
+      bytesTotal,
+      percent,
+    };
+  }
+  return toUploadSummary(getTransferSummary());
 }
 
 export function getItemPercent(item: UploadItem): number {
@@ -145,243 +140,68 @@ export function getItemPercent(item: UploadItem): number {
 }
 
 export function addUpload(input: AddUploadInput): { id: string; signal: AbortSignal } {
-  clearAutoDismissTimeout();
-  const id = input.id ?? createId();
-  const existing = abortControllers.get(id);
-  existing?.abort();
-  clearDemoTimer(id);
-
-  const controller = new AbortController();
-  abortControllers.set(id, controller);
-
-  const next: UploadItem = {
-    id,
+  return addTransfer({
+    id: input.id,
+    kind: 'upload',
     name: input.name,
-    path: input.path,
-    bucket: input.bucket,
-    size: Math.max(0, input.size),
-    bytesUploaded: 0,
-    status: 'uploading',
+    detail: input.path,
+    meta: { path: input.path, bucket: input.bucket },
+    size: input.size,
     demo: input.demo,
-  };
-
-  items = [...items.filter((item) => item.id !== id), next];
-  emit();
-  return { id, signal: controller.signal };
+  });
 }
 
 export function setUploadProgress(id: string, loaded: number, total?: number): void {
-  const item = items.find((entry) => entry.id === id);
-  if (!item || item.status !== 'uploading') return;
-  const size = total && total > 0 ? total : item.size;
-  patchItem(id, {
-    bytesUploaded: Math.max(0, loaded),
-    size: size > 0 ? size : item.size,
-  });
+  setTransferProgress(id, { loaded, total });
 }
 
 export function completeUpload(id: string): void {
-  const item = items.find((entry) => entry.id === id);
-  if (!item || item.status !== 'uploading') return;
-  abortControllers.delete(id);
-  clearDemoTimer(id);
-  patchItem(id, {
-    status: 'success',
-    bytesUploaded: item.size || item.bytesUploaded,
-    error: undefined,
-  });
-  scheduleAutoDismissIfNeeded();
+  completeTransfer(id);
 }
 
 export function failUpload(id: string, message: string): void {
-  const item = items.find((entry) => entry.id === id);
-  if (!item || item.status !== 'uploading') return;
-  abortControllers.delete(id);
-  clearDemoTimer(id);
-  patchItem(id, { status: 'error', error: message });
-  clearAutoDismissTimeout();
+  failTransfer(id, message);
 }
 
 export function markUploadCancelled(id: string): void {
-  if (!items.some((item) => item.id === id)) return;
-  abortControllers.delete(id);
-  clearDemoTimer(id);
-  patchItem(id, { status: 'cancelled' });
-  scheduleAutoDismissIfNeeded();
+  markTransferCancelled(id);
 }
 
-/** Abort an in-progress upload and keep it visible as cancelled. */
 export function interruptUpload(id: string): void {
-  const item = items.find((entry) => entry.id === id);
-  if (!item || item.status !== 'uploading') return;
-  abortControllers.get(id)?.abort();
-  markUploadCancelled(id);
+  interruptTransfer(id);
 }
 
-/** Remove a finished (or cancelled) item from the toaster. */
 export function removeUpload(id: string): void {
-  const item = items.find((entry) => entry.id === id);
-  if (!item) return;
-  if (item.status === 'uploading') {
-    abortControllers.get(id)?.abort();
-  }
-  abortControllers.delete(id);
-  clearDemoTimer(id);
-  const next = items.filter((entry) => entry.id !== id);
-  if (next.length === items.length) return;
-  items = next;
-  if (items.length === 0) {
-    expanded = false;
-    clearAutoDismissTimeout();
-  }
-  emit();
-  if (items.length > 0) {
-    scheduleAutoDismissIfNeeded();
-  }
+  removeTransfer(id);
 }
 
 export function dismissFinishedUploads(): void {
-  clearAutoDismissTimeout();
-  const keep = items.filter((item) => item.status === 'uploading');
-  items.forEach((item) => {
-    if (item.status === 'uploading') return;
-    abortControllers.delete(item.id);
-    clearDemoTimer(item.id);
-  });
-  if (keep.length === items.length) return;
-  items = keep;
-  if (items.length === 0) expanded = false;
-  emit();
+  dismissFinishedTransfers();
 }
 
 export function interruptAllUploads(): void {
-  const uploading = items.filter((item) => item.status === 'uploading');
-  if (uploading.length === 0) return;
-  uploading.forEach((item) => {
-    abortControllers.get(item.id)?.abort();
-    markUploadCancelled(item.id);
-  });
+  interruptAllTransfers();
 }
 
-/** Close the toaster: cancel leftover uploads and hide the panel. */
 export function closeUploadToaster(): void {
-  resetUploadQueue();
+  closeTransferToaster();
 }
 
 export function resetUploadQueue(): void {
-  clearAutoDismissTimeout();
-  abortControllers.forEach((controller) => controller.abort());
-  abortControllers.clear();
-  demoTimers.forEach((timer) => clearInterval(timer));
-  demoTimers.clear();
-  clearDemoStartTimeouts();
-  items = [];
-  expanded = false;
-  emit();
+  resetTransferQueue();
 }
 
-const DEMO_FILES: Array<{
-  name: string;
-  path: string;
-  bucket: string;
-  size: number;
-  durationMs: number;
-  outcome: Extract<UploadItemStatus, 'success' | 'error'>;
-  error?: string;
-}> = [
-  {
-    name: 'quarterly-report.pdf',
-    path: 'docs/quarterly-report.pdf',
-    bucket: 'company',
-    size: 2_450_000,
-    durationMs: 3600,
-    outcome: 'success',
-  },
-  {
-    name: 'team-offsite.jpg',
-    path: 'photos/team-offsite.jpg',
-    bucket: 'company',
-    size: 6_200_000,
-    durationMs: 7200,
-    outcome: 'success',
-  },
-  {
-    name: 'budget.xlsx',
-    path: 'docs/budget.xlsx',
-    bucket: 'company',
-    size: 840_000,
-    durationMs: 2400,
-    outcome: 'error',
-    error: 'Quota exceeded',
-  },
-  {
-    name: 'archive.zip',
-    path: 'backup/archive.zip',
-    bucket: 'company',
-    size: 18_500_000,
-    durationMs: 9800,
-    outcome: 'success',
-  },
-];
-
-function clearDemoUploads(): void {
-  clearDemoStartTimeouts();
-  items
-    .filter((item) => item.demo)
-    .forEach((item) => {
-      abortControllers.get(item.id)?.abort();
-      abortControllers.delete(item.id);
-      clearDemoTimer(item.id);
-    });
-  items = items.filter((item) => !item.demo);
-  if (items.length === 0) expanded = false;
-  emit();
-}
-
-/** Ask the root shell to show the demo toaster (no-op network). Safe to call from iframes. */
 export function requestUploadToastDemo(): void {
-  if (typeof window === 'undefined') return;
-  const message = { type: UPLOAD_TOAST_DEMO_MESSAGE, payload: {} };
-  postShellMessage(message);
+  requestDemo();
 }
 
-/** Simulated uploads for the Develop panel — no network requests. */
 export function startUploadToastDemo(): void {
-  clearDemoUploads();
-  expanded = false;
-
-  DEMO_FILES.forEach((spec, index) => {
-    const timeout = setTimeout(() => {
-      const { id, signal } = addUpload({
-        name: spec.name,
-        path: spec.path,
-        bucket: spec.bucket,
-        size: spec.size,
-        demo: true,
-      });
-      const startedAt = Date.now();
-      const timer = setInterval(() => {
-        if (signal.aborted) {
-          clearDemoTimer(id);
-          return;
-        }
-        const ratio = Math.min(1, (Date.now() - startedAt) / spec.durationMs);
-        setUploadProgress(id, Math.round(spec.size * ratio), spec.size);
-        if (ratio < 1) return;
-        clearDemoTimer(id);
-        if (spec.outcome === 'error') {
-          failUpload(id, spec.error || 'Upload failed');
-          return;
-        }
-        completeUpload(id);
-      }, 80);
-      demoTimers.set(id, timer);
-    }, index * 180);
-    demoStartTimeouts.push(timeout);
-  });
+  startDemo();
 }
 
 export function isUploadSignalAborted(id: string, signal?: AbortSignal): boolean {
-  const item = items.find((entry) => entry.id === id);
-  return Boolean(signal?.aborted) || !item || item.status === 'cancelled';
+  return isTransferSignalAborted(id, signal);
 }
+
+/** Re-export for callers that still import percent helpers from this module. */
+export { getTransferItemPercent };

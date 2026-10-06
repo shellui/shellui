@@ -1,5 +1,9 @@
 name: Deploy Docs to GitHub Pages
 
+# The site at docs.shellui.com includes the docs of every Shellui service
+# (identity, storage, hosting, email). They are fetched from each service repo
+# at build time by tools/docusaurus/scripts/fetch-service-docs.js.
+
 on:
   push:
     branches:
@@ -13,7 +17,24 @@ on:
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - '.github/workflows/deploy-docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'tools/docusaurus/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-docs.yml'
+  # Service repos send this event when their docs change on main.
+  # Example: gh api repos/shellui/shellui/dispatches -f event_type=service-docs-updated
+  repository_dispatch:
+    types:
+      - service-docs-updated
   workflow_dispatch:
+
+concurrency:
+  group: deploy-docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   deploy:
@@ -21,10 +42,27 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # CI never has sibling checkouts, so always clone service docs from GitHub.
+      DOCS_SOURCE: remote
+      # Override per service with repository variables, for example IDENTITY_DOCS_REF=v1.2.0.
+      IDENTITY_DOCS_REF: ${{ vars.IDENTITY_DOCS_REF || 'main' }}
+      STORAGE_DOCS_REF: ${{ vars.STORAGE_DOCS_REF || 'main' }}
+      HOSTING_DOCS_REF: ${{ vars.HOSTING_DOCS_REF || 'main' }}
+      EMAIL_DOCS_REF: ${{ vars.EMAIL_DOCS_REF || 'main' }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Log trigger
+        if: github.event_name == 'repository_dispatch'
+        env:
+          REQUESTED_BY: ${{ github.event.client_payload.service }}
+          SOURCE_SHA: ${{ github.event.client_payload.sha }}
+        run: |
+          echo "Rebuild requested by: ${REQUESTED_BY:-unknown}"
+          echo "Source commit: ${SOURCE_SHA:-unknown}"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -38,12 +76,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Fetch service docs
+        run: pnpm run docs:fetch
+
       - name: Build documentation
-        run: pnpm run docs:build
+        run: pnpm run build:sdk && pnpm --dir tools/docusaurus run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./tools/docusaurus/build

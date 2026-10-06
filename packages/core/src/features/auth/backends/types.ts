@@ -28,8 +28,23 @@ export interface AuthBackend {
   startOAuth: (provider: string, redirectPath: string, oauthClientId?: number) => void;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
+  /** Whether {@link deleteAccount} is implemented for this backend. */
+  supportsAccountDeletion: boolean;
+  /** Permanently delete the signed-in user for the session's company. */
+  deleteAccount: (session: AuthSession | null) => Promise<void>;
+  /** Whether {@link updateProfile} is implemented for this backend. */
+  supportsProfileUpdate: boolean;
+  /** Update the signed-in user's display name; resolves with the name as stored. */
+  updateProfile: (
+    session: AuthSession | null,
+    profile: { name: string },
+  ) => Promise<{ name: string }>;
   getAuthSettings: () => Promise<AuthSettings>;
-  sendMagicLink: (email: string, redirectPath: string) => Promise<void>;
+  sendMagicLink: (
+    email: string,
+    redirectPath: string,
+    options?: { language?: string },
+  ) => Promise<void>;
   syncUserPreferences: (session: AuthSession | null, preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: (session: AuthSession | null) => Promise<UserPreferences | null>;
 }

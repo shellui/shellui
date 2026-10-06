@@ -7,6 +7,7 @@ import {
 } from './authStorageKeys';
 import {
   clearStoredAuthSession,
+  hasStoredAuthSession,
   persistAuthSession,
   readStoredAuthSession,
 } from './authSessionPersistence';
@@ -82,6 +83,16 @@ describe('authSessionPersistence', () => {
     const restored = readStoredAuthSession();
     expect(restored?.accessToken).toBe('access-abc');
     expect(localStorage.setItem).toHaveBeenCalledWith(AUTH_PROFILE_STORAGE_KEY, expect.any(String));
+  });
+
+  it('reports a stored session only when a profile or legacy snapshot exists', () => {
+    expect(hasStoredAuthSession()).toBe(false);
+    persistAuthSession(sampleSession());
+    expect(hasStoredAuthSession()).toBe(true);
+    clearStoredAuthSession();
+    expect(hasStoredAuthSession()).toBe(false);
+    localStorage.setItem(LEGACY_AUTH_SESSION_STORAGE_KEY, JSON.stringify(sampleSession()));
+    expect(hasStoredAuthSession()).toBe(true);
   });
 
   it('clears profile, refresh, and legacy keys', () => {

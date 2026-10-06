@@ -1,10 +1,13 @@
 export class AuthRequestError extends Error {
   readonly code: string | null;
+  /** Extra fields from the error response body (e.g. `companies` for `last_company_owner`). */
+  readonly details: Record<string, unknown>;
 
-  constructor(message: string, code?: string | null) {
+  constructor(message: string, code?: string | null, details?: Record<string, unknown>) {
     super(message);
     this.name = 'AuthRequestError';
     this.code = typeof code === 'string' && code.trim() ? code.trim() : null;
+    this.details = details ?? {};
   }
 }
 

@@ -108,16 +108,17 @@ export const ContentView = ({
 
   const MIN_LOADING_MS = 80; // Don't reveal before this, reduces blink from theme/layout paint
 
+  // Stable object ref + layout effect — do NOT use an inline ref callback.
+  // Inline ref identity changes every render → React calls ref(null) and
+  // unregisters the frame on each update (breaks SHELLUI_DIALOG, etc.).
   useLayoutEffect(() => {
-    if (!iframeRef.current) {
-      return;
-    }
-    const iframeId = addIframe(iframeRef.current);
+    const node = iframeRef.current;
+    if (!node) return;
+    const iframeId = addIframe(node);
     return () => {
       removeIframe(iframeId);
     };
   }, [iframeUrl, navItem?.path ?? '', frameGeneration]);
-
   // Drive iframe when the shell location changes from outside the iframe
   // (nav item click, router back/forward). Prefer location.replace so we do not
   // pollute joint session history (same-origin iframe src changes would).

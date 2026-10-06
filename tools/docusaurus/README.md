@@ -1,74 +1,42 @@
 # Shellui Documentation Website
 
-This directory contains the Docusaurus documentation website for Shellui.
+This directory contains the Docusaurus site published at https://docs.shellui.com.
+It renders the Shellui docs from `../../docs/` and the docs of each Shellui service
+(identity, storage, hosting, email), fetched at build time.
+
+Full guide: [docs/docs-site.md](../../docs/docs-site.md).
 
 ## Structure
 
-- `docusaurus.config.js` - Main Docusaurus configuration
-- `sidebars.js` - Sidebar configuration for documentation navigation
-- `babel.config.js` - Babel configuration
+- `docusaurus.config.js` - Main Docusaurus configuration, including one docs instance per service
+- `sidebars.js` - Sidebar for the Shellui docs
+- `services.js` - List of services, their URLs, and the environment variables the fetch reads
+- `scripts/fetch-service-docs.js` - Collects service docs and writes `.services/manifest.json`
+- `plugins/remark-service-links.js` - Fixes service doc links that only worked on the old per-service sites
+- `sidebars.service-default.js` - Sidebar for a service that does not ship one
+- `.services/` - Fetched service docs (gitignored)
 - `src/` - React components and custom CSS
 - `static/` - Static assets (images, fonts, etc.)
-- `package.json` - Dependencies and scripts for the documentation site
 
-## Documentation Source
+## Commands
 
-The markdown documentation files are located in the `../../docs/` directory (two levels up from this directory). The Docusaurus configuration is set to load markdown files from there.
-
-## Development
-
-### Install Dependencies
+Run from the repository root:
 
 ```bash
-npm install
+pnpm install
+pnpm docs:fetch   # fetch service docs only
+pnpm docs:start   # fetch, then dev server on http://localhost:3000
+pnpm docs:build   # fetch, then production build in tools/docusaurus/build
+pnpm docs:serve   # serve the build
 ```
 
-Or from the root directory:
-
-```bash
-npm run docs:install
-```
-
-### Start Development Server
-
-```bash
-npm start
-```
-
-Or from the root directory:
-
-```bash
-npm run docs:start
-```
-
-This will start a local development server at `http://localhost:3000`.
-
-### Build Documentation
-
-```bash
-npm run build
-```
-
-Or from the root directory:
-
-```bash
-npm run docs:build
-```
-
-### Serve Built Documentation
-
-```bash
-npm run serve
-```
-
-Or from the root directory:
-
-```bash
-npm run docs:serve
-```
+`DOCS_SOURCE=auto` (default) uses sibling checkouts such as `../identity-service/docs`
+in place, so edits there live reload. Services without a sibling checkout are cloned
+from GitHub (shallow, sparse, docs only). Use `DOCS_SOURCE=remote` to match CI, and
+`IDENTITY_DOCS_REF=<branch|tag|sha>` (or `STORAGE_`, `HOSTING_`, `EMAIL_`) to pick a ref.
 
 ## Deployment
 
-The documentation is automatically deployed to GitHub Pages via GitHub Actions when changes are pushed to the main/master branch. See `.github/workflows/deploy-docs.yml` for the deployment configuration.
-
-
+`.github/workflows/deploy-docs.yml` fetches the service docs from GitHub, builds, and
+deploys to GitHub Pages from `main`. Service repositories can request a rebuild with a
+`repository_dispatch` event of type `service-docs-updated`.

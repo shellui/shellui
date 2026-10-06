@@ -22,6 +22,14 @@ Put `alpha` or `beta` in the version string for pre-releases so `latest` is not 
 
 That runs `scripts/publish-with-tag.js` in order SDK → Core → CLI. You do not pass the tag by hand.
 
+Before publishing, the script runs `pnpm run changelog:check`. It stops the release unless:
+
+- The root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`
+- `CHANGELOG.md` has no active `## [Unreleased]` section
+- Every release heading reads `## [<version>] - YYYY-MM-DD`, and the topmost one matches the root version (for example `## [0.6.0-beta.1] - 2026-10-06`)
+
+Run `pnpm run changelog:check` on its own to validate the changelog before you start.
+
 For a later bump: change the root version, `pnpm run version:sync`, `pnpm run publish`. Stable releases omit `alpha` / `beta`.
 
 If the release changes agent-relevant APIs or config, update the matching skill in [shellui/skills](https://github.com/shellui/skills), bump `metadata.version` and that skill's `CHANGELOG.md`, and keep the skill lean - see [ADR 0001](/adr/ai-skill).
@@ -46,4 +54,5 @@ shellui --version
 - **"Package already exists":** bump the version and `pnpm run version:sync` before publishing again
 - **"Access denied":** `npm login` and publish rights on `@shellui`
 - **Wrong tag:** check that the root version contains `alpha` or `beta` for pre-releases
+- **"CHANGELOG.md is not ready":** rename the top release heading to the root version with today's date, and move any `## [Unreleased]` notes into it
 - **"Missing files":** check the `files` field in each package `package.json`

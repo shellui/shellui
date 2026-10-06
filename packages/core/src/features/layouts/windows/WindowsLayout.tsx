@@ -727,7 +727,7 @@ function getBrowserTimezone(): string {
 export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
   const location = useLocation();
   const { i18n } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = useSettings();
   /** Fullscreen phone chrome — includes iPhone landscape (wide but short). */
   const phoneMode = useWindowsPhoneMode();
@@ -735,8 +735,13 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
     () =>
-      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
-    [navigation, isAuthenticated, settings.developerFeatures.enabled],
+      filterNavigationForAuthState(
+        navigation,
+        isAuthenticated,
+        settings.developerFeatures.enabled,
+        isAuthLoading,
+      ),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled, isAuthLoading],
   );
   const timeZone = settings.region?.timezone ?? getBrowserTimezone();
   const { startSections, endNavItems, navigationItems } = useMemo(() => {

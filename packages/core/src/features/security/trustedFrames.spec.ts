@@ -1,11 +1,56 @@
 import { describe, expect, it } from 'vitest';
 import type { ShellUIConfig } from '../config/types';
 import {
+  getAiRequestTrustDenial,
   getStorageRequestTrustDenial,
   isRegisteredTrustedFrame,
+  isShellSettingsFrameMessage,
   isTrustedFrameForAuthToken,
   resolveRegisteredFrameSrc,
 } from './trustedFrames';
+
+describe('isShellSettingsFrameMessage', () => {
+  const shellOrigin = 'http://localhost:4000';
+  const registry = (entries: Array<[string, string]>) => ({
+    getAllIframes: () =>
+      entries.map(
+        ([uuid, src]) => [uuid, { src } as HTMLIFrameElement] as [string, HTMLIFrameElement],
+      ),
+  });
+
+  it('accepts messages from the shell window itself', () => {
+    expect(isShellSettingsFrameMessage([], registry([]), '/__settings', shellOrigin)).toBe(true);
+    expect(isShellSettingsFrameMessage(undefined, registry([]), '/__settings', shellOrigin)).toBe(
+      true,
+    );
+  });
+
+  it('accepts a direct same-origin settings frame', () => {
+    const frames = registry([['f1', `${shellOrigin}/__settings/user`]]);
+    expect(isShellSettingsFrameMessage(['f1'], frames, '/__settings', shellOrigin)).toBe(true);
+  });
+
+  it('rejects messages relayed from nested frames', () => {
+    const frames = registry([['f1', `${shellOrigin}/__settings/user`]]);
+    expect(isShellSettingsFrameMessage(['f1', 'nested'], frames, '/__settings', shellOrigin)).toBe(
+      false,
+    );
+  });
+
+  it('rejects non-settings or cross-origin frames', () => {
+    const frames = registry([
+      ['app', `${shellOrigin}/apps/billing`],
+      ['evil', 'http://evil.test/__settings/user'],
+      ['prefix', `${shellOrigin}/__settings-fake/user`],
+    ]);
+    expect(isShellSettingsFrameMessage(['app'], frames, '/__settings', shellOrigin)).toBe(false);
+    expect(isShellSettingsFrameMessage(['evil'], frames, '/__settings', shellOrigin)).toBe(false);
+    expect(isShellSettingsFrameMessage(['prefix'], frames, '/__settings', shellOrigin)).toBe(false);
+    expect(isShellSettingsFrameMessage(['unknown'], frames, '/__settings', shellOrigin)).toBe(
+      false,
+    );
+  });
+});
 
 const config = {
   navigation: [
@@ -124,6 +169,26 @@ describe('getStorageRequestTrustDenial', () => {
     expect(getStorageRequestTrustDenial(['missing-uuid'], registry, config)).toEqual({
       message: 'Storage request rejected: untrusted frame',
       status: 403,
+    });
+  });
+});
+
+describe('getAiRequestTrustDenial', () => {
+  it('allows trusted companion frames', () => {
+    expect(getAiRequestTrustDenial(['trusted-uuid'], registry, config)).toBeNull();
+  });
+
+  it('denies default (non-opt-in) companion frames', () => {
+    expect(getAiRequestTrustDenial(['default-uuid'], registry, config)).toEqual({
+      message: 'AI request rejected: untrusted frame',
+      code: 'untrusted_frame',
+    });
+  });
+
+  it('denies unregistered senders', () => {
+    expect(getAiRequestTrustDenial(['missing-uuid'], registry, config)).toEqual({
+      message: 'AI request rejected: untrusted frame',
+      code: 'untrusted_frame',
     });
   });
 });

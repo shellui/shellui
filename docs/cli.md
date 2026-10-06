@@ -216,8 +216,19 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`backend`**: see [Backend](/backend).
 - **`storage`**: `url` (required when set), optional `filesUrl`, `showInSettings`. See [Storage](/features/storage).
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
+- **`email`**: optional `url`, optional `showInAdmin`.
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
+
+`email` sets the [email-service](https://github.com/shellui/email-service) origin the shell forwards on SDK `settings.email`. Omit `url` and the shell sends `https://email.shellui.com` (use `http://localhost:8003` locally). Omit `email` and the shell sends `settings.email: null`. `email.showInAdmin: false` hides Admin → Email.
+
+```json
+{
+  "email": {
+    "url": "http://localhost:8003"
+  }
+}
+```
 
 ### Trusted config paths (Track F / L-13)
 

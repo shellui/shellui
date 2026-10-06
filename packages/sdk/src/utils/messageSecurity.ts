@@ -13,6 +13,8 @@ export type MessageSourceKind = 'same-window' | 'parent' | 'registered-frame' | 
 export const PRIVILEGED_COMPANION_MESSAGE_TYPES = new Set([
   'SHELLUI_LOGIN',
   'SHELLUI_LOGOUT',
+  'SHELLUI_DELETE_ACCOUNT_REQUEST',
+  'SHELLUI_UPDATE_PROFILE_REQUEST',
   'SHELLUI_OPEN_MODAL',
   'SHELLUI_CLOSE_MODAL',
   'SHELLUI_OPEN_DRAWER',
@@ -31,6 +33,7 @@ export const PRIVILEGED_COMPANION_MESSAGE_TYPES = new Set([
   'SHELLUI_STORAGE_REQUEST',
   'SHELLUI_SELECT_STORAGE',
   'SHELLUI_SETTINGS_REQUESTED',
+  'SHELLUI_AI_REQUEST',
 ]);
 
 const originFromUrl = (value: string | undefined | null): string | null => {
@@ -105,16 +108,49 @@ export class MessageSecurityPolicy {
     frameRegistry: FrameRegistry | null,
     messageType: string,
   ): boolean {
-    if (!this.isOriginAllowed(event.origin)) return false;
+    return this.explainUntrustedInboundMessage(event, frameRegistry, messageType) === null;
+  }
 
+  /**
+   * Human-readable rejection reason, or `null` when the message is trusted.
+   * Used for debuggable logs when dropping SHELLUI_* traffic.
+   */
+  explainUntrustedInboundMessage(
+    event: MessageEvent,
+    frameRegistry: FrameRegistry | null,
+    messageType: string,
+  ): string | null {
     const sourceKind = this.classifySource(event, frameRegistry);
-    if (sourceKind === 'untrusted') return false;
 
-    if (PRIVILEGED_COMPANION_MESSAGE_TYPES.has(messageType)) {
-      return sourceKind === 'registered-frame' || sourceKind === 'same-window';
+    // The embedding parent is trusted for shell → companion traffic. When
+    // ancestorOrigins/referrer are missing, getAllowedOrigins may not include
+    // the shell origin — still accept messages that literally come from parent.
+    if (
+      sourceKind === 'parent' &&
+      typeof window !== 'undefined' &&
+      window.parent !== window &&
+      !PRIVILEGED_COMPANION_MESSAGE_TYPES.has(messageType)
+    ) {
+      return null;
     }
 
-    return true;
+    if (!this.isOriginAllowed(event.origin)) {
+      const allowed = this.getAllowedOrigins();
+      return `origin not allowlisted (${event.origin}; allowed: ${allowed.join(', ') || 'none'})`;
+    }
+
+    if (sourceKind === 'untrusted') {
+      return 'source is not a registered frame, parent, or same-window';
+    }
+
+    if (PRIVILEGED_COMPANION_MESSAGE_TYPES.has(messageType)) {
+      if (sourceKind === 'registered-frame' || sourceKind === 'same-window') {
+        return null;
+      }
+      return `privileged message type requires registered frame or same-window (got ${sourceKind})`;
+    }
+
+    return null;
   }
 }
 
@@ -127,6 +163,7 @@ export function resolveSelfTargetOrigin(): string {
 export function resolveParentTargetOrigin(): string {
   if (typeof window === 'undefined') return '*';
   if (window.parent === window) return window.location.origin;
+  if (typeof document === 'undefined') return '*';
 
   if (typeof document !== 'undefined') {
     const locationWithAncestors = document.location as Location & {
@@ -145,7 +182,9 @@ export function resolveParentTargetOrigin(): string {
     }
   }
 
-  return window.location.origin;
+  // Embedded but parent origin unknown (no ancestorOrigins / referrer).
+  // Falling back to the companion origin would never deliver to the shell.
+  return '*';
 }
 
 /** Target origin for shell → iframe posts. */

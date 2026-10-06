@@ -1,10 +1,22 @@
-import type { Settings, SettingsNavigationItem } from '@shellui/sdk';
+import type { Settings, SettingsEmail, SettingsNavigationItem } from '@shellui/sdk';
 import type { ShellUIConfig } from '../../config/types';
 import { flattenNavigationItems } from './flattenNavigationItems';
 import { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 import { getResolvedAppearanceForSettings } from './getResolvedAppearanceForSettings';
 import { resolveLabel } from './resolveLabel';
 import { getPublishedLayoutChrome } from '../../layouts/floating/layoutChromeStore';
+
+/** Production email-service origin. No trailing slash. */
+const DEFAULT_EMAIL_SERVICE_URL = 'https://email.shellui.com';
+
+const propagateEmail = (email: ShellUIConfig['email']): SettingsEmail | null => {
+  if (!email) return null;
+  const url = email.url?.trim().replace(/\/+$/, '') || DEFAULT_EMAIL_SERVICE_URL;
+  return {
+    url,
+    ...(email.showInAdmin === false ? { showInAdmin: false } : {}),
+  };
+};
 
 /**
  * Build settings for propagation to iframes: inject navigation, full theme object,
@@ -110,6 +122,8 @@ export const buildSettingsForPropagation = (
   } else {
     result = { ...result, hosting: null };
   }
+
+  result = { ...result, email: propagateEmail(config?.email) };
 
   const authBackendBaseUrl =
     config?.backend?.type === 'shellui' && config.backend.url?.trim()

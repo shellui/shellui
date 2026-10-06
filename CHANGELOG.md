@@ -18,15 +18,31 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.5.4] - Unreleased
+## [0.6.0-beta.1] - 2026-10-06
 
-### 🐛 Bug Fixes
+### ✨ Feature
 
-- **Session restore on reload (dev):** React StrictMode was starting two concurrent refresh-token exchanges; identity refresh rotation treats the second as reuse and revokes the family (401), so local `shellui start` logged users out on every F5. Restore now shares one in-flight refresh and only clears storage from the active mount.
+- **Account management:** users can edit their name and delete their account from Settings → user account (shellui auth backend).
+- **Magic link login:** used by default when no login method is configured, with a "Check your email" state and a 60-second resend delay.
+- **Email service settings:** optional `email.url` and `email.showInAdmin` in `shellui.config`, exposed to apps as `settings.email`.
+
+### 🛠 Improvements
+
+- **Transfer toaster:** uploads and AI model downloads share one progress toaster, and downloads keep going after leaving Settings.
+- **Settings:** the AI panel collapses when apps aren't allowed to use AI, and Storage shows on-device model usage.
 
 ### 🚨 Changed
 
-- **Request-driven iframe handshake:** the shell sets the companion iframe URL and waits. The first shell→iframe message is the reply to `SHELLUI_SETTINGS_REQUESTED` (`SHELLUI_SETTINGS`, including layout chrome for main frames). Outbound chrome/settings pushes only go to **live** frames (after `SETTINGS_REQUESTED` / `INITIALIZED`). Removed the ContentView load nudge — shellui companions reveal on `SHELLUI_INITIALIZED`; non-shellui pages reveal after one loading-bar pass (no loop).
+- **Iframe handshake:** the shell now waits for each embedded app to request its settings before messaging it, and only sends updates to frames that are ready.
+
+### 📚 Documentation
+
+- **Agent guidelines:** new root `AGENTS.md` linking the Shellui writing and design guidelines.
+
+### 🐛 Bug Fixes
+
+- **Session restore on reload:** reloading no longer logs users out in local dev, and the shell shows a loading state instead of a signed-out flash while the session restores.
+- **Toast click-through:** bottom toast lists no longer block clicks on the page behind them.
 
 ## [0.5.3] - 2026-09-20
 

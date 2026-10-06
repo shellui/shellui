@@ -55,6 +55,37 @@ describe('createIsolatedViteConfig', () => {
     expect(allow).not.toContain(path.join(projectRoot, 'src'));
   });
 
+  test('excludes @mlc-ai/web-llm from optimizeDeps when ai.enabled is true', () => {
+    const enabled = createIsolatedViteConfig({
+      projectRoot,
+      coreSrcPath,
+      corePackagePath,
+      shelluiConfig: { ai: { enabled: true } },
+    });
+    expect(enabled.optimizeDeps.exclude).toContain('@mlc-ai/web-llm');
+    expect(enabled.optimizeDeps.include).not.toContain('@mlc-ai/web-llm');
+    expect(enabled.optimizeDeps.include).toContain('loglevel');
+    expect(enabled.optimizeDeps.needsInterop).not.toContain('@mlc-ai/web-llm');
+    expect(enabled.optimizeDeps.needsInterop).toContain('loglevel');
+    expect(enabled.worker.format).toBe('es');
+  });
+
+  test('does not touch WebLLM optimizeDeps by default (ai.enabled omitted)', () => {
+    expect(isolated.optimizeDeps.exclude).toBeUndefined();
+    expect(isolated.optimizeDeps.include).toBeUndefined();
+  });
+
+  test('does not touch WebLLM optimizeDeps when ai.enabled is false', () => {
+    const disabled = createIsolatedViteConfig({
+      projectRoot,
+      coreSrcPath,
+      corePackagePath,
+      shelluiConfig: { ai: { enabled: false } },
+    });
+    expect(disabled.optimizeDeps.exclude).toBeUndefined();
+    expect(disabled.optimizeDeps.include).toBeUndefined();
+  });
+
   test('allows custom themes dir when configured', () => {
     const themesDir = '/tmp/consumer-app/themes';
     const withThemes = createIsolatedViteConfig({

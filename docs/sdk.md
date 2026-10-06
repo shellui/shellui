@@ -269,6 +269,10 @@ const { data: entries } = await shellui.storage.from('company').list('docs/repor
 
 Folders are path prefixes. `list()` returns folders with `id: null` and a `folder_id` when a placeholder exists. Pass `{ folder: true }` on `move` / `rename` to move a whole folder.
 
+### Storage picker
+
+Open a modal so the user can pick folders, files, or both. Returns `{ items }` or `null` if cancelled.
+
 ```typescript
 const folders = await shellui.selectFolders({ multiple: true });
 const files = await shellui.selectFiles({ multiple: true, folders: true });
@@ -289,7 +293,7 @@ shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
 });
 ```
 
-Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`.
+Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`. `settings.email` copies config `email` (`url` defaults to `https://email.shellui.com` when `email` is set; `null` when `email` is omitted).
 
 ```typescript
 const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
@@ -316,6 +320,7 @@ Common types:
 - `SHELLUI_NAVIGATE`, `SHELLUI_LOGIN`, `SHELLUI_INITIALIZED`
 - `SHELLUI_STORAGE_REQUEST` / `SHELLUI_STORAGE_RESPONSE`
 - `SHELLUI_SELECT_STORAGE` / `SHELLUI_SELECT_STORAGE_RESULT`
+- `SHELLUI_AI_REQUEST` / `SHELLUI_AI_RESPONSE` / `SHELLUI_AI_STREAM`
 - `SHELLUI_LAYOUT_CHROME`, `SHELLUI_CONTENT_SCROLL`
 
 If you host nested iframes:

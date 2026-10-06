@@ -247,6 +247,19 @@ export interface StorageConfig {
 }
 
 /**
+ * On-device AI product feature (Ollama + browser / WebLLM).
+ * Distinct from the per-user Settings → AI “Allow apps to use AI” toggle.
+ */
+export interface AiConfig {
+  /**
+   * Deploy-time opt-in for the whole AI feature. Default: false.
+   * Only `true` enables it. Otherwise: no AiBridge, no Settings → AI, SDK AI calls answer
+   * `unavailable`, and no WebLLM chunk/worker is loaded. Opt in with `"ai": { "enabled": true }`.
+   */
+  enabled?: boolean;
+}
+
+/**
  * Optional hosting-service wiring for `shellui deploy` preview uploads.
  * Preview sites expire after 7 days unless redeployed to the same slug.
  */
@@ -268,6 +281,24 @@ export interface HostingConfig {
   /**
    * When false, hide Admin → Hosting even if `url` is set.
    * Default: true when `url` is set. Does not affect `shellui deploy`.
+   */
+  showInAdmin?: boolean;
+}
+
+/**
+ * Optional email-service wiring for Admin → Email and iframe apps.
+ * When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`.
+ */
+export interface EmailConfig {
+  /**
+   * Base URL of email-service.
+   * Default: `https://email.shellui.com` when `email` is set and this is omitted.
+   * Local: `http://localhost:8003`.
+   */
+  url?: string;
+  /**
+   * When false, hide Admin → Email.
+   * Default: true (shown) when `email` is set.
    */
   showInAdmin?: boolean;
 }
@@ -334,10 +365,22 @@ export interface ShellUIConfig {
    */
   storage?: StorageConfig;
   /**
+   * On-device AI (Ollama + browser WebLLM). Disabled by default; set `enabled: true` to
+   * show Settings → AI and accept SDK AI calls. `@mlc-ai/web-llm` is never loaded otherwise.
+   * See docs/features/ai.md. Distinct from Settings → AI “Allow apps to use AI”.
+   */
+  ai?: AiConfig;
+  /**
    * Hosting-service connection. Propagated to iframes via SDK settings.
    * Enables `shellui deploy` when `url` is set.
    */
   hosting?: HostingConfig;
+  /**
+   * Email-service connection. Propagated to iframes via SDK settings.
+   * When `email` is set and `url` is omitted, the shell sends `https://email.shellui.com`.
+   * `showInAdmin: false` hides Admin → Email.
+   */
+  email?: EmailConfig;
   /**
    * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
    * When set without `themes`, only this theme is available in the selector.

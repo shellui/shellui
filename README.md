@@ -8,13 +8,17 @@ This monorepo contains the Shellui packages:
 - **@shellui/core** - Core React application runtime
 - **@shellui/sdk** - JavaScript SDK for Shellui integration
 
+## Current release
+
+**0.6.0-beta.1** is published on the npm `beta` tag. Install it with `npm install -g @shellui/cli@beta` (and `@shellui/sdk@beta` in iframe apps). A plain install still gets the stable `latest` tag (0.5.x). What's new in 0.6.0: account management in Settings, magic link login by default, email service settings, and a loading state while the session restores. See the [changelog](CHANGELOG.md) and [docs.shellui.com](https://docs.shellui.com).
+
 ## Structure
 
 ```
 .
 ├── packages/
 │   ├── cli/          # CLI package
-│   ├── core/         # Core React app
+│   ├── core/         # Core React app (features/ai, settings, …)
 │   └── sdk/          # SDK package
 ├── docs/              # Documentation files
 ├── tools/             # Development tools (Docusaurus)
@@ -138,8 +142,9 @@ Keep versions in sync across packages with `pnpm run version:sync` before publis
 ### Documentation Scripts
 
 - `pnpm run docs:install` - Install documentation dependencies
-- `pnpm run docs:start` - Start documentation development server
-- `pnpm run docs:build` - Build documentation site
+- `pnpm run docs:fetch` - Fetch the identity, storage, hosting, and email service docs (sibling checkouts or GitHub)
+- `pnpm run docs:start` - Fetch service docs, then start documentation development server
+- `pnpm run docs:build` - Fetch service docs, then build documentation site
 - `pnpm run docs:serve` - Serve built documentation
 
 ### Utility Scripts

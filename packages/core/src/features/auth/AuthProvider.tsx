@@ -1,7 +1,9 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
+import { isShellSettingsFrameMessage } from '../security/trustedFrames';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
@@ -12,6 +14,8 @@ import {
   getAccessTokenFromSdkSettings,
   getAuthRequestErrorCode,
   getUserFromSdkSettings,
+  hashHasOAuthTokens,
+  hasStoredAuthSession,
   inferAccessPendingErrorCode,
   isBffAuthEnabledFromConfig,
   isSessionExpired,
@@ -24,6 +28,8 @@ import {
   toAuthSessionFromSettingsUser,
   type InFlightSlot,
 } from './utils';
+import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
+import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
 
 const logger = getLogger('shellcore');
 
@@ -38,6 +44,17 @@ const TOKEN_REFRESH_TICK_MS = 45_000;
  */
 const restoreRefreshSlot: InFlightSlot<AuthSession | null> = { current: null };
 
+/**
+ * Initial `isLoading`: true only when the first mount has a session to resolve, so signed-out
+ * visitors render the login entry right away instead of a skeleton flash. Later background
+ * refreshes never touch `isLoading`.
+ */
+const hasInitialSessionToResolve = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (window.parent !== window) return getUserFromSdkSettings() !== null;
+  return hashHasOAuthTokens(window.location.hash) || hasStoredAuthSession();
+};
+
 type LoginMessagePayload = {
   method?: 'oauth' | 'web3';
   provider?: string;
@@ -48,6 +65,7 @@ type LoginMessagePayload = {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
+  const { i18n } = useTranslation();
   const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
@@ -80,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(hasInitialSessionToResolve);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
@@ -459,15 +477,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const getAuthSettings = useCallback(() => backend.getAuthSettings(), [backend]);
 
   const sendMagicLink = useCallback(
-    async (email: string, redirectPath = urls.login) => {
+    async (email: string, redirectPath = urls.loginCallback) => {
       try {
-        await backend.sendMagicLink(email, redirectPath);
+        await backend.sendMagicLink(email, redirectPath, {
+          language: i18n.resolvedLanguage ?? i18n.language,
+        });
       } catch (err) {
+        if (err instanceof AuthRequestError) throw err;
         const message = err instanceof Error ? err.message : 'Could not send magic link.';
         throw new Error(message);
       }
     },
-    [backend],
+    [backend, i18n],
   );
 
   const syncUserPreferences = useCallback(
@@ -551,6 +572,198 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => cleanup();
   }, [logout]);
 
+  const deleteAccount = useCallback(async () => {
+    await backend.deleteAccount(session);
+    await logout();
+  }, [backend, logout, session]);
+
+  const updateProfile = useCallback(
+    async ({ name }: { name: string }) => {
+      const saved = await backend.updateProfile(session, { name });
+      const current = sessionRef.current;
+      if (current) {
+        const next = { ...current, userName: saved.name };
+        persistAuthSession(next, bffAuthEnabled ? { storeRefreshToken: false } : undefined);
+        setSession(next);
+      }
+      return saved;
+    },
+    [backend, bffAuthEnabled, session],
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_UPDATE_PROFILE_REQUEST', (message) => {
+      const payload = message.payload as { id?: unknown; name?: unknown } | undefined;
+      const id = payload?.id;
+      if (typeof id !== 'string' || !id) {
+        return;
+      }
+      const from = message.from?.filter(Boolean) as string[] | undefined;
+      const reply = (result: UpdateProfileResult) => {
+        const response = {
+          type: 'SHELLUI_UPDATE_PROFILE_RESULT' as const,
+          payload: { id, ...result },
+        };
+        if (from?.length) {
+          shellui.sendMessage({ ...response, to: from });
+          return;
+        }
+        postShellMessage(response);
+      };
+
+      if (
+        !backend.supportsProfileUpdate ||
+        !session ||
+        typeof payload?.name !== 'string' ||
+        !isShellSettingsFrameMessage(
+          from,
+          shellui.frameRegistry,
+          urls.settings,
+          window.location.origin,
+        )
+      ) {
+        logger.warn('Rejected profile update request', { from });
+        reply({ status: 'error' });
+        return;
+      }
+
+      void updateProfile({ name: payload.name }).then(
+        (saved) => reply({ status: 'saved', name: saved.name }),
+        (err: unknown) => {
+          logger.error('Profile update failed', { err });
+          reply({ status: 'error', error: err instanceof Error ? err.message : undefined });
+        },
+      );
+    });
+
+    return () => cleanup();
+  }, [backend, session, updateProfile]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) {
+      return;
+    }
+
+    const cleanup = shellui.addMessageListener('SHELLUI_DELETE_ACCOUNT_REQUEST', (message) => {
+      const id = (message.payload as { id?: unknown } | undefined)?.id;
+      if (typeof id !== 'string' || !id) {
+        return;
+      }
+      const from = message.from?.filter(Boolean) as string[] | undefined;
+      const reply = (status: DeleteAccountResultStatus) => {
+        const result = {
+          type: 'SHELLUI_DELETE_ACCOUNT_RESULT' as const,
+          payload: { id, status },
+        };
+        if (from?.length) {
+          shellui.sendMessage({ ...result, to: from });
+          return;
+        }
+        postShellMessage(result);
+      };
+
+      if (
+        !backend.supportsAccountDeletion ||
+        !session ||
+        !isShellSettingsFrameMessage(
+          from,
+          shellui.frameRegistry,
+          urls.settings,
+          window.location.origin,
+        )
+      ) {
+        logger.warn('Rejected account deletion request', { from });
+        reply('error');
+        return;
+      }
+
+      const t = i18n.getFixedT(null, 'settings');
+      const appName = config.title?.trim() || window.location.host;
+      const isAdmin = session.userIsCompanyOwner === true || session.userIsStaff === true;
+      const description = [
+        t('userAccount.deleteAccount.description', { appName }),
+        isAdmin ? t('userAccount.deleteAccount.adminWarning', { appName }) : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
+      shellui.dialog({
+        title: t('userAccount.deleteAccount.title'),
+        description,
+        mode: 'delete',
+        size: 'sm',
+        okLabel: t('userAccount.deleteAccount.confirm'),
+        cancelLabel: t('userAccount.deleteAccount.cancel'),
+        onOk: () => {
+          void (async () => {
+            try {
+              await deleteAccount();
+              reply('deleted');
+              postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
+              postShellMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} });
+              shellui.toast({
+                type: 'success',
+                title: t('userAccount.deleteAccount.successTitle'),
+                description: t('userAccount.deleteAccount.successDescription', { appName }),
+              });
+            } catch (err) {
+              reply('error');
+              const errorCode = getAuthRequestErrorCode(err);
+              if (errorCode === 'last_company_owner') {
+                const companies =
+                  err instanceof AuthRequestError && Array.isArray(err.details.companies)
+                    ? (err.details.companies as Array<{ name?: unknown }>)
+                        .map((c) => (typeof c?.name === 'string' ? c.name : ''))
+                        .filter(Boolean)
+                        .join(', ')
+                    : '';
+                shellui.dialog({
+                  title: t('userAccount.deleteAccount.lastOwnerTitle'),
+                  description: t('userAccount.deleteAccount.lastOwnerDescription', {
+                    companies: companies || appName,
+                  }),
+                  mode: 'ok',
+                  size: 'sm',
+                });
+                return;
+              }
+              if (errorCode === 'recent_login_required') {
+                shellui.dialog({
+                  title: t('userAccount.deleteAccount.reauthTitle'),
+                  description: t('userAccount.deleteAccount.reauthDescription'),
+                  mode: 'okCancel',
+                  size: 'sm',
+                  okLabel: t('userAccount.deleteAccount.reauthAction'),
+                  cancelLabel: t('userAccount.deleteAccount.cancel'),
+                  onOk: () => {
+                    void logout().then(() => {
+                      window.location.assign(
+                        buildAuthUrlWithNext(urls.login, `${urls.settings}/user`),
+                      );
+                    });
+                  },
+                });
+                return;
+              }
+              logger.error('Account deletion failed', { err });
+              shellui.toast({
+                type: 'error',
+                title: t('userAccount.deleteAccount.errorTitle'),
+                description: err instanceof Error ? err.message : undefined,
+              });
+            }
+          })();
+        },
+        onCancel: () => reply('cancelled'),
+      });
+    });
+
+    return () => cleanup();
+  }, [backend, config.title, deleteAccount, i18n, logout, session]);
+
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {
       return;
@@ -622,8 +835,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       syncUserPreferences,
       loadUserPreferences,
       logout,
+      supportsAccountDeletion: backend.supportsAccountDeletion,
+      deleteAccount,
+      supportsProfileUpdate: backend.supportsProfileUpdate,
+      updateProfile,
     }),
     [
+      backend.supportsAccountDeletion,
+      deleteAccount,
+      backend.supportsProfileUpdate,
+      updateProfile,
       session,
       user,
       isLoading,

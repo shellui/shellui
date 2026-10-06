@@ -18,9 +18,9 @@ import {
   getPreferredBackendProvider,
   getProviderVisual,
   isAccessPendingErrorCode,
-  isLoginMethod,
   normalizeNextPath,
   redirectToCliCallback,
+  resolveLoginSettings,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
@@ -35,6 +35,8 @@ const LOGIN_CHROME_PAD_Y = '2rem';
 const LOGIN_BRAND_BELOW_TITLEBAR_GAP = '0.75rem';
 
 const LAST_USED_LOGIN_STORAGE_KEY = 'shellui.auth.last_used_login';
+/** Seconds before the user can go back to the form and request another magic link. */
+const MAGIC_LINK_RESEND_COOLDOWN_SECONDS = 60;
 
 const SHELLUI_OAUTH_ERROR_PARAM = 'shellui_oauth_error';
 const SHELLUI_OAUTH_ERROR_CODE_PARAM = 'shellui_oauth_error_code';
@@ -105,30 +107,16 @@ export const LoginView = () => {
     sendMagicLink,
     session,
   } = useAuth();
-  const configuredSettings = useMemo<AuthSettings>(() => {
-    const configuredMethods = Array.isArray(config.backend?.login?.methods)
-      ? config.backend.login.methods.filter(isLoginMethod)
-      : [];
-    const configuredProvidersRaw = Array.isArray(config.backend?.login?.oauthProviders)
-      ? config.backend.login.oauthProviders
-          .filter(
-            (provider): provider is string =>
-              typeof provider === 'string' && provider.trim() !== '',
-          )
-          .map((provider) => provider.toLowerCase())
-      : [];
-    const configuredProviders = Array.from(new Set(configuredProvidersRaw));
-    return {
-      methods: configuredMethods,
-      oauthProviders: configuredProviders,
-      oauthClients: [],
-    };
-  }, [config.backend?.login?.methods, config.backend?.login?.oauthProviders]);
+  const configuredSettings = useMemo<AuthSettings>(
+    () => resolveLoginSettings(config.backend),
+    [config.backend],
+  );
   const [oauthLoadingProvider, setOauthLoadingProvider] = useState<string | null>(null);
   const [web3Loading, setWeb3Loading] = useState(false);
   const [magicLinkEmail, setMagicLinkEmail] = useState('');
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
-  const [magicLinkMessage, setMagicLinkMessage] = useState<string | null>(null);
+  const [magicLinkSentTo, setMagicLinkSentTo] = useState<string | null>(null);
+  const [magicLinkCooldown, setMagicLinkCooldown] = useState(0);
   const [magicLinkError, setMagicLinkError] = useState<string | null>(null);
   const [methodError, setMethodError] = useState<string | null>(null);
   const [oauthBounceError, setOauthBounceError] = useState<string | null>(null);
@@ -226,18 +214,12 @@ export const LoginView = () => {
     if (!featuredOAuthProvider) return allOAuthProviders;
     return allOAuthProviders.filter((provider) => provider !== featuredOAuthProvider);
   }, [allOAuthProviders, featuredOAuthProvider, supportsOAuth]);
-  const hasAlternativeMethods = useMemo(() => {
-    if (featuredMethod === 'oauth') {
-      return otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3;
-    }
-    if (featuredMethod === 'web3') {
-      return supportsOAuth || supportsMagicLink;
-    }
-    if (featuredMethod === 'magic_link') {
-      return (supportsOAuth && otherOAuthProviders.length > 0) || supportsWeb3;
-    }
-    return false;
-  }, [featuredMethod, otherOAuthProviders.length, supportsMagicLink, supportsOAuth, supportsWeb3]);
+  const showWeb3Section = supportsWeb3 && featuredMethod !== 'web3';
+  const showOAuthSection = supportsOAuth && otherOAuthProviders.length > 0;
+  const showMagicLinkSection = supportsMagicLink && featuredMethod !== 'magic_link';
+  const hasAlternativeMethods =
+    featuredMethod !== null && (showWeb3Section || showOAuthSection || showMagicLinkSection);
+  const showMagicLinkDivider = showMagicLinkSection && (showWeb3Section || showOAuthSection);
   const showAlternatives = featuredMethod === null || showAlternativeMethods;
   const alternativesAreCollapsible = featuredMethod !== null && hasAlternativeMethods;
   useEffect(() => {
@@ -319,11 +301,16 @@ export const LoginView = () => {
     [getAuthSettings, supportsWeb3, t],
   );
 
+  useEffect(() => {
+    if (magicLinkCooldown <= 0) return;
+    const timer = window.setTimeout(() => setMagicLinkCooldown((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [magicLinkCooldown]);
+
   const handleOAuthLogin = async (provider: string) => {
     setMethodError(null);
     setOauthBounceError(null);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setOauthLoadingProvider(provider);
     const support = await verifyMethodSupport('oauth', provider);
     if (!support.isSupported) {
@@ -354,7 +341,6 @@ export const LoginView = () => {
   const handleWeb3Login = async () => {
     setMethodError(null);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setWeb3Loading(true);
     const support = await verifyMethodSupport('web3');
     if (!support.isSupported) {
@@ -389,13 +375,11 @@ export const LoginView = () => {
     const email = magicLinkEmail.trim();
     if (!email) {
       setMagicLinkError(t('loginPage.enterEmail'));
-      setMagicLinkMessage(null);
       setMethodError(null);
       return;
     }
     setMagicLinkLoading(true);
     setMagicLinkError(null);
-    setMagicLinkMessage(null);
     setMethodError(null);
 
     try {
@@ -408,14 +392,89 @@ export const LoginView = () => {
       if (typeof window !== 'undefined') {
         localStorage.setItem(LAST_USED_LOGIN_STORAGE_KEY, JSON.stringify(rememberedLogin));
       }
-      await sendMagicLink(email, loginPathWithNext);
-      setMagicLinkMessage(t('loginPage.magicLinkSent'));
+      await sendMagicLink(email, oauthCallbackPathWithNext);
+      setMagicLinkSentTo(email);
+      setMagicLinkCooldown(MAGIC_LINK_RESEND_COOLDOWN_SECONDS);
     } catch (err) {
       setMagicLinkError(err instanceof Error ? err.message : t('loginPage.couldNotSendMagicLink'));
     } finally {
       setMagicLinkLoading(false);
     }
   };
+
+  const magicLinkContent = magicLinkSentTo ? (
+    <div
+      role="status"
+      className="space-y-3 rounded-xl border border-border bg-background p-4 text-center"
+    >
+      <div className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted text-foreground">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <rect
+            width="20"
+            height="16"
+            x="2"
+            y="4"
+            rx="2"
+          />
+          <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+        </svg>
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-foreground">{t('loginPage.magicLinkSentTitle')}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('loginPage.magicLinkSentDescription')}{' '}
+          <span className="break-all font-medium text-foreground">{magicLinkSentTo}</span>
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        disabled={magicLinkCooldown > 0}
+        onClick={() => setMagicLinkSentTo(null)}
+      >
+        {magicLinkCooldown > 0
+          ? t('loginPage.magicLinkChangeEmailIn', { seconds: magicLinkCooldown })
+          : t('loginPage.magicLinkChangeEmail')}
+      </Button>
+    </div>
+  ) : (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => void handleMagicLinkLogin(event)}
+    >
+      <input
+        id="magic-link-email"
+        type="email"
+        value={magicLinkEmail}
+        onChange={(event) => setMagicLinkEmail(event.target.value)}
+        placeholder={t('loginPage.emailPlaceholder')}
+        autoComplete="email"
+        required
+        className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      />
+      <Button
+        type="submit"
+        variant="secondary"
+        className="w-full"
+        disabled={isActionPending || magicLinkCooldown > 0}
+      >
+        {magicLinkLoading ? t('loginPage.sendingMagicLink') : t('loginPage.sendMagicLink')}
+      </Button>
+      {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
+    </form>
+  );
 
   const panelUrl = useMemo(
     () => validateLoginPanelUrl(config.backend?.login?.panelUrl, config),
@@ -584,35 +643,7 @@ export const LoginView = () => {
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {t('loginPage.lastUsed')}
                   </p>
-                  <form
-                    className="space-y-2"
-                    onSubmit={(event) => void handleMagicLinkLogin(event)}
-                  >
-                    <input
-                      id="magic-link-email"
-                      type="email"
-                      value={magicLinkEmail}
-                      onChange={(event) => setMagicLinkEmail(event.target.value)}
-                      placeholder={t('loginPage.emailPlaceholder')}
-                      autoComplete="email"
-                      required
-                      className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    />
-                    <Button
-                      type="submit"
-                      variant="secondary"
-                      className="w-full"
-                      disabled={isActionPending}
-                    >
-                      {magicLinkLoading
-                        ? t('loginPage.sendingMagicLink')
-                        : t('loginPage.sendMagicLink')}
-                    </Button>
-                    {magicLinkMessage && (
-                      <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                    )}
-                    {magicLinkError && <p className="text-sm text-destructive">{magicLinkError}</p>}
-                  </form>
+                  {magicLinkContent}
                 </section>
               )}
 
@@ -681,7 +712,8 @@ export const LoginView = () => {
                     : 'grid-rows-[1fr] opacity-100',
                 )}
               >
-                <div className="min-h-0 overflow-hidden">
+                {/* Inset matches focus ring + offset (4px) so overflow-hidden does not clip it. */}
+                <div className="-m-1 min-h-0 overflow-hidden p-1">
                   <div
                     className={cn(
                       'space-y-4 transition-transform duration-500 ease-out',
@@ -690,17 +722,7 @@ export const LoginView = () => {
                         : 'translate-y-0',
                     )}
                   >
-                    {featuredMethod === 'oauth' &&
-                      (otherOAuthProviders.length > 0 || supportsMagicLink || supportsWeb3) && (
-                        <div className="relative py-1">
-                          <div className="border-t border-border" />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            {t('loginPage.or')}
-                          </span>
-                        </div>
-                      )}
-
-                    {featuredMethod === 'magic_link' && (supportsOAuth || supportsWeb3) && (
+                    {hasAlternativeMethods && (
                       <div className="relative py-1">
                         <div className="border-t border-border" />
                         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
@@ -709,16 +731,7 @@ export const LoginView = () => {
                       </div>
                     )}
 
-                    {featuredMethod === 'web3' && (supportsOAuth || supportsMagicLink) && (
-                      <div className="relative py-1">
-                        <div className="border-t border-border" />
-                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                          {t('loginPage.or')}
-                        </span>
-                      </div>
-                    )}
-
-                    {supportsWeb3 && featuredMethod !== 'web3' && (
+                    {showWeb3Section && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t('loginPage.walletLogin')}
@@ -750,7 +763,7 @@ export const LoginView = () => {
                       </section>
                     )}
 
-                    {supportsOAuth && otherOAuthProviders.length > 0 && (
+                    {showOAuthSection && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {featuredMethod === 'oauth'
@@ -793,53 +806,21 @@ export const LoginView = () => {
                       </section>
                     )}
 
-                    {(supportsOAuth || supportsWeb3) &&
-                      supportsMagicLink &&
-                      featuredMethod !== 'magic_link' && (
-                        <div className="relative py-1">
-                          <div className="border-t border-border" />
-                          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
-                            {t('loginPage.or')}
-                          </span>
-                        </div>
-                      )}
+                    {showMagicLinkDivider && (
+                      <div className="relative py-1">
+                        <div className="border-t border-border" />
+                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-2 text-xs text-muted-foreground">
+                          {t('loginPage.or')}
+                        </span>
+                      </div>
+                    )}
 
-                    {supportsMagicLink && featuredMethod !== 'magic_link' && (
+                    {showMagicLinkSection && (
                       <section className="space-y-2">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           {t('loginPage.emailMagicLink')}
                         </p>
-                        <form
-                          className="space-y-2"
-                          onSubmit={(event) => void handleMagicLinkLogin(event)}
-                        >
-                          <input
-                            id="magic-link-email"
-                            type="email"
-                            value={magicLinkEmail}
-                            onChange={(event) => setMagicLinkEmail(event.target.value)}
-                            placeholder={t('loginPage.emailPlaceholder')}
-                            autoComplete="email"
-                            required
-                            className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          />
-                          <Button
-                            type="submit"
-                            variant="secondary"
-                            className="w-full"
-                            disabled={isActionPending}
-                          >
-                            {magicLinkLoading
-                              ? t('loginPage.sendingMagicLink')
-                              : t('loginPage.sendMagicLink')}
-                          </Button>
-                          {magicLinkMessage && (
-                            <p className="text-sm text-muted-foreground">{magicLinkMessage}</p>
-                          )}
-                          {magicLinkError && (
-                            <p className="text-sm text-destructive">{magicLinkError}</p>
-                          )}
-                        </form>
+                        {magicLinkContent}
                       </section>
                     )}
                   </div>

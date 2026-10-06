@@ -751,7 +751,7 @@ export function AppBarLayout({
   variant = 'app-bar',
 }: AppBarLayoutProps) {
   const { i18n } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = useSettings();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -772,8 +772,13 @@ export function AppBarLayout({
   });
   const authAwareNavigation = useMemo(
     () =>
-      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
-    [navigation, isAuthenticated, settings.developerFeatures.enabled],
+      filterNavigationForAuthState(
+        navigation,
+        isAuthenticated,
+        settings.developerFeatures.enabled,
+        isAuthLoading,
+      ),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled, isAuthLoading],
   );
 
   const { endNavItems, navigationItems, startSections, activePathPrefix } = useMemo(() => {

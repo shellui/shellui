@@ -13,6 +13,10 @@ export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /**
+   * True while the first session restore is in flight (e.g. refresh-token exchange after a page
+   * reload). Background token refreshes never set it, so UI can show loading placeholders safely.
+   */
   isLoading: boolean;
   error: string | null;
   errorCode: string | null;
@@ -35,6 +39,14 @@ export interface AuthContextValue {
   syncUserPreferences: (preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: () => Promise<UserPreferences | null>;
   logout: () => Promise<void>;
+  /** Whether the configured auth backend supports self-service account deletion. */
+  supportsAccountDeletion: boolean;
+  /** Delete the signed-in account for the current company, then sign out. */
+  deleteAccount: () => Promise<void>;
+  /** Whether the configured auth backend supports editing the display name. */
+  supportsProfileUpdate: boolean;
+  /** Update the signed-in user's display name and the local session. */
+  updateProfile: (profile: { name: string }) => Promise<{ name: string }>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

@@ -124,6 +124,18 @@ export const readStoredAuthSession = (): AuthSession | null => {
   return mergeProfileAndTokens(profile, '', refreshToken);
 };
 
+/** Whether a session snapshot exists to restore, without migrating or mutating storage. */
+export const hasStoredAuthSession = (): boolean => {
+  try {
+    return (
+      localStorage.getItem(AUTH_PROFILE_STORAGE_KEY) !== null ||
+      localStorage.getItem(LEGACY_AUTH_SESSION_STORAGE_KEY) !== null
+    );
+  } catch {
+    return false;
+  }
+};
+
 /** Remove all persisted auth keys (profile, refresh, legacy). */
 export const clearStoredAuthSession = () => {
   writeProfile(null);

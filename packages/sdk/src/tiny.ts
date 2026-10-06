@@ -104,6 +104,9 @@ const readyPromise = new Promise<void>((r) => {
   resolveReady = r;
 });
 
+/** Cleared when SETTINGS arrives or handshake times out (embedded only). */
+let clearSettingsRetry: (() => void) | null = null;
+
 const resolveParentTargetOrigin = (): string => {
   if (parent === window) return location.origin;
   const ancestors = (document.location as Location & { ancestorOrigins?: DOMStringList })
@@ -117,7 +120,8 @@ const resolveParentTargetOrigin = (): string => {
       /* ignore */
     }
   }
-  return location.origin;
+  // Embedded without ancestorOrigins/referrer — companion origin would never match the shell.
+  return '*';
 };
 
 const post = (type: string, payload: object = {}) => {
@@ -315,14 +319,18 @@ addEventListener('message', (event: MessageEvent) => {
   const type = data.type as string;
   if (!type.startsWith('SHELLUI_')) return;
 
-  const allowedOrigins = new Set<string>([location.origin, resolveParentTargetOrigin()]);
-  if (!allowedOrigins.has(event.origin)) return;
+  const parentOrigin = resolveParentTargetOrigin();
+  // When parent origin is unknown ('*'), rely on event.source === parent only.
+  if (parentOrigin !== '*' && event.origin !== location.origin && event.origin !== parentOrigin) {
+    return;
+  }
   if (embedded && event.source !== parent) return;
 
   if (type === 'SHELLUI_SETTINGS' || type === 'SHELLUI_SETTINGS_UPDATED') {
     applySettings(data.payload?.settings);
     if (!ready && type === 'SHELLUI_SETTINGS') {
       ready = true;
+      clearSettingsRetry?.();
       post('SHELLUI_INITIALIZED');
       resolveReady();
       emit('ready', api);
@@ -341,7 +349,39 @@ addEventListener('message', (event: MessageEvent) => {
 });
 
 if (embedded) {
-  post('SHELLUI_SETTINGS_REQUESTED');
+  const SETTINGS_HANDSHAKE_TIMEOUT_MS = 1500;
+  const SETTINGS_REQUEST_RETRY_MS = 500;
+  const SETTINGS_REQUEST_MAX_ATTEMPTS = 2;
+  let settingsAttempts = 0;
+  let settingsRetryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const requestSettings = () => {
+    if (ready) return;
+    settingsAttempts += 1;
+    post('SHELLUI_SETTINGS_REQUESTED');
+    if (settingsAttempts < SETTINGS_REQUEST_MAX_ATTEMPTS) {
+      settingsRetryTimer = setTimeout(requestSettings, SETTINGS_REQUEST_RETRY_MS);
+    }
+  };
+
+  clearSettingsRetry = () => {
+    if (settingsRetryTimer !== null) {
+      clearTimeout(settingsRetryTimer);
+      settingsRetryTimer = null;
+    }
+  };
+
+  requestSettings();
+
+  setTimeout(() => {
+    if (ready) return;
+    clearSettingsRetry?.();
+    ready = true;
+    post('SHELLUI_INITIALIZED');
+    resolveReady();
+    emit('ready', api);
+  }, SETTINGS_HANDSHAKE_TIMEOUT_MS);
+
   // Share the current path as soon as the script loads (MPA cold starts / deep links).
   notifyUrl(true);
 

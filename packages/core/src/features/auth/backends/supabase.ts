@@ -178,6 +178,14 @@ export const createSupabaseAuthBackend = ({
         },
       });
     },
+    supportsAccountDeletion: false,
+    deleteAccount: async () => {
+      throw new Error('Account deletion is not supported by the Supabase backend.');
+    },
+    supportsProfileUpdate: false,
+    updateProfile: async () => {
+      throw new Error('Profile updates are not supported by the Supabase backend.');
+    },
     getAuthSettings: async () => {
       if (!backendUrl) {
         return { methods: [], oauthProviders: [], oauthClients: [] };
