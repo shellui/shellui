@@ -94,7 +94,7 @@ const SidebarLayoutContent = ({
 }: SidebarLayoutProps) => {
   const { i18n } = useTranslation();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const isMobile = useIsMobile();
@@ -140,8 +140,13 @@ const SidebarLayoutContent = ({
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
     () =>
-      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
-    [navigation, isAuthenticated, settings.developerFeatures.enabled],
+      filterNavigationForAuthState(
+        navigation,
+        isAuthenticated,
+        settings.developerFeatures.enabled,
+        isAuthLoading,
+      ),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled, isAuthLoading],
   );
   const { startNav, endItems } = useMemo(() => {
     const viewportNav = filterNavigationByViewport(
@@ -203,7 +208,7 @@ const SidebarLayoutContent = ({
           <SidebarInner
             startNav={startNav}
             endItems={endItems}
-            showAuthButton={!hasCustomLoginNav || isAuthenticated}
+            showAuthButton={!hasCustomLoginNav || isAuthenticated || isAuthLoading}
             title={title}
             appIcon={appIcon}
           />

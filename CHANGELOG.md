@@ -52,6 +52,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🐛 Bug Fixes
 
+- **Signed-out flash on reload:** while the shell restores a stored session after a page load, the account button shows a loading skeleton in every layout instead of "Login". Custom login nav entries stay hidden until the session is known, and Admin shows a "Restoring your session…" spinner instead of "Access forbidden". A route that only exists for signed-in users shows the loading bar instead of a 404. Signed-out visitors see the login entry right away, and background token refreshes stay silent.
 - **Toast click-through:** a bottom toast list no longer stretches over the page. Sonner was given an inline `top` (and `pointer-events: auto`) that it copies onto every position, so bottom lists with their own `bottom` became a full-height hit box. Clicks outside the cards now reach the app in every position, on desktop and on mobile. Cards, actions, and close buttons stay clickable while a modal is open.
 
 ## [0.5.4] - Unreleased

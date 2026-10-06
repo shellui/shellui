@@ -26,6 +26,7 @@ export {
 } from './cliCallback';
 export {
   clearStoredAuthSession,
+  hasStoredAuthSession,
   persistAuthProfile,
   persistAuthSession,
   readStoredAuthSession,

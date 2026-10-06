@@ -15,7 +15,8 @@ export const NavigationItemRoute = () => {
   const { url, currentItem } = useNavigationItems();
 
   if (!currentItem) {
-    return <NotFoundView />;
+    // `hideWhenLoggedOut` items only match once the restored session is known.
+    return isLoading ? <RouteFallback /> : <NotFoundView />;
   }
 
   const next = `${location.pathname}${location.search}`;

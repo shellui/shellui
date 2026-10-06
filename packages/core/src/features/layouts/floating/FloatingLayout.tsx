@@ -41,7 +41,7 @@ export interface FloatingLayoutProps {
 /** Adaptive layout: floating glass chrome over full-bleed content (tabs/dock + sidebar). */
 export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayoutProps) {
   const { i18n } = useTranslation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = useSettings();
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
@@ -52,12 +52,17 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
 
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   // Same rule as sidebar / app-bar: show account menu when logged in (login nav item is filtered out).
-  const showAuthButton = !hasCustomLoginNav || isAuthenticated;
+  const showAuthButton = !hasCustomLoginNav || isAuthenticated || isAuthLoading;
 
   const authAwareNavigation = useMemo(
     () =>
-      filterNavigationForAuthState(navigation, isAuthenticated, settings.developerFeatures.enabled),
-    [navigation, isAuthenticated, settings.developerFeatures.enabled],
+      filterNavigationForAuthState(
+        navigation,
+        isAuthenticated,
+        settings.developerFeatures.enabled,
+        isAuthLoading,
+      ),
+    [navigation, isAuthenticated, settings.developerFeatures.enabled, isAuthLoading],
   );
 
   const { startNav, endItems } = useMemo(() => {

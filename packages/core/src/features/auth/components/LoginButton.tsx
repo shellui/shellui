@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
+import { Skeleton } from '../../../components/ui/skeleton';
 
 type LoginButtonVariant = 'sidebar' | 'appbar' | 'windows';
 
@@ -68,7 +69,7 @@ const SettingsMenuIcon = ({ className }: { className?: string }) => (
 const variantConfig: Record<
   LoginButtonVariant,
   {
-    button: { authenticated: string; loggedOut: string };
+    button: { authenticated: string; loggedOut: string; loading: string };
     avatar: string;
     menu: { width: string; side: 'top' | 'right' | 'bottom'; align: 'start' | 'end' };
     showDisplayName: boolean;
@@ -81,6 +82,8 @@ const variantConfig: Record<
         'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
       loggedOut:
         'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
+      loading:
+        'w-full h-8 px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
     },
     avatar: 'size-4',
     menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'right', align: 'start' },
@@ -93,6 +96,7 @@ const variantConfig: Record<
         'size-7 rounded-md p-0 justify-center text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
       loggedOut:
         'h-7 max-w-[220px] rounded-md px-2.5 text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      loading: 'size-7 justify-center',
     },
     avatar: 'size-4',
     menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'bottom', align: 'end' },
@@ -105,6 +109,7 @@ const variantConfig: Record<
         'h-8 w-8 rounded-md p-0 justify-center text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
       loggedOut:
         'h-8 max-w-[180px] rounded-md px-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
+      loading: 'h-8 w-8 justify-center',
     },
     avatar: 'h-4 w-4',
     menu: { width: 'w-[min(15rem,calc(100vw-1.5rem))]', side: 'top', align: 'end' },
@@ -126,7 +131,7 @@ export const LoginButton = ({
   const isMobile = useIsMobile();
   const { t } = useTranslation('common');
   const { config } = useConfig();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -230,6 +235,25 @@ export const LoginButton = ({
 
   if (!config.backend) {
     return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div
+        role="status"
+        aria-label={t('authMenu.loadingAccount')}
+        data-shellui-auth-loading=""
+        className={cn(
+          'inline-flex min-w-0 shrink-0 items-center gap-2',
+          currentVariantConfig.button.loading,
+        )}
+      >
+        <Skeleton className={cn('shrink-0 rounded-full', currentVariantConfig.avatar)} />
+        {showDisplayName && (
+          <Skeleton className="h-3 w-24 max-w-full group-data-[collapsible=icon]:hidden" />
+        )}
+      </div>
+    );
   }
 
   if (!isAuthenticated && hideWhenLoggedOut) {

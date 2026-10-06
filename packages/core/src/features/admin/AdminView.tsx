@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { ContentView } from '../../components/ContentView';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { LoginButton } from '../auth/components/LoginButton';
+import { SessionLoadingView } from '../auth/components/SessionLoadingView';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
@@ -19,7 +20,10 @@ import { buildAdminIframeSrc } from './utils';
 
 const ADMIN_HEADER_HEIGHT_PX = 48;
 
-const AdminAccessGuard = ({ allow }: { allow: boolean }) => {
+const AdminAccessGuard = ({ allow, isLoading }: { allow: boolean; isLoading: boolean }) => {
+  if (isLoading) {
+    return <SessionLoadingView />;
+  }
   if (!allow) {
     return <AdminForbiddenAccess />;
   }
@@ -30,7 +34,7 @@ export const AdminView = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { config } = useConfig();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const isMobile = useIsMobile();
   const canOpenAdminPanel = Boolean(user?.isStaff || user?.isCompanyOwner);
   const adminPath = getAdminPath(config);
@@ -119,7 +123,14 @@ export const AdminView = () => {
         </header>
         <main className="flex min-h-0 flex-1">
           <Routes>
-            <Route element={<AdminAccessGuard allow={canOpenAdminPanel} />}>
+            <Route
+              element={
+                <AdminAccessGuard
+                  allow={canOpenAdminPanel}
+                  isLoading={isAuthLoading}
+                />
+              }
+            >
               <Route
                 path="*"
                 element={

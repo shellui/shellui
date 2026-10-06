@@ -13,6 +13,10 @@ export interface AuthContextValue {
   session: AuthSession | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /**
+   * True while the first session restore is in flight (e.g. refresh-token exchange after a page
+   * reload). Background token refreshes never set it, so UI can show loading placeholders safely.
+   */
   isLoading: boolean;
   error: string | null;
   errorCode: string | null;

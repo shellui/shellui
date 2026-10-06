@@ -9,6 +9,7 @@
   },
   "navigationError": "Erreur de navigation",
   "navigationNotAllowed": "Cette URL n'est pas configurée dans la navigation de l'application.",
+  "sessionLoading": "Restauration de votre session…",
   "adminShell": {
     "djangoAdmin": "Admin Django"
   },
@@ -21,7 +22,8 @@
     "noEmail": "Aucun e-mail",
     "userFallback": "Utilisateur",
     "goToLoginAriaLabel": "Aller à la connexion",
-    "openAccountMenuAriaLabel": "Ouvrir le menu du compte pour {{name}}"
+    "openAccountMenuAriaLabel": "Ouvrir le menu du compte pour {{name}}",
+    "loadingAccount": "Chargement du compte…"
   },
   "loginPage": {
     "welcomeBack": "Bon retour",

@@ -226,13 +226,17 @@ export function hasLoginNavigationItem(navigation: (NavigationItem | NavigationG
 /**
  * Hide login navigation entries only when authenticated, so custom login entries
  * can still be used while signed out (e.g. open login in modal/drawer).
+ * While the initial session restore runs (`isAuthLoading`), login entries are hidden too:
+ * the account skeleton takes their place until the auth state is known.
  */
 export function filterNavigationForAuthState(
   navigation: (NavigationItem | NavigationGroup)[],
   isAuthenticated: boolean,
   isDevModeEnabled = false,
+  isAuthLoading = false,
 ): (NavigationItem | NavigationGroup)[] {
   if (navigation.length === 0) return navigation;
+  const hideLoginEntries = isAuthenticated || isAuthLoading;
   return navigation
     .map((item) => {
       if ('title' in item && 'items' in item) {
@@ -240,7 +244,7 @@ export function filterNavigationForAuthState(
         const visibleItems = group.items.filter((navItem) => {
           if (navItem.hideWhenLoggedOut && !isAuthenticated) return false;
           if (navItem.requiresDevMode && !isDevModeEnabled) return false;
-          if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return false;
+          if (hideLoginEntries && isLoginNavigationUrl(navItem.url)) return false;
           return true;
         });
         if (visibleItems.length === 0) return null;
@@ -249,7 +253,7 @@ export function filterNavigationForAuthState(
       const navItem = item as NavigationItem;
       if (navItem.hideWhenLoggedOut && !isAuthenticated) return null;
       if (navItem.requiresDevMode && !isDevModeEnabled) return null;
-      if (isAuthenticated && isLoginNavigationUrl(navItem.url)) return null;
+      if (hideLoginEntries && isLoginNavigationUrl(navItem.url)) return null;
       return item;
     })
     .filter((item): item is NavigationItem | NavigationGroup => item !== null);

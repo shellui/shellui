@@ -14,6 +14,8 @@ import {
   getAccessTokenFromSdkSettings,
   getAuthRequestErrorCode,
   getUserFromSdkSettings,
+  hashHasOAuthTokens,
+  hasStoredAuthSession,
   inferAccessPendingErrorCode,
   isBffAuthEnabledFromConfig,
   isSessionExpired,
@@ -41,6 +43,17 @@ const TOKEN_REFRESH_TICK_MS = 45_000;
  * with the same refresh token — identity rotation revokes the family on reuse (401 → logout).
  */
 const restoreRefreshSlot: InFlightSlot<AuthSession | null> = { current: null };
+
+/**
+ * Initial `isLoading`: true only when the first mount has a session to resolve, so signed-out
+ * visitors render the login entry right away instead of a skeleton flash. Later background
+ * refreshes never touch `isLoading`.
+ */
+const hasInitialSessionToResolve = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (window.parent !== window) return getUserFromSdkSettings() !== null;
+  return hashHasOAuthTokens(window.location.hash) || hasStoredAuthSession();
+};
 
 type LoginMessagePayload = {
   method?: 'oauth' | 'web3';
@@ -85,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(hasInitialSessionToResolve);
   const [error, setError] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
