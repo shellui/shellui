@@ -208,7 +208,7 @@ const config = {
           {
             to: '/',
             label: 'Shellui',
-            position: 'left',
+            position: 'right',
             // Active on every main docs page, not on service pages.
             activeBaseRegex: mainDocsActiveRegex,
           },
@@ -219,7 +219,7 @@ const config = {
                   // becomes the current service's name while a service page is open.
                   type: 'custom-servicesDropdown',
                   label: 'Services',
-                  position: 'left',
+                  position: 'right',
                   items: services.map((service) => ({
                     type: 'docSidebar',
                     docsPluginId: service.id,
