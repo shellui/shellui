@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.6.0-beta.2] - 2026-10-07
+
+### 🐛 Bug Fixes
+
+- **Staff email links:** the shell shows a translated sign-in message when a staff account opens an old magic link (`magic_link_staff_disabled`).
+
 ## [0.6.0-beta.1] - 2026-10-06
 
 ### ✨ Feature
