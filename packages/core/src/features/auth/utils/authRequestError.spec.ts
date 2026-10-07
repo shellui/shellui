@@ -4,6 +4,7 @@ import {
   getAuthRequestErrorCode,
   inferAccessPendingErrorCode,
   isAccessPendingErrorCode,
+  loginErrorMessageKey,
 } from './authRequestError';
 
 describe('isAccessPendingErrorCode', () => {
@@ -12,6 +13,16 @@ describe('isAccessPendingErrorCode', () => {
     expect(isAccessPendingErrorCode('access_denied')).toBe(true);
     expect(isAccessPendingErrorCode('oauth_authorize_failed')).toBe(false);
     expect(isAccessPendingErrorCode(null)).toBe(false);
+  });
+});
+
+describe('loginErrorMessageKey', () => {
+  it('maps staff magic-link refusal to the login copy key', () => {
+    expect(loginErrorMessageKey('magic_link_staff_disabled')).toBe(
+      'loginPage.magicLinkStaffDisabled',
+    );
+    expect(loginErrorMessageKey('redirect_not_allowed')).toBe(null);
+    expect(loginErrorMessageKey(null)).toBe(null);
   });
 });
 

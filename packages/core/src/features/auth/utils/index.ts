@@ -16,6 +16,7 @@ export {
   getAuthRequestErrorCode,
   inferAccessPendingErrorCode,
   isAccessPendingErrorCode,
+  loginErrorMessageKey,
 } from './authRequestError';
 export {
   CLI_CALLBACK_PARAM,

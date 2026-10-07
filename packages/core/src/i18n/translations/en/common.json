@@ -60,6 +60,7 @@
     "couldNotVerifyCapabilities": "Could not verify backend login capabilities.",
     "walletLoginFailed": "Unable to complete Ethereum wallet login.",
     "signInCouldNotContinue": "Sign-in could not continue.",
+    "magicLinkStaffDisabled": "Staff accounts can't sign in with an email link. Sign in with your usual sign-in method instead.",
     "magicLinkMethod": "magic link",
     "redirectNotAllowedHint": " Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: {{origin}}."
   },

@@ -18,6 +18,7 @@ import {
   getPreferredBackendProvider,
   getProviderVisual,
   isAccessPendingErrorCode,
+  loginErrorMessageKey,
   normalizeNextPath,
   redirectToCliCallback,
   resolveLoginSettings,
@@ -158,7 +159,10 @@ export const LoginView = () => {
     const path = `${location.pathname}${qs ? `?${qs}` : ''}${location.hash}`;
     navigate(path, { replace: true });
     setOauthLoadingProvider(null);
-    const baseMsg = rawErr.trim() || t('loginPage.signInCouldNotContinue');
+    const messageKey = loginErrorMessageKey(code);
+    const baseMsg = messageKey
+      ? t(messageKey)
+      : rawErr.trim() || t('loginPage.signInCouldNotContinue');
     const hint =
       code === 'redirect_not_allowed'
         ? t('loginPage.redirectNotAllowedHint', {

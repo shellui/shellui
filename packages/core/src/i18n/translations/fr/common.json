@@ -60,6 +60,7 @@
     "couldNotVerifyCapabilities": "Impossible de vérifier les capacités de connexion du backend.",
     "walletLoginFailed": "Impossible de terminer la connexion au portefeuille Ethereum.",
     "signInCouldNotContinue": "La connexion n'a pas pu se poursuivre.",
+    "magicLinkStaffDisabled": "Les comptes staff ne peuvent pas se connecter avec un lien envoyé par e-mail. Connectez-vous avec votre méthode de connexion habituelle.",
     "magicLinkMethod": "lien magique",
     "redirectNotAllowedHint": " Ajoutez cette origine dans shellui-auth (admin Django ou shellui-admin → Company → Login redirect URLs), par exemple : {{origin}}."
   },
