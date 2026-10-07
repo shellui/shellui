@@ -16,6 +16,12 @@ export function isAccessPendingErrorCode(code: string | null | undefined): boole
   return code === 'access_pending' || code === 'access_denied';
 }
 
+/** i18n key when the shell replaces a backend sign-in sentence with its own copy. */
+export function loginErrorMessageKey(code: string | null | undefined): string | null {
+  if (code === 'magic_link_staff_disabled') return 'loginPage.magicLinkStaffDisabled';
+  return null;
+}
+
 /** Duck-type safe: `instanceof` can fail across duplicated bundles. */
 export function getAuthRequestErrorCode(err: unknown): string | null {
   if (!err || typeof err !== 'object') return null;

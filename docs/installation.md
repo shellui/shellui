@@ -27,17 +27,18 @@ npx shellui build --app --bundles app,dmg
 
 `dev` is an alias for `start`. `--host` listens on `0.0.0.0`. `--app` starts or builds the [desktop wrapper](/tauri).
 
-## Install the beta
+## Install this release
 
-These docs describe Shellui **0.6.0**, currently published as `0.6.0-beta.1` on the npm `beta` tag. A plain install picks the `latest` tag (0.5.x), which lacks 0.6 features such as [account management](/features/authentication#account-management). Add `@beta` to get the pre-release:
+These docs describe Shellui **0.6.0** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.0 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@beta
-npm install --save-dev @shellui/cli@beta
-npm install @shellui/sdk@beta
+npm install -g @shellui/cli@0.6.0
+npm install --save-dev @shellui/cli@0.6.0
+npm install @shellui/sdk@0.6.0
+npm install @shellui/core@0.6.0
 ```
 
-See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.0.
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.0. Account management, magic link login, and email settings are in this release. On-device AI stays off unless `ai.enabled` is `true`.
 
 ## Install in a project
 

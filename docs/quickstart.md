@@ -4,7 +4,7 @@ sidebar_label: Create a Project
 description: 'Run shellui init, start the development server, and build a production shell with an optional colocated iframe app.'
 ---
 
-Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation). To follow these docs with the 0.6.0 pre-release, install `@shellui/cli@beta` - see [Install the beta](/installation#install-the-beta).
+Create a Shellui project with the CLI, start the host, and build static files to `dist/web/`. You need Node.js 18+ and a working [CLI install](/installation) of Shellui 0.6.0.
 
 ## Scaffold with shellui init
 
@@ -122,7 +122,7 @@ The [playground](https://github.com/shellui/playground) uses that pattern: Shell
 
 `shellui start` and `shellui build` do not load your `vite.config.*`, PostCSS, `tsconfig.json`, or `VITE_*`. Tailwind for the shell scans `@shellui/core` only. The shell Vite cache is `node_modules/.vite-shellui`. See [tooling isolation](/cli#tooling-isolation).
 
-Point navigation `url`s at the companion origin in development (for example `http://localhost:5173/#/`) and at the built path in production. From **0.5.1**, set `safeForAuthToken: true` on items whose companion needs `settings.accessToken` — see [Authentication → Iframe apps](/features/authentication#iframe-apps). Call [`@shellui/sdk`](/sdk) inside the iframe.
+Point navigation `url`s at the companion origin in development (for example `http://localhost:5173/#/`) and at the built path in production. From **0.5.1**, set `safeForAuthToken: true` on items whose companion needs `settings.accessToken`. See [Authentication, iframe apps](/features/authentication#iframe-apps). Call [`@shellui/sdk`](/sdk) inside the iframe.
 
 Typical tree:
 

@@ -9,6 +9,7 @@
   },
   "navigationError": "Navigation error",
   "navigationNotAllowed": "This URL is not configured in the app navigation.",
+  "modalContent": "Modal content",
   "sessionLoading": "Restoring your session…",
   "adminShell": {
     "djangoAdmin": "Django admin"
@@ -23,7 +24,8 @@
     "userFallback": "User",
     "goToLoginAriaLabel": "Go to login",
     "openAccountMenuAriaLabel": "Open account menu for {{name}}",
-    "loadingAccount": "Loading account…"
+    "loadingAccount": "Loading account…",
+    "backToHome": "Back to home"
   },
   "loginPage": {
     "welcomeBack": "Welcome back",
@@ -60,6 +62,7 @@
     "couldNotVerifyCapabilities": "Could not verify backend login capabilities.",
     "walletLoginFailed": "Unable to complete Ethereum wallet login.",
     "signInCouldNotContinue": "Sign-in could not continue.",
+    "magicLinkStaffDisabled": "Staff accounts can't sign in with an email link. Sign in with your usual sign-in method instead.",
     "magicLinkMethod": "magic link",
     "redirectNotAllowedHint": " Add this origin in shellui-auth (Django admin or shellui-admin → Company → Login redirect URLs), for example: {{origin}}."
   },

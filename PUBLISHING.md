@@ -47,7 +47,7 @@ pnpm run publish
 
 This runs `scripts/publish-with-tag.js`, which publishes `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` in order with the tag derived from the root version. You don’t need to pass the tag manually.
 
-It first runs `pnpm run changelog:check`, which stops the release unless the root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`, `CHANGELOG.md` has no active `## [Unreleased]` section, and the topmost release heading is `## [<root version>] - YYYY-MM-DD` (for example `## [0.6.0-beta.1] - 2026-10-06`).
+It first runs `pnpm run changelog:check`, which stops the release unless the root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`, `CHANGELOG.md` has no active `## [Unreleased]` section, and the topmost release heading is `## [<root version>] - YYYY-MM-DD` (for example `## [0.6.0] - 2026-10-07`).
 
 ## Version management
 

@@ -10,7 +10,14 @@ This monorepo contains the Shellui packages:
 
 ## Current release
 
-**0.6.0-beta.1** is published on the npm `beta` tag. Install it with `npm install -g @shellui/cli@beta` (and `@shellui/sdk@beta` in iframe apps). A plain install still gets the stable `latest` tag (0.5.x). What's new in 0.6.0: account management in Settings, magic link login by default, email service settings, and a loading state while the session restores. See the [changelog](CHANGELOG.md) and [docs.shellui.com](https://docs.shellui.com).
+**0.6.0** is the stable release on the npm `latest` tag.
+
+```bash
+npm install -g @shellui/cli@0.6.0
+npm install @shellui/sdk@0.6.0
+```
+
+What's new: account management in Settings, magic link login by default, email service settings, and a loading state while the session restores. On-device AI stays off unless you set `ai.enabled`. See the [changelog](CHANGELOG.md) and [docs.shellui.com](https://docs.shellui.com).
 
 ## Structure
 

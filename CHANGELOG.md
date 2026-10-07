@@ -18,31 +18,33 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.6.0-beta.1] - 2026-10-06
+## [0.6.0] - 2026-10-07
 
 ### ✨ Feature
 
-- **Account management:** users can edit their name and delete their account from Settings → user account (shellui auth backend).
-- **Magic link login:** used by default when no login method is configured, with a "Check your email" state and a 60-second resend delay.
-- **Email service settings:** optional `email.url` and `email.showInAdmin` in `shellui.config`, exposed to apps as `settings.email`.
+- **Account management:** Edit your name and delete your account from Settings, under user account, on the Shellui identity backend.
+- **Magic link login:** The login page uses a magic link when no method is set, shows "Check your email", and waits 60 seconds before another send.
+- **Email service:** Optional `email.url` and `email.showInAdmin` in `shellui.config` are exposed to apps as `settings.email`.
 
 ### 🛠 Improvements
 
-- **Transfer toaster:** uploads and AI model downloads share one progress toaster, and downloads keep going after leaving Settings.
-- **Settings:** the AI panel collapses when apps aren't allowed to use AI, and Storage shows on-device model usage.
+- **Transfers:** Uploads and model downloads share one progress toaster, and downloads continue after you leave Settings.
+- **Settings:** The AI panel collapses when apps are not allowed to use AI, and Storage shows on-device model usage.
 
 ### 🚨 Changed
 
-- **Iframe handshake:** the shell now waits for each embedded app to request its settings before messaging it, and only sends updates to frames that are ready.
+- **Iframe handshake (breaking):** Call `init` from `@shellui/sdk` first, because the shell sends settings only after that request and only to frames that are ready.
+- **On-device AI:** AI stays off unless `ai.enabled` is `true`, and the docs nav has no AI section.
 
 ### 📚 Documentation
 
-- **Agent guidelines:** new root `AGENTS.md` linking the Shellui writing and design guidelines.
+- **Agent guidelines:** Root `AGENTS.md` links the Shellui writing and design guidelines.
 
 ### 🐛 Bug Fixes
 
-- **Session restore on reload:** reloading no longer logs users out in local dev, and the shell shows a loading state instead of a signed-out flash while the session restores.
-- **Toast click-through:** bottom toast lists no longer block clicks on the page behind them.
+- **Session restore:** Reloading keeps you signed in during local development, and the shell shows a loading state while the session restores.
+- **Toasts:** Bottom toast lists no longer block clicks on the page behind them.
+- **Staff magic links:** A staff account that opens an old email link sees "Sign in with your usual sign-in method instead."
 
 ## [0.5.3] - 2026-09-20
 

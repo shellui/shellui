@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { SHELLUI_AUTH_CODE_PARAM } from '../constants/oauth';
@@ -9,6 +10,7 @@ import {
   hashHasOAuthTokens,
   inferAccessPendingErrorCode,
   isAccessPendingErrorCode,
+  loginErrorMessageKey,
   normalizeNextPath,
   redirectCliCallbackError,
   redirectToCliCallback,
@@ -85,6 +87,7 @@ const looksLikeUsedOAuthCode = (message: string | null | undefined) => {
 export const OAuthCallbackView = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     completeOAuthCallback,
     completeOAuthSessionCallback,
@@ -137,13 +140,15 @@ export const OAuthCallbackView = () => {
     const bounceError = params.get(SHELLUI_OAUTH_ERROR_PARAM);
     if (bounceError) {
       const bounceCode = params.get(SHELLUI_OAUTH_ERROR_CODE_PARAM) || 'oauth_error';
-      if (redirectCliCallbackError(bounceError, bounceCode)) return;
+      const messageKey = loginErrorMessageKey(bounceCode);
+      const displayError = messageKey ? t(messageKey) : bounceError;
+      if (redirectCliCallbackError(displayError, bounceCode)) return;
       if (isAccessPendingErrorCode(bounceCode)) {
         setPendingAccess({ message: bounceError, code: bounceCode });
         setIsWorking(false);
         return;
       }
-      setLocalError(bounceError);
+      setLocalError(displayError);
       setIsWorking(false);
       return;
     }
@@ -189,7 +194,10 @@ export const OAuthCallbackView = () => {
         return;
       }
 
-      const message = result.error ?? 'Unable to complete OAuth login.';
+      const messageKey = loginErrorMessageKey(result.errorCode);
+      const message = messageKey
+        ? t(messageKey)
+        : (result.error ?? 'Unable to complete OAuth login.');
       if (redirectCliCallbackError(message, result.errorCode)) return;
       setLocalError(message);
       setIsWorking(false);
@@ -310,6 +318,7 @@ export const OAuthCallbackView = () => {
     location.search,
     navigate,
     nextPath,
+    t,
   ]);
 
   const backToLogin = () => {
