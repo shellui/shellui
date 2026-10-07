@@ -28,14 +28,16 @@ Add a `backend` block. Without it, `useAuth()` reports signed out and login acti
 
 `backend.login.methods` lists what the **login page may show**. At runtime the shell intersects that list with backend settings so disabled providers stay hidden. When `methods` is missing or empty, the login page defaults to `magic_link`, plus `oauth` if `oauthProviders` is set.
 
-After a magic link is sent, the login page replaces the email field with a "Check your email" message showing the address. **Use a different email** unlocks after 60 seconds so users can't resend links in a loop.
+After a magic link is sent, the login page replaces the email field with a "Check your email" message showing the address. **Use a different email** unlocks after 60 seconds so you can't resend links in a loop.
 
-| Method       | Login UI         | Notes                                                                     |
-| ------------ | ---------------- | ------------------------------------------------------------------------- |
-| `oauth`      | Provider buttons | Needs `oauthProviders` and a backend-enabled provider                     |
-| `magic_link` | Email field      | Supabase email auth; identity-service when advertised                     |
-| `web3`       | Ethereum wallet  | When the backend enables it                                               |
-| `password`   | none             | Typed and forwarded; the stock login view does not render a password form |
+Staff accounts cannot use a magic link. If you request one, or open an old email link, identity-service returns `magic_link_staff_disabled`. The login page and `/login/callback` then show: "Staff accounts can't sign in with an email link. Sign in with your usual sign-in method instead."
+
+| Method       | Login UI         | Notes                                                                             |
+| ------------ | ---------------- | --------------------------------------------------------------------------------- |
+| `oauth`      | Provider buttons | Needs `oauthProviders` and a backend-enabled provider                             |
+| `magic_link` | Email field      | Supabase email auth; identity-service when advertised. Staff accounts are refused |
+| `web3`       | Ethereum wallet  | When the backend enables it                                                       |
+| `password`   | none             | Typed and forwarded; the stock login view does not render a password form         |
 
 `oauthProviders` is an array of ids (`github`, `google`, `microsoft`, `apple`). Shellui deduplicates and lowercases them. For identity-service, per-company OAuth clients from `/api/v1/settings` appear as separate labeled buttons.
 
@@ -177,7 +179,7 @@ If your companion relied on the previous default (token shared without config), 
 }
 ```
 
-From **0.5.1** onward, postMessage origin and trusted-frame policy is **on by default**. The Shellui host derives companion origins from navigation, storage, and admin URLs in `shellui.config.json`; add preview or staging hosts with `security.allowedMessageOrigins` — see [SDK messaging](/sdk) (`security.allowedMessageOrigins`). Token sharing still requires `safeForAuthToken: true`; allowed origins are enforced separately for postMessage traffic.
+From **0.5.1** onward, postMessage origin and trusted-frame policy is **on by default**. The Shellui host derives companion origins from navigation, storage, and admin URLs in `shellui.config.json`. Add preview or staging hosts with `security.allowedMessageOrigins`. See [SDK messaging](/sdk) (`security.allowedMessageOrigins`). Token sharing still requires `safeForAuthToken: true`. Allowed origins are enforced separately for postMessage traffic.
 
 ```typescript
 import { shellui } from '@shellui/sdk';

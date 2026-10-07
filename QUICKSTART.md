@@ -2,10 +2,10 @@
 
 ## Installation
 
-Install all dependencies:
+This repo uses pnpm. Install all dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Development
@@ -16,11 +16,11 @@ Since the CLI depends on `@shellui/core`, you can test it locally:
 
 ```bash
 # Build all packages first
-npm run build
+pnpm run build
 
 # Link the CLI package
 cd packages/cli
-npm link
+pnpm link --global
 
 # Now you can use shellui from anywhere
 shellui start
@@ -39,15 +39,15 @@ Each package can be developed independently:
 ```bash
 # CLI
 cd packages/cli
-npm run build
+pnpm run build
 
 # Core
 cd packages/core
-npm run build
+pnpm run build
 
 # SDK
 cd packages/sdk
-npm run build
+pnpm run build
 ```
 
 ## Installing Packages
@@ -55,20 +55,20 @@ npm run build
 ### Install CLI globally
 
 ```bash
-npm install -g @shellui/cli
+npm install -g @shellui/cli@0.6.0
 ```
 
 ### Install as dev dependency
 
 ```bash
-npm install --save-dev @shellui/cli
+npm install --save-dev @shellui/cli@0.6.0
 ```
 
 ### Install Core or SDK
 
 ```bash
-npm install @shellui/core
-npm install @shellui/sdk
+npm install @shellui/core@0.6.0
+npm install @shellui/sdk@0.6.0
 ```
 
 ## Project Structure
@@ -90,6 +90,6 @@ npm install @shellui/sdk
 ## Workspace Dependencies
 
 - `@shellui/cli` depends on `@shellui/core`
-- `@shellui/sdk` depends on `@shellui/core`
+- `@shellui/core` depends on `@shellui/sdk`
 
-These are automatically linked in the workspace, so changes to `core` are immediately available to `cli` and `sdk` during development.
+These are linked in the workspace, so a change in `core` is available to the CLI, and a change in the SDK is available to core, during development.

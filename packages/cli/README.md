@@ -14,7 +14,7 @@ Or as a project dev dependency:
 npm install --save-dev @shellui/cli
 ```
 
-The 0.6.0 pre-release is on the `beta` tag: `npm install -g @shellui/cli@beta`.
+Shellui **0.6.0** is the current stable release: `npm install -g @shellui/cli@0.6.0`.
 
 ## Usage
 

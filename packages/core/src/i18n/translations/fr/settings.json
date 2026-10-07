@@ -1,5 +1,6 @@
 {
   "title": "Paramètres",
+  "selectCategory": "Sélectionnez une catégorie dans la barre latérale pour commencer.",
   "categories": {
     "preferences": "Préférences",
     "applications": "Applications",

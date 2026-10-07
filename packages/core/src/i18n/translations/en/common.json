@@ -9,6 +9,7 @@
   },
   "navigationError": "Navigation error",
   "navigationNotAllowed": "This URL is not configured in the app navigation.",
+  "modalContent": "Modal content",
   "sessionLoading": "Restoring your session…",
   "adminShell": {
     "djangoAdmin": "Django admin"
@@ -23,7 +24,8 @@
     "userFallback": "User",
     "goToLoginAriaLabel": "Go to login",
     "openAccountMenuAriaLabel": "Open account menu for {{name}}",
-    "loadingAccount": "Loading account…"
+    "loadingAccount": "Loading account…",
+    "backToHome": "Back to home"
   },
   "loginPage": {
     "welcomeBack": "Welcome back",

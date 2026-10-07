@@ -9,7 +9,7 @@ description: '@shellui/core is the React shell runtime the CLI serves. Import co
 ## Install
 
 ```bash
-npm install @shellui/core
+npm install @shellui/core@0.6.0
 ```
 
 Peer dependencies: React 18 or 19. The package also depends on `@shellui/sdk`.

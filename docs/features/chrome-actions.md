@@ -107,4 +107,4 @@ Narrow the viewport to exercise the `···` overflow menu.
 
 - Floating search / text-field slots
 - Auto-inferring actions from iframe URL
-- Locked `postMessage` target origin (see [Known limitations](#known-limitations))
+- Locked `postMessage` target origin

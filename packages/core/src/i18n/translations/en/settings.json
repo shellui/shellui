@@ -1,5 +1,6 @@
 {
   "title": "Settings",
+  "selectCategory": "Select a category from the sidebar to get started.",
   "categories": {
     "preferences": "Preferences",
     "applications": "Applications",
