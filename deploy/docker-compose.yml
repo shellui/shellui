@@ -32,7 +32,7 @@ x-web-health-timing: &web-health-timing
   start_period: 180s
 
 x-worker-health: &worker-health
-  test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+  test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
   interval: 30s
   timeout: 25s
   retries: 10
@@ -59,7 +59,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-init-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -68,11 +68,11 @@ services:
 
   redis:
     image: ${REDIS_IMAGE:-redis:8.2-alpine}
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -105,7 +105,7 @@ services:
       REDIS_URL: ${IDENTITY_REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${IDENTITY_CELERY_BROKER_URL:-}
       # Beat runs in identity-worker (celery worker --beat). Keep this off on the web process.
-      SCHEDULER_ENABLED: "false"
+      SCHEDULER_ENABLED: 'false'
       CELERY_WORKER_CONCURRENCY: ${IDENTITY_CELERY_WORKER_CONCURRENCY:-2}
       AUTH_RATE_LIMIT_ENABLED: ${AUTH_RATE_LIMIT_ENABLED:-true}
       AUTH_RATE_LIMIT_OAUTH: ${AUTH_RATE_LIMIT_OAUTH:-30}
@@ -143,7 +143,7 @@ services:
       ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${IDENTITY_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
       ACTIONS_WEBHOOK_DISPATCH_WORKERS: ${IDENTITY_ACTIONS_WEBHOOK_DISPATCH_WORKERS:-4}
     ports:
-      - "${IDENTITY_PUBLISH_PORT:-8000}:8000"
+      - '${IDENTITY_PUBLISH_PORT:-8000}:8000'
     volumes:
       - identity-data:/app/data
     depends_on:
@@ -155,16 +155,16 @@ services:
       <<: *web-health-timing
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=4)",
         ]
     restart: unless-stopped
 
   identity-worker:
     image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       <<: *http-security
       SECRET_KEY: ${IDENTITY_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
@@ -179,7 +179,7 @@ services:
       POSTGRES_DATABASE_URL: ${IDENTITY_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${IDENTITY_REDIS_URL:-redis://redis:6379/0}
       CELERY_BROKER_URL: ${IDENTITY_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "true"
+      SCHEDULER_ENABLED: 'true'
       CELERY_WORKER_CONCURRENCY: ${IDENTITY_CELERY_WORKER_CONCURRENCY:-2}
       EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
       EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_IDENTITY:-}
@@ -204,7 +204,7 @@ services:
       POSTGRES_DATABASE_URL: ${STORAGE_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${STORAGE_REDIS_URL:-redis://redis:6379/1}
       CELERY_BROKER_URL: ${STORAGE_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "false"
+      SCHEDULER_ENABLED: 'false'
       CELERY_WORKER_CONCURRENCY: ${STORAGE_CELERY_WORKER_CONCURRENCY:-2}
       CORS_ALLOW_ALL_ORIGINS: ${STORAGE_CORS_ALLOW_ALL_ORIGINS:-true}
       CORS_ALLOW_CREDENTIALS: ${STORAGE_CORS_ALLOW_CREDENTIALS:-false}
@@ -256,7 +256,7 @@ services:
       EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_STORAGE:-}
       EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
     ports:
-      - "${STORAGE_PUBLISH_PORT:-8001}:8000"
+      - '${STORAGE_PUBLISH_PORT:-8001}:8000'
     volumes:
       - storage-data:/app/data
       - *jwks-mount
@@ -269,23 +269,23 @@ services:
       <<: *web-health-timing
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/storage/v1/health', timeout=4)",
         ]
     restart: unless-stopped
 
   storage-worker:
     image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       <<: *http-security
       SECRET_KEY: ${STORAGE_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
       POSTGRES_DATABASE_URL: ${STORAGE_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${STORAGE_REDIS_URL:-redis://redis:6379/1}
       CELERY_BROKER_URL: ${STORAGE_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "true"
+      SCHEDULER_ENABLED: 'true'
       CELERY_WORKER_CONCURRENCY: ${STORAGE_CELERY_WORKER_CONCURRENCY:-2}
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
       IDENTITY_JWKS_FILE: /run/secrets/jwks.json
@@ -319,7 +319,7 @@ services:
       POSTGRES_DATABASE_URL: ${HOSTING_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${HOSTING_REDIS_URL:-redis://redis:6379/2}
       CELERY_BROKER_URL: ${HOSTING_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "false"
+      SCHEDULER_ENABLED: 'false'
       CELERY_WORKER_CONCURRENCY: ${HOSTING_CELERY_WORKER_CONCURRENCY:-2}
       CORS_ALLOW_ALL_ORIGINS: ${HOSTING_CORS_ALLOW_ALL_ORIGINS:-true}
       CORS_ALLOW_CREDENTIALS: ${HOSTING_CORS_ALLOW_CREDENTIALS:-false}
@@ -382,7 +382,7 @@ services:
       EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_HOSTING:-}
       EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
     ports:
-      - "${HOSTING_PUBLISH_PORT:-8002}:8000"
+      - '${HOSTING_PUBLISH_PORT:-8002}:8000'
     volumes:
       - hosting-data:/app/data
       - *jwks-mount
@@ -395,23 +395,23 @@ services:
       <<: *web-health-timing
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/hosting/v1/health', timeout=4)",
         ]
     restart: unless-stopped
 
   hosting-worker:
     image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
-    command: ["worker"]
+    command: ['worker']
     environment:
       <<: *http-security
       SECRET_KEY: ${HOSTING_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
       POSTGRES_DATABASE_URL: ${HOSTING_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${HOSTING_REDIS_URL:-redis://redis:6379/2}
       CELERY_BROKER_URL: ${HOSTING_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "true"
+      SCHEDULER_ENABLED: 'true'
       CELERY_WORKER_CONCURRENCY: ${HOSTING_CELERY_WORKER_CONCURRENCY:-2}
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
       IDENTITY_JWKS_FILE: /run/secrets/jwks.json
@@ -450,8 +450,8 @@ services:
       REDIS_URL: ${EMAIL_REDIS_URL:-redis://redis:6379/3}
       CELERY_BROKER_URL: ${EMAIL_CELERY_BROKER_URL:-}
       # Lane workers and beat run in email-worker.
-      SCHEDULER_ENABLED: "false"
-      EMAIL_WORKERS_ENABLED: "false"
+      SCHEDULER_ENABLED: 'false'
+      EMAIL_WORKERS_ENABLED: 'false'
       CELERY_WORKER_CONCURRENCY: ${EMAIL_CELERY_WORKER_CONCURRENCY:-2}
       CORS_ALLOW_ALL_ORIGINS: ${EMAIL_CORS_ALLOW_ALL_ORIGINS:-false}
       CORS_ALLOW_CREDENTIALS: ${EMAIL_CORS_ALLOW_CREDENTIALS:-false}
@@ -516,7 +516,7 @@ services:
       ACTIONS_WEBHOOK_SYNC_DELIVERY: ${EMAIL_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
       EVENT_LOG_RETENTION_DAYS: ${EMAIL_EVENT_LOG_RETENTION_DAYS:-7}
     ports:
-      - "${EMAIL_PUBLISH_PORT:-8003}:8000"
+      - '${EMAIL_PUBLISH_PORT:-8003}:8000'
     volumes:
       - email-data:/app/data
       - *jwks-mount
@@ -529,24 +529,24 @@ services:
       <<: *web-health-timing
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)",
         ]
     restart: unless-stopped
 
   email-worker:
     image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       <<: *http-security
       SECRET_KEY: ${EMAIL_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
       POSTGRES_DATABASE_URL: ${EMAIL_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
       REDIS_URL: ${EMAIL_REDIS_URL:-redis://redis:6379/3}
       CELERY_BROKER_URL: ${EMAIL_CELERY_BROKER_URL:-}
-      SCHEDULER_ENABLED: "true"
-      EMAIL_WORKERS_ENABLED: "true"
+      SCHEDULER_ENABLED: 'true'
+      EMAIL_WORKERS_ENABLED: 'true'
       CELERY_WORKER_CONCURRENCY: ${EMAIL_CELERY_WORKER_CONCURRENCY:-2}
       IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
       IDENTITY_JWKS_FILE: /run/secrets/jwks.json

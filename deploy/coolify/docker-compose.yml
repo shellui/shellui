@@ -52,7 +52,7 @@ services:
           CREATE DATABASE email OWNER email;
           EOF
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -60,11 +60,11 @@ services:
 
   redis:
     image: ${REDIS_IMAGE:-redis:8.2-alpine}
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -113,9 +113,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=4)",
         ]
       interval: 15s
@@ -125,7 +125,7 @@ services:
 
   identity-worker:
     image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       - DEBUG=${DEBUG:-false}
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
@@ -152,7 +152,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
       interval: 30s
       timeout: 25s
       retries: 10
@@ -197,9 +197,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/storage/v1/health', timeout=4)",
         ]
       interval: 15s
@@ -209,7 +209,7 @@ services:
 
   storage-worker:
     image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       - DEBUG=${DEBUG:-false}
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
@@ -236,7 +236,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
       interval: 30s
       timeout: 25s
       retries: 10
@@ -285,9 +285,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/hosting/v1/health', timeout=4)",
         ]
       interval: 15s
@@ -297,7 +297,7 @@ services:
 
   hosting-worker:
     image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
-    command: ["worker"]
+    command: ['worker']
     environment:
       - DEBUG=${DEBUG:-false}
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
@@ -328,7 +328,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
       interval: 30s
       timeout: 25s
       retries: 10
@@ -378,9 +378,9 @@ services:
     healthcheck:
       test:
         [
-          "CMD",
-          "python",
-          "-c",
+          'CMD',
+          'python',
+          '-c',
           "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)",
         ]
       interval: 15s
@@ -390,7 +390,7 @@ services:
 
   email-worker:
     image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
-    command: ["worker"]
+    command: ['worker']
     environment:
       - DEBUG=${DEBUG:-false}
       - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
@@ -422,7 +422,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "config", "inspect", "ping", "-t", "10"]
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
       interval: 30s
       timeout: 25s
       retries: 10

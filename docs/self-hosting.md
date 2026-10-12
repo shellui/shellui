@@ -22,12 +22,12 @@ docker compose up -d
 
 These URLs are the proxy-free defaults. `*.localhost` resolves to `127.0.0.1`:
 
-| Service  | URL                                | Django admin        |
-| -------- | ---------------------------------- | ------------------- |
-| identity | `http://identity.localhost:8000`   | `/admin/`           |
-| storage  | `http://storage.localhost:8001`    | `/admin/`           |
-| hosting  | `http://hosting.localhost:8002`    | `/admin/`           |
-| email    | `http://email.localhost:8003`      | `/admin/`           |
+| Service  | URL                              | Django admin |
+| -------- | -------------------------------- | ------------ |
+| identity | `http://identity.localhost:8000` | `/admin/`    |
+| storage  | `http://storage.localhost:8001`  | `/admin/`    |
+| hosting  | `http://hosting.localhost:8002`  | `/admin/`    |
+| email    | `http://email.localhost:8003`    | `/admin/`    |
 
 ## Create the first superuser
 
