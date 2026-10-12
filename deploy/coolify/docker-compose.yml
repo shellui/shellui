@@ -335,7 +335,7 @@ services:
       start_period: 40s
 
   email:
-    image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
     environment:
       - SERVICE_URL_EMAIL_8000
       - DEBUG=${DEBUG:-false}
@@ -389,7 +389,7 @@ services:
       start_period: 180s
 
   email-worker:
-    image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
     command: ['worker']
     environment:
       - DEBUG=${DEBUG:-false}

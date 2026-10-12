@@ -440,7 +440,7 @@ services:
     restart: unless-stopped
 
   email:
-    image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
     environment:
       <<: *http-security
       SECRET_KEY: ${EMAIL_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
@@ -537,7 +537,7 @@ services:
     restart: unless-stopped
 
   email-worker:
-    image: ${EMAIL_IMAGE:-shellui/email-service:0.1.0}
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
     command: ['worker']
     environment:
       <<: *http-security

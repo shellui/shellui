@@ -69,7 +69,7 @@ for needle in (
     "shellui/identity-service:0.7.0",
     "shellui/storage-service:0.5.0",
     "shellui/hosting-service:0.6.1",
-    "shellui/email-service:0.1.0",
+    "shellui/email-service:0.2.0",
     "postgres:16.15-alpine",
     "redis:8.2-alpine",
     "SERVICE_PASSWORD_64_POSTGRES",

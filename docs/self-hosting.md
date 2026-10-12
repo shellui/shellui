@@ -51,6 +51,8 @@ identity signs RS256 tokens. `generate-secrets.sh` writes the public JWKS to `de
 
 `DEBUG` is `false`. `EMAIL_FALLBACK_PROVIDER` is `none`, so mail is not sent until you set `resend` or `smtp` and the matching credentials. `SECURE_SSL_REDIRECT` is `false` so HTTP health checks work on this proxy-free install. Turn `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` on when a proxy terminates TLS. The Coolify template does that.
 
+email-service 0.2.0 uses the same variables. `EMAIL_AUTH_LINK_HOSTS` is the platform list for every company. A company adds hostnames with `PUT /api/v1/auth-link-hosts` or Allowed link hosts in Django admin, and hosts of its identity application URLs are included when identity returns them. A host outside that union is refused. Lane workers write a heartbeat, and a lane is stale after 60 seconds. That interval is not an env var. Staff read scheduler and lane health at `GET /api/v1/scheduled-jobs`. `SCHEDULER_ENABLED` and `EMAIL_WORKERS_ENABLED` still decide whether beat and the lane workers run.
+
 ## Shell config
 
 Copy `deploy/shell.example.json` to `shellui.config.json` in a shell project (that filename is gitignored). `adminUrl` and `filesUrl` point at local dev servers because admin and files have no published image. Create the company before you rely on `companyId`.
@@ -88,7 +90,7 @@ Pinned image tags in the example file:
 - `shellui/identity-service:0.7.0`
 - `shellui/storage-service:0.5.0`
 - `shellui/hosting-service:0.6.1`
-- `shellui/email-service:0.1.0`
+- `shellui/email-service:0.2.0`
 - `postgres:16.15-alpine`
 - `redis:8.2-alpine`
 
