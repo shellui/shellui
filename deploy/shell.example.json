@@ -4,7 +4,7 @@
     "url": "http://identity.localhost:8000",
     "companyId": 1,
     "adminPathname": "/admin",
-    "adminUrl": "http://localhost:5174",
+    "adminUrl": "https://admin.shellui.com",
     "login": {
       "methods": ["magic_link"]
     }

@@ -4,7 +4,7 @@ sidebar_label: Self-hosting
 description: 'Run identity, storage, hosting, and email together with Postgres and Redis.'
 ---
 
-One Compose file starts the open-source Shellui services on a single machine: identity, storage, hosting, and email, with Postgres and Redis. Published images are on Docker Hub. The shell, the admin app, and the files app are not in this stack.
+One Compose file starts the open-source Shellui services on a single machine: identity, storage, hosting, and email, with Postgres and Redis. Published images are on Docker Hub. There is no admin container. Use the hosted admin at [https://admin.shellui.com](https://admin.shellui.com), pointed at these services. An embedded admin may come later. The shell and the files app are not in this stack.
 
 ## Start
 
@@ -28,6 +28,37 @@ These URLs are the proxy-free defaults. `*.localhost` resolves to `127.0.0.1`:
 | storage  | `http://storage.localhost:8001`  | `/admin/`    |
 | hosting  | `http://hosting.localhost:8002`  | `/admin/`    |
 | email    | `http://email.localhost:8003`    | `/admin/`    |
+
+## Use the hosted admin
+
+There is no admin container in this stack. Staff and company owners open [https://admin.shellui.com](https://admin.shellui.com) from a shell that points at your services. An embedded admin may come later.
+
+Copy `deploy/shell.example.json` to `shellui.config.json` in a shell project (that filename is gitignored). Set `backend.adminUrl` to `https://admin.shellui.com` and point the service URLs at the table above:
+
+```json
+{
+  "backend": {
+    "type": "shellui",
+    "url": "http://identity.localhost:8000",
+    "companyId": 1,
+    "adminPathname": "/admin",
+    "adminUrl": "https://admin.shellui.com"
+  },
+  "storage": { "url": "http://storage.localhost:8001" },
+  "hosting": { "url": "http://hosting.localhost:8002" },
+  "email": { "url": "http://email.localhost:8003" }
+}
+```
+
+Create the superuser and the company first. Sign in on the shell as that staff user or as a company owner, then open `/admin`. The shell loads `https://admin.shellui.com` in an iframe. That page calls your identity, storage, hosting, and email URLs with the shell access token.
+
+These defaults already allow that origin:
+
+- `IDENTITY_CSRF_TRUSTED_ORIGINS`, `STORAGE_CSRF_TRUSTED_ORIGINS`, `HOSTING_CSRF_TRUSTED_ORIGINS`, and `EMAIL_CSRF_TRUSTED_ORIGINS` include `https://admin.shellui.com`. A set CSRF list replaces the image default, so do not drop that origin.
+- `IDENTITY_CORS_ALLOWED_ORIGINS`, `STORAGE_CORS_ALLOWED_ORIGINS`, `HOSTING_CORS_ALLOWED_ORIGINS`, and `EMAIL_CORS_ALLOWED_ORIGINS` include `https://admin.shellui.com`. Those values are appended to each image list. Identity, storage, and hosting also set `CORS_ALLOW_ALL_ORIGINS=true`. Email leaves allow-all off, so its allowed-origins list is what the browser uses.
+- `CORS_ALLOW_PRIVATE_NETWORK=true` on storage, hosting, and email. `https://admin.shellui.com` calling `http://*.localhost` sends a private-network preflight. identity-service 0.7.0 does not read that variable. A public HTTPS identity URL does not need it.
+
+The OAuth redirect allowlist is the shell origin, not the admin origin. Login returns to the shell (`/login/callback`). After you create the company, add that shell origin (for example `http://localhost:4000`) under Identity, OAuth apps, or with `POST /api/v1/oauth-redirects`. `https://admin.shellui.com` is not a login callback.
 
 ## Create the first superuser
 
@@ -55,7 +86,7 @@ email-service 0.2.0 uses the same variables. `EMAIL_AUTH_LINK_HOSTS` is the plat
 
 ## Shell config
 
-Copy `deploy/shell.example.json` to `shellui.config.json` in a shell project (that filename is gitignored). `adminUrl` and `filesUrl` point at local dev servers because admin and files have no published image. Create the company before you rely on `companyId`.
+`deploy/shell.example.json` sets `backend.adminUrl` to `https://admin.shellui.com`. `filesUrl` stays a local dev server because files has no published image. Create the company before you rely on `companyId`.
 
 Magic-link mail stays queued until a provider is configured. OAuth providers are unset until you add credentials in Django admin.
 
@@ -132,7 +163,8 @@ Submitting the template upstream is a later step. Coolify accepts a one-click se
 
 ## Not in this stack
 
-- No published image for the shell, admin (`shellui/admin`), or files (`shellui/files`). The operator UI that runs today is Django admin on each service.
+- No admin container. Use [https://admin.shellui.com](https://admin.shellui.com). An embedded admin may come later.
+- No published image for the shell or for files (`shellui/files`).
 - No wildcard DNS for apps deployed through hosting-service.
 - No mail provider. Set one before you expect magic links to arrive.
 - No GHCR images. Pins are Docker Hub tags.
