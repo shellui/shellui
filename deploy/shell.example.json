@@ -1,0 +1,22 @@
+{
+  "backend": {
+    "type": "shellui",
+    "url": "http://identity.localhost:8000",
+    "companyId": 1,
+    "adminPathname": "/admin",
+    "adminUrl": "http://localhost:5174",
+    "login": {
+      "methods": ["magic_link"]
+    }
+  },
+  "storage": {
+    "url": "http://storage.localhost:8001",
+    "filesUrl": "http://localhost:5175/"
+  },
+  "hosting": {
+    "url": "http://hosting.localhost:8002"
+  },
+  "email": {
+    "url": "http://email.localhost:8003"
+  }
+}

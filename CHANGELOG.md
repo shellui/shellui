@@ -38,6 +38,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 📚 Documentation
 
+- **Self-hosting:** `deploy/` starts identity, storage, hosting, and email with Postgres and Redis. See [Self-host Shellui](docs/self-hosting.md).
 - **Agent guidelines:** Root `AGENTS.md` links the Shellui writing and design guidelines.
 
 ### 🐛 Bug Fixes

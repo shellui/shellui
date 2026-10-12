@@ -28,9 +28,14 @@ What's new: account management in Settings, magic link login by default, email s
 │   ├── core/         # Core React app (features/ai, settings, …)
 │   └── sdk/          # SDK package
 ├── docs/              # Documentation files
+├── deploy/            # Self-hosted Compose stack
 ├── tools/             # Development tools (Docusaurus)
 └── package.json       # Root workspace configuration
 ```
+
+## Self-hosting
+
+`deploy/` starts identity, storage, hosting, and email with Postgres and Redis. See [Self-host Shellui](docs/self-hosting.md).
 
 ## AI skill (for coding agents)
 

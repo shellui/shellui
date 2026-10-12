@@ -1,0 +1,48 @@
+name: Self-host stack
+
+on:
+  push:
+    paths:
+      - 'deploy/**'
+      - '.github/workflows/self-host.yml'
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - '.github/workflows/self-host.yml'
+
+jobs:
+  stack:
+    name: Validate and boot
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install PyYAML
+        run: python3 -m pip install --user pyyaml
+
+      - name: Generate secrets
+        working-directory: deploy
+        run: ./scripts/generate-secrets.sh
+
+      - name: Validate Compose
+        working-directory: deploy
+        run: docker compose --env-file .env -f docker-compose.yml config --quiet
+
+      - name: Check Coolify template
+        working-directory: deploy
+        run: python3 scripts/check-coolify.py
+
+      - name: Start the stack
+        working-directory: deploy
+        run: docker compose --env-file .env -f docker-compose.yml up -d --wait
+
+      - name: Issue service keys and recheck health
+        working-directory: deploy
+        run: ./scripts/bootstrap.sh
+
+      - name: Check health, JWKS, and the email catalog
+        working-directory: deploy
+        run: ./scripts/verify.sh
