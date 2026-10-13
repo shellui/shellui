@@ -103,6 +103,42 @@ function createDistTarball(distDir) {
 }
 
 /**
+ * Warning when hosting reports the deployed origin was not added to allowed redirects.
+ * Older hosting responses omit `oauth_redirect_registered`; those stay silent.
+ * @param {unknown} payload
+ * @returns {string | null}
+ */
+export function formatOauthRedirectWarning(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  if (!Object.hasOwn(payload, 'oauth_redirect_registered')) return null;
+  if (
+    /** @type {{ oauth_redirect_registered?: unknown }} */ (payload).oauth_redirect_registered !==
+    false
+  ) {
+    return null;
+  }
+  const record =
+    /** @type {{ oauth_redirect_origin?: unknown, oauth_redirect_warning?: unknown }} */ (payload);
+  const origin =
+    typeof record.oauth_redirect_origin === 'string' && record.oauth_redirect_origin.trim()
+      ? record.oauth_redirect_origin.trim()
+      : 'this site';
+  const reason =
+    typeof record.oauth_redirect_warning === 'string' && record.oauth_redirect_warning.trim()
+      ? record.oauth_redirect_warning.trim()
+      : 'Hosting did not register the origin.';
+  return `Sign-in won't work yet: ${origin} wasn't added to allowed redirects. ${reason}`;
+}
+
+/**
+ * @param {unknown} payload
+ */
+function warnOauthRedirect(payload) {
+  const message = formatOauthRedirectWarning(payload);
+  if (message) console.warn(pc.yellow(message));
+}
+
+/**
  * @param {Record<string, unknown> | null | undefined} payload
  */
 function printDeploymentResult(payload) {
@@ -237,6 +273,7 @@ export async function deployCommand(root = '.', options = {}) {
       );
     }
     const prepared = await prepareResponse.json();
+    warnOauthRedirect(prepared);
     const siteSlug = typeof prepared?.slug === 'string' ? prepared.slug.trim() : '';
     const deploymentId = prepared?.deployment?.id;
     if (!siteSlug || !deploymentId) {
@@ -274,6 +311,7 @@ export async function deployCommand(root = '.', options = {}) {
       );
     }
     const finalized = await finalizeResponse.json();
+    warnOauthRedirect(finalized);
     printDeploymentResult({
       slug: siteSlug,
       urls: finalized?.urls,
