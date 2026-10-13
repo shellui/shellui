@@ -206,7 +206,7 @@ Both requests are accepted only from the shell window or its own Settings frame,
 
 ## Desktop sign-in
 
-Inside a Tauri webview, set `auth.desktopScheme` to the custom scheme registered on the OAuth application (`desktop_redirect_scheme`). The shell opens the system browser and returns on a deep link. A browser tab ignores this field, including a tab opened from a Tauri-targeted build. Plugin setup is in [Desktop app](/tauri#sign-in-on-the-desktop).
+Inside a Tauri webview, set `auth.desktopScheme` to the custom scheme registered on the OAuth application (`desktop_redirect_scheme`). The shell opens the system browser and returns on a deep link. Desktop sign-in runs only when `backend.type` is `shellui`. A browser tab ignores this field, including a tab opened from a Tauri-targeted build. Plugin setup is in [Desktop app](/tauri#sign-in-on-the-desktop).
 
 ## Checklist
 

@@ -10,14 +10,14 @@ This monorepo contains the Shellui packages:
 
 ## Current release
 
-**0.6.0** is the stable release on the npm `latest` tag.
+**0.6.1** is the stable release on the npm `latest` tag.
 
 ```bash
-npm install -g @shellui/cli@0.6.0
-npm install @shellui/sdk@0.6.0
+npm install -g @shellui/cli@0.6.1
+npm install @shellui/sdk@0.6.1
 ```
 
-What's new: account management in Settings, magic link login by default, email service settings, and a loading state while the session restores. On-device AI stays off unless you set `ai.enabled`. See the [changelog](CHANGELOG.md) and [docs.shellui.com](https://docs.shellui.com).
+What's new: a Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when `auth.desktopScheme` matches the OAuth application. Register that scheme on the deep-link plugin. See [Sign in on the desktop](docs/tauri.md#sign-in-on-the-desktop), the [changelog](CHANGELOG.md), and [docs.shellui.com](https://docs.shellui.com).
 
 ## Structure
 

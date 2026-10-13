@@ -8,7 +8,7 @@ JavaScript/TypeScript SDK for iframe apps hosted in Shellui. Call `init`, then u
 npm install @shellui/sdk
 ```
 
-Shellui **0.6.0** is the current stable release: `npm install @shellui/sdk@0.6.0`.
+Shellui **0.6.1** is the current stable release: `npm install @shellui/sdk@0.6.1`.
 
 ## Full SDK
 
