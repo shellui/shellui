@@ -52,6 +52,12 @@ import {
   LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
 import { waitForInitialSettings } from './utils/waitForInitialSettings.js';
+import {
+  bindVisibleResume,
+  createSessionRequestGate,
+  reconcileEmbeddedAccessToken,
+  SESSION_HANDOFF_RETRY_MS,
+} from './utils/embeddedSession.js';
 
 import packageJson from '../package.json';
 
@@ -135,6 +141,16 @@ export {
   SETTINGS_REQUEST_RETRY_MS,
   SETTINGS_REQUEST_MAX_ATTEMPTS,
 } from './utils/waitForInitialSettings.js';
+export {
+  bindVisibleResume,
+  reconcileEmbeddedAccessToken,
+  deliverSessionHandoff,
+  runNowAndSoon,
+  createSessionRequestGate,
+  isAccessTokenExpired,
+  readJwtExp,
+  SESSION_HANDOFF_RETRY_MS,
+} from './utils/embeddedSession.js';
 export type {
   InitialSettingsHandshakeResult,
   WaitForInitialSettingsOptions,
@@ -224,6 +240,10 @@ export class ShellUISDK {
   private _layoutChromeAnimateTimer: ReturnType<typeof setTimeout> | null = null;
   /** In-flight init so concurrent callers (e.g. React StrictMode) share one setup. */
   private _initPromise: Promise<this> | null = null;
+  private _stopVisibleResume: (() => void) | null = null;
+  private _sessionRequestGate = createSessionRequestGate();
+  /** Last access token we already asked the shell to replace. Stops an expired reply from looping. */
+  private _lastFreshRequestToken: string | null | undefined = undefined;
 
   constructor() {
     this.currentPath =
@@ -279,6 +299,7 @@ export class ShellUISDK {
     await setupKeyListener();
     await this._setupCallbackListeners();
     await this._setupInitialSettings();
+    this._setupEmbeddedSessionRefresh();
     this._setupLayoutChromeListeners();
     this._applyChromeFromSettings(this.initialSettings ?? undefined);
     // Seed 0px inset padding so later action-chrome updates can CSS-transition
@@ -410,13 +431,54 @@ export class ShellUISDK {
     requestAnimationFrame(() => report(document));
   }
 
+  private _requestSettingsFromParent(force = false): void {
+    if (typeof window === 'undefined' || window.parent === window) return;
+    this._sessionRequestGate.request(() => {
+      this.sendMessageToParent({
+        type: 'SHELLUI_SETTINGS_REQUESTED',
+        payload: {},
+      });
+    }, force);
+  }
+
+  /**
+   * After the one-shot handshake, ask again on the next turn and whenever the
+   * tab is shown. A reply that arrives before the app subscribes is otherwise lost.
+   */
+  private _setupEmbeddedSessionRefresh(): void {
+    if (typeof window === 'undefined' || window.parent === window) return;
+    this._stopVisibleResume?.();
+    this._stopVisibleResume = bindVisibleResume(() => {
+      this._requestSettingsFromParent(true);
+    });
+    // After init() resolves the app renders and subscribes. Ask again then.
+    setTimeout(() => this._requestSettingsFromParent(true), SESSION_HANDOFF_RETRY_MS);
+  }
+
   private async _setupInitialSettings(): Promise<void> {
     const applySettings = (data: ShellUIMessage) => {
-      const settings = (data.payload as { settings?: Settings } | undefined)?.settings;
-      if (settings) {
-        this.initialSettings = settings;
-        if (settings.layoutChrome) {
-          this.layoutChrome = settings.layoutChrome;
+      const payload = data.payload as { settings?: Settings } | undefined;
+      const settings = payload?.settings;
+      if (!settings) return;
+
+      const embedded = typeof window !== 'undefined' && window.parent !== window;
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const reconciled = embedded
+        ? reconcileEmbeddedAccessToken(this.initialSettings, settings, nowSeconds)
+        : { settings, requestFreshToken: false };
+
+      if (reconciled.settings.accessToken !== settings.accessToken) {
+        settings.accessToken = reconciled.settings.accessToken;
+      }
+      this.initialSettings = reconciled.settings;
+      if (reconciled.settings.layoutChrome) {
+        this.layoutChrome = reconciled.settings.layoutChrome;
+      }
+      if (reconciled.requestFreshToken) {
+        const token = reconciled.settings.accessToken ?? null;
+        if (token !== this._lastFreshRequestToken) {
+          this._lastFreshRequestToken = token;
+          this._requestSettingsFromParent(true);
         }
       }
     };

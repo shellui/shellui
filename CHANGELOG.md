@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.6.1] - 2026-10-13
 
+### 🐛 Bug Fixes
+
+- **Embedded session:** When the shell tab is shown again, it refreshes an access token that expired in the background and sends the session to iframe apps again. An app that asks while the token is expired gets a new one. The SDK keeps the last access token if a settings message drops it, and asks the shell for a replacement.
+
 ### 🛠 Improvements
 
 - **Deploy:** `shellui deploy` warns when a preview origin was not added to allowed redirects, and the deploy still succeeds.

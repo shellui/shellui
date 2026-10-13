@@ -8,6 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  bindVisibleResume,
+  deliverSessionHandoff,
   getLogger,
   shellui,
   type ShellUIMessage,
@@ -29,6 +31,7 @@ import {
   toSettingsUser,
 } from './utils';
 import { unregisterServiceWorker } from '../../service-worker/register';
+import { refreshFrameAccessTokenIfNeeded } from '../auth/utils/frameSessionRefresher';
 
 const logger = getLogger('shellcore');
 
@@ -242,15 +245,38 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config, isTrustedFrameForAuthTokenCallback],
   );
 
+  const applyHandoffToken = useCallback((token: string | null | undefined) => {
+    if (token !== undefined) accessTokenRef.current = token;
+  }, []);
+
+  const handoffSettingsToIframes = useCallback(() => {
+    const base = settingsRef.current ?? defaultSettings;
+    return deliverSessionHandoff(() => propagateSettingsToIframes(base));
+  }, [propagateSettingsToIframes]);
+
   // When the shell rotates the JWT, `authUser` often does not change, so the user-sync effect
   // above skips — still push `SHELLUI_SETTINGS` so trusted iframes get the new `accessToken`.
+  // The follow-up turn covers an app that subscribes after the first post.
   const accessTokenForChildren = session?.accessToken ?? null;
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window || !accessTokenForChildren) {
       return;
     }
-    propagateSettingsToIframes(settingsRef.current ?? defaultSettings);
-  }, [accessTokenForChildren, propagateSettingsToIframes]);
+    return handoffSettingsToIframes();
+  }, [accessTokenForChildren, handoffSettingsToIframes]);
+
+  // Background tabs throttle the refresh interval. On show, refresh if due and
+  // re-send the session even when the token string did not change.
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) return;
+    return bindVisibleResume(() => {
+      void (async () => {
+        const token = await refreshFrameAccessTokenIfNeeded();
+        applyHandoffToken(token);
+        handoffSettingsToIframes();
+      })();
+    });
+  }, [applyHandoffToken, handoffSettingsToIframes]);
 
   // Keep load/sync helpers stable across access-token rotation (refresh after preference sync).
   const loadUserPreferencesRef = useRef(loadUserPreferences);
@@ -449,35 +475,50 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const cleanupSettingsRequested = shellui.addMessageListener(
       'SHELLUI_SETTINGS_REQUESTED',
       (message: ShellUIMessage) => {
-        // Use ref to always get current settings (avoids stale closure)
-        const currentSettings = settingsRef.current ?? defaultSettings;
-        const requestingPath = (message.from ?? []).filter(Boolean);
+        void (async () => {
+          // An app that asks while the access token is expired must get a fresh one,
+          // not the JWT that died while the tab was hidden.
+          const token = await refreshFrameAccessTokenIfNeeded();
+          applyHandoffToken(token);
 
-        if (requestingPath.length > 0) {
-          const [firstHopIframeUuid] = requestingPath;
-          const frame = shellui.frameRegistry
-            .getAllIframes()
-            .find(([uuid]) => uuid === firstHopIframeUuid)?.[1];
-          const lang = currentSettings.language?.code || 'en';
-          const includeAuthAccessToken = frame
-            ? isTrustedFrameForAuthTokenCallback(frame.src ?? '')
-            : false;
-          const settingsToPropagate = buildSettingsForPropagation(currentSettings, config, lang, {
-            includeAuthAccessToken,
-            accessToken: accessTokenRef.current,
-            includeLayoutChrome: isMainLayoutFrame(frame),
-          });
+          const send = () => {
+            const currentSettings = settingsRef.current ?? defaultSettings;
+            const requestingPath = (message.from ?? []).filter(Boolean);
 
-          // Route through the full parent -> child -> ... -> requester path so deep descendants
-          // receive settings even when they are nested more than one level under root.
-          shellui.sendMessage({
-            type: 'SHELLUI_SETTINGS',
-            payload: { settings: settingsToPropagate },
-            to: requestingPath,
-          });
-          return;
-        }
-        propagateSettingsToIframes(currentSettings);
+            if (requestingPath.length > 0) {
+              const [firstHopIframeUuid] = requestingPath;
+              const frame = shellui.frameRegistry
+                .getAllIframes()
+                .find(([uuid]) => uuid === firstHopIframeUuid)?.[1];
+              const lang = currentSettings.language?.code || 'en';
+              const includeAuthAccessToken = frame
+                ? isTrustedFrameForAuthTokenCallback(frame.src ?? '')
+                : false;
+              const settingsToPropagate = buildSettingsForPropagation(
+                currentSettings,
+                config,
+                lang,
+                {
+                  includeAuthAccessToken,
+                  accessToken: accessTokenRef.current,
+                  includeLayoutChrome: isMainLayoutFrame(frame),
+                },
+              );
+
+              // Route through the full parent -> child -> ... -> requester path so deep descendants
+              // receive settings even when they are nested more than one level under root.
+              shellui.sendMessage({
+                type: 'SHELLUI_SETTINGS',
+                payload: { settings: settingsToPropagate },
+                to: requestingPath,
+              });
+              return;
+            }
+            propagateSettingsToIframes(currentSettings);
+          };
+
+          deliverSessionHandoff(send);
+        })();
       },
     );
 
@@ -518,7 +559,17 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           .find(([, iframe]) => iframe?.contentWindow === source);
         if (!match) return;
         const [iframeUuid, iframe] = match;
-        pushSettingsToFrame(iframeUuid, iframe?.src ?? '', settingsRef.current ?? defaultSettings);
+        void (async () => {
+          const token = await refreshFrameAccessTokenIfNeeded();
+          applyHandoffToken(token);
+          deliverSessionHandoff(() =>
+            pushSettingsToFrame(
+              iframeUuid,
+              iframe?.src ?? '',
+              settingsRef.current ?? defaultSettings,
+            ),
+          );
+        })();
       },
     );
 
@@ -531,6 +582,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [
     config,
     isTrustedFrameForAuthTokenCallback,
+    applyHandoffToken,
     propagateSettingsToIframes,
     pushSettingsToFrame,
     schedulePropagateSettingsToIframes,
