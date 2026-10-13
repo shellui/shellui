@@ -132,7 +132,7 @@ Sync prefers `tauri.conf.json` → `bundle.icon`, then `static/icon.png`, then `
 
 ## Sign in on the desktop
 
-A Tauri shell can sign in through the system browser and return on a custom-scheme deep link. The browser flow stays the same when the app is not a live Tauri webview, and when `auth.desktopScheme` is unset.
+A Tauri shell signs in through the system browser and returns on a custom-scheme deep link. This runs when `backend.type` is `shellui` inside a live Tauri webview. A browser tab ignores `auth.desktopScheme`. An unset scheme keeps the browser flow.
 
 Set the scheme in `shellui.config.json`. Use the same lowercase value as `desktop_redirect_scheme` on the OAuth application. `http`, `https`, and other browser schemes are refused.
 
@@ -183,7 +183,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 configureDesktopAuth({ openUrl, onOpenUrl });
 ```
 
-Sign-in opens `GET /api/v1/authorize` with `redirect_to` set to `shellui-playground://callback`, plus `code_challenge` and `code_challenge_method=S256`. The verifier stays in memory for that attempt.
+Sign-in opens `GET /api/v1/authorize` with `redirect_to` set to `shellui-playground://callback`, plus `code_challenge` and `code_challenge_method=S256`. Shellui stores the verifier in memory and in `sessionStorage` for that attempt.
 
 The browser returns to `shellui-playground://callback?shellui_auth_code=…`. The shell posts `auth_code`, the same `redirect_to`, and `code_verifier` to `POST /api/v1/oauth/session`. The code lasts 120s.
 

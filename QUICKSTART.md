@@ -55,20 +55,20 @@ pnpm run build
 ### Install CLI globally
 
 ```bash
-npm install -g @shellui/cli@0.6.0
+npm install -g @shellui/cli@0.6.1
 ```
 
 ### Install as dev dependency
 
 ```bash
-npm install --save-dev @shellui/cli@0.6.0
+npm install --save-dev @shellui/cli@0.6.1
 ```
 
 ### Install Core or SDK
 
 ```bash
-npm install @shellui/core@0.6.0
-npm install @shellui/sdk@0.6.0
+npm install @shellui/core@0.6.1
+npm install @shellui/sdk@0.6.1
 ```
 
 ## Project Structure
