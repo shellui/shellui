@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.6.1] - 2026-10-13
 
+### 🛠 Improvements
+
+- **Deploy:** `shellui deploy` warns when a preview origin was not added to allowed redirects, and the deploy still succeeds.
+
 ### ✨ Feature
 
 - **Desktop sign-in:** A Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when `auth.desktopScheme` is set. Browser sign-in stays the same.
