@@ -72,7 +72,7 @@ export const createShellUIAuthBackend = ({
       const hashParams = new URLSearchParams(locationHash.replace(/^#/, ''));
       return buildSessionFromParams(hashParams, nowSeconds);
     },
-    exchangeOAuthSessionCode: async ({ authCode, redirectTo, nowSeconds }) => {
+    exchangeOAuthSessionCode: async ({ authCode, redirectTo, codeVerifier, nowSeconds }) => {
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');
       }
@@ -85,6 +85,7 @@ export const createShellUIAuthBackend = ({
         body: JSON.stringify({
           auth_code: authCode,
           redirect_to: redirectTo,
+          ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
         }),
       });
       const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
@@ -296,10 +297,12 @@ export const createShellUIAuthBackend = ({
       if (!selectedCompanyId) {
         throw new Error('Missing company_id for magic link request.');
       }
-      const redirectTo = `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+      const redirectTo =
+        options?.redirectTo ?? `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
       const clientTz = getShellUILoginClientTimezone();
       const clientDeviceId = getShellUILoginDeviceId();
       const language = options?.language?.trim();
+      const codeChallenge = options?.codeChallenge?.trim();
       const response = await fetch(`${backendUrl}${MAGIC_LINK_REQUEST_ENDPOINT}`, {
         method: 'POST',
         headers: {
@@ -310,6 +313,9 @@ export const createShellUIAuthBackend = ({
           company_id: Number(selectedCompanyId),
           email,
           redirect_to: redirectTo,
+          ...(codeChallenge
+            ? { code_challenge: codeChallenge, code_challenge_method: 'S256' }
+            : {}),
           ...(clientTz ? { client_timezone: clientTz } : {}),
           ...(clientDeviceId ? { client_device_id: clientDeviceId } : {}),
           ...(language ? { language } : {}),

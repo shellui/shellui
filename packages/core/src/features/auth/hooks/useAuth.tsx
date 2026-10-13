@@ -25,6 +25,7 @@ export interface AuthContextValue {
   completeOAuthSessionCallback: (params: {
     authCode: string;
     redirectTo: string;
+    codeVerifier?: string;
   }) => Promise<OAuthCallbackResult>;
   completeOAuthCallback: (params: {
     provider: string;

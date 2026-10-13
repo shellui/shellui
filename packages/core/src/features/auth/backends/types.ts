@@ -7,6 +7,8 @@ export interface AuthBackend {
   exchangeOAuthSessionCode: (params: {
     authCode: string;
     redirectTo: string;
+    /** PKCE verifier for a custom-scheme desktop redirect. Omit on the web flow. */
+    codeVerifier?: string;
     nowSeconds: number;
   }) => Promise<AuthSession | null>;
   exchangeOAuthCode: (params: {
@@ -43,7 +45,13 @@ export interface AuthBackend {
   sendMagicLink: (
     email: string,
     redirectPath: string,
-    options?: { language?: string },
+    options?: {
+      language?: string;
+      /** Custom-scheme redirect for desktop sign-in. Omit to keep the web origin. */
+      redirectTo?: string;
+      /** S256 challenge for a desktop magic link. Omit on the web flow. */
+      codeChallenge?: string;
+    },
   ) => Promise<void>;
   syncUserPreferences: (session: AuthSession | null, preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: (session: AuthSession | null) => Promise<UserPreferences | null>;

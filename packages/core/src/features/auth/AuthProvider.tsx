@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
+import { useIsTauriRuntime } from '../layouts/chrome/runtime';
 import { isShellSettingsFrameMessage } from '../security/trustedFrames';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
@@ -29,6 +30,18 @@ import {
   type InFlightSlot,
 } from './utils';
 import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
+import {
+  beginDesktopOAuth,
+  clearDesktopPkce,
+  createAndStoreDesktopPkce,
+  desktopSignInBlockReason,
+  ensureDesktopDeepLinkListener,
+  isLiveTauriRuntime,
+  setActiveDesktopScheme,
+  shouldUseDesktopSignIn,
+  subscribeDesktopAuth,
+} from './utils/desktopSignIn';
+import { normalizeDesktopScheme } from './utils/desktopAuthCallback';
 import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
 
 const logger = getLogger('shellcore');
@@ -66,6 +79,7 @@ type LoginMessagePayload = {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
   const { i18n } = useTranslation();
+  const tauriRuntime = useIsTauriRuntime();
   const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
@@ -346,6 +360,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         setError(null);
         setErrorCode(null);
+        const liveTauri = tauriRuntime || isLiveTauriRuntime();
+        const blocked = desktopSignInBlockReason(config, liveTauri);
+        if (blocked) {
+          setError(blocked);
+          setErrorCode('invalid_desktop_scheme');
+          return false;
+        }
+        if (shouldUseDesktopSignIn(config, liveTauri)) {
+          void beginDesktopOAuth({
+            backendUrl: config.backend?.url ?? '',
+            companyId: config.backend?.companyId,
+            provider,
+            oauthClientId,
+            scheme: config.auth?.desktopScheme ?? '',
+          }).catch((err) => {
+            setError(err instanceof Error ? err.message : 'Unable to start desktop sign-in.');
+            setErrorCode(err instanceof AuthRequestError ? err.code : null);
+          });
+          return true;
+        }
         backend.startOAuth(provider, redirectPath, oauthClientId);
         return true;
       } catch (err) {
@@ -354,7 +388,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [backend],
+    [backend, config, tauriRuntime],
   );
 
   const persistOAuthSession = useCallback(
@@ -387,9 +421,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async ({
       authCode,
       redirectTo,
+      codeVerifier,
     }: {
       authCode: string;
       redirectTo: string;
+      codeVerifier?: string;
     }): Promise<OAuthCallbackResult> => {
       try {
         setError(null);
@@ -398,6 +434,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const nextSession = await backend.exchangeOAuthSessionCode({
           authCode,
           redirectTo,
+          codeVerifier,
           nowSeconds: now,
         });
         if (!nextSession) {
@@ -478,7 +515,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMagicLink = useCallback(
     async (email: string, redirectPath = urls.loginCallback) => {
+      const liveTauri = tauriRuntime || isLiveTauriRuntime();
       try {
+        if (shouldUseDesktopSignIn(config, liveTauri)) {
+          const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
+          if (!scheme) {
+            throw new Error(
+              'auth.desktopScheme must be a lowercase custom scheme such as shellui-playground.',
+            );
+          }
+          setActiveDesktopScheme(scheme);
+          const prepared = await createAndStoreDesktopPkce(scheme);
+          try {
+            await backend.sendMagicLink(email, redirectPath, {
+              language: i18n.resolvedLanguage ?? i18n.language,
+              redirectTo: prepared.redirectTo,
+              codeChallenge: prepared.challenge,
+            });
+          } catch (sendError) {
+            clearDesktopPkce();
+            throw sendError;
+          }
+          void ensureDesktopDeepLinkListener({ replayLaunchUrl: false });
+          return;
+        }
         await backend.sendMagicLink(email, redirectPath, {
           language: i18n.resolvedLanguage ?? i18n.language,
         });
@@ -488,7 +548,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(message);
       }
     },
-    [backend, i18n],
+    [backend, config, i18n, tauriRuntime],
   );
 
   const syncUserPreferences = useCallback(
@@ -559,6 +619,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     setErrorCode(null);
   }, [backend, bffAuthEnabled, session]);
+
+  useEffect(() => {
+    const liveTauri = tauriRuntime || isLiveTauriRuntime();
+    if (!shouldUseDesktopSignIn(config, liveTauri)) return;
+    const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
+    if (!scheme) return;
+    setActiveDesktopScheme(scheme);
+    let cancelled = false;
+    const unsubscribe = subscribeDesktopAuth((event) => {
+      if (cancelled) return;
+      if (event.type === 'error') {
+        setError(event.message);
+        setErrorCode(event.errorCode);
+        return;
+      }
+      void completeOAuthSessionCallback({
+        authCode: event.authCode,
+        redirectTo: event.redirectTo,
+        codeVerifier: event.codeVerifier,
+      });
+    });
+    void ensureDesktopDeepLinkListener({ replayLaunchUrl: true });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [completeOAuthSessionCallback, config, tauriRuntime]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {

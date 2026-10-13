@@ -18,6 +18,16 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### ✨ Feature
+
+- **Desktop sign-in:** A Tauri shell signs in through the system browser with PKCE when `auth.desktopScheme` is set. Browser sign-in stays the same.
+
+### 📚 Documentation
+
+- **Desktop sign-in:** Document the scheme, the Tauri deep-link plugin, and `configureDesktopAuth`.
+
 ## [0.6.0] - 2026-10-07
 
 ### ✨ Feature
