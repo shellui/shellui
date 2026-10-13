@@ -43,7 +43,7 @@ export function isAccessTokenExpired(
   leewaySeconds = EMBEDDED_TOKEN_REFRESH_LEEWAY_SECONDS,
 ): boolean {
   const exp = readJwtExp(token);
-  if (exp == null) return false;
+  if (exp === null) return false;
   return exp - nowSeconds <= leewaySeconds;
 }
 
