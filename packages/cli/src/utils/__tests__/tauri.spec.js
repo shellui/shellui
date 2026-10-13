@@ -174,6 +174,19 @@ describe('tauri utilities', () => {
     expect(conf.bundle.icon).toBeUndefined();
   });
 
+  test('mergeProjectTauriOverrides copies deep-link schemes', () => {
+    const conf = { productName: 'Default', plugins: { opener: { open: true } } };
+    mergeProjectTauriOverrides(conf, {
+      plugins: {
+        'deep-link': { desktop: { schemes: ['shellui-playground'] } },
+      },
+    });
+    expect(conf.plugins.opener).toEqual({ open: true });
+    expect(conf.plugins['deep-link']).toEqual({
+      desktop: { schemes: ['shellui-playground'] },
+    });
+  });
+
   test('resolveIconFromProjectTauriConf reads project-relative source icons', () => {
     fs.mkdirSync(path.join(testDir, 'static'), { recursive: true });
     const iconPath = path.join(testDir, 'static', 'icon.png');

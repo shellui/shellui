@@ -204,6 +204,10 @@ With the identity-service backend (`backend.type: "shellui"`), **Settings → us
 
 Both requests are accepted only from the shell window or its own Settings frame, never from embedded apps. In host code, `useAuth()` exposes `supportsProfileUpdate` / `updateProfile` and `supportsAccountDeletion` / `deleteAccount`. Supabase backends hide both controls.
 
+## Desktop sign-in
+
+Inside a Tauri webview, set `auth.desktopScheme` to the custom scheme registered on the OAuth application (`desktop_redirect_scheme`). The shell opens the system browser and returns on a deep link. A browser tab ignores this field, including a tab opened from a Tauri-targeted build. Plugin setup is in [Desktop app](/tauri#sign-in-on-the-desktop).
+
 ## Checklist
 
 1. Run identity-service or Supabase and set `backend.type`, `url`, and provider keys

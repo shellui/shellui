@@ -130,6 +130,67 @@ DMG lands under `dist/app/src-tauri/target/release/bundle/dmg/`. Other [Tauri bu
 
 Sync prefers `tauri.conf.json` → `bundle.icon`, then `static/icon.png`, then `favicon` / `static/favicon.svg` (not the transparent `appIcon` chrome glyph). The CLI generates PNG / ICNS / ICO via `tauri icon`, then falls back to bundled defaults. Use a solid-background square for the dock, padded to Apple's ~824/1024 grid on macOS. Keep `appIcon` as the mono mark for sidebar / app-bar chrome.
 
+## Sign in on the desktop
+
+A Tauri shell can sign in through the system browser and return on a custom-scheme deep link. The browser flow stays the same when the app is not a live Tauri webview, and when `auth.desktopScheme` is unset.
+
+Set the scheme in `shellui.config.json`. Use the same lowercase value as `desktop_redirect_scheme` on the OAuth application. `http`, `https`, and other browser schemes are refused.
+
+```json
+{
+  "auth": {
+    "desktopScheme": "shellui-playground"
+  }
+}
+```
+
+Register that scheme in the project `tauri.conf.json`. The CLI copies `plugins` into `dist/app/src-tauri/tauri.conf.json` on `shellui dev --app`:
+
+```json
+{
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["shellui-playground"]
+      }
+    }
+  }
+}
+```
+
+The generated app under `dist/app/src-tauri` also needs the opener and deep-link plugins. The first `shellui dev --app` copies the CLI template. Add the crates, register them, and allow them:
+
+```toml
+tauri-plugin-opener = "2"
+tauri-plugin-deep-link = "2"
+```
+
+```rust
+tauri::Builder::default()
+    .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_deep_link::init())
+```
+
+In `capabilities/default.json`, add `opener:default` and `deep-link:default` next to the existing permissions.
+
+Shellui calls `plugin:opener|open_url` and listens for `deep-link://new-url` over Tauri IPC. A web build leaves the plugin packages out. To use your own opener, call `configureDesktopAuth` before sign-in:
+
+```typescript
+import { configureDesktopAuth } from '@shellui/core';
+import { onOpenUrl } from '@tauri-apps/plugin-deep-link';
+import { openUrl } from '@tauri-apps/plugin-opener';
+
+configureDesktopAuth({ openUrl, onOpenUrl });
+```
+
+Sign-in opens `GET /api/v1/authorize` with `redirect_to` set to `shellui-playground://callback`, plus `code_challenge` and `code_challenge_method=S256`. The verifier stays in memory for that attempt.
+
+The browser returns to `shellui-playground://callback?shellui_auth_code=…`. The shell posts `auth_code`, the same `redirect_to`, and `code_verifier` to `POST /api/v1/oauth/session`. The code lasts 120s.
+
+A failed sign-in uses the same link with `?error=` (for example `pkce_required`) or `shellui_oauth_error`. The shell shows a message. Logs omit the code, the verifier, and tokens.
+
+Magic link sends the same redirect and challenge on `POST /api/v1/magic-link/request`. On Windows and Linux, add Tauri's single-instance plugin so the deep link reaches the running app.
+
 ## Layout
 
 ```text

@@ -204,6 +204,18 @@ export interface SecurityConfig {
   csp?: CspConfig;
 }
 
+/**
+ * Desktop (Tauri) sign-in. Ignored in the browser, so the web OAuth redirect stays as it is.
+ * The scheme must match the OAuth application's `desktop_redirect_scheme`.
+ */
+export interface AuthConfig {
+  /**
+   * Custom URL scheme for Tauri sign-in, such as `shellui-playground`.
+   * Lowercase. Not `http`, `https`, or another browser scheme.
+   */
+  desktopScheme?: string;
+}
+
 /** Backend API configuration. */
 export interface BackendConfig {
   /** Backend provider type. */
@@ -411,6 +423,11 @@ export interface ShellUIConfig {
   sentry?: SentryConfig;
   /** Backend communication config. Defaults to undefined (no backend integration). */
   backend?: BackendConfig;
+  /**
+   * Desktop sign-in scheme for a Tauri shell. See `auth.desktopScheme`.
+   * Browser shells ignore this block.
+   */
+  auth?: AuthConfig;
   /** Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md). */
   security?: SecurityConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
