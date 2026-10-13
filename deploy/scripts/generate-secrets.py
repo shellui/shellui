@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Fill empty secrets in deploy/.env and write deploy/secrets/jwks.json.
 
-No secret values are printed. Safe to run again: existing values are kept.
+No secret values are printed. Safe to run again: existing generated secrets are
+kept. JWT_PUBLIC_KEY, JWT_KEY_ID, and IDENTITY_JWKS are rewritten from
+JWT_PRIVATE_KEY. When JWT_PREVIOUS_PUBLIC_KEY is set, that public key stays in
+the JWKS next to the current key.
 """
 
 from __future__ import annotations
@@ -67,10 +70,29 @@ def read_env(path: Path) -> tuple[list[str], dict[str, str]]:
 
 
 def unquote(value: str) -> str:
+    """Reverse quote_env. Quoted values unescape \\\\, \\\", and \\n."""
     value = value.strip()
     if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
-        value = value[1:-1]
-    return value.replace("\\n", "\n")
+        inner = value[1:-1]
+        out: list[str] = []
+        index = 0
+        while index < len(inner):
+            if inner[index] == "\\" and index + 1 < len(inner):
+                nxt = inner[index + 1]
+                if nxt == "n":
+                    out.append("\n")
+                elif nxt == '"':
+                    out.append('"')
+                elif nxt == "\\":
+                    out.append("\\")
+                else:
+                    out.append(nxt)
+                index += 2
+                continue
+            out.append(inner[index])
+            index += 1
+        return "".join(out)
+    return value
 
 
 def quote_env(value: str) -> str:
@@ -168,6 +190,27 @@ def parse_spki_rsa(der: bytes) -> tuple[int, int]:
     return modulus, exponent
 
 
+def jwk_rsa(modulus: int, exponent: int, kid: str = "") -> tuple[str, dict]:
+    """RFC 7638 thumbprint plus a public JWK. ``kid`` overrides the thumbprint."""
+    modulus_b64 = b64url(modulus.to_bytes((modulus.bit_length() + 7) // 8, "big"))
+    exponent_b64 = b64url(exponent.to_bytes((exponent.bit_length() + 7) // 8, "big"))
+    canonical = json.dumps(
+        {"e": exponent_b64, "kty": "RSA", "n": modulus_b64},
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    thumbprint = b64url(hashlib.sha256(canonical.encode("ascii")).digest())
+    jwk = {
+        "kty": "RSA",
+        "use": "sig",
+        "alg": "RS256",
+        "kid": kid.strip() or thumbprint,
+        "n": modulus_b64,
+        "e": exponent_b64,
+    }
+    return thumbprint, jwk
+
+
 def jwk_from_private_pem(private_pem: str) -> tuple[str, str, dict]:
     with tempfile.TemporaryDirectory() as tmp:
         private_path = Path(tmp) / "private.pem"
@@ -181,23 +224,21 @@ def jwk_from_private_pem(private_pem: str) -> tuple[str, str, dict]:
             ["openssl", "pkey", "-in", str(private_path), "-pubout", "-outform", "DER"]
         )
     modulus, exponent = parse_spki_rsa(der)
-    modulus_b64 = b64url(modulus.to_bytes((modulus.bit_length() + 7) // 8, "big"))
-    exponent_b64 = b64url(exponent.to_bytes((exponent.bit_length() + 7) // 8, "big"))
-    canonical = json.dumps(
-        {"e": exponent_b64, "kty": "RSA", "n": modulus_b64},
-        separators=(",", ":"),
-        sort_keys=True,
-    )
-    kid = b64url(hashlib.sha256(canonical.encode("ascii")).digest())
-    jwk = {
-        "kty": "RSA",
-        "use": "sig",
-        "alg": "RS256",
-        "kid": kid,
-        "n": modulus_b64,
-        "e": exponent_b64,
-    }
-    return public_pem.strip() + "\n", kid, {"keys": [jwk]}
+    kid, jwk = jwk_rsa(modulus, exponent)
+    return public_pem.strip() + "\n", kid, jwk
+
+
+def jwk_from_public_pem(public_pem: str, kid: str = "") -> dict:
+    text = public_pem if public_pem.endswith("\n") else public_pem + "\n"
+    with tempfile.TemporaryDirectory() as tmp:
+        public_path = Path(tmp) / "public.pem"
+        public_path.write_text(text, encoding="utf-8")
+        der = subprocess.check_output(
+            ["openssl", "pkey", "-pubin", "-in", str(public_path), "-outform", "DER"]
+        )
+    modulus, exponent = parse_spki_rsa(der)
+    _thumbprint, jwk = jwk_rsa(modulus, exponent, kid)
+    return jwk
 
 
 def generate_private_pem() -> str:
@@ -240,30 +281,45 @@ def fill_secrets() -> None:
     if not private.strip():
         private = generate_private_pem()
         updates["JWT_PRIVATE_KEY"] = private
-    public_pem, kid, document = jwk_from_private_pem(private if private.endswith("\n") else private + "\n")
-    if empty(values, "JWT_KEY_ID"):
+    public_pem, kid, current_jwk = jwk_from_private_pem(private if private.endswith("\n") else private + "\n")
+    if values.get("JWT_KEY_ID", "").strip() != kid:
         updates["JWT_KEY_ID"] = kid
-    elif values.get("JWT_KEY_ID") != kid:
+    if values.get("JWT_PUBLIC_KEY", "").strip() != public_pem.strip():
+        updates["JWT_PUBLIC_KEY"] = public_pem
+
+    keys = [current_jwk]
+    previous_pem = values.get("JWT_PREVIOUS_PUBLIC_KEY", "").strip()
+    previous_kid = values.get("JWT_PREVIOUS_KEY_ID", "").strip()
+    if previous_pem:
+        previous_jwk = jwk_from_public_pem(previous_pem, previous_kid)
+        if previous_jwk["kid"] != kid:
+            keys.append(previous_jwk)
+        if not previous_kid:
+            updates["JWT_PREVIOUS_KEY_ID"] = previous_jwk["kid"]
+    elif previous_kid:
         print(
-            "JWT_KEY_ID does not match JWT_PRIVATE_KEY. Left the existing id in place.",
+            "JWT_PREVIOUS_KEY_ID is set without JWT_PREVIOUS_PUBLIC_KEY. "
+            "The previous key was not added to the JWKS.",
             file=sys.stderr,
         )
-    if empty(values, "JWT_PUBLIC_KEY"):
-        updates["JWT_PUBLIC_KEY"] = public_pem
+
+    document = {"keys": keys}
     jwks_text = json.dumps(document, separators=(",", ":"))
-    if empty(values, "IDENTITY_JWKS"):
+    if values.get("IDENTITY_JWKS", "").strip() != jwks_text:
         updates["IDENTITY_JWKS"] = jwks_text
 
     if updates:
         set_values(ENV_PATH, updates)
-        print(f"filled {len(updates)} empty values in .env")
+        print(f"updated {len(updates)} values in .env")
     else:
         print(".env already has secrets")
 
     SECRETS_DIR.mkdir(mode=0o700, exist_ok=True)
     JWKS_PATH.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
     os.chmod(JWKS_PATH, 0o644)
-    print(f"wrote {JWKS_PATH.name} (public keys only) kid={kid}")
+    extra = len(keys) - 1
+    previous_note = f" previous={extra}" if extra else ""
+    print(f"wrote {JWKS_PATH.name} (public keys only) kid={kid}{previous_note}")
 
 
 def export_if_set(keys: list[str]) -> None:

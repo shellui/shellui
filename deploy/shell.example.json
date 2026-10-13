@@ -6,7 +6,7 @@
     "adminPathname": "/admin",
     "adminUrl": "https://admin.shellui.com",
     "login": {
-      "methods": ["magic_link"]
+      "methods": ["password", "magic_link"]
     }
   },
   "storage": {
