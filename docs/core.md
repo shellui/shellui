@@ -9,7 +9,7 @@ description: '@shellui/core is the React shell runtime the CLI serves. Import co
 ## Install
 
 ```bash
-npm install @shellui/core@0.6.0
+npm install @shellui/core@0.6.1
 ```
 
 Peer dependencies: React 18 or 19. The package also depends on `@shellui/sdk`.
@@ -35,7 +35,7 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-`ShellUIConfig` includes `port`, `title`, `version`, `favicon`, `appIcon`, `logo`, `language`, `layout`, `start_url`, `navigation`, `administration`, `storage`, `hosting`, `email`, theme fields, `sentry`, `backend`, `cookieConsent`, `legalDocuments`, `security` (e.g. `allowedMessageOrigins` for postMessage allowlist extras), and CLI-only `dev`. Item-level fields such as `requiresAuth` and `openIn` live on `NavigationItem`. Prefer the JSON schema at `@shellui/core/schemas/shellui.config.schema.json` over copying a partial interface into docs.
+`ShellUIConfig` includes `port`, `title`, `version`, `favicon`, `appIcon`, `logo`, `language`, `layout`, `start_url`, `navigation`, `administration`, `storage`, `hosting`, `email`, theme fields, `sentry`, `backend`, `auth` (`desktopScheme` for Tauri sign-in), `cookieConsent`, `legalDocuments`, `security` (e.g. `allowedMessageOrigins` for postMessage allowlist extras), and CLI-only `dev`. Item-level fields such as `requiresAuth` and `openIn` live on `NavigationItem`. Prefer the JSON schema at `@shellui/core/schemas/shellui.config.schema.json` over copying a partial interface into docs.
 
 Subpath exports:
 

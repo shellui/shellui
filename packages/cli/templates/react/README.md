@@ -20,6 +20,6 @@ shellui start    # runs the shell (:4000) + this companion (:5173)
 shellui deploy   # uploads dist/web to a Shellui hosting preview
 ```
 
-`SHELLUI_APP_URL` (see `.env.example`) sets where the built companion is served (default `/app`). `shellui build` applies that default automatically; override with a project `.env` if needed. The shell builds with relative asset paths so a deployed `dist/web` works from any base.
+`SHELLUI_APP_URL` (see `.env.example`) sets where the built companion is served (default `/app`). `shellui build` applies that default automatically; override with a project `.env` if needed. The shell build writes absolute asset paths (`/assets/…`) so a nested route loads JavaScript and CSS from the site root.
 
 After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally. Unknown routes fall back to `404.html` for shell deep links.

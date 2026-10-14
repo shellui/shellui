@@ -29,16 +29,16 @@ npx shellui build --app --bundles app,dmg
 
 ## Install this release
 
-These docs describe Shellui **0.6.0** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.0 and not a later version:
+These docs describe Shellui **0.6.1** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.1 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@0.6.0
-npm install --save-dev @shellui/cli@0.6.0
-npm install @shellui/sdk@0.6.0
-npm install @shellui/core@0.6.0
+npm install -g @shellui/cli@0.6.1
+npm install --save-dev @shellui/cli@0.6.1
+npm install @shellui/sdk@0.6.1
+npm install @shellui/core@0.6.1
 ```
 
-See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.0. Account management, magic link login, and email settings are in this release. On-device AI stays off unless `ai.enabled` is `true`.
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.1. A Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when you set `auth.desktopScheme`. Setup is in [Sign in on the desktop](/tauri#sign-in-on-the-desktop). On-device AI stays off unless `ai.enabled` is `true`.
 
 ## Install in a project
 

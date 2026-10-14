@@ -51,6 +51,28 @@ describe('shellui backend sendMagicLink', () => {
     });
     expect(body).not.toHaveProperty('email_redirect_to');
     expect(body).not.toHaveProperty('language');
+    expect(body).not.toHaveProperty('code_challenge');
+    expect(body).not.toHaveProperty('code_challenge_method');
+  });
+
+  test('desktop magic link sends the custom scheme and an S256 challenge', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { ok: true }));
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+
+    await backend.sendMagicLink('ada@acme.com', '/login/callback', {
+      redirectTo: 'shellui-playground://callback',
+      codeChallenge: 'a'.repeat(43),
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.redirect_to).toBe('shellui-playground://callback');
+    expect(body.code_challenge).toBe('a'.repeat(43));
+    expect(body.code_challenge_method).toBe('S256');
+    expect(body).not.toHaveProperty('code_verifier');
   });
 
   test('sends the UI language so the email is localized', async () => {
@@ -94,6 +116,99 @@ describe('shellui backend sendMagicLink', () => {
       'Missing company_id for magic link request.',
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('shellui backend OAuth session', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  test('web exchange posts auth_code and redirect_to only', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        access_token: 'header.payload.sig',
+        refresh_token: 'refresh-1',
+        expires_in: 3600,
+        token_type: 'bearer',
+      }),
+    );
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+    await backend.exchangeOAuthSessionCode({
+      authCode: 'session-code',
+      redirectTo: 'https://app.example.com/login/callback',
+      nowSeconds: 1_700_000_000,
+    });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://auth.example.com/api/v1/oauth/session');
+    expect(JSON.parse(init.body as string)).toEqual({
+      auth_code: 'session-code',
+      redirect_to: 'https://app.example.com/login/callback',
+    });
+  });
+
+  test('desktop exchange adds code_verifier and nothing else', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        access_token: 'header.payload.sig',
+        refresh_token: 'refresh-1',
+        expires_in: 3600,
+        token_type: 'bearer',
+      }),
+    );
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+    await backend.exchangeOAuthSessionCode({
+      authCode: 'session-code',
+      redirectTo: 'shellui-playground://callback',
+      codeVerifier: 'verifier-value',
+      nowSeconds: 1_700_000_000,
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      auth_code: 'session-code',
+      redirect_to: 'shellui-playground://callback',
+      code_verifier: 'verifier-value',
+    });
+  });
+});
+
+describe('shellui backend startOAuth', () => {
+  test('keeps the http redirect and does not send PKCE', () => {
+    const assign = vi.fn();
+    vi.stubGlobal('window', {
+      location: { origin: 'https://app.example.com', assign },
+    });
+    vi.stubGlobal('localStorage', {
+      getItem: () => null,
+      setItem: () => undefined,
+    });
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+
+    backend.startOAuth('github', '/login/callback', 4);
+
+    expect(assign).toHaveBeenCalledTimes(1);
+    const url = new URL(String(assign.mock.calls[0]?.[0]));
+    expect(`${url.origin}${url.pathname}`).toBe('https://auth.example.com/api/v1/authorize');
+    expect(url.searchParams.get('provider')).toBe('github');
+    expect(url.searchParams.get('redirect_to')).toBe(
+      'https://app.example.com/login/callback?provider=github&company_oauth_client_id=4',
+    );
+    expect(url.searchParams.get('company_id')).toBe('7');
+    expect(url.searchParams.get('company_oauth_client_id')).toBe('4');
+    expect(url.searchParams.has('code_challenge')).toBe(false);
+    expect(url.searchParams.has('code_challenge_method')).toBe(false);
+    expect(url.searchParams.has('code_verifier')).toBe(false);
+    vi.unstubAllGlobals();
   });
 });
 

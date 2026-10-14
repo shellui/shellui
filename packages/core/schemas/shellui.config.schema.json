@@ -119,6 +119,10 @@
           "$ref": "#/definitions/BackendConfig",
           "description": "Backend communication config. Defaults to undefined (no backend integration)."
         },
+        "auth": {
+          "$ref": "#/definitions/AuthConfig",
+          "description": "Desktop sign-in scheme for a Tauri shell. See `auth.desktopScheme`. Browser shells ignore this block."
+        },
         "security": {
           "$ref": "#/definitions/SecurityConfig",
           "description": "Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md)."
@@ -891,6 +895,17 @@
       "required": ["dsn"],
       "additionalProperties": false,
       "description": "Sentry error reporting configuration. Only used in production; ignored in dev."
+    },
+    "AuthConfig": {
+      "type": "object",
+      "properties": {
+        "desktopScheme": {
+          "type": "string",
+          "description": "Custom URL scheme for Tauri sign-in, such as `shellui-playground`. Lowercase. Not `http`, `https`, or another browser scheme."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desktop (Tauri) sign-in. Ignored in the browser, so the web OAuth redirect stays as it is. The scheme must match the OAuth application's `desktop_redirect_scheme`."
     },
     "BackendConfig": {
       "type": "object",

@@ -1,8 +1,15 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getLogger, postShellMessage, shellui, type Settings } from '@shellui/sdk';
+import {
+  bindVisibleResume,
+  getLogger,
+  postShellMessage,
+  shellui,
+  type Settings,
+} from '@shellui/sdk';
 import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
+import { useIsTauriRuntime } from '../layouts/chrome/runtime';
 import { isShellSettingsFrameMessage } from '../security/trustedFrames';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
@@ -29,12 +36,24 @@ import {
   type InFlightSlot,
 } from './utils';
 import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
+import {
+  beginDesktopOAuth,
+  clearDesktopPkce,
+  createAndStoreDesktopPkce,
+  desktopSignInBlockReason,
+  ensureDesktopDeepLinkListener,
+  isLiveTauriRuntime,
+  setActiveDesktopScheme,
+  shouldUseDesktopSignIn,
+  subscribeDesktopAuth,
+} from './utils/desktopSignIn';
+import { normalizeDesktopScheme } from './utils/desktopAuthCallback';
 import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
+import { accessTokenRefreshDue } from './utils/accessTokenRefreshDue';
+import { registerFrameSessionRefresher } from './utils/frameSessionRefresher';
 
 const logger = getLogger('shellcore');
 
-/** Refresh the access token this many seconds before `expiresAt` so API calls stay valid (JWT exp is absolute). */
-const PROACTIVE_REFRESH_LEEWAY_SECONDS = 90;
 /** Periodic check while the shell tab is open (also mitigates background-tab timer throttling). */
 const TOKEN_REFRESH_TICK_MS = 45_000;
 
@@ -66,6 +85,7 @@ type LoginMessagePayload = {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
   const { i18n } = useTranslation();
+  const tauriRuntime = useIsTauriRuntime();
   const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
@@ -97,6 +117,60 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     [backend, bffAuthEnabled],
   );
 
+  /**
+   * Refresh when the access token is inside the leeway (or already expired) and
+   * return the token iframes should use. Concurrent callers share one request
+   * so a visibility resume and a SETTINGS_REQUESTED reply cannot rotate twice.
+   */
+  const ensureFreshAccessToken = useCallback(async (): Promise<string | null> => {
+    const current = sessionRef.current;
+    if (!current?.accessToken) return null;
+    if (!bffAuthEnabled && !current.refreshToken) return current.accessToken;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (!accessTokenRefreshDue(current.expiresAt, now)) return current.accessToken;
+
+    if (isTokenAutoRefreshDisabled()) {
+      if (!skippedRefreshLoggedRef.current) {
+        skippedRefreshLoggedRef.current = true;
+        logger.info('Skipped token refresh because Develop → Disable token auto-refresh is on', {
+          expiresAt: current.expiresAt,
+          secondsLeft: current.expiresAt - now,
+        });
+      }
+      return current.accessToken;
+    }
+
+    if (refreshInFlightRef.current) return refreshInFlightRef.current;
+
+    const flight: { current: Promise<string | null> | null } = { current: null };
+    flight.current = (async () => {
+      try {
+        const next = await refreshAuthSession(current, now);
+        if (!next) return sessionRef.current?.accessToken ?? null;
+        persistAuthSession(next, { storeRefreshToken: !bffAuthEnabled });
+        sessionRef.current = next;
+        setSession(next);
+        return next.accessToken;
+      } catch (err) {
+        logger.error('Token refresh failed', { err });
+        const message = err instanceof Error ? err.message : '';
+        if (/\b401\b/.test(message)) {
+          clearStoredAuthSession();
+          sessionRef.current = null;
+          setSession(null);
+          return null;
+        }
+        return sessionRef.current?.accessToken ?? null;
+      } finally {
+        if (refreshInFlightRef.current === flight.current) refreshInFlightRef.current = null;
+      }
+    })();
+
+    refreshInFlightRef.current = flight.current;
+    return flight.current;
+  }, [bffAuthEnabled, refreshAuthSession]);
+
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(hasInitialSessionToResolve);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +178,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authEvent, setAuthEvent] = useState<AuthEvent>(null);
   const sessionRef = useRef<AuthSession | null>(null);
   sessionRef.current = session;
-  const refreshInFlightRef = useRef(false);
+  const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
+  const skippedRefreshLoggedRef = useRef(false);
   /** Bumps on every preferences sync so a slower older PUT can’t overwrite a newer theme. */
   const preferencesSyncGenRef = useRef(0);
 
@@ -237,6 +312,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [backend, bffAuthEnabled, commitAuthSession, refreshAuthSession]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) return;
+    return registerFrameSessionRefresher(() => ensureFreshAccessToken());
+  }, [ensureFreshAccessToken]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window || isLoading) {
       return;
     }
@@ -244,75 +324,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    let cancelled = false;
-    let skippedRefreshLogged = false;
-
-    const runRefresh = async () => {
-      if (cancelled) return;
-      const current = sessionRef.current;
-      if (!current || refreshInFlightRef.current) return;
-      if (!bffAuthEnabled && !current.refreshToken) return;
-
-      const now = Math.floor(Date.now() / 1000);
-      const secondsLeft = current.expiresAt - now;
-      if (secondsLeft > PROACTIVE_REFRESH_LEEWAY_SECONDS && !isSessionExpired(current)) {
-        return;
-      }
-
-      // Re-read when refresh is due so Develop → disableTokenAutoRefresh takes effect without remount.
-      if (isTokenAutoRefreshDisabled()) {
-        if (!skippedRefreshLogged) {
-          skippedRefreshLogged = true;
-          logger.info('Skipped token refresh because Develop → Disable token auto-refresh is on', {
-            expiresAt: current.expiresAt,
-            secondsLeft,
-          });
-        }
-        return;
-      }
-
-      refreshInFlightRef.current = true;
-      try {
-        const next = await refreshAuthSession(current, now);
-        if (cancelled || !next) return;
-        persistAuthSession(next, { storeRefreshToken: !bffAuthEnabled });
-        sessionRef.current = next;
-        setSession(next);
-      } catch (err) {
-        logger.error('Token refresh failed', { err });
-        const message = err instanceof Error ? err.message : '';
-        if (/\b401\b/.test(message)) {
-          clearStoredAuthSession();
-          sessionRef.current = null;
-          setSession(null);
-        }
-      } finally {
-        refreshInFlightRef.current = false;
-      }
+    const maybeRefresh = () => {
+      void ensureFreshAccessToken();
     };
 
-    const maybeRefreshFromTimer = () => {
-      void runRefresh();
-    };
-
-    const maybeRefreshOnResume = () => {
-      if (cancelled || document.visibilityState !== 'visible') return;
-      // Use the same proactive leeway as the timer (do not wait until already expired).
-      void runRefresh();
-    };
-
-    maybeRefreshFromTimer();
-    const intervalId = window.setInterval(maybeRefreshFromTimer, TOKEN_REFRESH_TICK_MS);
-    document.addEventListener('visibilitychange', maybeRefreshOnResume);
-    window.addEventListener('focus', maybeRefreshOnResume);
+    maybeRefresh();
+    const intervalId = window.setInterval(maybeRefresh, TOKEN_REFRESH_TICK_MS);
+    // visibilitychange, focus, and pageshow. Background tabs throttle the interval.
+    const stopResume = bindVisibleResume(maybeRefresh);
 
     return () => {
-      cancelled = true;
       window.clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', maybeRefreshOnResume);
-      window.removeEventListener('focus', maybeRefreshOnResume);
+      stopResume();
     };
-  }, [bffAuthEnabled, isLoading, refreshAuthSession, session, session?.expiresAt]);
+  }, [bffAuthEnabled, ensureFreshAccessToken, isLoading, session, session?.expiresAt]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) {
@@ -346,6 +371,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         setError(null);
         setErrorCode(null);
+        const liveTauri = tauriRuntime || isLiveTauriRuntime();
+        const blocked = desktopSignInBlockReason(config, liveTauri);
+        if (blocked) {
+          setError(blocked);
+          setErrorCode('invalid_desktop_scheme');
+          return false;
+        }
+        if (shouldUseDesktopSignIn(config, liveTauri)) {
+          void beginDesktopOAuth({
+            backendUrl: config.backend?.url ?? '',
+            companyId: config.backend?.companyId,
+            provider,
+            oauthClientId,
+            scheme: config.auth?.desktopScheme ?? '',
+          }).catch((err) => {
+            setError(err instanceof Error ? err.message : 'Unable to start desktop sign-in.');
+            setErrorCode(err instanceof AuthRequestError ? err.code : null);
+          });
+          return true;
+        }
         backend.startOAuth(provider, redirectPath, oauthClientId);
         return true;
       } catch (err) {
@@ -354,7 +399,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
     },
-    [backend],
+    [backend, config, tauriRuntime],
   );
 
   const persistOAuthSession = useCallback(
@@ -387,9 +432,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     async ({
       authCode,
       redirectTo,
+      codeVerifier,
     }: {
       authCode: string;
       redirectTo: string;
+      codeVerifier?: string;
     }): Promise<OAuthCallbackResult> => {
       try {
         setError(null);
@@ -398,6 +445,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const nextSession = await backend.exchangeOAuthSessionCode({
           authCode,
           redirectTo,
+          codeVerifier,
           nowSeconds: now,
         });
         if (!nextSession) {
@@ -478,7 +526,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const sendMagicLink = useCallback(
     async (email: string, redirectPath = urls.loginCallback) => {
+      const liveTauri = tauriRuntime || isLiveTauriRuntime();
       try {
+        if (shouldUseDesktopSignIn(config, liveTauri)) {
+          const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
+          if (!scheme) {
+            throw new Error(
+              'auth.desktopScheme must be a lowercase custom scheme such as shellui-playground.',
+            );
+          }
+          setActiveDesktopScheme(scheme);
+          const prepared = await createAndStoreDesktopPkce(scheme);
+          try {
+            await backend.sendMagicLink(email, redirectPath, {
+              language: i18n.resolvedLanguage ?? i18n.language,
+              redirectTo: prepared.redirectTo,
+              codeChallenge: prepared.challenge,
+            });
+          } catch (sendError) {
+            clearDesktopPkce();
+            throw sendError;
+          }
+          void ensureDesktopDeepLinkListener({ replayLaunchUrl: false });
+          return;
+        }
         await backend.sendMagicLink(email, redirectPath, {
           language: i18n.resolvedLanguage ?? i18n.language,
         });
@@ -488,7 +559,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(message);
       }
     },
-    [backend, i18n],
+    [backend, config, i18n, tauriRuntime],
   );
 
   const syncUserPreferences = useCallback(
@@ -559,6 +630,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setError(null);
     setErrorCode(null);
   }, [backend, bffAuthEnabled, session]);
+
+  useEffect(() => {
+    const liveTauri = tauriRuntime || isLiveTauriRuntime();
+    if (!shouldUseDesktopSignIn(config, liveTauri)) return;
+    const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
+    if (!scheme) return;
+    setActiveDesktopScheme(scheme);
+    let cancelled = false;
+    const unsubscribe = subscribeDesktopAuth((event) => {
+      if (cancelled) return;
+      if (event.type === 'error') {
+        setError(event.message);
+        setErrorCode(event.errorCode);
+        return;
+      }
+      void completeOAuthSessionCallback({
+        authCode: event.authCode,
+        redirectTo: event.redirectTo,
+        codeVerifier: event.codeVerifier,
+      });
+    });
+    void ensureDesktopDeepLinkListener({ replayLaunchUrl: true });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [completeOAuthSessionCallback, config, tauriRuntime]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {

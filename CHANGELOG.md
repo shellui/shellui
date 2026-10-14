@@ -18,6 +18,25 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.6.1] - 2026-10-13
+
+### 🐛 Bug Fixes
+
+- **Deep links:** Opening or refreshing a nested route loads shell JavaScript and CSS from the site root.
+- **Embedded session:** When the shell tab is shown again, it refreshes an access token that expired in the background and sends the session to iframe apps again. An app that asks while the token is expired gets a new one. The SDK keeps the last access token if a settings message drops it, and asks the shell for a replacement.
+
+### 🛠 Improvements
+
+- **Deploy:** `shellui deploy` warns when a preview origin was not added to allowed redirects, and the deploy still succeeds.
+
+### ✨ Feature
+
+- **Desktop sign-in:** A Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when `auth.desktopScheme` is set. Browser sign-in stays the same.
+
+### 📚 Documentation
+
+- **Desktop sign-in:** The desktop page lists the scheme, the Tauri deep-link plugin, and `configureDesktopAuth`.
+
 ## [0.6.0] - 2026-10-07
 
 ### ✨ Feature

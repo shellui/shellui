@@ -26,6 +26,7 @@ export type {
   LayoutType,
   BackendType,
   BackendConfig,
+  AuthConfig,
   AdministrationConfig,
   StorageConfig,
   HostingConfig,
@@ -102,6 +103,11 @@ export {
 } from './features/theme/themes.js';
 export { useConfig } from './features/config/useConfig.js';
 export { useAuth } from './features/auth/hooks/useAuth.js';
+export {
+  configureDesktopAuth,
+  handleDesktopAuthCallback,
+} from './features/auth/utils/desktopSignIn.js';
+export type { DesktopAuthAdapters } from './features/auth/utils/desktopSignIn.js';
 export { AuthProvider } from './features/auth/AuthProvider.js';
 export { ConfigProvider } from './features/config/ConfigProvider.js';
 export type { ConfigContextValue, ConfigProviderProps } from './features/config/ConfigProvider.js';

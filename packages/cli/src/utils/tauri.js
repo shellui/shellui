@@ -315,6 +315,30 @@ export function mergeProjectTauriOverrides(tauriConf, overrides) {
       tauriConf.bundle[k] = v;
     }
   }
+
+  // Desktop sign-in registers its scheme here (`plugins.deep-link.desktop.schemes`).
+  if (
+    overrides.plugins &&
+    typeof overrides.plugins === 'object' &&
+    !Array.isArray(overrides.plugins)
+  ) {
+    tauriConf.plugins = { ...(tauriConf.plugins || {}) };
+    for (const [name, value] of Object.entries(overrides.plugins)) {
+      const current = tauriConf.plugins[name];
+      if (
+        value &&
+        typeof value === 'object' &&
+        !Array.isArray(value) &&
+        current &&
+        typeof current === 'object' &&
+        !Array.isArray(current)
+      ) {
+        tauriConf.plugins[name] = { ...current, ...value };
+      } else {
+        tauriConf.plugins[name] = value;
+      }
+    }
+  }
 }
 
 /**

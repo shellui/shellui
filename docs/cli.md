@@ -100,7 +100,7 @@ See also [Companion origin isolation](/features/companion-isolation) for iframe 
 
 Build a production static site to `dist/web/`. Same isolated toolchain as `start`. `--app` also builds native bundles under `dist/app/`. `--bundles` selects desktop formats (default `app`; `app,dmg` on macOS). See [Desktop app - bundle targets](/tauri#bundle-targets).
 
-The build uses Vite `base: './'` so `dist/web` works from any deploy path. It writes `404.html` (copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for **navigation paths** plus **shell built-in routes** (`/login`, `/login/callback`, `/__settings`, legal pages, …). Each nested copy rewrites `./assets/…` to the correct `../` depth so trailing-slash hosts (GitHub Pages, S3 website) load JS/CSS from the dist root. Unknown deep routes still rely on `404.html` with root-relative assets — only known shell and navigation entrypoints are pre-generated.
+`shellui build` sets Vite `base` to `/`, so `index.html` and `404.html` reference `/assets/…` and `/favicon.svg`. Opening or refreshing a nested route requests those files from the site root. The build writes `404.html` (a copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for navigation paths plus shell built-in routes (`/login`, `/login/callback`, `/__settings`, legal pages, …).
 
 ### shellui login [root]
 
@@ -144,7 +144,7 @@ shellui deploy rollback --to 1.1.0
 shellui deploy rollback --deployment your_deployment_uuid_here
 ```
 
-Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create deployment → upload → finalize). App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. Runs `shellui build` when `dist/web/` is missing or when `--build` is passed.
+Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create deployment → upload → finalize). App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. Runs `shellui build` when `dist/web/` is missing or when `--build` is passed. When hosting reports the preview origin was not added to allowed redirects, the command prints a warning and still finishes the deploy.
 
 **Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
 
