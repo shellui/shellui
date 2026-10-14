@@ -16,6 +16,7 @@ import {
   redirectToCliCallback,
 } from '../utils';
 import { useAuth } from '../hooks/useAuth';
+import { consumeWebPkce } from '../utils/webPkce';
 import { AccessPendingView } from './AccessPendingView';
 
 const SHELLUI_OAUTH_ERROR_PARAM = 'shellui_oauth_error';
@@ -225,9 +226,14 @@ export const OAuthCallbackView = () => {
           location.pathname,
           location.search,
         );
+        const codeVerifier = consumeWebPkce(redirectTo);
         let result: { ok: boolean; error?: string | null; errorCode?: string | null };
         try {
-          result = await completeOAuthSessionCallback({ authCode, redirectTo });
+          result = await completeOAuthSessionCallback({
+            authCode,
+            redirectTo,
+            ...(codeVerifier ? { codeVerifier } : {}),
+          });
         } catch (err) {
           result = {
             ok: false,

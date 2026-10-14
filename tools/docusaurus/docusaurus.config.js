@@ -33,24 +33,31 @@ function loadServiceManifest() {
 }
 
 /**
- * First sidebar id declared in a service's sidebars file, used by the navbar.
- * @param {string} sidebarPath
+ * Service sidebars are generated data files. Refuse anything that still looks
+ * like remote sidebar code.
+ * @param {{id: string, sidebarPath?: string, sidebarId?: string}} service
  */
-function firstSidebarId(sidebarPath) {
-  delete require.cache[require.resolve(sidebarPath)];
-  const sidebars = require(sidebarPath);
-  const ids = Object.keys(sidebars || {});
-  if (ids.length === 0) {
-    throw new Error(`${sidebarPath} does not declare any sidebar`);
+function assertDataSidebar(service) {
+  if (typeof service.sidebarPath !== 'string' || !fs.existsSync(service.sidebarPath)) {
+    throw new Error(`Missing generated sidebar for ${service.id}. Run \`pnpm docs:fetch\`.`);
   }
-  return ids[0];
+  if (typeof service.sidebarId !== 'string' || !service.sidebarId) {
+    throw new Error(`Missing sidebar id for ${service.id}. Run \`pnpm docs:fetch\`.`);
+  }
+  const text = fs.readFileSync(service.sidebarPath, 'utf8');
+  if (
+    !text.startsWith('module.exports = {') ||
+    /=>|\brequire\s*\(|\beval\s*\(|\bFunction\s*\(/.test(text)
+  ) {
+    throw new Error(`Refusing to load sidebar for ${service.id}. Run \`pnpm docs:fetch\`.`);
+  }
 }
 
 const serviceManifest = loadServiceManifest();
-const services = serviceManifest.services.map((service) => ({
-  ...service,
-  sidebarId: firstSidebarId(service.sidebarPath),
-}));
+const services = serviceManifest.services.map((service) => {
+  assertDataSidebar(service);
+  return service;
+});
 
 /**
  * Matches every path under a service's route prefix, for example `/identity/scim`.

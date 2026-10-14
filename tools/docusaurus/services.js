@@ -32,9 +32,15 @@ const SERVICES_DIR = path.join(SITE_DIR, '.services');
 const MANIFEST_PATH = path.join(SERVICES_DIR, 'manifest.json');
 const DEFAULT_SIDEBAR_PATH = path.join(SITE_DIR, 'sidebars.service-default.js');
 
-// A service's own sidebar is reused when one of these files exists. `docs/sidebars.js`
-// lets a service drop its `tools/docusaurus/` site and keep its sidebar.
-const SIDEBAR_FILES = ['docs/sidebars.js', 'tools/docusaurus/sidebars.js'];
+// A service sidebar is read as data (JSON, or a data-only JavaScript file).
+// It is never executed. `docs/sidebars.js` lets a service drop its
+// `tools/docusaurus/` site and keep its sidebar.
+const SIDEBAR_FILES = [
+  'docs/sidebars.json',
+  'docs/sidebars.js',
+  'tools/docusaurus/sidebars.json',
+  'tools/docusaurus/sidebars.js',
+];
 
 /**
  * @typedef {object} ServiceDefinition

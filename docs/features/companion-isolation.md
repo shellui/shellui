@@ -42,6 +42,14 @@ When the iframe document is same-origin to its configured URL, scripts can remov
 
 Implementation: `packages/core/src/components/contentIframeSandbox.ts` (resolved in `ContentView`).
 
+## Same-origin refresh token
+
+Production companions load from `/app/` on the shell origin. The content iframe uses `allow-same-origin`, so a script in that frame can read the shell's `sessionStorage`, including the refresh token at `shellui.auth.refresh`.
+
+This release leaves that storage in place. A refresh token kept only in memory would sign you out on reload. An HttpOnly cookie on the shell origin would still be included when the iframe calls shell routes.
+
+Serve companions on a different origin, including the desktop webview. Keep the refresh token in an HttpOnly cookie on the shell host, or in shell memory plus that cookie. The companion origin must not be able to call the routes that use the cookie.
+
 ## Related CLI hardening (Track F)
 
 Companion URL validation for `dev.url` / `--follow` lives in the CLI ([CLI reference — companion process](/cli#companion-process)). Loopback login nonce binding is documented under [CLI login](/cli#shellui-login-root).

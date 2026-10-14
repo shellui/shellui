@@ -26,7 +26,7 @@ Legacy `shellui.auth.session` blobs are migrated automatically on first read.
 
 ### Residual risk (default mode)
 
-- **Refresh tokens remain JavaScript-readable** inside the tab (`sessionStorage`). XSS in the shell can still exfiltrate them until you enable BFF.
+- **Refresh tokens remain JavaScript-readable** inside the tab (`sessionStorage`). XSS in the shell can still exfiltrate them until you enable BFF. A same-origin companion under `/app/` can read that entry as well. See [Companion isolation](/features/companion-isolation).
 - **Access tokens are not written to web storage**, but they still live in memory and may be forwarded to trusted iframe companions via `SHELLUI_SETTINGS` (see [Navigation → `safeForAuthToken`](/features/navigation)).
 - **New tabs** do not inherit `sessionStorage`; users may need to sign in again unless BFF HttpOnly cookies are enabled.
 

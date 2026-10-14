@@ -18,6 +18,17 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🔒 Security
+
+- **Docs site:** The docs workflow builds with read-only repository access. A separate job publishes GitHub Pages and does not run the site build. Service sidebars are loaded as data.
+- **Browser sign-in:** Web sign-in sends a PKCE S256 `code_challenge` and the matching `code_verifier` when the session code is exchanged.
+- **CLI login:** Loopback `/capture` accepts one request from `http://127.0.0.1` after the callback page sets an HttpOnly cookie, and CLI sign-in sends PKCE.
+- **SDK messages:** Companion code posts to the parent only after the parent origin is known.
+- **CLI credentials:** Tokens go to the OS keychain when it is available, and to a mode `0600` file with a warning otherwise.
+- **GitHub Actions:** Workflow actions are pinned to commit SHAs, and the test workflow sets `contents: read`.
+
 ## [0.6.1] - 2026-10-13
 
 ### 🐛 Bug Fixes
