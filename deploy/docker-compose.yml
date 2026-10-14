@@ -1,0 +1,627 @@
+# Shellui self-hosted stack. Docs: docs/self-hosting.md
+# Proxy-free install with published host ports. Coolify: deploy/coolify/docker-compose.yml
+#
+#   cp .env.example .env
+#   ./scripts/generate-secrets.sh
+#   docker compose up -d
+#   ./scripts/bootstrap.sh
+
+name: shellui
+
+x-http-security: &http-security
+  DEBUG: ${DEBUG:-false}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-false}
+  SECURE_HSTS_SECONDS: ${SECURE_HSTS_SECONDS:-0}
+  SECURE_HSTS_INCLUDE_SUBDOMAINS: ${SECURE_HSTS_INCLUDE_SUBDOMAINS:-false}
+  SECURE_HSTS_PRELOAD: ${SECURE_HSTS_PRELOAD:-false}
+  SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+  CSRF_COOKIE_SECURE: ${CSRF_COOKIE_SECURE:-false}
+  POSTGRES_SSL_REQUIRE: ${POSTGRES_SSL_REQUIRE:-false}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}
+  SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+  SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0}
+
+x-web-health-timing: &web-health-timing
+  interval: 15s
+  timeout: 5s
+  retries: 20
+  start_period: 180s
+
+x-worker-health: &worker-health
+  test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
+  interval: 30s
+  timeout: 25s
+  retries: 10
+  start_period: 40s
+
+x-jwks-mount: &jwks-mount
+  type: bind
+  source: ./secrets/jwks.json
+  target: /run/secrets/jwks.json
+  read_only: true
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16.15-alpine}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shellui}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run ./scripts/generate-secrets.sh}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Run ./scripts/generate-secrets.sh}
+      STORAGE_DB_PASSWORD: ${STORAGE_DB_PASSWORD:?Run ./scripts/generate-secrets.sh}
+      HOSTING_DB_PASSWORD: ${HOSTING_DB_PASSWORD:?Run ./scripts/generate-secrets.sh}
+      EMAIL_DB_PASSWORD: ${EMAIL_DB_PASSWORD:?Run ./scripts/generate-secrets.sh}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/10-init-databases.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:8.2-alpine}
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  identity:
+    image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${IDENTITY_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Run ./scripts/generate-secrets.sh}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_KEY_ID: ${JWT_KEY_ID:-}
+      JWT_PREVIOUS_PUBLIC_KEY: ${JWT_PREVIOUS_PUBLIC_KEY:-}
+      JWT_PREVIOUS_KEY_ID: ${JWT_PREVIOUS_KEY_ID:-}
+      JWT_ACCEPT_HS256_LEGACY: ${JWT_ACCEPT_HS256_LEGACY:-false}
+      JWT_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      POSTGRES_CONNECT_TIMEOUT: ${POSTGRES_CONNECT_TIMEOUT:-10}
+      POSTGRES_STATEMENT_TIMEOUT: ${POSTGRES_STATEMENT_TIMEOUT:-15}
+      POSTGRES_LOCK_TIMEOUT: ${POSTGRES_LOCK_TIMEOUT:-5}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      JWT_ACCESS_TOKEN_LIFETIME: ${JWT_ACCESS_TOKEN_LIFETIME:-300}
+      JWT_REFRESH_TOKEN_LIFETIME: ${JWT_REFRESH_TOKEN_LIFETIME:-604800}
+      OAUTH_TOKEN_DELIVERY: ${OAUTH_TOKEN_DELIVERY:-code}
+      OAUTH_SESSION_CODE_TTL_SECONDS: ${OAUTH_SESSION_CODE_TTL_SECONDS:-120}
+      OAUTH_SKIP_CONFIRM_PROVIDERS: ${OAUTH_SKIP_CONFIRM_PROVIDERS:-google}
+      OAUTH_ALLOW_LOOPBACK_REDIRECTS: ${OAUTH_ALLOW_LOOPBACK_REDIRECTS:-}
+      ALLOWED_HOSTS: ${IDENTITY_ALLOWED_HOSTS:-identity.localhost,identity,localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${IDENTITY_CSRF_TRUSTED_ORIGINS:-http://identity.localhost:8000,https://admin.shellui.com}
+      SELF_SERVICE_ACCOUNT_DELETE_MAX_IAT_AGE: ${SELF_SERVICE_ACCOUNT_DELETE_MAX_IAT_AGE:-300}
+      POSTGRES_DATABASE_URL: ${IDENTITY_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${IDENTITY_REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${IDENTITY_CELERY_BROKER_URL:-}
+      # Beat runs in identity-worker (celery worker --beat). Keep this off on the web process.
+      SCHEDULER_ENABLED: 'false'
+      CELERY_WORKER_CONCURRENCY: ${IDENTITY_CELERY_WORKER_CONCURRENCY:-2}
+      AUTH_RATE_LIMIT_ENABLED: ${AUTH_RATE_LIMIT_ENABLED:-true}
+      AUTH_RATE_LIMIT_OAUTH: ${AUTH_RATE_LIMIT_OAUTH:-30}
+      AUTH_RATE_LIMIT_TOKEN_REFRESH: ${AUTH_RATE_LIMIT_TOKEN_REFRESH:-60}
+      AUTH_RATE_LIMIT_SETTINGS: ${AUTH_RATE_LIMIT_SETTINGS:-30}
+      AUTH_RATE_LIMIT_ADMIN_LOGIN: ${AUTH_RATE_LIMIT_ADMIN_LOGIN:-10}
+      AUTH_RATE_LIMIT_PAT: ${AUTH_RATE_LIMIT_PAT:-30}
+      AUTH_RATE_LIMIT_MAGIC_LINK: ${AUTH_RATE_LIMIT_MAGIC_LINK:-10}
+      AUTH_RATE_LIMIT_INVITATION: ${AUTH_RATE_LIMIT_INVITATION:-30}
+      MAGIC_LINK_ENABLED: ${MAGIC_LINK_ENABLED:-true}
+      MAGIC_LINK_EMAIL_DEFAULT_LANGUAGE: ${MAGIC_LINK_EMAIL_DEFAULT_LANGUAGE:-en}
+      MAGIC_LINK_TTL_SECONDS: ${MAGIC_LINK_TTL_SECONDS:-1800}
+      PERSONAL_ACCESS_TOKEN_LIFETIME: ${PERSONAL_ACCESS_TOKEN_LIFETIME:-30d}
+      SCIM_ENABLED: ${SCIM_ENABLED:-true}
+      CORS_ALLOW_ALL_ORIGINS: ${IDENTITY_CORS_ALLOW_ALL_ORIGINS:-true}
+      CORS_ALLOW_CREDENTIALS: ${IDENTITY_CORS_ALLOW_CREDENTIALS:-false}
+      CORS_ALLOWED_ORIGINS: ${IDENTITY_CORS_ALLOWED_ORIGINS:-http://localhost:4000,https://admin.shellui.com}
+      CORS_ALLOWED_ORIGIN_REGEXES: ${IDENTITY_CORS_ALLOWED_ORIGIN_REGEXES:-}
+      GUNICORN_WORKERS: ${IDENTITY_GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${IDENTITY_GUNICORN_THREADS:-4}
+      GUNICORN_TIMEOUT: ${IDENTITY_GUNICORN_TIMEOUT:-60}
+      GUNICORN_GRACEFUL_TIMEOUT: ${IDENTITY_GUNICORN_GRACEFUL_TIMEOUT:-30}
+      GUNICORN_KEEP_ALIVE: ${IDENTITY_GUNICORN_KEEP_ALIVE:-75}
+      GUNICORN_MAX_REQUESTS: ${IDENTITY_GUNICORN_MAX_REQUESTS:-1000}
+      GUNICORN_MAX_REQUESTS_JITTER: ${IDENTITY_GUNICORN_MAX_REQUESTS_JITTER:-200}
+      EMAIL_TIMEOUT: ${EMAIL_TIMEOUT:-10}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_IDENTITY:-}
+      EMAIL_SERVICE_TIMEOUT_SECONDS: ${EMAIL_SERVICE_TIMEOUT_SECONDS:-5}
+      EMAIL_SERVICE_SEND_ATTEMPTS: ${EMAIL_SERVICE_SEND_ATTEMPTS:-3}
+      EMAIL_SERVICE_RETRY_MAX_SLEEP_SECONDS: ${EMAIL_SERVICE_RETRY_MAX_SLEEP_SECONDS:-1}
+      SLOW_REQUEST_THRESHOLD_SECONDS: ${SLOW_REQUEST_THRESHOLD_SECONDS:-2}
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      ACTIONS_WEBHOOK_TIMEOUT_SECONDS: ${IDENTITY_ACTIONS_WEBHOOK_TIMEOUT_SECONDS:-5}
+      ACTIONS_OUTBOX_MAX_ATTEMPTS: ${IDENTITY_ACTIONS_OUTBOX_MAX_ATTEMPTS:-8}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${IDENTITY_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${IDENTITY_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+      ACTIONS_WEBHOOK_DISPATCH_WORKERS: ${IDENTITY_ACTIONS_WEBHOOK_DISPATCH_WORKERS:-4}
+      ACTIONS_WEBHOOK_SYNC_DELIVERY: ${IDENTITY_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${IDENTITY_PUBLISH_PORT:-8000}:8000'
+    volumes:
+      - identity-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *web-health-timing
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=4)",
+        ]
+    restart: unless-stopped
+
+  identity-worker:
+    image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
+    command: ['worker']
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${IDENTITY_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?Run ./scripts/generate-secrets.sh}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_KEY_ID: ${JWT_KEY_ID:-}
+      JWT_PREVIOUS_PUBLIC_KEY: ${JWT_PREVIOUS_PUBLIC_KEY:-}
+      JWT_PREVIOUS_KEY_ID: ${JWT_PREVIOUS_KEY_ID:-}
+      JWT_ACCEPT_HS256_LEGACY: ${JWT_ACCEPT_HS256_LEGACY:-false}
+      JWT_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      POSTGRES_CONNECT_TIMEOUT: ${POSTGRES_CONNECT_TIMEOUT:-10}
+      POSTGRES_STATEMENT_TIMEOUT: ${POSTGRES_STATEMENT_TIMEOUT:-15}
+      POSTGRES_LOCK_TIMEOUT: ${POSTGRES_LOCK_TIMEOUT:-5}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      POSTGRES_DATABASE_URL: ${IDENTITY_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${IDENTITY_REDIS_URL:-redis://redis:6379/0}
+      CELERY_BROKER_URL: ${IDENTITY_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'true'
+      CELERY_WORKER_CONCURRENCY: ${IDENTITY_CELERY_WORKER_CONCURRENCY:-2}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_IDENTITY:-}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${IDENTITY_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - identity-data:/app/data
+    depends_on:
+      identity:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *worker-health
+    restart: unless-stopped
+
+  storage:
+    image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${STORAGE_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      ALLOWED_HOSTS: ${STORAGE_ALLOWED_HOSTS:-storage.localhost,storage,localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${STORAGE_CSRF_TRUSTED_ORIGINS:-http://storage.localhost:8001,https://admin.shellui.com}
+      POSTGRES_DATABASE_URL: ${STORAGE_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${STORAGE_REDIS_URL:-redis://redis:6379/1}
+      CELERY_BROKER_URL: ${STORAGE_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'false'
+      CELERY_WORKER_CONCURRENCY: ${STORAGE_CELERY_WORKER_CONCURRENCY:-2}
+      CORS_ALLOW_ALL_ORIGINS: ${STORAGE_CORS_ALLOW_ALL_ORIGINS:-true}
+      CORS_ALLOW_PRIVATE_NETWORK: ${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      CORS_ALLOW_CREDENTIALS: ${STORAGE_CORS_ALLOW_CREDENTIALS:-false}
+      CORS_ALLOWED_ORIGINS: ${STORAGE_CORS_ALLOWED_ORIGINS:-http://localhost:4000,https://admin.shellui.com}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-}
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      JWKS_CACHE_TTL: ${STORAGE_JWKS_CACHE_TTL:-900}
+      JWKS_TIMEOUT: ${STORAGE_JWKS_TIMEOUT:-15}
+      JWKS_RETRIES: ${STORAGE_JWKS_RETRIES:-2}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-filesystem}
+      STORAGE_KEY_PREFIX: ${STORAGE_KEY_PREFIX:-shellui}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_STORAGE_BUCKET_NAME: ${AWS_STORAGE_BUCKET_NAME:-}
+      AWS_S3_REGION_NAME: ${AWS_S3_REGION_NAME:-us-east-1}
+      AWS_S3_ENDPOINT_URL: ${AWS_S3_ENDPOINT_URL:-}
+      AWS_S3_CUSTOM_DOMAIN: ${AWS_S3_CUSTOM_DOMAIN:-}
+      AWS_S3_SIGNATURE_VERSION: ${AWS_S3_SIGNATURE_VERSION:-s3v4}
+      AWS_S3_ADDRESSING_STYLE: ${AWS_S3_ADDRESSING_STYLE:-}
+      SIGNED_URL_EXPIRES: ${SIGNED_URL_EXPIRES:-3600}
+      SETUP_TOKEN: ${STORAGE_SETUP_TOKEN:-}
+      DEFAULT_COMPANY_QUOTA_BYTES: ${DEFAULT_COMPANY_QUOTA_BYTES:-10G}
+      DEFAULT_USER_QUOTA_BYTES: ${DEFAULT_USER_QUOTA_BYTES:-0}
+      MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-5G}
+      WEBDAV_ENABLED: ${WEBDAV_ENABLED:-true}
+      WEBDAV_PATH_PREFIX: ${WEBDAV_PATH_PREFIX:-/dav}
+      DJANGO_ADMIN_ENABLED: ${DJANGO_ADMIN_ENABLED:-true}
+      GUNICORN_WORKERS: ${STORAGE_GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${STORAGE_GUNICORN_THREADS:-2}
+      GUNICORN_TIMEOUT: ${STORAGE_GUNICORN_TIMEOUT:-120}
+      GUNICORN_GRACEFUL_TIMEOUT: ${STORAGE_GUNICORN_GRACEFUL_TIMEOUT:-30}
+      GUNICORN_KEEP_ALIVE: ${STORAGE_GUNICORN_KEEP_ALIVE:-75}
+      GUNICORN_MAX_REQUESTS: ${STORAGE_GUNICORN_MAX_REQUESTS:-1000}
+      GUNICORN_MAX_REQUESTS_JITTER: ${STORAGE_GUNICORN_MAX_REQUESTS_JITTER:-200}
+      ACTIONS_WEBHOOK_TIMEOUT_SECONDS: ${STORAGE_ACTIONS_WEBHOOK_TIMEOUT_SECONDS:-5}
+      ACTIONS_OUTBOX_MAX_ATTEMPTS: ${STORAGE_ACTIONS_OUTBOX_MAX_ATTEMPTS:-8}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${STORAGE_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${STORAGE_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+      ACTIONS_WEBHOOK_DISPATCH_WORKERS: ${STORAGE_ACTIONS_WEBHOOK_DISPATCH_WORKERS:-4}
+      ACTIONS_WEBHOOK_SYNC_DELIVERY: ${STORAGE_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
+      EVENT_LOG_RETENTION_DAYS: ${STORAGE_EVENT_LOG_RETENTION_DAYS:-7}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_STORAGE:-}
+      EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${STORAGE_PUBLISH_PORT:-8001}:8000'
+    volumes:
+      - storage-data:/app/data
+      - *jwks-mount
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *web-health-timing
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/storage/v1/health', timeout=4)",
+        ]
+    restart: unless-stopped
+
+  storage-worker:
+    image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
+    command: ['worker']
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${STORAGE_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      POSTGRES_DATABASE_URL: ${STORAGE_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${STORAGE_REDIS_URL:-redis://redis:6379/1}
+      CELERY_BROKER_URL: ${STORAGE_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'true'
+      CELERY_WORKER_CONCURRENCY: ${STORAGE_CELERY_WORKER_CONCURRENCY:-2}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-filesystem}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_STORAGE:-}
+      EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${STORAGE_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - storage-data:/app/data
+      - *jwks-mount
+    depends_on:
+      storage:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *worker-health
+    restart: unless-stopped
+
+  hosting:
+    image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${HOSTING_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      ALLOWED_HOSTS: ${HOSTING_ALLOWED_HOSTS:-hosting.localhost,hosting,localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${HOSTING_CSRF_TRUSTED_ORIGINS:-http://hosting.localhost:8002,https://admin.shellui.com}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      POSTGRES_DATABASE_URL: ${HOSTING_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${HOSTING_REDIS_URL:-redis://redis:6379/2}
+      CELERY_BROKER_URL: ${HOSTING_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'false'
+      CELERY_WORKER_CONCURRENCY: ${HOSTING_CELERY_WORKER_CONCURRENCY:-2}
+      CORS_ALLOW_ALL_ORIGINS: ${HOSTING_CORS_ALLOW_ALL_ORIGINS:-true}
+      CORS_ALLOW_PRIVATE_NETWORK: ${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      CORS_ALLOW_CREDENTIALS: ${HOSTING_CORS_ALLOW_CREDENTIALS:-false}
+      CORS_ALLOWED_ORIGINS: ${HOSTING_CORS_ALLOWED_ORIGINS:-http://localhost:4000,https://admin.shellui.com}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-}
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      IDENTITY_SYNC_TIMEOUT: ${IDENTITY_SYNC_TIMEOUT:-10}
+      JWKS_CACHE_TTL: ${HOSTING_JWKS_CACHE_TTL:-900}
+      JWKS_TIMEOUT: ${HOSTING_JWKS_TIMEOUT:-15}
+      JWKS_RETRIES: ${HOSTING_JWKS_RETRIES:-2}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      HOSTING_BACKEND: ${HOSTING_BACKEND:-filesystem}
+      HOSTING_KEY_PREFIX: ${HOSTING_KEY_PREFIX:-hosting}
+      AWS_ACCESS_KEY_ID: ${HOSTING_AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${HOSTING_AWS_SECRET_ACCESS_KEY:-}
+      AWS_STORAGE_BUCKET_NAME: ${HOSTING_AWS_STORAGE_BUCKET_NAME:-}
+      AWS_S3_REGION_NAME: ${HOSTING_AWS_S3_REGION_NAME:-us-east-1}
+      AWS_S3_ENDPOINT_URL: ${HOSTING_AWS_S3_ENDPOINT_URL:-}
+      AWS_S3_CUSTOM_DOMAIN: ${HOSTING_AWS_S3_CUSTOM_DOMAIN:-}
+      AWS_S3_SIGNATURE_VERSION: ${HOSTING_AWS_S3_SIGNATURE_VERSION:-s3v4}
+      AWS_S3_ADDRESSING_STYLE: ${HOSTING_AWS_S3_ADDRESSING_STYLE:-}
+      HOSTING_APP_DOMAIN: ${HOSTING_APP_DOMAIN:-shellui.local}
+      HOSTING_APP_SCHEME: ${HOSTING_APP_SCHEME:-http}
+      HOSTING_ALLOW_ANY_HOST: ${HOSTING_ALLOW_ANY_HOST:-false}
+      HOSTING_DEBUG_OPEN: ${HOSTING_DEBUG_OPEN:-false}
+      HOSTING_PREVIEW_TTL_DAYS: ${HOSTING_PREVIEW_TTL_DAYS:-7}
+      SETUP_TOKEN: ${HOSTING_SETUP_TOKEN:-}
+      HOSTING_RATE_LIMIT_ENABLED: ${HOSTING_RATE_LIMIT_ENABLED:-true}
+      HOSTING_RATE_LIMIT_DEPLOY: ${HOSTING_RATE_LIMIT_DEPLOY:-30}
+      HOSTING_RATE_LIMIT_UPLOAD: ${HOSTING_RATE_LIMIT_UPLOAD:-20}
+      HOSTING_RATE_LIMIT_DESTRUCTIVE: ${HOSTING_RATE_LIMIT_DESTRUCTIVE:-10}
+      HOSTING_RATE_LIMIT_ACCESS_REQUEST: ${HOSTING_RATE_LIMIT_ACCESS_REQUEST:-10}
+      HOSTING_SERVE_CACHE_TTL_SECONDS: ${HOSTING_SERVE_CACHE_TTL_SECONDS:-45}
+      ROOT_REDIRECT_URL: ${ROOT_REDIRECT_URL:-}
+      SHELLUI_WEBSITE_URL: ${SHELLUI_WEBSITE_URL:-https://shellui.com}
+      SHELLUI_DOCS_URL: ${SHELLUI_DOCS_URL:-https://docs.shellui.com}
+      SHELLUI_PLAYGROUND_URL: ${SHELLUI_PLAYGROUND_URL:-https://playground.shellui.com}
+      SHELLUI_GITHUB_URL: ${SHELLUI_GITHUB_URL:-https://github.com/shellui}
+      SHELLUI_AI_URL: ${SHELLUI_AI_URL:-https://shellui.ai}
+      HOSTING_MAX_APPS_PER_COMPANY: ${HOSTING_MAX_APPS_PER_COMPANY:-5}
+      HOSTING_MAX_DEPLOYMENTS_PER_APP: ${HOSTING_MAX_DEPLOYMENTS_PER_APP:-20}
+      HOSTING_MAX_UPLOAD_BYTES: ${HOSTING_MAX_UPLOAD_BYTES:-100M}
+      HOSTING_MAX_EXTRACT_FILES: ${HOSTING_MAX_EXTRACT_FILES:-5000}
+      HOSTING_MAX_EXTRACT_BYTES: ${HOSTING_MAX_EXTRACT_BYTES:-500M}
+      HOSTING_MAX_EXTRACT_FILE_BYTES: ${HOSTING_MAX_EXTRACT_FILE_BYTES:-100M}
+      DJANGO_ADMIN_ENABLED: ${DJANGO_ADMIN_ENABLED:-true}
+      GUNICORN_WORKERS: ${HOSTING_GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${HOSTING_GUNICORN_THREADS:-2}
+      GUNICORN_TIMEOUT: ${HOSTING_GUNICORN_TIMEOUT:-120}
+      ACTIONS_OUTBOX_MAX_ATTEMPTS: ${HOSTING_ACTIONS_OUTBOX_MAX_ATTEMPTS:-8}
+      ACTIONS_WEBHOOK_TIMEOUT_SECONDS: ${HOSTING_ACTIONS_WEBHOOK_TIMEOUT_SECONDS:-5}
+      ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${HOSTING_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+      ACTIONS_WEBHOOK_DISPATCH_WORKERS: ${HOSTING_ACTIONS_WEBHOOK_DISPATCH_WORKERS:-4}
+      ACTIONS_WEBHOOK_SYNC_DELIVERY: ${HOSTING_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${HOSTING_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      EVENT_LOG_RETENTION_DAYS: ${HOSTING_EVENT_LOG_RETENTION_DAYS:-7}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_HOSTING:-}
+      EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${HOSTING_PUBLISH_PORT:-8002}:8000'
+    volumes:
+      - hosting-data:/app/data
+      - *jwks-mount
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *web-health-timing
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/hosting/v1/health', timeout=4)",
+        ]
+    restart: unless-stopped
+
+  hosting-worker:
+    image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
+    command: ['worker']
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${HOSTING_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      TRUSTED_PROXY_IPS: ${TRUSTED_PROXY_IPS:-}
+      POSTGRES_DATABASE_URL: ${HOSTING_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${HOSTING_REDIS_URL:-redis://redis:6379/2}
+      CELERY_BROKER_URL: ${HOSTING_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'true'
+      CELERY_WORKER_CONCURRENCY: ${HOSTING_CELERY_WORKER_CONCURRENCY:-2}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-}
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      IDENTITY_SYNC_TIMEOUT: ${IDENTITY_SYNC_TIMEOUT:-10}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      HOSTING_BACKEND: ${HOSTING_BACKEND:-filesystem}
+      HOSTING_APP_DOMAIN: ${HOSTING_APP_DOMAIN:-shellui.local}
+      HOSTING_PREVIEW_TTL_DAYS: ${HOSTING_PREVIEW_TTL_DAYS:-7}
+      HOSTING_APP_SCHEME: ${HOSTING_APP_SCHEME:-http}
+      HOSTING_ALLOW_ANY_HOST: ${HOSTING_ALLOW_ANY_HOST:-false}
+      HOSTING_DEBUG_OPEN: ${HOSTING_DEBUG_OPEN:-false}
+      EMAIL_SERVICE_URL: ${EMAIL_SERVICE_URL:-http://email:8000}
+      EMAIL_SERVICE_API_KEY: ${EMAIL_SERVICE_API_KEY_HOSTING:-}
+      EMAIL_SERVICE_ALLOW_PRIVATE: ${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${HOSTING_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - hosting-data:/app/data
+      - *jwks-mount
+    depends_on:
+      hosting:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *worker-health
+    restart: unless-stopped
+
+  email:
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${EMAIL_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      ALLOWED_HOSTS: ${EMAIL_ALLOWED_HOSTS:-email.localhost,email,localhost,127.0.0.1}
+      CSRF_TRUSTED_ORIGINS: ${EMAIL_CSRF_TRUSTED_ORIGINS:-http://email.localhost:8003,https://admin.shellui.com}
+      POSTGRES_DATABASE_URL: ${EMAIL_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${EMAIL_REDIS_URL:-redis://redis:6379/3}
+      CELERY_BROKER_URL: ${EMAIL_CELERY_BROKER_URL:-}
+      # Lane workers and beat run in email-worker.
+      SCHEDULER_ENABLED: 'false'
+      EMAIL_WORKERS_ENABLED: 'false'
+      CELERY_WORKER_CONCURRENCY: ${EMAIL_CELERY_WORKER_CONCURRENCY:-2}
+      CORS_ALLOW_ALL_ORIGINS: ${EMAIL_CORS_ALLOW_ALL_ORIGINS:-false}
+      CORS_ALLOW_PRIVATE_NETWORK: ${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      CORS_ALLOW_CREDENTIALS: ${EMAIL_CORS_ALLOW_CREDENTIALS:-false}
+      CORS_ALLOWED_ORIGINS: ${EMAIL_CORS_ALLOWED_ORIGINS:-https://admin.shellui.com}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_JWKS_URL: ${IDENTITY_JWKS_URL:-}
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      JWKS_CACHE_TTL: ${EMAIL_JWKS_CACHE_TTL:-900}
+      JWKS_TIMEOUT: ${EMAIL_JWKS_TIMEOUT:-15}
+      JWKS_RETRIES: ${EMAIL_JWKS_RETRIES:-2}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      PUBLIC_BASE_URL: ${EMAIL_PUBLIC_BASE_URL:-http://email.localhost:8003}
+      EMAIL_PUBLIC_URL: ${EMAIL_PUBLIC_URL:-}
+      DJANGO_ADMIN_ENABLED: ${DJANGO_ADMIN_ENABLED:-true}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@shellui.com}
+      DEFAULT_FROM_NAME: ${DEFAULT_FROM_NAME:-Shellui}
+      BULK_FROM_EMAIL: ${BULK_FROM_EMAIL:-news@news.shellui.com}
+      BULK_FROM_NAME: ${BULK_FROM_NAME:-Shellui}
+      EMAIL_NEWSLETTER_IP_PER_HOUR: ${EMAIL_NEWSLETTER_IP_PER_HOUR:-10}
+      EMAIL_NEWSLETTER_ADDRESS_PER_DAY: ${EMAIL_NEWSLETTER_ADDRESS_PER_DAY:-3}
+      EMAIL_NEWSLETTER_LIST_PER_HOUR: ${EMAIL_NEWSLETTER_LIST_PER_HOUR:-500}
+      EMAIL_NEWSLETTER_CONFIRM_HOURS: ${EMAIL_NEWSLETTER_CONFIRM_HOURS:-48}
+      EMAIL_NEWSLETTER_PENDING_DAYS: ${EMAIL_NEWSLETTER_PENDING_DAYS:-7}
+      EMAIL_CLIENT_IP_HEADER: ${EMAIL_CLIENT_IP_HEADER:-}
+      EMAIL_FALLBACK_PROVIDER: ${EMAIL_FALLBACK_PROVIDER:-none}
+      EMAIL_PLATFORM_COMPANY_IDS: ${EMAIL_PLATFORM_COMPANY_IDS:-}
+      EMAIL_ALLOW_COMPANY_SMTP: ${EMAIL_ALLOW_COMPANY_SMTP:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-}
+      EMAIL_CREDENTIALS_KEY: ${EMAIL_CREDENTIALS_KEY:?Run ./scripts/generate-secrets.sh}
+      EMAIL_VARIABLES_KEY: ${EMAIL_VARIABLES_KEY:?Run ./scripts/generate-secrets.sh}
+      EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER:?Run ./scripts/generate-secrets.sh}
+      EMAIL_AUTH_LINK_HOSTS: ${EMAIL_AUTH_LINK_HOSTS:-identity.localhost}
+      EMAIL_MAX_DOCUMENT_BYTES: ${EMAIL_MAX_DOCUMENT_BYTES:-524288}
+      EMAIL_MAX_RECIPIENTS: ${EMAIL_MAX_RECIPIENTS:-50}
+      EMAIL_MAX_BATCH_ITEMS: ${EMAIL_MAX_BATCH_ITEMS:-500}
+      EMAIL_MAX_VARIABLES_BYTES: ${EMAIL_MAX_VARIABLES_BYTES:-8192}
+      EMAIL_BROADCAST_MAX_RECIPIENTS: ${EMAIL_BROADCAST_MAX_RECIPIENTS:-10000}
+      EMAIL_BROADCAST_STEP_SECONDS: ${EMAIL_BROADCAST_STEP_SECONDS:-20}
+      EMAIL_TURNSTILE_VERIFY_URL: ${EMAIL_TURNSTILE_VERIFY_URL:-https://challenges.cloudflare.com/turnstile/v0/siteverify}
+      EMAIL_ALLOW_FAKE_PROVIDER: ${EMAIL_ALLOW_FAKE_PROVIDER:-false}
+      EMAIL_AUTH_DEFAULT_TTL_SECONDS: ${EMAIL_AUTH_DEFAULT_TTL_SECONDS:-120}
+      EMAIL_AUTH_MAX_TTL_SECONDS: ${EMAIL_AUTH_MAX_TTL_SECONDS:-300}
+      EMAIL_MESSAGE_RETENTION_DAYS: ${EMAIL_MESSAGE_RETENTION_DAYS:-30}
+      EMAIL_IDEMPOTENCY_HOURS: ${EMAIL_IDEMPOTENCY_HOURS:-24}
+      EMAIL_COMPANY_TRANSACTIONAL_PER_HOUR: ${EMAIL_COMPANY_TRANSACTIONAL_PER_HOUR:-1000}
+      EMAIL_RECIPIENT_AUTH_LIMIT: ${EMAIL_RECIPIENT_AUTH_LIMIT:-5}
+      EMAIL_RECIPIENT_AUTH_WINDOW_SECONDS: ${EMAIL_RECIPIENT_AUTH_WINDOW_SECONDS:-600}
+      EMAIL_COMPANY_AUTH_LIMIT: ${EMAIL_COMPANY_AUTH_LIMIT:-30}
+      EMAIL_COMPANY_AUTH_WINDOW_SECONDS: ${EMAIL_COMPANY_AUTH_WINDOW_SECONDS:-60}
+      EMAIL_NODE_BINARY: ${EMAIL_NODE_BINARY:-node}
+      EMAIL_DELIVER_SYNC: ${EMAIL_DELIVER_SYNC:-false}
+      SETUP_TOKEN: ${EMAIL_SETUP_TOKEN:-}
+      GUNICORN_WORKERS: ${EMAIL_GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${EMAIL_GUNICORN_THREADS:-2}
+      GUNICORN_TIMEOUT: ${EMAIL_GUNICORN_TIMEOUT:-120}
+      ACTIONS_WEBHOOK_TIMEOUT_SECONDS: ${EMAIL_ACTIONS_WEBHOOK_TIMEOUT_SECONDS:-5}
+      ACTIONS_OUTBOX_MAX_ATTEMPTS: ${EMAIL_ACTIONS_OUTBOX_MAX_ATTEMPTS:-8}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${EMAIL_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${EMAIL_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+      ACTIONS_WEBHOOK_SYNC_DELIVERY: ${EMAIL_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
+      EVENT_LOG_RETENTION_DAYS: ${EMAIL_EVENT_LOG_RETENTION_DAYS:-7}
+    ports:
+      - '${BIND_ADDRESS:-127.0.0.1}:${EMAIL_PUBLISH_PORT:-8003}:8000'
+    volumes:
+      - email-data:/app/data
+      - *jwks-mount
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *web-health-timing
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)",
+        ]
+    restart: unless-stopped
+
+  email-worker:
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
+    command: ['worker']
+    environment:
+      <<: *http-security
+      SECRET_KEY: ${EMAIL_SECRET_KEY:?Run ./scripts/generate-secrets.sh}
+      POSTGRES_DATABASE_URL: ${EMAIL_DATABASE_URL:?Run ./scripts/generate-secrets.sh}
+      REDIS_URL: ${EMAIL_REDIS_URL:-redis://redis:6379/3}
+      CELERY_BROKER_URL: ${EMAIL_CELERY_BROKER_URL:-}
+      SCHEDULER_ENABLED: 'true'
+      EMAIL_WORKERS_ENABLED: 'true'
+      CELERY_WORKER_CONCURRENCY: ${EMAIL_CELERY_WORKER_CONCURRENCY:-2}
+      IDENTITY_SERVICE_URL: ${IDENTITY_SERVICE_URL:-http://identity:8000}
+      IDENTITY_JWKS_FILE: /run/secrets/jwks.json
+      IDENTITY_ISSUER: ${JWT_ISSUER:-http://identity.localhost:8000}
+      IDENTITY_AUDIENCE: ${JWT_AUDIENCE:-shellui}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-RS256}
+      PUBLIC_BASE_URL: ${EMAIL_PUBLIC_BASE_URL:-http://email.localhost:8003}
+      EMAIL_PUBLIC_URL: ${EMAIL_PUBLIC_URL:-}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-no-reply@shellui.com}
+      DEFAULT_FROM_NAME: ${DEFAULT_FROM_NAME:-Shellui}
+      BULK_FROM_EMAIL: ${BULK_FROM_EMAIL:-news@news.shellui.com}
+      BULK_FROM_NAME: ${BULK_FROM_NAME:-Shellui}
+      EMAIL_FALLBACK_PROVIDER: ${EMAIL_FALLBACK_PROVIDER:-none}
+      EMAIL_PLATFORM_COMPANY_IDS: ${EMAIL_PLATFORM_COMPANY_IDS:-}
+      EMAIL_ALLOW_COMPANY_SMTP: ${EMAIL_ALLOW_COMPANY_SMTP:-false}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-}
+      EMAIL_USE_SSL: ${EMAIL_USE_SSL:-}
+      EMAIL_CREDENTIALS_KEY: ${EMAIL_CREDENTIALS_KEY:?Run ./scripts/generate-secrets.sh}
+      EMAIL_VARIABLES_KEY: ${EMAIL_VARIABLES_KEY:?Run ./scripts/generate-secrets.sh}
+      EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER:?Run ./scripts/generate-secrets.sh}
+      EMAIL_AUTH_LINK_HOSTS: ${EMAIL_AUTH_LINK_HOSTS:-identity.localhost}
+      EMAIL_MAX_DOCUMENT_BYTES: ${EMAIL_MAX_DOCUMENT_BYTES:-524288}
+      EMAIL_MAX_RECIPIENTS: ${EMAIL_MAX_RECIPIENTS:-50}
+      EMAIL_MAX_BATCH_ITEMS: ${EMAIL_MAX_BATCH_ITEMS:-500}
+      EMAIL_MAX_VARIABLES_BYTES: ${EMAIL_MAX_VARIABLES_BYTES:-8192}
+      EMAIL_BROADCAST_MAX_RECIPIENTS: ${EMAIL_BROADCAST_MAX_RECIPIENTS:-10000}
+      EMAIL_BROADCAST_STEP_SECONDS: ${EMAIL_BROADCAST_STEP_SECONDS:-20}
+      EMAIL_TURNSTILE_VERIFY_URL: ${EMAIL_TURNSTILE_VERIFY_URL:-https://challenges.cloudflare.com/turnstile/v0/siteverify}
+      EMAIL_ALLOW_FAKE_PROVIDER: ${EMAIL_ALLOW_FAKE_PROVIDER:-false}
+      EMAIL_NODE_BINARY: ${EMAIL_NODE_BINARY:-node}
+      EMAIL_DELIVER_SYNC: ${EMAIL_DELIVER_SYNC:-false}
+      ACTIONS_WEBHOOK_ALLOW_PRIVATE: ${EMAIL_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS: ${EMAIL_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+    volumes:
+      - email-data:/app/data
+      - *jwks-mount
+    depends_on:
+      email:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck: *worker-health
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  identity-data:
+  storage-data:
+  hosting-data:
+  email-data:

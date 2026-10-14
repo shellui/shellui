@@ -210,6 +210,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'self-hosting',
+          label: 'Self-hosting',
+        },
+        {
+          type: 'doc',
           id: 'publishing',
           label: 'Publishing',
         },
