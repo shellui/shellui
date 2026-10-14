@@ -9,6 +9,7 @@ import {
 } from '../utils';
 import { AuthRequestError } from '../utils/authRequestError';
 import { getShellUILoginCompanyId } from '../utils/clientLoginContext';
+import { shelluiWebOAuthRedirectTo } from '../utils/webPkce';
 import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 
@@ -140,28 +141,24 @@ export const createShellUIAuthBackend = ({
       if (!currentSession?.refreshToken) return null;
       return refreshWithStoredToken(currentSession, nowSeconds);
     },
-    startOAuth: (provider, redirectPath, oauthClientId) => {
+    startOAuth: (provider, redirectPath, oauthClientId, options) => {
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');
       }
-      const redirectToUrl = new URL(
-        `${window.location.origin}${normalizeRedirectPath(redirectPath)}`,
-      );
-      redirectToUrl.searchParams.set('provider', provider);
-      if (
-        typeof oauthClientId === 'number' &&
-        Number.isFinite(oauthClientId) &&
-        oauthClientId > 0
-      ) {
-        redirectToUrl.searchParams.set(
-          'company_oauth_client_id',
-          String(Math.trunc(oauthClientId)),
-        );
-      }
-      const redirectTo = redirectToUrl.toString();
+      const redirectTo = shelluiWebOAuthRedirectTo({
+        origin: window.location.origin,
+        redirectPath,
+        provider,
+        oauthClientId,
+      });
+      const codeChallenge = options?.codeChallenge?.trim();
       const authorizeUrl = new URL(`${backendUrl}/api/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
       authorizeUrl.searchParams.set('redirect_to', redirectTo);
+      if (codeChallenge) {
+        authorizeUrl.searchParams.set('code_challenge', codeChallenge);
+        authorizeUrl.searchParams.set('code_challenge_method', 'S256');
+      }
       if (
         typeof oauthClientId === 'number' &&
         Number.isFinite(oauthClientId) &&

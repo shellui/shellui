@@ -180,7 +180,7 @@ describe('shellui backend OAuth session', () => {
 });
 
 describe('shellui backend startOAuth', () => {
-  test('keeps the http redirect and does not send PKCE', () => {
+  test('web redirect sends S256 code_challenge and never the verifier', () => {
     const assign = vi.fn();
     vi.stubGlobal('window', {
       location: { origin: 'https://app.example.com', assign },
@@ -194,7 +194,7 @@ describe('shellui backend startOAuth', () => {
       companyId: 7,
     });
 
-    backend.startOAuth('github', '/login/callback', 4);
+    backend.startOAuth('github', '/login/callback', 4, { codeChallenge: 'a'.repeat(43) });
 
     expect(assign).toHaveBeenCalledTimes(1);
     const url = new URL(String(assign.mock.calls[0]?.[0]));
@@ -205,10 +205,66 @@ describe('shellui backend startOAuth', () => {
     );
     expect(url.searchParams.get('company_id')).toBe('7');
     expect(url.searchParams.get('company_oauth_client_id')).toBe('4');
-    expect(url.searchParams.has('code_challenge')).toBe(false);
-    expect(url.searchParams.has('code_challenge_method')).toBe(false);
+    expect(url.searchParams.get('code_challenge')).toBe('a'.repeat(43));
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(url.searchParams.has('code_verifier')).toBe(false);
     vi.unstubAllGlobals();
+  });
+});
+
+describe('shellui backend refresh and logout', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  test('refresh posts the refresh token and does not send PKCE fields', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, {
+        access_token: 'header.payload.sig',
+        refresh_token: 'refresh-2',
+        expires_in: 3600,
+        token_type: 'bearer',
+      }),
+    );
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+    await backend.refreshAuthSession(
+      {
+        accessToken: 'old',
+        refreshToken: 'refresh-1',
+        expiresAt: 1,
+        tokenType: 'bearer',
+      } as AuthSession,
+      1_700_000_000,
+    );
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/token?grant_type=refresh_token');
+    const body = JSON.parse(init.body as string) as Record<string, unknown>;
+    expect(body.refresh_token).toBe('refresh-1');
+    expect(body).not.toHaveProperty('code_verifier');
+    expect(body).not.toHaveProperty('code_challenge');
+  });
+
+  test('logout posts the access token and refresh token', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    const backend = createShellUIAuthBackend({ backendUrl: 'https://auth.example.com' });
+    await backend.logout({
+      accessToken: 'access-1',
+      refreshToken: 'refresh-1',
+      expiresAt: 1,
+      tokenType: 'bearer',
+    } as AuthSession);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://auth.example.com/api/v1/logout');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer access-1');
+    expect(JSON.parse(init.body as string)).toEqual({ refresh_token: 'refresh-1' });
   });
 });
 

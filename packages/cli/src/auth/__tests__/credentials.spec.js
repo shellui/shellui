@@ -1,4 +1,4 @@
-import { test, describe, beforeEach, afterEach, expect } from 'vitest';
+import { test, describe, beforeEach, afterEach, expect, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -9,6 +9,8 @@ import {
   getCredentialStorageInfo,
   isCredentialsShape,
   readCredentials,
+  resetCredentialKeychainForTests,
+  setCredentialKeychainForTests,
   writeCredentials,
 } from '../credentials.js';
 
@@ -29,6 +31,7 @@ describe('credentials', () => {
   });
 
   afterEach(() => {
+    resetCredentialKeychainForTests();
     if (prevXdg === undefined) delete process.env.XDG_CONFIG_HOME;
     else process.env.XDG_CONFIG_HOME = prevXdg;
     if (prevAppData === undefined) delete process.env.APPDATA;
@@ -94,11 +97,61 @@ describe('credentials', () => {
     ).toBe(true);
   });
 
-  test('getCredentialStorageInfo documents plaintext residual', () => {
+  test('getCredentialStorageInfo documents keychain with a 0600 file fallback', () => {
     const info = getCredentialStorageInfo();
-    expect(info.format).toBe('plaintext-json');
+    expect(info.format).toBe('os-keychain-with-0600-file-fallback');
     expect(info.unixPermissions.file).toBe('0600');
     expect(info.followUp).toMatch(/keychain/i);
+  });
+
+  test('stores credentials in the keychain and does not leave the token file', () => {
+    /** @type {string | null} */
+    let saved = null;
+    setCredentialKeychainForTests({
+      getPassword: () => saved,
+      setPassword: (password) => {
+        saved = password;
+      },
+      deletePassword: () => {
+        const had = saved != null;
+        saved = null;
+        return had;
+      },
+    });
+    writeCredentials({
+      backendUrl: 'https://id.shellui.com',
+      companyId: '1',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+    });
+    expect(fs.existsSync(getCredentialsPath())).toBe(false);
+    expect(readCredentials()).toMatchObject({ accessToken: 'access', refreshToken: 'refresh' });
+    expect(clearCredentials()).toBe(true);
+    expect(readCredentials()).toBeNull();
+    resetCredentialKeychainForTests();
+  });
+
+  test('falls back to the 0600 file and warns when the keychain write fails', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setCredentialKeychainForTests({
+      getPassword: () => null,
+      setPassword: () => {
+        throw new Error('secret service unavailable');
+      },
+      deletePassword: () => false,
+    });
+    writeCredentials({
+      backendUrl: 'https://id.shellui.com',
+      companyId: '1',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+    });
+    expect(fs.existsSync(getCredentialsPath())).toBe(true);
+    expect(readCredentials()).toMatchObject({ refreshToken: 'refresh' });
+    expect(warn).toHaveBeenCalled();
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(/0600/);
+    warn.mockRestore();
+    resetCredentialKeychainForTests();
   });
 
   test('readCredentials returns null for corrupt file', () => {

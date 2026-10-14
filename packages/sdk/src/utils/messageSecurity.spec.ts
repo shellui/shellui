@@ -7,6 +7,7 @@ import {
   isIframeReadyForTargetOrigin,
   resolveIframeTargetOrigin,
   resolveParentTargetOrigin,
+  clearParentTargetOriginHints,
 } from './messageSecurity.js';
 
 describe('MessageSecurityPolicy', () => {
@@ -26,6 +27,7 @@ describe('MessageSecurityPolicy', () => {
   });
 
   afterEach(() => {
+    clearParentTargetOriginHints();
     vi.unstubAllGlobals();
   });
 
@@ -227,6 +229,7 @@ describe('isIframeReadyForTargetOrigin', () => {
 
 describe('resolveParentTargetOrigin', () => {
   afterEach(() => {
+    clearParentTargetOriginHints();
     vi.unstubAllGlobals();
   });
 
@@ -255,7 +258,7 @@ describe('resolveParentTargetOrigin', () => {
     expect(resolveParentTargetOrigin()).toBe('http://localhost:4000');
   });
 
-  it('falls back to * when embedded without ancestorOrigins or referrer', () => {
+  it('does not post with * when the parent origin is unknown', () => {
     const parentWin = {} as Window;
     vi.stubGlobal('window', {
       parent: parentWin,
@@ -263,12 +266,41 @@ describe('resolveParentTargetOrigin', () => {
     } as Window);
     vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
 
-    expect(resolveParentTargetOrigin()).toBe('*');
+    expect(resolveParentTargetOrigin()).toBeNull();
+  });
+
+  it('uses the single allowedMessageOrigins hint when the browser cannot name the parent', () => {
+    const parentWin = {} as Window;
+    vi.stubGlobal('window', {
+      parent: parentWin,
+      location: { origin: 'http://localhost:5173' },
+    } as Window);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+    const policy = new MessageSecurityPolicy();
+    policy.configure({ allowedOrigins: ['http://localhost:4000'] });
+
+    expect(resolveParentTargetOrigin()).toBe('http://localhost:4000');
+  });
+
+  it('does not guess when more than one parent hint is configured', () => {
+    const parentWin = {} as Window;
+    vi.stubGlobal('window', {
+      parent: parentWin,
+      location: { origin: 'http://localhost:5173' },
+    } as Window);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+    const policy = new MessageSecurityPolicy();
+    policy.configure({
+      allowedOrigins: ['http://localhost:4000', 'https://shell.example.com'],
+    });
+
+    expect(resolveParentTargetOrigin()).toBeNull();
   });
 });
 
 describe('explainUntrustedInboundMessage', () => {
   afterEach(() => {
+    clearParentTargetOriginHints();
     vi.unstubAllGlobals();
   });
 

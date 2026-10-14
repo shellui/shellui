@@ -5,6 +5,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "fetch:services": "node scripts/fetch-service-docs.js",
+    "test": "node --test scripts/parse-sidebar.test.js",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
