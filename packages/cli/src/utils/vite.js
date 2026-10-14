@@ -316,7 +316,11 @@ export function createIsolatedViteConfig({
     configFile: false,
     envDir: false,
     envPrefix: 'SHELLUI_PUBLIC_',
-    base: './',
+    // Root-absolute URLs. A relative base (`./`) makes `/settings/appearance`
+    // request `/settings/assets/...`, and the SPA fallback returns HTML.
+    // Tauri 2 serves frontendDist from the protocol origin and expects the
+    // same `/assets/...` paths. Its Vite guide does not set `base: './'`.
+    base: '/',
     root: coreSrcPath,
     cacheDir,
     publicDir,

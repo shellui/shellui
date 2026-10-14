@@ -31,8 +31,8 @@ describe('createIsolatedViteConfig', () => {
     expect(isolated.envPrefix).toBe('SHELLUI_PUBLIC_');
   });
 
-  test('uses relative base for deployable dist/web output', () => {
-    expect(isolated.base).toBe('./');
+  test('uses an absolute base so deep routes load /assets from the site root', () => {
+    expect(isolated.base).toBe('/');
   });
 
   test('roots the shell in @shellui/core, not the consumer project', () => {
