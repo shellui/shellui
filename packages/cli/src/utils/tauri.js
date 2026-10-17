@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import pc from 'picocolors';
 import { loadConfig } from './config.js';
 import { resolvePackagePath } from './package-path.js';
+import { buildDevDeepLinkConfigPatch, setupDesktopDevLink } from './desktop-dev-link.js';
 import {
   getProjectRoot,
   getDesktopAppDir,
@@ -173,6 +174,158 @@ export function toCargoBinName(productName) {
   if (!cleaned) return 'Shellui';
   if (/^[0-9]/.test(cleaned)) return `App-${cleaned}`;
   return cleaned;
+}
+
+/** Window calls the shell makes over Tauri IPC, for example to come forward after desktop sign-in. */
+export const SHELL_WINDOW_PERMISSIONS = [
+  'core:window:allow-start-dragging',
+  'core:window:allow-unminimize',
+  'core:window:allow-show',
+  'core:window:allow-set-focus',
+];
+
+/** Opens the system browser for GitHub (and other) sign-in, then receives the custom-scheme callback. */
+export const DESKTOP_SIGN_IN_PERMISSIONS = ['opener:default', 'deep-link:default'];
+
+/**
+ * Add missing shell window permissions to the main capability.
+ * The app folder is scaffolded once, so an older app keeps an older capability file.
+ * @param {string} appSrcTauriDir path to …/src-tauri
+ */
+export function syncShellCapabilities(appSrcTauriDir) {
+  const capsPath = path.join(appSrcTauriDir, 'capabilities', 'default.json');
+  if (!fs.existsSync(capsPath)) return;
+
+  let caps;
+  try {
+    caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
+  } catch {
+    return;
+  }
+  if (!Array.isArray(caps?.permissions)) return;
+
+  const present = new Set(
+    caps.permissions.map((entry) => (typeof entry === 'string' ? entry : entry?.identifier)),
+  );
+  const missing = SHELL_WINDOW_PERMISSIONS.filter((permission) => !present.has(permission));
+  // Rewriting an unchanged file would make `tauri dev` rebuild.
+  if (missing.length === 0) return;
+
+  caps.permissions.push(...missing);
+  fs.writeFileSync(capsPath, JSON.stringify(caps, null, 2) + '\n');
+}
+
+/**
+ * Desktop sign-in opens the identity URL in the system browser (`plugin:opener`)
+ * and comes back through a custom scheme (`plugin:deep-link`).
+ * The app folder is scaffolded once, so an older app keeps a template from before these plugins.
+ * @param {string} appSrcTauriDir path to …/src-tauri
+ */
+export function syncDesktopSignIn(appSrcTauriDir) {
+  syncDesktopSignInCargo(path.join(appSrcTauriDir, 'Cargo.toml'));
+  syncDesktopSignInLib(path.join(appSrcTauriDir, 'src', 'lib.rs'));
+  syncDesktopSignInCapabilities(path.join(appSrcTauriDir, 'capabilities', 'default.json'));
+}
+
+/**
+ * @param {string} cargoPath
+ */
+function syncDesktopSignInCargo(cargoPath) {
+  if (!fs.existsSync(cargoPath)) return;
+  let cargo = fs.readFileSync(cargoPath, 'utf8');
+  const original = cargo;
+  if (!cargo.includes('tauri-plugin-opener')) {
+    cargo = cargo.replace(
+      /tauri\s*=\s*\{\s*version\s*=\s*"2",\s*features\s*=\s*\[\]\s*\}/,
+      [
+        'tauri = { version = "2", features = [] }',
+        'tauri-plugin-opener = "2"',
+        'tauri-plugin-deep-link = "2"',
+      ].join('\n'),
+    );
+  }
+  if (!/^serde_json\s*=/m.test(cargo)) {
+    cargo = cargo.replace(/^(tauri\s*=\s*\{[^\n]*\}\n)/m, '$1serde_json = "1"\n');
+  }
+  if (!cargo.includes('tauri-plugin-single-instance')) {
+    cargo = `${cargo.trimEnd()}\n\n[target.'cfg(any(windows, target_os = "linux"))'.dependencies]\ntauri-plugin-single-instance = { version = "2", features = ["deep-link"] }\n`;
+  }
+  if (cargo !== original) fs.writeFileSync(cargoPath, cargo);
+}
+
+/**
+ * @param {string} libPath
+ */
+function syncDesktopSignInLib(libPath) {
+  if (!fs.existsSync(libPath)) return;
+  let lib = fs.readFileSync(libPath, 'utf8');
+  const original = lib;
+  if (!lib.includes('tauri_plugin_opener::init')) {
+    lib = lib.replace(
+      'tauri::Builder::default()\n',
+      [
+        'tauri::Builder::default()',
+        '        .plugin(tauri_plugin_opener::init())',
+        '        .plugin(tauri_plugin_deep_link::init())',
+        '',
+      ].join('\n'),
+    );
+  }
+  if (!lib.includes('tauri_plugin_single_instance')) {
+    lib = lib.replace(
+      /^ {4}tauri::Builder::default\(\)\n/m,
+      [
+        '    let builder = tauri::Builder::default();',
+        '    // Must be the first plugin. A deep link on Windows or Linux starts a second process.',
+        '    #[cfg(any(windows, target_os = "linux"))]',
+        '    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {',
+        '        use tauri::Manager;',
+        '        if let Some(window) = app.get_webview_window("main") {',
+        '            let _ = window.set_focus();',
+        '        }',
+        '    }));',
+        '    builder',
+        '',
+      ].join('\n'),
+    );
+  }
+  if (!lib.includes('register_all')) {
+    lib = lib.replace(
+      /^( {8}\.setup\(\|app\| \{\n)/m,
+      '$1' +
+        [
+          '            // Installers register the scheme. `tauri dev` registers it at runtime.',
+          '            #[cfg(all(debug_assertions, any(windows, target_os = "linux")))]',
+          '            {',
+          '                use tauri_plugin_deep_link::DeepLinkExt;',
+          '                app.deep_link().register_all()?;',
+          '            }',
+          '',
+        ].join('\n'),
+    );
+  }
+  if (lib !== original) fs.writeFileSync(libPath, lib);
+}
+
+/**
+ * @param {string} capsPath
+ */
+function syncDesktopSignInCapabilities(capsPath) {
+  if (!fs.existsSync(capsPath)) return;
+  let caps;
+  try {
+    caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
+  } catch {
+    return;
+  }
+  if (!Array.isArray(caps?.permissions)) return;
+  const present = new Set(
+    caps.permissions.map((entry) => (typeof entry === 'string' ? entry : entry?.identifier)),
+  );
+  const missing = DESKTOP_SIGN_IN_PERMISSIONS.filter((permission) => !present.has(permission));
+  if (missing.length === 0) return;
+  caps.permissions.push(...missing);
+  fs.writeFileSync(capsPath, JSON.stringify(caps, null, 2) + '\n');
 }
 
 /**
@@ -648,6 +801,8 @@ export async function syncTauriConfig(root, cwd, options = {}) {
 
   // macOS Dock / Cmd-Tab in `tauri dev` use the Cargo binary name, not productName.
   syncCargoPackageName(path.join(appDir, 'src-tauri'), tauriConf.productName);
+  syncShellCapabilities(path.join(appDir, 'src-tauri'));
+  syncDesktopSignIn(path.join(appDir, 'src-tauri'));
 
   const port = config.port ?? 3000;
   tauriConf.build.devUrl = `http://localhost:${port}`;
@@ -674,6 +829,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
 
   fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
   console.log(pc.green(`Synced shellui config -> ${DESKTOP_APP_DIR}/`));
+  return { config, tauriConf };
 }
 
 /**
@@ -727,13 +883,35 @@ export function runTauriCommand(projectRoot, appDir, args) {
 export async function tauriDevCommand(root = '.', options = {}) {
   const cwd = process.cwd();
   await ensureTauriApp(root, cwd);
-  await syncTauriConfig(root, cwd, options);
+  const { config, tauriConf } = await syncTauriConfig(root, cwd, options);
 
   const projectRoot = getProjectRoot(root, cwd);
   const appDir = getDesktopAppDir(root, cwd);
 
+  const devLink = setupDesktopDevLink({ appDir, config, tauriConf });
+  const cleanupDevLink = devLink?.cleanup ?? null;
+  const onSignal = () => process.exit(130);
+  if (cleanupDevLink) {
+    process.once('exit', cleanupDevLink);
+    process.once('SIGINT', onSignal);
+    process.once('SIGTERM', onSignal);
+  }
+
+  const devArgs = ['dev'];
+  if (devLink) {
+    devArgs.push('--config', buildDevDeepLinkConfigPatch(devLink.scheme));
+  }
+
   console.log(pc.blue('Starting desktop development environment...'));
-  await runTauriCommand(projectRoot, appDir, ['dev']);
+  try {
+    await runTauriCommand(projectRoot, appDir, devArgs);
+  } finally {
+    if (cleanupDevLink) {
+      cleanupDevLink();
+      process.off('SIGINT', onSignal);
+      process.off('SIGTERM', onSignal);
+    }
+  }
 }
 
 /**

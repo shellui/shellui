@@ -114,7 +114,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
       <FloatingStatusScrim enabled={showStatusScrim} />
 
-      {isTauriEnv ? (
+      {isTauriEnv && !(showSidebar && !sidebarCollapsed) ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
           style={{

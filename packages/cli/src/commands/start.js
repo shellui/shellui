@@ -21,6 +21,7 @@ import { serviceWorkerDevPlugin } from '../utils/service-worker-plugin.js';
 import { sentryTunnelPlugin } from '../utils/sentry-tunnel-plugin.js';
 import { authBffPlugin } from '../utils/auth-bff-plugin.js';
 import { shellCspPlugin } from '../utils/shell-csp-plugin.js';
+import { applyDesktopDevLinkScheme, desktopDevLinkPlugin } from '../utils/desktop-dev-link.js';
 import { initCommand } from './init.js';
 import { tauriDevCommand } from '../utils/tauri.js';
 
@@ -57,7 +58,7 @@ function applyTargetOption(options = {}) {
  * @returns {Promise<import('vite').ViteDevServer>}
  */
 async function startServer(root, cwd, shouldOpen = false, host = false) {
-  const config = await loadConfig(root, { config: activeConfigPath });
+  const config = applyDesktopDevLinkScheme(await loadConfig(root, { config: activeConfigPath }));
 
   const corePackagePath = resolvePackagePath('@shellui/core');
   const coreSrcPath = getCoreSrcPath();
@@ -78,6 +79,7 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       sentryTunnelPlugin(),
       authBffPlugin(config),
       shellCspPlugin(config),
+      desktopDevLinkPlugin(config),
     ],
     esbuild: {
       ...isolated.esbuild,

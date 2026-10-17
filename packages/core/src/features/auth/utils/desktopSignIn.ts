@@ -28,6 +28,8 @@ export type DesktopAuthOpenUrl = (url: string) => void | Promise<void>;
 
 export type DesktopAuthUrlListener = (urls: string[]) => void;
 
+export type DesktopAuthFocusWindow = () => void | Promise<void>;
+
 /**
  * Subscribe to OS deep links. Wire `@tauri-apps/plugin-deep-link` `onOpenUrl`.
  * Return an unsubscribe function when the plugin provides one.
@@ -41,6 +43,8 @@ export interface DesktopAuthAdapters {
   openUrl: DesktopAuthOpenUrl;
   /** Optional. When omitted, the shell listens with Tauri's deep-link plugin IPC. */
   onOpenUrl?: DesktopAuthOnOpenUrl;
+  /** Optional. When omitted, the shell focuses its window with Tauri's window plugin IPC. */
+  focusWindow?: DesktopAuthFocusWindow;
 }
 
 export type DesktopAuthEvent =
@@ -51,6 +55,7 @@ type TauriInternals = {
   invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
   transformCallback?: (callback: (data: unknown) => void, once?: boolean) => number;
   unregisterCallback?: (id: number) => void;
+  metadata?: { currentWindow?: { label?: string } };
 };
 
 let adapters: DesktopAuthAdapters | null = null;
@@ -315,6 +320,27 @@ export async function beginDesktopOAuth(input: {
 }
 
 /**
+ * The browser stays in front after it hands over the deep link.
+ * Needs `core:window:allow-unminimize`, `allow-show`, and `allow-set-focus`.
+ */
+async function focusDesktopWindow(): Promise<void> {
+  if (adapters?.focusWindow) {
+    await adapters.focusWindow();
+    return;
+  }
+  const internals = getTauriInternals();
+  if (!internals?.invoke) return;
+  const label = internals.metadata?.currentWindow?.label || 'main';
+  for (const cmd of ['plugin:window|unminimize', 'plugin:window|show', 'plugin:window|set_focus']) {
+    try {
+      await internals.invoke(cmd, { label });
+    } catch {
+      // A capability without this window permission leaves the window where it is.
+    }
+  }
+}
+
+/**
  * Feed one deep-link URL, for example from `@tauri-apps/plugin-deep-link` `onOpenUrl`.
  * Codes, verifiers, and tokens are not logged.
  */
@@ -323,6 +349,8 @@ export function handleDesktopAuthCallback(rawUrl: string): void {
   if (!scheme || typeof rawUrl !== 'string' || !rawUrl) return;
   const parsed = parseDesktopAuthCallback(rawUrl, scheme);
   if (!parsed) return;
+  // A second "Return to app" click repeats a spent code. It should still raise the window.
+  void focusDesktopWindow().catch(() => undefined);
 
   if (parsed.kind === 'error') {
     clearDesktopPkce();
@@ -371,9 +399,19 @@ async function readCurrentDeepLinks(): Promise<void> {
   }
 }
 
+/**
+ * A login page in a modal or drawer iframe shares the verifier through `sessionStorage`.
+ * Only the top-level shell takes deep links, so the iframe cannot spend it.
+ */
+function isEmbeddedFrame(): boolean {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.parent) && window.parent !== window;
+}
+
 export function ensureDesktopDeepLinkListener(options?: {
   replayLaunchUrl?: boolean;
 }): Promise<void> {
+  if (isEmbeddedFrame()) return Promise.resolve();
   const replay = options?.replayLaunchUrl !== false;
   if (listenerPromise) {
     if (replay && !replayedLaunchUrl) {

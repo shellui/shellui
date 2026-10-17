@@ -15,8 +15,14 @@ import { NavIcon, ExternalLinkIcon } from '../sidebar/SidebarIcons';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacTrafficLights } from '../chrome/runtime';
-import { MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_SIDEBAR_TOGGLE_SIZE,
@@ -100,9 +106,8 @@ export function FloatingSidebar({
   const lang = i18n.language || 'en';
   const trafficLights = useMacTrafficLights();
   const isTauriEnv = useIsTauriClient();
-  const trafficPadPx = trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0;
-  /** History cluster only for the collapsed chip (shares the top-left corner on Tauri). */
-  const chipLeadingPx = trafficPadPx + (isTauriEnv ? 72 : 0);
+  /** Collapsed chip clears the corner lights and the history cluster. */
+  const chipLeadingPx = (trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0) + (isTauriEnv ? 72 : 0);
 
   const sidebarNav = useMemo(() => filterNavigationForSidebar(navigation), [navigation]);
   const sections = useMemo(() => buildSections(sidebarNav), [sidebarNav]);
@@ -114,7 +119,7 @@ export function FloatingSidebar({
 
   const sidebarEdgePad = {
     paddingTop: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
-    paddingLeft: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-left, 0px) + ${trafficPadPx}px)`,
+    paddingLeft: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-left, 0px))`,
     paddingBottom: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`,
   };
 
@@ -258,25 +263,61 @@ export function FloatingSidebar({
           style={{ width: FLOATING_SIDEBAR_WIDTH }}
           aria-label={title || 'Navigation'}
         >
-          <div className="flex shrink-0 items-center gap-2 border-b border-sidebar-border/80 px-2.5 py-2.5">
-            {appIcon ? (
-              <AppBrandIcon
-                appIcon={appIcon}
-                title={title}
-                className="size-7 shrink-0"
+          <div
+            className={cn(
+              'flex shrink-0 items-center border-b border-sidebar-border/80',
+              trafficLights ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
+            )}
+            style={
+              trafficLights
+                ? {
+                    height: DESKTOP_TITLEBAR_HEIGHT_PX,
+                    paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+                  }
+                : undefined
+            }
+            {...(trafficLights
+              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+              : {})}
+          >
+            {trafficLights ? (
+              <div
+                className="h-full shrink-0"
+                style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
+                aria-hidden
               />
             ) : null}
-            <span className="min-w-0 flex-1" />
-            <button
-              type="button"
-              tabIndex={collapsed ? -1 : 0}
-              className="shellui-floating-nav-control flex size-8 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              aria-label={toggleLabel}
-              aria-expanded={!collapsed}
-              onClick={onToggleCollapsed}
+            <div
+              className="flex h-full min-w-0 flex-1 items-center gap-1"
+              style={{
+                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_GAP_PX : undefined,
+              }}
             >
-              <SidebarPanelIcon className="size-4" />
-            </button>
+              {isTauriEnv && !collapsed ? <DesktopHistoryButtons className="self-center" /> : null}
+              {appIcon ? (
+                <AppBrandIcon
+                  appIcon={appIcon}
+                  title={title}
+                  className="size-7 shrink-0"
+                />
+              ) : null}
+              <span
+                className="min-h-full min-w-0 flex-1 self-stretch"
+                {...(trafficLights
+                  ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                  : {})}
+              />
+              <button
+                type="button"
+                tabIndex={collapsed ? -1 : 0}
+                className="shellui-floating-nav-control flex size-8 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                aria-label={toggleLabel}
+                aria-expanded={!collapsed}
+                onClick={onToggleCollapsed}
+              >
+                <SidebarPanelIcon className="size-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2">

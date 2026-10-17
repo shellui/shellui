@@ -1,6 +1,29 @@
 import type { ShellUIConfig } from '../config/types';
+import urls from '../../constants/urls';
 import { isAdminFrame } from '../admin/utils';
 import { flattenNavigationItems, isFrameForAppUrl } from '../layouts/utils';
+
+function currentShellOrigin(): string | null {
+  const origin = globalThis.window?.location?.origin;
+  return typeof origin === 'string' && origin.length > 0 ? origin : null;
+}
+
+/** Same-origin shell settings document, including routes under `/__settings/`. */
+export function isShellSettingsFrameSrc(
+  frameSrc: string,
+  shellOrigin: string,
+  settingsPath: string = urls.settings,
+): boolean {
+  try {
+    const url = new URL(frameSrc, shellOrigin);
+    const base = `/${settingsPath.replace(/^\/+|\/+$/g, '')}`;
+    return (
+      url.origin === shellOrigin && (url.pathname === base || url.pathname.startsWith(`${base}/`))
+    );
+  } catch {
+    return false;
+  }
+}
 
 /** Minimal frame registry surface for trust checks (shared with #60 message gating). */
 export type FrameRegistryLike = {
@@ -13,6 +36,13 @@ export type FrameRegistryLike = {
  * First-party admin URLs and `storage.filesUrl` remain trusted by default.
  */
 export function isTrustedFrameForAuthToken(frameSrc: string, config?: ShellUIConfig): boolean {
+  // Settings opened as a modal or drawer is a shell iframe. It is not a companion
+  // app, so it has no `safeForAuthToken` flag, but pages such as Storage need the JWT.
+  const shellOrigin = currentShellOrigin();
+  if (shellOrigin && isShellSettingsFrameSrc(frameSrc, shellOrigin)) {
+    return true;
+  }
+
   if (isAdminFrame(frameSrc, config)) {
     return true;
   }
@@ -83,15 +113,7 @@ export function isShellSettingsFrameMessage(
   if (!frameSrc) {
     return false;
   }
-  try {
-    const url = new URL(frameSrc, shellOrigin);
-    const base = `/${settingsPath.replace(/^\/+|\/+$/g, '')}`;
-    return (
-      url.origin === shellOrigin && (url.pathname === base || url.pathname.startsWith(`${base}/`))
-    );
-  } catch {
-    return false;
-  }
+  return isShellSettingsFrameSrc(frameSrc, shellOrigin, settingsPath);
 }
 
 export type StorageTrustDenial = { message: string; status: 403 };
