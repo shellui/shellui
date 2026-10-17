@@ -4,7 +4,10 @@ import { flattenNavigationItems } from './flattenNavigationItems';
 import { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 import { getResolvedAppearanceForSettings } from './getResolvedAppearanceForSettings';
 import { resolveLabel } from './resolveLabel';
-import { getPublishedLayoutChrome } from '../../layouts/floating/layoutChromeStore';
+import {
+  getLayoutChromeForFrame,
+  getPublishedLayoutChrome,
+} from '../../layouts/floating/layoutChromeStore';
 
 /** Production email-service origin. No trailing slash. */
 const DEFAULT_EMAIL_SERVICE_URL = 'https://email.shellui.com';
@@ -31,6 +34,8 @@ export const buildSettingsForPropagation = (
     accessToken?: string | null;
     /** When false, omit layoutChrome (modal / drawer frames). Default true. */
     includeLayoutChrome?: boolean;
+    /** Merge this frame's action-bar insets into layoutChrome. */
+    frameUuid?: string;
   },
 ): Settings => {
   const appearance = getResolvedAppearanceForSettings(settings, config);
@@ -40,7 +45,9 @@ export const buildSettingsForPropagation = (
   };
 
   if (options?.includeLayoutChrome !== false) {
-    const layoutChrome = getPublishedLayoutChrome();
+    const layoutChrome = options?.frameUuid
+      ? getLayoutChromeForFrame(options.frameUuid)
+      : getPublishedLayoutChrome();
     if (layoutChrome) {
       result = { ...result, layoutChrome };
     } else if ('layoutChrome' in result) {

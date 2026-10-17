@@ -29,6 +29,19 @@ export function getPublishedLayoutChrome(): LayoutChrome | null {
   return currentChrome;
 }
 
+/**
+ * Layout chrome for one iframe, including that frame's action-bar insets.
+ * Settings must carry this — the base snapshot has no action padding, so the
+ * first paint misses the top gap until a later resize republishes it.
+ */
+export function getLayoutChromeForFrame(frameUuid: string): LayoutChrome | null {
+  if (!currentChrome) return null;
+  const actions = getChromeActionsForFrame(frameUuid);
+  return buildFrameLayoutChrome(currentChrome, actionChromeFlags(actions), {
+    topInTitleBar: isTopActionsInTitleBar(currentChrome),
+  });
+}
+
 /** Subscribe to published layout-chrome changes (e.g. floating hide-on-scroll). */
 export function subscribeLayoutChrome(listener: LayoutChromeListener): () => void {
   layoutChromeListeners.add(listener);

@@ -25,6 +25,7 @@ import {
 } from '../chrome/constants';
 import {
   FLOATING_CHROME_MARGIN,
+  FLOATING_HISTORY_CLUSTER_PX,
   FLOATING_SIDEBAR_TOGGLE_SIZE,
   FLOATING_SIDEBAR_WIDTH,
 } from './computeFloatingInsets';
@@ -110,7 +111,9 @@ export function FloatingSidebar({
   /** Tauri drops the floating edge gap so this row shares the traffic-light band. */
   const edgeMargin = tauriRuntime ? 0 : FLOATING_CHROME_MARGIN;
   /** Collapsed chip clears the corner lights and the history cluster. */
-  const chipLeadingPx = (trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0) + (isTauriEnv ? 72 : 0);
+  const chipLeadingPx =
+    (trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0) +
+    (isTauriEnv ? FLOATING_HISTORY_CLUSTER_PX : 0);
 
   const sidebarNav = useMemo(() => filterNavigationForSidebar(navigation), [navigation]);
   const sections = useMemo(() => buildSections(sidebarNav), [sidebarNav]);

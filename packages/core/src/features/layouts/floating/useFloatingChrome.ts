@@ -12,7 +12,7 @@ import {
 import { useIsTauriRuntime } from '../chrome/runtime';
 import {
   computeFloatingInsets,
-  FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA,
+  floatingCollapsedActionsLeadingPx,
   readShellSafeAreaPx,
 } from './computeFloatingInsets';
 import { publishLayoutChrome } from './layoutChromeStore';
@@ -44,7 +44,7 @@ function syncChromeActionsLeadingExtra(desktopCollapsed: boolean): void {
   if (typeof document === 'undefined') return;
   document.documentElement.style.setProperty(
     ACTIONS_LEADING_EXTRA_VAR,
-    `${desktopCollapsed ? FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA : 0}px`,
+    `${desktopCollapsed ? floatingCollapsedActionsLeadingPx() : 0}px`,
   );
 }
 

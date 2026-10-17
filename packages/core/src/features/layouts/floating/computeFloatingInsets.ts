@@ -1,4 +1,7 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
+import { MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import { isMacOSDesktop, isTauriRuntime } from '../chrome/runtime';
+import { isTauri } from '../../../service-worker/register';
 
 /** Floating tab bar content height (icon + short label) — phone. */
 export const FLOATING_TAB_BAR_HEIGHT = 56;
@@ -13,6 +16,12 @@ export const FLOATING_CHROME_MARGIN = 12;
 export const FLOATING_DOCK_SIDE_INSET = 8;
 /** Extra clearance so the last content row clears the floating chrome comfortably. */
 export const FLOATING_CONTENT_CLEARANCE = 12;
+/**
+ * Tauri desktop: keep the action scrim off the sidebar’s right edge so the
+ * glass border and its glow stay visible. The content inset only clears 12px,
+ * which the opaque action background still covers.
+ */
+export const TAURI_FLOATING_ACTION_SIDEBAR_GAP_PX = 16;
 /** Desktop floating sidebar width. */
 export const FLOATING_SIDEBAR_WIDTH = 240;
 /**
@@ -76,6 +85,20 @@ export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
  */
 export const FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA =
   FLOATING_SIDEBAR_TOGGLE_SIZE + FLOATING_CONTENT_CLEARANCE;
+/** Back + forward pair ahead of the collapsed expand chip in Tauri. */
+export const FLOATING_HISTORY_CLUSTER_PX = 72;
+
+/**
+ * Left offset for the top action row when the desktop sidebar is collapsed.
+ * Tauri also clears the traffic lights and the history buttons before the chip.
+ */
+export function floatingCollapsedActionsLeadingPx(): number {
+  let leading = FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA;
+  if (typeof window === 'undefined' || !isTauri()) return leading;
+  leading += FLOATING_HISTORY_CLUSTER_PX;
+  if (isTauriRuntime() && isMacOSDesktop()) leading += MAC_TRAFFIC_LIGHTS_WIDTH_PX;
+  return leading;
+}
 /**
  * Floating sidebar brand header: `py-2.5` (10+10) + `size-8` toggle (32).
  * Keep in sync with FloatingSidebar brand row.
