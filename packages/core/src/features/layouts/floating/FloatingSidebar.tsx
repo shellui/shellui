@@ -263,6 +263,7 @@ export function FloatingSidebar({
         aria-hidden={collapsed}
       >
         <nav
+          data-shellui-tauri-flush={tauriRuntime ? '' : undefined}
           className={cn(
             'shellui-floating-glass pointer-events-auto flex h-full flex-col overflow-hidden',
             'origin-left will-change-transform',

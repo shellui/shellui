@@ -1417,18 +1417,20 @@ export function ChromeActionsHost() {
     ? floatingTabBarHeight(viewport)
     : chromeActionsFabSize(viewport, { layout: settings.layout });
   const fabEdgeMargin =
-    settings.layout === 'floating' && tauriRuntime ? 0 : chromeActionsFabEdgeMargin(viewport);
+    settings.layout === 'floating' && tauriRuntime && !floatingDock
+      ? 0
+      : chromeActionsFabEdgeMargin(viewport);
   // Pill only beside the phone/tablet dock; desktop uses theme radius (square when 0).
   const fabShape = floatingDock ? 'pill' : 'theme';
 
   const fabBottomOffset = useMemo(() => {
     if (floatingDock) {
       // Match FloatingBottomDock paddingBottom (includes safe-area CSS var).
-      return floatingTabBarBottomPadCss(viewport, tauriRuntime ? 0 : undefined);
+      return floatingTabBarBottomPadCss(viewport);
     }
     // Sidebar / app-bar / fullscreen / floating desktop: clear home indicator.
     return chromeActionsFabBottomOffsetCss(fabEdgeMargin);
-  }, [floatingDock, viewport, fabEdgeMargin, tauriRuntime]);
+  }, [floatingDock, viewport, fabEdgeMargin]);
 
   // Same hide-on-scroll signal as FloatingBottomDock (phone/tablet floating only).
   const scrollHidden = Boolean(

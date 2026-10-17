@@ -84,7 +84,7 @@ function buildChrome(
 export function useFloatingChrome(viewport: LayoutChromeViewport) {
   const location = useLocation();
   const tauriRuntime = useIsTauriRuntime();
-  const edgeMargin = tauriRuntime ? 0 : undefined;
+  const edgeMargin = tauriRuntime && viewport === 'desktop' ? 0 : undefined;
   const [chromeVisible, setChromeVisible] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(readSidebarCollapsed);
   const scrollStateRef = useRef<ScrollChromeState>({ visible: true, lastY: 0 });
