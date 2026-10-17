@@ -53,8 +53,13 @@ import {
 } from '../chrome/SafeAreaTopbar';
 import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
 import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
 /** App-bar chrome height — taller than the 42px Tauri/sidebar title strip. */
 const APP_BAR_HEIGHT_PX = 56;
@@ -764,10 +769,13 @@ export function AppBarLayout({
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
   const scrollHideLayout = isInset ? 'app-bar-inset' : 'app-bar';
+  const titlebarAligned = isTauriRuntime && !isMobile;
+  const barHeightPx = titlebarAligned ? DESKTOP_TITLEBAR_HEIGHT_PX : APP_BAR_HEIGHT_PX;
+  const barPadTopPx = titlebarAligned ? DESKTOP_TITLEBAR_PAD_TOP_PX : APP_BAR_PAD_TOP_PX;
   const { chromeVisible } = useScrollHideChrome({
     enabled: isMobile,
     layout: scrollHideLayout,
-    barHeightPx: APP_BAR_HEIGHT_PX,
+    barHeightPx,
     includeSafeArea: showSafeAreaTopbar,
   });
   const authAwareNavigation = useMemo(
@@ -838,12 +846,12 @@ export function AppBarLayout({
     paddingRight: isInset ? (isMobile ? 8 : insetFramePadPx + insetBarContentOffsetRightPx) : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
-          paddingTop: `calc(var(--shellui-safe-area-top) + ${APP_BAR_PAD_TOP_PX}px)`,
-          height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
+          paddingTop: `calc(var(--shellui-safe-area-top) + ${barPadTopPx}px)`,
+          height: `calc(${barHeightPx}px + var(--shellui-safe-area-top))`,
         }
       : {
-          height: APP_BAR_HEIGHT_PX,
-          paddingTop: APP_BAR_PAD_TOP_PX,
+          height: barHeightPx,
+          paddingTop: barPadTopPx,
         }),
   } as const;
 

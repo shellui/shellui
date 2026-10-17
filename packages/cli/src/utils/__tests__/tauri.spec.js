@@ -23,6 +23,7 @@ import {
   syncCargoPackageName,
   syncShellCapabilities,
   syncDesktopSignIn,
+  syncDesktopMacos,
   SHELL_WINDOW_PERMISSIONS,
   DESKTOP_SIGN_IN_PERMISSIONS,
 } from '../tauri.js';
@@ -202,6 +203,21 @@ describe('tauri utilities', () => {
     syncDesktopSignIn(srcTauri);
     expect(fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf8')).toBe(cargoAfter);
     expect(fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8')).toBe(libAfter);
+  });
+
+  test('syncDesktopMacos copies a newer titlebar placement and skips an unchanged file', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    const dest = path.join(srcTauri, 'src', 'macos.rs');
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, 'old\n');
+
+    syncDesktopMacos(srcTauri);
+    const copied = fs.readFileSync(dest, 'utf8');
+    expect(copied).toContain('place_traffic_lights');
+    const mtime = fs.statSync(dest).mtimeMs;
+    syncDesktopMacos(srcTauri);
+    expect(fs.readFileSync(dest, 'utf8')).toBe(copied);
+    expect(fs.statSync(dest).mtimeMs).toBe(mtime);
   });
 
   test('syncShellCapabilities adds missing window permissions to an older app', () => {

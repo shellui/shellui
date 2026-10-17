@@ -216,6 +216,21 @@ export function syncShellCapabilities(appSrcTauriDir) {
 }
 
 /**
+ * Copy the template macOS titlebar placement into an already scaffolded app.
+ * The app folder is created once, so a traffic-light fix in the template would
+ * otherwise stay on disk until the app is scaffolded again.
+ * @param {string} appSrcTauriDir path to …/src-tauri
+ */
+export function syncDesktopMacos(appSrcTauriDir) {
+  const source = path.join(getTauriTemplateDir(), 'src-tauri/src/macos.rs');
+  const dest = path.join(appSrcTauriDir, 'src/macos.rs');
+  if (!fs.existsSync(source) || !fs.existsSync(path.dirname(dest))) return;
+  const next = fs.readFileSync(source);
+  if (fs.existsSync(dest) && fs.readFileSync(dest).equals(next)) return;
+  fs.writeFileSync(dest, next);
+}
+
+/**
  * Desktop sign-in opens the identity URL in the system browser (`plugin:opener`)
  * and comes back through a custom scheme (`plugin:deep-link`).
  * The app folder is scaffolded once, so an older app keeps a template from before these plugins.
@@ -803,6 +818,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   syncCargoPackageName(path.join(appDir, 'src-tauri'), tauriConf.productName);
   syncShellCapabilities(path.join(appDir, 'src-tauri'));
   syncDesktopSignIn(path.join(appDir, 'src-tauri'));
+  syncDesktopMacos(path.join(appDir, 'src-tauri'));
 
   const port = config.port ?? 3000;
   tauriConf.build.devUrl = `http://localhost:${port}`;

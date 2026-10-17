@@ -16,7 +16,7 @@ import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useMacTrafficLights } from '../chrome/runtime';
+import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
@@ -106,6 +106,9 @@ export function FloatingSidebar({
   const lang = i18n.language || 'en';
   const trafficLights = useMacTrafficLights();
   const isTauriEnv = useIsTauriClient();
+  const tauriRuntime = useIsTauriRuntime();
+  /** Tauri drops the floating edge gap so this row shares the traffic-light band. */
+  const edgeMargin = tauriRuntime ? 0 : FLOATING_CHROME_MARGIN;
   /** Collapsed chip clears the corner lights and the history cluster. */
   const chipLeadingPx = (trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0) + (isTauriEnv ? 72 : 0);
 
@@ -118,15 +121,23 @@ export function FloatingSidebar({
   );
 
   const sidebarEdgePad = {
-    paddingTop: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
-    paddingLeft: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-left, 0px))`,
-    paddingBottom: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`,
+    paddingTop: `calc(${edgeMargin}px + var(--shellui-safe-area-top, 0px))`,
+    paddingLeft: `calc(${edgeMargin}px + var(--shellui-safe-area-left, 0px))`,
+    paddingBottom: `calc(${edgeMargin}px + var(--shellui-safe-area-bottom, 0px))`,
   };
 
-  const chipEdgePad = {
-    paddingTop: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
-    paddingLeft: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-left, 0px) + ${chipLeadingPx}px)`,
-  };
+  const chipEdgePad = tauriRuntime
+    ? {
+        height: DESKTOP_TITLEBAR_HEIGHT_PX,
+        paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+        paddingLeft: `calc(var(--shellui-safe-area-left, 0px) + ${chipLeadingPx}px)`,
+        boxSizing: 'border-box' as const,
+        alignItems: 'center',
+      }
+    : {
+        paddingTop: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-top, 0px))`,
+        paddingLeft: `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-left, 0px) + ${chipLeadingPx}px)`,
+      };
 
   const toggleLabel = collapsed
     ? t('develop.layout.showSidebar', { defaultValue: 'Show sidebar' })
@@ -266,17 +277,17 @@ export function FloatingSidebar({
           <div
             className={cn(
               'flex shrink-0 items-center border-b border-sidebar-border/80',
-              trafficLights ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
+              tauriRuntime ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
             )}
             style={
-              trafficLights
+              tauriRuntime
                 ? {
                     height: DESKTOP_TITLEBAR_HEIGHT_PX,
                     paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
                   }
                 : undefined
             }
-            {...(trafficLights
+            {...(tauriRuntime
               ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
               : {})}
           >
@@ -303,7 +314,7 @@ export function FloatingSidebar({
               ) : null}
               <span
                 className="min-h-full min-w-0 flex-1 self-stretch"
-                {...(trafficLights
+                {...(tauriRuntime
                   ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
                   : {})}
               />

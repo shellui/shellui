@@ -1369,10 +1369,20 @@ html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
 }
 
 html[data-shellui-collapsed-titlebar]
-  [data-shellui-sidebar-layout]
+  [data-shellui-sidebar-layout]:not([data-shellui-layout-variant='inset'])
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
   padding-top: var(--shellui-titlebar-height, 42px);
+}
+
+/* Inset card keeps its own radius: sit the frame under the titlebar instead of
+   padding inside the rounded border (that left the top corners covered). */
+html[data-shellui-collapsed-titlebar]
+  [data-shellui-layout-variant='inset']
+  > [data-slot='sidebar-wrapper']
+  > [data-slot='sidebar-inset'] {
+  margin-top: var(--shellui-titlebar-height, 42px);
+  padding-top: 0;
 }
 
 /* Root safe-area topbar: collapsed chrome sits below the status band. */

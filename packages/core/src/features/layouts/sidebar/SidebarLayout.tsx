@@ -211,6 +211,7 @@ const SidebarLayoutContent = ({
             showAuthButton={!hasCustomLoginNav || isAuthenticated || isAuthLoading}
             title={title}
             appIcon={appIcon}
+            inset={variant === 'inset'}
           />
           {variant !== 'inset' ? <SidebarRail /> : null}
         </Sidebar>

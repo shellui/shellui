@@ -35,6 +35,13 @@ import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { readSafeAreaInsetBottom, readSafeAreaInsetTop } from '../chrome/viewport';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
+import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
 import { WindowTitleBarActions } from '../../chromeActions';
 
 interface WindowsLayoutProps {
@@ -205,6 +212,9 @@ function AppWindow({
   cascadeIndex: number;
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
+  const tauriRuntime = useIsTauriRuntime();
+  const isTauriEnv = useIsTauriClient();
+  const trafficLights = useMacTrafficLights();
   const [frameUuid, setFrameUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(() => {
     if (mobileFullscreen || isCompactDesktop()) return true;
@@ -334,6 +344,7 @@ function AppWindow({
   }, [mobileFullscreen, cascadeIndex]);
 
   const lockedChrome = mobileFullscreen || isMaximized;
+  const flushTitlebar = tauriRuntime && isMaximized && bounds.y <= readSafeAreaInsetTop();
   const onPointerMove = useCallback((e: PointerEvent) => {
     if (!dragRef.current) return;
     const d = dragRef.current;
@@ -516,9 +527,20 @@ function AppWindow({
       {/* Title bar: pointer capture so drag continues when cursor is over iframe or outside window */}
       <div
         className={cn(
-          'flex items-center gap-2 pl-2 pr-1 py-1 bg-muted/80 border-b border-border select-none shrink-0',
+          'flex items-center gap-2 pr-1 bg-muted/80 border-b border-border select-none shrink-0',
+          flushTitlebar ? 'box-border' : 'py-1 pl-2',
           lockedChrome ? 'cursor-default' : 'cursor-move',
         )}
+        style={
+          flushTitlebar
+            ? {
+                height: DESKTOP_TITLEBAR_HEIGHT_PX,
+                paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
+              }
+            : undefined
+        }
+        {...(flushTitlebar ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
         onPointerDown={handleTitlePointerDown}
       >
         {win.icon && (
@@ -531,6 +553,7 @@ function AppWindow({
             )}
           />
         )}
+        {flushTitlebar && isTauriEnv ? <DesktopHistoryButtons /> : null}
         <WindowTitleBarActions
           frameUuid={frameUuid}
           fallbackTitle={windowLabel}

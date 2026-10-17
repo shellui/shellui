@@ -33,6 +33,7 @@ import {
 } from '../../components/ui/tooltip';
 import { cn } from '../../lib/utils';
 import { useViewport } from '../../hooks/use-viewport';
+import { useIsTauriRuntime } from '../layouts/chrome/runtime';
 import { useSettings } from '../settings/hooks/useSettings';
 import {
   FLOATING_CHROME_MARGIN,
@@ -1399,6 +1400,7 @@ export function ChromeActionsHost() {
   const presence = useChromeActionsPresence(live);
   const { settings } = useSettings();
   const viewport = useViewport();
+  const tauriRuntime = useIsTauriRuntime();
   const windowsLayout = settings.layout === 'windows';
   const layoutChrome = usePublishedLayoutChrome();
   // Mobile sidebar header hosts top actions (same idea as windows title bars).
@@ -1414,18 +1416,19 @@ export function ChromeActionsHost() {
   const fabSizePx = floatingDock
     ? floatingTabBarHeight(viewport)
     : chromeActionsFabSize(viewport, { layout: settings.layout });
-  const fabEdgeMargin = chromeActionsFabEdgeMargin(viewport);
+  const fabEdgeMargin =
+    settings.layout === 'floating' && tauriRuntime ? 0 : chromeActionsFabEdgeMargin(viewport);
   // Pill only beside the phone/tablet dock; desktop uses theme radius (square when 0).
   const fabShape = floatingDock ? 'pill' : 'theme';
 
   const fabBottomOffset = useMemo(() => {
     if (floatingDock) {
       // Match FloatingBottomDock paddingBottom (includes safe-area CSS var).
-      return floatingTabBarBottomPadCss(viewport);
+      return floatingTabBarBottomPadCss(viewport, tauriRuntime ? 0 : undefined);
     }
     // Sidebar / app-bar / fullscreen / floating desktop: clear home indicator.
     return chromeActionsFabBottomOffsetCss(fabEdgeMargin);
-  }, [floatingDock, viewport, fabEdgeMargin]);
+  }, [floatingDock, viewport, fabEdgeMargin, tauriRuntime]);
 
   // Same hide-on-scroll signal as FloatingBottomDock (phone/tablet floating only).
   const scrollHidden = Boolean(

@@ -1,4 +1,6 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
+import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../layouts/chrome/constants';
+import { isTauriRuntime } from '../layouts/chrome/runtime';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
@@ -93,6 +95,12 @@ export function chromeActionsTopMargin(
 
   const { layout, viewport } = context;
   if (layout === 'floating') {
+    if (isTauriRuntime()) {
+      if (viewport === 'desktop') {
+        return Math.round((DESKTOP_TITLEBAR_HEIGHT_PX - chromeActionsTopBarHeight(viewport)) / 2);
+      }
+      return 0;
+    }
     return viewport === 'desktop' ? CHROME_ACTIONS_TOP_MARGIN_DESKTOP : CHROME_ACTIONS_TOP_MARGIN;
   }
   return CHROME_ACTIONS_TOP_MARGIN_MINIMAL;

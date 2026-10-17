@@ -48,8 +48,9 @@ export function floatingMinTabSlotWidth(viewport: LayoutChromeViewport): number 
 export function floatingTabBarBottomPadPx(
   safeBottom: number,
   viewport: LayoutChromeViewport,
+  edgeMargin: number = FLOATING_CHROME_MARGIN,
 ): number {
-  const full = FLOATING_CHROME_MARGIN + safeBottom;
+  const full = edgeMargin + safeBottom;
   return viewport === 'mobile' ? full / 2 : full;
 }
 
@@ -57,11 +58,14 @@ export function floatingTabBarBottomPadPx(
  * Same bottom pad as the floating dock, as a CSS value so
  * `--shellui-safe-area-bottom` / env() apply on iPhone (not a snapped 0px number).
  */
-export function floatingTabBarBottomPadCss(viewport: LayoutChromeViewport): string {
+export function floatingTabBarBottomPadCss(
+  viewport: LayoutChromeViewport,
+  edgeMargin: number = FLOATING_CHROME_MARGIN,
+): string {
   if (viewport === 'mobile') {
-    return `calc((${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px)) / 2)`;
+    return `calc((${edgeMargin}px + var(--shellui-safe-area-bottom, 0px)) / 2)`;
   }
-  return `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-bottom, 0px))`;
+  return `calc(${edgeMargin}px + var(--shellui-safe-area-bottom, 0px))`;
 }
 /** Collapsed desktop toggle control size (glass chip). */
 export const FLOATING_SIDEBAR_TOGGLE_SIZE = 36;
@@ -94,6 +98,11 @@ export function computeFloatingInsets(options: {
   /** Desktop only: sidebar hidden — no left content inset (chip cleared by actions pad). */
   sidebarCollapsed?: boolean;
   safeArea?: Partial<FloatingSafeArea>;
+  /**
+   * Gap between floating chrome and the window edge.
+   * Tauri passes `0` so the title row meets the traffic lights.
+   */
+  edgeMargin?: number;
 }): LayoutChromeInsets {
   const safe: FloatingSafeArea = {
     top: options.safeArea?.top ?? 0,
@@ -107,14 +116,15 @@ export function computeFloatingInsets(options: {
   }
 
   const { viewport } = options;
+  const edge = options.edgeMargin ?? FLOATING_CHROME_MARGIN;
   if (viewport === 'mobile' || viewport === 'tablet') {
     return {
       top: safe.top,
       right: safe.right,
       bottom:
-        floatingTabBarBottomPadPx(safe.bottom, viewport) +
+        floatingTabBarBottomPadPx(safe.bottom, viewport, edge) +
         floatingTabBarHeight(viewport) +
-        FLOATING_CHROME_MARGIN +
+        edge +
         FLOATING_CONTENT_CLEARANCE,
       left: safe.left,
     };
@@ -133,8 +143,7 @@ export function computeFloatingInsets(options: {
     top: safe.top,
     right: safe.right,
     bottom: safe.bottom,
-    left:
-      safe.left + FLOATING_SIDEBAR_WIDTH + FLOATING_CHROME_MARGIN * 2 + FLOATING_CONTENT_CLEARANCE,
+    left: safe.left + FLOATING_SIDEBAR_WIDTH + edge * 2 + FLOATING_CONTENT_CLEARANCE,
   };
 }
 

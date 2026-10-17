@@ -33,6 +33,7 @@ import {
   floatingTabBarHeight,
 } from './computeFloatingInsets';
 import type { ShellViewport } from '../../../hooks/use-viewport';
+import { useIsTauriRuntime } from '../chrome/runtime';
 import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvider';
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME } from '../../chromeActions/chromeActionsStore';
 import { CHROME_ACTIONS_FAB_SIZE_FLOATING } from '../../chromeActions/computeActionInsets';
@@ -115,6 +116,9 @@ export function FloatingBottomDock({
   const [moreOpen, setMoreOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const hasPrimaryFab = useMainHasPrimaryFab();
+  const tauriRuntime = useIsTauriRuntime();
+  const edgeMargin = tauriRuntime ? 0 : FLOATING_CHROME_MARGIN;
+  const sideInset = tauriRuntime ? 0 : FLOATING_DOCK_SIDE_INSET;
   const isPhone = viewport === 'mobile';
   const isTablet = viewport === 'tablet';
   // Phone: drop a slot when the corner FAB is present. Tablet has room for 5 + FAB.
@@ -226,18 +230,18 @@ export function FloatingBottomDock({
     if (navItem) activateItem(navItem);
   };
 
-  const bottomPad = floatingTabBarBottomPadCss(viewport);
+  const bottomPad = floatingTabBarBottomPadCss(viewport, edgeMargin);
 
   // Phone: full-width bar clears the corner FAB. Tablet: centered island;
   // FAB stays bottom-right so they don’t share a row.
   const fabReserve =
     isPhone && hasPrimaryFab ? CHROME_ACTIONS_FAB_SIZE_FLOATING + FLOATING_FAB_NAV_GAP : 0;
-  const leftPad = `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-left, 0px))`;
+  const leftPad = `calc(${edgeMargin + sideInset}px + var(--shellui-safe-area-left, 0px))`;
   const rightPad = isPhone
     ? hasPrimaryFab
-      ? `calc(${FLOATING_CHROME_MARGIN}px + var(--shellui-safe-area-right, 0px))`
-      : `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-right, 0px))`
-    : `calc(${FLOATING_CHROME_MARGIN + FLOATING_DOCK_SIDE_INSET}px + var(--shellui-safe-area-right, 0px))`;
+      ? `calc(${edgeMargin}px + var(--shellui-safe-area-right, 0px))`
+      : `calc(${edgeMargin + sideInset}px + var(--shellui-safe-area-right, 0px))`
+    : `calc(${edgeMargin + sideInset}px + var(--shellui-safe-area-right, 0px))`;
   const tabCount = primary.length + (showMoreFinal ? 1 : 0);
 
   return (
