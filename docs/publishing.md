@@ -26,7 +26,7 @@ Before publishing, the script runs `pnpm run changelog:check`. It stops the rele
 
 - The root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`
 - `CHANGELOG.md` has no active `## [Unreleased]` section
-- Every release heading reads `## [<version>] - YYYY-MM-DD`, and the topmost one matches the root version (for example `## [0.6.1] - 2026-10-13`)
+- Every release heading reads `## [<version>] - YYYY-MM-DD`, and the topmost one matches the root version (for example `## [0.6.2] - 2026-10-18`)
 
 Run `pnpm run changelog:check` on its own to validate the changelog before you start.
 

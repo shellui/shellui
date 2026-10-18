@@ -47,7 +47,7 @@ function normalizeShelluiVersion(value) {
 
 /**
  * Resolve the installed @shellui/core package.json for this project.
- * Prefer the real installed version over dependency ranges (`workspace:*`, `^0.6.1`, …).
+ * Prefer the real installed version over dependency ranges (`workspace:*`, `^0.6.2`, …).
  * @param {string} projectRoot
  * @returns {string}
  */
