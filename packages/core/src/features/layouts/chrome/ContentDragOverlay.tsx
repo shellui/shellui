@@ -1,19 +1,26 @@
-import { DESKTOP_TITLEBAR_HEIGHT_PX } from './constants';
+import { DESKTOP_TITLEBAR_HEIGHT_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from './constants';
 
 /**
- * Full-width invisible 42px strip at the top of the Tauri window.
+ * Narrow left strip over the traffic-light band only.
  *
- * Uses Tauri's official `data-tauri-drag-region` (requires
- * `core:window:allow-start-dragging` in capabilities). Shell controls must sit
- * above this strip (higher z-index) so they stay clickable.
+ * A full-width overlay used to sit on top of iframes and steal clicks from
+ * embedded content. Dragging the window still works from layout chrome
+ * (app bar, sidebar header, admin header, windows titlebar) and from this
+ * empty traffic-light spacer. Interactive iframe content to the right stays
+ * clickable.
+ *
+ * Requires `core:window:allow-start-dragging` in Tauri capabilities.
  */
 export function ContentDragOverlay() {
   return (
     <div
       aria-hidden
       data-tauri-drag-region
-      className="fixed inset-x-0 top-0 z-[45] w-full"
-      style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX }}
+      className="fixed top-0 left-0 z-[45]"
+      style={{
+        height: DESKTOP_TITLEBAR_HEIGHT_PX,
+        width: MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+      }}
     />
   );
 }

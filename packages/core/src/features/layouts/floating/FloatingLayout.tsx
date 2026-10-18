@@ -122,6 +122,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
             paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
             paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
         >
           <DesktopHistoryButtons />
         </div>

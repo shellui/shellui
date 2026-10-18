@@ -514,10 +514,13 @@ function AppBarNav({
   sections,
   activePathPrefix,
   currentLanguage,
+  windowDrag = false,
 }: {
   sections: NavSection[];
   activePathPrefix: string | null;
   currentLanguage: string;
+  /** Leftover space after the links drags the Tauri window. */
+  windowDrag?: boolean;
 }) {
   const { t } = useTranslation();
   const entries = useMemo(() => sectionsToEntries(sections), [sections]);
@@ -585,7 +588,6 @@ function AppBarNav({
 
   return (
     <div
-      data-shellui-no-drag=""
       ref={containerRef}
       className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
     >
@@ -653,6 +655,14 @@ function AppBarNav({
           entries={overflow}
           activePathPrefix={activePathPrefix}
           currentLanguage={currentLanguage}
+        />
+      ) : null}
+      {windowDrag ? (
+        <div
+          aria-hidden
+          data-shellui-drag-region=""
+          data-tauri-drag-region=""
+          className="h-full min-h-8 min-w-2 flex-1 self-stretch"
         />
       ) : null}
     </div>
@@ -910,9 +920,15 @@ export function AppBarLayout({
                 sections={startSections}
                 activePathPrefix={activePathPrefix}
                 currentLanguage={currentLanguage}
+                windowDrag={isTauriRuntime}
               />
             ) : (
-              <div className="min-w-0 flex-1" />
+              <div
+                className="min-w-0 flex-1 self-stretch"
+                {...(isTauriRuntime
+                  ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                  : {})}
+              />
             )}
 
             {isTauriRuntime ? (
@@ -990,9 +1006,15 @@ export function AppBarLayout({
               sections={startSections}
               activePathPrefix={activePathPrefix}
               currentLanguage={currentLanguage}
+              windowDrag={isTauriRuntime}
             />
           ) : (
-            <div className="min-w-0 flex-1" />
+            <div
+              className="min-w-0 flex-1 self-stretch"
+              {...(isTauriRuntime
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            />
           )}
 
           {isTauriRuntime ? (

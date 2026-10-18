@@ -9,9 +9,11 @@ import {
 } from './runtime';
 
 /**
- * Global shell host chrome: document flags + the 42px Tauri drag strip.
+ * Global shell host chrome: document flags + a narrow traffic-light drag strip.
  * Mounted at the app root so it stays available on every page (layouts, login,
  * settings, route error boundary, empty config) — including narrow/mobile widths.
+ * Full-width drag lives on layout chrome so iframe content under the titlebar
+ * band stays clickable.
  *
  * Sets `data-shellui-host` to `browser` | `pwa` | `tauri` so CSS / layout can
  * distinguish Safari Home Screen PWAs (iOS 27 system status gradient) from
