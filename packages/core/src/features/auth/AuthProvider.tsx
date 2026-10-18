@@ -632,23 +632,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [backend, bffAuthEnabled, session]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) return;
     const liveTauri = tauriRuntime || isLiveTauriRuntime();
     if (!shouldUseDesktopSignIn(config, liveTauri)) return;
     const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
     if (!scheme) return;
     setActiveDesktopScheme(scheme);
     let cancelled = false;
+
+    // The login page may sit in a modal or drawer iframe that cannot see this result.
+    const finishOverlayLogin = (failure: string | null) => {
+      postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
+      postShellMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} });
+      if (failure === null || window.location.pathname === urls.login) return;
+      shellui.toast({
+        type: 'error',
+        title: i18n.getFixedT(null, 'common')('loginPage.signInCouldNotContinue'),
+        description: failure || undefined,
+      });
+    };
+
     const unsubscribe = subscribeDesktopAuth((event) => {
       if (cancelled) return;
       if (event.type === 'error') {
         setError(event.message);
         setErrorCode(event.errorCode);
+        finishOverlayLogin(event.message);
         return;
       }
       void completeOAuthSessionCallback({
         authCode: event.authCode,
         redirectTo: event.redirectTo,
         codeVerifier: event.codeVerifier,
+      }).then((result) => {
+        if (!cancelled) finishOverlayLogin(result.ok ? null : (result.error ?? ''));
       });
     });
     void ensureDesktopDeepLinkListener({ replayLaunchUrl: true });
@@ -656,7 +673,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       cancelled = true;
       unsubscribe();
     };
-  }, [completeOAuthSessionCallback, config, tauriRuntime]);
+  }, [completeOAuthSessionCallback, config, i18n, tauriRuntime]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {

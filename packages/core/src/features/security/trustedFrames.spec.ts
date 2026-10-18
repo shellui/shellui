@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ShellUIConfig } from '../config/types';
 import {
   getAiRequestTrustDenial,
   getStorageRequestTrustDenial,
   isRegisteredTrustedFrame,
   isShellSettingsFrameMessage,
+  isShellSettingsFrameSrc,
   isTrustedFrameForAuthToken,
   resolveRegisteredFrameSrc,
 } from './trustedFrames';
@@ -129,6 +130,21 @@ describe('isTrustedFrameForAuthToken', () => {
 
   it('denies unrelated origins', () => {
     expect(isTrustedFrameForAuthToken('https://evil.example.com/payload', config)).toBe(false);
+  });
+
+  it('shares the access token with the shell settings modal', () => {
+    vi.stubGlobal('window', { location: { origin: 'http://localhost:4000' } });
+    expect(
+      isShellSettingsFrameSrc('http://localhost:4000/__settings/storage', 'http://localhost:4000'),
+    ).toBe(true);
+    expect(isTrustedFrameForAuthToken('http://localhost:4000/__settings', config)).toBe(true);
+    expect(isTrustedFrameForAuthToken('http://localhost:4000/__settings/storage', config)).toBe(
+      true,
+    );
+    expect(isTrustedFrameForAuthToken('/__settings/storage', config)).toBe(true);
+    expect(isTrustedFrameForAuthToken('http://localhost:4000/__settings-fake', config)).toBe(false);
+    expect(isTrustedFrameForAuthToken('http://evil.test/__settings/storage', config)).toBe(false);
+    vi.unstubAllGlobals();
   });
 });
 

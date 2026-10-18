@@ -61,6 +61,9 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
             paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
             paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
         >
           <DesktopHistoryButtons />
         </div>

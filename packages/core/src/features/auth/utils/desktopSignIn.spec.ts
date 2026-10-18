@@ -159,4 +159,45 @@ describe('desktop sign-in', () => {
     expect(invoke).toHaveBeenCalledWith('plugin:deep-link|get_current');
     expect(events[0]).toMatchObject({ type: 'code', authCode: 'from-launch' });
   });
+
+  test('brings the window forward for each sign-in link, even a spent one', async () => {
+    const invoke = vi.fn(async (_cmd: string, _args?: Record<string, unknown>) => null);
+    vi.stubGlobal('window', {
+      __TAURI_INTERNALS__: { invoke, metadata: { currentWindow: { label: 'main' } } },
+    });
+    setActiveDesktopScheme(SCHEME);
+    await createAndStoreDesktopPkce(SCHEME);
+
+    const callback = 'shellui-playground://callback?shellui_auth_code=focus-code';
+    handleDesktopAuthCallback(callback);
+    handleDesktopAuthCallback(callback);
+    handleDesktopAuthCallback('other-app://callback?shellui_auth_code=focus-code');
+    await vi.waitFor(() => expect(invoke).toHaveBeenCalledTimes(6));
+
+    for (const cmd of [
+      'plugin:window|unminimize',
+      'plugin:window|show',
+      'plugin:window|set_focus',
+    ]) {
+      expect(invoke.mock.calls.filter((call) => call[0] === cmd)).toEqual([
+        [cmd, { label: 'main' }],
+        [cmd, { label: 'main' }],
+      ]);
+    }
+  });
+
+  test('a login page in an iframe leaves deep links to the top-level shell', async () => {
+    const invoke = vi.fn(async () => ['shellui-playground://callback?shellui_auth_code=x']);
+    const parent = {};
+    vi.stubGlobal('window', {
+      parent,
+      __TAURI_INTERNALS__: { invoke, transformCallback: () => 9 },
+    });
+    setActiveDesktopScheme(SCHEME);
+    await createAndStoreDesktopPkce(SCHEME);
+
+    await ensureDesktopDeepLinkListener();
+
+    expect(invoke).not.toHaveBeenCalled();
+  });
 });

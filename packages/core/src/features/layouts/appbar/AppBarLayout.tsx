@@ -53,8 +53,13 @@ import {
 } from '../chrome/SafeAreaTopbar';
 import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
 import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import { MAC_TRAFFIC_LIGHTS_GAP_PX, MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
 
 /** App-bar chrome height — taller than the 42px Tauri/sidebar title strip. */
 const APP_BAR_HEIGHT_PX = 56;
@@ -509,10 +514,13 @@ function AppBarNav({
   sections,
   activePathPrefix,
   currentLanguage,
+  windowDrag = false,
 }: {
   sections: NavSection[];
   activePathPrefix: string | null;
   currentLanguage: string;
+  /** Leftover space after the links drags the Tauri window. */
+  windowDrag?: boolean;
 }) {
   const { t } = useTranslation();
   const entries = useMemo(() => sectionsToEntries(sections), [sections]);
@@ -580,7 +588,6 @@ function AppBarNav({
 
   return (
     <div
-      data-shellui-no-drag=""
       ref={containerRef}
       className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
     >
@@ -648,6 +655,14 @@ function AppBarNav({
           entries={overflow}
           activePathPrefix={activePathPrefix}
           currentLanguage={currentLanguage}
+        />
+      ) : null}
+      {windowDrag ? (
+        <div
+          aria-hidden
+          data-shellui-drag-region=""
+          data-tauri-drag-region=""
+          className="h-full min-h-8 min-w-2 flex-1 self-stretch"
         />
       ) : null}
     </div>
@@ -764,10 +779,13 @@ export function AppBarLayout({
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
   const scrollHideLayout = isInset ? 'app-bar-inset' : 'app-bar';
+  const titlebarAligned = isTauriRuntime && !isMobile;
+  const barHeightPx = titlebarAligned ? DESKTOP_TITLEBAR_HEIGHT_PX : APP_BAR_HEIGHT_PX;
+  const barPadTopPx = titlebarAligned ? DESKTOP_TITLEBAR_PAD_TOP_PX : APP_BAR_PAD_TOP_PX;
   const { chromeVisible } = useScrollHideChrome({
     enabled: isMobile,
     layout: scrollHideLayout,
-    barHeightPx: APP_BAR_HEIGHT_PX,
+    barHeightPx,
     includeSafeArea: showSafeAreaTopbar,
   });
   const authAwareNavigation = useMemo(
@@ -838,12 +856,12 @@ export function AppBarLayout({
     paddingRight: isInset ? (isMobile ? 8 : insetFramePadPx + insetBarContentOffsetRightPx) : 8,
     ...(isMobile && showSafeAreaTopbar
       ? {
-          paddingTop: `calc(var(--shellui-safe-area-top) + ${APP_BAR_PAD_TOP_PX}px)`,
-          height: `calc(${APP_BAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
+          paddingTop: `calc(var(--shellui-safe-area-top) + ${barPadTopPx}px)`,
+          height: `calc(${barHeightPx}px + var(--shellui-safe-area-top))`,
         }
       : {
-          height: APP_BAR_HEIGHT_PX,
-          paddingTop: APP_BAR_PAD_TOP_PX,
+          height: barHeightPx,
+          paddingTop: barPadTopPx,
         }),
   } as const;
 
@@ -902,9 +920,15 @@ export function AppBarLayout({
                 sections={startSections}
                 activePathPrefix={activePathPrefix}
                 currentLanguage={currentLanguage}
+                windowDrag={isTauriRuntime}
               />
             ) : (
-              <div className="min-w-0 flex-1" />
+              <div
+                className="min-w-0 flex-1 self-stretch"
+                {...(isTauriRuntime
+                  ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                  : {})}
+              />
             )}
 
             {isTauriRuntime ? (
@@ -982,9 +1006,15 @@ export function AppBarLayout({
               sections={startSections}
               activePathPrefix={activePathPrefix}
               currentLanguage={currentLanguage}
+              windowDrag={isTauriRuntime}
             />
           ) : (
-            <div className="min-w-0 flex-1" />
+            <div
+              className="min-w-0 flex-1 self-stretch"
+              {...(isTauriRuntime
+                ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+                : {})}
+            />
           )}
 
           {isTauriRuntime ? (

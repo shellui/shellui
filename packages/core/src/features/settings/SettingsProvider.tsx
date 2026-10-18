@@ -213,6 +213,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           includeAuthAccessToken,
           accessToken,
           includeLayoutChrome: isMainLayoutFrame(iframe),
+          frameUuid: uuid,
         });
         shellui.sendMessage({
           type: 'SHELLUI_SETTINGS',
@@ -235,6 +236,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         includeAuthAccessToken,
         accessToken: accessTokenRef.current,
         includeLayoutChrome: isMainLayoutFrame(iframe),
+        frameUuid: iframeUuid,
       });
       shellui.sendMessage({
         type: 'SHELLUI_SETTINGS',
@@ -502,6 +504,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                   includeAuthAccessToken,
                   accessToken: accessTokenRef.current,
                   includeLayoutChrome: isMainLayoutFrame(frame),
+                  frameUuid: firstHopIframeUuid,
                 },
               );
 

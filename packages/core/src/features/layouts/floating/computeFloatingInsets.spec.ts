@@ -65,6 +65,25 @@ describe('computeFloatingInsets', () => {
     });
   });
 
+  it('drops the floating edge gap when edgeMargin is 0', () => {
+    expect(
+      computeFloatingInsets({
+        viewport: 'desktop',
+        chromeVisible: true,
+        safeArea: safe,
+        edgeMargin: 0,
+      }).left,
+    ).toBe(3 + FLOATING_SIDEBAR_WIDTH + FLOATING_CONTENT_CLEARANCE);
+    expect(
+      computeFloatingInsets({
+        viewport: 'mobile',
+        chromeVisible: true,
+        safeArea: safe,
+        edgeMargin: 0,
+      }).bottom,
+    ).toBe(20 / 2 + FLOATING_TAB_BAR_HEIGHT + FLOATING_CONTENT_CLEARANCE);
+  });
+
   it('keeps content full-bleed when desktop sidebar is collapsed', () => {
     expect(
       computeFloatingInsets({

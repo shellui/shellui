@@ -114,7 +114,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
       <FloatingStatusScrim enabled={showStatusScrim} />
 
-      {isTauriEnv ? (
+      {isTauriEnv && !(showSidebar && !sidebarCollapsed) ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
           style={{
@@ -122,6 +122,9 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
             paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
             paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
         >
           <DesktopHistoryButtons />
         </div>

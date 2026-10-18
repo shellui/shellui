@@ -18,6 +18,20 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.6.2] - 2026-10-18
+
+### 🐛 Bug Fixes
+
+- **Desktop sign-in:** Works in `shellui start --app` with a separate `<scheme>-dev` scheme (needs identity-service with `-dev` support).
+- **Desktop sign-in:** Signing in from the login modal or drawer closes it and completes in the shell.
+- **Desktop sign-in:** The app window comes to the front when the sign-in link arrives.
+- **Settings modal:** Settings opened as a modal or drawer gets the access token, so Storage works there.
+- **Desktop chrome:** Action buttons and the dock stay clear of the macOS traffic lights.
+
+### 🛠 Improvements
+
+- **Desktop window:** macOS layouts leave room for the traffic lights, and empty chrome drags the window.
+
 ## [0.6.1] - 2026-10-13
 
 ### 🐛 Bug Fixes
