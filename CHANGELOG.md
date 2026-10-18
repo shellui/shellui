@@ -22,14 +22,15 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🐛 Bug Fixes
 
-- **Desktop sign-in:** Sign-in completes during `shellui start --app`. The dev shell and `tauri dev` use `<auth.desktopScheme>-dev`, so dev never takes links meant for an installed build. On macOS the CLI registers a small dev-only handler for that scheme and forwards the deep link to the dev window. On Windows and Linux the app registers the scheme at runtime and uses the single-instance plugin (see the desktop docs). identity-service accepts the `-dev` variant of a registered scheme.
-- **Desktop sign-in:** Signing in from the login modal or drawer now completes in the shell and closes the modal, instead of opening the shell's home page inside the modal. A failed sign-in closes it and shows a toast.
-- **Desktop sign-in:** The app window now comes to the front when the sign-in link arrives, including when **Return to app** is clicked again. `shellui start --app` and `shellui build --app` add `core:window:allow-unminimize`, `allow-show`, and `allow-set-focus` to the app's capability file when they are missing.
-- **Desktop chrome:** Action buttons and the floating dock stay clear of the macOS traffic lights and remain clickable.
+- **Desktop sign-in:** Works in `shellui start --app` with a separate `<scheme>-dev` scheme (needs identity-service with `-dev` support).
+- **Desktop sign-in:** Signing in from the login modal or drawer closes it and completes in the shell.
+- **Desktop sign-in:** The app window comes to the front when the sign-in link arrives.
+- **Settings modal:** Settings opened as a modal or drawer gets the access token, so Storage works there.
+- **Desktop chrome:** Action buttons and the dock stay clear of the macOS traffic lights.
 
 ### 🛠 Improvements
 
-- **Desktop window:** On macOS, layouts leave room for the traffic lights, and empty chrome drags the window. The window layout and Admin show a top bar with the same inset. `shellui start --app` and `shellui build --app` copy the macOS titlebar placement into an existing app.
+- **Desktop window:** macOS layouts leave room for the traffic lights, and empty chrome drags the window.
 
 ## [0.6.1] - 2026-10-13
 
