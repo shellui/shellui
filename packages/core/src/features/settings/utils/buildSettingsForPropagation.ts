@@ -32,6 +32,13 @@ export const buildSettingsForPropagation = (
   options?: {
     includeAuthAccessToken?: boolean;
     accessToken?: string | null;
+    /**
+     * Identity base URL for this frame. When the key is set, it replaces the shell
+     * `backend` URL (`null` when that server is not a Shellui identity backend).
+     */
+    authBackendBaseUrl?: string | null;
+    /** User for this frame's identity server. When the key is set, it replaces `settings.user`. */
+    settingsUser?: Settings['user'];
     /** When false, omit layoutChrome (modal / drawer frames). Default true. */
     includeLayoutChrome?: boolean;
     /** Merge this frame's action-bar insets into layoutChrome. */
@@ -42,6 +49,7 @@ export const buildSettingsForPropagation = (
   let result: Settings = {
     ...settings,
     appearance: appearance ?? settings.appearance,
+    ...(options && 'settingsUser' in options ? { user: options.settingsUser ?? null } : {}),
   };
 
   if (options?.includeLayoutChrome !== false) {
@@ -132,10 +140,14 @@ export const buildSettingsForPropagation = (
 
   result = { ...result, email: propagateEmail(config?.email) };
 
-  const authBackendBaseUrl =
+  const shellAuthBackendBaseUrl =
     config?.backend?.type === 'shellui' && config.backend.url?.trim()
       ? config.backend.url.trim().replace(/\/+$/, '')
       : null;
+  const authBackendBaseUrl =
+    options && 'authBackendBaseUrl' in options
+      ? (options.authBackendBaseUrl ?? null)
+      : shellAuthBackendBaseUrl;
 
   result = {
     ...result,

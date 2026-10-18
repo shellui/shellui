@@ -164,7 +164,7 @@ The backend returns `error_code` `access_pending` or `access_denied` (also as `s
 
 ## Iframe apps
 
-Iframes do not read storage directly. They receive `user` through SDK settings after the shell initializes auth. The session **access token** is included only when the companion navigation item sets `safeForAuthToken: true` (opt-in). The refresh token stays in the shell and is never sent to iframe apps.
+Iframes do not read storage directly. They receive `user` through SDK settings after the shell initializes auth. The session **access token** is included only when the companion navigation item sets `safeForAuthToken: true` (opt-in). The refresh token stays in the shell and is never sent to iframe apps. An app with its own `backend` receives that server's URL and access token. See [Apps on another identity server](#apps-on-another-identity-server).
 
 ### Migration (breaking change)
 
@@ -191,9 +191,59 @@ shellui.login({
 });
 ```
 
-Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL.
+Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL. An app `backend` replaces that URL for that frame only.
 
 Signed-in users open **Settings** for account fields, theme, language, and region. Preferences sync with the backend when configured. Legal links on the login page come from `legalDocuments` - see [Legal documents](/features/legal-documents).
+
+## Apps on another identity server
+
+Set `backend` on a navigation item when that embedded app signs in to a different identity server than the shell. Administration items use the same field. With no `backend` on the item, the shell sends its own `backend` URL and access token, as it does today.
+
+```json
+{
+  "backend": {
+    "type": "shellui",
+    "url": "https://id.example.com",
+    "companyId": 1,
+    "login": { "oauthProviders": ["google"] }
+  },
+  "navigation": [
+    {
+      "label": "Billing",
+      "path": "billing",
+      "url": "https://billing.example/",
+      "safeForAuthToken": true
+    },
+    {
+      "label": "Directory",
+      "path": "directory",
+      "url": "https://directory.example/",
+      "safeForAuthToken": true,
+      "backend": {
+        "url": "https://id.directory.example",
+        "companyId": 4,
+        "provider": "google"
+      }
+    }
+  ]
+}
+```
+
+Billing receives `https://id.example.com` and the shell access token. Directory receives `https://id.directory.example` and a separate access token. The shell token is not sent to Directory.
+
+| Field            | Required | Description                                                                                                     |
+| ---------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `url`            | yes      | Base URL of this app's identity server                                                                          |
+| `type`           | no       | `shellui` or `supabase`. Defaults to the shell `backend.type`                                                   |
+| `companyId`      | no       | Tenant id for this server. Not copied from the shell. Omit it on the same URL to keep the shell session         |
+| `provider`       | no       | OAuth provider for silent sign-in, such as `google`. Defaults to the first `backend.login.oauthProviders` entry |
+| `publishableKey` | supabase | Public key when `type` is `supabase`                                                                            |
+
+The shell keeps one session per server. For a Shellui identity server it signs in inside a hidden frame with the same PKCE flow as desktop sign-in and `prompt=none`, so the identity server can return a code without showing a login page. The one-time code is posted only to the shell origin. The refresh token stays in the shell. If that sign-in does not complete, the app still receives its `backend` URL and `accessToken: null`.
+
+`safeForAuthToken: true` is still required for a navigation companion. Built-in admin (`backend.adminUrl`) and storage files keep the shell session unless a matching item sets a different `backend`. Add the shell origin to that server's OAuth redirect allowlist, the same way you allow the shell `backend`.
+
+A same-origin settings frame always keeps the shell session. An item `backend` whose URL and type match the shell, and whose `companyId` is omitted or equal, is not a separate server.
 
 ## Account management
 

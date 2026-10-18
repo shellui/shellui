@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Settings } from '@shellui/sdk';
+import type { AuthSession } from '../../auth/types';
+import { frameAuthPropagationOptions } from '../../auth/appBackend/frameAuth';
 import type { ShellUIConfig } from '../../config/types';
 import { buildSettingsForPropagation } from './buildSettingsForPropagation';
 
@@ -318,5 +320,165 @@ describe('buildSettingsForPropagation', () => {
 
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
     expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+  });
+
+  const shellToken = 'shell-access-token';
+  const foreignToken = 'foreign-access-token';
+  const shellUser = {
+    id: 'shell-user',
+    email: 'shell@example.com',
+    name: 'Shell User',
+    profilePicture: null,
+    authProvider: 'google',
+    isStaff: true,
+  };
+
+  const appConfig = {
+    backend: {
+      type: 'shellui' as const,
+      url: 'https://id.example.com/',
+      companyId: 1,
+      adminUrl: 'https://admin.example/',
+      login: { oauthProviders: ['google'] },
+    },
+    storage: { url: 'https://files-api.example', filesUrl: 'https://files.example/' },
+    navigation: [
+      {
+        label: 'Billing',
+        path: 'billing',
+        url: 'https://billing.example/',
+        safeForAuthToken: true,
+      },
+      {
+        label: 'Directory',
+        path: 'directory',
+        url: 'https://directory.example/',
+        safeForAuthToken: true,
+        backend: {
+          url: 'https://id.directory.example/',
+          companyId: 4,
+          provider: 'google',
+        },
+      },
+      {
+        label: 'Public directory',
+        path: 'public-directory',
+        url: 'https://public.example/',
+        backend: { url: 'https://id.public.example' },
+      },
+    ],
+  } as ShellUIConfig;
+
+  const foreignSession = {
+    accessToken: foreignToken,
+    refreshToken: 'foreign-refresh',
+    tokenType: 'bearer',
+    expiresAt: 4_000_000_000,
+    provider: 'google',
+    userId: 'foreign-user',
+    userEmail: 'foreign@example.com',
+    userName: 'Foreign User',
+    userAvatarUrl: null,
+    userIsStaff: false,
+    userIsCompanyOwner: true,
+    userGroups: ['directory'],
+  } satisfies AuthSession;
+
+  const propagate = (frameSrc: string, session: AuthSession | null = foreignSession) => {
+    const options = frameAuthPropagationOptions({
+      frameSrc,
+      config: appConfig,
+      shellAccessToken: shellToken,
+      getAppSession: () => session,
+      shellOrigin: 'https://shell.example',
+    });
+    return buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      appConfig,
+      'en',
+      options,
+    );
+  };
+
+  it('falls back to the shell backend and token when the app has no override', () => {
+    const result = propagate('https://billing.example/');
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(result.user?.email).toBe('shell@example.com');
+  });
+
+  it('sends each foreign app its own backend URL and token', () => {
+    const result = propagate('https://directory.example/people');
+    expect(result.accessToken).toBe(foreignToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.directory.example');
+    expect(result.user).toMatchObject({
+      id: 'foreign-user',
+      email: 'foreign@example.com',
+      groups: ['directory'],
+    });
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+    expect(JSON.stringify(result)).not.toContain('shell@example.com');
+    expect(result).not.toHaveProperty('refreshToken');
+  });
+
+  it('sends a null token, not the shell token, when the foreign session is missing', () => {
+    const result = propagate('https://directory.example/', null);
+    expect(result.accessToken).toBeNull();
+    expect(result.authBackendBaseUrl).toBe('https://id.directory.example');
+    expect(result.user).toBeNull();
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+  });
+
+  it('does not send either token to an untrusted app on another identity server', () => {
+    const result = propagate('https://public.example/');
+    expect(result.accessToken).toBeNull();
+    expect(result.authBackendBaseUrl).toBe('https://id.public.example');
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+    expect(JSON.stringify(result)).not.toContain(foreignToken);
+  });
+
+  it('keeps the shell token for the built-in admin and storage frames', () => {
+    const admin = propagate('https://admin.example/#/users');
+    const files = propagate('https://files.example/company/docs');
+    expect(admin.accessToken).toBe(shellToken);
+    expect(admin.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(files.accessToken).toBe(shellToken);
+    expect(files.authBackendBaseUrl).toBe('https://id.example.com');
+  });
+
+  it('keeps the shell token for shell settings even if a root item names another server', () => {
+    vi.stubGlobal('window', {
+      location: { origin: 'https://shell.example' },
+      matchMedia: () => ({ matches: false }),
+    });
+    const withRoot = {
+      ...appConfig,
+      navigation: [
+        ...(appConfig.navigation ?? []),
+        {
+          label: 'Home',
+          path: 'home',
+          url: 'https://shell.example/',
+          safeForAuthToken: true,
+          backend: { url: 'https://id.other.example' },
+        },
+      ],
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://shell.example/__settings/storage',
+      config: withRoot,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      withRoot,
+      'en',
+      options,
+    );
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(result.user?.email).toBe('shell@example.com');
   });
 });

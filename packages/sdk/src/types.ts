@@ -370,13 +370,16 @@ export interface Settings {
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**
-   * Session JWT (access token) injected by shell for trusted iframe apps.
-   * Same token as the main app’s API `Authorization: Bearer` credential; omitted or null for untrusted frames.
+   * Session access token for this app's identity server.
+   * Present only for trusted frames. When the app sets its own `backend`, this is
+   * that server's token. The shell token is not sent, and the refresh token is never included.
    */
   accessToken?: string | null;
   /**
-   * Shellui-auth API base URL (no trailing slash), from the parent app’s `backend.url` when `backend.type` is `shellui`.
-   * Injected for trusted sub-apps (e.g. admin iframe) so they call the same backend as the shell.
+   * Identity API base URL (no trailing slash) for this app.
+   * The shell `backend.url` when `backend.type` is `shellui`, or the app's own
+   * `backend.url` when that navigation item names a different identity server.
+   * Null when that server is not a Shellui identity backend.
    */
   authBackendBaseUrl?: string | null;
   // Add more settings here as needed

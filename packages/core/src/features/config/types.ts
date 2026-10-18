@@ -62,6 +62,13 @@ export interface NavigationItem {
    * - true: trusted, access token can be shared (opt-in)
    */
   safeForAuthToken?: boolean;
+  /**
+   * Identity server for this embedded app when it is not the shell `backend`.
+   * The shell keeps a separate session and sends this URL plus that session's
+   * access token. Omit to use the shell backend and token.
+   * The shell token is never sent when this server differs.
+   */
+  backend?: AppBackendConfig;
 }
 
 export interface NavigationGroup {
@@ -214,6 +221,26 @@ export interface AuthConfig {
    * Lowercase. Not `http`, `https`, or another browser scheme.
    */
   desktopScheme?: string;
+}
+
+/**
+ * Identity server for one embedded app when it differs from the shell `backend`.
+ * `type` defaults to the shell backend type. `companyId` is not copied from the shell.
+ */
+export interface AppBackendConfig {
+  /** `shellui` or `supabase`. When omitted, the shell backend type is used. */
+  type?: BackendType;
+  /** Base URL of this app's identity server. */
+  url: string;
+  /** Tenant id for this server. Not taken from the shell `backend.companyId`. */
+  companyId?: string | number;
+  /** Public key when `type` is `supabase`. */
+  publishableKey?: string;
+  /**
+   * OAuth provider for silent sign-in, such as `google`.
+   * When omitted, the shell uses the first `backend.login.oauthProviders` entry.
+   */
+  provider?: string;
 }
 
 /** Backend API configuration. */

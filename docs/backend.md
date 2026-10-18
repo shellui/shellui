@@ -91,6 +91,10 @@ Types: `BackendConfig` and `BackendLoginConfig` in `@shellui/core`. The stock lo
 
 **identity-service** fits dedicated `/api/v1/*` auth, company tenants, staff admin, and JWT `user_metadata` for groups and `is_company_owner`. **Supabase** fits an existing GoTrue project. **No backend** fits a public shell; add `backend` when you need login, `requiresAuth`, or user settings in child apps.
 
+## Apps on another identity server
+
+A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session for that server and sends the app that URL and access token through SDK settings. It does not send the shell access token. Omit the item `backend` to keep the single shell `backend`. Details and the field list are in [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
+
 ## Related pages
 
 - [Authentication](/features/authentication) - routes, guards, session, SDK login

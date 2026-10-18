@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### ✨ Feature
+
+- **App identity server:** A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session and sends that app its own URL and access token.
+
 ### 🐛 Bug Fixes
 
 - **Desktop sign-in:** Sign-in completes during `shellui start --app`. The dev shell and `tauri dev` use `<auth.desktopScheme>-dev`, so dev never takes links meant for an installed build. On macOS the CLI registers a small dev-only handler for that scheme and forwards the deep link to the dev window. On Windows and Linux the app registers the scheme at runtime and uses the single-instance plugin (see the desktop docs). identity-service accepts the `-dev` variant of a registered scheme.

@@ -255,6 +255,10 @@
         "safeForAuthToken": {
           "type": "boolean",
           "description": "Trust control for auth token sharing to iframe apps.\n- undefined/false: untrusted (default), access token is not shared\n- true: trusted, access token can be shared (opt-in)"
+        },
+        "backend": {
+          "$ref": "#/definitions/AppBackendConfig",
+          "description": "Identity server for this embedded app when it is not the shell `backend`. The shell keeps a separate session and sends this URL plus that session's access token. Omit to use the shell backend and token. The shell token is never sent when this server differs."
         }
       },
       "required": ["label", "path", "url"],
@@ -286,6 +290,39 @@
       "type": "string",
       "enum": ["top", "bottom", "left", "right"],
       "description": "Drawer position when opening a link in a drawer (optional, used when openIn === 'drawer')."
+    },
+    "AppBackendConfig": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/BackendType",
+          "description": "`shellui` or `supabase`. When omitted, the shell backend type is used."
+        },
+        "url": {
+          "type": "string",
+          "description": "Base URL of this app's identity server."
+        },
+        "companyId": {
+          "type": ["string", "number"],
+          "description": "Tenant id for this server. Not taken from the shell `backend.companyId`."
+        },
+        "publishableKey": {
+          "type": "string",
+          "description": "Public key when `type` is `supabase`."
+        },
+        "provider": {
+          "type": "string",
+          "description": "OAuth provider for silent sign-in, such as `google`. When omitted, the shell uses the first `backend.login.oauthProviders` entry."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Identity server for one embedded app when it differs from the shell `backend`. `type` defaults to the shell backend type. `companyId` is not copied from the shell."
+    },
+    "BackendType": {
+      "type": "string",
+      "enum": ["shellui", "supabase"],
+      "description": "Supported backend providers for auth/API communication."
     },
     "NavigationGroup": {
       "type": "object",
@@ -896,17 +933,6 @@
       "additionalProperties": false,
       "description": "Sentry error reporting configuration. Only used in production; ignored in dev."
     },
-    "AuthConfig": {
-      "type": "object",
-      "properties": {
-        "desktopScheme": {
-          "type": "string",
-          "description": "Custom URL scheme for Tauri sign-in, such as `shellui-playground`. Lowercase. Not `http`, `https`, or another browser scheme."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Desktop (Tauri) sign-in. Ignored in the browser, so the web OAuth redirect stays as it is. The scheme must match the OAuth application's `desktop_redirect_scheme`."
-    },
     "BackendConfig": {
       "type": "object",
       "properties": {
@@ -947,11 +973,6 @@
       "additionalProperties": false,
       "description": "Backend API configuration."
     },
-    "BackendType": {
-      "type": "string",
-      "enum": ["shellui", "supabase"],
-      "description": "Supported backend providers for auth/API communication."
-    },
     "BackendLoginConfig": {
       "type": "object",
       "properties": {
@@ -985,6 +1006,17 @@
       "type": "string",
       "enum": ["password", "oauth", "magic_link", "web3"],
       "description": "Supported auth login methods that can be declared in config."
+    },
+    "AuthConfig": {
+      "type": "object",
+      "properties": {
+        "desktopScheme": {
+          "type": "string",
+          "description": "Custom URL scheme for Tauri sign-in, such as `shellui-playground`. Lowercase. Not `http`, `https`, or another browser scheme."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desktop (Tauri) sign-in. Ignored in the browser, so the web OAuth redirect stays as it is. The scheme must match the OAuth application's `desktop_redirect_scheme`."
     },
     "SecurityConfig": {
       "type": "object",
