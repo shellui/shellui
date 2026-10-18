@@ -354,17 +354,23 @@ export interface Settings {
    * When set, Admin shows Storage and iframe apps can call `shellui.storage`.
    * Settings → Storage (quota) is a host UI and is omitted when `storage` is
    * unset or `showInSettings` is false.
+   * An app `storage` replaces this. It is `null` when that app's identity server
+   * differs and the item does not set `storage`.
    */
   storage?: SettingsStorage | null;
   /**
    * Hosting-service connection (from host `hosting` in shellui.config.json).
    * Omitted or null when hosting is not configured.
+   * An app `hosting` replaces this. It is `null` when that app's identity server
+   * differs and the item does not set `hosting`.
    */
   hosting?: SettingsHosting | null;
   /**
    * Email-service connection (from host `email` in shellui.config.json).
    * Omitted or null when `email` is not set.
    * When `email` is set and `url` is omitted, `url` is `https://email.shellui.com`.
+   * An app `email` replaces this. It is `null` when that app's identity server
+   * differs and the item does not set `email`.
    */
   email?: SettingsEmail | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */

@@ -26,6 +26,9 @@ describe('shellui.config schema app backend', () => {
     expect(navigationItem.additionalProperties).toBe(false);
     expect(navigationItem.required).toEqual(['label', 'path', 'url']);
     expect(navigationItem.properties?.backend).toBeTruthy();
+    expect(navigationItem.properties?.email).toBeTruthy();
+    expect(navigationItem.properties?.storage).toBeTruthy();
+    expect(navigationItem.properties?.hosting).toBeTruthy();
     expect(navigationItem.properties?.safeForAuthToken).toBeTruthy();
     expect(appBackend.additionalProperties).toBe(false);
     expect(appBackend.required).toEqual(['url']);

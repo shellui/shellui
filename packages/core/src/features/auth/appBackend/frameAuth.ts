@@ -1,9 +1,26 @@
 import type { Settings } from '@shellui/sdk';
-import type { ShellUIConfig } from '../../config/types';
+import type {
+  EmailConfig,
+  HostingConfig,
+  NavigationItem,
+  ShellUIConfig,
+  StorageConfig,
+} from '../../config/types';
 import { isShellSettingsFrameSrc, isTrustedFrameForAuthToken } from '../../security/trustedFrames';
 import urls from '../../../constants/urls';
 import type { AuthSession } from '../types';
-import { resolveFrameAppBackend, type ResolvedAppBackend } from './identity';
+import {
+  resolveFrameAppBackend,
+  resolveFrameNavigationItem,
+  type ResolvedAppBackend,
+} from './identity';
+
+/** Present keys replace the shell service. `null` sends no URL for that service. */
+export type FrameServiceOverrides = {
+  storage?: StorageConfig | null;
+  email?: EmailConfig | null;
+  hosting?: HostingConfig | null;
+};
 
 export type FrameAuthDelivery = {
   includeAuthAccessToken: boolean;
@@ -13,6 +30,7 @@ export type FrameAuthDelivery = {
   authBackendBaseUrl: string | null;
   overrideUser: boolean;
   settingsUser: Settings['user'];
+  services: FrameServiceOverrides;
 };
 
 const settingsUserFromSession = (session: AuthSession | null): Settings['user'] => {
@@ -47,6 +65,7 @@ function shellDelivery(
     authBackendBaseUrl: null,
     overrideUser: false,
     settingsUser: null,
+    services: {},
   };
 }
 
@@ -55,6 +74,7 @@ function foreignDelivery(
   config: ShellUIConfig | undefined,
   identity: ResolvedAppBackend | null,
   session: AuthSession | null,
+  services: FrameServiceOverrides,
 ): FrameAuthDelivery {
   const trusted = isTrustedFrameForAuthToken(frameSrc, config);
   const foreignToken = session?.accessToken ?? null;
@@ -65,7 +85,23 @@ function foreignDelivery(
     authBackendBaseUrl: identity?.type === 'shellui' ? identity.url : null,
     overrideUser: true,
     settingsUser: settingsUserFromSession(session),
+    services,
   };
+}
+
+/**
+ * A service field on the item replaces the shell value.
+ * When the item's identity server differs and the field is absent, send none.
+ */
+function serviceOverrides(item: NavigationItem | null, failClosed: boolean): FrameServiceOverrides {
+  const overrides: FrameServiceOverrides = {};
+  if (item?.storage !== undefined) overrides.storage = item.storage;
+  else if (failClosed) overrides.storage = null;
+  if (item?.email !== undefined) overrides.email = item.email;
+  else if (failClosed) overrides.email = null;
+  if (item?.hosting !== undefined) overrides.hosting = item.hosting;
+  else if (failClosed) overrides.hosting = null;
+  return overrides;
 }
 
 /**
@@ -86,13 +122,22 @@ export function resolveFrameAuthDelivery(input: {
   }
 
   const resolved = resolveFrameAppBackend(frameSrc, config);
+  const item = resolveFrameNavigationItem(frameSrc, config);
+  const failClosed = resolved.kind !== 'shell';
+  const services = serviceOverrides(item, failClosed);
   if (resolved.kind === 'shell') {
-    return shellDelivery(frameSrc, config, shellAccessToken);
+    return { ...shellDelivery(frameSrc, config, shellAccessToken), services };
   }
   if (resolved.kind === 'withhold') {
-    return foreignDelivery(frameSrc, config, null, null);
+    return foreignDelivery(frameSrc, config, null, null, services);
   }
-  return foreignDelivery(frameSrc, config, resolved.identity, getAppSession(resolved.identity.key));
+  return foreignDelivery(
+    frameSrc,
+    config,
+    resolved.identity,
+    getAppSession(resolved.identity.key),
+    services,
+  );
 }
 
 /** Options for `buildSettingsForPropagation`. Shell frames omit the override keys. */
@@ -107,6 +152,9 @@ export function frameAuthPropagationOptions(input: {
   accessToken: string | null;
   authBackendBaseUrl?: string | null;
   settingsUser?: Settings['user'];
+  storage?: StorageConfig | null;
+  email?: EmailConfig | null;
+  hosting?: HostingConfig | null;
 } {
   const delivery = resolveFrameAuthDelivery(input);
   return {
@@ -114,5 +162,6 @@ export function frameAuthPropagationOptions(input: {
     accessToken: delivery.accessToken,
     ...(delivery.overrideAuthBackend ? { authBackendBaseUrl: delivery.authBackendBaseUrl } : {}),
     ...(delivery.overrideUser ? { settingsUser: delivery.settingsUser } : {}),
+    ...delivery.services,
   };
 }

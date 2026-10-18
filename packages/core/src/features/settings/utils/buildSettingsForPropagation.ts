@@ -1,5 +1,11 @@
-import type { Settings, SettingsEmail, SettingsNavigationItem } from '@shellui/sdk';
-import type { ShellUIConfig } from '../../config/types';
+import type {
+  Settings,
+  SettingsEmail,
+  SettingsHosting,
+  SettingsNavigationItem,
+  SettingsStorage,
+} from '@shellui/sdk';
+import type { EmailConfig, HostingConfig, ShellUIConfig, StorageConfig } from '../../config/types';
 import { flattenNavigationItems } from './flattenNavigationItems';
 import { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 import { getResolvedAppearanceForSettings } from './getResolvedAppearanceForSettings';
@@ -12,12 +18,33 @@ import {
 /** Production email-service origin. No trailing slash. */
 const DEFAULT_EMAIL_SERVICE_URL = 'https://email.shellui.com';
 
-const propagateEmail = (email: ShellUIConfig['email']): SettingsEmail | null => {
+const propagateEmail = (email: EmailConfig | null | undefined): SettingsEmail | null => {
   if (!email) return null;
   const url = email.url?.trim().replace(/\/+$/, '') || DEFAULT_EMAIL_SERVICE_URL;
   return {
     url,
     ...(email.showInAdmin === false ? { showInAdmin: false } : {}),
+  };
+};
+
+const propagateStorage = (storage: StorageConfig | null | undefined): SettingsStorage | null => {
+  const storageUrl = storage?.url?.trim().replace(/\/+$/, '') || null;
+  if (!storageUrl) return null;
+  const filesUrl = storage?.filesUrl?.trim() || null;
+  return {
+    url: storageUrl,
+    ...(filesUrl ? { filesUrl } : {}),
+  };
+};
+
+const propagateHosting = (hosting: HostingConfig | null | undefined): SettingsHosting | null => {
+  const hostingUrl = hosting?.url?.trim().replace(/\/+$/, '') || null;
+  if (!hostingUrl) return null;
+  const app = hosting?.app?.trim() || null;
+  return {
+    url: hostingUrl,
+    ...(app ? { app } : {}),
+    ...(hosting?.showInAdmin === false ? { showInAdmin: false } : {}),
   };
 };
 
@@ -39,6 +66,15 @@ export const buildSettingsForPropagation = (
     authBackendBaseUrl?: string | null;
     /** User for this frame's identity server. When the key is set, it replaces `settings.user`. */
     settingsUser?: Settings['user'];
+    /**
+     * Storage for this frame. When the key is set, it replaces the shell `storage`
+     * (`null` sends no storage URL).
+     */
+    storage?: StorageConfig | null;
+    /** Email for this frame. When the key is set, it replaces the shell `email`. */
+    email?: EmailConfig | null;
+    /** Hosting for this frame. When the key is set, it replaces the shell `hosting`. */
+    hosting?: HostingConfig | null;
     /** When false, omit layoutChrome (modal / drawer frames). Default true. */
     includeLayoutChrome?: boolean;
     /** Merge this frame's action-bar insets into layoutChrome. */
@@ -109,36 +145,16 @@ export const buildSettingsForPropagation = (
     result = { ...result, administration: null };
   }
 
-  const storageUrl = config?.storage?.url?.trim().replace(/\/+$/, '') || null;
-  if (storageUrl) {
-    const filesUrl = config.storage?.filesUrl?.trim() || null;
-    result = {
-      ...result,
-      storage: {
-        url: storageUrl,
-        ...(filesUrl ? { filesUrl } : {}),
-      },
-    };
-  } else {
-    result = { ...result, storage: null };
-  }
+  const storageSource = options && 'storage' in options ? options.storage : config?.storage;
+  const hostingSource = options && 'hosting' in options ? options.hosting : config?.hosting;
+  const emailSource = options && 'email' in options ? options.email : config?.email;
 
-  const hostingUrl = config?.hosting?.url?.trim().replace(/\/+$/, '') || null;
-  if (hostingUrl) {
-    const app = config.hosting?.app?.trim() || null;
-    result = {
-      ...result,
-      hosting: {
-        url: hostingUrl,
-        ...(app ? { app } : {}),
-        ...(config.hosting?.showInAdmin === false ? { showInAdmin: false } : {}),
-      },
-    };
-  } else {
-    result = { ...result, hosting: null };
-  }
-
-  result = { ...result, email: propagateEmail(config?.email) };
+  result = {
+    ...result,
+    storage: propagateStorage(storageSource),
+    hosting: propagateHosting(hostingSource),
+    email: propagateEmail(emailSource),
+  };
 
   const shellAuthBackendBaseUrl =
     config?.backend?.type === 'shellui' && config.backend.url?.trim()

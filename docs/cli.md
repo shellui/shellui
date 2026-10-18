@@ -220,7 +220,7 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
 
-`email` sets the [email-service](https://github.com/shellui/email-service) origin the shell forwards on SDK `settings.email`. Omit `url` and the shell sends `https://email.shellui.com` (use `http://localhost:8003` locally). Omit `email` and the shell sends `settings.email: null`. `email.showInAdmin: false` hides Admin → Email.
+`email` sets the [email-service](https://github.com/shellui/email-service) origin the shell forwards on SDK `settings.email`. Omit `url` and the shell sends `https://email.shellui.com` (use `http://localhost:8003` locally). Omit `email` and the shell sends `settings.email: null`. `email.showInAdmin: false` hides Admin → Email. A navigation item can set its own `email`, `storage`, and `hosting`; see [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 
 ```json
 {

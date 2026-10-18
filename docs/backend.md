@@ -93,7 +93,7 @@ Types: `BackendConfig` and `BackendLoginConfig` in `@shellui/core`. The stock lo
 
 ## Apps on another identity server
 
-A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session for that server and sends the app that URL and access token through SDK settings. It does not send the shell access token. Omit the item `backend` to keep the single shell `backend`. Details and the field list are in [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
+A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session for that server and sends the app that URL and access token through SDK settings. It does not send the shell access token. The same item can set `email`, `storage`, and `hosting` for that server. If `backend` differs and one of those fields is omitted, the app receives no URL for that service. Omit the item `backend` to keep the single shell `backend` and its services. Details and the field list are in [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 
 ## Related pages
 

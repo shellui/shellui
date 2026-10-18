@@ -259,6 +259,18 @@
         "backend": {
           "$ref": "#/definitions/AppBackendConfig",
           "description": "Identity server for this embedded app when it is not the shell `backend`. The shell keeps a separate session and sends this URL plus that session's access token. Omit to use the shell backend and token. The shell token is never sent when this server differs."
+        },
+        "email": {
+          "$ref": "#/definitions/EmailConfig",
+          "description": "Email service for this app. Omit to use the shell `email` when the app uses the shell identity server. When `backend` names a different server and this is omitted, the app receives no email URL."
+        },
+        "storage": {
+          "$ref": "#/definitions/StorageConfig",
+          "description": "Storage service for this app. Same fallback as `email`."
+        },
+        "hosting": {
+          "$ref": "#/definitions/HostingConfig",
+          "description": "Hosting service for this app. Same fallback as `email`."
         }
       },
       "required": ["label", "path", "url"],
@@ -324,6 +336,69 @@
       "enum": ["shellui", "supabase"],
       "description": "Supported backend providers for auth/API communication."
     },
+    "EmailConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of email-service. Default: `https://email.shellui.com` when `email` is set and this is omitted. Local: `http://localhost:8003`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → Email. Default: true (shown) when `email` is set."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional email-service wiring for Admin → Email and iframe apps. When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`."
+    },
+    "StorageConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of storage-service (e.g. `http://localhost:8001`)."
+        },
+        "filesUrl": {
+          "type": "string",
+          "description": "Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`)."
+        },
+        "showInSettings": {
+          "type": "boolean",
+          "description": "When false, hide Settings → Storage even if `url` is set. Admin Storage is unaffected. Default: true."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. Shellui will also use this for the SDK file API (`shellui.storage`)."
+    },
+    "HostingConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of hosting-service (e.g. `http://localhost:8002`)."
+        },
+        "publicUrl": {
+          "type": "string",
+          "description": "Optional public base for browsable app URLs when different from `url` (e.g. CDN or path-style gateway). The deploy API returns `urls` when possible."
+        },
+        "slug": {
+          "type": "string",
+          "description": "Optional preview site slug. When set, `shellui deploy` redeploys to this slug (must belong to your company and user). When omitted, each deploy gets a new slug."
+        },
+        "app": {
+          "type": "string",
+          "deprecated": "Use `slug` instead."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → Hosting even if `url` is set. Default: true when `url` is set. Does not affect `shellui deploy`."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
+    },
     "NavigationGroup": {
       "type": "object",
       "properties": {
@@ -378,26 +453,6 @@
       "additionalProperties": false,
       "description": "Custom navigation section for the staff administration panel. Admin app URL remains `backend.adminUrl` / `backend.adminPathname`. v1 is a flat list only (no nested groups)."
     },
-    "StorageConfig": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "Base URL of storage-service (e.g. `http://localhost:8001`)."
-        },
-        "filesUrl": {
-          "type": "string",
-          "description": "Files explorer app URL embedded under Admin → Storage → Files (e.g. `http://localhost:5175/`)."
-        },
-        "showInSettings": {
-          "type": "boolean",
-          "description": "When false, hide Settings → Storage even if `url` is set. Admin Storage is unaffected. Default: true."
-        }
-      },
-      "required": ["url"],
-      "additionalProperties": false,
-      "description": "Optional storage-service wiring for the shell and admin panel. When set, admin shows the Storage sidebar (files explorer, statistics, Django admin). Settings → Storage (quota) appears when `url` is set, unless `showInSettings` is false. Shellui will also use this for the SDK file API (`shellui.storage`)."
-    },
     "AiConfig": {
       "type": "object",
       "properties": {
@@ -408,49 +463,6 @@
       },
       "additionalProperties": false,
       "description": "On-device AI product feature (Ollama + browser / WebLLM). Distinct from the per-user Settings → AI “Allow apps to use AI” toggle."
-    },
-    "HostingConfig": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "Base URL of hosting-service (e.g. `http://localhost:8002`)."
-        },
-        "publicUrl": {
-          "type": "string",
-          "description": "Optional public base for browsable app URLs when different from `url` (e.g. CDN or path-style gateway). The deploy API returns `urls` when possible."
-        },
-        "slug": {
-          "type": "string",
-          "description": "Optional preview site slug. When set, `shellui deploy` redeploys to this slug (must belong to your company and user). When omitted, each deploy gets a new slug."
-        },
-        "app": {
-          "type": "string",
-          "deprecated": "Use `slug` instead."
-        },
-        "showInAdmin": {
-          "type": "boolean",
-          "description": "When false, hide Admin → Hosting even if `url` is set. Default: true when `url` is set. Does not affect `shellui deploy`."
-        }
-      },
-      "required": ["url"],
-      "additionalProperties": false,
-      "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
-    },
-    "EmailConfig": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "Base URL of email-service. Default: `https://email.shellui.com` when `email` is set and this is omitted. Local: `http://localhost:8003`."
-        },
-        "showInAdmin": {
-          "type": "boolean",
-          "description": "When false, hide Admin → Email. Default: true (shown) when `email` is set."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Optional email-service wiring for Admin → Email and iframe apps. When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`."
     },
     "ThemeRef": {
       "anyOf": [

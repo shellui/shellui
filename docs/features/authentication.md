@@ -223,13 +223,19 @@ Set `backend` on a navigation item when that embedded app signs in to a differen
         "url": "https://id.directory.example",
         "companyId": 4,
         "provider": "google"
-      }
+      },
+      "email": { "url": "https://email.directory.example" },
+      "storage": {
+        "url": "https://files-api.directory.example",
+        "filesUrl": "https://files.directory.example/"
+      },
+      "hosting": { "url": "https://hosting.directory.example" }
     }
   ]
 }
 ```
 
-Billing receives `https://id.example.com` and the shell access token. Directory receives `https://id.directory.example` and a separate access token. The shell token is not sent to Directory.
+Billing receives `https://id.example.com`, the shell access token, and the shell `email`, `storage`, and `hosting` URLs. Directory receives `https://id.directory.example`, a separate access token, and the service URLs on that item. The shell token is not sent to Directory.
 
 | Field            | Required | Description                                                                                                     |
 | ---------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
@@ -239,11 +245,13 @@ Billing receives `https://id.example.com` and the shell access token. Directory 
 | `provider`       | no       | OAuth provider for silent sign-in, such as `google`. Defaults to the first `backend.login.oauthProviders` entry |
 | `publishableKey` | supabase | Public key when `type` is `supabase`                                                                            |
 
+Optional `email`, `storage`, and `hosting` on the same item use the same shapes as the shell blocks. Omit a field to keep the shell service when the app uses the shell identity server. When `backend` names a different server and a service field is omitted, that setting is `null` (email included: no default URL). Set only the services that app should call. An empty `email` object uses `https://email.shellui.com`, the same default as a shell `email` block with no `url`. `shellui.storage` still runs against the shell `storage` URL.
+
 The shell keeps one session per server. For a Shellui identity server it signs in inside a hidden frame with the same PKCE flow as desktop sign-in and `prompt=none`, so the identity server can return a code without showing a login page. The one-time code is posted only to the shell origin. The refresh token stays in the shell. If that sign-in does not complete, the app still receives its `backend` URL and `accessToken: null`.
 
-`safeForAuthToken: true` is still required for a navigation companion. Built-in admin (`backend.adminUrl`) and storage files keep the shell session unless a matching item sets a different `backend`. Add the shell origin to that server's OAuth redirect allowlist, the same way you allow the shell `backend`.
+`safeForAuthToken: true` is still required for a navigation companion. Built-in admin (`backend.adminUrl`) and storage files keep the shell session and shell services unless a matching item sets a different `backend`. Add the shell origin to that server's OAuth redirect allowlist, the same way you allow the shell `backend`.
 
-A same-origin settings frame always keeps the shell session. An item `backend` whose URL and type match the shell, and whose `companyId` is omitted or equal, is not a separate server.
+A same-origin settings frame always keeps the shell session and the shell services. An item `backend` whose URL and type match the shell, and whose `companyId` is omitted or equal, is not a separate server.
 
 ## Account management
 

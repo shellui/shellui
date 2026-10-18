@@ -119,15 +119,8 @@ function hasDistinctBackend(item: NavigationItem, config?: ShellUIConfig): boole
   return isDistinctFromShell(identity, config);
 }
 
-/**
- * Which identity server a frame should use.
- * `shell` keeps today's single backend. `withhold` means the item named a backend
- * we cannot use, so the shell token must not be sent. `foreign` is a different server.
- */
-export function resolveFrameAppBackend(frameSrc: string, config?: ShellUIConfig): FrameAppBackend {
+function matchingItems(frameSrc: string, config?: ShellUIConfig): NavigationItem[] {
   const matches = embeddedItems(config).filter((item) => isFrameMatch(frameSrc, item.url));
-  if (matches.length === 0) return { kind: 'shell' };
-
   matches.sort((a, b) => {
     const score = appUrlSpecificity(b.url) - appUrlSpecificity(a.url);
     if (score !== 0) return score;
@@ -135,8 +128,24 @@ export function resolveFrameAppBackend(frameSrc: string, config?: ShellUIConfig)
     const bForeign = hasDistinctBackend(b, config) ? 1 : 0;
     return bForeign - aForeign;
   });
+  return matches;
+}
 
-  const winner = matches[0];
+/** Most specific embedded item for this frame, if any. */
+export function resolveFrameNavigationItem(
+  frameSrc: string,
+  config?: ShellUIConfig,
+): NavigationItem | null {
+  return matchingItems(frameSrc, config)[0] ?? null;
+}
+
+/**
+ * Which identity server a frame should use.
+ * `shell` keeps today's single backend. `withhold` means the item named a backend
+ * we cannot use, so the shell token must not be sent. `foreign` is a different server.
+ */
+export function resolveFrameAppBackend(frameSrc: string, config?: ShellUIConfig): FrameAppBackend {
+  const winner = matchingItems(frameSrc, config)[0];
   if (!winner?.backend) return { kind: 'shell' };
   const identity = resolveAppBackendConfig(winner.backend, config);
   if (!identity) return { kind: 'withhold' };

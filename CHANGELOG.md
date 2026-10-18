@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### ✨ Feature
 
 - **App identity server:** A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session and sends that app its own URL and access token.
+- **App services:** A navigation item can set `email`, `storage`, and `hosting` for that app. When `backend` names another server and a service is omitted, the app receives no URL for it.
 
 ### 🐛 Bug Fixes
 

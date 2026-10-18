@@ -69,6 +69,20 @@ export interface NavigationItem {
    * The shell token is never sent when this server differs.
    */
   backend?: AppBackendConfig;
+  /**
+   * Email service for this app. Omit to use the shell `email` when the app uses
+   * the shell identity server. When `backend` names a different server and this
+   * is omitted, the app receives no email URL.
+   */
+  email?: EmailConfig;
+  /**
+   * Storage service for this app. Same fallback as `email`.
+   */
+  storage?: StorageConfig;
+  /**
+   * Hosting service for this app. Same fallback as `email`.
+   */
+  hosting?: HostingConfig;
 }
 
 export interface NavigationGroup {

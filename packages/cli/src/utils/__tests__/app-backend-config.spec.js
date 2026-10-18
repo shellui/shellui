@@ -47,6 +47,42 @@ describe('per-app backend config', () => {
     ).not.toThrow();
   });
 
+  it('accepts per-app email, storage, and hosting', () => {
+    expect(() =>
+      validateConfig({
+        backend: { type: 'shellui', url: 'https://id.example.com' },
+        email: { url: 'https://email.example' },
+        storage: { url: 'https://files-api.example' },
+        hosting: { url: 'https://hosting.example' },
+        navigation: [
+          {
+            ...item,
+            backend: { url: 'https://id.directory.example' },
+            email: {},
+            storage: {
+              url: 'https://files-api.directory.example',
+              filesUrl: 'https://files.directory.example/',
+            },
+            hosting: { url: 'https://hosting.directory.example', showInAdmin: false },
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects unknown service fields on a navigation item', () => {
+    expect(() =>
+      validateConfig({
+        navigation: [
+          {
+            ...item,
+            email: { url: 'https://email.directory.example', region: 'eu' },
+          },
+        ],
+      }),
+    ).toThrow(/additional property/);
+  });
+
   it('rejects unknown backend fields', () => {
     expect(() =>
       validateConfig({
