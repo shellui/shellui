@@ -6,7 +6,7 @@ React runtime for the Shellui host. `@shellui/cli` depends on this package. Inst
 npm install @shellui/core
 ```
 
-Shellui **0.6.2** is the current stable release: `npm install @shellui/core@0.6.2`.
+Shellui **0.6.3** is the current stable release: `npm install @shellui/core@0.6.3`.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';

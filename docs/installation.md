@@ -29,16 +29,16 @@ npx shellui build --app --bundles app,dmg
 
 ## Install this release
 
-These docs describe Shellui **0.6.2** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.2 and not a later version:
+These docs describe Shellui **0.6.3** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.3 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@0.6.2
-npm install --save-dev @shellui/cli@0.6.2
-npm install @shellui/sdk@0.6.2
-npm install @shellui/core@0.6.2
+npm install -g @shellui/cli@0.6.3
+npm install --save-dev @shellui/cli@0.6.3
+npm install @shellui/sdk@0.6.3
+npm install @shellui/core@0.6.3
 ```
 
-See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.2. Desktop sign-in completes during `shellui start --app`, and macOS window layouts leave room for the traffic lights. Setup is in [Sign in on the desktop](/tauri#sign-in-on-the-desktop).
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.3. Switching pages in the desktop app now loads the new page. Desktop setup is in [Sign in on the desktop](/tauri#sign-in-on-the-desktop).
 
 ## Install in a project
 

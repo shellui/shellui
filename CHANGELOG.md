@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.6.3] - 2026-10-19
+
+### 🐛 Bug Fixes
+
+- **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
+
 ## [0.6.2] - 2026-10-18
 
 ### 🐛 Bug Fixes
