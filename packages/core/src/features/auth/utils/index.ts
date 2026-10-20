@@ -4,6 +4,7 @@ export {
   getShellUILoginDeviceId,
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
+export { getLoginCancelTarget, isPublicNavigationPage } from './loginCancelTarget';
 export { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
 export { buildSessionFromParams } from './buildSessionFromParams';
 export {

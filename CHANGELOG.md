@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🐛 Bug Fixes
 
 - **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
+- **Login:** The Cancel button is hidden when the app has no page available without signing in.
 
 ## [0.6.2] - 2026-10-18
 

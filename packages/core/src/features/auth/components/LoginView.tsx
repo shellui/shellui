@@ -22,6 +22,7 @@ import {
   normalizeNextPath,
   redirectToCliCallback,
   resolveLoginSettings,
+  getLoginCancelTarget,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
@@ -108,6 +109,8 @@ export const LoginView = () => {
     sendMagicLink,
     session,
   } = useAuth();
+  // Cancel goes to a page reachable without signing in; hidden when there is none (#104).
+  const loginCancelTarget = useMemo(() => getLoginCancelTarget(config), [config]);
   const configuredSettings = useMemo<AuthSettings>(
     () => resolveLoginSettings(config.backend),
     [config.backend],
@@ -835,23 +838,25 @@ export const LoginView = () => {
                 <p className="text-sm text-muted-foreground">{t('loginPage.noMethodsEnabled')}</p>
               )}
 
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto px-0 text-xs font-normal text-muted-foreground/80 hover:text-muted-foreground"
-                  onClick={() => {
-                    if (isIframeView) {
-                      shellui.closeModal();
-                      return;
-                    }
-                    navigate('/');
-                  }}
-                >
-                  {t('loginPage.cancel')}
-                </Button>
-              </div>
+              {(isIframeView || loginCancelTarget) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-xs font-normal text-muted-foreground/80 hover:text-muted-foreground"
+                    onClick={() => {
+                      if (isIframeView) {
+                        shellui.closeModal();
+                        return;
+                      }
+                      if (loginCancelTarget) navigate(loginCancelTarget);
+                    }}
+                  >
+                    {t('loginPage.cancel')}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
