@@ -24,6 +24,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
 - **Login:** The Cancel button is hidden when the app has no page available without signing in.
+- **Login:** The page next to the sign-in form follows dark and light mode changes.
 
 ## [0.6.2] - 2026-10-18
 
