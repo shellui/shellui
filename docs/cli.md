@@ -114,12 +114,12 @@ shellui login --provider github
 
 Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>&code_challenge=…&code_challenge_method=S256`. The PKCE verifier stays in the CLI process memory. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
 
-After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page posts the code to the CLI (`/code`, nonce-bound). The CLI redeems it at `POST /api/v1/oauth/session` with `code_verifier` and the loopback `Origin`, which matches `redirect_to` as identity 0.9.0 requires. Legacy fragment delivery (`#access_token=…`) still works during rollout.
+After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page posts the code to the CLI (`/code`, nonce-bound). The CLI redeems it at `POST /api/v1/oauth/session` with `code_verifier` and the loopback `Origin`, which matches `redirect_to` as identity 0.9.0 requires. Identity 0.9.0 ignores fragment delivery (`#access_token=…`).
 
 **Loopback threat model (Track F / L-11, L-12):**
 
 - The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
-- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce — verify they match your terminal before completing sign-in.
+- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce. Verify they match your terminal before completing sign-in.
 - Auth codes and URL fragments are cleared with `history.replaceState` after capture.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.

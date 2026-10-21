@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { SHELLUI_AUTH_CODE_PARAM } from '../constants/oauth';
-import { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
+import {
+  buildOAuthSessionRedirectTo,
+  resolveOAuthSessionRedirectTo,
+} from './buildOAuthSessionRedirectTo';
 
 describe('buildOAuthSessionRedirectTo', () => {
   test('strips shellui_auth_code and keeps other query params', () => {
@@ -18,5 +21,43 @@ describe('buildOAuthSessionRedirectTo', () => {
         `?${SHELLUI_AUTH_CODE_PARAM}=one-time`,
       ),
     ).toBe('http://127.0.0.1:8765/callback');
+  });
+});
+
+describe('resolveOAuthSessionRedirectTo', () => {
+  const start =
+    'https://playground.shellui.com/login/callback?provider=github&shellui_pkce_flow=o0123';
+
+  test('uses the stored start value when the host added a trailing slash', () => {
+    expect(
+      resolveOAuthSessionRedirectTo(
+        start,
+        'https://playground.shellui.com',
+        '/login/callback/',
+        '?provider=github&shellui_pkce_flow=o0123&shellui_auth_code=abc',
+      ),
+    ).toBe(start);
+  });
+
+  test('falls back to the current URL when nothing was stored', () => {
+    expect(
+      resolveOAuthSessionRedirectTo(
+        null,
+        'https://playground.shellui.com',
+        '/login/callback/',
+        '?provider=github&shellui_auth_code=abc',
+      ),
+    ).toBe('https://playground.shellui.com/login/callback/?provider=github');
+  });
+
+  test('ignores a stored value for another origin', () => {
+    expect(
+      resolveOAuthSessionRedirectTo(
+        'https://evil.test/login/callback',
+        'https://playground.shellui.com',
+        '/login/callback',
+        '?shellui_auth_code=abc',
+      ),
+    ).toBe('https://playground.shellui.com/login/callback');
   });
 });

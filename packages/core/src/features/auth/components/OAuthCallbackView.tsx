@@ -5,7 +5,7 @@ import urls from '../../../constants/urls';
 import { SHELLUI_AUTH_CODE_PARAM } from '../constants/oauth';
 import {
   buildAuthUrlWithNext,
-  buildOAuthSessionRedirectTo,
+  resolveOAuthSessionRedirectTo,
   captureCliCallbackFromSearch,
   hashHasOAuthTokens,
   inferAccessPendingErrorCode,
@@ -15,7 +15,7 @@ import {
   redirectCliCallbackError,
   redirectToCliCallback,
 } from '../utils';
-import { WEB_PKCE_FLOW_PARAM, isMagicLinkFlowId, takeWebPkceVerifier } from '../utils/webPkce';
+import { WEB_PKCE_FLOW_PARAM, isMagicLinkFlowId, takeWebPkceFlow } from '../utils/webPkce';
 import {
   isSilentAuthCallbackFrame,
   publishSilentAuthCallbackResult,
@@ -231,13 +231,15 @@ export const OAuthCallbackView = () => {
 
       let cancelled = false;
       const runSessionExchange = async () => {
-        const redirectTo = buildOAuthSessionRedirectTo(
+        const pkceFlowId = params.get(WEB_PKCE_FLOW_PARAM);
+        const pkceFlow = takeWebPkceFlow(pkceFlowId);
+        const codeVerifier = pkceFlow?.verifier ?? undefined;
+        const redirectTo = resolveOAuthSessionRedirectTo(
+          pkceFlow?.redirectTo,
           window.location.origin,
           location.pathname,
           location.search,
         );
-        const pkceFlowId = params.get(WEB_PKCE_FLOW_PARAM);
-        const codeVerifier = takeWebPkceVerifier(pkceFlowId) ?? undefined;
         if (!codeVerifier && isMagicLinkFlowId(pkceFlowId)) {
           // The magic link verifier lives only in the browser that asked for the link.
           // Do not send the code: it stays unused.
