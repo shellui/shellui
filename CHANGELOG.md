@@ -34,6 +34,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🔒 Security
 
+- **Dependencies:** Patched `proxy-addr`, `compression` and `source-map-js` to clear the open Dependabot alerts.
 - **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
 - **CLI:** `shellui login` uses PKCE.
 - **Docs site:** The docs build has read-only access, and a separate job publishes Pages.
