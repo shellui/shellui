@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🔒 Security
 
 - **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
+- **CLI:** `shellui login` uses PKCE.
 
 ## [0.6.3] - 2026-10-19
 
