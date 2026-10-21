@@ -18,7 +18,11 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.6.3] - 2026-10-19
+## [0.7.0-alpha.1] - 2026-10-21
+
+### ✨ Feature
+
+- **SaaS:** First alpha of 0.7.0, preparing the global console, saas-service and multi-region federation. Requires identity-service 0.9.0.
 
 ### 🐛 Bug Fixes
 
