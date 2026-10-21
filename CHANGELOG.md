@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🔒 Security
+
+- **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
+
 ## [0.6.3] - 2026-10-19
 
 ### 🐛 Bug Fixes

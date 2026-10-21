@@ -27,7 +27,12 @@ export interface AuthBackend {
     session: AuthSession | null,
     nowSeconds: number,
   ) => Promise<AuthSession | null>;
-  startOAuth: (provider: string, redirectPath: string, oauthClientId?: number) => void;
+  /** May resolve after creating the PKCE pair; then the page navigates away. */
+  startOAuth: (
+    provider: string,
+    redirectPath: string,
+    oauthClientId?: number,
+  ) => void | Promise<void>;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
   /** Whether {@link deleteAccount} is implemented for this backend. */
@@ -49,7 +54,7 @@ export interface AuthBackend {
       language?: string;
       /** Custom-scheme redirect for desktop sign-in. Omit to keep the web origin. */
       redirectTo?: string;
-      /** S256 challenge for a desktop magic link. Omit on the web flow. */
+      /** S256 challenge for a desktop magic link. Omit on the web flow, which creates its own. */
       codeChallenge?: string;
     },
   ) => Promise<void>;

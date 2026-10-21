@@ -8,6 +8,7 @@ import {
   normalizeRedirectPath,
 } from '../utils';
 import { AuthRequestError } from '../utils/authRequestError';
+import { clearWebPkce, prepareWebPkce } from '../utils/webPkce';
 import { getShellUILoginCompanyId } from '../utils/clientLoginContext';
 import type { AuthSession, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
@@ -140,7 +141,7 @@ export const createShellUIAuthBackend = ({
       if (!currentSession?.refreshToken) return null;
       return refreshWithStoredToken(currentSession, nowSeconds);
     },
-    startOAuth: (provider, redirectPath, oauthClientId) => {
+    startOAuth: async (provider, redirectPath, oauthClientId) => {
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');
       }
@@ -158,10 +159,12 @@ export const createShellUIAuthBackend = ({
           String(Math.trunc(oauthClientId)),
         );
       }
-      const redirectTo = redirectToUrl.toString();
+      const pkce = await prepareWebPkce(redirectToUrl.toString(), 'oauth');
       const authorizeUrl = new URL(`${backendUrl}/api/v1/authorize`);
       authorizeUrl.searchParams.set('provider', provider);
-      authorizeUrl.searchParams.set('redirect_to', redirectTo);
+      authorizeUrl.searchParams.set('redirect_to', pkce.redirectTo);
+      authorizeUrl.searchParams.set('code_challenge', pkce.challenge);
+      authorizeUrl.searchParams.set('code_challenge_method', 'S256');
       if (
         typeof oauthClientId === 'number' &&
         Number.isFinite(oauthClientId) &&
@@ -297,12 +300,23 @@ export const createShellUIAuthBackend = ({
       if (!selectedCompanyId) {
         throw new Error('Missing company_id for magic link request.');
       }
+      // Desktop passes its own custom-scheme redirect and challenge. The web flow
+      // creates a magic link PKCE pair here.
+      const webPkce = options?.codeChallenge
+        ? null
+        : await prepareWebPkce(
+            options?.redirectTo ??
+              `${window.location.origin}${normalizeRedirectPath(redirectPath)}`,
+            'magic_link',
+          );
       const redirectTo =
-        options?.redirectTo ?? `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
+        webPkce?.redirectTo ??
+        options?.redirectTo ??
+        `${window.location.origin}${normalizeRedirectPath(redirectPath)}`;
       const clientTz = getShellUILoginClientTimezone();
       const clientDeviceId = getShellUILoginDeviceId();
       const language = options?.language?.trim();
-      const codeChallenge = options?.codeChallenge?.trim();
+      const codeChallenge = webPkce?.challenge ?? options?.codeChallenge?.trim();
       const response = await fetch(`${backendUrl}${MAGIC_LINK_REQUEST_ENDPOINT}`, {
         method: 'POST',
         headers: {
@@ -322,6 +336,7 @@ export const createShellUIAuthBackend = ({
         }),
       });
       if (!response.ok) {
+        if (webPkce) clearWebPkce(webPkce.flowId);
         const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
         const err = payload?.error ?? payload?.detail;
         const message =
