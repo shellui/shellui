@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.2] - 2026-10-21
+
+### 🐛 Bug Fixes
+
+- **Login:** Sign-in works on static hosts that add a trailing slash to `/login/callback`, such as GitHub Pages.
+
 ## [0.7.0-alpha.1] - 2026-10-21
 
 ### ✨ Feature

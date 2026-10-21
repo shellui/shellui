@@ -31,6 +31,14 @@ export type WebPkceFlowKind = 'oauth' | 'magic_link';
 interface StoredVerifier {
   verifier: string;
   createdAt: number;
+  /** Exact `redirect_to` sent at sign-in start. The exchange must send it back unchanged. */
+  redirectTo?: string;
+}
+
+export interface TakenWebPkceFlow {
+  verifier: string;
+  /** Exact `redirect_to` from sign-in start, or null when an older entry has none. */
+  redirectTo: string | null;
 }
 
 export interface PreparedWebPkce {
@@ -66,7 +74,7 @@ function write(s: Storage | null, key: string, value: StoredVerifier): boolean {
   }
 }
 
-function readAndRemove(s: Storage | null, key: string, maxAgeMs: number): string | null {
+function readAndRemove(s: Storage | null, key: string, maxAgeMs: number): TakenWebPkceFlow | null {
   if (!s) return null;
   try {
     const raw = s.getItem(key);
@@ -75,7 +83,8 @@ function readAndRemove(s: Storage | null, key: string, maxAgeMs: number): string
     const parsed = JSON.parse(raw) as StoredVerifier;
     if (typeof parsed?.verifier !== 'string' || typeof parsed.createdAt !== 'number') return null;
     if (Date.now() - parsed.createdAt > maxAgeMs) return null;
-    return parsed.verifier;
+    const redirectTo = typeof parsed.redirectTo === 'string' ? parsed.redirectTo : null;
+    return { verifier: parsed.verifier, redirectTo };
   } catch {
     return null;
   }
@@ -108,20 +117,28 @@ export async function prepareWebPkce(
 ): Promise<PreparedWebPkce> {
   const { verifier, challenge } = await createPkcePair();
   const flowId = randomFlowId(kind);
-  const entry = { verifier, createdAt: Date.now() };
+  const url = new URL(redirectTo);
+  url.searchParams.set(WEB_PKCE_FLOW_PARAM, flowId);
+  const finalRedirectTo = url.toString();
+  // Static hosts such as GitHub Pages can redirect `/login/callback` to
+  // `/login/callback/`, so the callback URL is not always the one sent at start.
+  const entry: StoredVerifier = { verifier, createdAt: Date.now(), redirectTo: finalRedirectTo };
   if (kind === 'magic_link') {
     pruneMagicLinkVerifiers();
     write(store('local'), MAGIC_LINK_PREFIX + flowId, entry);
   } else {
     write(store('session'), SESSION_PREFIX + flowId, entry);
   }
-  const url = new URL(redirectTo);
-  url.searchParams.set(WEB_PKCE_FLOW_PARAM, flowId);
-  return { flowId, challenge, redirectTo: url.toString() };
+  return { flowId, challenge, redirectTo: finalRedirectTo };
 }
 
 /** Read the verifier for a callback and remove every stored copy. */
 export function takeWebPkceVerifier(flowId: string | null | undefined): string | null {
+  return takeWebPkceFlow(flowId)?.verifier ?? null;
+}
+
+/** Read the verifier and the exact start `redirect_to` for a callback, single use. */
+export function takeWebPkceFlow(flowId: string | null | undefined): TakenWebPkceFlow | null {
   const id = flowId?.trim();
   if (!id || !FLOW_ID_PATTERN.test(id)) return null;
   if (isMagicLinkFlowId(id)) {

@@ -5,7 +5,10 @@ export {
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
 export { getLoginCancelTarget, isPublicNavigationPage } from './loginCancelTarget';
-export { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
+export {
+  buildOAuthSessionRedirectTo,
+  resolveOAuthSessionRedirectTo,
+} from './buildOAuthSessionRedirectTo';
 export { buildSessionFromParams } from './buildSessionFromParams';
 export {
   buildSessionFromTokenPayload,
@@ -60,6 +63,7 @@ export {
   WEB_PKCE_FLOW_PARAM,
   prepareWebPkce,
   takeWebPkceVerifier,
+  takeWebPkceFlow,
   clearWebPkce,
   isWebPkceErrorCode,
   isMagicLinkFlowId,

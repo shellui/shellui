@@ -12,12 +12,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.7.0-alpha.1",
+    "@shellui/sdk": "^0.7.0-alpha.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@shellui/cli": "^0.7.0-alpha.1",
+    "@shellui/cli": "^0.7.0-alpha.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

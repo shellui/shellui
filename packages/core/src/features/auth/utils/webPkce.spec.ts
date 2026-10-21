@@ -5,6 +5,7 @@ import {
   isMagicLinkFlowId,
   isWebPkceErrorCode,
   prepareWebPkce,
+  takeWebPkceFlow,
   takeWebPkceVerifier,
 } from './webPkce';
 
@@ -92,5 +93,27 @@ describe('webPkce', () => {
     expect(isWebPkceErrorCode('pkce_verification_failed')).toBe(true);
     expect(isWebPkceErrorCode('pkce_required')).toBe(true);
     expect(isWebPkceErrorCode('other')).toBe(false);
+  });
+
+  it('returns the exact start redirect_to with the verifier, single use', async () => {
+    for (const kind of ['oauth', 'magic_link'] as const) {
+      const prepared = await prepareWebPkce(
+        'https://app.test/login/callback?provider=github',
+        kind,
+      );
+      const taken = takeWebPkceFlow(prepared.flowId);
+      expect(taken?.redirectTo).toBe(prepared.redirectTo);
+      expect(taken?.verifier).toMatch(/^[A-Za-z0-9_-]{43,128}$/);
+      expect(takeWebPkceFlow(prepared.flowId)).toBeNull();
+    }
+  });
+
+  it('returns a null redirect_to for an entry stored without one', () => {
+    const id = 'o' + '0'.repeat(32);
+    sessionStorage.setItem(
+      'shellui.auth.pkce.' + id,
+      JSON.stringify({ verifier: 'v'.repeat(43), createdAt: Date.now() }),
+    );
+    expect(takeWebPkceFlow(id)).toEqual({ verifier: 'v'.repeat(43), redirectTo: null });
   });
 });
