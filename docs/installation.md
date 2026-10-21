@@ -29,16 +29,18 @@ npx shellui build --app --bundles app,dmg
 
 ## Install this release
 
-These docs describe Shellui **0.6.3** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.3 and not a later version:
+These docs describe Shellui **0.6.2** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.6.2 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@0.6.3
-npm install --save-dev @shellui/cli@0.6.3
-npm install @shellui/sdk@0.6.3
-npm install @shellui/core@0.6.3
+npm install -g @shellui/cli@0.6.2
+npm install --save-dev @shellui/cli@0.6.2
+npm install @shellui/sdk@0.6.2
+npm install @shellui/core@0.6.2
 ```
 
-See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.3. Switching pages in the desktop app now loads the new page. Desktop setup is in [Sign in on the desktop](/tauri#sign-in-on-the-desktop).
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in each release.
+
+To try the 0.7.0 alpha, install from the npm `alpha` tag: `npm install -g @shellui/cli@alpha`. It prepares the SaaS and multi-region setup and requires identity-service 0.9.0.
 
 ## Install in a project
 

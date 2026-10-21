@@ -44,6 +44,8 @@ const config: ShellUIConfig = {
 - **`settings`**: URL of a panel under Settings → Applications - see [Application settings](/features/application-settings)
 - **`useHashRouter`**: when `true`, treat as hash routing. If omitted, inferred from `url` containing `/#/`
 - **`safeForAuthToken`**: set to `true` to opt in to sharing the session access token (`settings.accessToken`) with that iframe. Default is **not** shared (`undefined` / `false`). The refresh token is never shared with companions.
+- **`backend`**: identity server for this app when it is not the shell `backend`. See [Apps on another identity server](/features/authentication#apps-on-another-identity-server). Omit it to keep the shell session.
+- **`email`**, **`storage`**, **`hosting`**: companion services for this app. Omit them to use the shell services. When `backend` names another server and a service is omitted, the app receives no URL for that service.
 
 ## Hash URL navigation
 
