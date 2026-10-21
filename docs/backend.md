@@ -49,7 +49,7 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-Prefer the same fields in `shellui.config.json`. Register each OAuth app with a single identity callback: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company OAuth redirect allowlist in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is always allowed for `shellui login`. The CLI binds a one-time session nonce for `/capture` — see [CLI login](/cli#shellui-login-root) for the loopback threat model.
+Prefer the same fields in `shellui.config.json`. Register each OAuth app with a single identity callback: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company OAuth redirect allowlist in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is allowed for `shellui login` when identity has `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true`. The CLI accepts `/capture` once from `http://127.0.0.1` after the callback page sets an HttpOnly cookie. See [CLI login](/cli#shellui-login-root).
 
 ## Supabase Auth
 

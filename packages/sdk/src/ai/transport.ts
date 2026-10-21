@@ -1,3 +1,4 @@
+import { resolveParentTargetOrigin, resolveSelfTargetOrigin } from '../utils/messageSecurity.js';
 import { generateUuid } from '../utils/uuid.js';
 import type { ShellUIMessage } from '../types.js';
 import type { AiRequestPayload, AiResponsePayload, AiStreamPayload } from './types.js';
@@ -13,11 +14,11 @@ export type AiMessageSdk = {
 
 function postAiMessage(message: { type: string; payload: unknown }): void {
   if (typeof window === 'undefined') return;
-  if (window.parent !== window) {
-    window.parent.postMessage(message, '*');
-    return;
-  }
-  window.postMessage(message, '*');
+  const embedded = window.parent !== window;
+  const targetOrigin = embedded ? resolveParentTargetOrigin() : resolveSelfTargetOrigin();
+  if (!targetOrigin || targetOrigin === '*') return;
+  const target = embedded ? window.parent : window;
+  target.postMessage(message, targetOrigin);
 }
 
 export type AiTransport = {

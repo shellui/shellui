@@ -36,6 +36,23 @@ export const PRIVILEGED_COMPANION_MESSAGE_TYPES = new Set([
   'SHELLUI_AI_REQUEST',
 ]);
 
+/** Origins the host passed as `allowedMessageOrigins`, used when the browser cannot name the parent. */
+let parentOriginHints: string[] = [];
+
+export function setParentTargetOriginHints(origins: readonly string[]): void {
+  parentOriginHints = origins.filter((origin) => origin && origin !== '*');
+}
+
+export function clearParentTargetOriginHints(): void {
+  parentOriginHints = [];
+}
+
+function hintedParentOrigin(selfOrigin: string): string | null {
+  const hints = parentOriginHints.filter((origin) => origin !== selfOrigin && origin !== 'null');
+  if (hints.length === 1) return hints[0];
+  return null;
+}
+
 const originFromUrl = (value: string | undefined | null): string | null => {
   if (!value || typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -68,6 +85,7 @@ export class MessageSecurityPolicy {
         if (trimmed) this.extraAllowedOrigins.add(trimmed);
       }
     }
+    setParentTargetOriginHints([...this.extraAllowedOrigins]);
   }
 
   getAllowedOrigins(): string[] {
@@ -78,7 +96,7 @@ export class MessageSecurityPolicy {
       // Cross-origin dev (e.g. :4000 ↔ :5173) otherwise rejects SHELLUI_SETTINGS.
       if (window.parent !== window) {
         const parentOrigin = resolveParentTargetOrigin();
-        if (parentOrigin && parentOrigin !== '*' && parentOrigin !== 'null') {
+        if (parentOrigin && parentOrigin !== 'null') {
           origins.add(parentOrigin);
         }
       }
@@ -159,11 +177,22 @@ export function resolveSelfTargetOrigin(): string {
   return window.location.origin;
 }
 
-/** Target origin for iframe → parent posts. */
-export function resolveParentTargetOrigin(): string {
-  if (typeof window === 'undefined') return '*';
+/**
+ * Target origin for iframe → parent posts.
+ * Returns null when the parent origin is not known. Callers must not post with `*`.
+ */
+export function resolveParentTargetOrigin(): string | null {
+  if (typeof window === 'undefined') return null;
   if (window.parent === window) return window.location.origin;
-  if (typeof document === 'undefined') return '*';
+
+  try {
+    const parentOrigin = window.parent.location.origin;
+    if (typeof parentOrigin === 'string' && parentOrigin && parentOrigin !== 'null') {
+      return parentOrigin;
+    }
+  } catch {
+    // Cross-origin parent. The origin is resolved below.
+  }
 
   if (typeof document !== 'undefined') {
     const locationWithAncestors = document.location as Location & {
@@ -182,9 +211,7 @@ export function resolveParentTargetOrigin(): string {
     }
   }
 
-  // Embedded but parent origin unknown (no ancestorOrigins / referrer).
-  // Falling back to the companion origin would never deliver to the shell.
-  return '*';
+  return hintedParentOrigin(window.location.origin);
 }
 
 /** Target origin for shell → iframe posts. */

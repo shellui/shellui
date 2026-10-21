@@ -39,6 +39,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
 - **CLI:** `shellui login` uses PKCE.
+- **Docs site:** The docs build has read-only access, and a separate job publishes Pages.
+- **SDK messages:** Companion code posts to the parent only once its origin is known.
+- **CLI credentials:** Tokens go to the OS keychain, or a `0600` file with a warning.
+- **Workflows:** Actions are pinned to commit SHAs, and tests run with `contents: read`.
 
 ## [0.6.2] - 2026-10-18
 

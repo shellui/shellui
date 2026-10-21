@@ -11,9 +11,10 @@ Full guide: [docs/docs-site.md](../../docs/docs-site.md).
 - `docusaurus.config.js` - Main Docusaurus configuration, including one docs instance per service
 - `sidebars.js` - Sidebar for the Shellui docs
 - `services.js` - List of services, their URLs, and the environment variables the fetch reads
-- `scripts/fetch-service-docs.js` - Collects service docs and writes `.services/manifest.json`
+- `scripts/fetch-service-docs.js` - Collects service docs, reads sidebars as data, and writes `.services/manifest.json`
+- `scripts/parse-sidebar.js` - Parser for service sidebar files. Remote sidebar code is not executed
 - `plugins/remark-service-links.js` - Fixes service doc links that only worked on the old per-service sites
-- `sidebars.service-default.js` - Sidebar for a service that does not ship one
+- `sidebars.service-default.js` - Shape of the generated sidebar when a service file is missing or is not data
 - `.services/` - Fetched service docs (gitignored)
 - `src/` - React components and custom CSS
 - `static/` - Static assets (images, fonts, etc.)
@@ -37,6 +38,7 @@ from GitHub (shallow, sparse, docs only). Use `DOCS_SOURCE=remote` to match CI, 
 
 ## Deployment
 
-`.github/workflows/deploy-docs.yml` fetches the service docs from GitHub, builds, and
-deploys to GitHub Pages from `main`. Service repositories can request a rebuild with a
-`repository_dispatch` event of type `service-docs-updated`.
+`.github/workflows/deploy-docs.yml` builds with read-only contents access, then a
+separate job publishes GitHub Pages from `main`. Service repositories should request a
+rebuild with `workflow_dispatch` on `deploy-docs.yml` (Actions: Read and write).
+`repository_dispatch` of type `service-docs-updated` still starts a build.

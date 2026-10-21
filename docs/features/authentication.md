@@ -152,6 +152,8 @@ Sessions persist in browser storage. The shell refreshes access tokens before ex
 
 With identity-service **0.5.0+**, the default OAuth delivery is a one-time `shellui_auth_code` query param on `/login/callback`. The shell exchanges it via `POST /api/v1/oauth/session` and stores the returned JSON tokens. Legacy fragment delivery (`#access_token=…&refresh_token=…`) still works when identity is configured with `OAUTH_TOKEN_DELIVERY=fragment` or `token_delivery=fragment` on authorize. Older shells that receive provider `?code=` on the frontend continue to use `POST /api/v1/oauth/exchange`.
 
+Browser sign-in, both social sign-in and magic link, sends PKCE S256. The start request includes `code_challenge` and `code_challenge_method=S256`, and `POST /api/v1/oauth/session` includes `code_verifier`. The verifier is stored in `localStorage` (`shellui.auth.web.pkce`) so a magic link opened in another tab of the same browser can finish.
+
 Logout sends the refresh token in the request body when available so identity can revoke the server-side session.
 
 Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
