@@ -1,6 +1,6 @@
 {
   "name": "@shellui/cli",
-  "version": "0.6.2",
+  "version": "0.7.0-alpha.1",
   "description": "Shellui CLI - Command-line tool for Shellui",
   "main": "src/cli.js",
   "type": "module",
@@ -28,6 +28,9 @@
   ],
   "author": "Shellui",
   "license": "MIT",
+  "optionalDependencies": {
+    "@napi-rs/keyring": "2.1.1"
+  },
   "dependencies": {
     "@clack/prompts": "^1.8.0",
     "@shellui/core": "workspace:*",

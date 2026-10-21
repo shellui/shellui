@@ -18,6 +18,30 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.1] - 2026-10-21
+
+### ✨ Feature
+
+- **SaaS:** First alpha of 0.7.0, preparing the global console, saas-service and multi-region federation. Requires identity-service 0.9.0.
+- **App identity server:** A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session and sends that app its own URL and access token.
+- **App services:** A navigation item can set `email`, `storage`, and `hosting` for that app. When `backend` names another server and a service is omitted, the app receives no URL for it.
+
+### 🐛 Bug Fixes
+
+- **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
+- **Login:** The Cancel button is hidden when the app has no page available without signing in.
+- **Login:** The page next to the sign-in form follows dark and light mode changes.
+
+### 🔒 Security
+
+- **Dependencies:** Patched `proxy-addr`, `compression` and `source-map-js` to clear the open Dependabot alerts.
+- **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
+- **CLI:** `shellui login` uses PKCE.
+- **Docs site:** The docs build has read-only access, and a separate job publishes Pages.
+- **SDK messages:** Companion code posts to the parent only once its origin is known.
+- **CLI credentials:** Tokens go to the OS keychain, or a `0600` file with a warning.
+- **Workflows:** Actions are pinned to commit SHAs, and tests run with `contents: read`.
+
 ## [0.6.2] - 2026-10-18
 
 ### 🐛 Bug Fixes

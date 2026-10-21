@@ -326,7 +326,12 @@ export class MessageListenerRegistry {
     }
 
     if (window.parent !== window) {
-      window.parent.postMessage(message, resolveParentTargetOrigin());
+      const targetOrigin = resolveParentTargetOrigin();
+      if (!targetOrigin) {
+        logger.debug('Skipped message to parent because the parent origin is not known yet');
+        return false;
+      }
+      window.parent.postMessage(message, targetOrigin);
       if (shouldLogMessageTraffic(message.type)) {
         logger.debug(`Sent message ${message.type} to parent window`);
       }

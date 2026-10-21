@@ -4,6 +4,7 @@ export {
   getShellUILoginDeviceId,
 } from './clientLoginContext';
 export { buildAuthUrlWithNext } from './buildAuthUrlWithNext';
+export { getLoginCancelTarget, isPublicNavigationPage } from './loginCancelTarget';
 export { buildOAuthSessionRedirectTo } from './buildOAuthSessionRedirectTo';
 export { buildSessionFromParams } from './buildSessionFromParams';
 export {
@@ -55,3 +56,11 @@ export { normalizeRedirectPath } from './normalizeRedirectPath';
 export { shareInFlight } from './shareInFlight';
 export type { InFlightSlot } from './shareInFlight';
 export { toAuthSessionFromSettingsUser } from './toAuthSessionFromSettingsUser';
+export {
+  WEB_PKCE_FLOW_PARAM,
+  prepareWebPkce,
+  takeWebPkceVerifier,
+  clearWebPkce,
+  isWebPkceErrorCode,
+  isMagicLinkFlowId,
+} from './webPkce';

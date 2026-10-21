@@ -11,13 +11,13 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.6.2",
+    "@shellui/sdk": "^0.7.0-alpha.1",
     "next": "16.3.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@shellui/cli": "^0.6.2",
+    "@shellui/cli": "^0.7.0-alpha.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.5"
   }

@@ -49,7 +49,7 @@ const config: ShellUIConfig = {
 export default config;
 ```
 
-Prefer the same fields in `shellui.config.json`. Register each OAuth app with a single identity callback: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company OAuth redirect allowlist in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is always allowed for `shellui login`. The CLI binds a one-time session nonce for `/capture` — see [CLI login](/cli#shellui-login-root) for the loopback threat model.
+Prefer the same fields in `shellui.config.json`. Register each OAuth app with a single identity callback: `http://localhost:8000/api/v1/oauth/callback` (no query string). Add each shell origin (for example `http://localhost:4000`) to the company OAuth redirect allowlist in admin or via `POST /api/v1/oauth-redirects`. Loopback (`127.0.0.1` / `localhost`) is allowed for `shellui login` when identity has `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true`. The CLI accepts `/capture` once from `http://127.0.0.1` after the callback page sets an HttpOnly cookie. See [CLI login](/cli#shellui-login-root).
 
 ## Supabase Auth
 
@@ -90,6 +90,10 @@ Local Supabase CLI commonly uses `url: "http://localhost:54321"` and the publish
 Types: `BackendConfig` and `BackendLoginConfig` in `@shellui/core`. The stock login view does not render a password form even if `password` is listed.
 
 **identity-service** fits dedicated `/api/v1/*` auth, company tenants, staff admin, and JWT `user_metadata` for groups and `is_company_owner`. **Supabase** fits an existing GoTrue project. **No backend** fits a public shell; add `backend` when you need login, `requiresAuth`, or user settings in child apps.
+
+## Apps on another identity server
+
+A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session for that server and sends the app that URL and access token through SDK settings. It does not send the shell access token. The same item can set `email`, `storage`, and `hosting` for that server. If `backend` differs and one of those fields is omitted, the app receives no URL for that service. Omit the item `backend` to keep the single shell `backend` and its services. Details and the field list are in [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 
 ## Related pages
 

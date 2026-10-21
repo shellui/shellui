@@ -14,6 +14,7 @@ import { LoadingOverlay } from './LoadingOverlay';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
 import { resolveContentIframeSandbox } from './contentIframeSandbox';
+import { isSafeIframeUrl, isSameOrigin } from './iframeUrlSafety';
 
 const logger = getLogger('shellcore');
 
@@ -30,29 +31,8 @@ function isSafeShellPath(path: string): boolean {
   return true;
 }
 
-function isSafeIframeUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.href : undefined);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
 function isSameOriginAsNavItem(targetUrl: string, navItem: NavigationItem): boolean {
-  try {
-    const target = new URL(
-      targetUrl,
-      typeof window !== 'undefined' ? window.location.href : undefined,
-    );
-    const allowed = new URL(
-      navItem.url,
-      typeof window !== 'undefined' ? window.location.href : undefined,
-    );
-    return target.origin === allowed.origin;
-  } catch {
-    return false;
-  }
+  return isSameOrigin(targetUrl, navItem.url);
 }
 
 /** Apply a URL inside the iframe without adding a joint session-history entry. */

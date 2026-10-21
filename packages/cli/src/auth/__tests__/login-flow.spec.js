@@ -1,11 +1,14 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+import crypto from 'crypto';
 import http from 'http';
 import {
   LOGIN_NONCE_HEADER,
   buildAuthorizeUrl,
   buildCallbackPageHtml,
   buildWaitingPageHtml,
+  exchangeSessionCode,
   generateLoginNonce,
+  generatePkcePair,
   validateCaptureNonce,
 } from '../login-flow.js';
 
@@ -65,7 +68,91 @@ describe('login-flow nonce helpers', () => {
     expect(callback).toContain(LOGIN_NONCE_HEADER);
     expect(callback).toContain('/capture');
     expect(callback).toContain('shellui_auth_code');
-    expect(callback).toContain('/api/v1/oauth/session');
+    expect(callback).toContain("'/code'");
+    // The browser no longer redeems the code; the CLI does, with the verifier.
+    expect(callback).not.toContain('/api/v1/oauth/session');
+    expect(callback).not.toContain('code_verifier');
+  });
+});
+
+describe('login-flow PKCE', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test('generatePkcePair returns an S256 pair', () => {
+    const { verifier, challenge } = generatePkcePair();
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const expected = crypto
+      .createHash('sha256')
+      .update(verifier)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+    expect(challenge).toBe(expected);
+    expect(generatePkcePair().verifier).not.toBe(verifier);
+  });
+
+  test('buildAuthorizeUrl sends the challenge, never the verifier', () => {
+    const { verifier, challenge } = generatePkcePair();
+    const url = new URL(
+      buildAuthorizeUrl({
+        backendUrl: 'https://id.shellui.com',
+        companyId: '1',
+        redirectTo: 'http://127.0.0.1:9/callback',
+        codeChallenge: challenge,
+      }),
+    );
+    expect(url.searchParams.get('code_challenge')).toBe(challenge);
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+    expect(url.toString()).not.toContain(verifier);
+  });
+
+  test('exchangeSessionCode posts the verifier with the loopback Origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 5 }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const tokens = await exchangeSessionCode({
+      backendUrl: 'https://id.shellui.com/',
+      authCode: 'code-1',
+      redirectTo: 'http://127.0.0.1:4242/callback',
+      codeVerifier: 'v'.repeat(43),
+    });
+    expect(tokens.access_token).toBe('a');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://id.shellui.com/api/v1/oauth/session');
+    expect(init.headers.Origin).toBe('http://127.0.0.1:4242');
+    expect(JSON.parse(init.body)).toEqual({
+      auth_code: 'code-1',
+      redirect_to: 'http://127.0.0.1:4242/callback',
+      code_verifier: 'v'.repeat(43),
+    });
+  });
+
+  test('exchangeSessionCode surfaces the PKCE error code', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: 'PKCE failed.', error_code: 'pkce_verification_failed' }),
+          {
+            status: 400,
+          },
+        ),
+      ),
+    );
+    await expect(
+      exchangeSessionCode({
+        backendUrl: 'https://id.shellui.com',
+        authCode: 'c',
+        redirectTo: 'http://127.0.0.1:1/callback',
+        codeVerifier: 'v'.repeat(43),
+      }),
+    ).rejects.toThrow('PKCE failed. (pkce_verification_failed)');
   });
 });
 

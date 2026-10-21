@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
@@ -15,6 +15,11 @@ import {
   redirectCliCallbackError,
   redirectToCliCallback,
 } from '../utils';
+import { WEB_PKCE_FLOW_PARAM, isMagicLinkFlowId, takeWebPkceVerifier } from '../utils/webPkce';
+import {
+  isSilentAuthCallbackFrame,
+  publishSilentAuthCallbackResult,
+} from '../appBackend/silentSignIn';
 import { useAuth } from '../hooks/useAuth';
 import { AccessPendingView } from './AccessPendingView';
 
@@ -112,13 +117,19 @@ export const OAuthCallbackView = () => {
     captureCliCallbackFromSearch(location.search);
   }, [location.search]);
 
+  useLayoutEffect(() => {
+    publishSilentAuthCallbackResult();
+  }, [location.search]);
+
   useEffect(() => {
+    if (isSilentAuthCallbackFrame()) return;
     if (!isAuthenticated || !session) return;
     if (redirectToCliCallback(session)) return;
     navigate(nextPath, { replace: true });
   }, [isAuthenticated, navigate, nextPath, session]);
 
   useEffect(() => {
+    if (isSilentAuthCallbackFrame()) return;
     if (isAuthenticated) return;
     // Identity bounce lands with tokens in the hash; AuthProvider restores the session.
     // Stay on "Completing…" while hash is present or auth bootstrap is still running.
@@ -225,9 +236,25 @@ export const OAuthCallbackView = () => {
           location.pathname,
           location.search,
         );
+        const pkceFlowId = params.get(WEB_PKCE_FLOW_PARAM);
+        const codeVerifier = takeWebPkceVerifier(pkceFlowId) ?? undefined;
+        if (!codeVerifier && isMagicLinkFlowId(pkceFlowId)) {
+          // The magic link verifier lives only in the browser that asked for the link.
+          // Do not send the code: it stays unused.
+          applyExchangeFailure(
+            authCode,
+            {
+              ok: false,
+              error: t('loginPage.magicLinkOtherBrowser'),
+              errorCode: 'magic_link_other_browser',
+            },
+            cancelled,
+          );
+          return;
+        }
         let result: { ok: boolean; error?: string | null; errorCode?: string | null };
         try {
-          result = await completeOAuthSessionCallback({ authCode, redirectTo });
+          result = await completeOAuthSessionCallback({ authCode, redirectTo, codeVerifier });
         } catch (err) {
           result = {
             ok: false,

@@ -34,7 +34,7 @@ The shell registers a staff/owner-guarded route and embeds `adminUrl`. Hash rout
 
 ## Custom admin navigation
 
-v1 is a **flat** list (no nested groups). Items appear below Dashboard and above the built-in Identity group, in config order. Each entry uses the host [NavigationItem](/features/navigation) shape.
+v1 is a **flat** list (no nested groups). Items appear below Dashboard and above the built-in Identity group, in config order. Each entry uses the host [NavigationItem](/features/navigation) shape, including `backend`, `email`, `storage`, and `hosting` when that app uses another identity server. The built-in `backend.adminUrl` frame keeps the shell session and shell services unless a matching item sets a different `backend`.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';

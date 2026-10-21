@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AuthSession } from '../types';
 import { AuthRequestError } from '../utils/authRequestError';
+import { generateCodeChallenge } from '../utils/pkce';
+import { WEB_PKCE_FLOW_PARAM, takeWebPkceVerifier } from '../utils/webPkce';
 import { createShellUIAuthBackend } from './shellui';
 
 vi.mock('../../config/useConfig', () => ({ useConfig: () => ({ config: {} }) }));
@@ -11,16 +13,27 @@ const jsonResponse = (status: number, body: unknown) =>
     headers: { 'Content-Type': 'application/json' },
   });
 
+function memoryStorage(seed: [string, string][] = []): Storage {
+  const map = new Map<string, string>(seed);
+  return {
+    get length() {
+      return map.size;
+    },
+    key: (i: number) => Array.from(map.keys())[i] ?? null,
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, String(v)),
+    removeItem: (k: string) => void map.delete(k),
+    clear: () => map.clear(),
+  };
+}
+
 describe('shellui backend sendMagicLink', () => {
   const fetchMock = vi.fn();
 
   beforeEach(() => {
-    const storage = new Map<string, string>([['shellui_auth_client_device_id', 'device-1']]);
     vi.stubGlobal('window', { location: { origin: 'https://app.example.com' } });
-    vi.stubGlobal('localStorage', {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => storage.set(key, value),
-    });
+    vi.stubGlobal('localStorage', memoryStorage([['shellui_auth_client_device_id', 'device-1']]));
+    vi.stubGlobal('sessionStorage', memoryStorage());
     vi.stubGlobal('fetch', fetchMock);
   });
 
@@ -46,13 +59,23 @@ describe('shellui backend sendMagicLink', () => {
     expect(body).toMatchObject({
       company_id: 7,
       email: 'ada@acme.com',
-      redirect_to: 'https://app.example.com/login/callback?next=%2Fapps',
       client_device_id: 'device-1',
+      code_challenge_method: 'S256',
     });
+    const redirect = new URL(body.redirect_to as string);
+    expect(`${redirect.origin}${redirect.pathname}`).toBe('https://app.example.com/login/callback');
+    expect(redirect.searchParams.get('next')).toBe('/apps');
+    const flowId = redirect.searchParams.get(WEB_PKCE_FLOW_PARAM);
+    expect(flowId).toMatch(/^m[0-9a-f]{32}$/);
+    expect(body.code_challenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(body).not.toHaveProperty('code_verifier');
     expect(body).not.toHaveProperty('email_redirect_to');
     expect(body).not.toHaveProperty('language');
-    expect(body).not.toHaveProperty('code_challenge');
-    expect(body).not.toHaveProperty('code_challenge_method');
+    // The verifier waits in localStorage for the tab the email link opens.
+    const verifier = takeWebPkceVerifier(flowId);
+    expect(verifier).toBeTruthy();
+    expect(body.redirect_to as string).not.toContain(verifier as string);
+    expect(body.code_challenge).toBe(await generateCodeChallenge(verifier as string));
   });
 
   test('desktop magic link sends the custom scheme and an S256 challenge', async () => {
@@ -152,6 +175,9 @@ describe('shellui backend OAuth session', () => {
       auth_code: 'session-code',
       redirect_to: 'https://app.example.com/login/callback',
     });
+    // The browser sets Origin. The exchange is a plain cross-origin POST.
+    expect(init.credentials).toBeUndefined();
+    expect(Object.keys(init.headers as Record<string, string>)).not.toContain('Origin');
   });
 
   test('desktop exchange adds code_verifier and nothing else', async () => {
@@ -180,34 +206,40 @@ describe('shellui backend OAuth session', () => {
 });
 
 describe('shellui backend startOAuth', () => {
-  test('keeps the http redirect and does not send PKCE', () => {
+  test('sends an S256 challenge and keeps the verifier out of the URL', async () => {
     const assign = vi.fn();
     vi.stubGlobal('window', {
       location: { origin: 'https://app.example.com', assign },
     });
-    vi.stubGlobal('localStorage', {
-      getItem: () => null,
-      setItem: () => undefined,
-    });
+    vi.stubGlobal('localStorage', memoryStorage());
+    vi.stubGlobal('sessionStorage', memoryStorage());
     const backend = createShellUIAuthBackend({
       backendUrl: 'https://auth.example.com',
       companyId: 7,
     });
 
-    backend.startOAuth('github', '/login/callback', 4);
+    await backend.startOAuth('github', '/login/callback', 4);
 
     expect(assign).toHaveBeenCalledTimes(1);
     const url = new URL(String(assign.mock.calls[0]?.[0]));
     expect(`${url.origin}${url.pathname}`).toBe('https://auth.example.com/api/v1/authorize');
     expect(url.searchParams.get('provider')).toBe('github');
-    expect(url.searchParams.get('redirect_to')).toBe(
-      'https://app.example.com/login/callback?provider=github&company_oauth_client_id=4',
-    );
+    const redirect = new URL(url.searchParams.get('redirect_to') as string);
+    expect(redirect.searchParams.get('provider')).toBe('github');
+    expect(redirect.searchParams.get('company_oauth_client_id')).toBe('4');
+    const flowId = redirect.searchParams.get(WEB_PKCE_FLOW_PARAM);
+    expect(flowId).toMatch(/^o[0-9a-f]{32}$/);
     expect(url.searchParams.get('company_id')).toBe('7');
     expect(url.searchParams.get('company_oauth_client_id')).toBe('4');
-    expect(url.searchParams.has('code_challenge')).toBe(false);
-    expect(url.searchParams.has('code_challenge_method')).toBe(false);
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
     expect(url.searchParams.has('code_verifier')).toBe(false);
+    expect(localStorage.getItem(`shellui.auth.pkce.magic.${flowId}`)).toBeNull();
+    const verifier = takeWebPkceVerifier(flowId);
+    expect(verifier).toBeTruthy();
+    expect(url.toString()).not.toContain(verifier as string);
+    expect(url.searchParams.get('code_challenge')).toBe(
+      await generateCodeChallenge(verifier as string),
+    );
     vi.unstubAllGlobals();
   });
 });

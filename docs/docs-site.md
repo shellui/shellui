@@ -83,13 +83,20 @@ The list of services lives in `tools/docusaurus/services.js`. Adding a service t
 
 ### Sidebars
 
-A service keeps control of its sidebar. The first file found is used:
+A service sidebar is read as data. The fetch script does not run the file from the service repository.
 
-1. `docs/sidebars.js`
-2. `tools/docusaurus/sidebars.js`
-3. otherwise `tools/docusaurus/sidebars.service-default.js` in this repository, which lists every doc in the folder
+The first file found is used:
 
-The navbar entry opens the first sidebar declared in that file.
+1. `docs/sidebars.json`
+2. `docs/sidebars.js`
+3. `tools/docusaurus/sidebars.json`
+4. `tools/docusaurus/sidebars.js`
+
+JSON is used as written. A JavaScript file is accepted when it is data, or when it only defines local helpers that return objects (the `category` and `doc` helpers in the service handbooks). A file that calls `require`, `eval`, or `Function` is ignored.
+
+When no sidebar file is found, or the file is not that data, the site writes a sidebar that lists every doc in the service `docs/` folder.
+
+The result is written to `tools/docusaurus/.services/<id>/sidebars.js` as a `module.exports` assignment of JSON. Docusaurus loads that generated file. The navbar entry opens the first sidebar id in it.
 
 ### Compatibility with the main site
 
@@ -108,12 +115,18 @@ Other safeguards:
 
 ## CI and deploys
 
-`.github/workflows/deploy-docs.yml` runs `pnpm run docs:fetch` with `DOCS_SOURCE=remote`, then builds. It deploys to GitHub Pages from `main`. It runs on:
+`.github/workflows/deploy-docs.yml` has two jobs.
+
+The build job checks out this repository with `persist-credentials: false` and `contents: read`. It runs `pnpm run docs:fetch` with `DOCS_SOURCE=remote`, then builds the site. It runs on:
 
 - pushes to `main`, `develop`, and `master` that touch the docs
 - pull requests that touch the docs (build only)
-- `workflow_dispatch`, to rebuild from the Actions tab
-- `repository_dispatch` with the type `service-docs-updated`, sent by service repositories
+- `workflow_dispatch`, from the Actions tab or from a service repository
+- `repository_dispatch` with the type `service-docs-updated` (older service repositories)
+
+The deploy job runs for `main` and `master`, and not for a pull request. It publishes the built site with GitHub Pages permissions (`pages: write` and `id-token: write`). It does not check out the repository and it does not run Node.
+
+Set the GitHub Pages source to GitHub Actions before the first deploy from this workflow. The site artifact includes `CNAME`, so the custom domain stays `docs.shellui.com`.
 
 Set the repository variables `IDENTITY_DOCS_REF`, `STORAGE_DOCS_REF`, `HOSTING_DOCS_REF`, or `EMAIL_DOCS_REF` to publish a tag instead of `main`.
 
@@ -123,7 +136,7 @@ Each service repository needs two changes, made in that repository.
 
 ### 1. Ask for a rebuild when docs change
 
-Create a fine-grained token with **Contents: read and write** on `shellui/shellui` and save it as the secret `DOCS_DISPATCH_TOKEN` in the service repository. Then add `.github/workflows/docs-dispatch.yml`:
+Create a fine-grained token with **Actions: Read and write** on `shellui/shellui`. That token does not need Contents write. Save it as the secret `DOCS_DISPATCH_TOKEN` in the service repository. Then add `.github/workflows/docs-dispatch.yml`:
 
 ```yaml
 name: Request docs rebuild
@@ -134,8 +147,13 @@ on:
       - main
     paths:
       - 'docs/**'
+      - 'docs/sidebars.js'
+      - 'docs/sidebars.json'
       - 'tools/docusaurus/sidebars.js'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   dispatch:
@@ -147,11 +165,14 @@ jobs:
           SERVICE: ${{ github.event.repository.name }}
           SHA: ${{ github.sha }}
         run: |
-          gh api repos/shellui/shellui/dispatches \
-            -f event_type=service-docs-updated \
-            -f "client_payload[service]=$SERVICE" \
-            -f "client_payload[sha]=$SHA"
+          gh api --method POST \
+            repos/shellui/shellui/actions/workflows/deploy-docs.yml/dispatches \
+            -f ref=main \
+            -f "inputs[service]=$SERVICE" \
+            -f "inputs[sha]=$SHA"
 ```
+
+Older repositories can still send `repository_dispatch` with type `service-docs-updated`. Prefer the workflow dispatch above.
 
 ### 2. Stop deploying docs from the service
 

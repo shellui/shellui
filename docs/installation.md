@@ -38,7 +38,9 @@ npm install @shellui/sdk@0.6.2
 npm install @shellui/core@0.6.2
 ```
 
-See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in 0.6.2. Desktop sign-in completes during `shellui start --app`, and macOS window layouts leave room for the traffic lights. Setup is in [Sign in on the desktop](/tauri#sign-in-on-the-desktop).
+See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in each release.
+
+To try the 0.7.0 alpha, install from the npm `alpha` tag: `npm install -g @shellui/cli@alpha`. It prepares the SaaS and multi-region setup and requires identity-service 0.9.0.
 
 ## Install in a project
 

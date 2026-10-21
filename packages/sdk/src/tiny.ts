@@ -107,8 +107,16 @@ const readyPromise = new Promise<void>((r) => {
 /** Cleared when SETTINGS arrives or handshake times out (embedded only). */
 let clearSettingsRetry: (() => void) | null = null;
 
-const resolveParentTargetOrigin = (): string => {
+const resolveParentTargetOrigin = (): string | null => {
   if (parent === window) return location.origin;
+  try {
+    const parentOrigin = parent.location.origin;
+    if (typeof parentOrigin === 'string' && parentOrigin && parentOrigin !== 'null') {
+      return parentOrigin;
+    }
+  } catch {
+    // Cross-origin parent.
+  }
   const ancestors = (document.location as Location & { ancestorOrigins?: DOMStringList })
     .ancestorOrigins;
   const ancestorOrigin = ancestors?.[0];
@@ -120,12 +128,14 @@ const resolveParentTargetOrigin = (): string => {
       /* ignore */
     }
   }
-  // Embedded without ancestorOrigins/referrer — companion origin would never match the shell.
-  return '*';
+  return null;
 };
 
 const post = (type: string, payload: object = {}) => {
-  if (parent !== window) parent.postMessage({ type, payload }, resolveParentTargetOrigin());
+  if (parent === window) return;
+  const targetOrigin = resolveParentTargetOrigin();
+  if (!targetOrigin) return;
+  parent.postMessage({ type, payload }, targetOrigin);
 };
 
 const emit = (event: string, data: unknown) => {
@@ -320,8 +330,8 @@ addEventListener('message', (event: MessageEvent) => {
   if (!type.startsWith('SHELLUI_')) return;
 
   const parentOrigin = resolveParentTargetOrigin();
-  // When parent origin is unknown ('*'), rely on event.source === parent only.
-  if (parentOrigin !== '*' && event.origin !== location.origin && event.origin !== parentOrigin) {
+  // When the parent origin is unknown, rely on event.source === parent only.
+  if (parentOrigin && event.origin !== location.origin && event.origin !== parentOrigin) {
     return;
   }
   if (embedded && event.source !== parent) return;

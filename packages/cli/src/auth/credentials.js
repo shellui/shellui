@@ -1,25 +1,89 @@
+import { createRequire } from 'node:module';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+const require = createRequire(import.meta.url);
+
 const CREDENTIALS_VERSION = 1;
+const KEYCHAIN_SERVICE = 'shellui';
+const KEYCHAIN_ACCOUNT = 'cli-credentials';
 
 /**
- * Documented residual for L-10: tokens are stored as JSON on disk.
- * Permissions are hardened (0700 dir / 0600 file on Unix); OS keychain is a future follow-up.
+ * Tokens go to the OS keychain when `@napi-rs/keyring` can open it.
+ * Otherwise they stay in a mode 0600 file. Same-user access can still read a file fallback.
  */
 export const CREDENTIAL_STORAGE_RESIDUAL = Object.freeze({
-  format: 'plaintext-json',
+  format: 'os-keychain-with-0600-file-fallback',
   unixPermissions: { directory: '0700', file: '0600' },
   windowsPermissions: 'best-effort-chmod; relies on %APPDATA% ACLs',
   notProtectedAgainst: [
-    'same-user malware',
+    'same-user malware when the keychain is unavailable',
     'root/admin access',
-    'backup tools copying the file',
-    'disk imaging',
+    'backup tools copying the file fallback',
+    'disk imaging of the file fallback',
   ],
-  followUp: 'OS keychain / Secret Service integration (tracked separately from this release)',
+  followUp:
+    'OS keychain via optional @napi-rs/keyring; file mode 0600 when that store is unavailable',
 });
+
+/** @type {{ active: boolean, entry: KeychainEntry | null }} */
+let testKeychain = { active: false, entry: null };
+/** @type {KeychainEntry | null | undefined} */
+let nativeEntry;
+let warnedFileFallback = false;
+
+/**
+ * @typedef {{
+ *   getPassword: () => string | null,
+ *   setPassword: (password: string) => void,
+ *   deletePassword: () => boolean,
+ * }} KeychainEntry
+ */
+
+/**
+ * @param {KeychainEntry | null} entry
+ */
+export function setCredentialKeychainForTests(entry) {
+  testKeychain = { active: true, entry };
+  warnedFileFallback = false;
+}
+
+export function resetCredentialKeychainForTests() {
+  testKeychain = { active: false, entry: null };
+  warnedFileFallback = false;
+}
+
+/**
+ * @returns {KeychainEntry | null}
+ */
+function keychainEntry() {
+  if (testKeychain.active) return testKeychain.entry;
+  if (process.env.VITEST) return null;
+  if (nativeEntry !== undefined) return nativeEntry;
+  try {
+    const { Entry } = require('@napi-rs/keyring');
+    nativeEntry = new Entry(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, {
+      linux: { store: 'secret-service' },
+    });
+  } catch {
+    nativeEntry = null;
+  }
+  return nativeEntry;
+}
+
+/**
+ * @param {unknown} error
+ */
+function warnFileFallback(error) {
+  if (process.env.VITEST && !testKeychain.active) return;
+  if (warnedFileFallback) return;
+  warnedFileFallback = true;
+  const reason = error instanceof Error ? error.message : 'OS keychain is not available';
+  console.warn(
+    `Shellui could not use the OS keychain (${reason}). CLI credentials were saved to ${getCredentialsPath()} with mode 0600.`,
+  );
+}
 
 /**
  * @returns {typeof CREDENTIAL_STORAGE_RESIDUAL}
@@ -81,22 +145,42 @@ export function isCredentialsShape(value) {
 /**
  * @returns {ReturnType<typeof isCredentialsShape> extends true ? object : null}
  */
+/**
+ * @param {unknown} raw
+ */
+function credentialsFromRaw(raw) {
+  if (!isCredentialsShape(raw)) return null;
+  return {
+    version: typeof raw.version === 'number' ? raw.version : CREDENTIALS_VERSION,
+    backendUrl: String(raw.backendUrl).replace(/\/$/, ''),
+    companyId: String(raw.companyId).trim(),
+    accessToken: String(raw.accessToken),
+    refreshToken: String(raw.refreshToken),
+    expiresAt:
+      typeof raw.expiresAt === 'number' && Number.isFinite(raw.expiresAt) ? raw.expiresAt : null,
+    tokenType: typeof raw.tokenType === 'string' && raw.tokenType ? raw.tokenType : 'bearer',
+  };
+}
+
+function readKeychainCredentials() {
+  const entry = keychainEntry();
+  if (!entry) return null;
+  try {
+    const raw = entry.getPassword();
+    if (!raw) return null;
+    return credentialsFromRaw(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 export function readCredentials() {
+  const fromKeychain = readKeychainCredentials();
+  if (fromKeychain) return fromKeychain;
   const filePath = getCredentialsPath();
   if (!fs.existsSync(filePath)) return null;
   try {
-    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    if (!isCredentialsShape(raw)) return null;
-    return {
-      version: typeof raw.version === 'number' ? raw.version : CREDENTIALS_VERSION,
-      backendUrl: String(raw.backendUrl).replace(/\/$/, ''),
-      companyId: String(raw.companyId).trim(),
-      accessToken: String(raw.accessToken),
-      refreshToken: String(raw.refreshToken),
-      expiresAt:
-        typeof raw.expiresAt === 'number' && Number.isFinite(raw.expiresAt) ? raw.expiresAt : null,
-      tokenType: typeof raw.tokenType === 'string' && raw.tokenType ? raw.tokenType : 'bearer',
-    };
+    return credentialsFromRaw(JSON.parse(fs.readFileSync(filePath, 'utf8')));
   } catch {
     return null;
   }
@@ -133,6 +217,19 @@ export function writeCredentials(session) {
         : null,
     tokenType: session.tokenType || 'bearer',
   };
+  const entry = keychainEntry();
+  if (entry) {
+    try {
+      entry.setPassword(JSON.stringify(payload));
+      const filePath = getCredentialsPath();
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      return;
+    } catch (error) {
+      warnFileFallback(error);
+    }
+  } else {
+    warnFileFallback(new Error('OS keychain is not available'));
+  }
   const filePath = getCredentialsPath();
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, {
     encoding: 'utf8',
@@ -150,8 +247,17 @@ export function writeCredentials(session) {
  * @returns {boolean} true if a file was removed
  */
 export function clearCredentials() {
+  let removed = false;
+  const entry = keychainEntry();
+  if (entry) {
+    try {
+      removed = Boolean(entry.deletePassword());
+    } catch {
+      // Still remove the file fallback.
+    }
+  }
   const filePath = getCredentialsPath();
-  if (!fs.existsSync(filePath)) return false;
+  if (!fs.existsSync(filePath)) return removed;
   fs.unlinkSync(filePath);
   return true;
 }

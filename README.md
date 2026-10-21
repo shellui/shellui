@@ -12,6 +12,8 @@ This monorepo contains the Shellui packages:
 
 **0.6.2** is the stable release on the npm `latest` tag.
 
+To try the 0.7.0 alpha, install from the npm `alpha` tag: `npm install -g @shellui/cli@alpha`. It prepares the SaaS and multi-region setup and requires identity-service 0.9.0.
+
 ```bash
 npm install -g @shellui/cli@0.6.2
 npm install @shellui/sdk@0.6.2
