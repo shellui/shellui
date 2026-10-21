@@ -15,12 +15,12 @@ import {
   redirectCliCallbackError,
   redirectToCliCallback,
 } from '../utils';
+import { WEB_PKCE_FLOW_PARAM, isMagicLinkFlowId, takeWebPkceVerifier } from '../utils/webPkce';
 import {
   isSilentAuthCallbackFrame,
   publishSilentAuthCallbackResult,
 } from '../appBackend/silentSignIn';
 import { useAuth } from '../hooks/useAuth';
-import { consumeWebPkce } from '../utils/webPkce';
 import { AccessPendingView } from './AccessPendingView';
 
 const SHELLUI_OAUTH_ERROR_PARAM = 'shellui_oauth_error';
@@ -236,14 +236,25 @@ export const OAuthCallbackView = () => {
           location.pathname,
           location.search,
         );
-        const codeVerifier = consumeWebPkce(redirectTo);
+        const pkceFlowId = params.get(WEB_PKCE_FLOW_PARAM);
+        const codeVerifier = takeWebPkceVerifier(pkceFlowId) ?? undefined;
+        if (!codeVerifier && isMagicLinkFlowId(pkceFlowId)) {
+          // The magic link verifier lives only in the browser that asked for the link.
+          // Do not send the code: it stays unused.
+          applyExchangeFailure(
+            authCode,
+            {
+              ok: false,
+              error: t('loginPage.magicLinkOtherBrowser'),
+              errorCode: 'magic_link_other_browser',
+            },
+            cancelled,
+          );
+          return;
+        }
         let result: { ok: boolean; error?: string | null; errorCode?: string | null };
         try {
-          result = await completeOAuthSessionCallback({
-            authCode,
-            redirectTo,
-            ...(codeVerifier ? { codeVerifier } : {}),
-          });
+          result = await completeOAuthSessionCallback({ authCode, redirectTo, codeVerifier });
         } catch (err) {
           result = {
             ok: false,

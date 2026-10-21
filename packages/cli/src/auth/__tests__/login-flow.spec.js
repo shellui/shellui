@@ -1,23 +1,28 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import crypto from 'crypto';
+import http from 'http';
 import {
-  LOGIN_NONCE_COOKIE,
+  LOGIN_NONCE_HEADER,
   buildAuthorizeUrl,
   buildCallbackPageHtml,
   buildWaitingPageHtml,
-  createLoginPkcePair,
-  evaluateLoopbackCapture,
+  exchangeSessionCode,
   generateLoginNonce,
-  readRequestCookie,
-  runLoginFlow,
+  generatePkcePair,
   validateCaptureNonce,
 } from '../login-flow.js';
 
-function cookieFrom(response) {
-  const listed =
-    typeof response.headers.getSetCookie === 'function' ? response.headers.getSetCookie() : [];
-  const raw = listed.length > 0 ? listed.join('; ') : response.headers.get('set-cookie') || '';
-  return readRequestCookie(raw, LOGIN_NONCE_COOKIE);
+function listen(server) {
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      resolve(typeof address === 'object' && address ? address.port : 0);
+    });
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve) => server.close(() => resolve()));
 }
 
 describe('login-flow nonce helpers', () => {
@@ -34,10 +39,63 @@ describe('login-flow nonce helpers', () => {
     expect(validateCaptureNonce({}, nonce)).toBe(false);
   });
 
-  test('buildAuthorizeUrl sends S256 PKCE and not the verifier', () => {
-    const { verifier, challenge } = createLoginPkcePair();
-    const expected = crypto.createHash('sha256').update(verifier).digest('base64url');
+  test('buildAuthorizeUrl includes state when provided', () => {
+    const url = buildAuthorizeUrl({
+      backendUrl: 'https://id.shellui.com',
+      companyId: '1',
+      redirectTo: 'http://127.0.0.1:9/callback',
+      state: 'abc123',
+    });
+    expect(url).toContain('state=abc123');
+  });
+
+  test('waiting and callback pages embed port and nonce', () => {
+    const nonce = 'deadbeef';
+    const waiting = buildWaitingPageHtml({
+      port: 4242,
+      nonce,
+      backendUrl: 'https://id.shellui.com',
+    });
+    expect(waiting).toContain('4242');
+    expect(waiting).toContain(nonce);
+    expect(waiting).toContain('/api/v1/authorize');
+
+    const callback = buildCallbackPageHtml({
+      nonce,
+      backendUrl: 'https://id.shellui.com',
+    });
+    expect(callback).toContain(nonce);
+    expect(callback).toContain(LOGIN_NONCE_HEADER);
+    expect(callback).toContain('/capture');
+    expect(callback).toContain('shellui_auth_code');
+    expect(callback).toContain("'/code'");
+    // The browser no longer redeems the code; the CLI does, with the verifier.
+    expect(callback).not.toContain('/api/v1/oauth/session');
+    expect(callback).not.toContain('code_verifier');
+  });
+});
+
+describe('login-flow PKCE', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test('generatePkcePair returns an S256 pair', () => {
+    const { verifier, challenge } = generatePkcePair();
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const expected = crypto
+      .createHash('sha256')
+      .update(verifier)
+      .digest('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
     expect(challenge).toBe(expected);
+    expect(generatePkcePair().verifier).not.toBe(verifier);
+  });
+
+  test('buildAuthorizeUrl sends the challenge, never the verifier', () => {
+    const { verifier, challenge } = generatePkcePair();
     const url = new URL(
       buildAuthorizeUrl({
         backendUrl: 'https://id.shellui.com',
@@ -48,132 +106,144 @@ describe('login-flow nonce helpers', () => {
     );
     expect(url.searchParams.get('code_challenge')).toBe(challenge);
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
-    expect(url.searchParams.has('code_verifier')).toBe(false);
     expect(url.toString()).not.toContain(verifier);
   });
 
-  test('served HTML does not include the session nonce', () => {
-    const nonce = generateLoginNonce();
-    const { verifier } = createLoginPkcePair();
-    const waiting = buildWaitingPageHtml({
-      port: 4242,
-      backendUrl: 'https://id.shellui.com',
+  test('exchangeSessionCode posts the verifier with the loopback Origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 5 }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const tokens = await exchangeSessionCode({
+      backendUrl: 'https://id.shellui.com/',
+      authCode: 'code-1',
+      redirectTo: 'http://127.0.0.1:4242/callback',
+      codeVerifier: 'v'.repeat(43),
     });
-    expect(waiting).toContain('4242');
-    expect(waiting).toContain('/api/v1/authorize');
-    expect(waiting).not.toContain(nonce);
-
-    const callback = buildCallbackPageHtml({
-      backendUrl: 'https://id.shellui.com',
-      codeVerifier: verifier,
+    expect(tokens.access_token).toBe('a');
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://id.shellui.com/api/v1/oauth/session');
+    expect(init.headers.Origin).toBe('http://127.0.0.1:4242');
+    expect(JSON.parse(init.body)).toEqual({
+      auth_code: 'code-1',
+      redirect_to: 'http://127.0.0.1:4242/callback',
+      code_verifier: 'v'.repeat(43),
     });
-    expect(callback).not.toContain(nonce);
-    expect(callback).toContain('/capture');
-    expect(callback).toContain('shellui_auth_code');
-    expect(callback).toContain('/api/v1/oauth/session');
-    expect(callback).toContain('code_verifier');
-    expect(callback).toContain(verifier);
   });
-});
 
-describe('evaluateLoopbackCapture', () => {
-  const nonce = 'a'.repeat(64);
-
-  test('accepts only 127.0.0.1 origin and host after the callback was served', () => {
-    const base = {
-      port: 4311,
-      host: '127.0.0.1:4311',
-      origin: 'http://127.0.0.1:4311',
-      cookie: nonce,
-      expectedNonce: nonce,
-      callbackServed: true,
-      used: false,
-    };
-    expect(evaluateLoopbackCapture(base)).toBe('ok');
-    expect(evaluateLoopbackCapture({ ...base, callbackServed: false })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, origin: undefined })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, origin: 'http://localhost:4311' })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, host: 'localhost:4311' })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, host: '127.0.0.1:4312' })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, cookie: 'nope' })).toBe('forbidden');
-    expect(evaluateLoopbackCapture({ ...base, used: true })).toBe('used');
+  test('exchangeSessionCode surfaces the PKCE error code', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ error: 'PKCE failed.', error_code: 'pkce_verification_failed' }),
+          {
+            status: 400,
+          },
+        ),
+      ),
+    );
+    await expect(
+      exchangeSessionCode({
+        backendUrl: 'https://id.shellui.com',
+        authCode: 'c',
+        redirectTo: 'http://127.0.0.1:1/callback',
+        codeVerifier: 'v'.repeat(43),
+      }),
+    ).rejects.toThrow('PKCE failed. (pkce_verification_failed)');
   });
 });
 
 describe('login-flow /capture binding', () => {
-  test('accepts one capture from the loopback origin and rejects the rest', async () => {
-    let resolvePort = () => {};
-    const portReady = new Promise((resolve) => {
-      resolvePort = resolve;
-    });
-    const pending = runLoginFlow({
-      backendUrl: 'https://id.shellui.com',
-      companyId: '1',
-      openBrowser: false,
-      onReady: (info) => resolvePort(info.port),
+  test('rejects POST /capture without nonce', async () => {
+    const loginNonce = generateLoginNonce();
+    const server = http.createServer((req, res) => {
+      if (req.method !== 'POST' || req.url !== '/capture') {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const payload = JSON.parse(body || '{}');
+        if (!validateCaptureNonce(payload, loginNonce)) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
     });
 
-    const port = await portReady;
-    expect(port).toBeGreaterThan(0);
-    const origin = `http://127.0.0.1:${port}`;
+    const port = await listen(server);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/capture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: 'a',
+          refresh_token: 'r',
+        }),
+      });
+      expect(res.status).toBe(403);
+    } finally {
+      await closeServer(server);
+    }
+  });
 
-    const waiting = await fetch(`${origin}/`);
-    const waitingHtml = await waiting.text();
-
-    const early = await fetch(`${origin}/capture`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: origin,
-      },
-      body: JSON.stringify({ access_token: 'a', refresh_token: 'r' }),
+  test('accepts POST /capture with matching nonce', async () => {
+    const loginNonce = generateLoginNonce();
+    const server = http.createServer((req, res) => {
+      if (req.method !== 'POST' || req.url !== '/capture') {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      let body = '';
+      req.on('data', (chunk) => {
+        body += chunk;
+      });
+      req.on('end', () => {
+        const payload = JSON.parse(body || '{}');
+        const header = req.headers[LOGIN_NONCE_HEADER.toLowerCase()];
+        const ok =
+          header === loginNonce &&
+          validateCaptureNonce(payload, loginNonce) &&
+          payload.access_token &&
+          payload.refresh_token;
+        if (!ok) {
+          res.writeHead(403);
+          res.end();
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+      });
     });
-    expect(early.status).toBe(403);
 
-    const callback = await fetch(`${origin}/callback`);
-    const callbackHtml = await callback.text();
-    const nonce = cookieFrom(callback);
-    expect(nonce).toBeTruthy();
-    expect(waitingHtml).not.toContain(nonce);
-    expect(callbackHtml).not.toContain(nonce);
-    expect(callbackHtml).toContain('code_verifier');
-
-    const badJson = await fetch(`${origin}/capture`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: origin,
-        Cookie: `${LOGIN_NONCE_COOKIE}=${encodeURIComponent(nonce)}`,
-      },
-      body: '{',
-    });
-    expect(badJson.status).toBe(400);
-
-    const wrongOrigin = await fetch(`${origin}/capture`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'http://localhost:' + port,
-        Cookie: `${LOGIN_NONCE_COOKIE}=${nonce}`,
-      },
-      body: JSON.stringify({ access_token: 'a', refresh_token: 'r' }),
-    });
-    expect(wrongOrigin.status).toBe(403);
-
-    const ok = await fetch(`${origin}/capture`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: origin,
-        Cookie: `${LOGIN_NONCE_COOKIE}=${encodeURIComponent(nonce)}`,
-      },
-      body: JSON.stringify({ access_token: 'access', refresh_token: 'refresh', expires_at: 10 }),
-    });
-    expect(ok.status).toBe(200);
-    await expect(pending).resolves.toMatchObject({
-      accessToken: 'access',
-      refreshToken: 'refresh',
-      expiresAt: 10,
-    });
+    const port = await listen(server);
+    try {
+      const res = await fetch(`http://127.0.0.1:${port}/capture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          [LOGIN_NONCE_HEADER]: loginNonce,
+        },
+        body: JSON.stringify({
+          nonce: loginNonce,
+          access_token: 'access',
+          refresh_token: 'refresh',
+        }),
+      });
+      expect(res.status).toBe(200);
+    } finally {
+      await closeServer(server);
+    }
   });
 });

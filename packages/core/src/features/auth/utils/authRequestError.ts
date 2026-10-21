@@ -1,3 +1,5 @@
+import { isWebPkceErrorCode } from './webPkce';
+
 export class AuthRequestError extends Error {
   readonly code: string | null;
   /** Extra fields from the error response body (e.g. `companies` for `last_company_owner`). */
@@ -19,6 +21,7 @@ export function isAccessPendingErrorCode(code: string | null | undefined): boole
 /** i18n key when the shell replaces a backend sign-in sentence with its own copy. */
 export function loginErrorMessageKey(code: string | null | undefined): string | null {
   if (code === 'magic_link_staff_disabled') return 'loginPage.magicLinkStaffDisabled';
+  if (isWebPkceErrorCode(code)) return 'loginPage.pkceFailed';
   return null;
 }
 

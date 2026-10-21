@@ -50,7 +50,6 @@ import {
   subscribeDesktopAuth,
 } from './utils/desktopSignIn';
 import { normalizeDesktopScheme } from './utils/desktopAuthCallback';
-import { beginShelluiWebMagicLink, beginShelluiWebOAuth } from './utils/webPkce';
 import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
 import { accessTokenRefreshDue } from './utils/accessTokenRefreshDue';
 import { registerFrameSessionRefresher } from './utils/frameSessionRefresher';
@@ -404,20 +403,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
           return true;
         }
-        if (backend.type === 'shellui') {
-          void beginShelluiWebOAuth({
-            origin: window.location.origin,
-            provider,
-            redirectPath,
-            oauthClientId,
-            startOAuth: backend.startOAuth,
-          }).catch((err) => {
+        void Promise.resolve(backend.startOAuth(provider, redirectPath, oauthClientId)).catch(
+          (err) => {
             setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
             setErrorCode(err instanceof AuthRequestError ? err.code : null);
-          });
-          return true;
-        }
-        backend.startOAuth(provider, redirectPath, oauthClientId);
+          },
+        );
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
@@ -574,16 +565,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             throw sendError;
           }
           void ensureDesktopDeepLinkListener({ replayLaunchUrl: false });
-          return;
-        }
-        if (backend.type === 'shellui') {
-          await beginShelluiWebMagicLink({
-            origin: window.location.origin,
-            email,
-            redirectPath,
-            language: i18n.resolvedLanguage ?? i18n.language,
-            sendMagicLink: backend.sendMagicLink,
-          });
           return;
         }
         await backend.sendMagicLink(email, redirectPath, {

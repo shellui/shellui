@@ -104,7 +104,7 @@ Build a production static site to `dist/web/`. Same isolated toolchain as `start
 
 ### shellui login [root]
 
-Sign in against identity-service and store CLI credentials for later commands such as `deploy`.
+Sign in against identity-service and store CLI credentials (mode `0600`) for later commands such as `deploy`.
 
 ```bash
 shellui login
@@ -112,21 +112,19 @@ shellui login --config ./config
 shellui login --provider github
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>` and opens `{backend.url}/api/v1/authorize` with `company_id`, `redirect_to=http://127.0.0.1:<port>/callback`, `code_challenge`, and `code_challenge_method=S256`. The verifier stays on the callback page and is sent as `code_verifier` on `POST /api/v1/oauth/session`. Loopback is allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>&code_challenge=…&code_challenge_method=S256`. The PKCE verifier stays in the CLI process memory. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
 
-After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page exchanges that code, then posts tokens to `/capture`. Legacy fragment delivery (`#access_token=…`) still works during rollout.
+After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page posts the code to the CLI (`/code`, nonce-bound). The CLI redeems it at `POST /api/v1/oauth/session` with `code_verifier` and the loopback `Origin`, which matches `redirect_to` as identity 0.9.0 requires. Legacy fragment delivery (`#access_token=…`) still works during rollout.
 
-**Loopback capture:**
+**Loopback threat model (Track F / L-11, L-12):**
 
-- The session nonce is not written into the HTML and is not printed in the terminal. `GET /callback` sets an HttpOnly cookie, `shellui_login_nonce`.
-- `POST /capture` and `POST /error` are accepted once. The request must use `Host` `127.0.0.1:<port>` and `Origin` `http://127.0.0.1:<port>`, the cookie must match, and the callback page must already have been served.
-- A rejected request does not end the login. Finish sign-in in the browser you opened from this terminal.
-- A site can still phish the authorize URL printed in your terminal. Continue when that URL starts with `{backend.url}/api/v1/authorize`.
+- The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
+- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce — verify they match your terminal before completing sign-in.
 - Auth codes and URL fragments are cleared with `history.replaceState` after capture.
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
-**Credentials:** The CLI stores tokens in the OS keychain when `@napi-rs/keyring` can open it. On Linux that store is the secret service. When the keychain is unavailable, the CLI writes `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`; Windows `%APPDATA%\shellui\credentials.json`) with mode `0600` (directory `0700`) and prints a warning. That file does not protect against root, malware running as you, or backups. Tokens are never printed.
+**Credentials (Track F / L-10):** `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are stored as **plaintext JSON** with Unix mode `0600` (directory `0700`). This limits exposure to the same user account but does **not** protect against root, malware, or backups. OS keychain integration is planned separately. Tokens are never printed.
 
 ### shellui logout / whoami
 

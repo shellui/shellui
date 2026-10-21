@@ -1,97 +1,96 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateCodeChallenge } from './pkce';
 import {
-  beginShelluiWebMagicLink,
-  beginShelluiWebOAuth,
-  consumeWebPkce,
-  createAndStoreWebPkce,
-  shelluiWebMagicLinkRedirectTo,
-  shelluiWebOAuthRedirectTo,
-  webPkceRedirectKey,
+  WEB_PKCE_FLOW_PARAM,
+  isMagicLinkFlowId,
+  isWebPkceErrorCode,
+  prepareWebPkce,
+  takeWebPkceVerifier,
 } from './webPkce';
 
-describe('web PKCE', () => {
-  const storage = new Map<string, string>();
+function memoryStorage(seed: [string, string][] = []): Storage {
+  const map = new Map<string, string>(seed);
+  return {
+    get length() {
+      return map.size;
+    },
+    key: (i: number) => Array.from(map.keys())[i] ?? null,
+    getItem: (k: string) => map.get(k) ?? null,
+    setItem: (k: string, v: string) => void map.set(k, String(v)),
+    removeItem: (k: string) => void map.delete(k),
+    clear: () => map.clear(),
+  };
+}
 
+function storedVerifier(store: Storage): string {
+  const keys = Array.from({ length: store.length }, (_, i) => store.key(i) as string);
+  const key = keys.find((k) => k.startsWith('shellui.auth.pkce.'));
+  expect(key).toBeTruthy();
+  return (JSON.parse(store.getItem(key as string) as string) as { verifier: string }).verifier;
+}
+
+describe('webPkce', () => {
   beforeEach(() => {
-    storage.clear();
-    vi.stubGlobal('localStorage', {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => storage.set(key, value),
-      removeItem: (key: string) => storage.delete(key),
-    });
+    vi.stubGlobal('sessionStorage', memoryStorage());
+    vi.stubGlobal('localStorage', memoryStorage());
   });
-
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
-  test('stores an S256 verifier and returns it once for the same redirect', async () => {
-    const redirectTo = shelluiWebOAuthRedirectTo({
-      origin: 'https://app.example.com',
-      redirectPath: '/login/callback',
-      provider: 'github',
-      oauthClientId: 4,
-    });
-    const { challenge, verifier } = await createAndStoreWebPkce(redirectTo);
-    expect(challenge).toBe(await generateCodeChallenge(verifier));
-    expect(verifier).not.toBe(challenge);
-
-    const callbackRedirect = `${redirectTo}&shellui_auth_code=one-time`;
-    expect(webPkceRedirectKey(callbackRedirect)).toBe(webPkceRedirectKey(redirectTo));
-    expect(consumeWebPkce(callbackRedirect)).toBe(verifier);
-    expect(consumeWebPkce(callbackRedirect)).toBeNull();
+  it('adds only the flow id to redirect_to and keeps the verifier in sessionStorage', async () => {
+    const prepared = await prepareWebPkce(
+      'https://app.test/login/callback?provider=google',
+      'oauth',
+    );
+    const url = new URL(prepared.redirectTo);
+    expect(url.searchParams.get('provider')).toBe('google');
+    expect(url.searchParams.get(WEB_PKCE_FLOW_PARAM)).toBe(prepared.flowId);
+    const verifier = storedVerifier(sessionStorage);
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43,128}$/);
+    expect(prepared.redirectTo).not.toContain(verifier);
+    expect(prepared.challenge).toBe(await generateCodeChallenge(verifier));
+    expect(localStorage.length).toBe(0);
   });
 
-  test('web OAuth start sends code_challenge and the callback exchange can send code_verifier', async () => {
-    const startOAuth = vi.fn();
-    await beginShelluiWebOAuth({
-      origin: 'https://app.example.com',
-      provider: 'google',
-      redirectPath: '/login/callback?next=%2Fapps',
-      startOAuth,
-    });
-
-    expect(startOAuth).toHaveBeenCalledTimes(1);
-    const challenge = startOAuth.mock.calls[0]?.[3]?.codeChallenge as string;
-    expect(challenge).toMatch(/^[A-Za-z0-9\-_]{43,128}$/);
-    const redirectTo = shelluiWebOAuthRedirectTo({
-      origin: 'https://app.example.com',
-      redirectPath: '/login/callback?next=%2Fapps',
-      provider: 'google',
-    });
-    const verifier = consumeWebPkce(redirectTo);
-    expect(verifier).toBeTruthy();
-    expect(await generateCodeChallenge(verifier as string)).toBe(challenge);
-    expect(JSON.stringify(startOAuth.mock.calls[0])).not.toContain(verifier);
+  it('keeps concurrent flows apart and is single use', async () => {
+    const a = await prepareWebPkce('https://app.test/cb', 'oauth');
+    const b = await prepareWebPkce('https://app.test/cb', 'oauth');
+    expect(a.flowId).not.toBe(b.flowId);
+    const va = takeWebPkceVerifier(a.flowId);
+    const vb = takeWebPkceVerifier(b.flowId);
+    expect(va).toBeTruthy();
+    expect(vb).toBeTruthy();
+    expect(va).not.toBe(vb);
+    expect(takeWebPkceVerifier(a.flowId)).toBeNull();
+    expect(sessionStorage.length).toBe(0);
   });
 
-  test('web magic link sends code_challenge and clears the verifier when sending fails', async () => {
-    const sendMagicLink = vi.fn().mockRejectedValue(new Error('offline'));
-    await expect(
-      beginShelluiWebMagicLink({
-        origin: 'https://app.example.com',
-        email: 'ada@acme.com',
-        redirectPath: '/login/callback',
-        language: 'fr',
-        sendMagicLink,
-      }),
-    ).rejects.toThrow('offline');
-
-    expect(sendMagicLink).toHaveBeenCalledWith('ada@acme.com', '/login/callback', {
-      language: 'fr',
-      codeChallenge: expect.stringMatching(/^[A-Za-z0-9\-_]{43,128}$/),
-    });
-    const redirectTo = shelluiWebMagicLinkRedirectTo('https://app.example.com', '/login/callback');
-    expect(consumeWebPkce(redirectTo)).toBeNull();
+  it('stores a magic link verifier in localStorage only, readable from another tab', async () => {
+    const prepared = await prepareWebPkce('https://app.test/cb', 'magic_link');
+    expect(isMagicLinkFlowId(prepared.flowId)).toBe(true);
+    expect(sessionStorage.length).toBe(0);
+    sessionStorage.clear();
+    expect(takeWebPkceVerifier(prepared.flowId)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(localStorage.length).toBe(0);
+    expect(takeWebPkceVerifier(prepared.flowId)).toBeNull();
   });
 
-  test('a magic link opened against a different redirect does not receive the verifier', async () => {
-    const redirectTo = shelluiWebMagicLinkRedirectTo('https://app.example.com', '/login/callback');
-    await createAndStoreWebPkce(redirectTo);
-    expect(
-      consumeWebPkce(shelluiWebMagicLinkRedirectTo('https://other.example.com', '/login/callback')),
-    ).toBeNull();
-    expect(consumeWebPkce(redirectTo)).toBeTruthy();
+  it('expires a magic link verifier after 15 minutes', async () => {
+    vi.useFakeTimers();
+    const prepared = await prepareWebPkce('https://app.test/cb', 'magic_link');
+    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
+    expect(takeWebPkceVerifier(prepared.flowId)).toBeNull();
+    expect(localStorage.length).toBe(0);
+  });
+
+  it('rejects malformed flow ids and knows the PKCE error codes', () => {
+    expect(takeWebPkceVerifier('../x')).toBeNull();
+    expect(takeWebPkceVerifier(null)).toBeNull();
+    expect(isMagicLinkFlowId(`o${'0'.repeat(32)}`)).toBe(false);
+    expect(isWebPkceErrorCode('pkce_verification_failed')).toBe(true);
+    expect(isWebPkceErrorCode('pkce_required')).toBe(true);
+    expect(isWebPkceErrorCode('other')).toBe(false);
   });
 });

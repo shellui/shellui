@@ -5,8 +5,7 @@ import pc from 'picocolors';
 
 const LOGIN_TIMEOUT_MS = 3 * 60 * 1000;
 
-/** HttpOnly cookie set when the callback document is served. Not written into HTML. */
-export const LOGIN_NONCE_COOKIE = 'shellui_login_nonce';
+export const LOGIN_NONCE_HEADER = 'X-Shellui-Login-Nonce';
 
 /**
  * @returns {string}
@@ -16,71 +15,60 @@ export function generateLoginNonce() {
 }
 
 /**
- * PKCE S256. Parameter names match the desktop and web flows.
+ * @param {Buffer} buf
+ */
+function base64Url(buf) {
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+/**
+ * S256 PKCE pair (RFC 7636). The verifier stays in this process's memory.
  * @returns {{ verifier: string, challenge: string }}
  */
-export function createLoginPkcePair() {
-  const verifier = crypto.randomBytes(32).toString('base64url');
-  const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+export function generatePkcePair() {
+  const verifier = base64Url(crypto.randomBytes(32));
+  const challenge = base64Url(crypto.createHash('sha256').update(verifier).digest());
   return { verifier, challenge };
 }
 
 /**
- * @param {string | string[] | undefined} header
- * @param {string} name
- * @returns {string | null}
+ * Exchange a session code from Node so the verifier never reaches the browser.
+ * identity-service requires `Origin` to match `redirect_to` for an http(s)
+ * redirect. Node's fetch sends no Origin, so the CLI sends the loopback origin
+ * it owns, which is the origin of `redirect_to`.
+ * @param {{ backendUrl: string, authCode: string, redirectTo: string, codeVerifier: string }} opts
  */
-export function readRequestCookie(header, name) {
-  const raw = Array.isArray(header) ? header.join(';') : header;
-  if (typeof raw !== 'string' || !raw) return null;
-  for (const part of raw.split(';')) {
-    const eq = part.indexOf('=');
-    if (eq === -1) continue;
-    if (part.slice(0, eq).trim() !== name) continue;
-    const value = part.slice(eq + 1).trim();
-    try {
-      return decodeURIComponent(value);
-    } catch {
-      return value;
-    }
+export async function exchangeSessionCode(opts) {
+  const res = await fetch(`${opts.backendUrl.replace(/\/$/, '')}/api/v1/oauth/session`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: new URL(opts.redirectTo).origin,
+    },
+    body: JSON.stringify({
+      auth_code: opts.authCode,
+      redirect_to: opts.redirectTo,
+      code_verifier: opts.codeVerifier,
+    }),
+  });
+  const payload = await res.json().catch(() => null);
+  if (!res.ok) {
+    const err = payload && (payload.error || payload.detail);
+    const code =
+      payload && typeof payload.error_code === 'string' ? ` (${payload.error_code})` : '';
+    throw new Error(
+      `${err ? String(err) : `Session exchange failed (HTTP ${res.status}).`}${code}`,
+    );
   }
-  return null;
-}
-
-/**
- * @param {string | undefined} left
- * @param {string} right
- */
-function nonceMatches(left, right) {
-  if (typeof left !== 'string' || !left || !right) return false;
-  const a = Buffer.from(left);
-  const b = Buffer.from(right);
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
-
-/**
- * @param {{
- *   port: number,
- *   host: string | undefined,
- *   origin: string | undefined,
- *   cookie: string | null,
- *   expectedNonce: string,
- *   callbackServed: boolean,
- *   used: boolean,
- * }} input
- * @returns {'ok' | 'forbidden' | 'used'}
- */
-export function evaluateLoopbackCapture(input) {
-  if (input.used) return 'used';
-  if (!input.callbackServed) return 'forbidden';
-  const expectedHost = `127.0.0.1:${input.port}`;
-  const expectedOrigin = `http://127.0.0.1:${input.port}`;
-  const host = typeof input.host === 'string' ? input.host.trim().toLowerCase() : '';
-  const origin = typeof input.origin === 'string' ? input.origin.trim() : '';
-  if (host !== expectedHost || origin !== expectedOrigin) return 'forbidden';
-  if (!nonceMatches(input.cookie, input.expectedNonce)) return 'forbidden';
-  return 'ok';
+  if (
+    !payload ||
+    typeof payload.access_token !== 'string' ||
+    typeof payload.refresh_token !== 'string'
+  ) {
+    throw new Error('Session exchange did not return access and refresh tokens.');
+  }
+  return payload;
 }
 
 /**
@@ -110,9 +98,9 @@ export function openBrowser(url) {
 }
 
 /**
- * @param {{ port: number, backendUrl: string }} ctx
+ * @param {{ port: number, nonce: string, backendUrl: string }} ctx
  */
-export function buildWaitingPageHtml({ port, backendUrl }) {
+export function buildWaitingPageHtml({ port, nonce, backendUrl }) {
   const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
   return `<!DOCTYPE html>
 <html lang="en">
@@ -137,6 +125,7 @@ export function buildWaitingPageHtml({ port, backendUrl }) {
     <h1>shellui CLI sign-in</h1>
     <p>Waiting for sign-in in your browser…</p>
     <p>Session port: <code>${port}</code></p>
+    <p>Session nonce: <code>${nonce}</code></p>
     <p class="warn">Only continue if you ran <code>shellui login</code> in your terminal and the authorize URL starts with <code>${authorizePrefix}</code>.</p>
   </main>
 </body>
@@ -144,11 +133,11 @@ export function buildWaitingPageHtml({ port, backendUrl }) {
 }
 
 /**
- * @param {{ backendUrl: string, codeVerifier: string }} ctx
+ * @param {{ nonce: string, backendUrl: string }} ctx
  */
-export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
-  const backendJson = JSON.stringify(backendUrl.replace(/\/$/, ''));
-  const verifierJson = JSON.stringify(codeVerifier);
+export function buildCallbackPageHtml({ nonce, backendUrl }) {
+  void backendUrl;
+  const nonceJson = JSON.stringify(nonce);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -171,14 +160,14 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
   <main>
     <h1 id="title">Completing sign-in…</h1>
     <p id="msg">Please wait.</p>
+    <p class="warn">Session nonce: <code>${nonce}</code> — verify it matches your terminal before closing this window.</p>
   </main>
   <script>
     (async function () {
-      var codeVerifier = ${verifierJson};
+      var loginNonce = ${nonceJson};
       var title = document.getElementById('title');
       var msg = document.getElementById('msg');
       var params = new URLSearchParams(window.location.search);
-      var backend = ${backendJson};
       var err = params.get('shellui_oauth_error');
       var errCode = params.get('shellui_oauth_error_code');
       if (err) {
@@ -187,8 +176,11 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
         try {
           await fetch('/error', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: err, errorCode: errCode || null }),
+            headers: {
+              'Content-Type': 'application/json',
+              '${LOGIN_NONCE_HEADER}': loginNonce,
+            },
+            body: JSON.stringify({ nonce: loginNonce, error: err, errorCode: errCode || null }),
           });
         } catch (e) {}
         return;
@@ -199,45 +191,30 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
       var expires_at;
       var token_type = 'bearer';
       if (authCode) {
-        var redirect_to = window.location.origin + window.location.pathname;
         try {
-          var sessionRes = await fetch(backend + '/api/v1/oauth/session', {
+          // The CLI holds the PKCE verifier and redeems the code itself.
+          var codeRes = await fetch('/code', {
             method: 'POST',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              auth_code: authCode,
-              redirect_to: redirect_to,
-              code_verifier: codeVerifier,
-            }),
+            headers: {
+              'Content-Type': 'application/json',
+              '${LOGIN_NONCE_HEADER}': loginNonce,
+            },
+            body: JSON.stringify({ nonce: loginNonce, auth_code: authCode }),
           });
-          var sessionPayload = await sessionRes.json().catch(function () { return null; });
-          if (!sessionRes.ok) {
-            var sessionErr =
-              (sessionPayload && (sessionPayload.error || sessionPayload.detail)) ||
-              ('Session exchange failed (HTTP ' + sessionRes.status + ').');
-            throw new Error(String(sessionErr));
+          var codePayload = await codeRes.json().catch(function () { return null; });
+          if (!codeRes.ok || !codePayload || !codePayload.ok) {
+            throw new Error((codePayload && codePayload.error) || 'Session exchange failed.');
           }
-          access_token = sessionPayload && sessionPayload.access_token;
-          refresh_token = sessionPayload && sessionPayload.refresh_token;
-          expires_at = sessionPayload && sessionPayload.expires_at;
-          token_type =
-            (sessionPayload && sessionPayload.token_type) || 'bearer';
+          title.textContent = 'Signed in';
+          msg.textContent = 'The shellui CLI on this machine is signed in. You can close this window.';
+          history.replaceState(null, '', window.location.pathname);
         } catch (exchangeErr) {
           title.textContent = 'Sign-in failed';
           msg.textContent =
             (exchangeErr && exchangeErr.message) ||
             'Could not exchange auth code. Close this window and try again.';
-          try {
-            await fetch('/error', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                error: (exchangeErr && exchangeErr.message) || 'Session exchange failed.',
-              }),
-            });
-          } catch (e) {}
-          return;
         }
+        return;
       } else {
         var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         access_token = hash.get('access_token');
@@ -251,8 +228,11 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
         try {
           await fetch('/error', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ error: 'Missing tokens in callback.' }),
+            headers: {
+              'Content-Type': 'application/json',
+              '${LOGIN_NONCE_HEADER}': loginNonce,
+            },
+            body: JSON.stringify({ nonce: loginNonce, error: 'Missing tokens in callback.' }),
           });
         } catch (e) {}
         return;
@@ -260,8 +240,12 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
       try {
         var res = await fetch('/capture', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            '${LOGIN_NONCE_HEADER}': loginNonce,
+          },
           body: JSON.stringify({
+            nonce: loginNonce,
             access_token: access_token,
             refresh_token: refresh_token,
             expires_at: expires_at,
@@ -280,6 +264,16 @@ export function buildCallbackPageHtml({ backendUrl, codeVerifier }) {
   </script>
 </body>
 </html>`;
+}
+
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {string} expectedNonce
+ */
+export function extractLoginNonce(req, expectedNonce) {
+  const header = req.headers[LOGIN_NONCE_HEADER.toLowerCase()];
+  if (typeof header === 'string' && header === expectedNonce) return header;
+  return null;
 }
 
 /**
@@ -348,13 +342,31 @@ export function buildAuthorizeUrl(opts) {
 }
 
 /**
+ * @param {Record<string, unknown>} payload
+ */
+export function toLoginResult(payload) {
+  const expiresAtRaw = payload.expires_at;
+  const expiresAt =
+    typeof expiresAtRaw === 'number'
+      ? expiresAtRaw
+      : typeof expiresAtRaw === 'string' && expiresAtRaw
+        ? Number(expiresAtRaw)
+        : null;
+  return {
+    accessToken: /** @type {string} */ (payload.access_token),
+    refreshToken: /** @type {string} */ (payload.refresh_token),
+    expiresAt: Number.isFinite(expiresAt) ? /** @type {number} */ (expiresAt) : null,
+    tokenType:
+      typeof payload.token_type === 'string' && payload.token_type ? payload.token_type : 'bearer',
+  };
+}
+
+/**
  * Browser OAuth via identity authorize → loopback session-code or fragment bounce.
  * @param {{
  *   backendUrl: string,
  *   companyId: string,
  *   provider?: string,
- *   openBrowser?: boolean,
- *   onReady?: (info: { port: number }) => void,
  * }} opts
  * @returns {Promise<{
  *   accessToken: string,
@@ -367,7 +379,9 @@ export async function runLoginFlow(opts) {
   const { backendUrl, companyId } = opts;
   const provider = typeof opts.provider === 'string' ? opts.provider.trim().toLowerCase() : '';
   const loginNonce = generateLoginNonce();
-  const pkce = createLoginPkcePair();
+  const pkce = generatePkcePair();
+  /** @type {string} */
+  let callbackUrl = '';
 
   return new Promise((resolve, reject) => {
     /** @type {import('http').Server | null} */
@@ -388,69 +402,59 @@ export async function runLoginFlow(opts) {
       else resolve(result);
     };
 
-    let callbackServed = false;
-    let captureUsed = false;
-
-    const rejectCapture = (res, status) => {
-      res.writeHead(status, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: status === 409 ? 'used' : 'forbidden' }));
+    const rejectNonce = (res) => {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid_nonce' }));
+      finish(new Error('Login callback rejected: invalid or missing session nonce.'));
     };
 
     server = http.createServer((req, res) => {
       const url = new URL(req.url || '/', 'http://127.0.0.1');
-      const address = server?.address();
-      const port = address && typeof address !== 'string' ? address.port : 0;
 
       if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/login')) {
+        const address = server?.address();
+        const port = address && typeof address !== 'string' ? address.port : 0;
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(buildWaitingPageHtml({ port, backendUrl }));
+        res.end(buildWaitingPageHtml({ port, nonce: loginNonce, backendUrl }));
         return;
       }
 
       if (req.method === 'GET' && url.pathname === '/callback') {
-        callbackServed = true;
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Set-Cookie': `${LOGIN_NONCE_COOKIE}=${encodeURIComponent(loginNonce)}; HttpOnly; SameSite=Strict; Path=/`,
-          'Cache-Control': 'no-store',
-        });
-        res.end(buildCallbackPageHtml({ backendUrl, codeVerifier: pkce.verifier }));
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(buildCallbackPageHtml({ nonce: loginNonce, backendUrl }));
         return;
       }
 
-      if (req.method === 'POST' && (url.pathname === '/capture' || url.pathname === '/error')) {
+      if (
+        req.method === 'POST' &&
+        (url.pathname === '/capture' || url.pathname === '/error' || url.pathname === '/code')
+      ) {
         let body = '';
         req.on('data', (chunk) => {
           body += chunk;
           if (body.length > 1_000_000) req.destroy();
         });
         req.on('end', () => {
-          const hostHeader = req.headers.host;
-          const originHeader = req.headers.origin;
-          const decision = evaluateLoopbackCapture({
-            port,
-            host: typeof hostHeader === 'string' ? hostHeader : undefined,
-            origin: typeof originHeader === 'string' ? originHeader : undefined,
-            cookie: readRequestCookie(req.headers.cookie, LOGIN_NONCE_COOKIE),
-            expectedNonce: loginNonce,
-            callbackServed,
-            used: captureUsed,
-          });
-          if (decision !== 'ok') {
-            rejectCapture(res, decision === 'used' ? 409 : 403);
-            return;
-          }
-
           let payload;
           try {
             payload = JSON.parse(body || '{}');
           } catch {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: false }));
+            finish(new Error('Invalid callback payload from browser.'));
             return;
           }
 
-          captureUsed = true;
+          const headerNonce = extractLoginNonce(req, loginNonce);
+          const bodyNonceOk = validateCaptureNonce(payload, loginNonce);
+          if (!headerNonce && !bodyNonceOk) {
+            rejectNonce(res);
+            return;
+          }
+          if (headerNonce && !bodyNonceOk) {
+            rejectNonce(res);
+            return;
+          }
 
           if (url.pathname === '/error') {
             const message =
@@ -464,6 +468,34 @@ export async function runLoginFlow(opts) {
             finish(new Error(`${message}${code}`));
             return;
           }
+          if (url.pathname === '/code') {
+            if (typeof payload.auth_code !== 'string' || !payload.auth_code) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ ok: false, error: 'Missing auth code.' }));
+              finish(new Error('Callback did not include an auth code.'));
+              return;
+            }
+            exchangeSessionCode({
+              backendUrl,
+              authCode: payload.auth_code,
+              redirectTo: callbackUrl,
+              codeVerifier: pkce.verifier,
+            }).then(
+              (tokens) => {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true }));
+                finish(null, toLoginResult(tokens));
+              },
+              (exchangeErr) => {
+                const message =
+                  exchangeErr instanceof Error ? exchangeErr.message : 'Session exchange failed.';
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: false, error: message }));
+                finish(new Error(message));
+              },
+            );
+            return;
+          }
           if (
             typeof payload.access_token !== 'string' ||
             !payload.access_token ||
@@ -475,24 +507,9 @@ export async function runLoginFlow(opts) {
             finish(new Error('Callback did not include access and refresh tokens.'));
             return;
           }
-          const expiresAtRaw = payload.expires_at;
-          const expiresAt =
-            typeof expiresAtRaw === 'number'
-              ? expiresAtRaw
-              : typeof expiresAtRaw === 'string' && expiresAtRaw
-                ? Number(expiresAtRaw)
-                : null;
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
-          finish(null, {
-            accessToken: payload.access_token,
-            refreshToken: payload.refresh_token,
-            expiresAt: Number.isFinite(expiresAt) ? /** @type {number} */ (expiresAt) : null,
-            tokenType:
-              typeof payload.token_type === 'string' && payload.token_type
-                ? payload.token_type
-                : 'bearer',
-          });
+          finish(null, toLoginResult(payload));
         });
         return;
       }
@@ -511,18 +528,20 @@ export async function runLoginFlow(opts) {
         finish(new Error('Failed to bind loopback login server.'));
         return;
       }
-      const callbackUrl = `http://127.0.0.1:${address.port}/callback`;
+      callbackUrl = `http://127.0.0.1:${address.port}/callback`;
       const authorizeUrl = buildAuthorizeUrl({
         backendUrl,
         companyId,
         ...(provider ? { provider } : {}),
         redirectTo: callbackUrl,
+        state: loginNonce,
         codeChallenge: pkce.challenge,
       });
       const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
 
       console.log(pc.cyan('Sign in via your browser (loopback only):'));
       console.log(pc.dim(`  Loopback port: ${address.port}`));
+      console.log(pc.dim(`  Session nonce: ${loginNonce}`));
       console.log(pc.dim(`  Authorize URLs must start with: ${authorizePrefix}`));
       console.log('');
       console.log(pc.bold(authorizeUrl));
@@ -533,15 +552,10 @@ export async function runLoginFlow(opts) {
         ),
       );
       console.log(pc.dim('Waiting for authentication…'));
-      if (typeof opts.onReady === 'function') {
-        opts.onReady({ port: address.port });
-      }
-      if (opts.openBrowser !== false) {
-        try {
-          openBrowser(authorizeUrl);
-        } catch {
-          // User can open the URL manually
-        }
+      try {
+        openBrowser(authorizeUrl);
+      } catch {
+        // User can open the URL manually
       }
       timer = setTimeout(() => {
         finish(new Error('Login timed out. Run shellui login again.'));

@@ -7,7 +7,7 @@ export interface AuthBackend {
   exchangeOAuthSessionCode: (params: {
     authCode: string;
     redirectTo: string;
-    /** PKCE S256 verifier. Sent on web and desktop `POST /api/v1/oauth/session`. */
+    /** PKCE verifier for a custom-scheme desktop redirect. Omit on the web flow. */
     codeVerifier?: string;
     nowSeconds: number;
   }) => Promise<AuthSession | null>;
@@ -27,12 +27,12 @@ export interface AuthBackend {
     session: AuthSession | null,
     nowSeconds: number,
   ) => Promise<AuthSession | null>;
+  /** May resolve after creating the PKCE pair; then the page navigates away. */
   startOAuth: (
     provider: string,
     redirectPath: string,
     oauthClientId?: number,
-    options?: { codeChallenge?: string },
-  ) => void;
+  ) => void | Promise<void>;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
   /** Whether {@link deleteAccount} is implemented for this backend. */
@@ -54,7 +54,7 @@ export interface AuthBackend {
       language?: string;
       /** Custom-scheme redirect for desktop sign-in. Omit to keep the web origin. */
       redirectTo?: string;
-      /** S256 challenge. Web and desktop Shellui sign-in both send this. */
+      /** S256 challenge for a desktop magic link. Omit on the web flow, which creates its own. */
       codeChallenge?: string;
     },
   ) => Promise<void>;

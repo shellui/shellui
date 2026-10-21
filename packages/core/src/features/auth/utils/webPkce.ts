@@ -1,176 +1,152 @@
-/**
- * PKCE S256 for browser sign-in (OAuth redirect and magic link).
- * Parameter names match the desktop flow: `code_challenge`, `code_challenge_method`,
- * `code_verifier`. The verifier stays in this origin's localStorage so a magic
- * link opened in another tab of the same browser can finish the exchange.
- */
-
-import type { AuthBackend } from '../backends/types';
-import { normalizeRedirectPath } from './normalizeRedirectPath';
 import { createPkcePair } from './pkce';
 
-const WEB_PKCE_STORAGE_KEY = 'shellui.auth.web.pkce';
-const AUTH_CODE_PARAM = 'shellui_auth_code';
-/** Same window as a desktop attempt. A magic-link click can be later than the code TTL. */
-const WEB_PKCE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/**
+ * S256 PKCE for web sign-in (identity-service 0.9.0 and later).
+ *
+ * Each flow gets a random id. Only the id goes on `redirect_to` as
+ * `shellui_pkce_flow`, so the callback can find its own verifier and two
+ * sign-ins started in parallel do not overwrite each other. The verifier is
+ * never put in a URL.
+ *
+ * OAuth and SAML keep the verifier in `sessionStorage`: the callback lands in
+ * the tab that started the flow. A magic link opens from the email, often in a
+ * new tab with an empty `sessionStorage`, so that flow alone keeps the
+ * verifier in `localStorage`, keyed by the flow id, for 15 minutes. It is
+ * single use and removed on read, so the link only works in the browser that
+ * requested it.
+ */
 
-type PendingWebPkce = {
+export const WEB_PKCE_FLOW_PARAM = 'shellui_pkce_flow';
+const SESSION_PREFIX = 'shellui.auth.pkce.';
+const MAGIC_LINK_PREFIX = 'shellui.auth.pkce.magic.';
+/** A magic link only works for 15 minutes in the browser that requested it. */
+const MAGIC_LINK_MAX_AGE_MS = 15 * 60 * 1000;
+const OAUTH_MAX_AGE_MS = 30 * 60 * 1000;
+/** Magic link flow ids start with `m`, OAuth and SAML ids with `o`. */
+const MAGIC_LINK_FLOW_MARK = 'm';
+const FLOW_ID_PATTERN = /^[mo][0-9a-f]{32}$/;
+
+export type WebPkceFlowKind = 'oauth' | 'magic_link';
+
+interface StoredVerifier {
   verifier: string;
-  redirectKey: string;
   createdAt: number;
-};
+}
 
-function webStore(): Storage | null {
+export interface PreparedWebPkce {
+  flowId: string;
+  challenge: string;
+  /** `redirectTo` with the flow id added. */
+  redirectTo: string;
+}
+
+function store(kind: 'session' | 'local'): Storage | null {
   try {
-    if (typeof localStorage === 'undefined') return null;
-    return localStorage;
+    const s = kind === 'session' ? globalThis.sessionStorage : globalThis.localStorage;
+    return s ?? null;
   } catch {
     return null;
   }
 }
 
-/** Stable key so query order does not hide the verifier on the callback. */
-export function webPkceRedirectKey(redirectTo: string): string {
-  let url: URL;
+function randomFlowId(kind: WebPkceFlowKind): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const mark = kind === 'magic_link' ? MAGIC_LINK_FLOW_MARK : 'o';
+  return mark + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function write(s: Storage | null, key: string, value: StoredVerifier): boolean {
+  if (!s) return false;
   try {
-    url = new URL(redirectTo);
+    s.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    return redirectTo;
+    return false;
   }
-  const params = [...url.searchParams.entries()]
-    .filter(([key]) => key !== AUTH_CODE_PARAM)
-    .sort((left, right) =>
-      left[0] === right[0] ? left[1].localeCompare(right[1]) : left[0].localeCompare(right[0]),
-    );
-  const query = params
-    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-    .join('&');
-  return `${url.origin}${url.pathname}${query ? `?${query}` : ''}`;
 }
 
-export function shelluiWebOAuthRedirectTo(input: {
-  origin: string;
-  redirectPath: string;
-  provider: string;
-  oauthClientId?: number;
-}): string {
-  const redirectToUrl = new URL(`${input.origin}${normalizeRedirectPath(input.redirectPath)}`);
-  redirectToUrl.searchParams.set('provider', input.provider);
-  if (
-    typeof input.oauthClientId === 'number' &&
-    Number.isFinite(input.oauthClientId) &&
-    input.oauthClientId > 0
-  ) {
-    redirectToUrl.searchParams.set(
-      'company_oauth_client_id',
-      String(Math.trunc(input.oauthClientId)),
-    );
-  }
-  return redirectToUrl.toString();
-}
-
-export function shelluiWebMagicLinkRedirectTo(origin: string, redirectPath: string): string {
-  return `${origin}${normalizeRedirectPath(redirectPath)}`;
-}
-
-function readPending(): PendingWebPkce | null {
-  const store = webStore();
-  if (!store) return null;
+function readAndRemove(s: Storage | null, key: string, maxAgeMs: number): string | null {
+  if (!s) return null;
   try {
-    const raw = store.getItem(WEB_PKCE_STORAGE_KEY);
+    const raw = s.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PendingWebPkce;
-    if (
-      !parsed ||
-      typeof parsed.verifier !== 'string' ||
-      typeof parsed.redirectKey !== 'string' ||
-      typeof parsed.createdAt !== 'number' ||
-      Date.now() - parsed.createdAt > WEB_PKCE_MAX_AGE_MS
-    ) {
-      store.removeItem(WEB_PKCE_STORAGE_KEY);
-      return null;
-    }
-    return parsed;
+    s.removeItem(key);
+    const parsed = JSON.parse(raw) as StoredVerifier;
+    if (typeof parsed?.verifier !== 'string' || typeof parsed.createdAt !== 'number') return null;
+    if (Date.now() - parsed.createdAt > maxAgeMs) return null;
+    return parsed.verifier;
   } catch {
     return null;
   }
 }
 
-export function clearWebPkce(): void {
-  const store = webStore();
-  if (!store) return;
+/** Drop expired magic link verifiers left by flows that were never finished. */
+function pruneMagicLinkVerifiers(): void {
+  const s = store('local');
+  if (!s) return;
   try {
-    store.removeItem(WEB_PKCE_STORAGE_KEY);
+    for (let i = s.length - 1; i >= 0; i -= 1) {
+      const key = s.key(i);
+      if (!key?.startsWith(MAGIC_LINK_PREFIX)) continue;
+      try {
+        const parsed = JSON.parse(s.getItem(key) ?? '') as StoredVerifier;
+        if (Date.now() - parsed.createdAt <= MAGIC_LINK_MAX_AGE_MS) continue;
+      } catch {
+        // unreadable: remove
+      }
+      s.removeItem(key);
+    }
   } catch {
     // ignore
   }
 }
 
-export async function createAndStoreWebPkce(
+export async function prepareWebPkce(
   redirectTo: string,
-): Promise<{ verifier: string; challenge: string }> {
-  const store = webStore();
-  if (!store) {
-    throw new Error('This browser cannot store the sign-in check. Allow site data and try again.');
-  }
+  kind: WebPkceFlowKind,
+): Promise<PreparedWebPkce> {
   const { verifier, challenge } = await createPkcePair();
-  const pending: PendingWebPkce = {
-    verifier,
-    redirectKey: webPkceRedirectKey(redirectTo),
-    createdAt: Date.now(),
-  };
-  try {
-    store.setItem(WEB_PKCE_STORAGE_KEY, JSON.stringify(pending));
-  } catch {
-    throw new Error('This browser cannot store the sign-in check. Allow site data and try again.');
+  const flowId = randomFlowId(kind);
+  const entry = { verifier, createdAt: Date.now() };
+  if (kind === 'magic_link') {
+    pruneMagicLinkVerifiers();
+    write(store('local'), MAGIC_LINK_PREFIX + flowId, entry);
+  } else {
+    write(store('session'), SESSION_PREFIX + flowId, entry);
   }
-  return { verifier, challenge };
+  const url = new URL(redirectTo);
+  url.searchParams.set(WEB_PKCE_FLOW_PARAM, flowId);
+  return { flowId, challenge, redirectTo: url.toString() };
 }
 
-/** Returns the verifier once when the callback redirect matches the attempt that stored it. */
-export function consumeWebPkce(redirectTo: string): string | null {
-  const pending = readPending();
-  if (!pending) return null;
-  if (pending.redirectKey !== webPkceRedirectKey(redirectTo)) return null;
-  clearWebPkce();
-  return pending.verifier;
-}
-
-export async function beginShelluiWebOAuth(input: {
-  origin: string;
-  provider: string;
-  redirectPath: string;
-  oauthClientId?: number;
-  startOAuth: AuthBackend['startOAuth'];
-}): Promise<void> {
-  const redirectTo = shelluiWebOAuthRedirectTo({
-    origin: input.origin,
-    redirectPath: input.redirectPath,
-    provider: input.provider,
-    oauthClientId: input.oauthClientId,
-  });
-  const { challenge } = await createAndStoreWebPkce(redirectTo);
-  input.startOAuth(input.provider, input.redirectPath, input.oauthClientId, {
-    codeChallenge: challenge,
-  });
-}
-
-export async function beginShelluiWebMagicLink(input: {
-  origin: string;
-  email: string;
-  redirectPath: string;
-  language?: string;
-  sendMagicLink: AuthBackend['sendMagicLink'];
-}): Promise<void> {
-  const redirectTo = shelluiWebMagicLinkRedirectTo(input.origin, input.redirectPath);
-  const { challenge } = await createAndStoreWebPkce(redirectTo);
-  try {
-    await input.sendMagicLink(input.email, input.redirectPath, {
-      language: input.language,
-      codeChallenge: challenge,
-    });
-  } catch (error) {
-    clearWebPkce();
-    throw error;
+/** Read the verifier for a callback and remove every stored copy. */
+export function takeWebPkceVerifier(flowId: string | null | undefined): string | null {
+  const id = flowId?.trim();
+  if (!id || !FLOW_ID_PATTERN.test(id)) return null;
+  if (isMagicLinkFlowId(id)) {
+    return readAndRemove(store('local'), MAGIC_LINK_PREFIX + id, MAGIC_LINK_MAX_AGE_MS);
   }
+  return readAndRemove(store('session'), SESSION_PREFIX + id, OAUTH_MAX_AGE_MS);
+}
+
+export function isMagicLinkFlowId(flowId: string | null | undefined): boolean {
+  return !!flowId && flowId.startsWith(MAGIC_LINK_FLOW_MARK) && FLOW_ID_PATTERN.test(flowId);
+}
+
+/** Remove a flow's verifier, e.g. when starting it failed. */
+export function clearWebPkce(flowId: string): void {
+  takeWebPkceVerifier(flowId);
+}
+
+export const WEB_PKCE_ERROR_CODES = [
+  'pkce_required',
+  'invalid_code_challenge',
+  'invalid_code_challenge_method',
+  'invalid_code_verifier',
+  'pkce_verification_failed',
+] as const;
+
+export function isWebPkceErrorCode(code: string | null | undefined): boolean {
+  return !!code && (WEB_PKCE_ERROR_CODES as readonly string[]).includes(code);
 }
