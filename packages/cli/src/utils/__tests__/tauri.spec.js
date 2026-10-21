@@ -21,6 +21,11 @@ import {
   toCargoBinName,
   toRustCrateIdent,
   syncCargoPackageName,
+  syncShellCapabilities,
+  syncDesktopSignIn,
+  syncDesktopMacos,
+  SHELL_WINDOW_PERMISSIONS,
+  DESKTOP_SIGN_IN_PERMISSIONS,
 } from '../tauri.js';
 import { getProjectRoot } from '../paths.js';
 
@@ -128,6 +133,122 @@ describe('tauri utilities', () => {
     const capsPath = path.join(getTauriTemplateDir(), 'src-tauri', 'capabilities', 'default.json');
     const caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
     expect(caps.permissions).toContain('core:window:allow-start-dragging');
+  });
+
+  test('tauri template lets desktop sign-in bring the window forward', () => {
+    const capsPath = path.join(getTauriTemplateDir(), 'src-tauri', 'capabilities', 'default.json');
+    const caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
+    expect(caps.permissions).toEqual(expect.arrayContaining(SHELL_WINDOW_PERMISSIONS));
+    expect(caps.permissions).toEqual(expect.arrayContaining(DESKTOP_SIGN_IN_PERMISSIONS));
+  });
+
+  test('tauri template opens the system browser for desktop sign-in', () => {
+    const templateSrc = path.join(getTauriTemplateDir(), 'src-tauri');
+    const lib = fs.readFileSync(path.join(templateSrc, 'src', 'lib.rs'), 'utf8');
+    const cargo = fs.readFileSync(path.join(templateSrc, 'Cargo.toml'), 'utf8');
+    expect(lib).toContain('tauri_plugin_opener::init()');
+    expect(lib).toContain('tauri_plugin_deep_link::init()');
+    expect(cargo).toContain('tauri-plugin-opener');
+    expect(cargo).toContain('tauri-plugin-deep-link');
+  });
+
+  test('syncDesktopSignIn adds the opener plugin to an older app', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    fs.mkdirSync(path.join(srcTauri, 'src'), { recursive: true });
+    fs.mkdirSync(path.join(srcTauri, 'capabilities'), { recursive: true });
+    fs.writeFileSync(
+      path.join(srcTauri, 'Cargo.toml'),
+      ['[dependencies]', 'tauri = { version = "2", features = [] }', 'serde_json = "1"', ''].join(
+        '\n',
+      ),
+    );
+    fs.writeFileSync(
+      path.join(srcTauri, 'src', 'lib.rs'),
+      [
+        'pub fn run() {',
+        '    tauri::Builder::default()',
+        '        .setup(|app| {',
+        '            Ok(())',
+        '        })',
+        '        .run(tauri::generate_context!())',
+        '        .expect("error while running tauri application");',
+        '}',
+        '',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(srcTauri, 'capabilities', 'default.json'),
+      JSON.stringify({
+        identifier: 'default',
+        windows: ['main'],
+        permissions: ['core:default'],
+      }),
+    );
+
+    syncDesktopSignIn(srcTauri);
+
+    const cargo = fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf8');
+    const lib = fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8');
+    const caps = JSON.parse(
+      fs.readFileSync(path.join(srcTauri, 'capabilities', 'default.json'), 'utf8'),
+    );
+    expect(cargo).toContain('tauri-plugin-opener = "2"');
+    expect(cargo).toContain('tauri-plugin-deep-link = "2"');
+    expect(lib).toContain('.plugin(tauri_plugin_opener::init())');
+    expect(lib).toContain('.plugin(tauri_plugin_deep_link::init())');
+    expect(caps.permissions).toEqual(expect.arrayContaining(DESKTOP_SIGN_IN_PERMISSIONS));
+
+    const cargoAfter = fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf8');
+    const libAfter = fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8');
+    syncDesktopSignIn(srcTauri);
+    expect(fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf8')).toBe(cargoAfter);
+    expect(fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8')).toBe(libAfter);
+  });
+
+  test('syncDesktopMacos copies a newer titlebar placement and skips an unchanged file', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    const dest = path.join(srcTauri, 'src', 'macos.rs');
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.writeFileSync(dest, 'old\n');
+
+    syncDesktopMacos(srcTauri);
+    const copied = fs.readFileSync(dest, 'utf8');
+    expect(copied).toContain('place_traffic_lights');
+    const mtime = fs.statSync(dest).mtimeMs;
+    syncDesktopMacos(srcTauri);
+    expect(fs.readFileSync(dest, 'utf8')).toBe(copied);
+    expect(fs.statSync(dest).mtimeMs).toBe(mtime);
+  });
+
+  test('syncShellCapabilities adds missing window permissions to an older app', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    const capsPath = path.join(srcTauri, 'capabilities', 'default.json');
+    fs.mkdirSync(path.dirname(capsPath), { recursive: true });
+    fs.writeFileSync(
+      capsPath,
+      JSON.stringify({
+        identifier: 'default',
+        windows: ['main'],
+        permissions: ['core:default', 'core:window:allow-start-dragging', 'deep-link:default'],
+      }),
+    );
+
+    syncShellCapabilities(srcTauri);
+    const caps = JSON.parse(fs.readFileSync(capsPath, 'utf8'));
+    expect(caps.permissions).toEqual([
+      'core:default',
+      'core:window:allow-start-dragging',
+      'deep-link:default',
+      'core:window:allow-unminimize',
+      'core:window:allow-show',
+      'core:window:allow-set-focus',
+    ]);
+
+    const synced = fs.readFileSync(capsPath, 'utf8');
+    const mtime = fs.statSync(capsPath).mtimeMs;
+    syncShellCapabilities(srcTauri);
+    expect(fs.readFileSync(capsPath, 'utf8')).toBe(synced);
+    expect(fs.statSync(capsPath).mtimeMs).toBe(mtime);
   });
 
   test('tauri template ships default icon.png', () => {

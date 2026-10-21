@@ -14,7 +14,7 @@ Or as a project dev dependency:
 npm install --save-dev @shellui/cli
 ```
 
-Shellui **0.6.1** is the current stable release: `npm install -g @shellui/cli@0.6.1`.
+Shellui **0.6.2** is the current stable release: `npm install -g @shellui/cli@0.6.2`.
 
 ## Usage
 

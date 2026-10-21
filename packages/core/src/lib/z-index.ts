@@ -35,6 +35,11 @@ export const Z_INDEX = {
   WINDOWS_TASKBAR: 9000,
   /** Base z-index for windows; each window gets base + order */
   WINDOWS_WINDOW_BASE: 9001,
+  /**
+   * Tauri overlay titlebar in the windows layout. Above any window so a
+   * maximized title bar cannot slide under the drag strip, below modals.
+   */
+  WINDOWS_TITLEBAR: 9500,
 } as const;
 
 export type ZIndexLayer = keyof typeof Z_INDEX;

@@ -18,21 +18,51 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-alpha.1] - 2026-10-21
+
+### ✨ Feature
+
+- **SaaS:** First alpha of 0.7.0, preparing the global console, saas-service and multi-region federation. Requires identity-service 0.9.0.
+
+### ✨ Feature
+
+- **App identity server:** A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session and sends that app its own URL and access token.
+- **App services:** A navigation item can set `email`, `storage`, and `hosting` for that app. When `backend` names another server and a service is omitted, the app receives no URL for it.
+
+### 🐛 Bug Fixes
+
+- **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
+- **Login:** The Cancel button is hidden when the app has no page available without signing in.
+- **Login:** The page next to the sign-in form follows dark and light mode changes.
 
 ### 🔒 Security
 
-- **Docs site:** The docs workflow builds with read-only repository access. A separate job publishes GitHub Pages and does not run the site build. Service sidebars are loaded as data.
-- **Browser sign-in:** Web sign-in sends a PKCE S256 `code_challenge` and the matching `code_verifier` when the session code is exchanged.
-- **CLI login:** Loopback `/capture` accepts one request from `http://127.0.0.1` after the callback page sets an HttpOnly cookie, and CLI sign-in sends PKCE.
-- **SDK messages:** Companion code posts to the parent only after the parent origin is known.
-- **CLI credentials:** Tokens go to the OS keychain when it is available, and to a mode `0600` file with a warning otherwise.
-- **GitHub Actions:** Workflow actions are pinned to commit SHAs, and the test workflow sets `contents: read`.
+- **Docs site:** The docs build has read-only access, and a separate job publishes Pages.
+- **Browser sign-in:** Web sign-in sends a PKCE S256 challenge and verifier.
+- **CLI login:** Loopback capture accepts one local request, and CLI sign-in sends PKCE.
+- **SDK messages:** Companion code posts to the parent only once its origin is known.
+- **CLI credentials:** Tokens go to the OS keychain, or a `0600` file with a warning.
+- **Workflows:** Actions are pinned to commit SHAs, and tests run with `contents: read`.
+
+## [0.6.2] - 2026-10-18
+
+### 🐛 Bug Fixes
+
+- **Desktop sign-in:** Works in `shellui start --app` with a separate `<scheme>-dev` scheme (needs identity-service with `-dev` support).
+- **Desktop sign-in:** Signing in from the login modal or drawer closes it and completes in the shell.
+- **Desktop sign-in:** The app window comes to the front when the sign-in link arrives.
+- **Settings modal:** Settings opened as a modal or drawer gets the access token, so Storage works there.
+- **Desktop chrome:** Action buttons and the dock stay clear of the macOS traffic lights.
+
+### 🛠 Improvements
+
+- **Desktop window:** macOS layouts leave room for the traffic lights, and empty chrome drags the window.
 
 ## [0.6.1] - 2026-10-13
 
 ### 🐛 Bug Fixes
 
+- **Deep links:** Opening or refreshing a nested route loads shell JavaScript and CSS from the site root.
 - **Embedded session:** When the shell tab is shown again, it refreshes an access token that expired in the background and sends the session to iframe apps again. An app that asks while the token is expired gets a new one. The SDK keeps the last access token if a settings message drops it, and asks the shell for a replacement.
 
 ### 🛠 Improvements

@@ -100,7 +100,7 @@ See also [Companion origin isolation](/features/companion-isolation) for iframe 
 
 Build a production static site to `dist/web/`. Same isolated toolchain as `start`. `--app` also builds native bundles under `dist/app/`. `--bundles` selects desktop formats (default `app`; `app,dmg` on macOS). See [Desktop app - bundle targets](/tauri#bundle-targets).
 
-The build uses Vite `base: './'` so `dist/web` works from any deploy path. It writes `404.html` (copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for **navigation paths** plus **shell built-in routes** (`/login`, `/login/callback`, `/__settings`, legal pages, …). Each nested copy rewrites `./assets/…` to the correct `../` depth so trailing-slash hosts (GitHub Pages, S3 website) load JS/CSS from the dist root. Unknown deep routes still rely on `404.html` with root-relative assets — only known shell and navigation entrypoints are pre-generated.
+`shellui build` sets Vite `base` to `/`, so `index.html` and `404.html` reference `/assets/…` and `/favicon.svg`. Opening or refreshing a nested route requests those files from the site root. The build writes `404.html` (a copy of root `index.html`) for SPA fallbacks and materializes `dist/web/<path>/index.html` for navigation paths plus shell built-in routes (`/login`, `/login/callback`, `/__settings`, legal pages, …).
 
 ### shellui login [root]
 
@@ -222,7 +222,7 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`navigation`**: see [Navigation](/features/navigation).
 - **`dev`**: companion `run` / `url` / `name` - stripped before the config reaches the browser.
 
-`email` sets the [email-service](https://github.com/shellui/email-service) origin the shell forwards on SDK `settings.email`. Omit `url` and the shell sends `https://email.shellui.com` (use `http://localhost:8003` locally). Omit `email` and the shell sends `settings.email: null`. `email.showInAdmin: false` hides Admin → Email.
+`email` sets the [email-service](https://github.com/shellui/email-service) origin the shell forwards on SDK `settings.email`. Omit `url` and the shell sends `https://email.shellui.com` (use `http://localhost:8003` locally). Omit `email` and the shell sends `settings.email: null`. `email.showInAdmin: false` hides Admin → Email. A navigation item can set its own `email`, `storage`, and `hosting`; see [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 
 ```json
 {

@@ -35,6 +35,13 @@ import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { useIsMobile } from '../../../hooks/use-mobile';
 import { readSafeAreaInsetBottom, readSafeAreaInsetTop } from '../chrome/viewport';
+import {
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+} from '../chrome/constants';
+import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
+import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
 import { WindowTitleBarActions } from '../../chromeActions';
 
 interface WindowsLayoutProps {
@@ -104,39 +111,47 @@ function getDesktopSize(): { width: number; height: number } {
   };
 }
 
-function getMaximizedBounds(): WindowBounds {
+/** Top inset for window bounds. `extraTop` reserves the Tauri overlay titlebar. */
+function readWindowsTopInset(extraTop = 0): number {
+  return Math.max(readSafeAreaInsetTop(), extraTop);
+}
+
+function getMaximizedBounds(extraTop = 0): WindowBounds {
   const { width, height } = getDesktopSize();
-  const safeTop = readSafeAreaInsetTop();
-  return { x: 0, y: safeTop, w: width, h: Math.max(0, height - safeTop) };
+  const top = readWindowsTopInset(extraTop);
+  return { x: 0, y: top, w: width, h: Math.max(0, height - top) };
 }
 
 /** Keep a window fully inside the desktop (never larger than the viewport). */
-function clampBounds(bounds: WindowBounds): WindowBounds {
+function clampBounds(bounds: WindowBounds, extraTop = 0): WindowBounds {
   const { width: maxW, height: maxH } = getDesktopSize();
-  const safeTop = readSafeAreaInsetTop();
-  const usableH = Math.max(0, maxH - safeTop);
+  const top = readWindowsTopInset(extraTop);
+  const usableH = Math.max(0, maxH - top);
   const minW = Math.min(MIN_WIDTH, maxW);
   const minH = Math.min(MIN_HEIGHT, usableH);
   const w = Math.min(Math.max(bounds.w, minW), maxW);
   const h = Math.min(Math.max(bounds.h, minH), usableH);
   const x = Math.min(Math.max(0, bounds.x), Math.max(0, maxW - w));
-  const y = Math.min(Math.max(safeTop, bounds.y), Math.max(safeTop, safeTop + usableH - h));
+  const y = Math.min(Math.max(top, bounds.y), Math.max(top, top + usableH - h));
   return { x, y, w, h };
 }
 
 /** Default open size: cascade on desktop; fill the screen on phones / small viewports. */
-function getDefaultOpenBounds(cascadeIndex: number): WindowBounds {
+function getDefaultOpenBounds(cascadeIndex: number, extraTop = 0): WindowBounds {
   const desktop = getDesktopSize();
   if (desktop.width < DEFAULT_WIDTH || desktop.height < DEFAULT_HEIGHT) {
-    return getMaximizedBounds();
+    return getMaximizedBounds(extraTop);
   }
   const cascade = cascadeIndex * 24;
-  return clampBounds({
-    x: 60 + cascade,
-    y: 60 + cascade,
-    w: DEFAULT_WIDTH,
-    h: DEFAULT_HEIGHT,
-  });
+  return clampBounds(
+    {
+      x: 60 + cascade,
+      y: 60 + cascade,
+      w: DEFAULT_WIDTH,
+      h: DEFAULT_HEIGHT,
+    },
+    extraTop,
+  );
 }
 
 function isCompactDesktop(): boolean {
@@ -205,10 +220,16 @@ function AppWindow({
   cascadeIndex: number;
 }) {
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
+  const tauriRuntime = useIsTauriRuntime();
+  const isTauriEnv = useIsTauriClient();
+  const trafficLights = useMacTrafficLights();
+  const topInset = trafficLights ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
+  const topInsetRef = useRef(topInset);
+  topInsetRef.current = topInset;
   const [frameUuid, setFrameUuid] = useState<string | null>(null);
   const [isMaximized, setIsMaximized] = useState(() => {
     if (mobileFullscreen || isCompactDesktop()) return true;
-    const maximized = getMaximizedBounds();
+    const maximized = getMaximizedBounds(topInset);
     return (
       win.bounds.x === maximized.x &&
       win.bounds.y === maximized.y &&
@@ -217,27 +238,30 @@ function AppWindow({
     );
   });
   const [bounds, setBounds] = useState(() => {
-    if (mobileFullscreen || isCompactDesktop()) return getMaximizedBounds();
-    const maximized = getMaximizedBounds();
+    if (mobileFullscreen || isCompactDesktop()) return getMaximizedBounds(topInset);
+    const maximized = getMaximizedBounds(topInset);
     if (
       win.bounds.x === maximized.x &&
       win.bounds.y === maximized.y &&
       win.bounds.w >= maximized.w &&
       win.bounds.h >= maximized.h
     ) {
-      return getMaximizedBounds();
+      return getMaximizedBounds(topInset);
     }
-    return clampBounds(win.bounds);
+    return clampBounds(win.bounds, topInset);
   });
   const boundsBeforeMaximizeRef = useRef<WindowBounds>(
     mobileFullscreen || isCompactDesktop()
-      ? clampBounds({
-          x: 8,
-          y: 8,
-          w: Math.min(DEFAULT_WIDTH, Math.max(0, getDesktopSize().width - 16)),
-          h: Math.min(DEFAULT_HEIGHT, Math.max(0, getDesktopSize().height - 16)),
-        })
-      : clampBounds(win.bounds),
+      ? clampBounds(
+          {
+            x: 8,
+            y: 8,
+            w: Math.min(DEFAULT_WIDTH, Math.max(0, getDesktopSize().width - 16)),
+            h: Math.min(DEFAULT_HEIGHT, Math.max(0, getDesktopSize().height - 16)),
+          },
+          topInset,
+        )
+      : clampBounds(win.bounds, topInset),
   );
   const containerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -292,16 +316,17 @@ function AppWindow({
 
   useEffect(() => {
     const onResize = () => {
+      const inset = topInsetRef.current;
       if (mobileFullscreenRef.current) {
         setIsMaximized(true);
-        setBounds(getMaximizedBounds());
+        setBounds(getMaximizedBounds(inset));
         return;
       }
       if (isMaximizedRef.current) {
-        setBounds(getMaximizedBounds());
+        setBounds(getMaximizedBounds(inset));
         return;
       }
-      setBounds((prev) => clampBounds(prev));
+      setBounds((prev) => clampBounds(prev, inset));
     };
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
@@ -317,23 +342,28 @@ function AppWindow({
   useEffect(() => {
     if (mobileFullscreen) {
       setIsMaximized(true);
-      setBounds(getMaximizedBounds());
+      setBounds(getMaximizedBounds(topInset));
     } else if (wasMobileFullscreenRef.current) {
       // Only leave fullscreen when there is real room for window mode.
       if (isCompactDesktop()) {
         setIsMaximized(true);
-        setBounds(getMaximizedBounds());
+        setBounds(getMaximizedBounds(topInset));
       } else {
-        const normal = getDefaultOpenBounds(cascadeIndex);
+        const normal = getDefaultOpenBounds(cascadeIndex, topInset);
         boundsBeforeMaximizeRef.current = normal;
         setIsMaximized(false);
         setBounds(normal);
       }
+    } else if (isMaximizedRef.current) {
+      setBounds(getMaximizedBounds(topInset));
+    } else {
+      setBounds((prev) => clampBounds(prev, topInset));
     }
     wasMobileFullscreenRef.current = mobileFullscreen;
-  }, [mobileFullscreen, cascadeIndex]);
+  }, [mobileFullscreen, cascadeIndex, topInset]);
 
   const lockedChrome = mobileFullscreen || isMaximized;
+  const flushTitlebar = tauriRuntime && isMaximized && bounds.y <= readSafeAreaInsetTop();
   const onPointerMove = useCallback((e: PointerEvent) => {
     if (!dragRef.current) return;
     const d = dragRef.current;
@@ -362,11 +392,14 @@ function AppWindow({
           el.style.transform = '';
           el.style.willChange = '';
         }
-        const finalBounds = clampBounds({
-          ...d.startBounds,
-          x: d.startBounds.x + d.lastDx,
-          y: d.startBounds.y + d.lastDy,
-        });
+        const finalBounds = clampBounds(
+          {
+            ...d.startBounds,
+            x: d.startBounds.x + d.lastDx,
+            y: d.startBounds.y + d.lastDy,
+          },
+          topInsetRef.current,
+        );
         setBounds(finalBounds);
         dragRef.current = null;
       }
@@ -401,14 +434,14 @@ function AppWindow({
   const handleMaximizeToggle = useCallback(() => {
     if (mobileFullscreen) return;
     if (isMaximized) {
-      setBounds(clampBounds(boundsBeforeMaximizeRef.current));
+      setBounds(clampBounds(boundsBeforeMaximizeRef.current, topInset));
       setIsMaximized(false);
     } else {
       boundsBeforeMaximizeRef.current = { ...bounds };
-      setBounds(getMaximizedBounds());
+      setBounds(getMaximizedBounds(topInset));
       setIsMaximized(true);
     }
-  }, [mobileFullscreen, isMaximized, bounds]);
+  }, [mobileFullscreen, isMaximized, bounds, topInset]);
 
   const onResizePointerMove = useCallback((e: PointerEvent) => {
     if (!resizeRef.current) return;
@@ -439,7 +472,7 @@ function AppWindow({
       next.y = startBounds.y + startBounds.h - h;
       next.h = h;
     }
-    pendingResizeBoundsRef.current = clampBounds(next);
+    pendingResizeBoundsRef.current = clampBounds(next, topInsetRef.current);
     if (resizeRafRef.current === null) {
       resizeRafRef.current = requestAnimationFrame(() => {
         const pending = pendingResizeBoundsRef.current;
@@ -516,9 +549,20 @@ function AppWindow({
       {/* Title bar: pointer capture so drag continues when cursor is over iframe or outside window */}
       <div
         className={cn(
-          'flex items-center gap-2 pl-2 pr-1 py-1 bg-muted/80 border-b border-border select-none shrink-0',
+          'flex items-center gap-2 pr-1 bg-muted/80 border-b border-border select-none shrink-0',
+          flushTitlebar ? 'box-border' : 'py-1 pl-2',
           lockedChrome ? 'cursor-default' : 'cursor-move',
         )}
+        style={
+          flushTitlebar
+            ? {
+                height: DESKTOP_TITLEBAR_HEIGHT_PX,
+                paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
+              }
+            : undefined
+        }
+        {...(flushTitlebar ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
         onPointerDown={handleTitlePointerDown}
       >
         {win.icon && (
@@ -531,6 +575,7 @@ function AppWindow({
             )}
           />
         )}
+        {flushTitlebar && isTauriEnv ? <DesktopHistoryButtons /> : null}
         <WindowTitleBarActions
           frameUuid={frameUuid}
           fallbackTitle={windowLabel}
@@ -731,6 +776,8 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   const { settings } = useSettings();
   /** Fullscreen phone chrome — includes iPhone landscape (wide but short). */
   const phoneMode = useWindowsPhoneMode();
+  const trafficLights = useMacTrafficLights();
+  const topInset = trafficLights ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -787,7 +834,9 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         item.openIn === 'external' && !item.icon ? getExternalFaviconUrl(item.url) : null;
       const icon = item.icon ?? faviconUrl ?? null;
       const id = genId();
-      const bounds = phoneMode ? getMaximizedBounds() : getDefaultOpenBounds(windows.length);
+      const bounds = phoneMode
+        ? getMaximizedBounds(topInset)
+        : getDefaultOpenBounds(windows.length, topInset);
       const next: WindowState = {
         id,
         path: item.path,
@@ -802,7 +851,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
       setFrontWindowId(id);
       setStartMenuOpen(false);
     },
-    [currentLanguage, phoneMode, windows.length],
+    [currentLanguage, phoneMode, topInset, windows.length],
   );
 
   // On first load only: open a window for the current URL if it matches a nav item (no reaction to later URL changes)
@@ -910,6 +959,17 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
             ].join(', '),
           }}
         />
+
+        {trafficLights ? (
+          <div
+            data-shellui-windows-titlebar=""
+            data-shellui-drag-region=""
+            data-tauri-drag-region=""
+            aria-hidden
+            className="absolute inset-x-0 top-0 border-b border-border bg-sidebar-background"
+            style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX, zIndex: Z_INDEX.WINDOWS_TITLEBAR }}
+          />
+        ) : null}
 
         {/* Desktop area: windows */}
         {windows.map((win, index) => {

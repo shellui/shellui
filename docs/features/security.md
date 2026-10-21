@@ -28,6 +28,7 @@ Legacy `shellui.auth.session` blobs are migrated automatically on first read.
 
 - **Refresh tokens remain JavaScript-readable** inside the tab (`sessionStorage`). XSS in the shell can still exfiltrate them until you enable BFF. A same-origin companion under `/app/` can read that entry as well. See [Companion isolation](/features/companion-isolation).
 - **Access tokens are not written to web storage**, but they still live in memory and may be forwarded to trusted iframe companions via `SHELLUI_SETTINGS` (see [Navigation → `safeForAuthToken`](/features/navigation)).
+- **An app `backend` gets its own session.** The shell sends that server's access token to the app and does not send the shell token. Shell `email`, `storage`, and `hosting` URLs are not sent unless that item sets them. The other refresh token is stored in `sessionStorage` under a separate key. Refresh tokens are still not sent to iframes. See [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 - **New tabs** do not inherit `sessionStorage`; users may need to sign in again unless BFF HttpOnly cookies are enabled.
 
 ## BFF auth (HttpOnly refresh) — phased

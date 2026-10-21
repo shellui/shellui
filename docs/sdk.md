@@ -52,7 +52,7 @@ URL changes are shared with the shell automatically. Auth, storage, toasts, dial
 ## Install and init
 
 ```bash
-npm install @shellui/sdk@0.6.1
+npm install @shellui/sdk@0.6.2
 ```
 
 ```typescript
@@ -293,7 +293,7 @@ shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {
 });
 ```
 
-Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`. `settings.email` copies config `email` (`url` defaults to `https://email.shellui.com` when `email` is set; `null` when `email` is omitted).
+Host `administration` is documented in [Administration](/features/administration). `settings.storage` and `shellui.storage` require `storage.url`. Settings → Storage is hidden when `showInSettings` is `false`. `settings.email`, `settings.storage`, and `settings.hosting` copy the shell config for an app on the shell identity server (`email.url` defaults to `https://email.shellui.com` when `email` is set; each is `null` when omitted). An app with its own `backend` receives the `email`, `storage`, and `hosting` on that item, or `null` for a service the item does not set. See [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 
 ```typescript
 const cleanup = shellui.addMessageListener('SHELLUI_SETTINGS_UPDATED', (data) => {

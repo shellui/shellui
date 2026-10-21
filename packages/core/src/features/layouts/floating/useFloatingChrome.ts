@@ -9,9 +9,10 @@ import {
   type LayoutChromeViewport,
   type ScrollChromeState,
 } from '@shellui/sdk';
+import { useIsTauriRuntime } from '../chrome/runtime';
 import {
   computeFloatingInsets,
-  FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA,
+  floatingCollapsedActionsLeadingPx,
   readShellSafeAreaPx,
 } from './computeFloatingInsets';
 import { publishLayoutChrome } from './layoutChromeStore';
@@ -43,7 +44,7 @@ function syncChromeActionsLeadingExtra(desktopCollapsed: boolean): void {
   if (typeof document === 'undefined') return;
   document.documentElement.style.setProperty(
     ACTIONS_LEADING_EXTRA_VAR,
-    `${desktopCollapsed ? FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA : 0}px`,
+    `${desktopCollapsed ? floatingCollapsedActionsLeadingPx() : 0}px`,
   );
 }
 
@@ -52,6 +53,7 @@ function buildChrome(
   chromeVisible: boolean,
   sidebarCollapsed: boolean,
   autoPadding = true,
+  edgeMargin?: number,
 ): LayoutChrome {
   const safeArea =
     typeof document !== 'undefined'
@@ -70,6 +72,7 @@ function buildChrome(
       chromeVisible: true,
       sidebarCollapsed: desktopCollapsed,
       safeArea,
+      edgeMargin,
     }),
   };
 }
@@ -80,6 +83,8 @@ function buildChrome(
  */
 export function useFloatingChrome(viewport: LayoutChromeViewport) {
   const location = useLocation();
+  const tauriRuntime = useIsTauriRuntime();
+  const edgeMargin = tauriRuntime && viewport === 'desktop' ? 0 : undefined;
   const [chromeVisible, setChromeVisible] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsedState] = useState(readSidebarCollapsed);
   const scrollStateRef = useRef<ScrollChromeState>({ visible: true, lastY: 0 });
@@ -93,9 +98,9 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
     (visible: boolean, vp: LayoutChromeViewport, collapsed: boolean) => {
       const desktopCollapsed = vp === 'desktop' && collapsed;
       syncChromeActionsLeadingExtra(desktopCollapsed);
-      publishLayoutChrome(buildChrome(vp, visible, collapsed));
+      publishLayoutChrome(buildChrome(vp, visible, collapsed, true, edgeMargin));
     },
-    [],
+    [edgeMargin],
   );
 
   const setSidebarCollapsed = useCallback((collapsed: boolean) => {
@@ -192,8 +197,9 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
       chromeVisible: true,
       sidebarCollapsed: viewport === 'desktop' && sidebarCollapsed,
       safeArea,
+      edgeMargin,
     });
-  }, [viewport, sidebarCollapsed]);
+  }, [viewport, sidebarCollapsed, edgeMargin]);
 
   return {
     chromeVisible: effectiveVisible,

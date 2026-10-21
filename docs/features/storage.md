@@ -4,7 +4,7 @@ sidebar_label: Storage
 description: 'Set storage.url for Settings quota, Admin files, and shellui.storage from iframe apps.'
 ---
 
-Connect a [storage-service](https://github.com/shellui/storage-service) instance so the shell can show quota and proxy file APIs. Embedded apps must not call storage-service themselves for uploads; they use `shellui.storage`, and the root shell runs the request with `storage.url` and the signed-in user's token.
+Connect a [storage-service](https://github.com/shellui/storage-service) instance so the shell can show quota and proxy file APIs. Embedded apps on the shell identity server use `shellui.storage`, and the root shell runs the request with `storage.url` and the signed-in user's token. An app on another identity server can set `storage` on its navigation item; see [Apps on another identity server](/features/authentication#apps-on-another-identity-server). `shellui.storage` still uses the shell `storage` URL.
 
 Settings → Storage appears only when `storage.url` is a non-empty string and `showInSettings` is not `false`. Admin → Storage still follows `storage.url` / `storage.filesUrl` and ignores `showInSettings`.
 

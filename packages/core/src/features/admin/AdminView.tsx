@@ -10,10 +10,13 @@ import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { AppLayout } from '../layouts/AppLayout';
 import {
+  MAC_TRAFFIC_LIGHTS_GAP_PX,
+  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
   isShellUiRootWindow,
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
-} from '../layouts/chrome/SafeAreaTopbar';
+  useMacTrafficLights,
+} from '../layouts/chrome';
 import { AdminForbiddenAccess } from './components/AdminForbiddenAccess';
 import { getAdminContentUrl, getAdminPath } from './config';
 import { buildAdminIframeSrc } from './utils';
@@ -70,8 +73,12 @@ export const AdminView = () => {
   }, [config?.title]);
 
   const showSafeAreaTopbar = isShellUiRootWindow();
+  const trafficLights = useMacTrafficLights();
+  const chromeInset = trafficLights
+    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
+    : undefined;
   const headerStyle = {
-    paddingLeft: 'max(0.5rem, var(--shellui-safe-area-left))',
+    paddingLeft: chromeInset ?? 'max(0.5rem, var(--shellui-safe-area-left))',
     paddingRight: 'max(0.75rem, var(--shellui-safe-area-right))',
     ...(isMobile && showSafeAreaTopbar
       ? {
@@ -90,13 +97,17 @@ export const AdminView = () => {
         <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
         <SafeAreaTopbarStrip enabled={showSafeAreaTopbar} />
         <header
-          className="flex shrink-0 items-center justify-between border-b bg-card"
+          className="relative z-[46] flex shrink-0 items-center justify-between border-b bg-card select-none"
           style={headerStyle}
+          {...(trafficLights
+            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+            : {})}
         >
           <Button
             type="button"
             variant="ghost"
             size="sm"
+            data-shellui-no-drag=""
             onClick={() => navigate('/')}
           >
             <svg
@@ -114,7 +125,10 @@ export const AdminView = () => {
             </svg>
             Back to home
           </Button>
-          <div className="flex items-center gap-2">
+          <div
+            data-shellui-no-drag=""
+            className="flex items-center gap-2"
+          >
             <LoginButton
               variant="appbar"
               logoutOnly

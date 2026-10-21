@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import { shellui } from '@shellui/sdk';
@@ -22,6 +30,7 @@ import {
   normalizeNextPath,
   redirectToCliCallback,
   resolveLoginSettings,
+  getLoginCancelTarget,
 } from '../utils';
 import { AppBrandIcon } from '../../layouts/branding/AppBrandIcon';
 import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../../layouts/chrome/constants';
@@ -29,6 +38,7 @@ import { useMacTrafficLights } from '../../layouts/chrome/runtime';
 import { validateLoginPanelUrl } from '../../security/urlAllowlist';
 import { AccessPendingView } from './AccessPendingView';
 import { LoginPreferencesControls } from './LoginPreferencesControls';
+import { registerLoginPanelFrame } from '../utils/loginPanelFrame';
 
 /** Shared top inset for login chrome when traffic lights are absent. */
 const LOGIN_CHROME_PAD_Y = '2rem';
@@ -108,6 +118,8 @@ export const LoginView = () => {
     sendMagicLink,
     session,
   } = useAuth();
+  // Cancel goes to a page reachable without signing in; hidden when there is none (#104).
+  const loginCancelTarget = useMemo(() => getLoginCancelTarget(config), [config]);
   const configuredSettings = useMemo<AuthSettings>(
     () => resolveLoginSettings(config.backend),
     [config.backend],
@@ -487,6 +499,13 @@ export const LoginView = () => {
   const panelImage = config.backend?.login?.panelImage?.trim() || null;
   const hasCustomPanel = Boolean(panelUrl || panelImage);
   const legalDocuments = useMemo(() => getLegalDocuments(config), [config]);
+  const panelIframeRef = useRef<HTMLIFrameElement>(null);
+  // Register the side panel frame so theme and language changes reach it live.
+  // Deps cover every state that can mount or unmount the iframe.
+  useLayoutEffect(
+    () => registerLoginPanelFrame(panelIframeRef.current),
+    [panelUrl, isIframeView, isAuthenticated, oauthBounceCode],
+  );
 
   if (isAuthenticated) {
     return null;
@@ -558,6 +577,7 @@ export const LoginView = () => {
         >
           {panelUrl ? (
             <iframe
+              ref={panelIframeRef}
               src={panelUrl}
               title={t('loginPage.brandingIframeTitle')}
               className="h-full w-full border-0"
@@ -835,23 +855,25 @@ export const LoginView = () => {
                 <p className="text-sm text-muted-foreground">{t('loginPage.noMethodsEnabled')}</p>
               )}
 
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto px-0 text-xs font-normal text-muted-foreground/80 hover:text-muted-foreground"
-                  onClick={() => {
-                    if (isIframeView) {
-                      shellui.closeModal();
-                      return;
-                    }
-                    navigate('/');
-                  }}
-                >
-                  {t('loginPage.cancel')}
-                </Button>
-              </div>
+              {(isIframeView || loginCancelTarget) && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-xs font-normal text-muted-foreground/80 hover:text-muted-foreground"
+                    onClick={() => {
+                      if (isIframeView) {
+                        shellui.closeModal();
+                        return;
+                      }
+                      if (loginCancelTarget) navigate(loginCancelTarget);
+                    }}
+                  >
+                    {t('loginPage.cancel')}
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

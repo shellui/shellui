@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Settings } from '@shellui/sdk';
+import type { AuthSession } from '../../auth/types';
+import { frameAuthPropagationOptions } from '../../auth/appBackend/frameAuth';
 import type { ShellUIConfig } from '../../config/types';
 import { buildSettingsForPropagation } from './buildSettingsForPropagation';
 
@@ -318,5 +320,377 @@ describe('buildSettingsForPropagation', () => {
 
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
     expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+  });
+
+  const shellToken = 'shell-access-token';
+  const foreignToken = 'foreign-access-token';
+  const shellUser = {
+    id: 'shell-user',
+    email: 'shell@example.com',
+    name: 'Shell User',
+    profilePicture: null,
+    authProvider: 'google',
+    isStaff: true,
+  };
+
+  const appConfig = {
+    backend: {
+      type: 'shellui' as const,
+      url: 'https://id.example.com/',
+      companyId: 1,
+      adminUrl: 'https://admin.example/',
+      login: { oauthProviders: ['google'] },
+    },
+    storage: { url: 'https://files-api.example', filesUrl: 'https://files.example/' },
+    email: { url: 'https://email.example' },
+    hosting: { url: 'https://hosting.example/', app: 'shell-app' },
+    navigation: [
+      {
+        label: 'Billing',
+        path: 'billing',
+        url: 'https://billing.example/',
+        safeForAuthToken: true,
+      },
+      {
+        label: 'Directory',
+        path: 'directory',
+        url: 'https://directory.example/',
+        safeForAuthToken: true,
+        backend: {
+          url: 'https://id.directory.example/',
+          companyId: 4,
+          provider: 'google',
+        },
+      },
+      {
+        label: 'Public directory',
+        path: 'public-directory',
+        url: 'https://public.example/',
+        backend: { url: 'https://id.public.example' },
+      },
+    ],
+  } as ShellUIConfig;
+
+  const foreignSession = {
+    accessToken: foreignToken,
+    refreshToken: 'foreign-refresh',
+    tokenType: 'bearer',
+    expiresAt: 4_000_000_000,
+    provider: 'google',
+    userId: 'foreign-user',
+    userEmail: 'foreign@example.com',
+    userName: 'Foreign User',
+    userAvatarUrl: null,
+    userIsStaff: false,
+    userIsCompanyOwner: true,
+    userGroups: ['directory'],
+  } satisfies AuthSession;
+
+  const propagate = (frameSrc: string, session: AuthSession | null = foreignSession) => {
+    const options = frameAuthPropagationOptions({
+      frameSrc,
+      config: appConfig,
+      shellAccessToken: shellToken,
+      getAppSession: () => session,
+      shellOrigin: 'https://shell.example',
+    });
+    return buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      appConfig,
+      'en',
+      options,
+    );
+  };
+
+  const shellServices = {
+    storage: { url: 'https://files-api.example', filesUrl: 'https://files.example/' },
+    email: { url: 'https://email.example' },
+    hosting: { url: 'https://hosting.example', app: 'shell-app' },
+  };
+
+  const expectNoShellServices = (result: ReturnType<typeof propagate>) => {
+    expect(result.storage).toBeNull();
+    expect(result.email).toBeNull();
+    expect(result.hosting).toBeNull();
+    const json = JSON.stringify(result);
+    expect(json).not.toContain('https://files-api.example');
+    expect(json).not.toContain('https://files.example');
+    expect(json).not.toContain('https://email.example');
+    expect(json).not.toContain('https://hosting.example');
+    expect(json).not.toContain('https://email.shellui.com');
+  };
+
+  it('falls back to the shell backend and token when the app has no override', () => {
+    const result = propagate('https://billing.example/');
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(result.user?.email).toBe('shell@example.com');
+    expect(result.storage).toEqual(shellServices.storage);
+    expect(result.email).toEqual(shellServices.email);
+    expect(result.hosting).toEqual(shellServices.hosting);
+  });
+
+  it('sends each foreign app its own backend URL and token', () => {
+    const result = propagate('https://directory.example/people');
+    expect(result.accessToken).toBe(foreignToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.directory.example');
+    expect(result.user).toMatchObject({
+      id: 'foreign-user',
+      email: 'foreign@example.com',
+      groups: ['directory'],
+    });
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+    expect(JSON.stringify(result)).not.toContain('shell@example.com');
+    expect(result).not.toHaveProperty('refreshToken');
+    expectNoShellServices(result);
+  });
+
+  it('sends a null token, not the shell token, when the foreign session is missing', () => {
+    const result = propagate('https://directory.example/', null);
+    expect(result.accessToken).toBeNull();
+    expect(result.authBackendBaseUrl).toBe('https://id.directory.example');
+    expect(result.user).toBeNull();
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+    expectNoShellServices(result);
+  });
+
+  it('does not send either token to an untrusted app on another identity server', () => {
+    const result = propagate('https://public.example/');
+    expect(result.accessToken).toBeNull();
+    expect(result.authBackendBaseUrl).toBe('https://id.public.example');
+    expect(JSON.stringify(result)).not.toContain(shellToken);
+    expect(JSON.stringify(result)).not.toContain(foreignToken);
+    expectNoShellServices(result);
+  });
+
+  it('keeps the shell token for the built-in admin and storage frames', () => {
+    const admin = propagate('https://admin.example/#/users');
+    const files = propagate('https://files.example/company/docs');
+    expect(admin.accessToken).toBe(shellToken);
+    expect(admin.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(files.accessToken).toBe(shellToken);
+    expect(files.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(admin.storage).toEqual(shellServices.storage);
+    expect(admin.email).toEqual(shellServices.email);
+    expect(files.hosting).toEqual(shellServices.hosting);
+  });
+
+  it('keeps the shell token for shell settings even if a root item names another server', () => {
+    vi.stubGlobal('window', {
+      location: { origin: 'https://shell.example' },
+      matchMedia: () => ({ matches: false }),
+    });
+    const withRoot = {
+      ...appConfig,
+      navigation: [
+        ...(appConfig.navigation ?? []),
+        {
+          label: 'Home',
+          path: 'home',
+          url: 'https://shell.example/',
+          safeForAuthToken: true,
+          backend: { url: 'https://id.other.example' },
+        },
+      ],
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://shell.example/__settings/storage',
+      config: withRoot,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      withRoot,
+      'en',
+      options,
+    );
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(result.user?.email).toBe('shell@example.com');
+    expect(result.storage).toEqual(shellServices.storage);
+    expect(result.email).toEqual(shellServices.email);
+    expect(result.hosting).toEqual(shellServices.hosting);
+  });
+
+  it('sends a foreign app its own service URLs and not the shell URLs', () => {
+    const withServices = {
+      ...appConfig,
+      navigation: (appConfig.navigation ?? []).map((item) =>
+        item.path === 'directory'
+          ? {
+              ...item,
+              email: { url: 'https://email.directory.example/' },
+              storage: {
+                url: 'https://files-api.directory.example',
+                filesUrl: 'https://files.directory.example/',
+              },
+              hosting: { url: 'https://hosting.directory.example', showInAdmin: false },
+            }
+          : item,
+      ),
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://directory.example/people',
+      config: withServices,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      withServices,
+      'en',
+      options,
+    );
+    expect(result.storage).toEqual({
+      url: 'https://files-api.directory.example',
+      filesUrl: 'https://files.directory.example/',
+    });
+    expect(result.email).toEqual({ url: 'https://email.directory.example' });
+    expect(result.hosting).toEqual({
+      url: 'https://hosting.directory.example',
+      showInAdmin: false,
+    });
+    const json = JSON.stringify(result);
+    expect(json).not.toContain('https://files-api.example');
+    expect(json).not.toContain('https://email.example');
+    expect(json).not.toContain('https://hosting.example');
+    expect(json).not.toContain('https://email.shellui.com');
+  });
+
+  it('uses the default email URL when a foreign app sets an empty email object', () => {
+    const withEmptyEmail = {
+      ...appConfig,
+      navigation: (appConfig.navigation ?? []).map((item) =>
+        item.path === 'directory' ? { ...item, email: {} } : item,
+      ),
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://directory.example/',
+      config: withEmptyEmail,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      withEmptyEmail,
+      'en',
+      options,
+    );
+    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+    expect(result.storage).toBeNull();
+    expect(result.hosting).toBeNull();
+    const json = JSON.stringify(result);
+    expect(json).not.toContain('https://files-api.example');
+    expect(json).not.toContain('https://email.example');
+    expect(json).not.toContain('https://hosting.example');
+  });
+
+  it('replaces only the service an app sets when it keeps the shell backend', () => {
+    const withEmail = {
+      ...appConfig,
+      navigation: [
+        ...(appConfig.navigation ?? []),
+        {
+          label: 'Mail',
+          path: 'mail',
+          url: 'https://mail.example/',
+          safeForAuthToken: true,
+          email: {},
+        },
+      ],
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://mail.example/',
+      config: withEmail,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      withEmail,
+      'en',
+      options,
+    );
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.authBackendBaseUrl).toBe('https://id.example.com');
+    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+    expect(result.storage).toEqual(shellServices.storage);
+    expect(result.hosting).toEqual(shellServices.hosting);
+  });
+
+  it('keeps shell services when the item backend is the same server', () => {
+    const sameServer = {
+      ...appConfig,
+      navigation: [
+        ...(appConfig.navigation ?? []),
+        {
+          label: 'Same',
+          path: 'same',
+          url: 'https://same.example/',
+          safeForAuthToken: true,
+          backend: { url: 'https://id.example.com/', companyId: 1 },
+        },
+      ],
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://same.example/',
+      config: sameServer,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      sameServer,
+      'en',
+      options,
+    );
+    expect(result.accessToken).toBe(shellToken);
+    expect(result.storage).toEqual(shellServices.storage);
+    expect(result.email).toEqual(shellServices.email);
+    expect(result.hosting).toEqual(shellServices.hosting);
+  });
+
+  it('sends no service URLs when the named backend cannot be used', () => {
+    const invalid = {
+      ...appConfig,
+      navigation: [
+        ...(appConfig.navigation ?? []),
+        {
+          label: 'Broken',
+          path: 'broken',
+          url: 'https://broken.example/',
+          safeForAuthToken: true,
+          backend: { url: 'not-a-url' },
+          email: { url: 'https://email.broken.example' },
+        },
+      ],
+    } as ShellUIConfig;
+    const options = frameAuthPropagationOptions({
+      frameSrc: 'https://broken.example/',
+      config: invalid,
+      shellAccessToken: shellToken,
+      getAppSession: () => foreignSession,
+      shellOrigin: 'https://shell.example',
+    });
+    const result = buildSettingsForPropagation(
+      { ...baseSettings, user: shellUser },
+      invalid,
+      'en',
+      options,
+    );
+    expect(result.accessToken).toBeNull();
+    expect(result.email).toEqual({ url: 'https://email.broken.example' });
+    expect(result.storage).toBeNull();
+    expect(result.hosting).toBeNull();
+    const json = JSON.stringify(result);
+    expect(json).not.toContain('https://files-api.example');
+    expect(json).not.toContain('https://hosting.example');
+    expect(json).not.toContain(shellToken);
   });
 });

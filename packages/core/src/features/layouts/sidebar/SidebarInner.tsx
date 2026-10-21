@@ -26,12 +26,15 @@ export function SidebarInner({
   showAuthButton,
   title,
   appIcon,
+  inset = false,
 }: {
   startNav: (NavigationItem | NavigationGroup)[];
   endItems: (NavigationItem | NavigationGroup)[];
   showAuthButton: boolean;
   title?: string;
   appIcon?: ThemeAsset;
+  /** Sidebar-inset: the column is padded, so the title row must break out to meet the lights. */
+  inset?: boolean;
 }) {
   const isTauriEnv = useIsTauriClient();
   const overlay = useMacOverlayChrome();
@@ -81,6 +84,8 @@ export function SidebarInner({
           'gap-0 border-b border-sidebar-border select-none',
           showOverlayHeader || mobileSheetHeader ? 'p-0' : 'px-2 py-0',
           showCollapsedTopBar && 'hidden',
+          // Inset `p-3` sits this row 12px under the lights. Pull it to the window edge.
+          inset && showOverlayHeader && '-mt-3 -ml-3 w-[calc(100%+1.5rem)]',
         )}
         style={{
           height: DESKTOP_TITLEBAR_HEIGHT_PX,

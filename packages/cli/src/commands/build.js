@@ -122,12 +122,11 @@ export function getMaterializedRoutePaths(navigation, corePackagePath, config = 
 }
 
 /**
- * Rewrite root-relative-to-index asset references (emitted by Vite `base: './'`)
- * so a copy of index.html placed `depth` folders deep still resolves assets.
- * A file at `dist/web/<seg1>/<seg2>/index.html` must reach `dist/web/assets/...`
- * via `../../assets/...`. Without this, hosts that serve `/<path>/` with a
- * trailing slash resolve `./assets` under the subfolder and 404.
- * @param {string} html - index.html content built with relative base
+ * Rewrite `./` asset references so a copy of index.html placed `depth` folders
+ * deep still resolves them (`../../assets/...`). Absolute URLs (`/assets/...`)
+ * are left unchanged. Web builds emit those absolute URLs so the root
+ * `index.html` SPA fallback works on nested routes.
+ * @param {string} html - index.html content
  * @param {number} depth - number of path segments the copy is nested under
  * @returns {string}
  */
@@ -334,7 +333,7 @@ export async function buildCommand(root = '.', options = {}) {
       console.log(pc.green('404.html created!'));
 
       // Materialize dist/<path>/index.html for shell built-ins (login/callback, settings, …)
-      // and navigation paths so static hosts return 200 with correct relative asset depth.
+      // and navigation paths so static hosts return 200 for known routes.
       const routePaths = getMaterializedRoutePaths(config.navigation, corePackagePath, config);
       if (routePaths.length > 0) {
         console.log(pc.blue(`Creating route folders for ${routePaths.length} path(s)...`));
@@ -345,8 +344,7 @@ export async function buildCommand(root = '.', options = {}) {
           if (!fs.existsSync(routeDir)) {
             fs.mkdirSync(routeDir, { recursive: true });
           }
-          // Relative `base: './'` assets must climb back to dist/web for nested routes
-          // so `/<path>/` (trailing slash) serving still resolves them.
+          // Absolute `/assets/...` URLs stay as-is. Any remaining `./` refs climb to dist/web.
           const depth = routePath.split('/').filter(Boolean).length;
           fs.writeFileSync(routeIndexPath, rewriteRelativeAssetDepth(indexHtml, depth), 'utf-8');
         }

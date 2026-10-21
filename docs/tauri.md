@@ -173,6 +173,8 @@ tauri::Builder::default()
 
 In `capabilities/default.json`, add `opener:default` and `deep-link:default` next to the existing permissions.
 
+When the sign-in link arrives, the shell brings its window to the front, so the user leaves the browser for the signed-in app. A repeated **Return to app** click does the same. This needs `core:window:allow-unminimize`, `core:window:allow-show`, and `core:window:allow-set-focus`. `shellui start --app` and `shellui build --app` add any that are missing to `dist/app/src-tauri/capabilities/default.json`, so an app created earlier gets them too.
+
 Shellui calls `plugin:opener|open_url` and listens for `deep-link://new-url` over Tauri IPC. A web build leaves the plugin packages out. To use your own opener, call `configureDesktopAuth` before sign-in:
 
 ```typescript
@@ -190,6 +192,53 @@ The browser returns to `shellui-playground://callback?shellui_auth_code=…`. Th
 A failed sign-in uses the same link with `?error=` (for example `pkce_required`) or `shellui_oauth_error`. The shell shows a message. Logs omit the code, the verifier, and tokens.
 
 Magic link sends the same redirect and challenge on `POST /api/v1/magic-link/request`. On Windows and Linux, add Tauri's single-instance plugin so the deep link reaches the running app.
+
+### Sign in during `shellui start --app`
+
+When `auth.desktopScheme` is set, the dev shell signs in with `<scheme>-dev`, for example `shellui-playground-dev`. Installed builds keep `shellui-playground`, so a dev session never takes links meant for an installed app. `tauri dev` gets the `-dev` scheme as its only deep-link scheme.
+
+A local identity-service with `DEBUG=true` accepts the `-dev` variant of every scheme the company registers, so the admin list only needs `shellui-playground`. Production (`DEBUG=false`) accepts `shellui-playground-dev` only when that scheme is listed. An older identity-service refuses the redirect as an unregistered scheme. There, add the `-dev` scheme in Shellui admin as well.
+
+**macOS.** macOS learns a URL scheme only from an installed `.app`, and `tauri dev` runs a bare binary. The CLI fills that gap with no app changes:
+
+- It builds a small background applet, `dist/app/dev-link/<productName> Dev Link.app`, and registers it for the `-dev` scheme.
+- The applet posts each link to the shell dev server on `config.port`, with a token that is new for every run.
+- The dev server passes the link to the dev window, which receives it as a normal `deep-link://new-url` event.
+
+The CLI unregisters and deletes the applet when the dev session ends. If you see "Could not reach the dev server", the dev session has stopped.
+
+**Windows and Linux.** The app registers the scheme itself at runtime, and the single-instance plugin hands the link from the second process to the running app. Add the crate for those targets:
+
+```toml
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+```
+
+Register single-instance first, and register the schemes at runtime in debug builds:
+
+```rust
+let builder = tauri::Builder::default();
+#[cfg(any(windows, target_os = "linux"))]
+let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+    use tauri::Manager;
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_focus();
+    }
+}));
+builder
+    .plugin(tauri_plugin_opener::init())
+    .plugin(tauri_plugin_deep_link::init())
+    .setup(|app| {
+        #[cfg(all(debug_assertions, any(windows, target_os = "linux")))]
+        {
+            use tauri_plugin_deep_link::DeepLinkExt;
+            app.deep_link().register_all()?;
+        }
+        Ok(())
+    })
+```
+
+Runtime registration writes a user-level association (registry on Windows, a `.desktop` file on Linux) for the `-dev` scheme only. It stays after the session, and the next dev run overwrites it.
 
 ## Layout
 

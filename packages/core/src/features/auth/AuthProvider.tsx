@@ -11,6 +11,8 @@ import urls from '../../constants/urls';
 import { useConfig } from '../config/useConfig';
 import { useIsTauriRuntime } from '../layouts/chrome/runtime';
 import { isShellSettingsFrameMessage } from '../security/trustedFrames';
+import { endAppBackendSessions } from './appBackend/appBackendSessions';
+import { isSilentAuthCallbackFrame } from './appBackend/silentSignIn';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
@@ -194,6 +196,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (typeof window === 'undefined') {
         setIsLoading(false);
+        return;
+      }
+
+      // The hidden frame that finishes sign-in for another identity server must
+      // not read or write the shell session (sessionStorage is shared).
+      if (isSilentAuthCallbackFrame()) {
+        if (!cancelled) {
+          setSession(null);
+          setIsLoading(false);
+        }
         return;
       }
 
@@ -648,6 +660,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Even if API sign-out fails, still clear local session.
     }
 
+    try {
+      await endAppBackendSessions();
+    } catch {
+      // App-server sign-out is best effort. The shell session still clears.
+    }
+
     clearStoredAuthSession();
     setSession(null);
     setAuthEvent(null);
@@ -656,23 +674,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [backend, bffAuthEnabled, session]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || window.parent !== window) return;
     const liveTauri = tauriRuntime || isLiveTauriRuntime();
     if (!shouldUseDesktopSignIn(config, liveTauri)) return;
     const scheme = normalizeDesktopScheme(config.auth?.desktopScheme);
     if (!scheme) return;
     setActiveDesktopScheme(scheme);
     let cancelled = false;
+
+    // The login page may sit in a modal or drawer iframe that cannot see this result.
+    const finishOverlayLogin = (failure: string | null) => {
+      postShellMessage({ type: 'SHELLUI_CLOSE_MODAL', payload: {} });
+      postShellMessage({ type: 'SHELLUI_CLOSE_DRAWER', payload: {} });
+      if (failure === null || window.location.pathname === urls.login) return;
+      shellui.toast({
+        type: 'error',
+        title: i18n.getFixedT(null, 'common')('loginPage.signInCouldNotContinue'),
+        description: failure || undefined,
+      });
+    };
+
     const unsubscribe = subscribeDesktopAuth((event) => {
       if (cancelled) return;
       if (event.type === 'error') {
         setError(event.message);
         setErrorCode(event.errorCode);
+        finishOverlayLogin(event.message);
         return;
       }
       void completeOAuthSessionCallback({
         authCode: event.authCode,
         redirectTo: event.redirectTo,
         codeVerifier: event.codeVerifier,
+      }).then((result) => {
+        if (!cancelled) finishOverlayLogin(result.ok ? null : (result.error ?? ''));
       });
     });
     void ensureDesktopDeepLinkListener({ replayLaunchUrl: true });
@@ -680,7 +715,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       cancelled = true;
       unsubscribe();
     };
-  }, [completeOAuthSessionCallback, config, tauriRuntime]);
+  }, [completeOAuthSessionCallback, config, i18n, tauriRuntime]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) {

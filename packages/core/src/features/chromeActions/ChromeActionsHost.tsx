@@ -33,9 +33,11 @@ import {
 } from '../../components/ui/tooltip';
 import { cn } from '../../lib/utils';
 import { useViewport } from '../../hooks/use-viewport';
+import { isTauriRuntime } from '../layouts/chrome/runtime';
 import { useSettings } from '../settings/hooks/useSettings';
 import {
   FLOATING_CHROME_MARGIN,
+  TAURI_FLOATING_ACTION_SIDEBAR_GAP_PX,
   floatingTabBarBottomPadCss,
   floatingTabBarHeight,
 } from '../layouts/floating/computeFloatingInsets';
@@ -1039,7 +1041,11 @@ function TopActionBar({
             ? {
                 // One animated edge (inset + collapsed-chip clearance) so actions
                 // track the floating sidebar / layout resize instead of fighting it.
-                left: `calc(var(--shellui-inset-left, 0px) + var(--shellui-chrome-actions-leading-extra, 0px))`,
+                left: `calc(var(--shellui-inset-left, 0px) + var(--shellui-chrome-actions-leading-extra, 0px) + ${
+                  isTauriRuntime() && layout === 'floating' && sidebarExpanded
+                    ? TAURI_FLOATING_ACTION_SIDEBAR_GAP_PX
+                    : 0
+                }px)`,
                 right: 'var(--shellui-inset-right, 0px)',
                 // Match InsetMobileRadiusOverlay cutout so the bright scrim doesn’t
                 // square off the top card corners.
