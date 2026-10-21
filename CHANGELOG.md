@@ -35,6 +35,11 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Login:** The Cancel button is hidden when the app has no page available without signing in.
 - **Login:** The page next to the sign-in form follows dark and light mode changes.
 
+### 🔒 Security
+
+- **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
+- **CLI:** `shellui login` uses PKCE.
+
 ## [0.6.2] - 2026-10-18
 
 ### 🐛 Bug Fixes

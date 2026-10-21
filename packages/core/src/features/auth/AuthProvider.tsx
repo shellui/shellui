@@ -403,7 +403,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
           return true;
         }
-        backend.startOAuth(provider, redirectPath, oauthClientId);
+        void Promise.resolve(backend.startOAuth(provider, redirectPath, oauthClientId)).catch(
+          (err) => {
+            setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
+            setErrorCode(err instanceof AuthRequestError ? err.code : null);
+          },
+        );
         return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unable to start OAuth login.');
