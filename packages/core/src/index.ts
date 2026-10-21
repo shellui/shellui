@@ -26,6 +26,7 @@ export type {
   LayoutType,
   BackendType,
   BackendConfig,
+  AppBackendConfig,
   AuthConfig,
   AdministrationConfig,
   StorageConfig,

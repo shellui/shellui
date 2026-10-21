@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
@@ -15,6 +15,10 @@ import {
   redirectCliCallbackError,
   redirectToCliCallback,
 } from '../utils';
+import {
+  isSilentAuthCallbackFrame,
+  publishSilentAuthCallbackResult,
+} from '../appBackend/silentSignIn';
 import { useAuth } from '../hooks/useAuth';
 import { AccessPendingView } from './AccessPendingView';
 
@@ -112,13 +116,19 @@ export const OAuthCallbackView = () => {
     captureCliCallbackFromSearch(location.search);
   }, [location.search]);
 
+  useLayoutEffect(() => {
+    publishSilentAuthCallbackResult();
+  }, [location.search]);
+
   useEffect(() => {
+    if (isSilentAuthCallbackFrame()) return;
     if (!isAuthenticated || !session) return;
     if (redirectToCliCallback(session)) return;
     navigate(nextPath, { replace: true });
   }, [isAuthenticated, navigate, nextPath, session]);
 
   useEffect(() => {
+    if (isSilentAuthCallbackFrame()) return;
     if (isAuthenticated) return;
     // Identity bounce lands with tokens in the hash; AuthProvider restores the session.
     // Stay on "Completing…" while hash is present or auth bootstrap is still running.

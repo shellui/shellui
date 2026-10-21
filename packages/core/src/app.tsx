@@ -9,6 +9,7 @@ import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
 import { DialogProvider } from './features/alertDialog/DialogContext';
 import { CookieConsentModal } from './features/cookieConsent/CookieConsentModal';
+import { AppBackendSessionHost } from './features/auth/appBackend/AppBackendSessionHost';
 import { AuthProvider } from './features/auth/AuthProvider';
 import { StorageBridge } from './features/storage/StorageBridge';
 import { ShellAiHost } from './features/ai/ShellAiHost';
@@ -134,6 +135,7 @@ const App = () => {
     <ConfigProvider>
       <MessagingSecurityBootstrap />
       <AuthProvider>
+        <AppBackendSessionHost />
         <StorageBridge />
         <SettingsProvider>
           <ShellAiHost />
