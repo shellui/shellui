@@ -10,11 +10,13 @@ This monorepo contains the Shellui packages:
 
 ## Current release
 
-**0.6.3** is the stable release on the npm `latest` tag.
+**0.6.2** is the stable release on the npm `latest` tag.
+
+To try the 0.7.0 alpha, install from the npm `alpha` tag: `npm install -g @shellui/cli@alpha`. It prepares the SaaS and multi-region setup and requires identity-service 0.9.0.
 
 ```bash
-npm install -g @shellui/cli@0.6.3
-npm install @shellui/sdk@0.6.3
+npm install -g @shellui/cli@0.6.2
+npm install @shellui/sdk@0.6.2
 ```
 
 What's new: a Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when `auth.desktopScheme` matches the OAuth application. Register that scheme on the deep-link plugin. See [Sign in on the desktop](docs/tauri.md#sign-in-on-the-desktop), the [changelog](CHANGELOG.md), and [docs.shellui.com](https://docs.shellui.com).
