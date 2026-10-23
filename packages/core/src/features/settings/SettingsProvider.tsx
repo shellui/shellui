@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {
   bindVisibleResume,
+  CHILD_FRAME_SESSION,
   deliverSessionHandoff,
   getLogger,
   shellui,
@@ -32,8 +33,19 @@ import {
   type ChildFrameEntry,
 } from '../auth/appBackend/childFrames';
 import { resolveFrameNavigationItem } from '../auth/appBackend/identity';
+import { describeAppSessionFailure } from '../auth/appBackend/tokenExchange';
+
+function safeOrigin(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return '';
+  }
+}
 import {
   ensureAppBackendSession,
+  allowSilentRetry,
+  getAppBackendSessionFailure,
   getAppBackendSession,
   refreshAppBackendSessionIfDue,
   subscribeAppBackendSessions,
@@ -676,10 +688,31 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
         addChildFrame(result.entry);
         const { entry } = result;
+        logger.info('Child app frame registered', {
+          origin: safeOrigin(entry.url),
+          identity: entry.identity?.url ?? null,
+          companyId: entry.identity?.companyId ?? null,
+        });
         void (async () => {
+          let ok = true;
+          let reason: string | null = null;
           if (entry.identity) {
-            await ensureAppBackendSession(entry.identity, { allowSilent: true });
+            // A (re)registration is a fresh mount or a user retry: allow one more silent try.
+            allowSilentRetry(entry.identity.key);
+            const token = await ensureAppBackendSession(entry.identity, { allowSilent: true });
+            ok = Boolean(token);
+            reason = ok ? null : (getAppBackendSessionFailure(entry.identity.key) ?? 'no_session');
           }
+          shellui.sendMessage({
+            type: CHILD_FRAME_SESSION,
+            payload: {
+              frameId: entry.frameId,
+              ok,
+              ...(reason ? { reason, hint: describeAppSessionFailure(reason) } : {}),
+            } as unknown as ShellUIMessage['payload'],
+            to: [entry.hostUuid],
+          });
+          logger.info('Child app frame session', { origin: safeOrigin(entry.url), ok, reason });
           deliverSessionHandoff(() =>
             pushSettingsToChildFrame(
               entry,

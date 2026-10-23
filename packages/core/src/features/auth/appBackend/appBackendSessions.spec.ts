@@ -11,6 +11,8 @@ import {
   getAppBackendSession,
   setAppBackendFactory,
   setAppBackendSignIn,
+  setAppBackendTokenExchange,
+  resetAppBackendTokenExchange,
 } from './appBackendSessions';
 import { resolveAppBackendConfig } from './identity';
 import { runSilentPkceSignIn } from './silentSignIn';
@@ -191,5 +193,137 @@ describe('app backend sessions', () => {
       [...Array(sessionStorage.length).keys()].map((index) => sessionStorage.key(index)),
     );
     expect(dumped).not.toContain(APP_BACKEND_REFRESH_PREFIX);
+  });
+
+  describe('token exchange for upstream identity servers', () => {
+    const exchange = vi.fn();
+    const jwt = (sub: string, jti: string) =>
+      `h.${btoa(JSON.stringify({ sub, jti })).replace(/=+$/, '')}.s`;
+    let shellToken: string | null = jwt('1', 'g1');
+
+    function upstream(companyId?: number) {
+      const identity = resolveAppBackendConfig(
+        { url: 'https://id.eu.example', companyId, provider: 'upstream', type: 'shellui' },
+        { backend: { type: 'shellui', url: 'https://id.example.com', companyId: 1 } },
+      );
+      if (!identity) throw new Error('expected identity');
+      return identity;
+    }
+
+    function due(accessToken: string, refreshToken: string): AuthSession {
+      return {
+        ...session(accessToken, refreshToken),
+        expiresAt: Math.floor(Date.now() / 1000) + 10,
+      };
+    }
+
+    function stored(): string {
+      return JSON.stringify(
+        [...Array(sessionStorage.length).keys()].map((index) => {
+          const key = sessionStorage.key(index) ?? '';
+          return [key, sessionStorage.getItem(key)];
+        }),
+      );
+    }
+
+    beforeEach(() => {
+      shellToken = jwt('1', 'g1');
+      exchange.mockReset();
+      setAppBackendTokenExchange(async () => shellToken, exchange);
+    });
+
+    afterEach(() => {
+      resetAppBackendTokenExchange();
+    });
+
+    it('exchanges the shell token at the regional server and never uses silent sign-in', async () => {
+      exchange.mockResolvedValue({ ok: true, session: session('regional-1', 'regional-refresh') });
+      const identity = upstream(5);
+
+      const token = await ensureAppBackendSession(identity, { allowSilent: false });
+
+      expect(token).toBe('regional-1');
+      expect(exchange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          backendUrl: 'https://id.eu.example',
+          companyId: 5,
+          shellAccessToken: shellToken,
+        }),
+      );
+      expect(signIn).not.toHaveBeenCalled();
+      expect(getAppBackendSession(identity.key)?.accessToken).toBe('regional-1');
+      expect(stored()).toContain('regional-refresh');
+      expect(stored()).not.toContain('regional-1"');
+      expect(stored()).not.toContain(shellToken);
+    });
+
+    it('renews with the regional refresh token, not a new exchange', async () => {
+      exchange.mockResolvedValueOnce({ ok: true, session: due('regional-old', 'regional-r1') });
+      const identity = upstream(5);
+      await ensureAppBackendSession(identity);
+      refreshAuthSession.mockResolvedValueOnce(session('regional-new', 'regional-r2'));
+
+      shellToken = jwt('1', 'g2');
+      expect(await ensureAppBackendSession(identity)).toBe('regional-new');
+      expect(refreshAuthSession).toHaveBeenCalledWith(
+        expect.objectContaining({ refreshToken: 'regional-r1' }),
+        expect.any(Number),
+      );
+      expect(factory).toHaveBeenCalledWith(
+        expect.objectContaining({ url: 'https://id.eu.example' }),
+      );
+      expect(exchange).toHaveBeenCalledTimes(1);
+      expect(stored()).toContain('regional-r2');
+    });
+
+    it('exchanges again when the regional refresh fails', async () => {
+      exchange.mockResolvedValueOnce({ ok: true, session: due('regional-old', 'regional-r1') });
+      const identity = upstream(5);
+      await ensureAppBackendSession(identity);
+      refreshAuthSession.mockRejectedValueOnce(new Error('HTTP 401'));
+      exchange.mockResolvedValueOnce({ ok: true, session: session('regional-new', 'regional-r3') });
+
+      expect(await ensureAppBackendSession(identity)).toBe('regional-new');
+      expect(exchange).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops the regional session and exchanges when the shell user changes', async () => {
+      exchange.mockResolvedValueOnce({ ok: true, session: session('regional-ada', 'r-ada') });
+      const identity = upstream(5);
+      await ensureAppBackendSession(identity);
+
+      shellToken = jwt('2', 'g9');
+      exchange.mockResolvedValueOnce({ ok: true, session: session('regional-bob', 'r-bob') });
+      expect(await ensureAppBackendSession(identity)).toBe('regional-bob');
+      expect(refreshAuthSession).not.toHaveBeenCalled();
+      expect(stored()).not.toContain('r-ada');
+    });
+
+    it('does not retry a failed exchange until the shell token changes', async () => {
+      exchange.mockResolvedValue({ ok: false, reason: 'invalid_grant' });
+      const identity = upstream(5);
+
+      expect(await ensureAppBackendSession(identity)).toBeNull();
+      expect(await ensureAppBackendSession(identity)).toBeNull();
+      expect(exchange).toHaveBeenCalledTimes(1);
+
+      shellToken = jwt('1', 'g2');
+      exchange.mockResolvedValue({ ok: true, session: session('regional-2') });
+      expect(await ensureAppBackendSession(identity)).toBe('regional-2');
+    });
+
+    it('clears the regional session on shell sign-out', async () => {
+      exchange.mockResolvedValueOnce({ ok: true, session: session('regional-1', 'r1') });
+      const identity = upstream(5);
+      await ensureAppBackendSession(identity);
+
+      await endAppBackendSessions();
+      expect(getAppBackendSession(identity.key)).toBeNull();
+      expect(sessionStorage.length).toBe(0);
+
+      shellToken = null;
+      expect(await ensureAppBackendSession(identity)).toBeNull();
+      expect(exchange).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -239,17 +239,31 @@ Set `backend` on a navigation item when that embedded app signs in to a differen
 
 Billing receives `https://id.example.com`, the shell access token, and the shell `email`, `storage`, and `hosting` URLs. Directory receives `https://id.directory.example`, a separate access token, and the service URLs on that item. The shell token is not sent to Directory.
 
-| Field            | Required | Description                                                                                                     |
-| ---------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
-| `url`            | yes      | Base URL of this app's identity server                                                                          |
-| `type`           | no       | `shellui` or `supabase`. Defaults to the shell `backend.type`                                                   |
-| `companyId`      | no       | Tenant id for this server. Not copied from the shell. Omit it on the same URL to keep the shell session         |
-| `provider`       | no       | OAuth provider for silent sign-in, such as `google`. Defaults to the first `backend.login.oauthProviders` entry |
-| `publishableKey` | supabase | Public key when `type` is `supabase`                                                                            |
+| Field            | Required | Description                                                                                                                                             |
+| ---------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`            | yes      | Base URL of this app's identity server                                                                                                                  |
+| `type`           | no       | `shellui` or `supabase`. Defaults to the shell `backend.type`                                                                                           |
+| `companyId`      | no       | Tenant id for this server. Not copied from the shell. Omit it on the same URL to keep the shell session                                                 |
+| `provider`       | no       | OAuth provider for silent sign-in, such as `google`. `upstream` uses token exchange (below). Defaults to the first `backend.login.oauthProviders` entry |
+| `publishableKey` | supabase | Public key when `type` is `supabase`                                                                                                                    |
 
 Optional `email`, `storage`, and `hosting` on the same item use the same shapes as the shell blocks. Omit a field to keep the shell service when the app uses the shell identity server. When `backend` names a different server and a service field is omitted, that setting is `null` (email included: no default URL). Set only the services that app should call. An empty `email` object uses `https://email.shellui.com`, the same default as a shell `email` block with no `url`. `shellui.storage` still runs against the shell `storage` URL.
 
 The shell keeps one session per server. For a Shellui identity server it signs in inside a hidden frame with the same PKCE flow as desktop sign-in and `prompt=none`, so the identity server can return a code without showing a login page. The one-time code is posted only to the shell origin. The refresh token stays in the shell. If that sign-in does not complete, the app still receives its `backend` URL and `accessToken: null`.
+
+### Regional identity servers (token exchange)
+
+When a regional identity server trusts the shell's global identity server, set `provider: "upstream"` and `companyId` to the company's regional id (`regional_company_id`, not the shell `companyId`). The shell then gets the app session with OAuth token exchange (RFC 8693) instead of a hidden frame:
+
+```
+POST {url}/oauth/token
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange
+subject_token=<shell access token>
+subject_token_type=urn:ietf:params:oauth:token-type:access_token
+company_id=<regional company id>
+```
+
+The shell access token goes only to that regional server, never to the app. The app receives the regional access token. When it is due, the shell renews it with the regional refresh token, kept in `sessionStorage` like other app sessions and never sent to the app. It exchanges again only when there is no regional session, the refresh fails, or the shell user changes. Signing out of the shell clears every regional session. A failed exchange is not retried with the same shell token. The regional server must list the shell origin (not the app origin) in `OIDC_CORS_ALLOWED_ORIGINS`, and needs `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS` and `GLOBAL_ACCESS_TOKEN_AUDIENCE`. No redirect allowlist entry is needed for this flow.
 
 `safeForAuthToken: true` is still required for a navigation companion. Built-in admin (`backend.adminUrl`) and storage files keep the shell session and shell services unless a matching item sets a different `backend`. Add the shell origin to that server's OAuth redirect allowlist, the same way you allow the shell `backend`.
 
