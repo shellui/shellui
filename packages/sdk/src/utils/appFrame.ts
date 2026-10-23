@@ -14,6 +14,15 @@ import type { ShellUIMessage, ShellUIUrlPayload } from '../types.js';
 
 export const CHILD_FRAME_REGISTER = 'SHELLUI_CHILD_FRAME_REGISTER';
 export const CHILD_FRAME_UNREGISTER = 'SHELLUI_CHILD_FRAME_UNREGISTER';
+/** Shell to host: whether the child app got a session on its identity server. */
+export const CHILD_FRAME_SESSION = 'SHELLUI_CHILD_FRAME_SESSION';
+
+/** Session result for a child app. `reason` and `hint` never contain tokens. */
+export type AppFrameSessionStatus = {
+  ok: boolean;
+  reason?: string;
+  hint?: string;
+};
 
 /** Identity server the child app signs in to. The shell checks it against its config. */
 export type AppFrameBackend = {
@@ -38,6 +47,8 @@ export type AppFrameOptions = {
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Called each time the child app finishes Shellui init (`SHELLUI_INITIALIZED`). */
   onReady?: () => void;
+  /** Called when the shell reports whether the child got a session (failure includes a reason). */
+  onSession?: (status: AppFrameSessionStatus) => void;
 };
 
 export type AppFrameHandle = {
@@ -120,6 +131,26 @@ export function createAppFrameWith(
     host.addMessageListener('SHELLUI_INITIALIZED', (_message, event) => {
       if (!fromChild(event)) return;
       options.onReady?.();
+    }),
+  );
+
+  cleanups.push(
+    host.addMessageListener(CHILD_FRAME_SESSION, (message, event) => {
+      // Only the shell (our parent) reports session results.
+      if (typeof window === 'undefined' || event.source !== window.parent) return;
+      const data = message.payload as unknown as Record<string, unknown> | null;
+      if (!data || data.frameId !== frameId || typeof data.ok !== 'boolean') return;
+      const status: AppFrameSessionStatus = {
+        ok: data.ok,
+        ...(typeof data.reason === 'string' ? { reason: data.reason } : {}),
+        ...(typeof data.hint === 'string' ? { hint: data.hint } : {}),
+      };
+      if (status.ok) {
+        console.info('[shellui] child app session ready', { origin });
+      } else {
+        console.warn('[shellui] child app has no session', { origin, ...status });
+      }
+      options.onSession?.(status);
     }),
   );
 

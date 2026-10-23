@@ -139,10 +139,12 @@ export { postShellMessage } from './utils/postShellMessage.js';
 export {
   CHILD_FRAME_REGISTER,
   CHILD_FRAME_UNREGISTER,
+  CHILD_FRAME_SESSION,
   appFrameOrigin,
   createAppFrameWith,
 } from './utils/appFrame.js';
 export type {
+  AppFrameSessionStatus,
   AppFrameBackend,
   AppFrameHandle,
   AppFrameHost,
