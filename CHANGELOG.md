@@ -18,6 +18,18 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.4] - 2026-10-23
+
+### ✨ Feature
+
+- **SDK:** App frame (`createAppFrame`, `<ShelluiFrame>`) with a loading overlay embeds a child app with its own regional session.
+- **SDK:** `useShelluiNavigation` helper in `@shellui/sdk/react` syncs app routes with the shell.
+- **Core:** Regional silent sign-in uses the identity federation entry `/oauth/silent-signin`.
+
+### 🐛 Bug Fixes
+
+- **Core:** Deep links keep their query string when the shell opens an app.
+
 ## [0.7.0-alpha.3] - 2026-10-23
 
 ### 🐛 Bug Fixes

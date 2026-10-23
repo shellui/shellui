@@ -1,6 +1,6 @@
 {
   "name": "@shellui/sdk",
-  "version": "0.7.0-alpha.3",
+  "version": "0.7.0-alpha.4",
   "description": "Shellui SDK - TypeScript/JavaScript SDK for Shellui integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,7 +18,12 @@
       "import": "./dist/tiny.js",
       "default": "./dist/tiny.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "default": "./dist/react.js"
+    }
   },
   "files": [
     "dist",
@@ -41,10 +46,20 @@
     "roarr": "^7.21.4"
   },
   "devDependencies": {
+    "@types/react": "^19.2.2",
     "esbuild": "^0.25.0",
+    "react": "^19.2.4",
     "typescript": "^5.9.3"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }

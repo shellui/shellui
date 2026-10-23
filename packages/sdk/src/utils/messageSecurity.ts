@@ -76,6 +76,28 @@ export function collectOriginsFromUrls(...urls: (string | undefined | null)[]): 
 
 export class MessageSecurityPolicy {
   private extraAllowedOrigins = new Set<string>();
+  /** Exact origins of child app frames this window hosts. Counted so two frames can share one. */
+  private frameOrigins = new Map<string, number>();
+
+  /**
+   * Trust one exact child frame origin until the returned cleanup runs.
+   * Kept apart from `configure()`, which replaces the configured list.
+   */
+  allowFrameOrigin(origin: string): () => void {
+    const exact = originFromUrl(origin);
+    if (!exact || exact !== origin) {
+      throw new Error('allowFrameOrigin needs an exact http(s) origin');
+    }
+    this.frameOrigins.set(exact, (this.frameOrigins.get(exact) ?? 0) + 1);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      const count = (this.frameOrigins.get(exact) ?? 1) - 1;
+      if (count <= 0) this.frameOrigins.delete(exact);
+      else this.frameOrigins.set(exact, count);
+    };
+  }
 
   configure(options?: { allowedOrigins?: string[] }): void {
     this.extraAllowedOrigins.clear();
@@ -102,6 +124,9 @@ export class MessageSecurityPolicy {
       }
     }
     for (const origin of this.extraAllowedOrigins) {
+      origins.add(origin);
+    }
+    for (const origin of this.frameOrigins.keys()) {
       origins.add(origin);
     }
     return [...origins];
