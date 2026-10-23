@@ -16,6 +16,7 @@ import {
   type TokenExchangeOutcome,
 } from './tokenExchange';
 import { refreshFrameAccessTokenIfNeeded } from '../utils/frameSessionRefresher';
+import { decodeJwtPayload } from '../utils/decodeJwtPayload';
 
 const logger = getLogger('shellcore');
 
@@ -196,8 +197,7 @@ function clearTimer(key: string): void {
 
 function remember(identity: ResolvedAppBackend, session: AuthSession): void {
   memory.set(identity.key, { identity, session });
-  // Exchanged sessions are renewed by exchanging again, so no refresh token is kept.
-  writeRefresh(identity.key, usesTokenExchange(identity) ? null : session.refreshToken || null);
+  writeRefresh(identity.key, session.refreshToken || null);
   clearTimer(identity.key);
   const now = Date.now() / 1000;
   const delaySec = Math.max(5, session.expiresAt - now - 90);
@@ -227,13 +227,12 @@ async function doEnsure(
   identity: ResolvedAppBackend,
   allowSilent: boolean,
 ): Promise<string | null> {
+  if (usesTokenExchange(identity)) return ensureByTokenExchange(identity);
   const now = Math.floor(Date.now() / 1000);
   const current = memory.get(identity.key)?.session ?? null;
   if (current?.accessToken && !accessTokenRefreshDue(current.expiresAt, now)) {
     return current.accessToken;
   }
-
-  if (usesTokenExchange(identity)) return exchangeForIdentity(identity);
 
   const refreshToken = current?.refreshToken || readRefresh(identity.key);
   if (refreshToken) {
@@ -293,7 +292,38 @@ async function doEnsure(
   }
 }
 
-async function exchangeForIdentity(identity: ResolvedAppBackend): Promise<string | null> {
+function shellSubject(token: string): string | null {
+  const sub = decodeJwtPayload(token)?.sub;
+  return typeof sub === 'string' || typeof sub === 'number' ? `${sub}` : null;
+}
+
+function subjectKey(key: string): string {
+  return `${storageKey(key)}#sub`;
+}
+
+function readSubject(key: string): string | null {
+  try {
+    return sessionStorage.getItem(subjectKey(key));
+  } catch {
+    return null;
+  }
+}
+
+function writeSubject(key: string, sub: string | null): void {
+  try {
+    if (sub) sessionStorage.setItem(subjectKey(key), sub);
+    else sessionStorage.removeItem(subjectKey(key));
+  } catch {
+    // Ignore.
+  }
+}
+
+/**
+ * Regional session for an upstream identity server:
+ * keep it while valid, renew it with its own refresh token, and exchange the shell token
+ * only when there is none, the refresh fails, or the shell user changed.
+ */
+async function ensureByTokenExchange(identity: ResolvedAppBackend): Promise<string | null> {
   let shellToken: string | null | undefined;
   try {
     shellToken = await shellTokenImpl();
@@ -302,15 +332,44 @@ async function exchangeForIdentity(identity: ResolvedAppBackend): Promise<string
   }
   if (!shellToken) {
     forget(identity.key);
+    writeSubject(identity.key, null);
     return fail(identity, 'no_shell_session');
   }
-  if (failedShellToken.get(identity.key) === shellToken) return null;
+  const subject = shellSubject(shellToken);
+  if (readSubject(identity.key) !== subject) {
+    // Another shell user, or a session from before subjects were kept: never reuse it.
+    forget(identity.key);
+    writeSubject(identity.key, null);
+  }
 
+  const now = Math.floor(Date.now() / 1000);
+  const current = memory.get(identity.key)?.session ?? null;
+  if (current?.accessToken && !accessTokenRefreshDue(current.expiresAt, now)) {
+    return current.accessToken;
+  }
+  const refreshToken = current?.refreshToken || readRefresh(identity.key);
+  if (refreshToken) {
+    try {
+      const next = await backendFactory(toBackendConfig(identity)).refreshAuthSession(
+        current ? { ...current, refreshToken } : sessionForRefresh(refreshToken),
+        now,
+      );
+      if (next?.accessToken) {
+        remember(identity, next);
+        return next.accessToken;
+      }
+    } catch {
+      // Fall through to a new exchange.
+    }
+    forget(identity.key);
+  }
+
+  if (failedShellToken.get(identity.key) === shellToken) return null;
   const outcome = await exchangeImpl({
     backendUrl: identity.url,
     companyId: identity.companyId,
     shellAccessToken: shellToken,
-    nowSeconds: Math.floor(Date.now() / 1000),
+    nowSeconds: now,
   });
   if (!outcome.ok) {
     failedShellToken.set(identity.key, shellToken);
@@ -318,7 +377,8 @@ async function exchangeForIdentity(identity: ResolvedAppBackend): Promise<string
     return fail(identity, outcome.reason);
   }
   failedShellToken.delete(identity.key);
-  remember(identity, { ...outcome.session, refreshToken: '' });
+  writeSubject(identity.key, subject);
+  remember(identity, outcome.session);
   lastFailure.delete(identity.key);
   logger.info('App session: token exchange succeeded', {
     url: identity.url,

@@ -236,7 +236,7 @@ importers:
         specifier: 19.2.4
         version: 19.2.4
       react-dom:
-        specifier: ^19.2.4
+        specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
       typescript:
         specifier: ^5.9.3

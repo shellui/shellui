@@ -263,7 +263,7 @@ subject_token_type=urn:ietf:params:oauth:token-type:access_token
 company_id=<regional company id>
 ```
 
-The shell access token goes only to that regional server, never to the app. The app receives the regional access token. When it is due, the shell exchanges again with its current access token, so no regional refresh token is stored. A failed exchange is not retried with the same shell token. The regional server must list the shell origin (not the app origin) in `OIDC_CORS_ALLOWED_ORIGINS`, and needs `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS` and `GLOBAL_ACCESS_TOKEN_AUDIENCE`. No redirect allowlist entry is needed for this flow.
+The shell access token goes only to that regional server, never to the app. The app receives the regional access token. When it is due, the shell renews it with the regional refresh token, kept in `sessionStorage` like other app sessions and never sent to the app. It exchanges again only when there is no regional session, the refresh fails, or the shell user changes. Signing out of the shell clears every regional session. A failed exchange is not retried with the same shell token. The regional server must list the shell origin (not the app origin) in `OIDC_CORS_ALLOWED_ORIGINS`, and needs `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS` and `GLOBAL_ACCESS_TOKEN_AUDIENCE`. No redirect allowlist entry is needed for this flow.
 
 `safeForAuthToken: true` is still required for a navigation companion. Built-in admin (`backend.adminUrl`) and storage files keep the shell session and shell services unless a matching item sets a different `backend`. Add the shell origin to that server's OAuth redirect allowlist, the same way you allow the shell `backend`.
 
