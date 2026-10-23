@@ -57,6 +57,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 ## Contribute and operate
 
 - [Development](/development) - build this monorepo
+- [Self-hosting](/self-hosting) - Compose stack for identity, storage, hosting, and email
 - [Publishing](/publishing) - npm tags and version sync
 - [Sentry](/sentry) - production error reporting
 - [ADR 0001](/adr/ai-skill) - agent skill hosting and token budget
