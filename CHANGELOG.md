@@ -18,14 +18,17 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-alpha.4] - 2026-10-23
 
 ### ✨ Feature
 
-- **SDK:** `createAppFrame` and `<ShelluiFrame>` (`@shellui/sdk/react`) let an embedded app host another Shellui app, with its own regional session, theme, language, messages and URL sync.
-- **SDK:** `useShelluiNavigation` (`@shellui/sdk/react`) and `navigateApp`, `readAppLocation`, `subscribeAppLocation` give apps without a router two-way route sync with the shell.
-- **Core:** shell deep links keep their query string when they open an app (`/app/users?page=2`).
-- **Core:** silent sign-in to a regional identity server (`provider: "upstream"`) uses its federation entry `/oauth/silent-signin`.
+- **SDK:** App frame (`createAppFrame`, `<ShelluiFrame>`) with a loading overlay embeds a child app with its own regional session.
+- **SDK:** `useShelluiNavigation` helper in `@shellui/sdk/react` syncs app routes with the shell.
+- **Core:** Regional silent sign-in uses the identity federation entry `/oauth/silent-signin`.
+
+### 🐛 Bug Fixes
+
+- **Core:** Deep links keep their query string when the shell opens an app.
 
 ## [0.7.0-alpha.3] - 2026-10-23
 
