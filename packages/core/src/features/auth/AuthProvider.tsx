@@ -861,8 +861,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               });
             } catch (err) {
               reply('error');
-              const errorCode = getAuthRequestErrorCode(err);
-              if (errorCode === 'last_company_owner') {
+              const deleteErrorCode = getAuthRequestErrorCode(err);
+              if (deleteErrorCode === 'last_company_owner') {
                 const companies =
                   err instanceof AuthRequestError && Array.isArray(err.details.companies)
                     ? (err.details.companies as Array<{ name?: unknown }>)
@@ -880,7 +880,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 });
                 return;
               }
-              if (errorCode === 'recent_login_required') {
+              if (deleteErrorCode === 'recent_login_required') {
                 shellui.dialog({
                   title: t('userAccount.deleteAccount.reauthTitle'),
                   description: t('userAccount.deleteAccount.reauthDescription'),

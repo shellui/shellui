@@ -8,9 +8,12 @@
  * built for the child's own backend, never with the host's token.
  */
 
+import { getLogger } from '../logger/logger.js';
 import type { FrameRegistry } from './frameRegistry.js';
 import type { MessageSecurityPolicy } from './messageSecurity.js';
 import type { ShellUIMessage, ShellUIUrlPayload } from '../types.js';
+
+const logger = getLogger('shellsdk');
 
 export const CHILD_FRAME_REGISTER = 'SHELLUI_CHILD_FRAME_REGISTER';
 export const CHILD_FRAME_UNREGISTER = 'SHELLUI_CHILD_FRAME_UNREGISTER';
@@ -146,9 +149,9 @@ export function createAppFrameWith(
         ...(typeof data.hint === 'string' ? { hint: data.hint } : {}),
       };
       if (status.ok) {
-        console.info('[shellui] child app session ready', { origin });
+        logger.info('Child app session ready', { origin });
       } else {
-        console.warn('[shellui] child app has no session', { origin, ...status });
+        logger.warn('Child app has no session', { origin, ...status });
       }
       options.onSession?.(status);
     }),

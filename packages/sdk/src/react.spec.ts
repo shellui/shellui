@@ -28,9 +28,10 @@ afterEach(() => {
 function mount() {
   const host = document.createElement('div');
   document.body.appendChild(host);
-  root = createRoot(host);
+  const mounted = createRoot(host);
+  root = mounted;
   const render = (src: string, extra: Record<string, unknown> = {}) =>
-    act(() => root!.render(createElement(ShelluiFrame, { src, title: 'child', ...extra })));
+    act(() => mounted.render(createElement(ShelluiFrame, { src, title: 'child', ...extra })));
   const iframe = () => host.querySelector('iframe') as HTMLIFrameElement;
   return { host, render, iframe };
 }
