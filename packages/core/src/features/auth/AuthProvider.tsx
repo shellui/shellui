@@ -27,6 +27,7 @@ import {
   hasStoredAuthSession,
   inferAccessPendingErrorCode,
   isBffAuthEnabledFromConfig,
+  canRestoreStoredSession,
   isSessionExpired,
   isTokenAutoRefreshDisabled,
   logoutBffAuthSession,
@@ -245,6 +246,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const stored = readStoredAuthSession();
       if (!stored) {
+        if (!cancelled) {
+          setSession(null);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // A new tab has the shared profile but not the tab-scoped refresh token. Treat it as
+      // signed out instead of a signed-in session with no token. Keep storage: another tab
+      // may still own this session.
+      if (!canRestoreStoredSession(stored, bffAuthEnabled)) {
         if (!cancelled) {
           setSession(null);
           setIsLoading(false);

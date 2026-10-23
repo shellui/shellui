@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.3] - 2026-10-23
+
+### 🐛 Bug Fixes
+
+- **Login:** A new tab no longer looks signed in without a token, so embedded apps no longer show a dead sign-in screen. It shows the sign-in page instead.
+
 ## [0.7.0-alpha.2] - 2026-10-21
 
 ### 🐛 Bug Fixes
