@@ -1,0 +1,148 @@
+/**
+ * Host-side helper for an app that embeds another Shellui app.
+ *
+ * The embedding app (already inside the shell) registers the child frame. Its
+ * SDK then relays the child's messages (settings requests, toasts, dialogs and
+ * so on) to the shell and routes the shell replies back down, using the same
+ * frame registry the shell uses. The shell answers the child with settings
+ * built for the child's own backend, never with the host's token.
+ */
+
+import type { FrameRegistry } from './frameRegistry.js';
+import type { MessageSecurityPolicy } from './messageSecurity.js';
+import type { ShellUIMessage, ShellUIUrlPayload } from '../types.js';
+
+export const CHILD_FRAME_REGISTER = 'SHELLUI_CHILD_FRAME_REGISTER';
+export const CHILD_FRAME_UNREGISTER = 'SHELLUI_CHILD_FRAME_UNREGISTER';
+
+/** Identity server the child app signs in to. The shell checks it against its config. */
+export type AppFrameBackend = {
+  url: string;
+  companyId?: string | number;
+  type?: 'shellui' | 'supabase';
+  provider?: string;
+};
+
+export type ChildFrameRegisterPayload = {
+  frameId: string;
+  url: string;
+  backend: AppFrameBackend | null;
+};
+
+export type AppFrameOptions = {
+  /** Child app URL. Its origin is the only origin trusted for this frame. */
+  url: string;
+  /** Child identity server. Omit to let the shell decide (no token unless configured). */
+  backend?: AppFrameBackend | null;
+  /** Called when the child app changes its own URL. */
+  onNavigate?: (location: ShellUIUrlPayload) => void;
+  /** Called each time the child app finishes Shellui init (`SHELLUI_INITIALIZED`). */
+  onReady?: () => void;
+};
+
+export type AppFrameHandle = {
+  frameId: string;
+  origin: string;
+  destroy(): void;
+};
+
+export type AppFrameHost = {
+  frameRegistry: FrameRegistry;
+  messageSecurity: MessageSecurityPolicy;
+  addMessageListener(
+    type: string,
+    listener: (message: ShellUIMessage, event: MessageEvent) => void,
+  ): () => void;
+  sendMessageToParent(message: ShellUIMessage): boolean;
+};
+
+/** Exact http(s) origin of `url`, or throws. */
+export function appFrameOrigin(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error('createAppFrame needs an absolute http(s) URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('createAppFrame needs an absolute http(s) URL');
+  }
+  return parsed.origin;
+}
+
+function cleanBackend(backend: AppFrameBackend | null | undefined): AppFrameBackend | null {
+  if (!backend) return null;
+  appFrameOrigin(backend.url);
+  return {
+    url: backend.url,
+    ...(backend.companyId !== undefined && backend.companyId !== ''
+      ? { companyId: backend.companyId }
+      : {}),
+    ...(backend.type ? { type: backend.type } : {}),
+    ...(backend.provider ? { provider: backend.provider } : {}),
+  };
+}
+
+function isUrlPayload(value: unknown): value is ShellUIUrlPayload {
+  if (!value || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return typeof v.pathname === 'string';
+}
+
+/**
+ * Register `iframe` as a child Shellui app of this window.
+ * Call before or right after setting `iframe.src` to `options.url`.
+ */
+export function createAppFrameWith(
+  host: AppFrameHost,
+  iframe: HTMLIFrameElement,
+  options: AppFrameOptions,
+): AppFrameHandle {
+  const origin = appFrameOrigin(options.url);
+  const backend = cleanBackend(options.backend);
+  const releaseOrigin = host.messageSecurity.allowFrameOrigin(origin);
+  const frameId = host.frameRegistry.addIframe(iframe);
+
+  const fromChild = (event: MessageEvent) =>
+    Boolean(iframe.contentWindow) &&
+    event.source === iframe.contentWindow &&
+    event.origin === origin;
+
+  const cleanups: Array<() => void> = [];
+  cleanups.push(
+    host.addMessageListener('SHELLUI_URL_CHANGED', (message, event) => {
+      if (!fromChild(event) || !isUrlPayload(message.payload)) return;
+      options.onNavigate?.(message.payload);
+    }),
+  );
+
+  cleanups.push(
+    host.addMessageListener('SHELLUI_INITIALIZED', (_message, event) => {
+      if (!fromChild(event)) return;
+      options.onReady?.();
+    }),
+  );
+
+  const payload: ChildFrameRegisterPayload = { frameId, url: options.url, backend };
+  host.sendMessageToParent({
+    type: CHILD_FRAME_REGISTER,
+    payload: payload as unknown as ShellUIMessage['payload'],
+  });
+
+  let destroyed = false;
+  return {
+    frameId,
+    origin,
+    destroy() {
+      if (destroyed) return;
+      destroyed = true;
+      cleanups.forEach((cleanup) => cleanup());
+      host.frameRegistry.removeIframe(frameId);
+      releaseOrigin();
+      host.sendMessageToParent({
+        type: CHILD_FRAME_UNREGISTER,
+        payload: { frameId } as unknown as ShellUIMessage['payload'],
+      });
+    },
+  };
+}

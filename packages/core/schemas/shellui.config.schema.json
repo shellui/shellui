@@ -260,6 +260,10 @@
           "$ref": "#/definitions/AppBackendConfig",
           "description": "Identity server for this embedded app when it is not the shell `backend`. The shell keeps a separate session and sends this URL plus that session's access token. Omit to use the shell backend and token. The shell token is never sent when this server differs."
         },
+        "childFrames": {
+          "$ref": "#/definitions/ChildFramesConfig",
+          "description": "Lets this app host other Shellui apps in its own iframes (`createAppFrame`). Off when omitted. Only exact origins listed here are accepted."
+        },
         "email": {
           "$ref": "#/definitions/EmailConfig",
           "description": "Email service for this app. Omit to use the shell `email` when the app uses the shell identity server. When `backend` names a different server and this is omitted, the app receives no email URL."
@@ -335,6 +339,28 @@
       "type": "string",
       "enum": ["shellui", "supabase"],
       "description": "Supported backend providers for auth/API communication."
+    },
+    "ChildFramesConfig": {
+      "type": "object",
+      "properties": {
+        "origins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Exact origins of child apps, such as `https://admin.shellui.com`. No wildcards."
+        },
+        "backendOrigins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Exact origins of identity servers a child may sign in to, such as `https://id.eu.shellui.com`. The shell keeps a separate session per server and never sends its own token to a child. Omit to give children no token."
+        }
+      },
+      "required": ["origins"],
+      "additionalProperties": false,
+      "description": "Child apps an embedded app may host, and the identity servers they may use."
     },
     "EmailConfig": {
       "type": "object",

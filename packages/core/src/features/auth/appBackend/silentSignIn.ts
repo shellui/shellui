@@ -92,6 +92,9 @@ export function publishSilentAuthCallbackResult(win: Window = window): boolean {
   return true;
 }
 
+/** Provider name of a regional identity server's trusted upstream (identity federation). */
+export const FEDERATION_PROVIDER = 'upstream';
+
 export function buildSilentAuthorizeUrl(input: {
   backendUrl: string;
   provider: string;
@@ -101,7 +104,18 @@ export function buildSilentAuthorizeUrl(input: {
   clientTimezone?: string;
   clientDeviceId?: string;
 }): string {
-  const authorizeUrl = new URL(`${input.backendUrl.replace(/\/+$/, '')}/api/v1/authorize`);
+  const base = input.backendUrl.replace(/\/+$/, '');
+  if (input.provider === FEDERATION_PROVIDER) {
+    // A regional identity server signs in through its trusted upstream (global identity).
+    // It has its own prompt=none entry and returns the usual PKCE code to `redirect_to`.
+    const federated = new URL(`${base}/oauth/silent-signin`);
+    federated.searchParams.set('redirect_to', input.redirectTo);
+    federated.searchParams.set('code_challenge', input.codeChallenge);
+    const federatedCompany = getShellUILoginCompanyId(input.companyId);
+    if (federatedCompany) federated.searchParams.set('company_id', federatedCompany);
+    return federated.toString();
+  }
+  const authorizeUrl = new URL(`${base}/api/v1/authorize`);
   authorizeUrl.searchParams.set('provider', input.provider);
   authorizeUrl.searchParams.set('redirect_to', input.redirectTo);
   authorizeUrl.searchParams.set('code_challenge', input.codeChallenge);

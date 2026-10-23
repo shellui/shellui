@@ -19,8 +19,21 @@ import {
 import { SettingsContext } from './SettingsContext';
 import { useConfig } from '../config/useConfig';
 import { useAuth } from '../auth/hooks/useAuth';
-import { frameAuthPropagationOptions } from '../auth/appBackend/frameAuth';
 import {
+  childFrameAuthPropagationOptions,
+  frameAuthPropagationOptions,
+} from '../auth/appBackend/frameAuth';
+import {
+  addChildFrame,
+  findChildFrame,
+  listChildFrames,
+  removeChildFrame,
+  validateChildFrameRegistration,
+  type ChildFrameEntry,
+} from '../auth/appBackend/childFrames';
+import { resolveFrameNavigationItem } from '../auth/appBackend/identity';
+import {
+  ensureAppBackendSession,
   getAppBackendSession,
   refreshAppBackendSessionIfDue,
   subscribeAppBackendSessions,
@@ -211,10 +224,44 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [config],
   );
 
+  /** Settings for a child app hosted by an embedded app. Never carries the shell token. */
+  const pushSettingsToChildFrame = useCallback(
+    (entry: ChildFrameEntry | null, path: string[], baseSettings: Settings) => {
+      const lang = baseSettings.language?.code || 'en';
+      const settingsToPropagate = buildSettingsForPropagation(baseSettings, config, lang, {
+        ...childFrameAuthPropagationOptions({
+          identity: entry?.identity ?? null,
+          getAppSession: getAppBackendSession,
+        }),
+        includeLayoutChrome: false,
+        frameUuid: path[path.length - 1],
+      });
+      shellui.sendMessage({
+        type: 'SHELLUI_SETTINGS',
+        payload: { settings: settingsToPropagate },
+        to: path,
+      });
+    },
+    [config],
+  );
+
+  const propagateSettingsToChildFrames = useCallback(
+    (baseSettings: Settings) => {
+      const live = new Set(shellui.frameRegistry.getLiveIframes().map(([uuid]) => uuid));
+      const known = new Set(shellui.frameRegistry.getAllIframes().map(([uuid]) => uuid));
+      for (const entry of listChildFrames((uuid) => known.has(uuid))) {
+        if (!live.has(entry.hostUuid)) continue;
+        pushSettingsToChildFrame(entry, [entry.hostUuid, entry.frameId], baseSettings);
+      }
+    },
+    [pushSettingsToChildFrame],
+  );
+
   const propagateSettingsToIframes = useCallback(
     (baseSettings: Settings) => {
       const iframes = shellui.frameRegistry.getLiveIframes();
       if (iframes.length === 0) return;
+      propagateSettingsToChildFrames(baseSettings);
       const lang = baseSettings.language?.code || 'en';
       for (const [uuid, iframe] of iframes) {
         const frameSrc = iframe?.src ?? '';
@@ -230,7 +277,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [authOptionsForFrame, config],
+    [authOptionsForFrame, config, propagateSettingsToChildFrames],
   );
 
   const pushSettingsToFrame = useCallback(
@@ -502,6 +549,26 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
                 .getAllIframes()
                 .find(([uuid]) => uuid === firstHopIframeUuid)?.[1]
             : undefined;
+          // A child app hosted by an embedded app gets its own session, never the host's.
+          const childEntry = findChildFrame(requestingPath);
+          const hostEmbedsApps = Boolean(
+            requestingFrame?.src &&
+            resolveFrameNavigationItem(requestingFrame.src, config)?.childFrames,
+          );
+          const isHostedChild = requestingPath.length > 1 && (childEntry || hostEmbedsApps);
+          if (isHostedChild) {
+            if (childEntry?.identity) {
+              await ensureAppBackendSession(childEntry.identity, { allowSilent: true });
+            }
+            deliverSessionHandoff(() =>
+              pushSettingsToChildFrame(
+                childEntry,
+                requestingPath,
+                settingsRef.current ?? defaultSettings,
+              ),
+            );
+            return;
+          }
           if (requestingFrame?.src) {
             await refreshAppBackendSessionIfDue(requestingFrame.src, config);
           }
@@ -589,13 +656,61 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       },
     );
 
+    const cleanupChildRegister = shellui.addMessageListener(
+      'SHELLUI_CHILD_FRAME_REGISTER',
+      (message: ShellUIMessage) => {
+        if (typeof window === 'undefined' || window.parent !== window) return;
+        const from = (message.from ?? []).filter(Boolean);
+        const hostSrc = shellui.frameRegistry
+          .getAllIframes()
+          .find(([uuid]) => uuid === from[0])?.[1]?.src;
+        const result = validateChildFrameRegistration({
+          from,
+          hostSrc,
+          payload: message.payload,
+          config,
+        });
+        if (!result.ok) {
+          logger.warn('Rejected a child app frame', { reason: result.reason });
+          return;
+        }
+        addChildFrame(result.entry);
+        const { entry } = result;
+        void (async () => {
+          if (entry.identity) {
+            await ensureAppBackendSession(entry.identity, { allowSilent: true });
+          }
+          deliverSessionHandoff(() =>
+            pushSettingsToChildFrame(
+              entry,
+              [entry.hostUuid, entry.frameId],
+              settingsRef.current ?? defaultSettings,
+            ),
+          );
+        })();
+      },
+    );
+
+    const cleanupChildUnregister = shellui.addMessageListener(
+      'SHELLUI_CHILD_FRAME_UNREGISTER',
+      (message: ShellUIMessage) => {
+        const from = (message.from ?? []).filter(Boolean);
+        const frameId = (message.payload as { frameId?: unknown } | null)?.frameId;
+        if (from.length !== 1 || typeof frameId !== 'string') return;
+        removeChildFrame(from[0], frameId);
+      },
+    );
+
     return () => {
       cleanup();
       cleanupSettings();
       cleanupSettingsRequested();
       cleanupInitialized();
+      cleanupChildRegister();
+      cleanupChildUnregister();
     };
   }, [
+    pushSettingsToChildFrame,
     authOptionsForFrame,
     config,
     applyHandoffToken,

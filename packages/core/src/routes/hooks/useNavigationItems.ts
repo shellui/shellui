@@ -61,7 +61,7 @@ export function useNavigationItems() {
       const navHashPath = getHashPathFromUrl(navigationItem.url).replace(/^\/+|\/+$/g, '');
       const segments = [navHashPath, subPath].filter(Boolean);
       const fullHashPath = `/${segments.join('/')}`;
-      return `${base}#${fullHashPath}`;
+      return `${base}#${fullHashPath}${location.search}`;
     }
 
     let finalUrl = navigationItem.url;
@@ -71,8 +71,9 @@ export function useNavigationItems() {
         : `${navigationItem.url}/`;
       finalUrl = `${baseUrl}${subPath}`;
     }
-    return finalUrl;
-  }, [navigationItem, location.pathname]);
+    // Deep links keep their query (`/app/users?page=2` opens the app at `?page=2`).
+    return withShellSearch(finalUrl, location.search);
+  }, [navigationItem, location.pathname, location.search]);
 
   return {
     url,
@@ -81,4 +82,14 @@ export function useNavigationItems() {
     navigationItem,
     navigationItems,
   };
+}
+
+/** Adds the shell query to an app URL, before any hash. */
+export function withShellSearch(url: string, search: string): string {
+  const query = search.replace(/^\?/, '');
+  if (!query) return url;
+  const hashAt = url.indexOf('#');
+  const beforeHash = hashAt >= 0 ? url.slice(0, hashAt) : url;
+  const hash = hashAt >= 0 ? url.slice(hashAt) : '';
+  return `${beforeHash}${beforeHash.includes('?') ? '&' : '?'}${query}${hash}`;
 }

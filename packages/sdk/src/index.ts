@@ -24,6 +24,7 @@ import { FrameRegistry } from './utils/frameRegistry.js';
 import { MessageListenerRegistry } from './utils/messageListenerRegistry.js';
 import { MessageSecurityPolicy } from './utils/messageSecurity.js';
 import { CallbackRegistry } from './utils/callbackRegistry.js';
+import { createAppFrameWith, type AppFrameHandle, type AppFrameOptions } from './utils/appFrame.js';
 import type {
   ShellUIMessage,
   ToastOptions,
@@ -135,6 +136,19 @@ export {
 } from './utils/messageSecurity.js';
 export type { MessageSourceKind } from './utils/messageSecurity.js';
 export { postShellMessage } from './utils/postShellMessage.js';
+export {
+  CHILD_FRAME_REGISTER,
+  CHILD_FRAME_UNREGISTER,
+  appFrameOrigin,
+  createAppFrameWith,
+} from './utils/appFrame.js';
+export type {
+  AppFrameBackend,
+  AppFrameHandle,
+  AppFrameHost,
+  AppFrameOptions,
+  ChildFrameRegisterPayload,
+} from './utils/appFrame.js';
 export {
   waitForInitialSettings,
   SETTINGS_HANDSHAKE_TIMEOUT_MS,
@@ -733,8 +747,25 @@ export const sendMessage = (message: ShellUIMessage): number => sdk.sendMessage(
 export const propagateMessage = (message: ShellUIMessage): number => sdk.propagateMessage(message);
 export const sendMessageToParent = (message: ShellUIMessage): boolean =>
   sdk.sendMessageToParent(message);
+/**
+ * Host a child Shellui app in `iframe`. This app's SDK relays the child's
+ * messages to the shell, and the shell gives the child its own session.
+ */
+export const createAppFrame = (
+  iframe: HTMLIFrameElement,
+  options: AppFrameOptions,
+): AppFrameHandle => createAppFrameWith(sdk, iframe, options);
 export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
+export {
+  APP_LOCATION_EVENT,
+  navigateApp,
+  readAppLocation,
+  stripBasePath,
+  subscribeAppLocation,
+  withBasePath,
+  type AppLocation,
+} from './utils/appLocation.js';
 export const shellui = sdk;
 export const storage = sdk.storage;
 export const ai = sdk.ai;
