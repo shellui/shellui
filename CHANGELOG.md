@@ -18,16 +18,17 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-alpha.5] - 2026-10-23
 
 ### ✨ Feature
 
-- **Core:** A per-app backend with `provider: "upstream"` gets its session by OAuth token exchange (RFC 8693) at the regional identity server instead of a hidden sign-in frame. Needs identity-service with token exchange.
-- **SDK:** `createAppFrame` takes `onSession`, and `<ShelluiFrame>` shows why the child has no session (`renderError(retry, error)`).
+- **Core:** Regional app sessions use OAuth token exchange (RFC 8693) instead of iframe silent sign-in.
+- **Core:** Regional sessions renew with their own refresh token first.
+- **SDK:** App frames report why the child has no session (`onSession`, `renderError`).
 
 ### 🐛 Bug Fixes
 
-- **SDK:** `<ShelluiFrame>` no longer reloads the child when the child navigates. Only a host change navigates it, without setting `src` again.
+- **SDK:** Child navigation no longer reloads the app frame.
 
 ## [0.7.0-alpha.4] - 2026-10-23
 
