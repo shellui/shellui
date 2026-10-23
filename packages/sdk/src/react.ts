@@ -5,13 +5,21 @@ import {
   createElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type IframeHTMLAttributes,
   type ReactNode,
 } from 'react';
 import { createAppFrame } from './index.js';
+import {
+  navigateApp,
+  readAppLocation,
+  subscribeAppLocation,
+  type AppLocation,
+} from './utils/appLocation.js';
 import type { AppFrameBackend } from './utils/appFrame.js';
 import type { ShellUIUrlPayload } from './types.js';
 
@@ -28,9 +36,9 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   /** The child app changed its URL. Mirror it in the host route here. */
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Shown over the hidden frame until the child app finishes Shellui init. */
-  loading?: ReactNode;
+  fallback?: ReactNode;
   /** Shown when init does not arrive in time. Call `retry` to reload the frame. */
-  error?: (retry: () => void) => ReactNode;
+  renderError?: (retry: () => void) => ReactNode;
   /** Defaults to `SHELLUI_FRAME_READY_TIMEOUT_MS`. */
   readyTimeoutMs?: number;
   /** Class for the wrapper that holds the frame and the overlay. */
@@ -62,8 +70,8 @@ export function ShelluiFrame({
   src,
   backend,
   onNavigate,
-  loading,
-  error,
+  fallback,
+  renderError,
   readyTimeoutMs = SHELLUI_FRAME_READY_TIMEOUT_MS,
   containerClassName,
   onStatusChange,
@@ -139,11 +147,38 @@ export function ShelluiFrame({
           'div',
           { style: fill, 'data-shellui-frame-overlay': status },
           status === 'error'
-            ? (error ?? defaultError)(retry)
-            : loading !== undefined
-              ? loading
+            ? (renderError ?? defaultError)(retry)
+            : fallback !== undefined
+              ? fallback
               : defaultLoading(),
         )
       : null,
   );
+}
+
+export type ShelluiNavigation = {
+  location: AppLocation;
+  /** Go to an app path such as `/companies/42`. Pass `replace` to skip a history entry. */
+  navigate: (path: string, options?: { replace?: boolean }) => void;
+};
+
+/**
+ * Two-way route sync with the shell for apps without a router library.
+ * `navigate` changes the URL and the SDK reports it to the shell. Shell back, forward and
+ * deep links update `location`. Pass Vite's `import.meta.env.BASE_URL` as `basePath`.
+ */
+export function useShelluiNavigation(basePath = '/'): ShelluiNavigation {
+  const path = useSyncExternalStore(
+    subscribeAppLocation,
+    () => readAppLocation(basePath).path,
+    () => '/',
+  );
+  const navigate = useCallback(
+    (next: string, options?: { replace?: boolean }) =>
+      navigateApp(next, { basePath, replace: options?.replace }),
+    [basePath],
+  );
+  // The snapshot is the path string, so the location object only changes with the URL.
+  const location = useMemo(() => readAppLocation(basePath), [path, basePath]);
+  return { location, navigate };
 }

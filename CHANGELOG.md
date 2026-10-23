@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### ✨ Feature
 
 - **SDK:** `createAppFrame` and `<ShelluiFrame>` (`@shellui/sdk/react`) let an embedded app host another Shellui app, with its own regional session, theme, language, messages and URL sync.
+- **SDK:** `useShelluiNavigation` (`@shellui/sdk/react`) and `navigateApp`, `readAppLocation`, `subscribeAppLocation` give apps without a router two-way route sync with the shell.
 
 ## [0.7.0-alpha.3] - 2026-10-23
 

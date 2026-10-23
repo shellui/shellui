@@ -757,6 +757,15 @@ export const createAppFrame = (
 ): AppFrameHandle => createAppFrameWith(sdk, iframe, options);
 export const callbackRegistry = sdk.callbackRegistry;
 export { getLogger } from './logger/logger.js';
+export {
+  APP_LOCATION_EVENT,
+  navigateApp,
+  readAppLocation,
+  stripBasePath,
+  subscribeAppLocation,
+  withBasePath,
+  type AppLocation,
+} from './utils/appLocation.js';
 export const shellui = sdk;
 export const storage = sdk.storage;
 export const ai = sdk.ai;
