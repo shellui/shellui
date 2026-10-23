@@ -230,7 +230,7 @@ importers:
         specifier: ^0.25.0
         version: 0.25.12
       react:
-        specifier: ^19.2.4
+        specifier: 19.2.4
         version: 19.2.4
       typescript:
         specifier: ^5.9.3
