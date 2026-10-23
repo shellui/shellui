@@ -10,6 +10,24 @@ import {
 } from './silentSignIn';
 
 describe('buildSilentAuthorizeUrl', () => {
+  it('uses the federation entry for a regional identity server', () => {
+    const url = new URL(
+      buildSilentAuthorizeUrl({
+        backendUrl: 'https://id.eu.example/',
+        provider: 'upstream',
+        redirectTo: 'https://shell.example/login/callback?shellui_silent=1',
+        codeChallenge: 'challenge-value',
+        companyId: 7,
+      }),
+    );
+    expect(`${url.origin}${url.pathname}`).toBe('https://id.eu.example/oauth/silent-signin');
+    expect(url.searchParams.get('company_id')).toBe('7');
+    expect(url.searchParams.get('code_challenge')).toBe('challenge-value');
+    expect(url.searchParams.get('redirect_to')).toBe(
+      'https://shell.example/login/callback?shellui_silent=1',
+    );
+  });
+
   it('uses PKCE, prompt=none, and code delivery without a shell token', () => {
     const shellToken = 'shell-access-token.should.not.appear';
     const url = new URL(
