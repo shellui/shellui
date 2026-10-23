@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FrameRegistry } from './frameRegistry.js';
 import { MessageSecurityPolicy } from './messageSecurity.js';
-import { CHILD_FRAME_REGISTER, CHILD_FRAME_UNREGISTER, createAppFrameWith } from './appFrame.js';
+import {
+  CHILD_FRAME_REGISTER,
+  CHILD_FRAME_SESSION,
+  CHILD_FRAME_UNREGISTER,
+  createAppFrameWith,
+} from './appFrame.js';
 import type { ShellUIMessage } from '../types.js';
 
 type Listener = (message: ShellUIMessage, event: MessageEvent) => void;
@@ -119,5 +124,25 @@ describe('MessageSecurityPolicy.allowFrameOrigin', () => {
     expect(policy.isOriginAllowed('https://b.example.com')).toBe(true);
     release();
     expect(policy.isOriginAllowed('https://b.example.com')).toBe(false);
+  });
+
+  it('reports the shell session result for its own frame only', () => {
+    const { iframe, host, emit } = setup();
+    const onSession = vi.fn();
+    const handle = createAppFrameWith(host, iframe, {
+      url: 'https://admin.example.com/',
+      onSession,
+    });
+    const parent = (globalThis.window as unknown as { parent: unknown }).parent;
+    emit(CHILD_FRAME_SESSION, { frameId: 'other', ok: false, reason: 'x' }, parent, 'https://s');
+    emit(CHILD_FRAME_SESSION, { frameId: handle.frameId, ok: false, reason: 'x' }, {}, 'https://s');
+    expect(onSession).not.toHaveBeenCalled();
+    emit(
+      CHILD_FRAME_SESSION,
+      { frameId: handle.frameId, ok: false, reason: 'timeout', hint: 'h' },
+      parent,
+      'https://s',
+    );
+    expect(onSession).toHaveBeenCalledWith({ ok: false, reason: 'timeout', hint: 'h' });
   });
 });

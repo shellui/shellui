@@ -109,9 +109,9 @@ describe('webPkce', () => {
   });
 
   it('returns a null redirect_to for an entry stored without one', () => {
-    const id = 'o' + '0'.repeat(32);
+    const id = `o${'0'.repeat(32)}`;
     sessionStorage.setItem(
-      'shellui.auth.pkce.' + id,
+      `shellui.auth.pkce.${id}`,
       JSON.stringify({ verifier: 'v'.repeat(43), createdAt: Date.now() }),
     );
     expect(takeWebPkceFlow(id)).toEqual({ verifier: 'v'.repeat(43), redirectTo: null });

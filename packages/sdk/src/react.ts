@@ -20,7 +20,7 @@ import {
   subscribeAppLocation,
   type AppLocation,
 } from './utils/appLocation.js';
-import type { AppFrameBackend } from './utils/appFrame.js';
+import type { AppFrameBackend, AppFrameSessionStatus } from './utils/appFrame.js';
 import type { ShellUIUrlPayload } from './types.js';
 
 /** Time the child app has to finish Shellui init before the error state shows. */
@@ -29,7 +29,12 @@ export const SHELLUI_FRAME_READY_TIMEOUT_MS = 20_000;
 export type ShelluiFrameStatus = 'loading' | 'ready' | 'error';
 
 export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 'src'> & {
-  /** Child app URL, including any deep-link path. A new value reloads the frame. */
+  /**
+   * Child app URL, including any deep-link path. A new value on the same origin
+   * navigates the running child (no reload of the frame element, no re-register).
+   * A value equal to the location the child just reported is ignored, so mirroring
+   * child navigation into `src` never reloads the child.
+   */
   src: string;
   /** Child identity server. The shell must allow it in config. */
   backend?: AppFrameBackend | null;
@@ -37,8 +42,11 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Shown over the hidden frame until the child app finishes Shellui init. */
   fallback?: ReactNode;
-  /** Shown when init does not arrive in time. Call `retry` to reload the frame. */
-  renderError?: (retry: () => void) => ReactNode;
+  /**
+   * Shown when init does not arrive in time, or when the shell reports that the
+   * child got no session (`error.reason`, `error.hint`). Call `retry` to try again.
+   */
+  renderError?: (retry: () => void, error?: AppFrameSessionStatus) => ReactNode;
   /** Defaults to `SHELLUI_FRAME_READY_TIMEOUT_MS`. */
   readyTimeoutMs?: number;
   /** Class for the wrapper that holds the frame and the overlay. */
@@ -46,17 +54,46 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   onStatusChange?: (status: ShelluiFrameStatus) => void;
 };
 
+function frameOriginOrEmpty(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.origin : '';
+  } catch {
+    return '';
+  }
+}
+
+function normalizeHref(url: string): string {
+  try {
+    return new URL(url).href;
+  } catch {
+    return '';
+  }
+}
+
+function hrefFromLocation(origin: string, location: ShellUIUrlPayload): string {
+  return normalizeHref(
+    `${origin}${location.pathname}${location.search ?? ''}${location.hash ?? ''}`,
+  );
+}
+
 const fill: CSSProperties = { position: 'absolute', inset: 0 };
 
 function defaultLoading(): ReactNode {
   return createElement('div', { 'data-shellui-frame-loading': '', role: 'status' }, 'Loading…');
 }
 
-function defaultError(retry: () => void): ReactNode {
+function defaultError(retry: () => void, error?: AppFrameSessionStatus): ReactNode {
   return createElement(
     'div',
-    { 'data-shellui-frame-error': '', role: 'alert' },
-    createElement('p', null, 'This app did not load.'),
+    { 'data-shellui-frame-error': error?.reason ?? '', role: 'alert' },
+    createElement(
+      'p',
+      null,
+      error?.reason ? 'This app could not sign in.' : 'This app did not load.',
+    ),
+    error?.reason ? createElement('p', null, error.hint || error.reason) : null,
+    error?.reason && error.hint ? createElement('code', null, error.reason) : null,
     createElement('button', { type: 'button', onClick: retry }, 'Retry'),
   );
 }
@@ -94,13 +131,23 @@ export function ShelluiFrame({
     statusRef.current?.(status);
   }, [status]);
 
+  const [sessionError, setSessionError] = useState<AppFrameSessionStatus | undefined>();
+  const srcRef = useRef(src);
+  srcRef.current = src;
+  /** Absolute URL the child is at (last loaded by us or reported by the child). */
+  const childHrefRef = useRef<string | null>(null);
+  const origin = frameOriginOrEmpty(src);
+
   useEffect(() => {
     const iframe = ref.current;
-    if (!iframe) return;
+    if (!iframe || !origin) return;
     setStatus('loading');
+    setSessionError(undefined);
     let ready = false;
+    let sessionFailed = false;
+    const initialSrc = srcRef.current;
     const handle = createAppFrame(iframe, {
-      url: src,
+      url: initialSrc,
       backend: backendUrl
         ? {
             url: backendUrl,
@@ -109,14 +156,24 @@ export function ShelluiFrame({
             ...(provider ? { provider } : {}),
           }
         : null,
-      onNavigate: (location) => navigateRef.current?.(location),
+      onNavigate: (location) => {
+        childHrefRef.current = hrefFromLocation(origin, location);
+        navigateRef.current?.(location);
+      },
       onReady: () => {
         ready = true;
-        setStatus('ready');
+        if (!sessionFailed) setStatus('ready');
+      },
+      onSession: (session) => {
+        if (session.ok) return;
+        sessionFailed = true;
+        setSessionError(session);
+        setStatus('error');
       },
     });
     // Load (or reload) after registering so the first child message is trusted.
-    iframe.src = src;
+    childHrefRef.current = normalizeHref(initialSrc);
+    iframe.src = initialSrc;
     const timer = setTimeout(() => {
       if (!ready) setStatus('error');
     }, readyTimeoutMs);
@@ -124,7 +181,22 @@ export function ShelluiFrame({
       clearTimeout(timer);
       handle.destroy();
     };
-  }, [src, backendUrl, companyId, backendType, provider, attempt, readyTimeoutMs]);
+  }, [origin, backendUrl, companyId, backendType, provider, attempt, readyTimeoutMs]);
+
+  // Host-driven navigation (back, forward, deep link): move the running child.
+  // Never touches `src` again, so child-reported navigation cannot reload it.
+  useEffect(() => {
+    const iframe = ref.current;
+    const target = normalizeHref(src);
+    if (!iframe || !target || target === childHrefRef.current) return;
+    if (frameOriginOrEmpty(target) !== origin) return;
+    childHrefRef.current = target;
+    try {
+      iframe.contentWindow?.location.replace(target);
+    } catch {
+      // Detached frame; the next registration loads `src`.
+    }
+  }, [src, origin]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
   const hidden = status !== 'ready';
@@ -147,7 +219,7 @@ export function ShelluiFrame({
           'div',
           { style: fill, 'data-shellui-frame-overlay': status },
           status === 'error'
-            ? (renderError ?? defaultError)(retry)
+            ? (renderError ?? defaultError)(retry, sessionError)
             : fallback !== undefined
               ? fallback
               : defaultLoading(),

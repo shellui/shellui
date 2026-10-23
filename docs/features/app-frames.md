@@ -48,7 +48,7 @@ Hosting is off by default. Allow it on the host app's navigation item, with exac
 
 - The host SDK trusts only the child's exact origin and window. It relays child messages (settings requests, toasts, dialogs and so on) to the shell, and routes the shell replies back down.
 - The host registers the child with `SHELLUI_CHILD_FRAME_REGISTER`. The shell accepts it only from a direct app frame whose item allows that child origin and backend origin.
-- The shell signs in to the child's identity server with the same isolated session and silent sign-in it uses for per-app backends, and refreshes it. The child gets that session only. The shell token is never sent to a child.
+- The shell signs in to the child's identity server with the same isolated session it uses for per-app backends (token exchange for a regional server with `provider: "upstream"`, silent sign-in otherwise), and refreshes it. The child gets that session only. The shell token is never sent to a child.
 - A child with no allowed backend gets settings with no token, no user and no service URLs.
 - Theme, language and token changes are pushed to every registered child.
 

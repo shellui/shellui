@@ -47,14 +47,18 @@ describe('transferQueue', () => {
     expect(summary.active).toBe(2);
     expect(summary.activeUploads).toBe(1);
     expect(summary.activeDownloads).toBe(1);
-    expect(getItemPercent(getTransferQueue().find((i) => i.id === 'dl')!)).toBe(25);
+    const download = getTransferQueue().find((i) => i.id === 'dl');
+    expect(download).toBeDefined();
+    expect(getItemPercent(download as NonNullable<typeof download>)).toBe(25);
     expect(getTransferQueue().find((i) => i.id === 'dl')?.bytesTransferred).toBe(175_000_000);
   });
 
   it('supports ratio-only progress when size is unknown', () => {
     addTransfer({ id: 'dl', kind: 'download', name: 'Model', size: 0 });
     setTransferProgress('dl', { ratio: 0.4 });
-    expect(getItemPercent(getTransferQueue()[0]!)).toBe(40);
+    const [item] = getTransferQueue();
+    expect(item).toBeDefined();
+    expect(getItemPercent(item as NonNullable<typeof item>)).toBe(40);
     expect(getTransferSummary().percent).toBe(40);
   });
 

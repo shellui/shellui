@@ -10,8 +10,44 @@ import {
   type ResolvedAppBackend,
 } from './identity';
 import { runSilentPkceSignIn, type SilentSignInOutcome } from './silentSignIn';
+import {
+  describeAppSessionFailure,
+  exchangeShellTokenForAppSession,
+  type TokenExchangeOutcome,
+} from './tokenExchange';
+import { refreshFrameAccessTokenIfNeeded } from '../utils/frameSessionRefresher';
+import { decodeJwtPayload } from '../utils/decodeJwtPayload';
 
 const logger = getLogger('shellcore');
+
+/** Why the last session attempt for an app identity server failed (no secrets). */
+const lastFailure = new Map<string, string>();
+
+export function getAppBackendSessionFailure(key: string): string | null {
+  return lastFailure.get(key) ?? null;
+}
+
+/** Let the next ensure call try silent sign-in again (user asked to retry). */
+export function allowSilentRetry(key: string): void {
+  silentAttempted.delete(key);
+  failedShellToken.delete(key);
+}
+
+/** Identity servers that trust the shell's global identity get a session by token exchange. */
+export function usesTokenExchange(identity: ResolvedAppBackend): boolean {
+  return identity.type === 'shellui' && identity.provider === 'upstream';
+}
+
+function fail(identity: ResolvedAppBackend, reason: string): null {
+  lastFailure.set(identity.key, reason);
+  logger.warn('App session: no session for an app identity server', {
+    url: identity.url,
+    companyId: identity.companyId ?? null,
+    reason,
+    hint: describeAppSessionFailure(reason),
+  });
+  return null;
+}
 
 /** Tab-scoped refresh tokens for app identity servers. Not the shell refresh key. */
 export const APP_BACKEND_REFRESH_PREFIX = 'shellui.auth.app.refresh.';
@@ -30,6 +66,8 @@ const memory = new Map<string, StoredEntry>();
 const refreshTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const inFlight = new Map<string, Promise<string | null>>();
 const silentAttempted = new Set<string>();
+/** Shell token that last failed an exchange, so the same token is not retried in a loop. Memory only. */
+const failedShellToken = new Map<string, string>();
 const listeners = new Set<() => void>();
 
 let backendFactory: (config: BackendConfig) => AppBackendClient = createAuthBackend;
@@ -38,6 +76,24 @@ let signInImpl: (input: {
   provider: string;
   companyId?: string | number;
 }) => Promise<SilentSignInOutcome> = runSilentPkceSignIn;
+
+let shellTokenImpl: () => Promise<string | null | undefined> = refreshFrameAccessTokenIfNeeded;
+let exchangeImpl: typeof exchangeShellTokenForAppSession = exchangeShellTokenForAppSession;
+
+export function setAppBackendTokenExchange(
+  shellToken: () => Promise<string | null | undefined>,
+  exchange: (
+    input: Parameters<typeof exchangeShellTokenForAppSession>[0],
+  ) => Promise<TokenExchangeOutcome> = exchangeShellTokenForAppSession,
+): void {
+  shellTokenImpl = shellToken;
+  exchangeImpl = exchange;
+}
+
+export function resetAppBackendTokenExchange(): void {
+  shellTokenImpl = refreshFrameAccessTokenIfNeeded;
+  exchangeImpl = exchangeShellTokenForAppSession;
+}
 
 export function setAppBackendFactory(factory: (config: BackendConfig) => AppBackendClient): void {
   backendFactory = factory;
@@ -55,6 +111,7 @@ export function setAppBackendSignIn(
 
 export function resetAppBackendSilentAttempts(): void {
   silentAttempted.clear();
+  failedShellToken.clear();
 }
 
 export function subscribeAppBackendSessions(listener: () => void): () => void {
@@ -170,6 +227,7 @@ async function doEnsure(
   identity: ResolvedAppBackend,
   allowSilent: boolean,
 ): Promise<string | null> {
+  if (usesTokenExchange(identity)) return ensureByTokenExchange(identity);
   const now = Math.floor(Date.now() / 1000);
   const current = memory.get(identity.key)?.session ?? null;
   if (current?.accessToken && !accessTokenRefreshDue(current.expiresAt, now)) {
@@ -194,8 +252,13 @@ async function doEnsure(
     }
   }
 
-  if (!allowSilent || identity.type !== 'shellui' || !identity.provider) return null;
-  if (silentAttempted.has(identity.key)) return null;
+  if (!allowSilent) return null;
+  if (identity.type !== 'shellui' || !identity.provider) {
+    return fail(identity, 'silent_sign_in_unsupported');
+  }
+  if (silentAttempted.has(identity.key)) {
+    return null;
+  }
   silentAttempted.add(identity.key);
 
   let outcome: SilentSignInOutcome;
@@ -206,18 +269,10 @@ async function doEnsure(
       companyId: identity.companyId,
     });
   } catch {
-    logger.info('Silent sign-in did not complete for an app identity server', {
-      url: identity.url,
-    });
-    return null;
+    return fail(identity, 'silent_sign_in_error');
   }
-  if (!outcome.ok) {
-    logger.info('Silent sign-in did not complete for an app identity server', {
-      url: identity.url,
-      reason: outcome.reason,
-    });
-    return null;
-  }
+  if (!outcome.ok) return fail(identity, outcome.reason);
+  logger.info('App session: silent sign-in returned a code, exchanging it', { url: identity.url });
 
   try {
     const session = await backendFactory(toBackendConfig(identity)).exchangeOAuthSessionCode({
@@ -226,15 +281,110 @@ async function doEnsure(
       codeVerifier: outcome.codeVerifier,
       nowSeconds: Math.floor(Date.now() / 1000),
     });
-    if (!session?.accessToken) return null;
+    if (!session?.accessToken) return fail(identity, 'token_exchange_empty');
     remember(identity, session);
+    lastFailure.delete(identity.key);
+    logger.info('App session: signed in to app identity server', { url: identity.url });
     return session.accessToken;
+  } catch (err) {
+    const message = err instanceof Error ? err.message.slice(0, 200) : '';
+    return fail(identity, `token_exchange_failed${message ? `: ${message}` : ''}`);
+  }
+}
+
+function shellSubject(token: string): string | null {
+  const sub = decodeJwtPayload(token)?.sub;
+  return typeof sub === 'string' || typeof sub === 'number' ? `${sub}` : null;
+}
+
+function subjectKey(key: string): string {
+  return `${storageKey(key)}#sub`;
+}
+
+function readSubject(key: string): string | null {
+  try {
+    return sessionStorage.getItem(subjectKey(key));
   } catch {
-    logger.info('Silent sign-in did not complete for an app identity server', {
-      url: identity.url,
-    });
     return null;
   }
+}
+
+function writeSubject(key: string, sub: string | null): void {
+  try {
+    if (sub) sessionStorage.setItem(subjectKey(key), sub);
+    else sessionStorage.removeItem(subjectKey(key));
+  } catch {
+    // Ignore.
+  }
+}
+
+/**
+ * Regional session for an upstream identity server:
+ * keep it while valid, renew it with its own refresh token, and exchange the shell token
+ * only when there is none, the refresh fails, or the shell user changed.
+ */
+async function ensureByTokenExchange(identity: ResolvedAppBackend): Promise<string | null> {
+  let shellToken: string | null | undefined;
+  try {
+    shellToken = await shellTokenImpl();
+  } catch {
+    shellToken = null;
+  }
+  if (!shellToken) {
+    forget(identity.key);
+    writeSubject(identity.key, null);
+    return fail(identity, 'no_shell_session');
+  }
+  const subject = shellSubject(shellToken);
+  if (readSubject(identity.key) !== subject) {
+    // Another shell user, or a session from before subjects were kept: never reuse it.
+    forget(identity.key);
+    writeSubject(identity.key, null);
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const current = memory.get(identity.key)?.session ?? null;
+  if (current?.accessToken && !accessTokenRefreshDue(current.expiresAt, now)) {
+    return current.accessToken;
+  }
+  const refreshToken = current?.refreshToken || readRefresh(identity.key);
+  if (refreshToken) {
+    try {
+      const next = await backendFactory(toBackendConfig(identity)).refreshAuthSession(
+        current ? { ...current, refreshToken } : sessionForRefresh(refreshToken),
+        now,
+      );
+      if (next?.accessToken) {
+        remember(identity, next);
+        return next.accessToken;
+      }
+    } catch {
+      // Fall through to a new exchange.
+    }
+    forget(identity.key);
+  }
+
+  if (failedShellToken.get(identity.key) === shellToken) return null;
+  const outcome = await exchangeImpl({
+    backendUrl: identity.url,
+    companyId: identity.companyId,
+    shellAccessToken: shellToken,
+    nowSeconds: now,
+  });
+  if (!outcome.ok) {
+    failedShellToken.set(identity.key, shellToken);
+    forget(identity.key);
+    return fail(identity, outcome.reason);
+  }
+  failedShellToken.delete(identity.key);
+  writeSubject(identity.key, subject);
+  remember(identity, outcome.session);
+  lastFailure.delete(identity.key);
+  logger.info('App session: token exchange succeeded', {
+    url: identity.url,
+    companyId: identity.companyId ?? null,
+  });
+  return outcome.session.accessToken;
 }
 
 export function ensureAppBackendSession(
@@ -278,6 +428,7 @@ export async function endAppBackendSessions(): Promise<void> {
   refreshTimers.clear();
   inFlight.clear();
   silentAttempted.clear();
+  failedShellToken.clear();
   clearAllRefresh();
   notify();
   await Promise.all(
