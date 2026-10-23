@@ -27,6 +27,7 @@ export type {
   BackendType,
   BackendConfig,
   AppBackendConfig,
+  ChildFramesConfig,
   AuthConfig,
   AdministrationConfig,
   StorageConfig,

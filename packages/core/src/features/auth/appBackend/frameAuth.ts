@@ -140,14 +140,7 @@ export function resolveFrameAuthDelivery(input: {
   );
 }
 
-/** Options for `buildSettingsForPropagation`. Shell frames omit the override keys. */
-export function frameAuthPropagationOptions(input: {
-  frameSrc: string;
-  config?: ShellUIConfig;
-  shellAccessToken: string | null;
-  getAppSession: (key: string) => AuthSession | null;
-  shellOrigin?: string | null;
-}): {
+export type FrameAuthPropagationOptions = {
   includeAuthAccessToken: boolean;
   accessToken: string | null;
   authBackendBaseUrl?: string | null;
@@ -155,8 +148,9 @@ export function frameAuthPropagationOptions(input: {
   storage?: StorageConfig | null;
   email?: EmailConfig | null;
   hosting?: HostingConfig | null;
-} {
-  const delivery = resolveFrameAuthDelivery(input);
+};
+
+function toPropagationOptions(delivery: FrameAuthDelivery): FrameAuthPropagationOptions {
   return {
     includeAuthAccessToken: delivery.includeAuthAccessToken,
     accessToken: delivery.accessToken,
@@ -164,4 +158,37 @@ export function frameAuthPropagationOptions(input: {
     ...(delivery.overrideUser ? { settingsUser: delivery.settingsUser } : {}),
     ...delivery.services,
   };
+}
+
+/** Options for `buildSettingsForPropagation`. Shell frames omit the override keys. */
+export function frameAuthPropagationOptions(input: {
+  frameSrc: string;
+  config?: ShellUIConfig;
+  shellAccessToken: string | null;
+  getAppSession: (key: string) => AuthSession | null;
+  shellOrigin?: string | null;
+}): FrameAuthPropagationOptions {
+  return toPropagationOptions(resolveFrameAuthDelivery(input));
+}
+
+/**
+ * Auth fields for a child app hosted inside an embedded app (`createAppFrame`).
+ * The shell token is never sent. With no allowed identity server the child gets
+ * no token, no user and no service URLs.
+ */
+export function childFrameAuthPropagationOptions(input: {
+  identity: ResolvedAppBackend | null;
+  getAppSession: (key: string) => AuthSession | null;
+}): FrameAuthPropagationOptions {
+  const { identity, getAppSession } = input;
+  const session = identity ? getAppSession(identity.key) : null;
+  return toPropagationOptions({
+    includeAuthAccessToken: Boolean(identity),
+    accessToken: session?.accessToken ?? null,
+    overrideAuthBackend: true,
+    authBackendBaseUrl: identity?.type === 'shellui' ? identity.url : null,
+    overrideUser: true,
+    settingsUser: settingsUserFromSession(session),
+    services: serviceOverrides(null, true),
+  });
 }

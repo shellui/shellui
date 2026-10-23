@@ -70,6 +70,11 @@ export interface NavigationItem {
    */
   backend?: AppBackendConfig;
   /**
+   * Lets this app host other Shellui apps in its own iframes (`createAppFrame`).
+   * Off when omitted. Only exact origins listed here are accepted.
+   */
+  childFrames?: ChildFramesConfig;
+  /**
    * Email service for this app. Omit to use the shell `email` when the app uses
    * the shell identity server. When `backend` names a different server and this
    * is omitted, the app receives no email URL.
@@ -235,6 +240,18 @@ export interface AuthConfig {
    * Lowercase. Not `http`, `https`, or another browser scheme.
    */
   desktopScheme?: string;
+}
+
+/** Child apps an embedded app may host, and the identity servers they may use. */
+export interface ChildFramesConfig {
+  /** Exact origins of child apps, such as `https://admin.shellui.com`. No wildcards. */
+  origins: string[];
+  /**
+   * Exact origins of identity servers a child may sign in to, such as
+   * `https://id.eu.shellui.com`. The shell keeps a separate session per server
+   * and never sends its own token to a child. Omit to give children no token.
+   */
+  backendOrigins?: string[];
 }
 
 /**
