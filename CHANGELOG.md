@@ -18,6 +18,21 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.6] - 2026-10-24
+
+### ✨ Feature
+
+- **SDK:** `ShelluiFrame` and `createAppFrame` accept `email`, `storage` and `hosting` URLs for the child app.
+- **Core:** The shell forwards child service URLs allowed by `childFrames.serviceOrigins`, others are `null`.
+
+### 🚨 Changed
+
+- **Core:** No built-in email URL: `email` without `url` now sends `settings.email: null`.
+
+### 📚 Documentation
+
+- **Core:** `AppBackendConfig.provider` documents `upstream` token exchange.
+
 ## [0.7.0-alpha.5] - 2026-10-23
 
 ### ✨ Feature

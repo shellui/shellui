@@ -146,6 +146,7 @@ export {
 export type {
   AppFrameSessionStatus,
   AppFrameBackend,
+  AppFrameServices,
   AppFrameHandle,
   AppFrameHost,
   AppFrameOptions,
