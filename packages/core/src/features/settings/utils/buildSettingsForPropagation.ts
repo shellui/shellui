@@ -15,15 +15,13 @@ import {
   getPublishedLayoutChrome,
 } from '../../layouts/floating/layoutChromeStore';
 
-/** Production email-service origin. No trailing slash. */
-const DEFAULT_EMAIL_SERVICE_URL = 'https://email.shellui.com';
-
 const propagateEmail = (email: EmailConfig | null | undefined): SettingsEmail | null => {
-  if (!email) return null;
-  const url = email.url?.trim().replace(/\/+$/, '') || DEFAULT_EMAIL_SERVICE_URL;
+  // No built-in default: email must come from config or the host app.
+  const url = email?.url?.trim().replace(/\/+$/, '') || null;
+  if (!url) return null;
   return {
     url,
-    ...(email.showInAdmin === false ? { showInAdmin: false } : {}),
+    ...(email?.showInAdmin === false ? { showInAdmin: false } : {}),
   };
 };
 

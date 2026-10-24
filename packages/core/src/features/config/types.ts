@@ -252,6 +252,13 @@ export interface ChildFramesConfig {
    * and never sends its own token to a child. Omit to give children no token.
    */
   backendOrigins?: string[];
+  /**
+   * Exact origins of service URLs (email, storage, hosting) a host may pass to
+   * a child with `ShelluiFrame` or `createAppFrame`, such as
+   * `https://storage.eu.shellui.com`. No wildcards. A URL outside this list, or
+   * a missing one, reaches the child as `null`. Omit to send children no service URLs.
+   */
+  serviceOrigins?: string[];
 }
 
 /**
@@ -268,7 +275,9 @@ export interface AppBackendConfig {
   /** Public key when `type` is `supabase`. */
   publishableKey?: string;
   /**
-   * OAuth provider for silent sign-in, such as `google`.
+   * `upstream`: the shell gets the app session by OAuth token exchange (RFC 8693),
+   * trading its own access token at this server. Recommended for Shellui regions.
+   * Any other value, such as `google`, is the OAuth provider for silent sign-in.
    * When omitted, the shell uses the first `backend.login.oauthProviders` entry.
    */
   provider?: string;
@@ -357,12 +366,12 @@ export interface HostingConfig {
 
 /**
  * Optional email-service wiring for Admin → Email and iframe apps.
- * When `email` is set and `url` is omitted, the shell uses `https://email.shellui.com`.
+ * The shell never invents a URL: without `url`, apps get no email service.
  */
 export interface EmailConfig {
   /**
    * Base URL of email-service.
-   * Default: `https://email.shellui.com` when `email` is set and this is omitted.
+   * Required for apps to get email. There is no built-in default.
    * Local: `http://localhost:8003`.
    */
   url?: string;
@@ -447,7 +456,7 @@ export interface ShellUIConfig {
   hosting?: HostingConfig;
   /**
    * Email-service connection. Propagated to iframes via SDK settings.
-   * When `email` is set and `url` is omitted, the shell sends `https://email.shellui.com`.
+   * Without `url`, the shell sends no email service (`null`).
    * `showInAdmin: false` hides Admin → Email.
    */
   email?: EmailConfig;
