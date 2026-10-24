@@ -174,13 +174,16 @@ export function frameAuthPropagationOptions(input: {
 /**
  * Auth fields for a child app hosted inside an embedded app (`createAppFrame`).
  * The shell token is never sent. With no allowed identity server the child gets
- * no token, no user and no service URLs.
+ * no token and no user. Service URLs are the ones the host passed and the shell
+ * allowed (`childFrames.serviceOrigins`); any other service is `null`.
  */
 export function childFrameAuthPropagationOptions(input: {
   identity: ResolvedAppBackend | null;
   getAppSession: (key: string) => AuthSession | null;
+  services?: Partial<Record<'email' | 'storage' | 'hosting', string | null>> | null;
 }): FrameAuthPropagationOptions {
   const { identity, getAppSession } = input;
+  const allowed = input.services ?? {};
   const session = identity ? getAppSession(identity.key) : null;
   return toPropagationOptions({
     includeAuthAccessToken: Boolean(identity),
@@ -189,6 +192,10 @@ export function childFrameAuthPropagationOptions(input: {
     authBackendBaseUrl: identity?.type === 'shellui' ? identity.url : null,
     overrideUser: true,
     settingsUser: settingsUserFromSession(session),
-    services: serviceOverrides(null, true),
+    services: {
+      email: allowed.email ? { url: allowed.email } : null,
+      storage: allowed.storage ? { url: allowed.storage } : null,
+      hosting: allowed.hosting ? { url: allowed.hosting } : null,
+    },
   });
 }

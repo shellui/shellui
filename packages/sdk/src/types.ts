@@ -368,7 +368,7 @@ export interface Settings {
   /**
    * Email-service connection (from host `email` in shellui.config.json).
    * Omitted or null when `email` is not set.
-   * When `email` is set and `url` is omitted, `url` is `https://email.shellui.com`.
+   * Null when `email.url` is not set. There is no built-in default.
    * An app `email` replaces this. It is `null` when that app's identity server
    * differs and the item does not set `email`.
    */

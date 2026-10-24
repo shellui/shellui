@@ -35,10 +35,21 @@ export type AppFrameBackend = {
   provider?: string;
 };
 
+/**
+ * Service URLs for the child app. The shell forwards each one only when its
+ * origin is in `childFrames.serviceOrigins`; anything else reaches the child as `null`.
+ */
+export type AppFrameServices = {
+  email?: string | null;
+  storage?: string | null;
+  hosting?: string | null;
+};
+
 export type ChildFrameRegisterPayload = {
   frameId: string;
   url: string;
   backend: AppFrameBackend | null;
+  services?: AppFrameServices;
 };
 
 export type AppFrameOptions = {
@@ -46,6 +57,12 @@ export type AppFrameOptions = {
   url: string;
   /** Child identity server. Omit to let the shell decide (no token unless configured). */
   backend?: AppFrameBackend | null;
+  /** Email-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
+  email?: string | null;
+  /** Storage-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
+  storage?: string | null;
+  /** Hosting-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
+  hosting?: string | null;
   /** Called when the child app changes its own URL. */
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Called each time the child app finishes Shellui init (`SHELLUI_INITIALIZED`). */
@@ -95,6 +112,15 @@ function cleanBackend(backend: AppFrameBackend | null | undefined): AppFrameBack
     ...(backend.type ? { type: backend.type } : {}),
     ...(backend.provider ? { provider: backend.provider } : {}),
   };
+}
+
+function cleanServices(options: AppFrameOptions): AppFrameServices | undefined {
+  const services: AppFrameServices = {};
+  for (const key of ['email', 'storage', 'hosting'] as const) {
+    const value = options[key]?.trim();
+    if (value) services[key] = value;
+  }
+  return Object.keys(services).length ? services : undefined;
 }
 
 function isUrlPayload(value: unknown): value is ShellUIUrlPayload {
@@ -157,7 +183,13 @@ export function createAppFrameWith(
     }),
   );
 
-  const payload: ChildFrameRegisterPayload = { frameId, url: options.url, backend };
+  const services = cleanServices(options);
+  const payload: ChildFrameRegisterPayload = {
+    frameId,
+    url: options.url,
+    backend,
+    ...(services ? { services } : {}),
+  };
   host.sendMessageToParent({
     type: CHILD_FRAME_REGISTER,
     payload: payload as unknown as ShellUIMessage['payload'],

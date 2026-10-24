@@ -38,6 +38,12 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   src: string;
   /** Child identity server. The shell must allow it in config. */
   backend?: AppFrameBackend | null;
+  /** Email-service URL for the child. The shell must allow its origin in `childFrames.serviceOrigins`. */
+  email?: string | null;
+  /** Storage-service URL for the child. Same rule as `email`. */
+  storage?: string | null;
+  /** Hosting-service URL for the child. Same rule as `email`. */
+  hosting?: string | null;
   /** The child app changed its URL. Mirror it in the host route here. */
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Shown over the hidden frame until the child app finishes Shellui init. */
@@ -106,6 +112,9 @@ function defaultError(retry: () => void, error?: AppFrameSessionStatus): ReactNo
 export function ShelluiFrame({
   src,
   backend,
+  email,
+  storage,
+  hosting,
   onNavigate,
   fallback,
   renderError,
@@ -126,6 +135,9 @@ export function ShelluiFrame({
   const companyId = backend?.companyId ?? '';
   const backendType = backend?.type ?? '';
   const provider = backend?.provider ?? '';
+  const emailUrl = email ?? '';
+  const storageUrl = storage ?? '';
+  const hostingUrl = hosting ?? '';
 
   useEffect(() => {
     statusRef.current?.(status);
@@ -156,6 +168,9 @@ export function ShelluiFrame({
             ...(provider ? { provider } : {}),
           }
         : null,
+      ...(emailUrl ? { email: emailUrl } : {}),
+      ...(storageUrl ? { storage: storageUrl } : {}),
+      ...(hostingUrl ? { hosting: hostingUrl } : {}),
       onNavigate: (location) => {
         childHrefRef.current = hrefFromLocation(origin, location);
         navigateRef.current?.(location);
@@ -181,7 +196,18 @@ export function ShelluiFrame({
       clearTimeout(timer);
       handle.destroy();
     };
-  }, [origin, backendUrl, companyId, backendType, provider, attempt, readyTimeoutMs]);
+  }, [
+    origin,
+    backendUrl,
+    companyId,
+    backendType,
+    provider,
+    emailUrl,
+    storageUrl,
+    hostingUrl,
+    attempt,
+    readyTimeoutMs,
+  ]);
 
   // Host-driven navigation (back, forward, deep link): move the running child.
   // Never touches `src` again, so child-reported navigation cannot reload it.
