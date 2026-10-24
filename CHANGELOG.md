@@ -18,6 +18,14 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.8] - 2026-10-24
+
+### 🐛 Bug Fixes
+
+- **SDK:** `ShelluiFrame` loads `src` once. New service URLs re-register without reloading, and a retry reloads where the child was.
+- **SDK:** `ShelluiFrame` and `ContentView` skip echoes of child navigation, so fast redirects no longer bounce or loop.
+- **SDK:** `SHELLUI_URL_CHANGED` carries `replace`, so a child redirect replaces the host entry instead of adding one.
+
 ## [0.7.0-alpha.7] - 2026-10-24
 
 ### ✨ Feature
