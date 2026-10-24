@@ -1,164 +1,90 @@
-# Shellui Monorepo
+# Shellui
 
-> A lightweight microfrontend shell to ship apps faster.
+The opinionated microfrontend shell for building modern web apps.
 
-This monorepo contains the Shellui packages:
+[![Tests](https://github.com/shellui/shellui/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/shellui/shellui/actions/workflows/test.yml)
+[![npm](https://img.shields.io/npm/v/@shellui/cli?label=%40shellui%2Fcli)](https://www.npmjs.com/package/@shellui/cli)
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
 
-- **@shellui/cli** - Command-line tool for Shellui
-- **@shellui/core** - Core React application runtime
-- **@shellui/sdk** - JavaScript SDK for Shellui integration
+Shellui gives your app the parts every product rebuilds: navigation, layouts, themes, settings, sign-in, toasts, modals and a desktop build with Tauri. You describe them in one `shellui.config.json`. Your app, in any framework, runs in a frame inside the shell and talks to it through the SDK.
 
-## Current release
+This monorepo holds the three npm packages:
 
-**0.6.2** is the stable release on the npm `latest` tag.
+| Package                          | What it does                                           |
+| -------------------------------- | ------------------------------------------------------ |
+| [`@shellui/cli`](packages/cli)   | `shellui init`, `start`, `build`, `login` and `deploy` |
+| [`@shellui/core`](packages/core) | The React shell runtime                                |
+| [`@shellui/sdk`](packages/sdk)   | The client your app uses to talk to the shell          |
 
-To try the 0.7.0 alpha, install from the npm `alpha` tag: `npm install -g @shellui/cli@alpha`. It prepares the SaaS and multi-region setup and requires identity-service 0.9.0.
+## Get started
+
+You need Node.js 18 or later.
 
 ```bash
-npm install -g @shellui/cli@0.6.2
-npm install @shellui/sdk@0.6.2
+npm install -g @shellui/cli
+mkdir my-app && cd my-app
+shellui init react
+shellui start
 ```
 
-What's new: a Tauri shell signs in through the system browser with Proof Key for Code Exchange (PKCE) when `auth.desktopScheme` matches the OAuth application. Register that scheme on the deep-link plugin. See [Sign in on the desktop](docs/tauri.md#sign-in-on-the-desktop), the [changelog](CHANGELOG.md), and [docs.shellui.com](https://docs.shellui.com).
+`shellui init` writes `shellui.config.json` and a companion app. `shellui start` runs both on [http://localhost:4000](http://localhost:4000). `shellui build` writes a static shell to `dist/web/`, and `shellui deploy` publishes it to [hosting-service](https://github.com/shellui/hosting-service).
 
-## Structure
+The `latest` npm tag is the stable release. The `alpha` tag (`npm install -g @shellui/cli@alpha`) brings the multi-region setup and needs identity-service 0.9.0 or later.
 
-```
-.
-├── packages/
-│   ├── cli/          # CLI package
-│   ├── core/         # Core React app (features/ai, settings, …)
-│   └── sdk/          # SDK package
-├── docs/              # Documentation files
-├── tools/             # Development tools (Docusaurus)
-└── package.json       # Root workspace configuration
-```
+Try it first in the [playground](https://playground.shellui.com).
 
-## AI skill (for coding agents)
+## Documentation
 
-Official skills live in [shellui/skills](https://github.com/shellui/skills) (sibling repo). Install so agents follow config, CLI, SDK, and naming conventions:
+Everything is at [docs.shellui.com](https://docs.shellui.com).
+
+- [Install the CLI](https://docs.shellui.com/installation/) and [create a project](https://docs.shellui.com/quickstart/)
+- [CLI reference](https://docs.shellui.com/cli/) and [SDK reference](https://docs.shellui.com/sdk/)
+- [Desktop apps with Tauri](https://docs.shellui.com/tauri/)
+- Services: [identity](https://docs.shellui.com/identity), [storage](https://docs.shellui.com/storage), [hosting](https://docs.shellui.com/hosting) and [email](https://docs.shellui.com/email)
+
+The docs source is in [`docs/`](docs/index.md). The site also pulls each service handbook from its own repo, see [Build the docs site](docs/docs-site.md).
+
+## Use it with a coding agent
+
+Install the official skill so your agent knows the config, the CLI and the SDK:
 
 ```bash
 npx skills add shellui/skills --skill shellui
-# across many local apps:
-npx skills add shellui/skills --skill shellui -g
 ```
 
-Update with `npx skills update`.
-
-See [docs/adr/0001-ai-skill.md](docs/adr/0001-ai-skill.md) for hosting, versioning, and contribution notes.
+Agents can also start from [shellui.ai](https://shellui.ai). See [shellui/skills](https://github.com/shellui/skills).
 
 ## Development
 
-### Prerequisites
-
-This project uses [pnpm](https://pnpm.io/) as its package manager. Install it globally if you haven't already:
-
-```bash
-npm install -g pnpm
-```
-
-### Install dependencies
+You need [pnpm](https://pnpm.io/).
 
 ```bash
 pnpm install
-```
-
-### Build all packages
-
-```bash
-pnpm run build
-```
-
-### Build individual packages
-
-```bash
-pnpm run build:cli
-pnpm run build:core
-pnpm run build:sdk
-```
-
-### Start development server
-
-```bash
-pnpm start
-# or
-pnpm run serve
-```
-
-### Run tests
-
-```bash
+pnpm start        # the shell on http://localhost:4000
 pnpm test
+pnpm lint
+pnpm docs:start   # the docs site
 ```
 
-### Serve production build locally
+The workflow, the scripts and the package layout are in [docs/development.md](docs/development.md). Releases follow [docs/publishing.md](docs/publishing.md) and changes are in [CHANGELOG.md](CHANGELOG.md).
 
-After building, you can serve the production build locally with SPA routing support:
+## Contributing
 
-```bash
-# Build the application
-pnpm build
+Open an issue or a pull request against `develop`. Coding agents start with [AGENTS.md](AGENTS.md).
 
-# Serve using Node.js HTTP server (supports SPA routing)
-# Default port is 8000
-pnpm run serve:dist
+## Shellui projects
 
-# Or specify a custom port directly
-node tools/serve/server.js 8080
-```
-
-The server automatically serves `index.html` for all routes, enabling client-side routing to work correctly. This is useful for testing the production build locally.
-
-**Note:** The build process automatically creates a `404.html` file (identical to `index.html`) for hosting providers that support it (like Netlify, Vercel, etc.).
-
-## Publishing
-
-Publish all packages (SDK, Core, CLI) in the correct order with one command:
-
-```bash
-pnpm run publish
-```
-
-The npm dist-tag is chosen automatically from the root **version** in `package.json`:
-
-- Version contains **`alpha`** (e.g. `0.2.0-alpha.0`) → published with tag `alpha`
-- Version contains **`beta`** (e.g. `0.2.0-beta.1`) → published with tag `beta`
-- Otherwise → published with tag `latest`
-
-Keep versions in sync across packages with `pnpm run version:sync` before publishing. See [Publishing Guide](docs/publishing.md) for the full workflow.
-
-## Workspace Scripts
-
-### Build Scripts
-
-- `pnpm run build` - Build all packages
-- `pnpm run build:packages` - Build all workspace packages
-- `pnpm run build:cli` - Build CLI package
-- `pnpm run build:core` - Build Core package
-- `pnpm run build:sdk` - Build SDK package
-
-### Development Scripts
-
-- `pnpm start` / `pnpm run serve` - Start development server
-- `pnpm test` - Run tests across all packages
-
-### Publishing Scripts
-
-- `pnpm run publish` - Publish all packages (SDK → Core → CLI) with tag from version (alpha/beta/latest)
-- `pnpm run version:sync` - Sync root version to all packages
-
-### Documentation Scripts
-
-- `pnpm run docs:install` - Install documentation dependencies
-- `pnpm run docs:fetch` - Fetch the identity, storage, hosting, and email service docs (sibling checkouts or GitHub)
-- `pnpm run docs:start` - Fetch service docs, then start documentation development server
-- `pnpm run docs:build` - Fetch service docs, then build documentation site
-- `pnpm run docs:serve` - Serve built documentation
-
-### Utility Scripts
-
-- `pnpm run clean` - Clean all node_modules
+| Project                                                         | What it does                        |
+| --------------------------------------------------------------- | ----------------------------------- |
+| [shellui](https://github.com/shellui/shellui)                   | The shell, CLI and SDK              |
+| [admin](https://github.com/shellui/admin)                       | Administration app inside the shell |
+| [files](https://github.com/shellui/files)                       | File explorer for storage-service   |
+| [identity-service](https://github.com/shellui/identity-service) | Sign-in, companies and tokens       |
+| [storage-service](https://github.com/shellui/storage-service)   | File storage                        |
+| [hosting-service](https://github.com/shellui/hosting-service)   | Deploys and serves Shellui apps     |
+| [email-service](https://github.com/shellui/email-service)       | Templates and sends email           |
+| [skills](https://github.com/shellui/skills)                     | Agent Skills for coding agents      |
+| [playground](https://github.com/shellui/playground)             | Live demo of the shell              |
 
 ## License
 
