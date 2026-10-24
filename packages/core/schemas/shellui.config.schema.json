@@ -362,7 +362,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Exact origins of service URLs (email, storage, hosting) a host may pass to a child with `ShelluiFrame` or `createAppFrame`, such as `https://storage.eu.shellui.com`. No wildcards. A URL outside this list, or a missing one, reaches the child as `null`. Omit to send children no service URLs."
+          "description": "Exact origins of service URLs (email, storage, files, hosting) a host may pass to a child with `ShelluiFrame` or `createAppFrame`, such as `https://storage.eu.shellui.com`. No wildcards. A URL outside this list, or a missing one, reaches the child as `null`. Omit to send children no service URLs."
         }
       },
       "required": ["origins"],

@@ -24,6 +24,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - **SDK:** `ShelluiFrame` and `createAppFrame` accept `email`, `storage` and `hosting` URLs for the child app.
 - **Core:** The shell forwards child service URLs allowed by `childFrames.serviceOrigins`, others are `null`.
+- **SDK:** `ShelluiFrame` and `createAppFrame` accept a `files` URL, sent to the child as `settings.storage.filesUrl`.
 
 ### 🚨 Changed
 
