@@ -7,6 +7,8 @@ export interface ShellUIUrlPayload {
   search: string;
   hash: string;
   fullPath: string;
+  /** True when the child replaced its URL (redirect): the host should replace too. */
+  replace?: boolean;
 }
 
 export interface ToastOptions {

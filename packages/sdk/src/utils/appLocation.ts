@@ -41,6 +41,16 @@ export function withBasePath(path: string, basePath = '/'): string {
   return `${normalizeBase(basePath)}${path}`;
 }
 
+/**
+ * One spelling per route, for comparing URLs: no trailing slash, and an empty or
+ * root hash (`#`, `#/`) dropped. Works on paths and absolute URLs.
+ */
+export function normalizeAppPath(href: string): string {
+  const [, path = '', search = '', hash = ''] = /^([^?#]*)(\?[^#]*)?(#.*)?$/.exec(href) ?? [];
+  const cleanHash = /^#\/?$/.test(hash) ? '' : hash.replace(/(.)\/+$/, '$1');
+  return `${path.replace(/\/+$/, '') || '/'}${search}${cleanHash}`;
+}
+
 /** Current app location, relative to `basePath`. */
 export function readAppLocation(basePath = '/'): AppLocation {
   if (typeof window === 'undefined') {

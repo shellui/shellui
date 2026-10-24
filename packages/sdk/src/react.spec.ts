@@ -87,6 +87,43 @@ describe('ShelluiFrame', () => {
     expect(frames).toHaveLength(1);
   });
 
+  it('skips stale echoes when the child reports faster than the host renders', () => {
+    const { render, iframe } = mount();
+    render('https://admin.example.com/#/');
+    const replace = vi.fn();
+    Object.defineProperty(iframe(), 'contentWindow', {
+      configurable: true,
+      value: { location: { replace } },
+    });
+    // A redirect: two reports before the host renders the first one back.
+    act(() => {
+      frames[0].onNavigate?.({ pathname: '/', search: '', hash: '#/webhooks', fullPath: '' });
+      frames[0].onNavigate?.({
+        pathname: '/',
+        search: '',
+        hash: '#/webhooks/identity',
+        fullPath: '',
+      });
+    });
+    render('https://admin.example.com/#/webhooks');
+    render('https://admin.example.com/#/webhooks/identity/');
+    expect(replace).not.toHaveBeenCalled();
+    // Root spelled `#/` by the child and without hash by the host is the same route.
+    act(() => frames[0].onNavigate?.({ pathname: '/', search: '', hash: '#/', fullPath: '' }));
+    render('https://admin.example.com/');
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('re-registers for new service URLs without reloading the child', () => {
+    const { render, iframe } = mount();
+    render('https://admin.example.com/#/');
+    const sets = trackSrc(iframe());
+    render('https://admin.example.com/#/', { storage: 'https://storage.example.com' });
+    expect(frames).toHaveLength(2);
+    expect(frames[1].storage).toBe('https://storage.example.com');
+    expect(sets).toEqual([]);
+  });
+
   it('shows the session failure reason from the shell', () => {
     const { host, render } = mount();
     render('https://admin.example.com/');

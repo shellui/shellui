@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   navigateApp,
+  normalizeAppPath,
   readAppLocation,
   stripBasePath,
   subscribeAppLocation,
@@ -36,5 +37,16 @@ describe('appLocation', () => {
     window.dispatchEvent(new PopStateEvent('popstate'));
     expect(listener).toHaveBeenCalledTimes(2);
     off();
+  });
+});
+
+describe('normalizeAppPath', () => {
+  it('spells each route one way', () => {
+    expect(normalizeAppPath('')).toBe('/');
+    expect(normalizeAppPath('/#/')).toBe('/');
+    expect(normalizeAppPath('https://a.example/#')).toBe('https://a.example');
+    expect(normalizeAppPath('https://a.example/')).toBe('https://a.example');
+    expect(normalizeAppPath('/users/?page=2')).toBe('/users?page=2');
+    expect(normalizeAppPath('/#/users/')).toBe('/#/users');
   });
 });

@@ -10,7 +10,7 @@ export interface ShellSDKLike {
 /**
  * Handles URL changes and notifies parent if the path has changed
  */
-export function handleUrlChange(sdk: ShellSDKLike): void {
+export function handleUrlChange(sdk: ShellSDKLike, replace = false): void {
   if (typeof window === 'undefined') {
     return;
   }
@@ -26,6 +26,8 @@ export function handleUrlChange(sdk: ShellSDKLike): void {
       search: window.location.search,
       hash: window.location.hash,
       fullPath: window.location.pathname + window.location.search + window.location.hash,
+      // A replace (redirect) must not add a history entry in the host.
+      replace,
     };
 
     if (window.parent !== window) {
@@ -68,7 +70,7 @@ export function setupUrlMonitoring(sdk: ShellSDKLike): void {
 
   window.history.replaceState = function (...args: Parameters<History['replaceState']>) {
     originalReplaceState(...args);
-    handleUrlChange(sdk);
+    handleUrlChange(sdk, true);
   };
 
   document.addEventListener(

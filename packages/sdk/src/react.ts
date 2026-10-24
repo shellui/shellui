@@ -16,6 +16,7 @@ import {
 import { createAppFrame } from './index.js';
 import {
   navigateApp,
+  normalizeAppPath,
   readAppLocation,
   subscribeAppLocation,
   type AppLocation,
@@ -73,7 +74,7 @@ function frameOriginOrEmpty(url: string): string {
 
 function normalizeHref(url: string): string {
   try {
-    return new URL(url).href;
+    return normalizeAppPath(new URL(url).href);
   } catch {
     return '';
   }
@@ -152,13 +153,23 @@ export function ShelluiFrame({
   srcRef.current = src;
   /** Absolute URL the child is at (last loaded by us or reported by the child). */
   const childHrefRef = useRef<string | null>(null);
+  /** Child reports the host has not rendered back yet. Their echo in `src` is skipped. */
+  const pendingRef = useRef<string[]>([]);
+  /** `origin|attempt` last loaded. Re-registering for new service URLs never reloads. */
+  const loadedRef = useRef('');
   const origin = frameOriginOrEmpty(src);
 
   useEffect(() => {
     const iframe = ref.current;
     if (!iframe || !origin) return;
-    setStatus('loading');
-    setSessionError(undefined);
+    const loadKey = `${origin}|${attempt}`;
+    const load = loadedRef.current !== loadKey;
+    // A retry reloads where the child was, not the first `src`.
+    const sameOrigin = loadedRef.current.startsWith(`${origin}|`);
+    if (load) {
+      setStatus('loading');
+      setSessionError(undefined);
+    }
     let ready = false;
     let sessionFailed = false;
     const initialSrc = srcRef.current;
@@ -177,7 +188,9 @@ export function ShelluiFrame({
       ...(filesUrl ? { files: filesUrl } : {}),
       ...(hostingUrl ? { hosting: hostingUrl } : {}),
       onNavigate: (location) => {
-        childHrefRef.current = hrefFromLocation(origin, location);
+        const href = hrefFromLocation(origin, location);
+        childHrefRef.current = href;
+        pendingRef.current = [...pendingRef.current.slice(-19), href];
         navigateRef.current?.(location);
       },
       onReady: () => {
@@ -191,12 +204,18 @@ export function ShelluiFrame({
         setStatus('error');
       },
     });
-    // Load (or reload) after registering so the first child message is trusted.
-    childHrefRef.current = normalizeHref(initialSrc);
-    iframe.src = initialSrc;
-    const timer = setTimeout(() => {
-      if (!ready) setStatus('error');
-    }, readyTimeoutMs);
+    // Load after registering so the first child message is trusted.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (load) {
+      loadedRef.current = loadKey;
+      const href = sameOrigin && childHrefRef.current ? childHrefRef.current : initialSrc;
+      if (href === initialSrc) childHrefRef.current = normalizeHref(initialSrc);
+      pendingRef.current = [];
+      iframe.src = href;
+      timer = setTimeout(() => {
+        if (!ready) setStatus('error');
+      }, readyTimeoutMs);
+    }
     return () => {
       clearTimeout(timer);
       handle.destroy();
@@ -216,15 +235,21 @@ export function ShelluiFrame({
   ]);
 
   // Host-driven navigation (back, forward, deep link): move the running child.
-  // Never touches `src` again, so child-reported navigation cannot reload it.
+  // An echo of a child report is skipped. Hash routes change only the hash (no reload).
   useEffect(() => {
     const iframe = ref.current;
     const target = normalizeHref(src);
-    if (!iframe || !target || target === childHrefRef.current) return;
-    if (frameOriginOrEmpty(target) !== origin) return;
+    if (!iframe || !target || frameOriginOrEmpty(src) !== origin) return;
+    const echo = pendingRef.current.indexOf(target);
+    if (echo >= 0) {
+      pendingRef.current = pendingRef.current.slice(echo + 1);
+      return;
+    }
+    if (target === childHrefRef.current) return;
+    pendingRef.current = [];
     childHrefRef.current = target;
     try {
-      iframe.contentWindow?.location.replace(target);
+      iframe.contentWindow?.location.replace(src);
     } catch {
       // Detached frame; the next registration loads `src`.
     }

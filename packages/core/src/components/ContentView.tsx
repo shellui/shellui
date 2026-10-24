@@ -73,8 +73,10 @@ export const ContentView = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const mountTimeRef = useRef(Date.now());
-  /** Shell path last reported by the iframe — skip driving iframe when we caused the location change. */
+  /** Shell path last synced with the iframe. */
   const lastShellPathFromIframeRef = useRef<string | null>(null);
+  /** Iframe reports not rendered back yet: their echo must not drive the iframe. */
+  const pendingFromIframeRef = useRef<string[]>([]);
   const skipInitialShellSyncRef = useRef(true);
   const prevNavPathRef = useRef(navItem?.path ?? '');
 
@@ -119,9 +121,16 @@ export const ContentView = ({
       return;
     }
 
+    const echo = pendingFromIframeRef.current.indexOf(currentShellPath);
+    if (echo >= 0 && !navItemChanged) {
+      pendingFromIframeRef.current = pendingFromIframeRef.current.slice(echo + 1);
+      lastShellPathFromIframeRef.current = currentShellPath;
+      return;
+    }
     if (lastShellPathFromIframeRef.current === currentShellPath && !navItemChanged) {
       return;
     }
+    pendingFromIframeRef.current = [];
 
     lastShellPathFromIframeRef.current = currentShellPath;
     mountTimeRef.current = Date.now();
@@ -173,7 +182,7 @@ export const ContentView = ({
           return;
         }
 
-        const { pathname, search, hash } = data.payload as ShellUIUrlPayload;
+        const { pathname, search, hash, replace } = data.payload as ShellUIUrlPayload;
         // Shell URL is always path + search only (no hash) so it's transparent whether the sub-app uses hash routing or not
         let pathSegment: string;
         if (isHashRouterNavItem(navItem) && hash) {
@@ -223,17 +232,19 @@ export const ContentView = ({
         const normalizedNewPathname = newPathParts?.[1]?.replace(/\/+$/, '') || '/';
         const normalizedNewPath = normalizedNewPathname + (newPathParts?.[2] || '');
 
-        // Mark before navigate so the shell-sync effect does not reload the iframe
-        lastShellPathFromIframeRef.current = normalizedNewPath;
-
         if (currentPath !== normalizedNewPath) {
           if (!isSafeShellPath(normalizedNewPath)) {
             logger.warn('ContentView: refused unsafe shell path from iframe', normalizedNewPath);
             return;
           }
-          // Push — iframe pushState is replace-only when embedded, so the shell
-          // is the sole owner of back/forward entries.
-          navigate(newShellPath);
+          // Mark before navigate so the shell-sync effect does not drive the iframe back.
+          pendingFromIframeRef.current = [
+            ...pendingFromIframeRef.current.slice(-19),
+            normalizedNewPath,
+          ];
+          // Iframe pushState is replace-only when embedded, so the shell owns back and
+          // forward. A child redirect replaces, so it never adds an entry.
+          navigate(newShellPath, { replace: replace === true });
         }
       },
     );

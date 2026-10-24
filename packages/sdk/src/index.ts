@@ -763,6 +763,7 @@ export { getLogger } from './logger/logger.js';
 export {
   APP_LOCATION_EVENT,
   navigateApp,
+  normalizeAppPath,
   readAppLocation,
   stripBasePath,
   subscribeAppLocation,
