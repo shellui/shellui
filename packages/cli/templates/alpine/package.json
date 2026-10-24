@@ -11,11 +11,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.7.0-alpha.6",
+    "@shellui/sdk": "^0.7.0-alpha.7",
     "alpinejs": "^3.14.9"
   },
   "devDependencies": {
-    "@shellui/cli": "^0.7.0-alpha.6",
+    "@shellui/cli": "^0.7.0-alpha.7",
     "vite": "^8.3.0"
   }
 }

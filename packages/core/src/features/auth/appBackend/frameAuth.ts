@@ -180,7 +180,7 @@ export function frameAuthPropagationOptions(input: {
 export function childFrameAuthPropagationOptions(input: {
   identity: ResolvedAppBackend | null;
   getAppSession: (key: string) => AuthSession | null;
-  services?: Partial<Record<'email' | 'storage' | 'hosting', string | null>> | null;
+  services?: Partial<Record<'email' | 'storage' | 'files' | 'hosting', string | null>> | null;
 }): FrameAuthPropagationOptions {
   const { identity, getAppSession } = input;
   const allowed = input.services ?? {};
@@ -194,7 +194,10 @@ export function childFrameAuthPropagationOptions(input: {
     settingsUser: settingsUserFromSession(session),
     services: {
       email: allowed.email ? { url: allowed.email } : null,
-      storage: allowed.storage ? { url: allowed.storage } : null,
+      // The files app URL rides on storage and is dropped when storage is not allowed.
+      storage: allowed.storage
+        ? { url: allowed.storage, ...(allowed.files ? { filesUrl: allowed.files } : {}) }
+        : null,
       hosting: allowed.hosting ? { url: allowed.hosting } : null,
     },
   });

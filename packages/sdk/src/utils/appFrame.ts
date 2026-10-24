@@ -42,6 +42,8 @@ export type AppFrameBackend = {
 export type AppFrameServices = {
   email?: string | null;
   storage?: string | null;
+  /** Files app URL, sent to the child as `settings.storage.filesUrl`. Needs `storage`. */
+  files?: string | null;
   hosting?: string | null;
 };
 
@@ -61,6 +63,8 @@ export type AppFrameOptions = {
   email?: string | null;
   /** Storage-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
   storage?: string | null;
+  /** Files app URL (`settings.storage.filesUrl`). Needs `storage`. Must be allowed by `childFrames.serviceOrigins`. */
+  files?: string | null;
   /** Hosting-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
   hosting?: string | null;
   /** Called when the child app changes its own URL. */
@@ -116,7 +120,7 @@ function cleanBackend(backend: AppFrameBackend | null | undefined): AppFrameBack
 
 function cleanServices(options: AppFrameOptions): AppFrameServices | undefined {
   const services: AppFrameServices = {};
-  for (const key of ['email', 'storage', 'hosting'] as const) {
+  for (const key of ['email', 'storage', 'files', 'hosting'] as const) {
     const value = options[key]?.trim();
     if (value) services[key] = value;
   }
