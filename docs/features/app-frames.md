@@ -30,6 +30,7 @@ Without React, call `createAppFrame(iframe, { url, backend, email, storage, host
 
 - The frame stays hidden behind the `fallback` slot until the child app sends `SHELLUI_INITIALIZED`. If it does not arrive within 20 seconds, the `renderError` slot shows with a retry.
 - `email`, `storage` and `hosting` are optional service URLs for the child. The shell forwards each one only when its origin is in `childFrames.serviceOrigins`.
+- `files` is the optional files app URL. The child gets it as `settings.storage.filesUrl`, only when `storage` is also allowed and its own origin is in `childFrames.serviceOrigins`.
 - A new `src`, `backend` or service URL reloads the frame and shows the fallback again.
 - `onNavigate` receives the child URL on every route change. Mirror it in the host route, and pass it back in `src` to deep link.
 
@@ -47,7 +48,8 @@ Hosting is off by default. Allow it on the host app's navigation item, with exac
     "serviceOrigins": [
       "https://email.eu.shellui.com",
       "https://storage.eu.shellui.com",
-      "https://hosting.eu.shellui.com"
+      "https://hosting.eu.shellui.com",
+      "https://files.shellui.com"
     ]
   }
 }

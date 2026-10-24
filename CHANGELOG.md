@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.7] - 2026-10-24
+
+### ✨ Feature
+
+- **SDK:** `ShelluiFrame` and `createAppFrame` accept a `files` URL, sent to the child as `settings.storage.filesUrl`.
+
 ## [0.7.0-alpha.6] - 2026-10-24
 
 ### ✨ Feature

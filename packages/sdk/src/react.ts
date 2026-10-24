@@ -42,6 +42,8 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   email?: string | null;
   /** Storage-service URL for the child. Same rule as `email`. */
   storage?: string | null;
+  /** Files app URL for the child (`settings.storage.filesUrl`). Same rule as `email`, and needs `storage`. */
+  files?: string | null;
   /** Hosting-service URL for the child. Same rule as `email`. */
   hosting?: string | null;
   /** The child app changed its URL. Mirror it in the host route here. */
@@ -114,6 +116,7 @@ export function ShelluiFrame({
   backend,
   email,
   storage,
+  files,
   hosting,
   onNavigate,
   fallback,
@@ -137,6 +140,7 @@ export function ShelluiFrame({
   const provider = backend?.provider ?? '';
   const emailUrl = email ?? '';
   const storageUrl = storage ?? '';
+  const filesUrl = files ?? '';
   const hostingUrl = hosting ?? '';
 
   useEffect(() => {
@@ -170,6 +174,7 @@ export function ShelluiFrame({
         : null,
       ...(emailUrl ? { email: emailUrl } : {}),
       ...(storageUrl ? { storage: storageUrl } : {}),
+      ...(filesUrl ? { files: filesUrl } : {}),
       ...(hostingUrl ? { hosting: hostingUrl } : {}),
       onNavigate: (location) => {
         childHrefRef.current = hrefFromLocation(origin, location);
@@ -204,6 +209,7 @@ export function ShelluiFrame({
     provider,
     emailUrl,
     storageUrl,
+    filesUrl,
     hostingUrl,
     attempt,
     readyTimeoutMs,

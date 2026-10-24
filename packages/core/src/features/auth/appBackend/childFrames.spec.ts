@@ -185,6 +185,7 @@ describe('child frame service URLs', () => {
           serviceOrigins: [
             'https://email.eu.example.com',
             'https://storage.eu.example.com',
+            'https://files.example.com',
             'https://*.example.com',
             '*',
           ],
@@ -210,6 +211,7 @@ describe('child frame service URLs', () => {
     expect(result.entry.services).toEqual({
       email: 'https://email.eu.example.com',
       storage: 'https://storage.eu.example.com',
+      files: null,
       hosting: null,
     });
     expect(result.entry.rejectedServices).toEqual([]);
@@ -230,8 +232,58 @@ describe('child frame service URLs', () => {
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.entry.services).toEqual({ email: null, storage: null, hosting: null });
+    expect(result.entry.services).toEqual({
+      email: null,
+      storage: null,
+      files: null,
+      hosting: null,
+    });
     expect(result.entry.rejectedServices).toEqual(['storage', 'hosting']);
+  });
+
+  it('forwards an allowed files URL as storage.filesUrl', () => {
+    const result = register({
+      storage: 'https://storage.eu.example.com',
+      files: 'https://files.example.com/',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services.files).toBe('https://files.example.com');
+    const options = childFrameAuthPropagationOptions({
+      identity: result.entry.identity,
+      getAppSession: () => null,
+      services: result.entry.services,
+    });
+    expect(options.storage).toEqual({
+      url: 'https://storage.eu.example.com',
+      filesUrl: 'https://files.example.com',
+    });
+  });
+
+  it('drops a files URL whose origin is not allowed, or without storage', () => {
+    const rejected = register({
+      storage: 'https://storage.eu.example.com',
+      files: 'https://files.evil.example.org',
+    });
+    expect(rejected.ok).toBe(true);
+    if (!rejected.ok) return;
+    expect(rejected.entry.rejectedServices).toEqual(['files']);
+    expect(
+      childFrameAuthPropagationOptions({
+        identity: null,
+        getAppSession: () => null,
+        services: rejected.entry.services,
+      }).storage,
+    ).toEqual({ url: 'https://storage.eu.example.com' });
+    const alone = register({ files: 'https://files.example.com' });
+    if (!alone.ok) throw new Error('expected ok');
+    expect(
+      childFrameAuthPropagationOptions({
+        identity: null,
+        getAppSession: () => null,
+        services: alone.entry.services,
+      }).storage,
+    ).toBeNull();
   });
 
   it('never matches a wildcard entry', () => {
@@ -252,7 +304,12 @@ describe('child frame service URLs', () => {
     const result = register(undefined, shellWithServices);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.entry.services).toEqual({ email: null, storage: null, hosting: null });
+    expect(result.entry.services).toEqual({
+      email: null,
+      storage: null,
+      files: null,
+      hosting: null,
+    });
     const options = childFrameAuthPropagationOptions({
       identity: result.entry.identity,
       getAppSession: () => null,
