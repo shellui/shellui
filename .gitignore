@@ -22,3 +22,6 @@ shellui.legalDocuments.config.json
 
 # Service docs fetched at build time by tools/docusaurus/scripts/fetch-service-docs.js
 tools/docusaurus/.services/
+
+# Per-install JWKS written by deploy/scripts/generate-secrets.sh
+deploy/secrets/

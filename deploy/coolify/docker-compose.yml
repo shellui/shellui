@@ -1,0 +1,505 @@
+# documentation: https://docs.shellui.com/self-hosting
+# slogan: Self-hosted Shellui identity, storage, hosting, and email.
+# category: development
+# tags: identity,storage,hosting,email,self-hosted
+# logo: svgs/shellui.svg
+# port: 8000
+#
+# Coolify Docker Compose Empty template. Do not run this file with docker compose:
+# the bind mount `content` key is a Coolify extension, and there are no host ports.
+# Coolify adds its own proxy, container names, and restart policy.
+#
+# Each public service declares SERVICE_URL_<NAME>_8000 once. Other settings use
+# SERVICE_URL_<NAME> and SERVICE_FQDN_<NAME>, without the port suffix.
+#
+# Before the first deploy, paste two values from a local ./scripts/generate-secrets.sh run:
+#   JWT_PRIVATE_KEY   one-line PKCS#8 PEM (literal \n between lines is accepted)
+#   IDENTITY_JWKS     one-line public JWKS JSON
+# Coolify generates database passwords, Django secret keys, Fernet keys, and the hash pepper.
+# After the stack is healthy, create email-service keys and set
+# EMAIL_SERVICE_API_KEY_IDENTITY, EMAIL_SERVICE_API_KEY_STORAGE, and
+# EMAIL_SERVICE_API_KEY_HOSTING, then restart identity, storage, and hosting.
+# Coolify lists a variable in the UI only when this file sets it. A name that
+# is missing here cannot be set in the UI. It stays at the image default.
+# The init script reads database passwords with printenv. It has no brace
+# variables, so substitution cannot blank them. Confirm the first database
+# init on a live Coolify deploy.
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16.15-alpine}
+    environment:
+      - POSTGRES_USER=${SERVICE_USER_POSTGRES}
+      - POSTGRES_PASSWORD=${SERVICE_PASSWORD_64_POSTGRES}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
+      - IDENTITY_DB_PASSWORD=${SERVICE_PASSWORD_64_IDENTITYDB}
+      - STORAGE_DB_PASSWORD=${SERVICE_PASSWORD_64_STORAGEDB}
+      - HOSTING_DB_PASSWORD=${SERVICE_PASSWORD_64_HOSTINGDB}
+      - EMAIL_DB_PASSWORD=${SERVICE_PASSWORD_64_EMAILDB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - type: bind
+        source: ./init-databases.sh
+        target: /docker-entrypoint-initdb.d/10-init-databases.sh
+        content: |
+          #!/bin/sh
+          set -eu
+          # Passwords come from the container environment via printenv.
+          # This script has no brace or bare dollar variables for Coolify to replace.
+          # Confirm the first database init on a live Coolify deploy.
+          if [ -z "$(printenv IDENTITY_DB_PASSWORD || true)" ] || [ -z "$(printenv STORAGE_DB_PASSWORD || true)" ] || [ -z "$(printenv HOSTING_DB_PASSWORD || true)" ] || [ -z "$(printenv EMAIL_DB_PASSWORD || true)" ]; then
+            echo "init-databases: database passwords are missing" >&2
+            exit 1
+          fi
+          psql -v ON_ERROR_STOP=1 --username "$(printenv POSTGRES_USER)" --dbname "$(printenv POSTGRES_DB)" \
+            -v identity_pw="$(printenv IDENTITY_DB_PASSWORD)" \
+            -v storage_pw="$(printenv STORAGE_DB_PASSWORD)" \
+            -v hosting_pw="$(printenv HOSTING_DB_PASSWORD)" \
+            -v email_pw="$(printenv EMAIL_DB_PASSWORD)" <<'EOF'
+          CREATE USER identity WITH PASSWORD :'identity_pw';
+          CREATE DATABASE identity OWNER identity;
+          CREATE USER storage WITH PASSWORD :'storage_pw';
+          CREATE DATABASE storage OWNER storage;
+          CREATE USER hosting WITH PASSWORD :'hosting_pw';
+          CREATE DATABASE hosting OWNER hosting;
+          CREATE USER email WITH PASSWORD :'email_pw';
+          CREATE DATABASE email OWNER email;
+          EOF
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:8.2-alpine}
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  identity:
+    image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
+    environment:
+      - SERVICE_URL_IDENTITY_8000
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-true}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-true}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-172.16.0.0/12}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_IDENTITYSECRET}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:?}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
+      - JWT_KEY_ID=${JWT_KEY_ID:-}
+      - JWT_PREVIOUS_PUBLIC_KEY=${JWT_PREVIOUS_PUBLIC_KEY:-}
+      - JWT_PREVIOUS_KEY_ID=${JWT_PREVIOUS_KEY_ID:-}
+      - JWT_ACCEPT_HS256_LEGACY=${JWT_ACCEPT_HS256_LEGACY:-false}
+      - JWT_ISSUER=${SERVICE_URL_IDENTITY}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - ALLOWED_HOSTS=${SERVICE_FQDN_IDENTITY},identity,localhost,127.0.0.1
+      - CSRF_TRUSTED_ORIGINS=${SERVICE_URL_IDENTITY},https://admin.shellui.com
+      - POSTGRES_DATABASE_URL=postgresql://identity:${SERVICE_PASSWORD_64_IDENTITYDB}@postgres:5432/identity
+      - REDIS_URL=${IDENTITY_REDIS_URL:-redis://redis:6379/0}
+      - SCHEDULER_ENABLED=false
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_IDENTITY:-}
+      - SETUP_TOKEN=${SETUP_TOKEN:-}
+      - MAGIC_LINK_ENABLED=${MAGIC_LINK_ENABLED:-true}
+      - MAGIC_LINK_EMAIL_DEFAULT_LANGUAGE=${MAGIC_LINK_EMAIL_DEFAULT_LANGUAGE:-en}
+      - AUTH_RATE_LIMIT_INVITATION=${AUTH_RATE_LIMIT_INVITATION:-30}
+      - CORS_ALLOW_ALL_ORIGINS=${IDENTITY_CORS_ALLOW_ALL_ORIGINS:-true}
+      - CORS_ALLOW_CREDENTIALS=${IDENTITY_CORS_ALLOW_CREDENTIALS:-false}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${IDENTITY_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      - ACTIONS_WEBHOOK_SYNC_DELIVERY=${IDENTITY_ACTIONS_WEBHOOK_SYNC_DELIVERY:-false}
+    volumes:
+      - identity-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=4)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
+  identity-worker:
+    image: ${IDENTITY_IMAGE:-shellui/identity-service:0.7.0}
+    command: ['worker']
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_IDENTITYSECRET}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY:?}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY:-}
+      - JWT_KEY_ID=${JWT_KEY_ID:-}
+      - JWT_PREVIOUS_PUBLIC_KEY=${JWT_PREVIOUS_PUBLIC_KEY:-}
+      - JWT_PREVIOUS_KEY_ID=${JWT_PREVIOUS_KEY_ID:-}
+      - JWT_ISSUER=${SERVICE_URL_IDENTITY}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - POSTGRES_DATABASE_URL=postgresql://identity:${SERVICE_PASSWORD_64_IDENTITYDB}@postgres:5432/identity
+      - REDIS_URL=${IDENTITY_REDIS_URL:-redis://redis:6379/0}
+      - SCHEDULER_ENABLED=true
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_IDENTITY:-}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${IDENTITY_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - identity-data:/app/data
+    depends_on:
+      identity:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
+      interval: 30s
+      timeout: 25s
+      retries: 10
+      start_period: 40s
+
+  storage:
+    image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
+    environment:
+      - SERVICE_URL_STORAGE_8000
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-true}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-true}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_STORAGESECRET}
+      - ALLOWED_HOSTS=${SERVICE_FQDN_STORAGE},storage,localhost,127.0.0.1
+      - CSRF_TRUSTED_ORIGINS=${SERVICE_URL_STORAGE},https://admin.shellui.com
+      - CORS_ALLOW_PRIVATE_NETWORK=${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      - POSTGRES_DATABASE_URL=postgresql://storage:${SERVICE_PASSWORD_64_STORAGEDB}@postgres:5432/storage
+      - REDIS_URL=${STORAGE_REDIS_URL:-redis://redis:6379/1}
+      - SCHEDULER_ENABLED=false
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-filesystem}
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_STORAGE:-}
+      - EMAIL_SERVICE_ALLOW_PRIVATE=${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      - SETUP_TOKEN=${STORAGE_SETUP_TOKEN:-}
+      - CORS_ALLOW_ALL_ORIGINS=${STORAGE_CORS_ALLOW_ALL_ORIGINS:-true}
+      - CORS_ALLOW_CREDENTIALS=${STORAGE_CORS_ALLOW_CREDENTIALS:-false}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${STORAGE_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - storage-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/storage/v1/health', timeout=4)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
+  storage-worker:
+    image: ${STORAGE_IMAGE:-shellui/storage-service:0.5.0}
+    command: ['worker']
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_STORAGESECRET}
+      - POSTGRES_DATABASE_URL=postgresql://storage:${SERVICE_PASSWORD_64_STORAGEDB}@postgres:5432/storage
+      - REDIS_URL=${STORAGE_REDIS_URL:-redis://redis:6379/1}
+      - SCHEDULER_ENABLED=true
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - STORAGE_BACKEND=${STORAGE_BACKEND:-filesystem}
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_STORAGE:-}
+      - EMAIL_SERVICE_ALLOW_PRIVATE=${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${STORAGE_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - storage-data:/app/data
+    depends_on:
+      storage:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
+      interval: 30s
+      timeout: 25s
+      retries: 10
+      start_period: 40s
+
+  hosting:
+    image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
+    environment:
+      - SERVICE_URL_HOSTING_8000
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-true}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-true}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_HOSTINGSECRET}
+      - ALLOWED_HOSTS=${SERVICE_FQDN_HOSTING},hosting,localhost,127.0.0.1
+      - CSRF_TRUSTED_ORIGINS=${SERVICE_URL_HOSTING},https://admin.shellui.com
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-172.16.0.0/12}
+      - CORS_ALLOW_PRIVATE_NETWORK=${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      - POSTGRES_DATABASE_URL=postgresql://hosting:${SERVICE_PASSWORD_64_HOSTINGDB}@postgres:5432/hosting
+      - REDIS_URL=${HOSTING_REDIS_URL:-redis://redis:6379/2}
+      - SCHEDULER_ENABLED=false
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_JWKS_URL=${IDENTITY_JWKS_URL:-}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - IDENTITY_SYNC_TIMEOUT=${IDENTITY_SYNC_TIMEOUT:-10}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - HOSTING_BACKEND=${HOSTING_BACKEND:-filesystem}
+      - HOSTING_APP_DOMAIN=${HOSTING_APP_DOMAIN:-shellui.local}
+      - HOSTING_APP_SCHEME=${HOSTING_APP_SCHEME:-https}
+      - HOSTING_ALLOW_ANY_HOST=${HOSTING_ALLOW_ANY_HOST:-false}
+      - HOSTING_DEBUG_OPEN=${HOSTING_DEBUG_OPEN:-false}
+      - HOSTING_PREVIEW_TTL_DAYS=${HOSTING_PREVIEW_TTL_DAYS:-7}
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_HOSTING:-}
+      - EMAIL_SERVICE_ALLOW_PRIVATE=${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      - SETUP_TOKEN=${HOSTING_SETUP_TOKEN:-}
+      - CORS_ALLOW_ALL_ORIGINS=${HOSTING_CORS_ALLOW_ALL_ORIGINS:-true}
+      - CORS_ALLOW_CREDENTIALS=${HOSTING_CORS_ALLOW_CREDENTIALS:-false}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${HOSTING_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - hosting-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/hosting/v1/health', timeout=4)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
+  hosting-worker:
+    image: ${HOSTING_IMAGE:-shellui/hosting-service:0.6.1}
+    command: ['worker']
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_HOSTINGSECRET}
+      - POSTGRES_DATABASE_URL=postgresql://hosting:${SERVICE_PASSWORD_64_HOSTINGDB}@postgres:5432/hosting
+      - REDIS_URL=${HOSTING_REDIS_URL:-redis://redis:6379/2}
+      - SCHEDULER_ENABLED=true
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_JWKS_URL=${IDENTITY_JWKS_URL:-}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - IDENTITY_SYNC_TIMEOUT=${IDENTITY_SYNC_TIMEOUT:-10}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - HOSTING_BACKEND=${HOSTING_BACKEND:-filesystem}
+      - HOSTING_APP_DOMAIN=${HOSTING_APP_DOMAIN:-shellui.local}
+      - HOSTING_APP_SCHEME=${HOSTING_APP_SCHEME:-https}
+      - HOSTING_ALLOW_ANY_HOST=${HOSTING_ALLOW_ANY_HOST:-false}
+      - HOSTING_DEBUG_OPEN=${HOSTING_DEBUG_OPEN:-false}
+      - HOSTING_PREVIEW_TTL_DAYS=${HOSTING_PREVIEW_TTL_DAYS:-7}
+      - EMAIL_SERVICE_URL=${EMAIL_SERVICE_URL:-http://email:8000}
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY_HOSTING:-}
+      - EMAIL_SERVICE_ALLOW_PRIVATE=${EMAIL_SERVICE_ALLOW_PRIVATE:-true}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${HOSTING_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+    volumes:
+      - hosting-data:/app/data
+    depends_on:
+      hosting:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
+      interval: 30s
+      timeout: 25s
+      retries: 10
+      start_period: 40s
+
+  email:
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
+    environment:
+      - SERVICE_URL_EMAIL_8000
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_SECONDS=${SECURE_HSTS_SECONDS:-31536000}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-true}
+      - CSRF_COOKIE_SECURE=${CSRF_COOKIE_SECURE:-true}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_EMAILSECRET}
+      - ALLOWED_HOSTS=${SERVICE_FQDN_EMAIL},email,localhost,127.0.0.1
+      - CSRF_TRUSTED_ORIGINS=${SERVICE_URL_EMAIL},https://admin.shellui.com
+      - CORS_ALLOWED_ORIGINS=${EMAIL_CORS_ALLOWED_ORIGINS:-https://admin.shellui.com}
+      - CORS_ALLOW_PRIVATE_NETWORK=${CORS_ALLOW_PRIVATE_NETWORK:-true}
+      - POSTGRES_DATABASE_URL=postgresql://email:${SERVICE_PASSWORD_64_EMAILDB}@postgres:5432/email
+      - REDIS_URL=${EMAIL_REDIS_URL:-redis://redis:6379/3}
+      - SCHEDULER_ENABLED=false
+      - EMAIL_WORKERS_ENABLED=false
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - PUBLIC_BASE_URL=${SERVICE_URL_EMAIL}
+      - EMAIL_FALLBACK_PROVIDER=${EMAIL_FALLBACK_PROVIDER:-none}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_HOST=${EMAIL_HOST:-}
+      - EMAIL_PORT=${EMAIL_PORT:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-}
+      - EMAIL_MAX_DOCUMENT_BYTES=${EMAIL_MAX_DOCUMENT_BYTES:-524288}
+      - EMAIL_MAX_RECIPIENTS=${EMAIL_MAX_RECIPIENTS:-50}
+      - EMAIL_MAX_BATCH_ITEMS=${EMAIL_MAX_BATCH_ITEMS:-500}
+      - EMAIL_MAX_VARIABLES_BYTES=${EMAIL_MAX_VARIABLES_BYTES:-8192}
+      - EMAIL_BROADCAST_MAX_RECIPIENTS=${EMAIL_BROADCAST_MAX_RECIPIENTS:-10000}
+      - EMAIL_BROADCAST_STEP_SECONDS=${EMAIL_BROADCAST_STEP_SECONDS:-20}
+      - EMAIL_TURNSTILE_VERIFY_URL=${EMAIL_TURNSTILE_VERIFY_URL:-https://challenges.cloudflare.com/turnstile/v0/siteverify}
+      - EMAIL_ALLOW_FAKE_PROVIDER=${EMAIL_ALLOW_FAKE_PROVIDER:-false}
+      - EMAIL_CREDENTIALS_KEY=${SERVICE_REALBASE64_32_EMAILCREDENTIALS}
+      - EMAIL_VARIABLES_KEY=${SERVICE_REALBASE64_32_EMAILVARIABLES}
+      - EMAIL_HASH_PEPPER=${SERVICE_PASSWORD_64_EMAILPEPPER}
+      - EMAIL_AUTH_LINK_HOSTS=${SERVICE_FQDN_IDENTITY}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@shellui.com}
+      - DEFAULT_FROM_NAME=${DEFAULT_FROM_NAME:-Shellui}
+      - SETUP_TOKEN=${EMAIL_SETUP_TOKEN:-}
+      - CORS_ALLOW_ALL_ORIGINS=${EMAIL_CORS_ALLOW_ALL_ORIGINS:-false}
+      - CORS_ALLOW_CREDENTIALS=${EMAIL_CORS_ALLOW_CREDENTIALS:-false}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${EMAIL_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      - ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS=${EMAIL_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+    volumes:
+      - email-data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=4)",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+
+  email-worker:
+    image: ${EMAIL_IMAGE:-shellui/email-service:0.2.0}
+    command: ['worker']
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - SECURE_SSL_REDIRECT=${SECURE_SSL_REDIRECT:-false}
+      - SECURE_HSTS_INCLUDE_SUBDOMAINS=${SECURE_HSTS_INCLUDE_SUBDOMAINS:-true}
+      - SECURE_HSTS_PRELOAD=${SECURE_HSTS_PRELOAD:-false}
+      - POSTGRES_SSL_REQUIRE=${POSTGRES_SSL_REQUIRE:-false}
+      - SECRET_KEY=${SERVICE_PASSWORD_64_EMAILSECRET}
+      - POSTGRES_DATABASE_URL=postgresql://email:${SERVICE_PASSWORD_64_EMAILDB}@postgres:5432/email
+      - REDIS_URL=${EMAIL_REDIS_URL:-redis://redis:6379/3}
+      - SCHEDULER_ENABLED=true
+      - EMAIL_WORKERS_ENABLED=true
+      - IDENTITY_SERVICE_URL=${IDENTITY_SERVICE_URL:-http://identity:8000}
+      - IDENTITY_JWKS=${IDENTITY_JWKS:?}
+      - IDENTITY_ISSUER=${SERVICE_URL_IDENTITY}
+      - IDENTITY_AUDIENCE=${JWT_AUDIENCE:-shellui}
+      - JWT_ALGORITHMS=${JWT_ALGORITHMS:-RS256}
+      - PUBLIC_BASE_URL=${SERVICE_URL_EMAIL}
+      - EMAIL_FALLBACK_PROVIDER=${EMAIL_FALLBACK_PROVIDER:-none}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_HOST=${EMAIL_HOST:-}
+      - EMAIL_PORT=${EMAIL_PORT:-}
+      - EMAIL_HOST_USER=${EMAIL_HOST_USER:-}
+      - EMAIL_HOST_PASSWORD=${EMAIL_HOST_PASSWORD:-}
+      - EMAIL_USE_TLS=${EMAIL_USE_TLS:-}
+      - EMAIL_USE_SSL=${EMAIL_USE_SSL:-}
+      - EMAIL_MAX_DOCUMENT_BYTES=${EMAIL_MAX_DOCUMENT_BYTES:-524288}
+      - EMAIL_MAX_RECIPIENTS=${EMAIL_MAX_RECIPIENTS:-50}
+      - EMAIL_MAX_BATCH_ITEMS=${EMAIL_MAX_BATCH_ITEMS:-500}
+      - EMAIL_MAX_VARIABLES_BYTES=${EMAIL_MAX_VARIABLES_BYTES:-8192}
+      - EMAIL_BROADCAST_MAX_RECIPIENTS=${EMAIL_BROADCAST_MAX_RECIPIENTS:-10000}
+      - EMAIL_BROADCAST_STEP_SECONDS=${EMAIL_BROADCAST_STEP_SECONDS:-20}
+      - EMAIL_TURNSTILE_VERIFY_URL=${EMAIL_TURNSTILE_VERIFY_URL:-https://challenges.cloudflare.com/turnstile/v0/siteverify}
+      - EMAIL_ALLOW_FAKE_PROVIDER=${EMAIL_ALLOW_FAKE_PROVIDER:-false}
+      - EMAIL_CREDENTIALS_KEY=${SERVICE_REALBASE64_32_EMAILCREDENTIALS}
+      - EMAIL_VARIABLES_KEY=${SERVICE_REALBASE64_32_EMAILVARIABLES}
+      - EMAIL_HASH_PEPPER=${SERVICE_PASSWORD_64_EMAILPEPPER}
+      - EMAIL_AUTH_LINK_HOSTS=${SERVICE_FQDN_IDENTITY}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@shellui.com}
+      - DEFAULT_FROM_NAME=${DEFAULT_FROM_NAME:-Shellui}
+      - ACTIONS_WEBHOOK_ALLOW_PRIVATE=${EMAIL_ACTIONS_WEBHOOK_ALLOW_PRIVATE:-false}
+      - ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS=${EMAIL_ACTIONS_WEBHOOK_RETRY_LEASE_SECONDS:-120}
+    volumes:
+      - email-data:/app/data
+    depends_on:
+      email:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'celery', '-A', 'config', 'inspect', 'ping', '-t', '10']
+      interval: 30s
+      timeout: 25s
+      retries: 10
+      start_period: 40s
