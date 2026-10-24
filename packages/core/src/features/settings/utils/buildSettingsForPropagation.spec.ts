@@ -287,25 +287,26 @@ describe('buildSettingsForPropagation', () => {
     expect(result.email).toEqual({ url: 'http://localhost:8003' });
   });
 
-  it('uses the production email url when email is set without url', () => {
+  it('sends no email when email is set without url (no built-in default)', () => {
     const config = {
       email: {},
     } as ShellUIConfig;
 
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
-    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+    expect(result.email).toBeNull();
   });
 
-  it('propagates showInAdmin false for email and keeps the default url', () => {
+  it('propagates showInAdmin false for email', () => {
     const config = {
       email: {
+        url: 'http://localhost:8003',
         showInAdmin: false,
       },
     } as ShellUIConfig;
 
     const result = buildSettingsForPropagation(baseSettings, config, 'en');
     expect(result.email).toEqual({
-      url: 'https://email.shellui.com',
+      url: 'http://localhost:8003',
       showInAdmin: false,
     });
   });
@@ -560,7 +561,7 @@ describe('buildSettingsForPropagation', () => {
     expect(json).not.toContain('https://email.shellui.com');
   });
 
-  it('uses the default email URL when a foreign app sets an empty email object', () => {
+  it('sends no email when a foreign app sets an empty email object', () => {
     const withEmptyEmail = {
       ...appConfig,
       navigation: (appConfig.navigation ?? []).map((item) =>
@@ -580,7 +581,7 @@ describe('buildSettingsForPropagation', () => {
       'en',
       options,
     );
-    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+    expect(result.email).toBeNull();
     expect(result.storage).toBeNull();
     expect(result.hosting).toBeNull();
     const json = JSON.stringify(result);
@@ -618,7 +619,7 @@ describe('buildSettingsForPropagation', () => {
     );
     expect(result.accessToken).toBe(shellToken);
     expect(result.authBackendBaseUrl).toBe('https://id.example.com');
-    expect(result.email).toEqual({ url: 'https://email.shellui.com' });
+    expect(result.email).toBeNull();
     expect(result.storage).toEqual(shellServices.storage);
     expect(result.hosting).toEqual(shellServices.hosting);
   });

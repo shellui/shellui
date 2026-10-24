@@ -244,6 +244,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         ...childFrameAuthPropagationOptions({
           identity: entry?.identity ?? null,
           getAppSession: getAppBackendSession,
+          services: entry?.services ?? null,
         }),
         includeLayoutChrome: false,
         frameUuid: path[path.length - 1],
@@ -688,6 +689,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         }
         addChildFrame(result.entry);
         const { entry } = result;
+        if (entry.rejectedServices.length) {
+          // Keys only: the URLs themselves stay out of the log.
+          logger.warn('Dropped child app service URLs not in childFrames.serviceOrigins', {
+            origin: safeOrigin(entry.url),
+            services: entry.rejectedServices,
+          });
+        }
         logger.info('Child app frame registered', {
           origin: safeOrigin(entry.url),
           identity: entry.identity?.url ?? null,

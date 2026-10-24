@@ -11,7 +11,15 @@ export type ChildFrameEntry = {
   frameId: string;
   url: string;
   identity: ResolvedAppBackend | null;
+  /** Host-supplied service URLs that passed `childFrames.serviceOrigins`. Others are `null`. */
+  services: ChildFrameServices;
+  /** Service keys dropped because the URL was invalid or its origin not allowed. */
+  rejectedServices: ChildFrameServiceKey[];
 };
+
+export type ChildFrameServiceKey = 'email' | 'storage' | 'hosting';
+export type ChildFrameServices = Record<ChildFrameServiceKey, string | null>;
+const SERVICE_KEYS: readonly ChildFrameServiceKey[] = ['email', 'storage', 'hosting'];
 
 export type ChildFrameRegistration =
   | { ok: true; entry: ChildFrameEntry }
@@ -46,6 +54,32 @@ function originList(values: unknown): Set<string> {
 }
 
 /**
+ * Keep each host-supplied service URL only when it is http(s) and its origin is
+ * exactly in `allowed`. Missing or rejected values become `null`: the child never
+ * falls back to the shell's own services or to a built-in default.
+ */
+export function resolveChildFrameServices(
+  input: unknown,
+  allowedOrigins: unknown,
+): { services: ChildFrameServices; rejected: ChildFrameServiceKey[] } {
+  const allowed = originList(allowedOrigins);
+  const raw = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  const services: ChildFrameServices = { email: null, storage: null, hosting: null };
+  const rejected: ChildFrameServiceKey[] = [];
+  for (const key of SERVICE_KEYS) {
+    const value = raw[key];
+    if (value === undefined || value === null || value === '') continue;
+    const origin = exactOrigin(value);
+    if (origin && allowed.has(origin)) {
+      services[key] = `${value}`.trim().replace(/\/+$/, '');
+    } else {
+      rejected.push(key);
+    }
+  }
+  return { services, rejected };
+}
+
+/**
  * Check a `SHELLUI_CHILD_FRAME_REGISTER` message. `from` must be exactly one hop:
  * a child app cannot register frames by sending the message through its host.
  */
@@ -59,7 +93,7 @@ export function validateChildFrameRegistration(input: {
   if (from.length !== 1) return { ok: false, reason: 'not sent by a direct app frame' };
   if (!input.hostSrc) return { ok: false, reason: 'unknown host frame' };
   const payload = input.payload as
-    | { frameId?: unknown; url?: unknown; backend?: unknown }
+    | { frameId?: unknown; url?: unknown; backend?: unknown; services?: unknown }
     | null
     | undefined;
   const frameId = typeof payload?.frameId === 'string' ? payload.frameId.trim() : '';
@@ -102,9 +136,18 @@ export function validateChildFrameRegistration(input: {
     if (!identity) return { ok: false, reason: 'child identity server is invalid' };
   }
 
+  const { services, rejected } = resolveChildFrameServices(payload?.services, rules.serviceOrigins);
+
   return {
     ok: true,
-    entry: { hostUuid: from[0], frameId, url: payload?.url as string, identity },
+    entry: {
+      hostUuid: from[0],
+      frameId,
+      url: payload?.url as string,
+      identity,
+      services,
+      rejectedServices: rejected,
+    },
   };
 }
 

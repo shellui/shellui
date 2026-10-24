@@ -170,3 +170,102 @@ describe('childFrameAuthPropagationOptions', () => {
     expect(options.settingsUser).toBeNull();
   });
 });
+
+describe('child frame service URLs', () => {
+  const withServices: ShellUIConfig = {
+    ...config,
+    navigation: [
+      {
+        label: 'Dashboard',
+        path: '',
+        url: 'https://dashboard.example.com/',
+        childFrames: {
+          origins: ['https://admin.example.com'],
+          backendOrigins: ['https://id.eu.example.com'],
+          serviceOrigins: [
+            'https://email.eu.example.com',
+            'https://storage.eu.example.com',
+            'https://*.example.com',
+            '*',
+          ],
+        },
+      },
+    ],
+  };
+  const register = (services: unknown, cfg: ShellUIConfig = withServices) =>
+    validateChildFrameRegistration({
+      from: ['h1'],
+      hostSrc: host,
+      payload: { ...good, services },
+      config: cfg,
+    });
+
+  it('forwards allowed service URLs to the child settings', () => {
+    const result = register({
+      email: 'https://email.eu.example.com/',
+      storage: 'https://storage.eu.example.com',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services).toEqual({
+      email: 'https://email.eu.example.com',
+      storage: 'https://storage.eu.example.com',
+      hosting: null,
+    });
+    expect(result.entry.rejectedServices).toEqual([]);
+    const options = childFrameAuthPropagationOptions({
+      identity: result.entry.identity,
+      getAppSession: () => null,
+      services: result.entry.services,
+    });
+    expect(options.email).toEqual({ url: 'https://email.eu.example.com' });
+    expect(options.storage).toEqual({ url: 'https://storage.eu.example.com' });
+    expect(options.hosting).toBeNull();
+  });
+
+  it('drops a service URL whose origin is not allowed', () => {
+    const result = register({
+      storage: 'https://evil.example.org',
+      hosting: 'javascript:alert(1)',
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services).toEqual({ email: null, storage: null, hosting: null });
+    expect(result.entry.rejectedServices).toEqual(['storage', 'hosting']);
+  });
+
+  it('never matches a wildcard entry', () => {
+    const result = register({ hosting: 'https://hosting.example.com' });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services.hosting).toBeNull();
+    expect(result.entry.rejectedServices).toEqual(['hosting']);
+  });
+
+  it('sends null for missing services, without falling back to the shell', () => {
+    const shellWithServices: ShellUIConfig = {
+      ...withServices,
+      email: { url: 'https://email.example.com' },
+      storage: { url: 'https://storage.example.com' },
+      hosting: { url: 'https://hosting.example.com' },
+    };
+    const result = register(undefined, shellWithServices);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services).toEqual({ email: null, storage: null, hosting: null });
+    const options = childFrameAuthPropagationOptions({
+      identity: result.entry.identity,
+      getAppSession: () => null,
+      services: result.entry.services,
+    });
+    expect(options).toMatchObject({ email: null, storage: null, hosting: null });
+  });
+
+  it('drops every service URL when serviceOrigins is not configured', () => {
+    const result = register({ email: 'https://email.eu.example.com' }, config);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.entry.services.email).toBeNull();
+    expect(result.entry.rejectedServices).toEqual(['email']);
+  });
+});
