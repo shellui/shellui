@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- **Core:** Logged-in only navigation entries stay visible while the session restores, so the sidebar no longer grows after a reload.
+
 ## [0.7.0-alpha.8] - 2026-10-24
 
 ### 🐛 Bug Fixes

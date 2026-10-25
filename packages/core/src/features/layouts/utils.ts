@@ -227,7 +227,8 @@ export function hasLoginNavigationItem(navigation: (NavigationItem | NavigationG
  * Hide login navigation entries only when authenticated, so custom login entries
  * can still be used while signed out (e.g. open login in modal/drawer).
  * While the initial session restore runs (`isAuthLoading`), login entries are hidden too:
- * the account skeleton takes their place until the auth state is known.
+ * the account skeleton takes their place until the auth state is known. Logged-in only entries
+ * stay visible during the restore so the navigation does not pop in after a reload.
  */
 export function filterNavigationForAuthState(
   navigation: (NavigationItem | NavigationGroup)[],
@@ -242,7 +243,7 @@ export function filterNavigationForAuthState(
       if ('title' in item && 'items' in item) {
         const group = item as NavigationGroup;
         const visibleItems = group.items.filter((navItem) => {
-          if (navItem.hideWhenLoggedOut && !isAuthenticated) return false;
+          if (navItem.hideWhenLoggedOut && !isAuthenticated && !isAuthLoading) return false;
           if (navItem.requiresDevMode && !isDevModeEnabled) return false;
           if (hideLoginEntries && isLoginNavigationUrl(navItem.url)) return false;
           return true;
@@ -251,7 +252,7 @@ export function filterNavigationForAuthState(
         return { ...group, items: visibleItems };
       }
       const navItem = item as NavigationItem;
-      if (navItem.hideWhenLoggedOut && !isAuthenticated) return null;
+      if (navItem.hideWhenLoggedOut && !isAuthenticated && !isAuthLoading) return null;
       if (navItem.requiresDevMode && !isDevModeEnabled) return null;
       if (hideLoginEntries && isLoginNavigationUrl(navItem.url)) return null;
       return item;
