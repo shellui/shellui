@@ -4,19 +4,17 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { DrawerPosition, OverlayOpenOptions } from '@shellui/sdk';
 import {
-  resolveBottomSheetSnapPoints,
   resolveDismissOptions,
   resolveDrawerChrome,
   resolveDrawerSizeForViewport,
-  sheetExpandedHeightPx,
-  SHEET_EXPANDED_TOP_GAP_PX,
 } from './overlaySize';
 
 /**
  * Phones (below 768px): every drawer must be a bottom sheet, anchored 8px plus the
- * safe area above the bottom edge, with a drag handle, and its content in the lower
- * part of the screen where the thumb reaches. These tests fail if any drawer path
- * stops being bottom-anchored on a phone.
+ * safe area above the bottom edge, with a drag handle, sized to its content so the
+ * actions sit right above the bottom where the thumb reaches. A tall sheet stops 8px
+ * below the notch and scrolls inside. These tests fail if any drawer path stops being
+ * bottom-anchored or content-sized on a phone.
  */
 
 const POSITIONS: DrawerPosition[] = ['left', 'right', 'top', 'bottom'];
@@ -51,8 +49,13 @@ const PHONES = [
   { name: '767 x 1000 (just below md)', height: 1000, safeTop: 0, safeBottom: 0 },
 ];
 
+/** Content heights the iframe may report: short, mid, and taller than any phone. */
+const REPORTS = [120, 326, 560, 2000];
+
 /** --shellui-drawer-bottom on a phone: 8px gap plus the bottom safe area. */
 const phoneBottomOffset = (safeBottom: number) => 8 + safeBottom;
+/** --shellui-drawer-top on a phone: 8px gap plus the top safe area (below the notch). */
+const phoneTopOffset = (safeTop: number) => 8 + safeTop;
 
 function specDir(): string {
   const url = import.meta.url;
@@ -63,18 +66,31 @@ function specDir(): string {
 describe('phone drawers are bottom-anchored sheets', () => {
   for (const position of POSITIONS) {
     for (const { name, options } of OPTION_CASES) {
-      it(`${position} drawer (${name}) is a bottom sheet with a drag handle`, () => {
-        const contentSized = resolveDrawerSizeForViewport(options, position, true).contentSized;
+      it(`${position} drawer (${name}) is a content-sized bottom sheet with a drag handle`, () => {
+        const size = resolveDrawerSizeForViewport(options, position, true);
         const chrome = resolveDrawerChrome({
           position,
           isMobile: true,
           dismiss: resolveDismissOptions(options),
-          contentSized,
+          contentSized: size.contentSized,
         });
         expect(chrome.direction).toBe('bottom');
         expect(chrome.showDragHandle).toBe(true);
-        // Content-sized sheets sit at their content height instead of snapping.
-        expect(chrome.allowSnapPoints).toBe(!contentSized);
+        // No half-height stop: the sheet is as tall as its content.
+        expect(chrome.allowSnapPoints).toBe(false);
+        expect(size.contentSized).toBe(true);
+        expect(size.drawerSize).toBeNull();
+        expect(size.style.height).toBe('auto');
+        expect(size.style.maxHeight).toBe('var(--shellui-drawer-max-height)');
+        // Nothing may move the sheet off its bottom anchor through inline style.
+        expect(size.style.top).toBeUndefined();
+        expect(size.style.bottom).toBeUndefined();
+        expect(size.style.transform).toBeUndefined();
+        // Apps that never report fall back to their requested height, still capped.
+        if (size.fallbackHeight) {
+          expect(size.fallbackHeight).toMatch(/var\(--shellui-drawer-max-height\)\)$/);
+          expect(size.fallbackHeight).not.toMatch(/vw/);
+        }
       });
     }
   }
@@ -88,10 +104,13 @@ describe('phone drawers are bottom-anchored sheets', () => {
       });
       expect(chrome.direction).toBe(position);
       expect(chrome.showDragHandle).toBe(position === 'top' || position === 'bottom');
+      expect(resolveDrawerSizeForViewport({ size: 'md' }, position, false).contentSized).toBe(
+        false,
+      );
     }
   });
 
-  it('hides the handle while a dynamic drawer waits for its size', () => {
+  it('hides the handle while a phone sheet waits for its size', () => {
     const chrome = resolveDrawerChrome({
       position: 'right',
       isMobile: true,
@@ -104,76 +123,25 @@ describe('phone drawers are bottom-anchored sheets', () => {
   });
 
   for (const phone of PHONES) {
-    for (const position of POSITIONS) {
-      for (const { name, options, reported } of OPTION_CASES) {
-        it(`${phone.name}: ${position} drawer (${name}) sits above the bottom edge`, () => {
-          const H = phone.height;
-          const offset = phoneBottomOffset(phone.safeBottom);
-          const sheetPx = sheetExpandedHeightPx(H, phone.safeTop, offset);
-          const size = resolveDrawerSizeForViewport(options, position, true);
-          const chrome = resolveDrawerChrome({
-            position,
-            isMobile: true,
-            dismiss: resolveDismissOptions(options),
-            contentSized: size.contentSized,
-          });
-          const snaps = chrome.allowSnapPoints
-            ? resolveBottomSheetSnapPoints(options, reported ?? null, H, phone.safeTop, offset)
-            : null;
+    for (const reported of REPORTS) {
+      it(`${phone.name}: a ${reported}px sheet ends above the bottom edge, top below the notch`, () => {
+        const H = phone.height;
+        const bottomOffset = phoneBottomOffset(phone.safeBottom);
+        // --shellui-drawer-max-height: app height minus drawer top and bottom offsets
+        const maxH = H - phoneTopOffset(phone.safeTop) - bottomOffset;
+        const visible = Math.min(reported, maxH);
+        const bottom = H - bottomOffset;
+        const top = bottom - visible;
 
-          // Nothing may move the sheet off its bottom anchor through inline style.
-          expect(size.style.top).toBeUndefined();
-          expect(size.style.bottom).toBeUndefined();
-          expect(size.style.transform).toBeUndefined();
-
-          if (!snaps) {
-            // No snaps: the sheet is pinned with `bottom: offset` (8px plus the safe
-            // area). Content-sized sheets keep the drawer max height so the top of a
-            // tall report stays on screen.
-            if (size.contentSized) {
-              expect(size.style.height).toBe('auto');
-              expect(String(size.style.maxHeight)).toContain('--shellui-drawer-max-height');
-            }
-            return;
-          }
-
-          // With snaps the sheet is the expanded height, anchored at the bottom offset;
-          // Vaul moves it down by H - snap * H for the first snap.
-          expect(size.contentSized).toBe(false);
-          const elementHeight = size.style.height === 'auto' ? (reported ?? 0) : sheetPx;
-          const anchoredBottom = H - offset;
-          const translate = H - snaps[0] * H;
-          const firstSnapTop = anchoredBottom - elementHeight + translate;
-          const expandedTop = anchoredBottom - elementHeight;
-
-          // First snap is on screen, in the lower part, below the tappable top band.
-          expect(firstSnapTop).toBeGreaterThanOrEqual(
-            phone.safeTop + SHEET_EXPANDED_TOP_GAP_PX - 1,
-          );
-          expect(firstSnapTop).toBeLessThan(anchoredBottom - 40);
-          // The visible content ends at the floating gap, above the home indicator.
-          const visible = snaps[0] * H - (H - sheetPx);
-          expect(Math.round(firstSnapTop + visible)).toBe(Math.round(anchoredBottom));
-          // Expanded: whole sheet shows, 60px plus safe top from the top edge.
-          expect(Math.round(expandedTop)).toBe(phone.safeTop + SHEET_EXPANDED_TOP_GAP_PX);
-          expect(snaps[1]).toBe(1);
-        });
-      }
+        expect(bottom).toBe(H - 8 - phone.safeBottom);
+        expect(top).toBeGreaterThanOrEqual(phone.safeTop + 8);
+        // Short content: the sheet hugs it, so the actions are near the bottom.
+        if (reported < maxH) expect(visible).toBe(reported);
+        // Tall content: capped, the iframe scrolls inside.
+        else expect(top).toBe(phone.safeTop + 8);
+      });
     }
   }
-
-  it('never snaps a content-sized phone drawer (its report would push it below the screen)', () => {
-    for (const options of [{ size: 'content' as const }, { dynamicSizing: true }]) {
-      const chrome = resolveDrawerChrome({
-        position: 'top',
-        isMobile: true,
-        dismiss: resolveDismissOptions(options),
-        contentSized: resolveDrawerSizeForViewport(options, 'top', true).contentSized,
-      });
-      expect(chrome.allowSnapPoints).toBe(false);
-      expect(chrome.showDragHandle).toBe(true);
-    }
-  });
 
   it('anchors the bottom drawer chrome to the bottom offset', () => {
     const drawerSrc = readFileSync(resolve(specDir(), '../../components/ui/drawer.tsx'), 'utf8');
@@ -184,23 +152,36 @@ describe('phone drawers are bottom-anchored sheets', () => {
     expect(bottom).not.toMatch(/(^|\s)top-/);
   });
 
-  it('keeps an 8px phone gap plus the bottom safe area', () => {
+  it('keeps an 8px phone gap plus the safe areas, and caps sheets between them', () => {
     const css = readFileSync(resolve(specDir(), '../../index.css'), 'utf8');
     expect(css).toMatch(/--shellui-drawer-gap:\s*8px;/);
     expect(css).toMatch(
       /--shellui-drawer-bottom:\s*calc\(\s*var\(--shellui-drawer-gap\)\s*\+\s*var\(--shellui-safe-area-bottom\)\s*\);/,
     );
+    expect(css).toMatch(
+      /--shellui-drawer-top:\s*calc\(\s*var\(--shellui-drawer-gap\)\s*\+\s*var\(--shellui-safe-area-top\)\s*\);/,
+    );
+    expect(css).toMatch(
+      /--shellui-drawer-max-height:\s*calc\(\s*var\(--shellui-app-height\)\s*-\s*var\(--shellui-drawer-top\)\s*-\s*var\(--shellui-drawer-bottom\)/,
+    );
   });
 
-  it('OverlayShell takes the drawer edge, handle and snap height from these helpers', () => {
+  it('OverlayShell takes the drawer edge, handle and height from these helpers', () => {
     const shell = readFileSync(resolve(specDir(), '../layouts/OverlayShell.tsx'), 'utf8');
     expect(shell).toMatch(/resolveDrawerChrome\(/);
     expect(shell).toMatch(/showDragHandle=\{drawerChrome\.showDragHandle\}/);
-    expect(shell).toMatch(/contentSized: drawerSize\.contentSized \|\| drawerDynamic/);
+    expect(shell).toMatch(
+      /resolveDrawerSizeForViewport\(drawerOptions, drawerPosition, isMobile\)/,
+    );
+    // Phone sheets listen for the content size and may grow to the drawer max height.
+    expect(shell).toMatch(
+      /useOverlayReportedSize\(\s*drawerSize\.contentSized \|\| drawerDynamic,\s*isDrawerOpen,\s*isMobile \? 1 : undefined,?\s*\)/,
+    );
     expect(shell).toMatch(/if \(!drawerChrome\.allowSnapPoints\) return undefined;/);
     // A tall content report is clamped by the drawer max height, not the overlay max
     // (which ignores the bottom offset and would push the top under the notch).
     expect(shell).toMatch(/maxHeight: `min\(\$\{drawerReported\.height\}px, \$\{DRAWER_MAX_H\}\)`/);
+    expect(shell).toMatch(/height: drawerPhoneFallback, maxHeight: DRAWER_MAX_H/);
     expect(shell).toMatch(/direction=\{effectiveDrawerPosition\}/);
   });
 });

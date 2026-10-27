@@ -232,11 +232,16 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     usedFallback: modalSizeFallback,
     wasClamped: modalWasClamped,
   } = useOverlayReportedSize(modalContentSized, isOpen && !isDrawerOpen);
+  // Phone sheets grow up to the drawer max height (CSS), so the report is not cut at 92%.
   const {
     reported: drawerReported,
     usedFallback: drawerSizeFallback,
     wasClamped: drawerWasClamped,
-  } = useOverlayReportedSize(drawerSize.contentSized || drawerDynamic, isDrawerOpen);
+  } = useOverlayReportedSize(
+    drawerSize.contentSized || drawerDynamic,
+    isDrawerOpen,
+    isMobile ? 1 : undefined,
+  );
 
   const modalPending = isOpen && modalContentSized && !modalReported;
   const drawerPending =
@@ -355,6 +360,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         }),
   };
 
+  // Phone sheet from an app that never reports its size: use the requested preset.
+  const drawerPhoneFallback =
+    drawerSizeFallback && drawerSize.fallbackHeight ? drawerSize.fallbackHeight : null;
+
   const drawerContentStyle: CSSProperties = {
     ...drawerSize.style,
     ...(drawerSize.contentSized || drawerDynamic ? { transition: 'none' } : {}),
@@ -370,17 +379,19 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             maxWidth: drawerPendingPx,
             minWidth: drawerPendingPx,
           }
-      : drawerReported
-        ? drawerIsVertical
-          ? {
-              height: drawerReported.height,
-              maxHeight: `min(${drawerReported.height}px, ${DRAWER_MAX_H})`,
-            }
-          : {
-              width: drawerReported.width ?? drawerReported.height,
-              maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
-            }
-        : {}),
+      : drawerPhoneFallback
+        ? { height: drawerPhoneFallback, maxHeight: DRAWER_MAX_H }
+        : drawerReported
+          ? drawerIsVertical
+            ? {
+                height: drawerReported.height,
+                maxHeight: `min(${drawerReported.height}px, ${DRAWER_MAX_H})`,
+              }
+            : {
+                width: drawerReported.width ?? drawerReported.height,
+                maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
+              }
+          : {}),
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -411,8 +422,9 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     contentSized: drawerSize.contentSized || drawerDynamic,
   });
 
-  // Bottom sheets: snap between the configured height and near-full so drag-up expands.
-  // Skip when desktop free-edge resize is active (those compete with Vaul snaps).
+  // Desktop bottom sheets: snap between the configured height and near-full so drag-up
+  // expands. Phones never snap (content-height sheets). Skip when desktop free-edge
+  // resize is active (those compete with Vaul snaps).
   const drawerSnapPoints = useMemo(() => {
     if (!drawerChrome.allowSnapPoints) return undefined;
     return resolveBottomSheetSnapPoints(drawerOptions, drawerReported?.height ?? null) ?? undefined;
@@ -501,13 +513,15 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           size={
             drawerSnapPoints
               ? SHEET_EXPANDED_HEIGHT_CSS
-              : drawerReported
-                ? drawerIsVertical
-                  ? `${drawerReported.height}px`
-                  : `${drawerReported.width ?? drawerReported.height}px`
-                : drawerPending
-                  ? `${drawerPendingPx}px`
-                  : drawerSize.drawerSize
+              : drawerPhoneFallback
+                ? drawerPhoneFallback
+                : drawerReported
+                  ? drawerIsVertical
+                    ? `${drawerReported.height}px`
+                    : `${drawerReported.width ?? drawerReported.height}px`
+                  : drawerPending
+                    ? `${drawerPendingPx}px`
+                    : drawerSize.drawerSize
           }
           style={
             drawerSnapPoints

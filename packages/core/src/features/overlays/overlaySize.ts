@@ -117,6 +117,11 @@ export interface ResolvedOverlaySize {
   contentSized: boolean;
   /** Primary drawer CSS length (vaul size prop) when applicable. */
   drawerSize: string | null;
+  /**
+   * Phone sheets only: the preset height to use when the app never reports its
+   * content size (no `shellui.overlay.autoSize()`), clamped by the drawer max height.
+   */
+  fallbackHeight?: string | null;
 }
 
 function applyExplicitDimensions(
@@ -237,8 +242,15 @@ export function resolveDrawerSize(
 
 /**
  * Resolve drawer size for the active viewport.
- * Mobile always uses bottom-sheet chrome; horizontal freeform widths (`60vw`,
- * `400px`, explicit `width`) are dropped so they are not applied as height.
+ *
+ * Desktop: the requested edge and size.
+ *
+ * Phones: every drawer is a bottom sheet sized to its content. It listens for
+ * SHELLUI_OVERLAY_SIZE and grows with the iframe up to the drawer max height
+ * (8px plus the safe area above the bottom, the top below the notch), then the
+ * iframe scrolls. The requested size only applies as `fallbackHeight` when the
+ * app never reports. Horizontal freeform widths (`60vw`, `400px`, explicit
+ * `width`) are dropped so they are not applied as height.
  */
 export function resolveDrawerSizeForViewport(
   options?: OverlayOpenOptions | null,
@@ -250,22 +262,31 @@ export function resolveDrawerSizeForViewport(
     return resolveDrawerSize(options, effective);
   }
 
+  let presetOptions: OverlayOpenOptions | null | undefined = options;
   // left/right → bottom: width-oriented sizes must not become sheet height
   if (position === 'left' || position === 'right') {
     const dynamic = isDynamicSizing(options);
     const size = options?.size;
     const dropFreeformWidth =
       !dynamic && size !== undefined && size !== null && !isOverlaySizePreset(size);
-    const nextOptions: OverlayOpenOptions | null | undefined = dropFreeformWidth
+    presetOptions = dropFreeformWidth
       ? { ...options, size: undefined, width: undefined }
       : options?.width !== undefined
         ? { ...options, width: undefined }
         : options;
-    return resolveDrawerSize(nextOptions, 'bottom');
   }
 
-  // top → bottom (or already bottom): keep height-oriented size
-  return resolveDrawerSize(options, 'bottom');
+  const preset = resolveDrawerSize(presetOptions, 'bottom');
+  const { width: _width, height: _height, ...rest } = presetOptions ?? {};
+  const sheet = resolveDrawerSize({ ...rest, size: 'content' }, 'bottom');
+  // Content sheets never exceed the drawer max height, whatever maxHeight asks for.
+  sheet.style.maxHeight = DRAWER_MAX_HEIGHT_CSS;
+  return {
+    ...sheet,
+    fallbackHeight: preset.contentSized
+      ? null
+      : `min(${preset.drawerSize ?? DEFAULT_VERTICAL_DRAWER}, ${DRAWER_MAX_HEIGHT_CSS})`,
+  };
 }
 
 export type OverlayDismissOptions = {
@@ -300,14 +321,14 @@ export type DrawerChrome = {
  * Resolve drawer chrome for the active viewport.
  *
  * Phones (below md): every drawer, whatever edge was requested, is a bottom sheet
- * anchored above the home indicator, always with a drag handle so it can be pulled
- * up or down with the thumb. Snap points apply even when the app hides its handle or
- * turns off dismiss (Vaul then keeps the sheet open at the first snap).
+ * anchored above the home indicator, always with a drag handle for the thumb. Phone
+ * sheets never snap: they sit at their content height (see
+ * {@link resolveDrawerSizeForViewport}), so there is no half-height stop leaving
+ * empty space under the actions.
  *
- * Content-sized drawers never snap: their height follows the iframe report, and a
- * snap sheet is the expanded height, so the iframe would report that height back and
- * the sheet would end up below the screen. They sit at their content height instead,
- * clamped to the drawer max height (the iframe scrolls past it).
+ * Content-sized drawers never snap on desktop either: a snap sheet is the expanded
+ * height, so the iframe would report that height back and the sheet would end up
+ * below the screen.
  *
  * Desktop: the requested edge, with the handle and snaps the options ask for.
  */
@@ -328,7 +349,7 @@ export function resolveDrawerChrome({
 }): DrawerChrome {
   const direction = resolveEffectiveDrawerPosition(position, isMobile);
   if (isMobile) {
-    return { direction, showDragHandle: !pending, allowSnapPoints: !pending && !contentSized };
+    return { direction, showDragHandle: !pending, allowSnapPoints: false };
   }
   const vertical = direction === 'top' || direction === 'bottom';
   const handle = dismiss.showDragHandle && dismiss.dismissible;

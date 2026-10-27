@@ -69,18 +69,32 @@ describe('overlaySize', () => {
     expect(resolveEffectiveDrawerPosition('right', false)).toBe('right');
   });
 
-  it('remaps horizontal freeform size to default height on mobile', () => {
+  it('sizes phone sheets to content, keeping the requested height as fallback', () => {
     const desktop = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', false);
     expect(desktop.drawerSize).toBe('60vw');
+    expect(desktop.contentSized).toBe(false);
 
+    const cap = 'var(--shellui-drawer-max-height)';
     const mobile = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', true);
-    expect(mobile.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.8)');
+    expect(mobile.contentSized).toBe(true);
+    expect(mobile.drawerSize).toBeNull();
+    expect(mobile.style.height).toBe('auto');
+    expect(mobile.style.maxHeight).toBe(cap);
+    // Horizontal freeform width never becomes a sheet height
+    expect(mobile.fallbackHeight).toBe(
+      `min(calc(var(--shellui-overlay-max-height) * 0.8), ${cap})`,
+    );
 
     const preset = resolveDrawerSizeForViewport({ size: 'md' }, 'right', true);
-    expect(preset.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.55)');
+    expect(preset.fallbackHeight).toBe(
+      `min(calc(var(--shellui-overlay-max-height) * 0.55), ${cap})`,
+    );
 
     const fromTop = resolveDrawerSizeForViewport({ size: '60vh' }, 'top', true);
-    expect(fromTop.drawerSize).toBe('60vh');
+    expect(fromTop.fallbackHeight).toBe(`min(60vh, ${cap})`);
+
+    const content = resolveDrawerSizeForViewport({ size: 'content' }, 'left', true);
+    expect(content.fallbackHeight).toBeNull();
   });
 
   it('defaults dismiss options', () => {
