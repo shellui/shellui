@@ -189,11 +189,10 @@ import { shellui } from '@shellui/sdk';
 shellui.login({
   method: 'oauth',
   provider: 'github',
-  redirectPath: '/login',
 });
 ```
 
-Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL. An app `backend` replaces that URL for that frame only.
+Supported `method` values: `oauth` (with `provider`), `web3`. Nested frames send `SHELLUI_LOGIN` to the root. After OAuth sign-in, people come back to the page they started from. Pass `redirectPath` (for example `'/dashboard'`) to open another shell page instead. When `backend.type` is `shellui`, settings include `authBackendBaseUrl` so admin tools call the same identity base URL. An app `backend` replaces that URL for that frame only.
 
 Signed-in users open **Settings** for account fields, theme, language, and region. Preferences sync with the backend when configured. Legal links on the login page come from `legalDocuments` - see [Legal documents](/features/legal-documents).
 

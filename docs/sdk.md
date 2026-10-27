@@ -247,11 +247,10 @@ shellui.navigate('https://example.com/page');
 shellui.login({
   method: 'oauth',
   provider: 'github',
-  redirectPath: '/login',
 });
 ```
 
-Navigation applies to URLs configured in host navigation. `login` asks the **root** window to run OAuth so redirects are not trapped in the iframe. Methods: `oauth` (with `provider`) and `web3`.
+Navigation applies to URLs configured in host navigation. `login` asks the **root** window to run OAuth so redirects are not trapped in the iframe. Methods: `oauth` (with `provider`) and `web3`. After OAuth sign-in, people return to the page they started from, or to `redirectPath` when set.
 
 ### Storage
 
