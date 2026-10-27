@@ -34,7 +34,7 @@ const EMPTY_SHELL_PACKAGE_JSON = {
     'serve:dist': 'node node_modules/@shellui/cli/scripts/serve-dist.mjs',
   },
   devDependencies: {
-    '@shellui/cli': '^0.7.0-alpha.10',
+    '@shellui/cli': '^0.7.0-alpha.11',
   },
 };
 
