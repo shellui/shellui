@@ -1727,6 +1727,26 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   }
 }
 
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] {
+  --shellui-nav-hover: var(--shellui-nav-hover-inset);
+}
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] .shellui-appbar-item.is-active {
+  background-color: var(--background);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 2px color-mix(in oklch, black 8%, transparent);
+}
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset']
+  .shellui-appbar-item.is-active::after {
+  content: none;
+}
+@media (min-width: 768px) {
+  [data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] > main {
+    border-radius: var(--shellui-r-card);
+    box-shadow: 0 1px 2px color-mix(in oklch, black 5%, transparent);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shellui-appbar-item,
   .shellui-appbar-end {
