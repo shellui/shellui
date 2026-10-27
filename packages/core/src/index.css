@@ -1467,6 +1467,12 @@ html[data-shellui-overlay-chrome] [data-drawer-overlay] {
   animation: auth-menu-out 0.12s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
 }
+@media (prefers-reduced-motion: reduce) {
+  [data-auth-menu-content][data-state],
+  [data-shellui-auth-loading] .animate-pulse {
+    animation: none;
+  }
+}
 
 /* Tauri overlay titlebar: drag via data-tauri-drag-region; keep controls clickable. */
 [data-shellui-drag-region],
@@ -1802,6 +1808,26 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 .shellui-appbar-end.is-active {
   background-color: var(--shellui-nav-hover);
 }
+/*
+ * Web bar (56px, 6px top pad, 1px border): the underline sits on the bar's bottom
+ * border, half the leftover height below the item. Tauri keeps it at the item bottom.
+ */
+html:not([data-shellui-host='tauri'])
+  [data-shellui-app-bar-layout]
+  > header
+  .shellui-appbar-item.is-active::after,
+html:not([data-shellui-host='tauri'])
+  [data-shellui-mobile-chrome-stack]
+  > header[data-layout]
+  .shellui-appbar-item.is-active::after {
+  bottom: calc((var(--shellui-appbar-item-h, 32px) - 49px) / 2 - 1px);
+}
+@media (max-width: 767px) {
+  [data-shellui-app-bar-layout] .shellui-appbar-item {
+    --shellui-appbar-item-h: 40px;
+    height: 40px;
+  }
+}
 .shellui-appbar-item:focus-visible,
 .shellui-appbar-end:focus-visible {
   outline: 2px solid var(--sidebar-ring);
@@ -1821,6 +1847,9 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   min-height: 32px;
   font-size: 13.5px;
   border-radius: var(--shellui-r-row);
+}
+.shellui-appbar-menu .shellui-appbar-menu-item > :first-child:is(svg, img, span[aria-hidden]) {
+  color: var(--muted-foreground);
 }
 .shellui-appbar-menu .shellui-appbar-menu-item.is-active {
   background-color: var(--accent);
@@ -2000,6 +2029,13 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   border-radius: 999px;
   background: color-mix(in oklch, var(--sidebar-foreground) 22%, transparent);
 }
+/* More sheet group label (sidebar sheet label size, 12.5px / 600). */
+.shellui-more-sheet-label {
+  padding: 14px 12px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--shellui-nav-label);
+}
 .shellui-more-sheet-row {
   min-height: 48px;
   padding-inline: 12px;
@@ -2027,6 +2063,21 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 }
 .shellui-more-sheet-account:empty {
   display: none;
+}
+/* Account row: 48 px in the mobile sidebar sheet, 56 px with a 32 px avatar in the More sheet. */
+[data-mobile='true'] .shellui-account-row {
+  height: 3rem;
+}
+.shellui-more-sheet-account .shellui-account-row {
+  height: 3.5rem;
+  padding-inline: 0.75rem;
+  font-size: 15px;
+}
+.shellui-more-sheet-account .shellui-account-row [data-shellui-account-initials],
+.shellui-more-sheet-account .shellui-account-row img {
+  width: 2rem;
+  height: 2rem;
+  font-size: 12px;
 }
 /* vaul paints an ::after below bottom drawers; the sheet floats, so drop it. */
 .shellui-more-sheet::after {
@@ -2294,6 +2345,32 @@ html[data-shellui-keyboard='open']
 .shellui-start-foot {
   border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
+.shellui-start-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.shellui-task.shellui-task-icon {
+  width: 38px;
+  justify-content: center;
+  padding: 0;
+}
+.shellui-start-settings {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--shellui-r-row);
+  color: var(--shellui-nav-icon);
+  cursor: pointer;
+}
+.shellui-start-settings:hover {
+  background: var(--shellui-nav-hover);
+  color: var(--popover-foreground);
+}
 .shellui-start-row {
   display: flex;
   width: 100%;
@@ -2362,6 +2439,18 @@ html[data-shellui-keyboard='open']
   .shellui-win-control {
     transition: none;
   }
+}
+
+/*
+ * Fullscreen layout on phones: top pads by safe-area-top + 12px, sides and bottom
+ * by their safe area. The 12px only applies when there is a top inset (the min()
+ * term is 0 on a plain desktop browser).
+ */
+.shellui-fullscreen-safe {
+  padding-top: calc(var(--shellui-safe-area-top) + min(12px, var(--shellui-safe-area-top) * 1000));
+  padding-right: var(--shellui-safe-area-right);
+  padding-bottom: var(--shellui-safe-area-bottom);
+  padding-left: var(--shellui-safe-area-left);
 }
 
 /* Fullscreen layout (Tauri): a small glass group keeps history buttons legible on any content. */

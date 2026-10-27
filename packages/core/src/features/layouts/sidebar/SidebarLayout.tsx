@@ -36,11 +36,7 @@ import {
 import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
 import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
-import {
-  MAC_LIGHTS_SAFE_PX,
-  SHELL_HEADER_HEIGHT_PX,
-  SHELL_HEADER_PAD_TOP_PX,
-} from '../chrome/constants';
+import { MAC_LIGHTS_SAFE_PX, MOBILE_SIDEBAR_HEADER_HEIGHT_PX } from '../chrome/constants';
 import { WindowTitleBarActions } from '../../chromeActions';
 import { cn } from '../../../lib/utils';
 
@@ -106,6 +102,7 @@ const SidebarLayoutContent = ({
   const { chromeVisible } = useScrollHideChrome({
     enabled: isMobile,
     layout: scrollHideLayout,
+    barHeightPx: MOBILE_SIDEBAR_HEADER_HEIGHT_PX,
     includeSafeArea: showSafeAreaTopbar,
   });
   const contentRef = useRef<HTMLDivElement>(null);
@@ -157,6 +154,10 @@ const SidebarLayoutContent = ({
       endItems: end,
     };
   }, [authAwareNavigation, isMobile]);
+
+  const pageTitle = navigationItem
+    ? resolveLocalizedLabel(navigationItem.label, currentLanguage)
+    : title;
 
   useEffect(() => {
     if (!title) return;
@@ -233,18 +234,16 @@ const SidebarLayoutContent = ({
             <header
               data-shellui-scroll-hide-header=""
               className={cn(
-                'pointer-events-auto relative z-[1] flex items-center gap-0.5 px-3 select-none',
+                'pointer-events-auto relative z-[1] flex items-center gap-0.5 px-1.5 select-none',
                 variant === 'inset'
                   ? 'border-transparent bg-transparent text-sidebar-foreground'
                   : 'border-b border-border bg-background',
               )}
               style={{
-                paddingTop: showSafeAreaTopbar
-                  ? `calc(var(--shellui-safe-area-top) + ${SHELL_HEADER_PAD_TOP_PX}px)`
-                  : SHELL_HEADER_PAD_TOP_PX,
+                paddingTop: showSafeAreaTopbar ? 'var(--shellui-safe-area-top)' : 0,
                 height: showSafeAreaTopbar
-                  ? `calc(${SHELL_HEADER_HEIGHT_PX}px + var(--shellui-safe-area-top))`
-                  : SHELL_HEADER_HEIGHT_PX,
+                  ? `calc(${MOBILE_SIDEBAR_HEADER_HEIGHT_PX}px + var(--shellui-safe-area-top))`
+                  : MOBILE_SIDEBAR_HEADER_HEIGHT_PX,
                 ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
               }}
               {...(trafficLights
@@ -253,7 +252,7 @@ const SidebarLayoutContent = ({
             >
               <SidebarTrigger
                 data-shellui-no-drag=""
-                className="relative size-8 shrink-0 touch-manipulation text-foreground"
+                className="relative size-10 shrink-0 touch-manipulation text-foreground [&_svg]:size-5"
               />
               {isTauriEnv ? <DesktopHistoryButtons /> : null}
               {isMobile ? (
@@ -261,8 +260,19 @@ const SidebarLayoutContent = ({
                   data-shellui-no-drag=""
                   className="flex min-w-0 flex-1 items-center"
                 >
-                  <WindowTitleBarActions frameUuid={frameUuid} />
+                  <WindowTitleBarActions
+                    frameUuid={frameUuid}
+                    fallbackTitle={pageTitle}
+                    centerTitle
+                  />
                 </div>
+              ) : null}
+              {/* Balances the trigger so the title sits in the middle. */}
+              {isMobile && !isTauriEnv ? (
+                <span
+                  aria-hidden
+                  className="size-10 shrink-0"
+                />
               ) : null}
             </header>
             {variant === 'inset' ? <InsetMobileRadiusOverlay /> : null}

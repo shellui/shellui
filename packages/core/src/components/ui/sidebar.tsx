@@ -224,7 +224,7 @@ function SidebarProvider({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={200}>
         <div
           data-slot="sidebar-wrapper"
           data-resizing={isResizing ? '' : undefined}
@@ -249,6 +249,9 @@ function SidebarProvider({
     </SidebarContext.Provider>
   );
 }
+
+/** DOM id of the sidebar panel, for the trigger's `aria-controls`. */
+export const SIDEBAR_PANEL_ID = 'shellui-sidebar';
 
 function Sidebar({
   side = 'left',
@@ -297,6 +300,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
+          id={SIDEBAR_PANEL_ID}
           className="w-(--sidebar-width) max-w-full overflow-x-hidden bg-sidebar p-0 text-sidebar-foreground sm:max-w-full [&>button]:hidden"
           style={
             {
@@ -362,6 +366,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
+          id={SIDEBAR_PANEL_ID}
           className={cn(
             'flex h-full w-full flex-col bg-sidebar',
             'group-data-[variant=inset]:bg-transparent',
@@ -376,7 +381,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, open, openMobile } = useSidebar();
   const { t } = useTranslation();
 
   return (
@@ -387,6 +392,8 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       variant="ghost"
       size="icon"
       aria-label={t('shellChrome.toggleSidebar')}
+      aria-expanded={isMobile ? openMobile : open}
+      aria-controls={SIDEBAR_PANEL_ID}
       className={cn(
         'size-7 touch-manipulation select-none [-webkit-touch-callout:none]',
         className,
@@ -768,6 +775,8 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
+        sideOffset={8}
+        className="rounded-[calc(var(--shellui-r-row)-1px)] border-0 bg-foreground px-2 py-1 text-xs font-medium text-background shadow-none"
         hidden={state !== 'collapsed' || isMobile}
         {...tooltip}
       />

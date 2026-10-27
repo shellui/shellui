@@ -148,7 +148,7 @@ export function NavigationContent({
 
   if (sections.length === 0 && trailingItem) {
     return (
-      <SidebarGroup className="mt-0">
+      <SidebarGroup className="mt-0 px-2 py-0">
         <SidebarGroupContent>
           <SidebarMenu className="gap-0.5">{trailingItem}</SidebarMenu>
         </SidebarGroupContent>
@@ -167,9 +167,9 @@ export function NavigationContent({
           return (
             <SidebarGroup
               key={`group-${groupTitle}-${sectionIndex}`}
-              className="mt-0"
+              className="mt-0 px-2 py-0"
             >
-              <SidebarGroupLabel className="shellui-nav-label mb-1">{groupTitle}</SidebarGroupLabel>
+              <SidebarGroupLabel className="shellui-nav-label">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {section.group.items.map((navItem) => (
@@ -185,7 +185,7 @@ export function NavigationContent({
         return (
           <SidebarGroup
             key={`items-${section.items.map((i) => i.path).join('-')}-${sectionIndex}`}
-            className="mt-0"
+            className="mt-0 px-2 py-0"
           >
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">

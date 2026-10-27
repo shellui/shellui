@@ -43,7 +43,9 @@ import { useIsMobile } from '../../../hooks/use-mobile';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
-import { NavIcon } from '../sidebar/SidebarIcons';
+import { EllipsisIcon, NavIcon } from '../sidebar/SidebarIcons';
+import { pickVisibleEntries } from './appBarOverflow';
+import { AppBarItemIcon } from './AppBarItemIcon';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import {
@@ -89,7 +91,7 @@ type NavEntry =
 
 const NAV_GAP_PX = 4;
 /** Reserved width guess before More is measured; kept close to the real control. */
-const MORE_FALLBACK_PX = 72;
+const MORE_FALLBACK_PX = 36;
 
 function resolveLocalizedLabel(
   value: string | { en: string; fr: string; [key: string]: string },
@@ -210,39 +212,6 @@ function CaretDownIcon({ className }: { className?: string }) {
   );
 }
 
-function itemIconSrc(item: NavigationItem): string | null {
-  if (item.icon) return item.icon;
-  if (item.openIn === 'external') return getExternalFaviconUrl(item.url);
-  return null;
-}
-
-/** Compact icon (or first-letter fallback) for start-nav links. */
-function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }) {
-  const iconSrc = itemIconSrc(item);
-  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
-  if (iconSrc) {
-    return (
-      <span
-        className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted/60 p-0.5"
-        aria-hidden
-      >
-        <NavIcon
-          src={iconSrc}
-          className="size-3"
-        />
-      </span>
-    );
-  }
-  return (
-    <span
-      className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted p-0.5 text-[9px] font-semibold leading-none text-muted-foreground"
-      aria-hidden
-    >
-      {firstLetter}
-    </span>
-  );
-}
-
 const navTriggerClass = (active: boolean) =>
   cn(
     // h-8 fills the taller app-bar after the top pad. Colours, hover and the
@@ -267,10 +236,7 @@ function AppBarNavLink({
   const className = navTriggerClass(isActive);
   const content = (
     <>
-      <AppBarItemIcon
-        item={item}
-        label={label}
-      />
+      <AppBarItemIcon item={item} />
       <span className="truncate">{label}</span>
     </>
   );
@@ -318,10 +284,7 @@ function AppBarNavMenuItem({
   const itemClass = cn('shellui-appbar-menu-item gap-2 text-sm', isActive && 'is-active');
   const content = (
     <>
-      <AppBarItemIcon
-        item={item}
-        label={label}
-      />
+      <AppBarItemIcon item={item} />
       <span className="truncate">{label}</span>
     </>
   );
@@ -443,9 +406,9 @@ function AppBarNavMore({
           aria-label={t('desktopChrome.more')}
           aria-haspopup="menu"
           aria-expanded={open}
+          data-shellui-appbar-more=""
         >
-          <span>{t('desktopChrome.more')}</span>
-          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
+          <EllipsisIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -511,7 +474,7 @@ function AppBarNavMeasureChip({
     >
       {withIcon ? (
         <span
-          className="size-5 shrink-0"
+          className="size-4 shrink-0"
           aria-hidden
         />
       ) : null}
@@ -541,7 +504,17 @@ function AppBarNav({
   const containerRef = useRef<HTMLElement | null>(null);
   const measureRefs = useRef<(HTMLElement | null)[]>([]);
   const moreMeasureRef = useRef<HTMLElement | null>(null);
-  const [visibleCount, setVisibleCount] = useState(entries.length);
+  const allIndices = useMemo(() => entries.map((_, i) => i), [entries]);
+  const [visibleIndices, setVisibleIndices] = useState<number[]>(allIndices);
+  const activeIndex = useMemo(
+    () =>
+      entries.findIndex((entry) =>
+        entry.type === 'link'
+          ? navItemIsActive(entry.item, activePathPrefix)
+          : categoryIsActive(entry.items, activePathPrefix),
+      ),
+    [entries, activePathPrefix],
+  );
 
   const setMeasureRef = useCallback((index: number, node: HTMLElement | null) => {
     measureRefs.current[index] = node;
@@ -550,37 +523,25 @@ function AppBarNav({
   const recompute = useCallback(() => {
     const container = containerRef.current;
     if (!container || entries.length === 0) {
-      setVisibleCount(entries.length);
+      setVisibleIndices(allIndices);
       return;
     }
 
-    const available = container.clientWidth;
     const widths = entries.map((_, i) => measureRefs.current[i]?.offsetWidth ?? 0);
     if (widths.some((w) => w <= 0)) return;
 
-    const moreWidth = moreMeasureRef.current?.offsetWidth || MORE_FALLBACK_PX;
-
-    let total = 0;
-    for (let i = 0; i < widths.length; i++) {
-      total += widths[i] + (i > 0 ? NAV_GAP_PX : 0);
-    }
-    if (total <= available) {
-      setVisibleCount(entries.length);
-      return;
-    }
-
-    let used = 0;
-    let count = 0;
-    for (let i = 0; i < widths.length; i++) {
-      const gap = count > 0 ? NAV_GAP_PX : 0;
-      const nextUsed = used + gap + widths[i];
-      const needed = nextUsed + NAV_GAP_PX + moreWidth;
-      if (needed > available) break;
-      used = nextUsed;
-      count += 1;
-    }
-    setVisibleCount(count);
-  }, [entries]);
+    // The active entry never hides inside More (phones especially).
+    const next = pickVisibleEntries({
+      widths,
+      available: container.clientWidth,
+      moreWidth: moreMeasureRef.current?.offsetWidth || MORE_FALLBACK_PX,
+      gap: NAV_GAP_PX,
+      activeIndex,
+    });
+    setVisibleIndices((prev) =>
+      prev.length === next.length && prev.every((v, k) => v === next[k]) ? prev : next,
+    );
+  }, [entries, allIndices, activeIndex]);
 
   useLayoutEffect(() => {
     measureRefs.current = measureRefs.current.slice(0, entries.length);
@@ -595,16 +556,17 @@ function AppBarNav({
     return () => observer.disconnect();
   }, [recompute]);
 
-  const visible = entries.slice(0, visibleCount);
-  const overflow = entries.slice(visibleCount);
+  const visibleSet = new Set(visibleIndices);
+  const visible = entries.filter((_, i) => visibleSet.has(i));
+  const overflow = entries.filter((_, i) => !visibleSet.has(i));
   const showMore = overflow.length > 0;
-  const moreLabel = t('desktopChrome.more');
 
   return (
     <nav
       ref={containerRef}
       aria-label={t('shellChrome.mainNav')}
-      className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
+      // overflow-x clip only, so the active underline can reach the bar's bottom border.
+      className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-x-clip overflow-y-visible"
     >
       {/* Off-screen width probes (no DropdownMenu — avoids portal noise). */}
       <div
@@ -633,13 +595,14 @@ function AppBarNav({
             />
           );
         })}
-        <AppBarNavMeasureChip
-          label={moreLabel}
-          withCaret
-          measureRef={(node) => {
+        <span
+          ref={(node) => {
             moreMeasureRef.current = node;
           }}
-        />
+          className={cn(navTriggerClass(false), 'whitespace-nowrap')}
+        >
+          <EllipsisIcon className="size-4" />
+        </span>
       </div>
 
       {visible.map((entry) => {
@@ -1031,6 +994,15 @@ export function AppBarLayout({
               className="mr-1 shrink-0"
               imgClassName={cn('app-bar-app-icon', macStrip ? 'size-5' : 'size-6')}
             />
+          ) : null}
+          {appIcon && title && !isTauriRuntime ? (
+            <span
+              aria-hidden
+              data-shellui-appbar-brand-name=""
+              className="mr-2 max-w-48 shrink-0 truncate text-sm font-semibold"
+            >
+              {title}
+            </span>
           ) : null}
 
           {hasStartNav ? (

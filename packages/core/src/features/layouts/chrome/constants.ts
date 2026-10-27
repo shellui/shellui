@@ -35,6 +35,9 @@ export const MAC_STRIP_CONTROL_PX = 24;
  */
 export const SHELL_HEADER_HEIGHT_PX = 42;
 
+/** Sidebar layout phone header height (spec: 48px, 40px trigger). */
+export const MOBILE_SIDEBAR_HEADER_HEIGHT_PX = 48;
+
 /** Top inset inside the shell header (web, phones, native caption bar hosts). */
 export const SHELL_HEADER_PAD_TOP_PX = 2;
 

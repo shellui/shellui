@@ -11,7 +11,7 @@ import { useConfig } from '../../config/useConfig';
 import { getAdminPath } from '../../admin/config';
 import { isAdminPath } from '../../admin/utils';
 import { flattenNavigationItems, getNavPathPrefix } from '../../layouts/utils';
-import { LogoutIcon, SidebarCaretIcon } from './LoginButtonIcons';
+import { ChevronsUpDownIcon, LogoutIcon } from './LoginButtonIcons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,17 @@ import {
 import { Skeleton } from '../../../components/ui/skeleton';
 
 type LoginButtonVariant = 'sidebar' | 'appbar' | 'windows';
+
+/** Up to two initials from the name, else the first letter of the email. */
+export function getAccountInitials(name?: string | null, email?: string | null): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length > 0) {
+    const first = Array.from(words[0])[0] ?? '';
+    const last = words.length > 1 ? (Array.from(words[words.length - 1])[0] ?? '') : '';
+    return (first + last).toUpperCase();
+  }
+  return (Array.from((email ?? '').trim())[0] ?? '').toUpperCase();
+}
 
 const AdministrationIcon = ({ className }: { className?: string }) => (
   <svg
@@ -79,13 +90,13 @@ const variantConfig: Record<
   sidebar: {
     button: {
       authenticated:
-        'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
+        'shellui-account-row w-full h-10 gap-2.5 rounded-[var(--shellui-r-row)] px-2 text-[13.5px] text-left text-sidebar-foreground hover:bg-[var(--shellui-nav-hover)] hover:text-sidebar-foreground data-[state=open]:bg-[var(--shellui-nav-hover)] group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!',
       loggedOut:
         'w-full h-8 rounded-md px-2 text-sm text-left text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
       loading:
-        'w-full h-8 px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2!',
+        'shellui-account-row w-full h-10 gap-2.5 px-2 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!',
     },
-    avatar: 'size-4',
+    avatar: 'size-6 text-[10.5px]',
     menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'right', align: 'start' },
     showDisplayName: true,
     showCaret: true,
@@ -98,7 +109,7 @@ const variantConfig: Record<
         'h-7 max-w-[220px] rounded-md px-2.5 text-xs text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
       loading: 'size-7 justify-center',
     },
-    avatar: 'size-4',
+    avatar: 'size-4 text-[10px]',
     menu: { width: 'w-[min(16rem,calc(100vw-1.5rem))]', side: 'bottom', align: 'end' },
     showDisplayName: false,
     showCaret: false,
@@ -111,7 +122,7 @@ const variantConfig: Record<
         'h-8 max-w-[180px] rounded-md px-2 text-xs text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
       loading: 'h-8 w-8 justify-center',
     },
-    avatar: 'h-4 w-4',
+    avatar: 'h-4 w-4 text-[10px]',
     menu: { width: 'w-[min(15rem,calc(100vw-1.5rem))]', side: 'top', align: 'end' },
     showDisplayName: false,
     showCaret: false,
@@ -144,14 +155,22 @@ export const LoginButton = ({
     return name || email || t('authMenu.userFallback');
   }, [t, user?.email, user?.name]);
 
-  const fallbackInitial = displayName.charAt(0).toUpperCase();
+  const name = user?.name?.trim() || '';
+  const email = user?.email?.trim() || '';
+  const initials = getAccountInitials(name, email) || displayName.charAt(0).toUpperCase();
+  // Small avatars (app bar, taskbar) only fit one letter.
+  const avatarText = variant === 'sidebar' ? initials : initials.charAt(0);
+  const accountAriaLabel =
+    name && email
+      ? t('authMenu.openAccountMenuWithEmailAriaLabel', { name, email })
+      : t('authMenu.openAccountMenuAriaLabel', { name: displayName });
   const { showDisplayName, showCaret } = currentVariantConfig;
   const menuSide = variant === 'sidebar' && isMobile ? 'top' : currentVariantConfig.menu.side;
   const menuAlign = variant === 'sidebar' && isMobile ? 'start' : currentVariantConfig.menu.align;
   const menuCollisionPadding = isMobile ? 12 : 8;
 
   const baseButtonClasses = cn(
-    'inline-flex items-center gap-2 min-w-0 shrink-0 transition-colors cursor-pointer',
+    'inline-flex items-center gap-2 min-w-0 shrink-0 transition-colors motion-reduce:transition-none cursor-pointer',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
     isAuthenticated
@@ -250,7 +269,10 @@ export const LoginButton = ({
       >
         <Skeleton className={cn('shrink-0 rounded-full', currentVariantConfig.avatar)} />
         {showDisplayName && (
-          <Skeleton className="h-3 w-24 max-w-full group-data-[collapsible=icon]:hidden" />
+          <span className="flex min-w-0 flex-1 flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
+            <Skeleton className="h-3 w-24 max-w-full" />
+            <Skeleton className="h-2.5 w-32 max-w-full" />
+          </span>
         )}
       </div>
     );
@@ -289,13 +311,16 @@ export const LoginButton = ({
           ref={triggerRef}
           type="button"
           className={baseButtonClasses}
-          title={displayName}
-          aria-label={t('authMenu.openAccountMenuAriaLabel', { name: displayName })}
+          title={name && email ? `${name}\n${email}` : displayName}
+          aria-label={accountAriaLabel}
+          data-shellui-account-trigger=""
+          data-shellui-no-drag=""
         >
           {user.profilePicture ? (
             <img
               src={user.profilePicture}
-              alt={displayName}
+              alt=""
+              aria-hidden
               className={cn(
                 'shrink-0 overflow-hidden rounded-full border border-sidebar-border object-cover aspect-square',
                 currentVariantConfig.avatar,
@@ -305,30 +330,30 @@ export const LoginButton = ({
           ) : (
             <span
               className={cn(
-                'flex shrink-0 aspect-square items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-muted text-[10px] font-semibold leading-none',
+                'flex shrink-0 aspect-square items-center justify-center overflow-hidden rounded-full border border-sidebar-border bg-sidebar-accent text-sidebar-foreground font-semibold leading-none',
                 currentVariantConfig.avatar,
               )}
               aria-hidden
+              data-shellui-account-initials=""
             >
-              {fallbackInitial}
+              {avatarText}
             </span>
           )}
           {showDisplayName && (
-            <span className="truncate group-data-[collapsible=icon]:hidden">{displayName}</span>
+            <span className="flex min-w-0 flex-1 flex-col group-data-[collapsible=icon]:hidden">
+              <span className="truncate leading-tight">{displayName}</span>
+              {name && email ? (
+                <span
+                  className="truncate text-[11.5px] leading-tight text-[var(--shellui-nav-label)]"
+                  data-shellui-account-email=""
+                >
+                  {email}
+                </span>
+              ) : null}
+            </span>
           )}
           {showCaret && (
-            <span
-              aria-hidden
-              className={cn(
-                'ml-auto shrink-0 text-[10px] group-data-[collapsible=icon]:hidden',
-                isMenuOpen ? 'text-foreground' : 'text-muted-foreground',
-              )}
-            >
-              <SidebarCaretIcon
-                isOpen={isMenuOpen}
-                className="h-3 w-3"
-              />
-            </span>
+            <ChevronsUpDownIcon className="ml-auto size-4 shrink-0 text-[var(--shellui-nav-icon)] group-data-[collapsible=icon]:hidden" />
           )}
         </button>
       </DropdownMenuTrigger>

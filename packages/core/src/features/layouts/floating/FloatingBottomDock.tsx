@@ -3,7 +3,8 @@ import { Drawer as VaulDrawer } from 'vaul';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
-import type { NavigationItem } from '../../config/types';
+import type { NavigationGroup, NavigationItem } from '../../config/types';
+import { groupMoreItems, type MoreSection } from './moreSections';
 import {
   flattenNavigationItems,
   getActivePathPrefix,
@@ -19,6 +20,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../../../components/ui/dropdown-menu';
@@ -125,12 +127,15 @@ function tabChangeHaptic() {
  */
 export function FloatingBottomDock({
   items,
+  navigation = [],
   endItems = [],
   showAuthButton = false,
   chromeVisible,
   viewport,
 }: {
   items: NavigationItem[];
+  /** Start navigation tree, so More can label items by their group. */
+  navigation?: (NavigationItem | NavigationGroup)[];
   endItems?: NavigationItem[];
   showAuthButton?: boolean;
   chromeVisible: boolean;
@@ -188,6 +193,10 @@ export function FloatingBottomDock({
   const primaryCap = showMoreFinal ? Math.max(1, maxSlots - 1) : maxSlots;
   const primary = useMemo(() => flat.slice(0, primaryCap), [flat, primaryCap]);
   const moreOverflowItems = useMemo(() => flat.slice(primaryCap), [flat, primaryCap]);
+  const moreSections = useMemo(
+    () => groupMoreItems(moreOverflowItems, navigation),
+    [moreOverflowItems, navigation],
+  );
   const moreEndItems = endItems;
   const moreItems = useMemo(
     () => [...moreOverflowItems, ...moreEndItems],
@@ -387,29 +396,39 @@ export function FloatingBottomDock({
                   sideOffset={10}
                   className="min-w-[12rem]"
                 >
-                  {moreOverflowItems.map((item) => {
-                    const label = resolveLocalizedString(item.label, lang);
-                    const pathPrefix = getNavPathPrefix(item);
-                    const isActive =
-                      item.openIn !== 'modal' &&
-                      item.openIn !== 'drawer' &&
-                      item.openIn !== 'external' &&
-                      pathPrefix === activePathPrefix;
-                    return (
-                      <DropdownMenuItem
-                        key={itemKey(item)}
-                        className={cn(isActive && 'bg-accent font-medium')}
-                        aria-current={isActive ? 'page' : undefined}
-                        onSelect={() => activateItem(item)}
-                      >
-                        <TabGlyph
-                          item={item}
-                          label={label}
-                        />
-                        <span className="min-w-0 flex-1 truncate">{label}</span>
-                      </DropdownMenuItem>
-                    );
-                  })}
+                  {moreSections.map((section, sectionIndex) => (
+                    <div key={`more-section-${sectionIndex}`}>
+                      {sectionIndex > 0 ? <DropdownMenuSeparator /> : null}
+                      {section.group ? (
+                        <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">
+                          {resolveLocalizedString(section.group.title, lang)}
+                        </DropdownMenuLabel>
+                      ) : null}
+                      {section.items.map((item) => {
+                        const label = resolveLocalizedString(item.label, lang);
+                        const pathPrefix = getNavPathPrefix(item);
+                        const isActive =
+                          item.openIn !== 'modal' &&
+                          item.openIn !== 'drawer' &&
+                          item.openIn !== 'external' &&
+                          pathPrefix === activePathPrefix;
+                        return (
+                          <DropdownMenuItem
+                            key={itemKey(item)}
+                            className={cn(isActive && 'bg-accent font-medium')}
+                            aria-current={isActive ? 'page' : undefined}
+                            onSelect={() => activateItem(item)}
+                          >
+                            <TabGlyph
+                              item={item}
+                              label={label}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{label}</span>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                  ))}
                   {moreOverflowItems.length > 0 && (moreEndItems.length > 0 || showAuthButton) ? (
                     <DropdownMenuSeparator />
                   ) : null}
@@ -473,6 +492,7 @@ export function FloatingBottomDock({
                   externalLabel={tc('shellChrome.externalLink')}
                   lang={lang}
                   overflowItems={moreOverflowItems}
+                  sections={moreSections}
                   endItems={moreEndItems}
                   showAuthButton={showAuthButton}
                   activePathPrefix={activePathPrefix}
@@ -496,6 +516,7 @@ function FloatingMoreSheet({
   externalLabel,
   lang,
   overflowItems,
+  sections,
   endItems,
   showAuthButton,
   activePathPrefix,
@@ -508,6 +529,7 @@ function FloatingMoreSheet({
   externalLabel: string;
   lang: string;
   overflowItems: NavigationItem[];
+  sections: MoreSection[];
   endItems: NavigationItem[];
   showAuthButton: boolean;
   activePathPrefix: string | null;
@@ -567,7 +589,26 @@ function FloatingMoreSheet({
             aria-label={title}
             className="min-h-0 flex-1 overflow-y-auto px-2 pb-2"
           >
-            {overflowItems.map(renderRow)}
+            {sections.map((section, sectionIndex) => (
+              <div
+                key={`more-sheet-section-${sectionIndex}`}
+                role={section.group ? 'group' : undefined}
+                aria-label={
+                  section.group ? resolveLocalizedString(section.group.title, lang) : undefined
+                }
+              >
+                {section.group ? (
+                  <div
+                    aria-hidden
+                    data-shellui-more-sheet-label=""
+                    className="shellui-more-sheet-label"
+                  >
+                    {resolveLocalizedString(section.group.title, lang)}
+                  </div>
+                ) : null}
+                {section.items.map(renderRow)}
+              </div>
+            ))}
             {overflowItems.length > 0 && (endItems.length > 0 || showAuthButton) ? (
               <div
                 aria-hidden
