@@ -29,6 +29,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🚨 Changed
 
 - **Core:** Sidebar layout: the active row is a primary color pill with a distinct hover state, 13.5px rows, quieter group labels, a hairline footer, touch-size rows in the mobile sheet and denser rows in the Tauri desktop app.
+- **Core:** Sidebar-inset layout: content card uses the theme card radius with a softer shadow, a raised active pill, a hover tint that reads on the chrome tray and no footer hairline.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 

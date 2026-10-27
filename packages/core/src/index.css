@@ -454,7 +454,7 @@ html[data-shellui-chrome-hidden='true']
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 1rem 1rem 0 0;
+  border-radius: var(--shellui-r-card) var(--shellui-r-card) 0 0;
   border: 1px solid var(--border);
   border-bottom-width: 0;
   box-shadow: 0 0 0 100vmax var(--shellui-inset-chrome);
@@ -1618,5 +1618,27 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   .shellui-nav [data-sidebar='menu-button'],
   .shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
     transition: none;
+  }
+}
+
+/*
+ * Sidebar-inset: the column sits on the chrome tray, so hover uses a foreground
+ * mix (accent is too close to the tray tint) and the active pill gets a 1 px lift.
+ */
+[data-shellui-layout-variant='inset'] .shellui-nav {
+  --shellui-nav-hover: var(--shellui-nav-hover-inset);
+}
+[data-shellui-layout-variant='inset']
+  .shellui-nav
+  [data-sidebar='menu-button'][data-active='true'] {
+  box-shadow: 0 1px 2px color-mix(in oklch, black 10%, transparent);
+}
+[data-shellui-layout-variant='inset'] .shellui-nav[data-shellui-nav-footer] {
+  border-top-color: transparent;
+}
+@media (min-width: 768px) {
+  [data-shellui-layout-variant='inset'] [data-slot='sidebar-inset'] {
+    border-radius: var(--shellui-r-card);
+    box-shadow: 0 1px 2px color-mix(in oklch, black 5%, transparent);
   }
 }
