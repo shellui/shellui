@@ -177,6 +177,8 @@
     "restore": "Restaurer",
     "close": "Fermer",
     "taskbar": "Barre des tâches",
-    "openApps": "Fenêtres ouvertes"
+    "openApps": "Fenêtres ouvertes",
+    "start": "Démarrer",
+    "open": "Ouverte"
   }
 }

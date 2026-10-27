@@ -177,6 +177,8 @@
     "restore": "Restore",
     "close": "Close",
     "taskbar": "Taskbar",
-    "openApps": "Open windows"
+    "openApps": "Open windows",
+    "start": "Start",
+    "open": "Open"
   }
 }

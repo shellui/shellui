@@ -43,6 +43,7 @@ import {
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
 import { WindowTitleBarActions } from '../../chromeActions';
+import { DesktopDots } from './DesktopDots';
 
 interface WindowsLayoutProps {
   title?: string;
@@ -219,6 +220,7 @@ function AppWindow({
   /** Used to cascade normal size when leaving mobile. */
   cascadeIndex: number;
 }) {
+  const { t } = useTranslation();
   const windowLabel = resolveNavLabel(navItem.label, currentLanguage);
   const tauriRuntime = useIsTauriRuntime();
   const isTauriEnv = useIsTauriClient();
@@ -263,7 +265,7 @@ function AppWindow({
         )
       : clampBounds(win.bounds, topInset),
   );
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
   const dragRef = useRef<{
     startX: number;
     startY: number;
@@ -391,6 +393,7 @@ function AppWindow({
         if (el) {
           el.style.transform = '';
           el.style.willChange = '';
+          el.removeAttribute('data-interacting');
         }
         const finalBounds = clampBounds(
           {
@@ -423,6 +426,7 @@ function AppWindow({
       };
       const el = containerRef.current;
       if (el) {
+        el.setAttribute('data-interacting', 'true');
         el.setPointerCapture(e.pointerId);
         el.addEventListener('pointermove', onPointerMove, { passive: true });
         el.addEventListener('pointerup', onPointerUp as (e: Event) => void);
@@ -490,6 +494,7 @@ function AppWindow({
         el.removeEventListener('pointermove', onResizePointerMove as (e: Event) => void);
         el.removeEventListener('pointerup', onResizePointerUp as (e: Event) => void);
         el.releasePointerCapture(e.pointerId);
+        el.removeAttribute('data-interacting');
       }
       resizeRef.current = null;
     },
@@ -510,6 +515,7 @@ function AppWindow({
       };
       const el = containerRef.current;
       if (el) {
+        el.setAttribute('data-interacting', 'true');
         el.setPointerCapture(e.pointerId);
         el.addEventListener('pointermove', onResizePointerMove as (e: Event) => void, {
           passive: true,
@@ -528,13 +534,16 @@ function AppWindow({
   const z = isFocused ? maxZIndex : zIndex;
 
   return (
-    <div
+    <section
       ref={containerRef}
+      aria-label={windowLabel}
+      data-shellui-window=""
+      data-focused={isFocused ? 'true' : 'false'}
+      data-maximized={lockedChrome ? 'true' : 'false'}
       className={cn(
-        'absolute flex flex-col overflow-hidden bg-card',
-        mobileFullscreen
-          ? 'rounded-none border-0 shadow-none'
-          : 'rounded-lg border border-border shadow-lg',
+        'shellui-win absolute flex flex-col overflow-hidden',
+        isFocused && 'is-focused',
+        mobileFullscreen && 'is-flat',
       )}
       style={{
         left: bounds.x,
@@ -549,8 +558,8 @@ function AppWindow({
       {/* Title bar: pointer capture so drag continues when cursor is over iframe or outside window */}
       <div
         className={cn(
-          'flex items-center gap-2 pr-1 bg-muted/80 border-b border-border select-none shrink-0',
-          flushTitlebar ? 'box-border' : 'py-1 pl-2',
+          'shellui-win-titlebar flex items-center gap-2 pr-1 select-none shrink-0',
+          flushTitlebar ? 'box-border' : 'pl-2.5',
           lockedChrome ? 'cursor-default' : 'cursor-move',
         )}
         style={
@@ -562,7 +571,9 @@ function AppWindow({
               }
             : undefined
         }
-        {...(flushTitlebar ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' } : {})}
+        {...(flushTitlebar
+          ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+          : { 'data-shellui-no-drag': '' })}
         onPointerDown={handleTitlePointerDown}
       >
         {win.icon && (
@@ -570,7 +581,7 @@ function AppWindow({
             src={win.icon}
             alt=""
             className={cn(
-              'h-4 w-4 shrink-0 rounded-sm object-cover',
+              'shellui-win-tile shrink-0 rounded-sm object-cover',
               isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
             )}
           />
@@ -587,13 +598,13 @@ function AppWindow({
               e.stopPropagation();
               handleMaximizeToggle();
             }}
-            className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label={isMaximized ? 'Restore' : 'Maximize'}
+            className="shellui-win-control shellui-chrome-focus"
+            aria-label={isMaximized ? t('windows.restore') : t('windows.maximize')}
           >
             {isMaximized ? (
-              <RestoreIcon className="h-4 w-4" />
+              <RestoreIcon className="size-3.5" />
             ) : (
-              <MaximizeIcon className="h-4 w-4" />
+              <MaximizeIcon className="size-3.5" />
             )}
           </button>
         )}
@@ -603,14 +614,14 @@ function AppWindow({
             e.stopPropagation();
             onClose();
           }}
-          className="p-1 rounded cursor-pointer text-muted-foreground hover:bg-destructive/20 hover:text-destructive transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          aria-label="Close"
+          className="shellui-win-control shellui-win-close shellui-chrome-focus"
+          aria-label={t('windows.close')}
         >
-          <CloseIcon className="h-4 w-4" />
+          <CloseIcon className="size-3.5" />
         </button>
       </div>
       {/* Content */}
-      <div className="flex-1 min-h-0 relative bg-background">
+      <div className="shellui-win-body flex-1 min-h-0 relative bg-background">
         {/* When not focused, overlay captures clicks to bring window to front */}
         {!isFocused && (
           <div
@@ -664,7 +675,7 @@ function AppWindow({
             onPointerDown={(e) => handleResizePointerDown(e, edge)}
           />
         ))}
-    </div>
+    </section>
   );
 }
 
@@ -771,7 +782,7 @@ function getBrowserTimezone(): string {
 
 export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: WindowsLayoutProps) {
   const location = useLocation();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { settings } = useSettings();
   /** Fullscreen phone chrome — includes iPhone landscape (wide but short). */
@@ -811,13 +822,24 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const startPanelRef = useRef<HTMLDivElement>(null);
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const startMenuRef = useRef<HTMLDivElement>(null);
+  const desktopRef = useRef<HTMLDivElement>(null);
   const initialOpenFromUrlDoneRef = useRef(false);
   const openPaths = useMemo(() => new Set(windows.map((w) => w.path)), [windows]);
 
-  // Update date/time every second for taskbar clock
+  // Taskbar clock shows hours and minutes: tick on each minute boundary, not every second.
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(interval);
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      const current = new Date();
+      setNow(current);
+      const msToNextMinute =
+        60_000 - (current.getSeconds() * 1000 + current.getMilliseconds()) + 50;
+      timer = setTimeout(schedule, msToNextMinute);
+    };
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
 
   /** Highest z-index: front window always gets this so it stays on top. */
@@ -902,8 +924,21 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         setStartMenuOpen(false);
       }
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      setStartMenuOpen(false);
+      startButtonRef.current?.focus();
+    };
     document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKeyDown);
+    // Move focus to the first row so keyboard users land inside the menu.
+    const first = startMenuRef.current?.querySelector<HTMLElement>('.shellui-start-row');
+    first?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [startMenuOpen]);
 
   const handleNavClick = useCallback(
@@ -938,27 +973,27 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
     [openWindow, windows, focusWindow, phoneMode],
   );
 
+  const frontWindowLabel = useMemo(() => {
+    const front = windows.find((w) => w.id === frontWindowId);
+    if (!front) return null;
+    const navItem = navigationItems.find((n) => n.path === front.path);
+    return navItem ? resolveNavLabel(navItem.label, currentLanguage) : front.label;
+  }, [windows, frontWindowId, navigationItems, currentLanguage]);
+
   return (
     <>
       <div
+        ref={desktopRef}
         data-shellui-windows-layout=""
         className="fixed inset-0 overflow-hidden bg-background"
         style={{ paddingBottom: TASKBAR_SLOT_CSS }}
       >
-        {/* Organic primary wash behind windows — follows --primary with the active theme. */}
+        {/* Desktop: two low primary washes at the bottom, under the calm dot field. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage: [
-              'radial-gradient(ellipse 95% 70% at 18% 108%, color-mix(in oklch, var(--primary) 32%, transparent), transparent 58%)',
-              'radial-gradient(ellipse 70% 55% at 78% 118%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 62%)',
-              'radial-gradient(ellipse 55% 40% at 52% 92%, color-mix(in oklch, var(--primary) 14%, transparent), transparent 70%)',
-              'radial-gradient(ellipse 40% 30% at 92% 78%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 68%)',
-              'radial-gradient(ellipse 35% 28% at 8% 72%, color-mix(in oklch, var(--primary) 8%, transparent), transparent 65%)',
-            ].join(', '),
-          }}
+          className="shellui-desk-wash pointer-events-none absolute inset-0"
         />
+        <DesktopDots watchRoot={desktopRef} />
 
         {trafficLights ? (
           <div
@@ -966,9 +1001,13 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
             data-shellui-drag-region=""
             data-tauri-drag-region=""
             aria-hidden
-            className="absolute inset-x-0 top-0 border-b border-border bg-sidebar-background"
+            className="shellui-windows-strip absolute inset-x-0 top-0 flex items-center justify-center"
             style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX, zIndex: Z_INDEX.WINDOWS_TITLEBAR }}
-          />
+          >
+            {frontWindowLabel ? (
+              <span className="shellui-windows-strip-title truncate">{frontWindowLabel}</span>
+            ) : null}
+          </div>
         ) : null}
 
         {/* Desktop area: windows */}
@@ -998,7 +1037,11 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
 
       {/* Taskbar */}
       <div
-        className="fixed left-0 right-0 bottom-0 flex items-center gap-1 px-2 border-t border-border bg-sidebar-background"
+        role="region"
+        aria-label={t('windows.taskbar')}
+        data-shellui-taskbar=""
+        data-phone={phoneMode ? 'true' : undefined}
+        className="shellui-taskbar fixed left-0 right-0 bottom-0 flex items-center gap-1 px-2"
         style={{
           height: TASKBAR_SLOT_CSS,
           paddingBottom: 'var(--shellui-safe-area-bottom, 0px)',
@@ -1019,17 +1062,13 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
           ref={startPanelRef}
         >
           <button
+            ref={startButtonRef}
             type="button"
             onClick={() => setStartMenuOpen((o) => !o)}
-            className={cn(
-              'flex items-center gap-2 h-9 px-3 rounded cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              startMenuOpen
-                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-            )}
+            className={cn('shellui-start shellui-chrome-focus', startMenuOpen && 'is-open')}
             aria-expanded={startMenuOpen}
-            aria-haspopup="true"
-            aria-label="Start"
+            aria-haspopup="dialog"
+            aria-label={title || t('windows.start')}
           >
             {appIcon ? (
               <AppBrandIcon
@@ -1041,32 +1080,33 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
             ) : (
               <StartIcon className="h-5 w-5" />
             )}
-            <span className="font-semibold text-sm hidden sm:inline">{title || 'Start'}</span>
+            <span className="shellui-start-name hidden sm:inline">
+              {title || t('windows.start')}
+            </span>
           </button>
           {/* Start menu panel */}
           {startMenuOpen && (
             <div
-              className="absolute bottom-full left-0 mb-2 flex w-[22rem] max-h-[min(72vh,34rem)] flex-col overflow-hidden rounded-xl border border-border/80 bg-popover/95 text-popover-foreground shadow-xl backdrop-blur-md"
+              ref={startMenuRef}
+              className="shellui-start-menu absolute bottom-full left-0 mb-2 flex w-[22rem] max-h-[min(72vh,34rem)] flex-col overflow-hidden text-popover-foreground"
               style={{ zIndex: Z_INDEX.MODAL_CONTENT }}
-              role="menu"
-              aria-label={title || 'Applications'}
+              role="dialog"
+              aria-label={t('windows.applications')}
             >
-              <div className="shrink-0 border-b border-border/60 px-4 py-3">
+              <div className="shellui-start-head shrink-0 px-4 py-3">
                 <p
-                  className="text-sm font-semibold tracking-tight"
+                  className="shellui-start-title"
                   style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
                 >
-                  {title || 'Applications'}
+                  {title || t('windows.applications')}
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Choose an app to open in a window
-                </p>
+                <p className="shellui-start-hint text-muted-foreground">{t('windows.chooseApp')}</p>
               </div>
 
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-3">
                 {menuSections.length === 0 ? (
                   <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                    No applications available
+                    {t('windows.noApps')}
                   </p>
                 ) : (
                   menuSections.map((section, sectionIndex) => {
@@ -1089,10 +1129,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                               ? 'end-items'
                               : `items-${sectionIndex}`
                         }
-                        className={cn(
-                          'space-y-1.5',
-                          isEndSection && 'border-t border-border/60 pt-3',
-                        )}
+                        className={cn('space-y-1.5', isEndSection && 'shellui-start-foot pt-3')}
                       >
                         {categoryLabel ? (
                           <h2
@@ -1114,23 +1151,13 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                               <button
                                 key={item.path}
                                 type="button"
-                                role="menuitem"
                                 onClick={() => handleNavClick(item)}
                                 className={cn(
-                                  'group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors',
-                                  'cursor-pointer text-popover-foreground',
-                                  'hover:bg-accent hover:text-accent-foreground',
-                                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover',
-                                  isOpen && 'bg-accent/50',
+                                  'shellui-start-row shellui-chrome-focus group',
+                                  isOpen && 'is-open',
                                 )}
                               >
-                                <span
-                                  className={cn(
-                                    'flex size-9 shrink-0 items-center justify-center rounded-md',
-                                    'bg-muted/70 text-foreground ring-1 ring-border/50',
-                                    'group-hover:bg-background/80 group-hover:ring-border',
-                                  )}
-                                >
+                                <span className="shellui-start-tile">
                                   <NavIcon
                                     src={icon}
                                     className="size-4"
@@ -1142,12 +1169,15 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                                   </span>
                                   {isOpen && !isOverlay && !isExternal ? (
                                     <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                                      Open
+                                      {t('windows.open')}
                                     </span>
                                   ) : null}
                                 </span>
                                 {isExternal ? (
-                                  <ExternalLinkIcon className="size-3.5 shrink-0 opacity-50 group-hover:opacity-80" />
+                                  <>
+                                    <ExternalLinkIcon className="size-3.5 shrink-0 opacity-50 group-hover:opacity-80" />
+                                    <span className="sr-only">{t('shellChrome.externalLink')}</span>
+                                  </>
                                 ) : isOpen && !isOverlay ? (
                                   <span
                                     className="size-1.5 shrink-0 rounded-full bg-primary"
@@ -1169,7 +1199,10 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
 
         {/* Window list — desktop only; phone switches via the start menu */}
         {!phoneMode && (
-          <div className="flex-1 flex items-center gap-1 min-w-0 overflow-x-auto">
+          <ul
+            aria-label={t('windows.openApps')}
+            className="shellui-task-list flex-1 flex items-center gap-1 min-w-0 overflow-x-auto"
+          >
             {windows.map((win) => {
               const navItem = navigationItems.find((n) => n.path === win.path);
               const windowLabel = navItem
@@ -1177,39 +1210,39 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                 : win.label;
               const isFocused = win.id === frontWindowId;
               return (
-                <button
+                <li
                   key={win.id}
-                  type="button"
-                  onClick={() => focusWindow(win.id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    closeWindow(win.id);
-                  }}
-                  className={cn(
-                    'flex items-center gap-2 h-8 px-2 rounded min-w-0 max-w-[140px] shrink-0 cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                    isFocused
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground',
-                  )}
-                  title={windowLabel}
+                  className="shrink-0"
                 >
-                  {win.icon ? (
-                    <img
-                      src={win.icon}
-                      alt=""
-                      className={cn(
-                        'h-4 w-4 shrink-0 rounded-sm object-cover',
-                        isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                      )}
-                    />
-                  ) : (
-                    <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
-                  )}
-                  <span className="text-xs truncate">{windowLabel}</span>
-                </button>
+                  <button
+                    type="button"
+                    aria-current={isFocused ? 'true' : undefined}
+                    onClick={() => focusWindow(win.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      closeWindow(win.id);
+                    }}
+                    className={cn('shellui-task shellui-chrome-focus', isFocused && 'is-focused')}
+                    title={windowLabel}
+                  >
+                    {win.icon ? (
+                      <img
+                        src={win.icon}
+                        alt=""
+                        className={cn(
+                          'h-4 w-4 shrink-0 rounded-sm object-cover',
+                          isAppIcon(win.icon) && 'opacity-90 dark:opacity-100 dark:invert',
+                        )}
+                      />
+                    ) : (
+                      <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
+                    )}
+                    <span className="truncate">{windowLabel}</span>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
         {phoneMode && <div className="flex-1 min-w-0" />}
 
@@ -1228,8 +1261,13 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                   key={item.path}
                   type="button"
                   onClick={() => handleNavClick(item)}
-                  className="flex items-center gap-2 h-8 px-2 rounded cursor-pointer text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="shellui-task shellui-chrome-focus"
                   title={label}
+                  aria-label={
+                    item.openIn === 'external'
+                      ? `${label} (${t('shellChrome.externalLink')})`
+                      : label
+                  }
                 >
                   {icon ? (
                     <img
@@ -1243,7 +1281,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                   ) : (
                     <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
                   )}
-                  <span className="text-xs truncate max-w-[100px]">{label}</span>
+                  <span className="truncate max-w-[100px]">{label}</span>
                 </button>
               );
             })}
@@ -1259,30 +1297,29 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
 
         {/* Date and time (extreme bottom right, OS-style); uses region timezone from settings */}
         <div
-          className="flex flex-col items-end justify-center shrink-0 px-3 py-1 text-sidebar-foreground border-l border-sidebar-border ml-1 min-w-0"
+          className="shellui-clock flex flex-col items-end justify-center shrink-0 px-3 py-1 ml-1 min-w-0"
           style={{ paddingRight: 'max(0.75rem, env(safe-area-inset-right))' }}
           role="timer"
           aria-live="off"
           aria-label={new Intl.DateTimeFormat(currentLanguage, {
             timeZone,
             dateStyle: 'full',
-            timeStyle: 'medium',
+            timeStyle: 'short',
           }).format(now)}
         >
           <time
             dateTime={now.toISOString()}
-            className="text-xs leading-tight tabular-nums whitespace-nowrap"
+            className="shellui-clock-time tabular-nums whitespace-nowrap"
           >
             {new Intl.DateTimeFormat(currentLanguage, {
               timeZone,
               hour: '2-digit',
               minute: '2-digit',
-              second: '2-digit',
             }).format(now)}
           </time>
           <time
             dateTime={now.toISOString()}
-            className="text-[10px] leading-tight whitespace-nowrap text-sidebar-foreground/90"
+            className="shellui-clock-date whitespace-nowrap"
           >
             {new Intl.DateTimeFormat(currentLanguage, {
               timeZone,

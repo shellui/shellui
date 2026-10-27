@@ -1916,3 +1916,298 @@ html[data-shellui-keyboard='open']
     transform: none;
   }
 }
+
+/*
+ * Windows layout: calm desktop, opaque cards, glass taskbar and start menu.
+ */
+[data-shellui-windows-layout] .shellui-desk-wash {
+  background-image:
+    radial-gradient(ellipse 90% 60% at 20% 112%, var(--shellui-desk-wash), transparent 62%),
+    radial-gradient(
+      ellipse 70% 50% at 80% 118%,
+      color-mix(in oklch, var(--primary) 7%, transparent),
+      transparent 64%
+    );
+}
+/* Static dot grid: reduced motion, and the frame before the canvas mounts. */
+[data-shellui-desk-dots]:not([data-live])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at center,
+    var(--shellui-desk-dot) 1.1px,
+    transparent 1.6px
+  );
+  background-size: 24px 24px;
+  background-position: center 0;
+}
+.shellui-win {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow: var(--shellui-win-shadow-idle);
+}
+.shellui-win.is-focused {
+  border-color: color-mix(in oklch, var(--border) 92%, var(--foreground));
+  box-shadow: var(--shellui-win-shadow);
+}
+.shellui-win.is-flat {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.shellui-win-titlebar {
+  min-height: 36px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+.shellui-win:not(.is-focused) .shellui-win-titlebar {
+  color: var(--muted-foreground);
+  font-weight: 550;
+}
+.shellui-win-tile {
+  width: 18px;
+  height: 18px;
+}
+.shellui-win-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--shellui-r-row);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 120ms var(--shellui-ease-out),
+    color 120ms var(--shellui-ease-out);
+}
+.shellui-win-control:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.shellui-win-control.shellui-win-close:hover {
+  background: var(--destructive);
+  color: var(--destructive-foreground, white);
+}
+.shellui-win.is-flat .shellui-win-control {
+  width: 40px;
+  height: 40px;
+}
+.shellui-win.is-flat .shellui-win-control svg {
+  width: 18px;
+  height: 18px;
+}
+
+/*
+ * The taskbar glass sits on a pseudo element: a backdrop-filter on the bar itself
+ * would become the backdrop root of the start menu and stop its blur at the bar.
+ */
+.shellui-taskbar {
+  color: var(--sidebar-foreground);
+}
+.shellui-taskbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--shellui-glass-edge);
+  pointer-events: none;
+}
+.shellui-windows-strip {
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--shellui-glass-edge);
+  padding: 0 90px;
+}
+.shellui-windows-strip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sidebar-foreground);
+}
+.shellui-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px 0 7px;
+  border-radius: var(--shellui-r-row);
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-start :is(img, svg) {
+  width: 24px;
+  height: 24px;
+}
+.shellui-start:hover {
+  background: var(--shellui-nav-hover-inset);
+}
+.shellui-start.is-open {
+  background: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+}
+.shellui-start-name {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.shellui-task {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  max-width: 160px;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: var(--shellui-r-row);
+  font-size: 13px;
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-task:hover {
+  background: var(--shellui-nav-hover-inset);
+}
+.shellui-task-list .shellui-task::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 6px;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--sidebar-foreground) 40%, transparent);
+  transform: translateX(-50%);
+  transition:
+    width 200ms var(--shellui-ease),
+    background-color 200ms var(--shellui-ease);
+}
+.shellui-task.is-focused {
+  background: color-mix(in oklch, var(--sidebar-foreground) 8%, transparent);
+  font-weight: 600;
+}
+.shellui-task-list .shellui-task.is-focused::after {
+  width: 16px;
+  background: var(--shellui-nav-indicator);
+}
+.shellui-clock {
+  color: var(--sidebar-foreground);
+  border-left: 1px solid var(--shellui-hairline);
+}
+.shellui-clock-time {
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.2;
+}
+.shellui-clock-date {
+  font-size: 11px;
+  line-height: 1.2;
+  color: color-mix(in oklch, var(--sidebar-foreground) 72%, transparent);
+}
+.shellui-taskbar[data-phone] .shellui-clock-date {
+  display: none;
+}
+.shellui-taskbar[data-phone] .shellui-start-name {
+  display: none;
+}
+
+.shellui-start-menu {
+  background: color-mix(in oklch, var(--popover) 86%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  border-radius: calc(var(--radius) + 6px);
+  box-shadow: var(--shellui-glass-shadow);
+}
+.shellui-start-head {
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.shellui-start-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.shellui-start-hint {
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+.shellui-start-foot {
+  border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.shellui-start-row {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: var(--shellui-r-row);
+  text-align: left;
+  color: var(--popover-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-start-row:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.shellui-start-row.is-open {
+  background: color-mix(in oklch, var(--accent) 50%, transparent);
+}
+.shellui-start-tile {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  color: var(--foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--border) 50%, transparent);
+}
+/* Phone: the start menu becomes a sheet above the taskbar. */
+.shellui-taskbar[data-phone] .shellui-start-menu {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  width: auto;
+  bottom: calc(48px + var(--shellui-safe-area-bottom, 0px) + 8px);
+  max-height: 70vh;
+  margin: 0;
+}
+.shellui-taskbar[data-phone] .shellui-start-row {
+  min-height: 48px;
+  font-size: 15px;
+}
+/* Tauri density on desktop sized windows. */
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-task {
+    height: 36px;
+  }
+  html[data-shellui-host='tauri'] .shellui-start-row {
+    min-height: 40px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .shellui-start-menu {
+    background: var(--popover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shellui-task,
+  .shellui-task::after,
+  .shellui-start,
+  .shellui-start-row,
+  .shellui-win-control {
+    transition: none;
+  }
+}

@@ -26,6 +26,7 @@ export default defineConfig({
       'src/features/layouts/chrome/**/*.spec.ts',
       'src/features/layouts/branding/**/*.spec.ts',
       'src/features/layouts/floating/**/*.spec.ts',
+      'src/features/layouts/windows/**/*.spec.ts',
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       'src/features/chromeActions/**/*.spec.ts',
