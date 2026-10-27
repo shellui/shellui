@@ -215,19 +215,58 @@ export function syncShellCapabilities(appSrcTauriDir) {
   fs.writeFileSync(capsPath, JSON.stringify(caps, null, 2) + '\n');
 }
 
+/** Marker of the macOS traffic-light code older templates shipped in `src/macos.rs`. */
+const LEGACY_MACOS_MARKER = 'place_traffic_lights';
+
+const LEGACY_MACOS_MOD = '#[cfg(target_os = "macos")]\nmod macos;\n\n';
+
+const LEGACY_MACOS_INSTALL = [
+  '            #[cfg(target_os = "macos")]',
+  '            {',
+  '                use tauri::Manager;',
+  '                if let Some(window) = app.get_webview_window("main") {',
+  '                    macos::install(&window);',
+  '                }',
+  '            }',
+  '',
+].join('\n');
+
+const LEGACY_MACOS_CARGO = [
+  `[target.'cfg(target_os = "macos")'.dependencies]`,
+  'objc2 = "0.6"',
+  'objc2-app-kit = { version = "0.3", features = ["NSView", "NSWindow"] }',
+  'objc2-foundation = { version = "0.3", features = ["NSGeometry"] }',
+  '',
+  '',
+].join('\n');
+
 /**
- * Copy the template macOS titlebar placement into an already scaffolded app.
- * The app folder is created once, so a traffic-light fix in the template would
- * otherwise stay on disk until the app is scaffolded again.
+ * Remove the macOS traffic-light code older templates copied into an app.
+ * The lights now stay at the AppKit default (no `trafficLightPosition`, no AppKit view changes).
+ * Only the files the CLI wrote are touched: `src/macos.rs` must still carry the template marker,
+ * and `lib.rs` / `Cargo.toml` lose only the exact template lines.
  * @param {string} appSrcTauriDir path to …/src-tauri
  */
-export function syncDesktopMacos(appSrcTauriDir) {
-  const source = path.join(getTauriTemplateDir(), 'src-tauri/src/macos.rs');
-  const dest = path.join(appSrcTauriDir, 'src/macos.rs');
-  if (!fs.existsSync(source) || !fs.existsSync(path.dirname(dest))) return;
-  const next = fs.readFileSync(source);
-  if (fs.existsSync(dest) && fs.readFileSync(dest).equals(next)) return;
-  fs.writeFileSync(dest, next);
+export function removeLegacyDesktopMacos(appSrcTauriDir) {
+  const macosPath = path.join(appSrcTauriDir, 'src', 'macos.rs');
+  if (!fs.existsSync(macosPath)) return;
+  if (!fs.readFileSync(macosPath, 'utf8').includes(LEGACY_MACOS_MARKER)) return;
+
+  const libPath = path.join(appSrcTauriDir, 'src', 'lib.rs');
+  if (fs.existsSync(libPath)) {
+    const lib = fs.readFileSync(libPath, 'utf8');
+    const next = lib.replace(LEGACY_MACOS_MOD, '').replace(LEGACY_MACOS_INSTALL, '');
+    if (/\bmacos::|\bmod macos\b/.test(next)) return; // custom wiring: leave the app alone
+    if (next !== lib) fs.writeFileSync(libPath, next);
+  }
+  fs.rmSync(macosPath);
+
+  const cargoPath = path.join(appSrcTauriDir, 'Cargo.toml');
+  if (fs.existsSync(cargoPath)) {
+    const cargo = fs.readFileSync(cargoPath, 'utf8');
+    const next = cargo.replace(LEGACY_MACOS_CARGO, '');
+    if (next !== cargo) fs.writeFileSync(cargoPath, next);
+  }
 }
 
 /**
@@ -798,7 +837,8 @@ export async function syncTauriConfig(root, cwd, options = {}) {
     tauriConf.app.windows[0].titleBarStyle = 'Overlay';
     tauriConf.app.windows[0].decorations = true;
     tauriConf.app.windows[0].acceptFirstMouse = true;
-    tauriConf.app.windows[0].trafficLightPosition = { x: 16, y: 24 };
+    // Lights stay at the AppKit default. Older syncs wrote a position: drop it.
+    delete tauriConf.app.windows[0].trafficLightPosition;
   }
 
   // Root tauri.conf.json wins for name / identifier / window / bundle extras.
@@ -818,7 +858,7 @@ export async function syncTauriConfig(root, cwd, options = {}) {
   syncCargoPackageName(path.join(appDir, 'src-tauri'), tauriConf.productName);
   syncShellCapabilities(path.join(appDir, 'src-tauri'));
   syncDesktopSignIn(path.join(appDir, 'src-tauri'));
-  syncDesktopMacos(path.join(appDir, 'src-tauri'));
+  removeLegacyDesktopMacos(path.join(appDir, 'src-tauri'));
 
   const port = config.port ?? 3000;
   tauriConf.build.devUrl = `http://localhost:${port}`;

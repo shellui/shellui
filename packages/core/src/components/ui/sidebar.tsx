@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Slot } from '@radix-ui/react-slot';
+import { useTranslation } from 'react-i18next';
 
 import { useIsMobile } from '../../hooks/use-mobile';
 import { cn } from '../../lib/utils';
@@ -260,6 +261,7 @@ function Sidebar({
   variant?: 'sidebar' | 'floating' | 'inset';
   collapsible?: 'offcanvas' | 'icon' | 'none';
 }) {
+  const { t } = useTranslation();
   const context = React.useContext(SidebarContext);
 
   if (collapsible === 'none') {
@@ -305,8 +307,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>{t('desktopChrome.navigation')}</SheetTitle>
+            <SheetDescription>{t('shellChrome.sheetDescription')}</SheetDescription>
           </SheetHeader>
           <div className="flex h-full min-h-0 w-full flex-col overflow-hidden pt-[var(--shellui-safe-area-top)] pr-[var(--shellui-safe-area-right)] pl-[var(--shellui-safe-area-left)]">
             {children}
@@ -376,6 +378,7 @@ function Sidebar({
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
   const { toggleSidebar } = useSidebar();
+  const { t } = useTranslation();
 
   return (
     <Button
@@ -384,7 +387,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      aria-label="Toggle Sidebar"
+      aria-label={t('shellChrome.toggleSidebar')}
       className={cn(
         'size-7 touch-manipulation select-none [-webkit-touch-callout:none]',
         className,
@@ -413,6 +416,7 @@ function SidebarRail({
   side?: 'left' | 'right';
 }) {
   const { toggleSidebar, state, width, setWidth, setIsResizing } = useSidebar();
+  const { t } = useTranslation();
   const dragRef = React.useRef<{
     startX: number;
     startWidth: number;
@@ -486,9 +490,11 @@ function SidebarRail({
       data-slot="sidebar-rail"
       data-shellui-no-drag=""
       data-placement={placement}
-      aria-label={state === 'expanded' ? 'Resize Sidebar' : 'Toggle Sidebar'}
+      aria-label={
+        state === 'expanded' ? t('shellChrome.resizeSidebar') : t('shellChrome.toggleSidebar')
+      }
       tabIndex={-1}
-      title={state === 'expanded' ? 'Drag to resize' : 'Toggle Sidebar'}
+      title={state === 'expanded' ? t('shellChrome.dragToResize') : t('shellChrome.toggleSidebar')}
       onClick={(event) => {
         if (didDragRef.current) {
           didDragRef.current = false;

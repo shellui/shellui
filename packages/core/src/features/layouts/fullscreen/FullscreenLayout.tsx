@@ -4,12 +4,18 @@ import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup } from '../../config/types';
 import { flattenNavigationItems } from '../utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useMacTrafficLights } from '../chrome/runtime';
+import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  MAC_LIGHTS_SAFE_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
+import { MAC_DRAG_REGION_PROPS, MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
+
+/** macOS: content starts under the 32px strip plus 16px. */
+const MAC_CONTENT_PAD_TOP_PX = 48;
 
 interface FullscreenLayoutProps {
   title?: string;
@@ -31,6 +37,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
   const { i18n } = useTranslation();
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
+  const macStrip = useMacOverlayChrome();
   const currentLanguage = i18n.language || 'en';
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
@@ -52,20 +59,41 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
   return (
-    <main className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background">
-      {isTauriEnv ? (
+    <main
+      className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background"
+      style={macStrip ? { paddingTop: MAC_CONTENT_PAD_TOP_PX } : undefined}
+    >
+      {macStrip ? (
+        /* Transparent 32px drag strip: safe area 80, history glass group, drag spacer. */
         <div
-          className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
+          data-shellui-mac-strip=""
+          {...MAC_DRAG_REGION_PROPS}
+          className="absolute inset-x-0 top-0 z-[46] flex items-center select-none"
           style={{
             height: DESKTOP_TITLEBAR_HEIGHT_PX,
             paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
-            paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
           }}
-          {...(trafficLights
-            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-            : {})}
         >
-          <DesktopHistoryButtons />
+          <MacLightsSafeArea />
+          {isTauriEnv ? (
+            <DesktopHistoryButtons
+              strip
+              className="shellui-history-glass"
+            />
+          ) : null}
+          <MacStripSpacer />
+        </div>
+      ) : isTauriEnv ? (
+        <div
+          className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
+          style={{
+            height: SHELL_HEADER_HEIGHT_PX,
+            paddingTop: SHELL_HEADER_PAD_TOP_PX,
+            paddingLeft: trafficLights ? MAC_LIGHTS_SAFE_PX : 8,
+          }}
+          {...(trafficLights ? MAC_DRAG_REGION_PROPS : {})}
+        >
+          <DesktopHistoryButtons className="shellui-history-glass" />
         </div>
       ) : null}
       {children || <Outlet />}

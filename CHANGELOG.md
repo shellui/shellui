@@ -18,6 +18,39 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+## [0.7.0-alpha.10] - 2026-10-27
+
+### ✨ Feature
+
+- **Core:** Floating layout: a More bottom sheet on phones, and the dock steps aside while the soft keyboard is open.
+- **Core:** Windows layout: a slow dot field on the desktop that pauses when hidden or covered and stays static under reduced motion.
+
+### 🛠 Improvements
+
+- **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop, in light and dark.
+- **Core:** `applyTheme` flags low contrast nav colors with `data-shellui-nav-contrast="low"` and tints the active pill.
+- **Core:** Accessible navigation in every layout: named landmarks, `aria-current`, announced external links and translated labels (en, fr).
+
+### 🚨 Changed
+
+- **Core:** Sidebar and sidebar-inset layouts: a primary active pill, quieter group labels and theme card radius.
+- **Core:** App bar and app-bar-inset layouts: a primary underline or raised pill for the active item and touch-size menu rows on phones.
+- **Core:** Floating layout: lighter glass, a capsule behind the active dock icon and the primary pill in the sidebar.
+- **Core:** Windows layout: card surface windows, glass taskbar and start menu, and a minute clock.
+- **Core:** Fullscreen layout: Back and Forward sit in a glass group in the Tauri app.
+- **Core:** macOS desktop: every layout draws a 32px strip around the system traffic lights, with an 80px drag-only safe area.
+- **CLI:** macOS traffic lights stay at the AppKit default, so they move in existing template apps (close about 7px from the left edge, centered in the title bar).
+
+### 🗑 Removed
+
+- **CLI:** `trafficLightPosition`, `src/macos.rs` and the `objc2` crates from the Tauri template; `shellui` sync removes them from existing apps.
+
+### 🏗 Chore
+
+- Tauri desktop app `Cargo.toml` and `Cargo.lock` versions follow the release again (were 0.7.0-alpha.3).
+
 ## [0.7.0-alpha.9] - 2026-10-27
 
 ### 🚨 Changed

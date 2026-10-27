@@ -11,7 +11,7 @@ import {
 import { resolveViewport } from '../../../hooks/use-viewport';
 import { publishLayoutChrome } from '../floating/layoutChromeStore';
 import { readShellSafeAreaPx } from '../floating/computeFloatingInsets';
-import { DESKTOP_TITLEBAR_HEIGHT_PX } from './constants';
+import { SHELL_HEADER_HEIGHT_PX } from './constants';
 
 export type ScrollHideLayoutId = 'sidebar' | 'sidebar-inset' | 'app-bar' | 'app-bar-inset';
 
@@ -32,7 +32,7 @@ export function mobileShellHeaderHeightPx(options?: {
   includeSafeArea?: boolean;
   barHeightPx?: number;
 }): number {
-  const bar = options?.barHeightPx ?? DESKTOP_TITLEBAR_HEIGHT_PX;
+  const bar = options?.barHeightPx ?? SHELL_HEADER_HEIGHT_PX;
   if (options?.includeSafeArea === false) return bar;
   const safe = typeof document !== 'undefined' ? readShellSafeAreaPx().top : 0;
   return bar + safe;
@@ -78,12 +78,7 @@ export function useScrollHideChrome(options: {
   /** When true (root shell), include safe-area-top in the header band height. */
   includeSafeArea?: boolean;
 }) {
-  const {
-    enabled,
-    layout,
-    barHeightPx = DESKTOP_TITLEBAR_HEIGHT_PX,
-    includeSafeArea = true,
-  } = options;
+  const { enabled, layout, barHeightPx = SHELL_HEADER_HEIGHT_PX, includeSafeArea = true } = options;
   const location = useLocation();
   const [chromeVisible, setChromeVisible] = useState(true);
   const scrollStateRef = useRef<ScrollChromeState>({ visible: true, lastY: 0 });

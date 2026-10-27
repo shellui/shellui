@@ -2859,11 +2859,8 @@ dependencies = [
 
 [[package]]
 name = "shellui"
-version = "0.7.0-alpha.3"
+version = "0.7.0-alpha.10"
 dependencies = [
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
  "tauri",
  "tauri-build",
 ]

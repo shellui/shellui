@@ -11,7 +11,6 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '../../../components/ui/sidebar';
-import { cn } from '../../../lib/utils';
 import { getActivePathPrefix, getNavPathPrefix, flattenNavigationItems } from '../utils';
 import { getExternalFaviconUrl } from './sidebarUtils';
 import { ExternalLinkIcon, NavIcon } from './SidebarIcons';
@@ -29,7 +28,7 @@ export function NavigationContent({
   trailing?: ReactNode;
 }) {
   const location = useLocation();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language || 'en';
 
   const resolveLocalizedString = (
@@ -77,9 +76,17 @@ export function NavigationContent({
     const itemLabel = resolveLocalizedString(navItem.label, currentLanguage);
     const faviconUrl = isExternal && !navItem.icon ? getExternalFaviconUrl(navItem.url) : null;
     const iconSrc = navItem.icon ?? faviconUrl ?? null;
-    const iconEl = <NavIcon src={iconSrc} />;
+    const iconEl = (
+      <NavIcon
+        src={iconSrc}
+        className="shellui-nav-icon"
+      />
+    );
     const externalIcon = isExternal ? (
-      <ExternalLinkIcon className="ml-auto size-4 shrink-0 opacity-70" />
+      <>
+        <ExternalLinkIcon className="shellui-nav-external ml-auto size-3.5 shrink-0 opacity-70" />
+        <span className="sr-only">{t('shellChrome.externalLink')}</span>
+      </>
     ) : null;
     const content = (
       <>
@@ -126,8 +133,9 @@ export function NavigationContent({
       <SidebarMenuButton
         asChild
         isActive={isActive}
+        aria-current={isActive ? 'page' : undefined}
         tooltip={itemLabel}
-        className={cn('w-full', isActive && 'bg-sidebar-accent text-sidebar-accent-foreground')}
+        className="shellui-nav-row w-full"
       >
         {linkOrTrigger}
       </SidebarMenuButton>
@@ -161,7 +169,7 @@ export function NavigationContent({
               key={`group-${groupTitle}-${sectionIndex}`}
               className="mt-0"
             >
-              <SidebarGroupLabel className="mb-1">{groupTitle}</SidebarGroupLabel>
+              <SidebarGroupLabel className="shellui-nav-label mb-1">{groupTitle}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {section.group.items.map((navItem) => (

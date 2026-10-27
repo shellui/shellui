@@ -26,7 +26,7 @@ Persistent navigation built on shadcn/ui sidebar primitives.
 - Themed via `--sidebar-*` for light and dark
 - Optional `appIcon` at the top of the expanded sidebar (hidden when collapsed)
 
-**Tauri (macOS):** overlay titlebar; traffic lights centered in 42px chrome. Collapsed sidebar gets a full-width 42px top bar (Back/Forward + open-sidebar). A full-width invisible 42px drag strip mounts at the app root, including error screens. **Back** / **Forward** leave iframe login pages because there is no browser chrome.
+**Tauri (macOS):** overlay titlebar; the traffic lights stay at the system position and every layout draws a 32px strip around them (24px controls, left 80px drag-only). Collapsed sidebar gets a full-width 32px strip (open-sidebar + Back/Forward). A full-width invisible 32px drag strip mounts at the app root, including error screens. **Back** / **Forward** leave iframe login pages because there is no browser chrome.
 
 ## Sidebar inset
 
@@ -82,7 +82,7 @@ Content area only - no sidebar or nav chrome. Routes in `navigation` still work 
 
 Compact top bar (~56px). Start destinations are icon + label links. Groups use a caret dropdown (category looks selected when a child is active). Overflow goes into **More**. End links (`position: 'end'`) are icon-only with a tooltip. `app-bar-inset` uses the same padded, rounded main frame as sidebar-inset.
 
-**Tauri:** traffic-light inset, Back/Forward, and drag regions on the bar.
+**Tauri:** on macOS the bar is the 32px strip (80px safe area for the traffic lights, 24px items); Back/Forward and drag regions on the bar.
 
 ## Windows (experimental)
 

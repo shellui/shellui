@@ -96,6 +96,109 @@
 }
 
 /*
+ * Shell chrome tokens (layouts redesign). Every value is a theme token or a
+ * color-mix of tokens. They stay on :root / .dark so they resolve on <html>,
+ * where applyThemeToDocument writes the theme vars inline.
+ */
+:root {
+  --shellui-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --shellui-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shellui-r-row: max(0px, calc(var(--radius) - 1px));
+  --shellui-r-card: calc(var(--radius) + 6px);
+  --shellui-r-float: min(calc(var(--radius) * 2), 1.25rem);
+  --shellui-r-pill: calc(var(--radius) * 999);
+  --shellui-nav-fg: color-mix(in oklch, var(--sidebar-foreground) 88%, transparent);
+  --shellui-nav-icon: color-mix(in oklch, var(--sidebar-foreground) 66%, transparent);
+  --shellui-nav-label: color-mix(in oklch, var(--sidebar-foreground) 58%, transparent);
+  --shellui-nav-hover: var(--sidebar-accent);
+  --shellui-nav-hover-inset: color-mix(in oklch, var(--sidebar-foreground) 7%, transparent);
+  --shellui-nav-active: var(--sidebar-primary);
+  --shellui-nav-active-fg: var(--sidebar-primary-foreground);
+  --shellui-nav-indicator: var(--sidebar-primary);
+  --shellui-hairline: color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  --shellui-dock-capsule: color-mix(in oklch, var(--sidebar-primary) 24%, transparent);
+  --shellui-dock-dim: color-mix(in oklch, var(--sidebar-foreground) 62%, transparent);
+  --shellui-glass: color-mix(in oklch, var(--sidebar) 72%, transparent);
+  --shellui-glass-solid: color-mix(in oklch, var(--sidebar) 97%, transparent);
+  --shellui-glass-edge: color-mix(in oklch, var(--sidebar-border) 70%, transparent);
+  --shellui-glass-hi: color-mix(in oklch, white 38%, transparent);
+  --shellui-glass-shadow:
+    0 1px 0 var(--shellui-glass-hi) inset, 0 8px 28px color-mix(in oklch, black 12%, transparent),
+    0 1px 3px color-mix(in oklch, black 8%, transparent);
+  --shellui-win-shadow:
+    0 1px 2px color-mix(in oklch, black 8%, transparent),
+    0 20px 44px -14px color-mix(in oklch, black 26%, transparent);
+  --shellui-win-shadow-idle:
+    0 1px 2px color-mix(in oklch, black 6%, transparent),
+    0 10px 24px -12px color-mix(in oklch, black 16%, transparent);
+  --shellui-desk-dot: color-mix(in oklch, var(--foreground) 15%, transparent);
+  --shellui-desk-wash: color-mix(in oklch, var(--primary) 12%, transparent);
+  --shellui-scrim: color-mix(in oklch, black 38%, transparent);
+}
+
+.dark {
+  --shellui-glass: color-mix(in oklch, var(--sidebar) 70%, transparent);
+  --shellui-glass-hi: color-mix(in oklch, white 10%, transparent);
+  --shellui-glass-shadow:
+    0 1px 0 var(--shellui-glass-hi) inset, 0 12px 36px color-mix(in oklch, black 42%, transparent),
+    0 1px 4px color-mix(in oklch, black 24%, transparent);
+  --shellui-win-shadow:
+    0 1px 2px color-mix(in oklch, black 30%, transparent),
+    0 24px 52px -14px color-mix(in oklch, black 60%, transparent);
+  --shellui-win-shadow-idle:
+    0 1px 2px color-mix(in oklch, black 24%, transparent),
+    0 12px 28px -12px color-mix(in oklch, black 40%, transparent);
+  --shellui-desk-dot: color-mix(in oklch, var(--foreground) 11%, transparent);
+  --shellui-desk-wash: color-mix(in oklch, var(--primary) 9%, transparent);
+  --shellui-dock-capsule: color-mix(in oklch, var(--sidebar-primary) 26%, transparent);
+  --shellui-scrim: color-mix(in oklch, black 55%, transparent);
+}
+
+/*
+ * Contrast guard: applyTheme sets data-shellui-nav-contrast="low" when the
+ * solid active pill falls under 4.5:1. Active rows switch to a tinted pill.
+ */
+:root {
+  --shellui-nav-active-icon: var(--shellui-nav-active-fg);
+}
+html[data-shellui-nav-contrast='low'] {
+  --shellui-nav-active: color-mix(in oklch, var(--sidebar-primary) 20%, transparent);
+  --shellui-nav-active-fg: var(--sidebar-foreground);
+  --shellui-nav-active-icon: var(--sidebar-primary);
+}
+
+/* Glass falls back to a near solid fill when transparency is unwanted or unsupported. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --shellui-glass: var(--shellui-glass-solid);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --shellui-glass: var(--shellui-glass-solid);
+  }
+}
+
+/* Shared glass surface: floating chrome, taskbar, start menu, phone dock. */
+.shellui-glass {
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
+}
+
+/* Chrome focus: inset ring, no detached halo on tinted chrome backgrounds. */
+.shellui-chrome-focus:focus-visible,
+[data-shellui-chrome-focus] :is(a, button, [role='tab'], [role='menuitem']):focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+
+/*
  * Padding only — never fold these into shell height. Use for chrome clearance
  * (titlebar, sheet edges, home indicator). The shell itself is sized by
  * --shellui-app-height (100dvh in CSS).
@@ -138,30 +241,18 @@
   --shellui-inset-right: 0px;
   --shellui-inset-bottom: 0px;
   --shellui-inset-left: 0px;
-  --shellui-floating-sidebar-radius: min(var(--radius), 5rem);
+  --shellui-floating-sidebar-radius: var(--shellui-r-float);
   /* Any positive --radius → huge radius (pill); 0 → square. */
   --shellui-floating-mobile-radius: calc(var(--radius) * 999);
 }
 
 .shellui-floating-glass {
   color: var(--sidebar-foreground);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in oklch, white 40%, transparent) 0%,
-      color-mix(in oklch, white 10%, transparent) 42%,
-      color-mix(in oklch, white 16%, transparent) 100%
-    ),
-    /* Frost from sidebar surface so chrome tracks theme, not raw background grey */
-    color-mix(in oklch, var(--sidebar) 82%, transparent);
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
-  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
-  box-shadow:
-    0 1px 0 color-mix(in oklch, white 40%, transparent) inset,
-    0 -1px 0 color-mix(in oklch, black 6%, transparent) inset,
-    0 10px 32px color-mix(in oklch, black 14%, transparent),
-    0 2px 6px color-mix(in oklch, black 6%, transparent);
+  background: var(--shellui-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
 }
 
 .shellui-floating-sidebar-panel .shellui-floating-glass,
@@ -174,27 +265,10 @@
   border-radius: 0;
 }
 
-.dark .shellui-floating-glass {
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in oklch, white 16%, transparent) 0%,
-      color-mix(in oklch, white 4%, transparent) 45%,
-      color-mix(in oklch, white 9%, transparent) 100%
-    ),
-    color-mix(in oklch, var(--sidebar) 78%, transparent);
-  border-color: color-mix(in oklch, var(--sidebar-border) 90%, transparent);
-  box-shadow:
-    0 1px 0 color-mix(in oklch, white 12%, transparent) inset,
-    0 -1px 0 color-mix(in oklch, black 30%, transparent) inset,
-    0 14px 40px color-mix(in oklch, black 40%, transparent),
-    0 2px 8px color-mix(in oklch, black 22%, transparent);
-}
-
 /* Desktop floating nav rows / chrome controls: match capped sidebar radius. */
 .shellui-floating-sidebar-panel .shellui-floating-nav-item,
 .shellui-floating-sidebar-panel .shellui-floating-nav-control {
-  border-radius: var(--shellui-floating-sidebar-radius);
+  border-radius: min(var(--shellui-floating-sidebar-radius), 10px);
 }
 
 /* Phone/tablet floating dock + pill FAB: binary radius (0 theme → square). */
@@ -351,7 +425,7 @@ html[data-shellui-chrome-hidden='true']
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 1rem 1rem 0 0;
+  border-radius: var(--shellui-r-card) var(--shellui-r-card) 0 0;
   border: 1px solid var(--border);
   border-bottom-width: 0;
   box-shadow: 0 0 0 100vmax var(--shellui-inset-chrome);
@@ -1307,9 +1381,65 @@ html.shellui-theme-switching
   -webkit-app-region: no-drag;
 }
 
+/*
+ * macOS strip (rules v2). The traffic lights stay at the AppKit default; the shell adapts
+ * to them. Strip 32px, lights centre 16px, drag-only safe area 80px from the left edge.
+ * In native fullscreen AppKit hides the lights and the safe area collapses to 12px.
+ */
+html {
+  --shellui-mac-titlebar-h: 32px;
+  --shellui-mac-lights-cy: 16px;
+  --shellui-mac-lights-safe: 12px;
+  --shellui-titlebar-height: var(--shellui-mac-titlebar-h);
+}
+
 html[data-shellui-overlay-chrome] {
-  --shellui-titlebar-height: 42px;
-  --shellui-traffic-lights-width: 78px;
+  --shellui-mac-lights-safe: 80px;
+  --shellui-traffic-lights-width: 68px;
+}
+
+.shellui-mac-safe {
+  width: var(--shellui-mac-lights-safe, 80px);
+  transition: width 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-mac-safe {
+    transition: none;
+  }
+}
+
+/* Strip controls: 24px boxes, 16px icons, centred on the lights line. */
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item {
+  height: 24px;
+  font-size: 13px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item svg,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item img {
+  width: 15px;
+  height: 15px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-end,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] [data-shellui-strip-end] button {
+  height: 24px;
+  min-width: 24px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-end,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] [data-shellui-strip-end] button.size-7 {
+  width: 24px;
+}
+html[data-shellui-mac-chrome]
+  [data-shellui-mac-strip]
+  [data-shellui-strip-end]
+  [data-slot='avatar'] {
+  width: 22px;
+  height: 22px;
+}
+
+/* Inactive window: AppKit greys the lights, the strip text follows. */
+html[data-shellui-window-inactive] [data-shellui-mac-strip],
+html[data-shellui-window-inactive] [data-shellui-mac-strip] :is(button, a, span) {
+  color: var(--shellui-nav-label);
 }
 
 /* Keep sidebar chrome above the full-width drag strip so Back / trigger stay clickable. */
@@ -1351,14 +1481,14 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   }
 }
 
-/* Collapsed Tauri: full-width 42px titlebar; push sidebar + content below it. */
+/* Collapsed Tauri: full-width 32px macOS strip; push sidebar + content below it. */
 html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: var(--shellui-titlebar-height, 42px);
-  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 42px));
+  top: var(--shellui-titlebar-height, 32px);
+  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 32px));
 }
 
 html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
@@ -1366,10 +1496,10 @@ html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 42px));
+  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 32px));
   height: calc(
     var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top) -
-      var(--shellui-titlebar-height, 42px)
+      var(--shellui-titlebar-height, 32px)
   );
 }
 
@@ -1377,7 +1507,7 @@ html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]:not([data-shellui-layout-variant='inset'])
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
-  padding-top: var(--shellui-titlebar-height, 42px);
+  padding-top: var(--shellui-titlebar-height, 32px);
 }
 
 /* Inset card keeps its own radius: sit the frame under the titlebar instead of
@@ -1386,7 +1516,7 @@ html[data-shellui-collapsed-titlebar]
   [data-shellui-layout-variant='inset']
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
-  margin-top: var(--shellui-titlebar-height, 42px);
+  margin-top: var(--shellui-titlebar-height, 32px);
   padding-top: 0;
 }
 
@@ -1398,4 +1528,763 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 /* Avoid iframe stealing pointer events while dragging the sidebar border. */
 [data-slot='sidebar-wrapper'][data-resizing] iframe {
   pointer-events: none;
+}
+
+/*
+ * Sidebar nav rows (sidebar and sidebar-inset, desktop column and mobile sheet).
+ * `.shellui-nav` wraps SidebarContent and SidebarFooter in SidebarInner, so the
+ * same rules reach the Sheet portal. Unlayered: wins over the shadcn utilities.
+ */
+.shellui-nav [data-sidebar='menu-button'] {
+  height: 32px;
+  padding-inline: 10px;
+  gap: 10px;
+  border-radius: var(--shellui-r-row);
+  font-size: 13.5px;
+  font-weight: 450;
+  color: var(--shellui-nav-fg);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--shellui-nav-icon);
+  transition: color 150ms var(--shellui-ease);
+}
+.shellui-nav [data-sidebar='menu-button']:hover,
+.shellui-nav [data-sidebar='menu-button']:active {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-accent-foreground);
+}
+.shellui-nav [data-sidebar='menu-button']:hover .shellui-nav-icon {
+  color: currentColor;
+}
+.shellui-nav [data-sidebar='menu-button'][data-active='true'],
+.shellui-nav [data-sidebar='menu-button'][data-active='true']:hover {
+  background-color: var(--shellui-nav-active);
+  color: var(--shellui-nav-active-fg);
+  font-weight: 550;
+}
+.shellui-nav [data-sidebar='menu-button'][data-active='true'] .shellui-nav-icon {
+  color: var(--shellui-nav-active-icon);
+}
+.shellui-nav [data-sidebar='menu-button']:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-nav .shellui-nav-label {
+  height: auto;
+  padding: 12px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--shellui-nav-label);
+}
+.shellui-nav [data-sidebar='group'] {
+  position: relative;
+}
+/* Collapsed rail: the hidden group label leaves a 24 x 1 px hairline. */
+.group[data-collapsible='icon']
+  .shellui-nav
+  [data-sidebar='group']:has(.shellui-nav-label)::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 24px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: var(--shellui-hairline);
+}
+.shellui-nav[data-shellui-nav-footer] {
+  border-top-color: var(--shellui-hairline);
+  padding: 6px 0 max(8px, var(--shellui-safe-area-bottom));
+}
+
+/* Rail: 2 px ring line on hover and while dragging. */
+[data-shellui-sidebar-layout] [data-sidebar='rail']:hover::after,
+[data-shellui-sidebar-layout]
+  [data-slot='sidebar-wrapper'][data-resizing]
+  [data-sidebar='rail']::after {
+  background-color: var(--sidebar-ring);
+}
+
+/* Phones: sheet rows grow to touch size. */
+[data-mobile='true'] .shellui-nav [data-sidebar='menu-button'] {
+  height: 44px;
+  font-size: 15px;
+}
+[data-mobile='true'] .shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+[data-mobile='true'] .shellui-nav .shellui-nav-label {
+  font-size: 12.5px;
+}
+[data-sheet-overlay]:has(+ [data-sidebar='sidebar'][data-mobile='true']) {
+  background-color: var(--shellui-scrim);
+}
+
+/* Tauri desktop: denser rows, closer to native source lists. */
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-nav [data-sidebar='menu-button'] {
+    height: 30px;
+    font-size: 13px;
+  }
+  html[data-shellui-host='tauri'] .shellui-nav .shellui-nav-label {
+    font-size: 11.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-nav [data-sidebar='menu-button'],
+  .shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+    transition: none;
+  }
+}
+
+/*
+ * Sidebar-inset: the column sits on the chrome tray, so hover uses a foreground
+ * mix (accent is too close to the tray tint) and the active pill gets a 1 px lift.
+ */
+[data-shellui-layout-variant='inset'] .shellui-nav {
+  --shellui-nav-hover: var(--shellui-nav-hover-inset);
+}
+[data-shellui-layout-variant='inset']
+  .shellui-nav
+  [data-sidebar='menu-button'][data-active='true'] {
+  box-shadow: 0 1px 2px color-mix(in oklch, black 10%, transparent);
+}
+[data-shellui-layout-variant='inset'] .shellui-nav[data-shellui-nav-footer] {
+  border-top-color: transparent;
+}
+@media (min-width: 768px) {
+  [data-shellui-layout-variant='inset'] [data-slot='sidebar-inset'] {
+    border-radius: var(--shellui-r-card);
+    box-shadow: 0 1px 2px color-mix(in oklch, black 5%, transparent);
+  }
+}
+
+/*
+ * App bar (app-bar and app-bar-inset): nav items, end buttons and menus.
+ * Underline marks the active item; the inset bar uses a raised pill instead.
+ */
+.shellui-appbar-item,
+.shellui-appbar-end {
+  position: relative;
+  border-radius: var(--shellui-r-row);
+  color: var(--shellui-dock-dim);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-appbar-item {
+  padding-inline: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.shellui-appbar-item:hover,
+.shellui-appbar-item[aria-expanded='true'],
+.shellui-appbar-end:hover {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-foreground);
+}
+.shellui-appbar-item.is-active,
+.shellui-appbar-end.is-active {
+  color: var(--sidebar-foreground);
+  font-weight: 600;
+}
+.shellui-appbar-item.is-active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--shellui-nav-indicator);
+}
+.shellui-appbar-end.is-active {
+  background-color: var(--shellui-nav-hover);
+}
+.shellui-appbar-item:focus-visible,
+.shellui-appbar-end:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-appbar-menu {
+  padding: 4px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 32px -8px color-mix(in oklch, black 22%, transparent),
+    0 2px 6px color-mix(in oklch, black 8%, transparent);
+}
+.shellui-appbar-menu .shellui-appbar-menu-item {
+  min-height: 32px;
+  font-size: 13.5px;
+  border-radius: var(--shellui-r-row);
+}
+.shellui-appbar-menu .shellui-appbar-menu-item.is-active {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 550;
+}
+.shellui-appbar-menu .shellui-appbar-menu-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .shellui-appbar-menu .shellui-appbar-menu-item {
+    min-height: 44px;
+    font-size: 15px;
+  }
+}
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-appbar-item {
+    height: 30px;
+    font-size: 13px;
+  }
+}
+
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] {
+  --shellui-nav-hover: var(--shellui-nav-hover-inset);
+}
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] .shellui-appbar-item.is-active {
+  background-color: var(--background);
+  box-shadow:
+    0 0 0 1px var(--border),
+    0 1px 2px color-mix(in oklch, black 8%, transparent);
+}
+[data-shellui-app-bar-layout][data-shellui-layout-variant='inset']
+  .shellui-appbar-item.is-active::after {
+  content: none;
+}
+@media (min-width: 768px) {
+  [data-shellui-app-bar-layout][data-shellui-layout-variant='inset'] > main {
+    border-radius: var(--shellui-r-card);
+    box-shadow: 0 1px 2px color-mix(in oklch, black 5%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-appbar-item,
+  .shellui-appbar-end {
+    transition: none;
+  }
+}
+
+/*
+ * Floating layout: desktop glass sidebar rows, phone / tablet dock, More sheet.
+ */
+.shellui-floating-nav-item {
+  font-size: 13.5px;
+  font-weight: 450;
+  color: var(--shellui-nav-fg);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-floating-nav-item .shellui-nav-icon {
+  color: var(--shellui-nav-icon);
+}
+.shellui-floating-nav-item:hover {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-accent-foreground);
+}
+.shellui-floating-nav-item:hover .shellui-nav-icon {
+  color: currentColor;
+}
+.shellui-floating-nav-item.is-active,
+.shellui-floating-nav-item.is-active:hover {
+  background-color: var(--shellui-nav-active);
+  color: var(--shellui-nav-active-fg);
+  font-weight: 550;
+}
+.shellui-floating-nav-item.is-active .shellui-nav-icon {
+  color: var(--shellui-nav-active-icon);
+}
+.shellui-floating-nav-item:focus-visible,
+.shellui-floating-nav-control:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+}
+.shellui-floating-nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--shellui-nav-label);
+}
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-floating-nav-item {
+    height: 30px;
+    font-size: 13px;
+  }
+}
+
+.shellui-dock-tab {
+  color: var(--shellui-dock-dim);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  min-height: 48px;
+}
+.shellui-dock-tab:focus-visible {
+  outline: none;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-dock-tab .shellui-dock-label {
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+[data-dock-align='center'] .shellui-dock-tab .shellui-dock-label {
+  font-size: 12px;
+  line-height: 15px;
+}
+.shellui-dock-capsule {
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--shellui-floating-mobile-radius);
+  transition:
+    background-color 240ms var(--shellui-ease),
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.shellui-dock-capsule .shellui-dock-glyph {
+  width: 21px;
+  height: 21px;
+}
+.shellui-dock-tab[data-state='active'] {
+  color: var(--sidebar-foreground);
+}
+.shellui-dock-tab[data-state='active'] .shellui-dock-label {
+  font-weight: 650;
+}
+.shellui-dock-tab[data-state='active'] .shellui-dock-capsule {
+  background-color: var(--shellui-dock-capsule);
+}
+.shellui-dock-tab:active .shellui-dock-capsule {
+  transform: scale(0.9);
+  background-color: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+  transition-duration: 90ms;
+  transition-timing-function: ease-out;
+}
+.shellui-dock-tab:active {
+  color: var(--sidebar-foreground);
+}
+.shellui-dock-tab:focus-visible .shellui-dock-capsule {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: 1px;
+}
+
+/* Phone More sheet (vaul). */
+.shellui-more-sheet {
+  left: calc(8px + var(--shellui-safe-area-left));
+  right: calc(8px + var(--shellui-safe-area-right));
+  bottom: calc(8px + var(--shellui-safe-area-bottom));
+  padding-top: 8px;
+  border-radius: calc(var(--shellui-r-float) + 8px);
+  background: color-mix(in oklch, var(--sidebar) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
+}
+.shellui-more-sheet-handle {
+  width: 36px;
+  height: 5px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--sidebar-foreground) 22%, transparent);
+}
+.shellui-more-sheet-row {
+  min-height: 48px;
+  padding-inline: 12px;
+  border-radius: min(var(--shellui-r-float), 12px);
+  font-size: 15.5px;
+  color: var(--sidebar-foreground);
+  -webkit-tap-highlight-color: transparent;
+}
+.shellui-more-sheet-row .shellui-dock-glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--shellui-nav-icon);
+}
+.shellui-more-sheet-row:active,
+.shellui-more-sheet-row:hover {
+  background-color: var(--shellui-nav-hover);
+}
+.shellui-more-sheet-row[data-active='true'] {
+  background-color: var(--shellui-dock-capsule);
+  font-weight: 600;
+}
+.shellui-more-sheet-row:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+}
+.shellui-more-sheet-account:empty {
+  display: none;
+}
+/* vaul paints an ::after below bottom drawers; the sheet floats, so drop it. */
+.shellui-more-sheet::after {
+  content: none !important;
+}
+
+/* Soft keyboard open: dock and FAB step aside (same slide as scroll hide). */
+html[data-shellui-keyboard='open'] [data-shellui-floating-dock],
+html[data-shellui-keyboard='open']
+  [data-shellui-chrome-actions-fab][data-shellui-floating-fab='true'] {
+  translate: 0 120%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .shellui-more-sheet {
+    background: var(--shellui-glass-solid);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .shellui-more-sheet {
+    background: var(--shellui-glass-solid);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-floating-nav-item,
+  .shellui-dock-capsule {
+    transition: none;
+  }
+  .shellui-dock-tab:active .shellui-dock-capsule {
+    transform: none;
+  }
+}
+
+/*
+ * Windows layout: calm desktop, opaque cards, glass taskbar and start menu.
+ */
+[data-shellui-windows-layout] .shellui-desk-wash {
+  background-image:
+    radial-gradient(ellipse 90% 60% at 20% 112%, var(--shellui-desk-wash), transparent 62%),
+    radial-gradient(
+      ellipse 70% 50% at 80% 118%,
+      color-mix(in oklch, var(--primary) 7%, transparent),
+      transparent 64%
+    );
+}
+/* Static dot grid: reduced motion, and the frame before the canvas mounts. */
+[data-shellui-desk-dots]:not([data-live])::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(
+    circle at center,
+    var(--shellui-desk-dot) 1.1px,
+    transparent 1.6px
+  );
+  background-size: 24px 24px;
+  background-position: center 0;
+}
+.shellui-win {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  box-shadow: var(--shellui-win-shadow-idle);
+}
+.shellui-win.is-focused {
+  border-color: color-mix(in oklch, var(--border) 92%, var(--foreground));
+  box-shadow: var(--shellui-win-shadow);
+}
+.shellui-win.is-flat {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.shellui-win-titlebar {
+  min-height: 36px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+.shellui-win:not(.is-focused) .shellui-win-titlebar {
+  color: var(--muted-foreground);
+  font-weight: 550;
+}
+.shellui-win-tile {
+  width: 18px;
+  height: 18px;
+}
+.shellui-win-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--shellui-r-row);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition:
+    background-color 120ms var(--shellui-ease-out),
+    color 120ms var(--shellui-ease-out);
+}
+.shellui-win-control:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.shellui-win-control.shellui-win-close:hover {
+  background: var(--destructive);
+  color: var(--destructive-foreground, white);
+}
+.shellui-win.is-flat .shellui-win-control {
+  width: 40px;
+  height: 40px;
+}
+.shellui-win.is-flat .shellui-win-control svg {
+  width: 18px;
+  height: 18px;
+}
+
+/*
+ * The taskbar glass sits on a pseudo element: a backdrop-filter on the bar itself
+ * would become the backdrop root of the start menu and stop its blur at the bar.
+ */
+.shellui-taskbar {
+  color: var(--sidebar-foreground);
+}
+.shellui-taskbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-top: 1px solid var(--shellui-glass-edge);
+  pointer-events: none;
+}
+.shellui-windows-strip {
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--shellui-glass-edge);
+}
+/* Centred on the window, text only: drag passes through to the strip. */
+.shellui-windows-strip-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 2 * 180px);
+  transform: translate(-50%, -50%);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--sidebar-foreground);
+  pointer-events: none;
+}
+.shellui-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px 0 7px;
+  border-radius: var(--shellui-r-row);
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-start :is(img, svg) {
+  width: 24px;
+  height: 24px;
+}
+.shellui-start:hover {
+  background: var(--shellui-nav-hover-inset);
+}
+.shellui-start.is-open {
+  background: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+}
+.shellui-start-name {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.shellui-task {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  max-width: 160px;
+  min-width: 0;
+  padding: 0 10px;
+  border-radius: var(--shellui-r-row);
+  font-size: 13px;
+  color: var(--sidebar-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-task:hover {
+  background: var(--shellui-nav-hover-inset);
+}
+.shellui-task-list .shellui-task::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 6px;
+  height: 3px;
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--sidebar-foreground) 40%, transparent);
+  transform: translateX(-50%);
+  transition:
+    width 200ms var(--shellui-ease),
+    background-color 200ms var(--shellui-ease);
+}
+.shellui-task.is-focused {
+  background: color-mix(in oklch, var(--sidebar-foreground) 8%, transparent);
+  font-weight: 600;
+}
+.shellui-task-list .shellui-task.is-focused::after {
+  width: 16px;
+  background: var(--shellui-nav-indicator);
+}
+.shellui-clock {
+  color: var(--sidebar-foreground);
+  border-left: 1px solid var(--shellui-hairline);
+}
+.shellui-clock-time {
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.2;
+}
+.shellui-clock-date {
+  font-size: 11px;
+  line-height: 1.2;
+  color: color-mix(in oklch, var(--sidebar-foreground) 72%, transparent);
+}
+.shellui-taskbar[data-phone] .shellui-clock-date {
+  display: none;
+}
+.shellui-taskbar[data-phone] .shellui-start-name {
+  display: none;
+}
+
+.shellui-start-menu {
+  background: color-mix(in oklch, var(--popover) 86%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  border-radius: calc(var(--radius) + 6px);
+  box-shadow: var(--shellui-glass-shadow);
+}
+.shellui-start-head {
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.shellui-start-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.shellui-start-hint {
+  margin-top: 2px;
+  font-size: 12.5px;
+}
+.shellui-start-foot {
+  border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+.shellui-start-row {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: var(--shellui-r-row);
+  text-align: left;
+  color: var(--popover-foreground);
+  cursor: pointer;
+  transition: background-color 120ms var(--shellui-ease-out);
+}
+.shellui-start-row:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+.shellui-start-row.is-open {
+  background: color-mix(in oklch, var(--accent) 50%, transparent);
+}
+.shellui-start-tile {
+  display: flex;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--radius) - 2px);
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  color: var(--foreground);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--border) 50%, transparent);
+}
+/* Phone: the start menu becomes a sheet above the taskbar. */
+.shellui-taskbar[data-phone] .shellui-start-menu {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  width: auto;
+  bottom: calc(48px + var(--shellui-safe-area-bottom, 0px) + 8px);
+  max-height: 70vh;
+  margin: 0;
+}
+.shellui-taskbar[data-phone] .shellui-start-row {
+  min-height: 48px;
+  font-size: 15px;
+}
+/* Tauri density on desktop sized windows. */
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-task {
+    height: 36px;
+  }
+  html[data-shellui-host='tauri'] .shellui-start-row {
+    min-height: 40px;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .shellui-start-menu {
+    background: var(--popover);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shellui-task,
+  .shellui-task::after,
+  .shellui-start,
+  .shellui-start-row,
+  .shellui-win-control {
+    transition: none;
+  }
+}
+
+/* Fullscreen layout (Tauri): a small glass group keeps history buttons legible on any content. */
+.shellui-history-glass {
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--shellui-r-row);
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 0 0 1px var(--shellui-glass-edge);
+}
+.shellui-history-glass :is(button, a):focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
 }

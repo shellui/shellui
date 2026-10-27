@@ -37,10 +37,9 @@ import { useScrollHideChrome } from '../chrome/useScrollHideChrome';
 import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
-  DESKTOP_TITLEBAR_HEIGHT_PX,
-  DESKTOP_TITLEBAR_PAD_TOP_PX,
+  MAC_LIGHTS_SAFE_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { WindowTitleBarActions } from '../../chromeActions';
 import { cn } from '../../../lib/utils';
@@ -100,9 +99,7 @@ const SidebarLayoutContent = ({
   const isMobile = useIsMobile();
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
-  const mobileTrafficInset = trafficLights
-    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
-    : undefined;
+  const mobileTrafficInset = trafficLights ? MAC_LIGHTS_SAFE_PX : undefined;
   // Nested shell-in-iframe must not repeat the root safe-area top band.
   const showSafeAreaTopbar = isShellUiRootWindow();
   const scrollHideLayout = variant === 'inset' ? 'sidebar-inset' : 'sidebar';
@@ -243,11 +240,11 @@ const SidebarLayoutContent = ({
               )}
               style={{
                 paddingTop: showSafeAreaTopbar
-                  ? `calc(var(--shellui-safe-area-top) + ${DESKTOP_TITLEBAR_PAD_TOP_PX}px)`
-                  : DESKTOP_TITLEBAR_PAD_TOP_PX,
+                  ? `calc(var(--shellui-safe-area-top) + ${SHELL_HEADER_PAD_TOP_PX}px)`
+                  : SHELL_HEADER_PAD_TOP_PX,
                 height: showSafeAreaTopbar
-                  ? `calc(${DESKTOP_TITLEBAR_HEIGHT_PX}px + var(--shellui-safe-area-top))`
-                  : DESKTOP_TITLEBAR_HEIGHT_PX,
+                  ? `calc(${SHELL_HEADER_HEIGHT_PX}px + var(--shellui-safe-area-top))`
+                  : SHELL_HEADER_HEIGHT_PX,
                 ...(mobileTrafficInset !== undefined ? { paddingLeft: mobileTrafficInset } : {}),
               }}
               {...(trafficLights

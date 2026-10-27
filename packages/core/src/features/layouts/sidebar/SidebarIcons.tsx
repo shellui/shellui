@@ -1,7 +1,7 @@
 import { cn } from '../../../lib/utils';
 import { isAppIcon } from './sidebarUtils';
 
-/** Inline SVG: external-link icon. Bundled so consumers don't need to serve static SVGs. */
+/** Inline SVG: external link (arrow up right). Bundled so consumers don't need to serve static SVGs. */
 export function ExternalLinkIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -17,14 +17,8 @@ export function ExternalLinkIcon({ className }: { className?: string }) {
       className={cn('shrink-0', className)}
       aria-hidden
     >
-      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-      <polyline points="15 3 21 3 21 9" />
-      <line
-        x1="10"
-        y1="14"
-        x2="21"
-        y2="3"
-      />
+      <path d="M7 7h10v10" />
+      <path d="M7 17 17 7" />
     </svg>
   );
 }
