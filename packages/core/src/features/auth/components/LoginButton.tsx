@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { ShellDivider } from '../../../components/ui/shell-divider';
 import { useAuth } from '../hooks/useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
@@ -139,10 +140,11 @@ export const LoginButton = ({
   hideWhenLoggedOut?: boolean;
   logoutOnly?: boolean;
   /**
-   * Hairline above the signed-in account block, separating it from the footer
-   * items above. Signed out and loading states never render it. Pass false when
-   * the account block is the first footer item (the footer border already
-   * separates it).
+   * Full-width hairline above the signed-in account block, separating it from
+   * the footer items above, plus 4px of top padding above the account row.
+   * Signed out and loading states never render it. Pass false when the account
+   * block is the first footer item (the footer divider already separates it).
+   * The parent must inset the block by 8px (sidebar group, floating footer).
    */
   dividerAbove?: boolean;
 }) => {
@@ -419,15 +421,15 @@ export const LoginButton = ({
 
   if (!dividerAbove) return accountMenu;
 
+  // Full-width hairline (cancels the 8px row inset), then 4px so the account
+  // row breathes below it.
   return (
     <>
-      <div
-        role="separator"
-        aria-orientation="horizontal"
+      <ShellDivider
         data-shellui-account-divider=""
-        className="mx-1 my-1.5 h-px shrink-0 bg-sidebar-border"
+        className="-mx-2 mt-1"
       />
-      {accountMenu}
+      <div className="pt-1">{accountMenu}</div>
     </>
   );
 };

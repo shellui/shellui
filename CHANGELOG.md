@@ -22,7 +22,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🛠 Improvements
 
-- **Core:** Sidebar, sidebar inset and floating sidebar: when signed in, a hairline divider separates the account block from the footer items above it (not drawn when the account block is the only footer item, as the footer border already separates it). Signed-out users keep the login button with no divider.
+- **Core:** One shared divider per layout, as in the layouts redesign kit: a full-width 1px hairline in the sidebar, floating sidebar and windows start menu (it replaces the footer, floating header and start menu borders), none in the sidebar inset footer, and the full-bleed separator in menus. When signed in, the same divider sits above the account block, with 4px above the account row, to separate it from the footer items (not drawn when the account block is the only footer item). Signed-out users keep the login button with no divider.
 
 ## [0.7.0-alpha.11] - 2026-10-27
 

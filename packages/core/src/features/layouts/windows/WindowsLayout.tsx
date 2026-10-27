@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useMemo,
   useState,
   useCallback,
@@ -28,6 +29,7 @@ import { useSettings } from '../../settings/hooks/useSettings';
 import { ContentView } from '../../../components/ContentView';
 import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
+import { ShellDivider } from '../../../components/ui/shell-divider';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { ExternalLinkIcon, NavIcon, SettingsIcon } from '../sidebar/SidebarIcons';
@@ -1130,8 +1132,9 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                 </p>
                 <p className="shellui-start-hint text-muted-foreground">{t('windows.chooseApp')}</p>
               </div>
+              <ShellDivider />
 
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-2 py-3">
+              <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
                 {menuSections.length === 0 ? (
                   <p className="px-2 py-6 text-center text-sm text-muted-foreground">
                     {t('windows.noApps')}
@@ -1148,7 +1151,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                       sectionIndex === menuSections.length - 1 &&
                       section.type === 'items' &&
                       section.items === endNavItems;
-                    return (
+                    const sectionNode = (
                       <section
                         key={
                           section.type === 'group'
@@ -1157,7 +1160,10 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                               ? 'end-items'
                               : `items-${sectionIndex}`
                         }
-                        className={cn('space-y-1.5', isEndSection && 'shellui-start-foot pt-3')}
+                        className={cn(
+                          'space-y-1.5',
+                          isEndSection ? 'pt-3' : sectionIndex > 0 && 'mt-4',
+                        )}
                       >
                         {categoryLabel ? (
                           <h2 className="shellui-start-label px-2.5 text-xs font-semibold text-muted-foreground">
@@ -1215,10 +1221,19 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                         </div>
                       </section>
                     );
+                    return isEndSection ? (
+                      <Fragment key="end-items">
+                        <ShellDivider className="-mx-2 mt-4" />
+                        {sectionNode}
+                      </Fragment>
+                    ) : (
+                      sectionNode
+                    );
                   })
                 )}
               </div>
               {/* Footer: account and settings (spec). */}
+              <ShellDivider />
               <div
                 data-shellui-start-footer=""
                 className="shellui-start-foot flex shrink-0 items-center gap-1 px-2 py-1.5"

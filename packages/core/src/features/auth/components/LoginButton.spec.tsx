@@ -160,15 +160,19 @@ describe('account aria strings', () => {
 describe('account divider', () => {
   const divider = () => container.querySelector<HTMLElement>('[data-shellui-account-divider]');
 
-  it('draws a sidebar border hairline above the signed-in account block', () => {
+  it('draws the shared divider above the signed-in account block', () => {
     auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
     const btn = render(true, true);
     const line = divider();
     expect(line).not.toBeNull();
     expect(line?.getAttribute('role')).toBe('separator');
-    expect(line?.className).toContain('bg-sidebar-border');
-    expect(line?.className).toContain('h-px');
-    expect(line?.nextElementSibling).toBe(btn);
+    expect(line?.className).toContain('shellui-divider');
+    // Full width: cancels the 8px row inset of the footer group.
+    expect(line?.className).toContain('-mx-2');
+    // 4px of breathing room between the divider and the account row.
+    const pad = line?.nextElementSibling;
+    expect(pad?.className).toBe('pt-1');
+    expect(pad?.firstElementChild).toBe(btn);
   });
 
   it('stays in collapsed icon mode', () => {
@@ -179,8 +183,9 @@ describe('account divider', () => {
 
   it('is off unless asked for', () => {
     auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
-    render(true, false);
+    const btn = render(true, false);
     expect(divider()).toBeNull();
+    expect(btn?.parentElement?.className).not.toBe('pt-1');
   });
 
   it('never shows for the signed-out login button', () => {

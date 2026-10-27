@@ -132,10 +132,18 @@ describe('SidebarInner footer account divider', () => {
     expect(q(container, '[data-login]').getAttribute('data-divider')).toBe('true');
   });
 
-  it('skips it when the account block is the only footer item (footer border already there)', () => {
+  it('opens the footer with the shared full-width divider instead of a border', () => {
     render(footer([]));
-    const nav = q(container, '[data-shellui-nav-footer]');
-    expect(nav.className).toContain('border-t');
+    const foot = q(container, '[data-shellui-nav-footer]');
+    expect(foot.className).not.toContain('border-t');
+    const first = foot.firstElementChild;
+    expect(first?.getAttribute('data-shellui-divider')).toBe('');
+    expect(first?.className).toContain('shellui-divider');
+    expect(first?.hasAttribute('data-shellui-footer-divider')).toBe(true);
+  });
+
+  it('skips the account divider when the account block is the only footer item', () => {
+    render(footer([]));
     expect(q(container, '[data-login]').getAttribute('data-divider')).toBe('false');
   });
 });
