@@ -265,7 +265,8 @@ if (tauriConf.app?.windows?.[0]) {
   tauriConf.app.windows[0].titleBarStyle = 'Overlay';
   tauriConf.app.windows[0].decorations = true;
   tauriConf.app.windows[0].acceptFirstMouse = true;
-  tauriConf.app.windows[0].trafficLightPosition = { x: 16, y: 24 };
+  // Lights stay at the AppKit default (Mac App Store friendly, no AppKit view changes).
+  delete tauriConf.app.windows[0].trafficLightPosition;
 }
 
 if (projectTauriConf) {

@@ -1,6 +1,7 @@
 import { toCssVarValue } from './color';
 import type { ThemeColorsMode, ThemeDefinition } from './types';
 import { isHomeScreenPwa, isTauriRuntime } from '../layouts/chrome/runtime';
+import { isLowNavContrast, NAV_CONTRAST_ATTR } from './navContrast';
 
 const COLOR_VAR_MAP: Array<[keyof ThemeColorsMode, string]> = [
   ['background', '--background'],
@@ -94,6 +95,13 @@ export function applyTheme(theme: ThemeDefinition, isDark: boolean): void {
   }
 
   root.style.setProperty('--radius', colors.radius);
+
+  // Solid active pill under 4.5:1 in this mode: chrome switches to a tinted pill.
+  if (isLowNavContrast(colors.sidebarPrimary, colors.sidebarPrimaryForeground)) {
+    root.setAttribute(NAV_CONTRAST_ATTR, 'low');
+  } else {
+    root.removeAttribute(NAV_CONTRAST_ATTR);
+  }
 
   // Browser-tab chrome only — see syncThemeColorMeta (skipped for PWA / Tauri).
   syncThemeColorMeta(toCssVarValue(colors.background) || (isDark ? '#000000' : '#ffffff'));
