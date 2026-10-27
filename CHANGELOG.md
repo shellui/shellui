@@ -20,35 +20,36 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+## [0.7.0-alpha.10] - 2026-10-27
+
 ### ✨ Feature
 
-- **Core:** Floating layout: on phones, More opens a bottom sheet (swipe down, scrim tap or Escape to close), and the dock and FAB step aside while the soft keyboard is open (`html[data-shellui-keyboard="open"]`).
-- Windows layout: a slow dot field on the desktop (canvas, 30 fps cap, theme tokens). It pauses in hidden tabs, while a focused window fills the desktop and while a window is dragged or resized, and shows a static grid under reduced motion.
+- **Core:** Floating layout: a More bottom sheet on phones, and the dock steps aside while the soft keyboard is open.
+- **Core:** Windows layout: a slow dot field on the desktop that pauses when hidden or covered and stays static under reduced motion.
 
 ### 🛠 Improvements
 
-- **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop background, in light and dark. Glass turns solid under reduced transparency.
-- **Core:** `applyTheme` checks the active nav pair against 4.5:1 and sets `data-shellui-nav-contrast="low"`, so themes with a pale primary get a tinted active pill.
-- **Core:** Sidebar nav marks the active row with `aria-current`, names its landmarks (Main, Account), announces external links and uses an inset focus ring. Toggle and resize labels are now translated (en, fr).
-- **Core:** App bar nav is a named landmark, marks the current page with `aria-current`, flags menu triggers with `aria-haspopup` and labels external end links.
-- **Core:** Floating dock is labelled "Main" instead of the layout name, and external links in the floating sidebar and More sheet are announced.
-- Windows layout: each window is a named `section`, the taskbar list marks the focused window with `aria-current`, the start menu is a labelled dialog that takes focus and closes on Escape, and all window and start menu labels are translated (en, fr).
+- **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop, in light and dark.
+- **Core:** `applyTheme` flags low contrast nav colors with `data-shellui-nav-contrast="low"` and tints the active pill.
+- **Core:** Accessible navigation in every layout: named landmarks, `aria-current`, announced external links and translated labels (en, fr).
 
 ### 🚨 Changed
 
-- **Core:** Sidebar layout: the active row is a primary color pill with a distinct hover state, 13.5px rows, quieter group labels, a hairline footer, touch-size rows in the mobile sheet and denser rows in the Tauri desktop app.
-- **Core:** Sidebar-inset layout: content card uses the theme card radius with a softer shadow, a raised active pill, a hover tint that reads on the chrome tray and no footer hairline.
-- **Core:** App bar layout: the active item gets a primary underline, hover uses the nav hover token, menus have touch-size rows on phones and the Tauri desktop app uses denser items.
-- **Core:** App-bar-inset layout: the active item is a raised pill on the chrome tray, hover reads on the tray and the content card uses the theme card radius.
-- **Core:** Floating layout: lighter glass (blur 24px, solid under reduced transparency), a capsule behind the active dock icon with press feedback and a short haptic tap on Android, the primary pill for the active sidebar row and group labels in normal case.
-- Windows layout: the taskbar clock shows hours and minutes only and updates once a minute. Windows use the card surface with a larger radius and focus shadow, 36px title bars and 28px controls (close turns destructive on hover). The taskbar and start menu are glass, task buttons get a primary indicator for the focused window and a dash for open ones, and the desktop wash is lighter.
-- Fullscreen layout (Tauri): Back and Forward sit in a small glass group so they stay legible on any app content.
-- **Core:** macOS desktop chrome follows the system traffic lights: every layout draws a 32px top strip (was 42px) centered on the lights, with 24px controls, an 80px drag-only safe area on the left (12px in native fullscreen) and `data-shellui-no-drag` on every control. The app bar is 32px on macOS, the floating sidebar gets a strip when collapsed, the windows layout puts Back, Forward and the focused window title in its strip, and controls dim while the window is inactive.
-- **CLI:** macOS desktop apps keep the traffic lights at the AppKit default position. The template no longer sets `trafficLightPosition` and no longer ships `src/macos.rs` or the `objc2` crates, and `shellui` sync removes them from apps an older template created (a custom `macos.rs` is left alone). In existing template apps the lights move: close sits about 7px from the left edge, centered in the 28px (macOS 15) or 32px (macOS 26) title bar, instead of x 16, y 24.
+- **Core:** Sidebar and sidebar-inset layouts: a primary active pill, quieter group labels and theme card radius.
+- **Core:** App bar and app-bar-inset layouts: a primary underline or raised pill for the active item and touch-size menu rows on phones.
+- **Core:** Floating layout: lighter glass, a capsule behind the active dock icon and the primary pill in the sidebar.
+- **Core:** Windows layout: card surface windows, glass taskbar and start menu, and a minute clock.
+- **Core:** Fullscreen layout: Back and Forward sit in a glass group in the Tauri app.
+- **Core:** macOS desktop: every layout draws a 32px strip around the system traffic lights, with an 80px drag-only safe area.
+- **CLI:** macOS traffic lights stay at the AppKit default, so they move in existing template apps (close about 7px from the left edge, centered in the title bar).
 
 ### 🗑 Removed
 
-- **CLI:** `syncDesktopMacos`, which copied the template `macos.rs` into scaffolded apps. `removeLegacyDesktopMacos` replaces it.
+- **CLI:** `trafficLightPosition`, `src/macos.rs` and the `objc2` crates from the Tauri template; `shellui` sync removes them from existing apps.
+
+### 🏗 Chore
+
+- Tauri desktop app `Cargo.toml` and `Cargo.lock` versions follow the release again (were 0.7.0-alpha.3).
 
 ## [0.7.0-alpha.9] - 2026-10-27
 
