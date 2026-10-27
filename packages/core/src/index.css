@@ -218,6 +218,39 @@ html[data-shellui-nav-contrast='low'] {
 }
 
 /*
+ * Floating drawers: every drawer, sheet and phone bottom sheet sits a gap away
+ * from the window edge (8px on phones, 12px from 768px), plus the safe area.
+ * Radii follow the theme radius, so --radius: 0 gives square panels.
+ */
+:root {
+  --shellui-drawer-gap: 8px;
+  --shellui-drawer-radius: var(--shellui-r-float);
+  --shellui-sheet-radius: calc(var(--shellui-r-float) * 1.5);
+  --shellui-drawer-border: var(--border);
+  --shellui-drawer-shadow: var(--shellui-win-shadow);
+  --shellui-drawer-top: calc(var(--shellui-drawer-gap) + var(--shellui-safe-area-top));
+  --shellui-drawer-right: calc(var(--shellui-drawer-gap) + var(--shellui-safe-area-right));
+  --shellui-drawer-bottom: calc(var(--shellui-drawer-gap) + var(--shellui-safe-area-bottom));
+  --shellui-drawer-left: calc(var(--shellui-drawer-gap) + var(--shellui-safe-area-left));
+  --shellui-drawer-max-width: calc(
+    100vw - var(--shellui-drawer-left) - var(--shellui-drawer-right)
+  );
+  --shellui-drawer-max-height: calc(
+    var(--shellui-app-height) - var(--shellui-drawer-top) - var(--shellui-drawer-bottom)
+  );
+}
+@media (min-width: 768px) {
+  :root {
+    --shellui-drawer-gap: 12px;
+  }
+}
+/* macOS desktop: drawers clear the 32px strip and the default traffic lights. */
+html[data-shellui-mac-chrome],
+html[data-shellui-overlay-chrome] {
+  --shellui-drawer-top: calc(var(--shellui-mac-titlebar-h) + var(--shellui-drawer-gap));
+}
+
+/*
  * Content padding that clears the notch / home indicator, then keeps the
  * configured inset beyond that edge. Override with --shellui-safe-pad-x / -y.
  */
@@ -911,10 +944,10 @@ html.shellui-theme-switching
  * Do not set `transform: none` — enter/exit slide and swipe-dismiss own transform.
  * Morph transitions omit `transform` so keyframes / drag aren’t fought. */
 [data-dialog-content][data-presentation='sheet'] {
-  left: 0;
-  right: 0;
+  left: var(--shellui-drawer-left);
+  right: var(--shellui-drawer-right);
   top: auto;
-  bottom: 0;
+  bottom: var(--shellui-drawer-bottom);
   transition-property:
     width, height, max-width, max-height, border-radius, left, right, top, bottom, padding;
   transition-duration: 220ms;
@@ -1007,7 +1040,7 @@ html.shellui-theme-switching
 @keyframes responsive-modal-sheet-in {
   from {
     opacity: 1;
-    transform: translateY(100%);
+    transform: translateY(calc(100% + var(--shellui-drawer-bottom) + 48px));
   }
   to {
     opacity: 1;
@@ -1021,7 +1054,7 @@ html.shellui-theme-switching
   }
   to {
     opacity: 1;
-    transform: translateY(100%);
+    transform: translateY(calc(100% + var(--shellui-drawer-bottom) + 48px));
   }
 }
 
@@ -1124,7 +1157,7 @@ html.shellui-theme-switching
 }
 @keyframes sheet-content-in-left {
   from {
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% - var(--shellui-drawer-left) - 48px));
   }
   to {
     transform: translateX(0);
@@ -1135,12 +1168,12 @@ html.shellui-theme-switching
     transform: translateX(0);
   }
   to {
-    transform: translateX(-100%);
+    transform: translateX(calc(-100% - var(--shellui-drawer-left) - 48px));
   }
 }
 @keyframes sheet-content-in-right {
   from {
-    transform: translateX(100%);
+    transform: translateX(calc(100% + var(--shellui-drawer-right) + 48px));
   }
   to {
     transform: translateX(0);
@@ -1151,12 +1184,12 @@ html.shellui-theme-switching
     transform: translateX(0);
   }
   to {
-    transform: translateX(100%);
+    transform: translateX(calc(100% + var(--shellui-drawer-right) + 48px));
   }
 }
 @keyframes sheet-content-in-top {
   from {
-    transform: translateY(-100%);
+    transform: translateY(calc(-100% - var(--shellui-drawer-top) - 48px));
   }
   to {
     transform: translateY(0);
@@ -1167,12 +1200,12 @@ html.shellui-theme-switching
     transform: translateY(0);
   }
   to {
-    transform: translateY(-100%);
+    transform: translateY(calc(-100% - var(--shellui-drawer-top) - 48px));
   }
 }
 @keyframes sheet-content-in-bottom {
   from {
-    transform: translateY(100%);
+    transform: translateY(calc(100% + var(--shellui-drawer-bottom) + 48px));
   }
   to {
     transform: translateY(0);
@@ -1183,7 +1216,7 @@ html.shellui-theme-switching
     transform: translateY(0);
   }
   to {
-    transform: translateY(100%);
+    transform: translateY(calc(100% + var(--shellui-drawer-bottom) + 48px));
   }
 }
 
@@ -1226,6 +1259,78 @@ html.shellui-theme-switching
 [data-sheet-content][data-side='bottom'][data-state='closed'] {
   animation: sheet-content-out-bottom 0.18s cubic-bezier(0.4, 0, 1, 1) both;
   pointer-events: none;
+}
+
+/*
+ * Floating drawers (vaul). Offsets, radius, border and shadow live on the
+ * drawerContentByDirection classes. The closed position adds the edge offset
+ * plus 48px so no strip of panel or shadow stays on screen as it slides.
+ */
+[data-drawer-content][data-drawer-direction='right'] {
+  --initial-transform: calc(100% + var(--shellui-drawer-right) + 48px);
+}
+[data-drawer-content][data-drawer-direction='left'] {
+  --initial-transform: calc(100% + var(--shellui-drawer-left) + 48px);
+}
+[data-drawer-content][data-drawer-direction='top'] {
+  --initial-transform: calc(100% + var(--shellui-drawer-top) + 48px);
+}
+[data-drawer-content][data-drawer-direction='bottom'] {
+  --initial-transform: calc(100% + var(--shellui-drawer-bottom) + 48px);
+}
+/* vaul paints a 200% ::after past the anchored edge; it would fill the gap. */
+[data-drawer-content]::after {
+  content: none !important;
+}
+/* macOS desktop: the scrim starts under the 32px strip so the lights and window drag keep working. */
+html[data-shellui-mac-chrome] [data-drawer-overlay],
+html[data-shellui-overlay-chrome] [data-drawer-overlay] {
+  top: var(--shellui-mac-titlebar-h);
+}
+
+@keyframes shellui-drawer-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes shellui-drawer-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Reduced motion: drawers and sheets fade in place instead of sliding. !important beats vaul's injected slide rules. */
+@media (prefers-reduced-motion: reduce) {
+  [data-drawer-content] {
+    --initial-transform: 0px;
+    transition: none !important;
+  }
+  [data-drawer-content][data-state='open'] {
+    animation: shellui-drawer-fade-in 150ms ease-out both !important;
+  }
+  [data-drawer-content][data-state='closed'] {
+    animation: shellui-drawer-fade-out 120ms ease-in both !important;
+  }
+  [data-sheet-content][data-side][data-state='open'] {
+    animation: shellui-drawer-fade-in 150ms ease-out both;
+  }
+  [data-sheet-content][data-side][data-state='closed'] {
+    animation: shellui-drawer-fade-out 120ms ease-in both;
+  }
+  [data-dialog-content][data-presentation='sheet'][data-state='open'][data-enter-motion] {
+    animation: shellui-drawer-fade-in 150ms ease-out;
+  }
+  [data-dialog-content][data-presentation='sheet'][data-state='closed']:not(
+      [data-dismiss='swipe']
+    ) {
+    animation: shellui-drawer-fade-out 120ms ease-in forwards;
+  }
 }
 
 /* Cookie consent dialog (bottom-left) animations */
@@ -1450,9 +1555,9 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
 /*
  * Tablet / desktop: fixed shell sidebar sits below the layout safe-area strip.
  * Only when the root (non-iframe) layout advertised the topbar via
- * data-shellui-safe-area-topbar. Drawer overlay stays full-bleed (topbar dims
- * behind it); left/right/top drawer panels clear the inset so they never cover
- * the strip. Height is 0 when env(safe-area-inset-top) is 0.
+ * data-shellui-safe-area-topbar. Drawers clear the inset through
+ * --shellui-drawer-top, which already includes the safe area.
+ * Height is 0 when env(safe-area-inset-top) is 0.
  */
 @media (min-width: 768px) {
   html[data-shellui-safe-area-topbar]
@@ -1463,21 +1568,6 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
     top: var(--shellui-safe-area-top);
     bottom: auto;
     height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top));
-  }
-
-  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='left'],
-  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='right'] {
-    top: var(--shellui-safe-area-top);
-    bottom: 0;
-    height: auto;
-  }
-
-  /* Top drawer: sit below the safe-area band (no extra pt — offset replaces it). */
-  html[data-shellui-safe-area-topbar] [data-drawer-content][data-drawer-direction='top'] {
-    top: var(--shellui-safe-area-top);
-    padding-top: 0;
-    border-top-left-radius: 0.75rem;
-    border-top-right-radius: 0.75rem;
   }
 }
 
@@ -1896,7 +1986,7 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   right: calc(8px + var(--shellui-safe-area-right));
   bottom: calc(8px + var(--shellui-safe-area-bottom));
   padding-top: 8px;
-  border-radius: calc(var(--shellui-r-float) + 8px);
+  border-radius: var(--shellui-sheet-radius);
   background: color-mix(in oklch, var(--sidebar) 92%, transparent);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);

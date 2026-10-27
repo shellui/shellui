@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '../../components/ui/drawer';
+import type { WithFadeFromProps, WithoutFadeFromProps } from 'vaul';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
@@ -414,6 +415,11 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     drawerReported?.height,
   ]);
 
+  // Floating sheet: show the scrim from the first snap, not only when expanded.
+  const drawerSnapProps: WithFadeFromProps | WithoutFadeFromProps = drawerSnapPoints
+    ? { snapPoints: drawerSnapPoints, fadeFromIndex: 0 }
+    : {};
+
   const [drawerActiveSnap, setDrawerActiveSnap] = useState<number | string | null>(null);
 
   useEffect(() => {
@@ -482,7 +488,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         onOpenChange={handleDrawerOpenChange}
         direction={effectiveDrawerPosition}
         dismissible={drawerDismiss.dismissible}
-        snapPoints={drawerSnapPoints}
+        {...drawerSnapProps}
         activeSnapPoint={drawerSnapPoints ? drawerActiveSnap : undefined}
         setActiveSnapPoint={drawerSnapPoints ? setDrawerActiveSnap : undefined}
       >

@@ -5,10 +5,16 @@ import type {
   OverlaySizeValue,
   DrawerPosition,
 } from '@shellui/sdk';
-import { readSafeAreaInsetTop } from '../layouts/chrome/viewport';
+import { readDrawerBottomOffset, readSafeAreaInsetTop } from '../layouts/chrome/viewport';
 
 /** CSS max-height for overlays — matches --shellui-overlay-max-height in index.css. */
 const OVERLAY_MAX_HEIGHT_CSS = 'var(--shellui-overlay-max-height)';
+
+/**
+ * Largest floating drawer height: the shell height minus the top and bottom drawer
+ * offsets (each is the gap plus the safe area). Matches --shellui-drawer-max-height.
+ */
+const DRAWER_MAX_HEIGHT_CSS = 'var(--shellui-drawer-max-height)';
 
 /** Fraction of overlay max height — avoids raw dvh which disagrees with iOS standalone measure. */
 function overlayHeightFrac(fraction: number): string {
@@ -89,7 +95,7 @@ const DRAWER_PRESET_VERTICAL: Record<OverlaySizePreset, string> = {
   md: overlayHeightFrac(0.55),
   lg: overlayHeightFrac(0.75),
   xl: overlayHeightFrac(0.9),
-  full: OVERLAY_MAX_HEIGHT_CSS,
+  full: DRAWER_MAX_HEIGHT_CSS,
   content: 'auto',
 };
 
@@ -98,7 +104,7 @@ const DRAWER_PRESET_HORIZONTAL: Record<OverlaySizePreset, string> = {
   md: '28rem',
   lg: '36rem',
   xl: '48rem',
-  full: '100%',
+  full: 'calc(100% - 2 * var(--shellui-drawer-gap))',
   content: 'auto',
 };
 
@@ -213,7 +219,7 @@ export function resolveDrawerSize(
   if (contentSized) {
     drawerSize = 'auto';
     if (isVertical) {
-      style.maxHeight = style.maxHeight ?? OVERLAY_MAX_HEIGHT_CSS;
+      style.maxHeight = style.maxHeight ?? DRAWER_MAX_HEIGHT_CSS;
       style.height = style.height ?? 'auto';
     } else {
       style.maxWidth = style.maxWidth ?? 'min(90vw, 100%)';
@@ -285,17 +291,19 @@ export function resolveDismissOptions(
 
 /**
  * Expanded bottom-sheet height leaves a tappable overlay band above the sheet:
- * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}.
+ * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}. The floating sheet also
+ * ends a gap above the home indicator (--shellui-drawer-bottom).
  */
 export const SHEET_EXPANDED_TOP_GAP_PX = 60;
 
-/** CSS height for the expanded bottom-sheet chrome. */
-export const SHEET_EXPANDED_HEIGHT_CSS = `calc(var(--shellui-app-height) - var(--shellui-safe-area-top) - ${SHEET_EXPANDED_TOP_GAP_PX}px)`;
+/** CSS height for the expanded floating bottom sheet. */
+export const SHEET_EXPANDED_HEIGHT_CSS = `calc(var(--shellui-app-height) - var(--shellui-safe-area-top) - ${SHEET_EXPANDED_TOP_GAP_PX}px - var(--shellui-drawer-bottom))`;
 
-/** Pixel height for the expanded snap (matches {@link SHEET_EXPANDED_HEIGHT_CSS}). */
+/** Pixel height for the expanded sheet (matches {@link SHEET_EXPANDED_HEIGHT_CSS}). */
 export function sheetExpandedHeightPx(
   viewportHeightPx?: number,
   safeAreaTopPx?: number,
+  bottomOffsetPx?: number,
   topGapPx = SHEET_EXPANDED_TOP_GAP_PX,
 ): number {
   const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
@@ -303,20 +311,14 @@ export function sheetExpandedHeightPx(
   if (safeTop === undefined) {
     safeTop = typeof document !== 'undefined' ? readSafeAreaInsetTop() : 0;
   }
-  return Math.max(0, Math.round(viewport - safeTop - topGapPx));
+  let bottom = bottomOffsetPx;
+  if (bottom === undefined) {
+    bottom = typeof document !== 'undefined' ? readDrawerBottomOffset() : 0;
+  }
+  return Math.max(0, Math.round(viewport - safeTop - topGapPx - bottom));
 }
 
-/** Vaul snap fraction for the expanded height (`height / viewport`). */
-export function sheetExpandedSnapFraction(
-  viewportHeightPx?: number,
-  safeAreaTopPx?: number,
-): number {
-  const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
-  if (!(viewport > 0)) return 0.9;
-  return Number((sheetExpandedHeightPx(viewport, safeAreaTopPx) / viewport).toFixed(4));
-}
-
-/** Vertical drawer presets → window-height fraction (Vaul snapPoints). */
+/** Vertical drawer presets → visible fraction of the window height. */
 const VERTICAL_SNAP_BY_PRESET: Record<OverlaySizePreset, number> = {
   sm: 0.4,
   md: 0.55,
@@ -329,17 +331,24 @@ const VERTICAL_SNAP_BY_PRESET: Record<OverlaySizePreset, number> = {
 /**
  * Resolve `[normal, expanded]` Vaul snap points for a bottom sheet.
  * Returns null when the sheet is already near the expanded height (nothing useful to expand to).
+ *
+ * Vaul moves a bottom sheet by `translateY(H - snap)` as if the sheet started at the top
+ * of the screen. The sheet is shorter than the viewport (h < H) and floats above the home
+ * indicator, so to show a visible height v the snap is `v + (H - h)`, and the expanded
+ * snap is `1` (no translate: the whole sheet shows, ending at its bottom offset).
  */
 export function resolveBottomSheetSnapPoints(
   options?: OverlayOpenOptions | null,
   reportedHeightPx?: number | null,
   viewportHeightPx?: number,
   safeAreaTopPx?: number,
+  bottomOffsetPx?: number,
 ): number[] | null {
   const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
   if (!(viewport > 0)) return null;
 
-  const expanded = sheetExpandedSnapFraction(viewport, safeAreaTopPx);
+  const sheetPx = sheetExpandedHeightPx(viewport, safeAreaTopPx, bottomOffsetPx);
+  const expandedVisible = sheetPx / viewport;
 
   let normal: number;
   if (reportedHeightPx !== null && Number.isFinite(reportedHeightPx) && reportedHeightPx > 0) {
@@ -364,9 +373,11 @@ export function resolveBottomSheetSnapPoints(
     }
   }
 
-  // Already near expanded — expand would be a no-op
-  if (normal >= expanded - 0.04) return null;
+  // Already near expanded: expand would be a no-op
+  if (normal >= expandedVisible - 0.04) return null;
   // Keep a meaningful gap between snaps
-  normal = Math.min(Math.max(normal, 0.2), expanded - 0.05);
-  return [Number(normal.toFixed(4)), expanded];
+  normal = Math.min(Math.max(normal, 0.2), expandedVisible - 0.05);
+  // Visible height → Vaul snap (add the part of the viewport the sheet never covers)
+  const snap = normal + (viewport - sheetPx) / viewport;
+  return [Number(snap.toFixed(4)), 1];
 }
