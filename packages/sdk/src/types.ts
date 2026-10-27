@@ -516,7 +516,7 @@ export interface LoginOptions {
   provider?: string;
   /** Web3 chain id. Defaults to ethereum in shell. */
   chain?: 'ethereum';
-  /** Optional route that should receive the auth callback. */
+  /** Shell page to open after sign-in. Defaults to the page that called `login`. */
   redirectPath?: string;
   /** Optional company OAuth client id when backend supports per-tenant keys. */
   oauthClientId?: number;

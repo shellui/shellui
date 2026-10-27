@@ -18,6 +18,17 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.9] - 2026-10-27
+
+### 🚨 Changed
+
+- **SDK:** `shellui.login` `redirectPath` now names the shell page to open after sign-in. It defaults to the page that called `login`.
+
+### 🐛 Bug Fixes
+
+- **Core:** `shellui.login` from an app returns through `/login/callback`, so people land back signed in instead of on the login page.
+- **Core:** Logged-in only navigation entries stay visible while the session restores, so the sidebar no longer grows after a reload.
+
 ## [0.7.0-alpha.8] - 2026-10-24
 
 ### 🐛 Bug Fixes

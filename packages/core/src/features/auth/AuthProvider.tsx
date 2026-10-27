@@ -39,6 +39,7 @@ import {
   type InFlightSlot,
 } from './utils';
 import { buildAuthUrlWithNext } from './utils/buildAuthUrlWithNext';
+import { resolveSdkLoginRedirectPath } from './utils/resolveSdkLoginRedirectPath';
 import {
   beginDesktopOAuth,
   clearDesktopPkce,
@@ -942,7 +943,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      startOAuth(provider, payload.redirectPath || urls.login, payload.oauthClientId);
+      const currentPath =
+        typeof window !== 'undefined'
+          ? `${window.location.pathname}${window.location.search}`
+          : '/';
+      startOAuth(
+        provider,
+        resolveSdkLoginRedirectPath(payload.redirectPath, currentPath),
+        payload.oauthClientId,
+      );
     });
 
     return () => cleanup();
