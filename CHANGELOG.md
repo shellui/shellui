@@ -18,7 +18,7 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-alpha.11] - 2026-10-27
 
 ### 🛠 Improvements
 
@@ -32,8 +32,14 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Windows layout: start menu group labels at 12px / 600 in normal case, a start menu footer with the account row and a Settings button, and icon-only taskbar end items with labels and tooltips.
 - **Core:** Fullscreen layout: on phones the content clears the safe areas (top inset plus 12px, sides and bottom by their inset). Nested shells and the macOS strip are unchanged.
 
+### 🚨 Changed
+
+- **Core:** Drawers float above the page: a 12px gap from the window edge (8px plus the safe area on phones), rounded corners, a border and a soft shadow. Phone drawer, modal and More sheets share one look and grab handle. Drawers fade instead of slide under reduced motion.
+
 ### 🐛 Bug Fixes
 
+- **Core:** The expanded phone bottom sheet no longer hides its last 60px below the screen.
+- **Core:** On phones every drawer opens as a bottom sheet with a grab handle, whatever its direction or dismiss options. It fits its content up to 8px below the notch and scrolls inside when taller, with no half-height stop, and content-sized drawers no longer open below the screen.
 - **Core:** `shellui start` no longer serves cached shell scripts and styles from the dev service worker, so an upgrade shows the new shell on the first load. Dev caches are named after the core version and older ones are removed.
 
 ## [0.7.0-alpha.10] - 2026-10-27

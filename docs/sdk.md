@@ -228,7 +228,7 @@ shellui.openDrawer({
 shellui.closeDrawer();
 ```
 
-On viewports below 768px, every drawer `position` presents as a bottom sheet (same as mobile `openModal`). For content-sized overlays:
+Drawers float a gap away from the window edge: 12px on desktop, 8px plus the safe area on phones. `size: 'full'` leaves that gap. On viewports below 768px, every drawer `position` presents as a bottom sheet (same as mobile `openModal`). For content-sized overlays:
 
 ```typescript
 await shellui.init();

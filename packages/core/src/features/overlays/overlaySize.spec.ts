@@ -9,7 +9,7 @@ import {
   resolveDrawerSize,
   resolveDrawerSizeForViewport,
   resolveEffectiveDrawerPosition,
-  sheetExpandedSnapFraction,
+  sheetExpandedHeightPx,
   SHEET_EXPANDED_TOP_GAP_PX,
   toCssLength,
 } from './overlaySize';
@@ -69,18 +69,32 @@ describe('overlaySize', () => {
     expect(resolveEffectiveDrawerPosition('right', false)).toBe('right');
   });
 
-  it('remaps horizontal freeform size to default height on mobile', () => {
+  it('sizes phone sheets to content, keeping the requested height as fallback', () => {
     const desktop = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', false);
     expect(desktop.drawerSize).toBe('60vw');
+    expect(desktop.contentSized).toBe(false);
 
+    const cap = 'var(--shellui-drawer-max-height)';
     const mobile = resolveDrawerSizeForViewport({ size: '60vw' }, 'right', true);
-    expect(mobile.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.8)');
+    expect(mobile.contentSized).toBe(true);
+    expect(mobile.drawerSize).toBeNull();
+    expect(mobile.style.height).toBe('auto');
+    expect(mobile.style.maxHeight).toBe(cap);
+    // Horizontal freeform width never becomes a sheet height
+    expect(mobile.fallbackHeight).toBe(
+      `min(calc(var(--shellui-overlay-max-height) * 0.8), ${cap})`,
+    );
 
     const preset = resolveDrawerSizeForViewport({ size: 'md' }, 'right', true);
-    expect(preset.drawerSize).toBe('calc(var(--shellui-overlay-max-height) * 0.55)');
+    expect(preset.fallbackHeight).toBe(
+      `min(calc(var(--shellui-overlay-max-height) * 0.55), ${cap})`,
+    );
 
     const fromTop = resolveDrawerSizeForViewport({ size: '60vh' }, 'top', true);
-    expect(fromTop.drawerSize).toBe('60vh');
+    expect(fromTop.fallbackHeight).toBe(`min(60vh, ${cap})`);
+
+    const content = resolveDrawerSizeForViewport({ size: 'content' }, 'left', true);
+    expect(content.fallbackHeight).toBeNull();
   });
 
   it('defaults dismiss options', () => {
@@ -99,17 +113,43 @@ describe('overlaySize', () => {
   });
 
   it('resolves bottom sheet snap points for expand / collapse', () => {
-    // viewport 1000, no safe-area → expanded = 1000 - 60
-    const expanded = sheetExpandedSnapFraction(1000, 0);
-    expect(expanded).toBe(Number(((1000 - SHEET_EXPANDED_TOP_GAP_PX) / 1000).toFixed(4)));
-    expect(resolveBottomSheetSnapPoints({ size: 'md' }, null, 1000, 0)).toEqual([0.55, expanded]);
-    expect(resolveBottomSheetSnapPoints(null, null, 1000, 0)).toEqual([0.8, expanded]);
-    expect(resolveBottomSheetSnapPoints({ size: '400px' }, null, 1000, 0)).toEqual([0.4, expanded]);
-    expect(resolveBottomSheetSnapPoints({ size: 'full' }, null, 1000, 0)).toBeNull();
-    expect(resolveBottomSheetSnapPoints({ size: 'sm' }, 700, 1000, 0)).toEqual([0.7, expanded]);
-    // With notch inset, expanded shrinks further
-    expect(sheetExpandedSnapFraction(1000, 47)).toBe(
-      Number(((1000 - 47 - SHEET_EXPANDED_TOP_GAP_PX) / 1000).toFixed(4)),
+    // viewport 1000, no safe area, 8px bottom gap → sheet 932px, Vaul offset 68px
+    expect(sheetExpandedHeightPx(1000, 0, 8)).toBe(1000 - SHEET_EXPANDED_TOP_GAP_PX - 8);
+    expect(resolveBottomSheetSnapPoints({ size: 'md' }, null, 1000, 0, 8)).toEqual([0.618, 1]);
+    expect(resolveBottomSheetSnapPoints(null, null, 1000, 0, 8)).toEqual([0.868, 1]);
+    expect(resolveBottomSheetSnapPoints({ size: '400px' }, null, 1000, 0, 8)).toEqual([0.468, 1]);
+    expect(resolveBottomSheetSnapPoints({ size: 'full' }, null, 1000, 0, 8)).toBeNull();
+    expect(resolveBottomSheetSnapPoints({ size: 'sm' }, 700, 1000, 0, 8)).toEqual([0.768, 1]);
+    // Content close to the expanded height: nothing to expand to
+    expect(resolveBottomSheetSnapPoints({ size: 'sm' }, 920, 1000, 0, 8)).toBeNull();
+  });
+
+  it('keeps the expanded phone sheet on screen (390 x 844, notch)', () => {
+    const H = 844;
+    const safeTop = 47;
+    const bottom = 8 + 34; // gap + home indicator
+    const h = sheetExpandedHeightPx(H, safeTop, bottom);
+    expect(h).toBe(695);
+    const snaps = resolveBottomSheetSnapPoints({ size: 'md' }, null, H, safeTop, bottom);
+    expect(snaps).not.toBeNull();
+    const [normal, expanded] = snaps ?? [0, 0];
+    // Expanded snap = no translate: top at 60px + safe area, bottom 8px above the indicator
+    expect(expanded).toBe(1);
+    const sheetTop = H - bottom - h;
+    const translate = (snap: number) => H - snap * H;
+    expect(sheetTop + translate(expanded)).toBe(SHEET_EXPANDED_TOP_GAP_PX + safeTop);
+    expect(sheetTop + translate(expanded) + h).toBe(H - bottom);
+    // First snap still shows the requested height (55%) above the bottom offset
+    const visibleAboveGap = H - bottom - (sheetTop + translate(normal));
+    expect(Math.abs(visibleAboveGap - 0.55 * H)).toBeLessThan(1);
+  });
+
+  it('leaves the drawer gap around full drawers', () => {
+    expect(resolveDrawerSize({ size: 'full' }, 'right').drawerSize).toBe(
+      'calc(100% - 2 * var(--shellui-drawer-gap))',
+    );
+    expect(resolveDrawerSize({ size: 'full' }, 'top').drawerSize).toBe(
+      'var(--shellui-drawer-max-height)',
     );
   });
 });

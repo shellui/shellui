@@ -11,6 +11,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '../../components/ui/dialog';
 import { cn } from '../../lib/utils';
 import { sheetExpandedHeightPx } from './overlaySize';
+import { readDrawerBottomOffset } from '../layouts/chrome/viewport';
 
 export type ResponsiveModalPresentation = 'dialog' | 'sheet';
 
@@ -452,7 +453,8 @@ export function ResponsiveModal({
             (rawDelta >= SWIPE_DISMISS_PX || rawDelta >= height * SWIPE_DISMISS_RATIO);
           if (shouldDismiss) {
             setDismissMode('swipe');
-            setSheetDragOffset(Math.max(rawDelta, height));
+            // Past the bottom offset and shadow so no strip stays on screen
+            setSheetDragOffset(Math.max(rawDelta, height + readDrawerBottomOffset() + 48));
             setSheetDragHeight(null);
             onOpenChange(false);
             return;
@@ -570,7 +572,7 @@ export function ResponsiveModal({
         className={cn(
           'gap-0 p-0 overflow-hidden flex flex-col',
           isSheet
-            ? 'left-0 right-0 top-auto bottom-0 max-w-none w-full translate-x-0 translate-y-0 rounded-t-xl rounded-b-none border-x-0 border-b-0 pb-[var(--shellui-safe-area-bottom)]'
+            ? 'left-[var(--shellui-drawer-left)] right-[var(--shellui-drawer-right)] top-auto bottom-[var(--shellui-drawer-bottom)] max-w-none w-auto translate-x-0 translate-y-0 rounded-[var(--shellui-sheet-radius)] border border-[var(--shellui-drawer-border)] shadow-[var(--shellui-drawer-shadow)]'
             : cn('rounded-lg', hasCustomGeometry && 'translate-x-0 translate-y-0 max-w-none'),
           className,
         )}
@@ -647,7 +649,7 @@ export function ResponsiveModal({
           >
             {/* Centered tall hit target only — rest of the strip is click-through */}
             <div
-              className="pointer-events-auto relative h-11 w-28 shrink-0 cursor-grab touch-none active:cursor-grabbing after:absolute after:left-1/2 after:top-1.5 after:h-[3px] after:w-8 after:-translate-x-1/2 after:rounded-full after:bg-muted-foreground/70 after:content-['']"
+              className="pointer-events-auto relative h-11 w-28 shrink-0 cursor-grab touch-none active:cursor-grabbing after:absolute after:left-1/2 after:top-1.5 after:h-[5px] after:w-9 after:-translate-x-1/2 after:rounded-full after:bg-[color-mix(in_oklch,var(--foreground)_22%,transparent)] after:content-['']"
               onPointerDown={handleSheetPointerDown}
               onPointerMove={handleSheetPointerMove}
               onPointerUp={handleSheetPointerUp}

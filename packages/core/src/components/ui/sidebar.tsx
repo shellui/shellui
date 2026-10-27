@@ -47,7 +47,8 @@ const SIDEBAR_WIDTH_DEFAULT_PX = 256;
 const SIDEBAR_WIDTH_MIN_PX = 230;
 const SIDEBAR_WIDTH_MAX_PX = 480;
 /** Cap at the viewport so a phone narrower than 18rem still gets a full-width sheet. */
-const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%)';
+/** Phone nav sheet width, capped so the floating sheet keeps its gap on both sides. */
+const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%, calc(100% - 2 * var(--shellui-drawer-gap)))';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 /** Ignore tiny pointer moves so a rail click still toggles. */
@@ -314,9 +315,7 @@ function Sidebar({
             <SheetTitle>{t('desktopChrome.navigation')}</SheetTitle>
             <SheetDescription>{t('shellChrome.sheetDescription')}</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden pt-[var(--shellui-safe-area-top)] pr-[var(--shellui-safe-area-right)] pl-[var(--shellui-safe-area-left)]">
-            {children}
-          </div>
+          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">{children}</div>
         </SheetContent>
       </Sheet>
     );
