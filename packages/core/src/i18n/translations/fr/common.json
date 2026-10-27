@@ -24,6 +24,7 @@
     "userFallback": "Utilisateur",
     "goToLoginAriaLabel": "Aller à la connexion",
     "openAccountMenuAriaLabel": "Ouvrir le menu du compte pour {{name}}",
+    "openAccountMenuWithEmailAriaLabel": "Ouvrir le menu du compte pour {{name}}, {{email}}",
     "loadingAccount": "Chargement du compte…",
     "backToHome": "Retour à l'accueil"
   },

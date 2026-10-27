@@ -47,7 +47,8 @@ const SIDEBAR_WIDTH_DEFAULT_PX = 256;
 const SIDEBAR_WIDTH_MIN_PX = 230;
 const SIDEBAR_WIDTH_MAX_PX = 480;
 /** Cap at the viewport so a phone narrower than 18rem still gets a full-width sheet. */
-const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%)';
+/** Phone nav sheet width, capped so the floating sheet keeps its gap on both sides. */
+const SIDEBAR_WIDTH_MOBILE = 'min(18rem, 100%, calc(100% - 2 * var(--shellui-drawer-gap)))';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 /** Ignore tiny pointer moves so a rail click still toggles. */
@@ -223,7 +224,7 @@ function SidebarProvider({
 
   return (
     <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delayDuration={0}>
+      <TooltipProvider delayDuration={200}>
         <div
           data-slot="sidebar-wrapper"
           data-resizing={isResizing ? '' : undefined}
@@ -248,6 +249,9 @@ function SidebarProvider({
     </SidebarContext.Provider>
   );
 }
+
+/** DOM id of the sidebar panel, for the trigger's `aria-controls`. */
+export const SIDEBAR_PANEL_ID = 'shellui-sidebar';
 
 function Sidebar({
   side = 'left',
@@ -296,6 +300,7 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar"
           data-mobile="true"
+          id={SIDEBAR_PANEL_ID}
           className="w-(--sidebar-width) max-w-full overflow-x-hidden bg-sidebar p-0 text-sidebar-foreground sm:max-w-full [&>button]:hidden"
           style={
             {
@@ -310,9 +315,7 @@ function Sidebar({
             <SheetTitle>{t('desktopChrome.navigation')}</SheetTitle>
             <SheetDescription>{t('shellChrome.sheetDescription')}</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden pt-[var(--shellui-safe-area-top)] pr-[var(--shellui-safe-area-right)] pl-[var(--shellui-safe-area-left)]">
-            {children}
-          </div>
+          <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">{children}</div>
         </SheetContent>
       </Sheet>
     );
@@ -363,6 +366,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
+          id={SIDEBAR_PANEL_ID}
           className={cn(
             'flex h-full w-full flex-col bg-sidebar',
             'group-data-[variant=inset]:bg-transparent',
@@ -377,7 +381,7 @@ function Sidebar({
 }
 
 function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile, open, openMobile } = useSidebar();
   const { t } = useTranslation();
 
   return (
@@ -388,6 +392,8 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       variant="ghost"
       size="icon"
       aria-label={t('shellChrome.toggleSidebar')}
+      aria-expanded={isMobile ? openMobile : open}
+      aria-controls={SIDEBAR_PANEL_ID}
       className={cn(
         'size-7 touch-manipulation select-none [-webkit-touch-callout:none]',
         className,
@@ -769,6 +775,8 @@ function SidebarMenuButton({
       <TooltipContent
         side="right"
         align="center"
+        sideOffset={8}
+        className="rounded-[calc(var(--shellui-r-row)-1px)] border-0 bg-foreground px-2 py-1 text-xs font-medium text-background shadow-none"
         hidden={state !== 'collapsed' || isMobile}
         {...tooltip}
       />

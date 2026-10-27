@@ -1464,9 +1464,12 @@ export function ChromeActionsHost() {
 export function WindowTitleBarActions({
   frameUuid,
   fallbackTitle,
+  centerTitle = false,
 }: {
   frameUuid: string | null;
   fallbackTitle?: string;
+  /** Phone header: centred 15px / 600 page title. */
+  centerTitle?: boolean;
 }) {
   const all = useChromeActionsSnapshot();
   const actions = useMemo(
@@ -1502,7 +1505,8 @@ export function WindowTitleBarActions({
     return (
       <span
         className={cn(
-          'min-w-0 flex-1 truncate text-sm font-medium',
+          'min-w-0 flex-1 truncate',
+          centerTitle ? 'text-center text-[15px] font-semibold' : 'text-sm font-medium',
           chromeActionsFadeClass,
           'opacity-100',
         )}

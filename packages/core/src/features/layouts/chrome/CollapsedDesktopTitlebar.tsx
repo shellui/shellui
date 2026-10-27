@@ -24,7 +24,7 @@ export function CollapsedDesktopTitlebar({ className }: { className?: string }) 
       data-shellui-mac-strip=""
       {...MAC_DRAG_REGION_PROPS}
       className={cn(
-        'fixed inset-x-0 top-0 z-[47] flex w-full items-center border-b border-sidebar-border bg-sidebar text-sidebar-foreground select-none',
+        'fixed inset-x-0 top-0 z-[47] flex w-full items-center bg-sidebar text-sidebar-foreground select-none',
         className,
       )}
       style={{

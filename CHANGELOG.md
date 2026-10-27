@@ -18,6 +18,30 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.11] - 2026-10-27
+
+### 🛠 Improvements
+
+- **Core:** Sidebar account block: initials or picture, name with email below and an up/down chevron, avatar only when collapsed.
+- **Core:** Windows layout: the desktop dot field moves at the website's normal speed, so the motion is visible. Reduced motion keeps the static grid.
+- **Core:** Sidebar layout: app name next to the logo (fades out when collapsed), no border under the header, 2px gaps between nav items, inset header pulled flush on the web, collapsed tooltips in foreground colours after 200ms, and the toggle reports `aria-expanded` and `aria-controls`.
+- **Core:** Sidebar layout on phones: 48px header with a 40px trigger and the page title centred, and a 52px sheet header with the logo, app name and a "Close menu" button.
+- **Core:** App bar: app name next to the logo on the web, the active underline sits on the bar's bottom border, More is a "···" icon button (labelled "More"), and the active item never hides inside More on narrow screens.
+- **Core:** App bar: nav items and their menus use plain 16px icons, with no muted tile or letter badge.
+- **Core:** Floating layout: the web brand row shows the app name next to the logo (52px row, 36px collapse button), the collapse button uses the "Collapse sidebar" and "Expand sidebar" labels, and the More sheet and tablet More menu group items under their nav group labels.
+- **Core:** Windows layout: start menu group labels at 12px / 600 in normal case, a start menu footer with the account row and a Settings button, and icon-only taskbar end items with labels and tooltips.
+- **Core:** Fullscreen layout: on phones the content clears the safe areas (top inset plus 12px, sides and bottom by their inset). Nested shells and the macOS strip are unchanged.
+
+### 🚨 Changed
+
+- **Core:** Drawers float above the page: a 12px gap from the window edge (8px plus the safe area on phones), rounded corners, a border and a soft shadow. Phone drawer, modal and More sheets share one look and grab handle. Drawers fade instead of slide under reduced motion.
+
+### 🐛 Bug Fixes
+
+- **Core:** The expanded phone bottom sheet no longer hides its last 60px below the screen.
+- **Core:** On phones every drawer opens as a bottom sheet with a grab handle, whatever its direction or dismiss options. It fits its content up to 8px below the notch and scrolls inside when taller, with no half-height stop, and content-sized drawers no longer open below the screen.
+- **Core:** `shellui start` no longer serves cached shell scripts and styles from the dev service worker, so an upgrade shows the new shell on the first load. Dev caches are named after the core version and older ones are removed.
+
 ## [0.7.0-alpha.10] - 2026-10-27
 
 ### ✨ Feature

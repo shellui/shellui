@@ -7,6 +7,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '../../../components/ui/sidebar';
+import { CloseIcon } from './SidebarIcons';
 import { NavigationContent } from './NavigationContent';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
@@ -21,6 +22,9 @@ import {
   SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
+
+/** Mobile sheet brand row height (spec: 52px). */
+const MOBILE_SHEET_HEADER_HEIGHT_PX = 52;
 
 /** Reusable sidebar inner: header, main nav, footer. Used in desktop Sidebar and mobile Sheet. */
 export function SidebarInner({
@@ -43,7 +47,7 @@ export function SidebarInner({
   const isTauriEnv = useIsTauriClient();
   const overlay = useMacOverlayChrome();
   const trafficLights = useMacTrafficLights();
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed' && !isMobile;
   // Collapsed Tauri: Back + trigger live in CollapsedDesktopTitlebar instead.
   const showCollapsedTopBar = overlay && collapsed;
@@ -85,16 +89,28 @@ export function SidebarInner({
       <SidebarHeader
         className={cn(
           // Always pin to titlebar height — default SidebarHeader p-2 is taller on web.
-          'gap-0 border-b border-sidebar-border select-none',
+          'gap-0 select-none',
           showOverlayHeader || mobileSheetHeader ? 'p-0' : 'px-2 py-0',
+          // Mobile sheet: brand row with a close button, 14px left like the mock.
+          isMobile && !mobileSheetHeader && 'pr-2 pl-3.5',
           showCollapsedTopBar && 'hidden',
           // Inset `p-3` sits this row 12px under the lights. Pull it to the window edge.
           inset && showOverlayHeader && '-mt-3 -ml-3 w-[calc(100%+1.5rem)]',
+          // Web: same pull, so the brand row lines up with the plain sidebar header.
+          inset && !showOverlayHeader && !isMobile && '-mt-3 -ml-3 w-[calc(100%+0.75rem)] pl-5',
         )}
         style={{
           // macOS: the header is the 32px strip. Web, phones and caption bar hosts: 42px.
-          height: showOverlayHeader ? DESKTOP_TITLEBAR_HEIGHT_PX : SHELL_HEADER_HEIGHT_PX,
-          paddingTop: showOverlayHeader ? DESKTOP_TITLEBAR_PAD_TOP_PX : SHELL_HEADER_PAD_TOP_PX,
+          height: showOverlayHeader
+            ? DESKTOP_TITLEBAR_HEIGHT_PX
+            : isMobile
+              ? MOBILE_SHEET_HEADER_HEIGHT_PX
+              : SHELL_HEADER_HEIGHT_PX,
+          paddingTop: showOverlayHeader
+            ? DESKTOP_TITLEBAR_PAD_TOP_PX
+            : isMobile
+              ? 0
+              : SHELL_HEADER_PAD_TOP_PX,
           ...(mobileSheetHeader ? { paddingLeft: mobileTrafficInset } : {}),
         }}
         {...(showOverlayHeader
@@ -137,24 +153,48 @@ export function SidebarInner({
               {hasAppIcon ? trailingInset : null}
             </div>
           </div>
+        ) : isMobile ? (
+          <div className="flex h-full w-full items-center gap-1.5">
+            {brandIcon}
+            <span
+              aria-hidden
+              className="min-w-0 flex-1 truncate text-sm font-semibold text-sidebar-foreground"
+            >
+              {title}
+            </span>
+            <button
+              type="button"
+              aria-label={t('shellChrome.closeMenu')}
+              onClick={() => setOpenMobile(false)}
+              className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-[var(--shellui-r-row)] text-[var(--shellui-nav-icon)] hover:bg-[var(--shellui-nav-hover)] hover:text-sidebar-foreground focus-visible:outline-2 focus-visible:outline-[var(--sidebar-ring)]"
+            >
+              <CloseIcon className="size-5" />
+            </button>
+          </div>
         ) : (
           <div className={cn('flex h-full w-full items-center', hasAppIcon ? 'gap-0' : 'gap-0.5')}>
             {brandIcon}
             {hasAppIcon ? (
               <div
                 aria-hidden
-                className="min-w-0 flex-1"
-              />
+                className="min-w-0 flex-1 overflow-hidden"
+              >
+                {title ? (
+                  <span className="block truncate pl-2 text-sm font-semibold text-sidebar-foreground transition-opacity duration-200 ease-linear group-data-[collapsible=icon]:opacity-0 motion-reduce:transition-none">
+                    {title}
+                  </span>
+                ) : null}
+              </div>
             ) : null}
             <SidebarTrigger className="size-7 shrink-0 touch-manipulation" />
             {trailingInset}
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent className="shellui-nav gap-1">
+      <SidebarContent className="shellui-nav gap-0">
         <nav
           aria-label={t('shellChrome.mainNav')}
-          className="flex min-w-0 flex-col gap-1"
+          className="flex min-w-0 flex-col gap-0.5 py-2"
         >
           <NavigationContent navigation={startNav} />
         </nav>
@@ -166,7 +206,7 @@ export function SidebarInner({
         {(endItems.length > 0 || showAuthButton) && (
           <nav
             aria-label={t('shellChrome.accountNav')}
-            className="flex min-w-0 flex-col"
+            className="flex min-w-0 flex-col gap-0.5 pb-1"
           >
             <NavigationContent
               navigation={endItems}

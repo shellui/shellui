@@ -142,6 +142,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       {showTabBar ? (
         <FloatingBottomDock
           items={tabItems}
+          navigation={startNav}
           endItems={endItems}
           showAuthButton={showAuthButton}
           chromeVisible={chromeVisible}

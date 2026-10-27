@@ -1,7 +1,7 @@
 /**
- * Windows layout desktop: calm dot field on a canvas.
+ * Windows layout desktop: dot field on a canvas.
  * Ported from the layouts redesign reference (`desk-dots.js`), itself derived from
- * the shellui.com hero dots: three to four times slower, half the travel, no pointer play.
+ * the shellui.com hero dots at the website's normal speed and travel, no pointer play.
  * Decorative only. The caller mounts it on an `aria-hidden` host.
  */
 export const DESK_DOTS = {
@@ -20,17 +20,17 @@ export const DESK_DOTS = {
   /** Extra alpha at full displacement. */
   gustLift: 0.16,
   /** Max displacement in px. */
-  gustPx: 3.5,
+  gustPx: 7,
   /** Width of a wind front in px. */
-  frontWidth: 170,
+  frontWidth: 70,
   /** Front slant in degrees. */
   slantDeg: 18,
   /** Time for one front to cross the desktop, ms range. */
-  crossMs: [30000, 40000] as const,
+  crossMs: [6700, 10000] as const,
   /** Gap between fronts, ms range. */
-  everyMs: [9000, 15000] as const,
-  spring: 0.035,
-  damp: 0.88,
+  everyMs: [1000, 3000] as const,
+  spring: 0.06,
+  damp: 0.82,
   /** Frame cap. */
   fps: 30,
   /** Device pixel ratio cap. */
