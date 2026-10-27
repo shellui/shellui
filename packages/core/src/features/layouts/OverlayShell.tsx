@@ -24,6 +24,7 @@ import {
   resolveDrawerSize,
   resolveDrawerSizeForViewport,
   resolveEffectiveDrawerPosition,
+  resolveDrawerChrome,
   isDynamicSizing,
   SHEET_EXPANDED_HEIGHT_CSS,
 } from '../overlays/overlaySize';
@@ -34,6 +35,8 @@ import { OverlayDrawerPendingBar } from '../overlays/OverlayDrawerPendingBar';
 
 /** Matches --shellui-overlay-max-height in index.css */
 const OVERLAY_MAX_H = 'var(--shellui-overlay-max-height)';
+/** Matches --shellui-drawer-max-height: the viewport minus the floating offsets. */
+const DRAWER_MAX_H = 'var(--shellui-drawer-max-height)';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -371,7 +374,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         ? drawerIsVertical
           ? {
               height: drawerReported.height,
-              maxHeight: `min(${drawerReported.height}px, ${overlayMaxH})`,
+              maxHeight: `min(${drawerReported.height}px, ${DRAWER_MAX_H})`,
             }
           : {
               width: drawerReported.width ?? drawerReported.height,
@@ -398,22 +401,22 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const drawerDesktopResizable =
     !drawerPending && !isMobile && !drawerDynamic && drawerOptions?.resizable !== false;
 
+  // Phones: always a bottom sheet with a drag handle. Desktop: requested edge and options.
+  const drawerChrome = resolveDrawerChrome({
+    position: drawerPosition,
+    isMobile,
+    dismiss: drawerDismiss,
+    pending: drawerPending,
+    desktopResizable: drawerDesktopResizable,
+    contentSized: drawerSize.contentSized || drawerDynamic,
+  });
+
   // Bottom sheets: snap between the configured height and near-full so drag-up expands.
   // Skip when desktop free-edge resize is active (those compete with Vaul snaps).
   const drawerSnapPoints = useMemo(() => {
-    if (effectiveDrawerPosition !== 'bottom') return undefined;
-    if (!drawerDismiss.showDragHandle || !drawerDismiss.dismissible) return undefined;
-    if (drawerPending || drawerDesktopResizable) return undefined;
+    if (!drawerChrome.allowSnapPoints) return undefined;
     return resolveBottomSheetSnapPoints(drawerOptions, drawerReported?.height ?? null) ?? undefined;
-  }, [
-    effectiveDrawerPosition,
-    drawerDismiss.showDragHandle,
-    drawerDismiss.dismissible,
-    drawerPending,
-    drawerDesktopResizable,
-    drawerOptions,
-    drawerReported?.height,
-  ]);
+  }, [drawerChrome.allowSnapPoints, drawerOptions, drawerReported?.height]);
 
   // Floating sheet: show the scrim from the first snap, not only when expanded.
   const drawerSnapProps: WithFadeFromProps | WithoutFadeFromProps = drawerSnapPoints
@@ -517,12 +520,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           }
           className={drawerSize.className}
           showCloseButton={!drawerPending && drawerDismiss.showCloseButton}
-          showDragHandle={
-            !drawerPending &&
-            drawerIsVertical &&
-            drawerDismiss.showDragHandle &&
-            drawerDismiss.dismissible
-          }
+          showDragHandle={drawerChrome.showDragHandle}
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
           resizable={drawerDesktopResizable}
         >

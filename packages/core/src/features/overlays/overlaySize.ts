@@ -289,6 +289,57 @@ export function resolveDismissOptions(
   };
 }
 
+/** How the shell presents a drawer: edge, drag handle, and whether Vaul snaps apply. */
+export type DrawerChrome = {
+  direction: DrawerPosition;
+  showDragHandle: boolean;
+  allowSnapPoints: boolean;
+};
+
+/**
+ * Resolve drawer chrome for the active viewport.
+ *
+ * Phones (below md): every drawer, whatever edge was requested, is a bottom sheet
+ * anchored above the home indicator, always with a drag handle so it can be pulled
+ * up or down with the thumb. Snap points apply even when the app hides its handle or
+ * turns off dismiss (Vaul then keeps the sheet open at the first snap).
+ *
+ * Content-sized drawers never snap: their height follows the iframe report, and a
+ * snap sheet is the expanded height, so the iframe would report that height back and
+ * the sheet would end up below the screen. They sit at their content height instead,
+ * clamped to the drawer max height (the iframe scrolls past it).
+ *
+ * Desktop: the requested edge, with the handle and snaps the options ask for.
+ */
+export function resolveDrawerChrome({
+  position,
+  isMobile,
+  dismiss,
+  pending = false,
+  desktopResizable = false,
+  contentSized = false,
+}: {
+  position?: DrawerPosition;
+  isMobile: boolean;
+  dismiss: Pick<OverlayDismissOptions, 'dismissible' | 'showDragHandle'>;
+  pending?: boolean;
+  desktopResizable?: boolean;
+  contentSized?: boolean;
+}): DrawerChrome {
+  const direction = resolveEffectiveDrawerPosition(position, isMobile);
+  if (isMobile) {
+    return { direction, showDragHandle: !pending, allowSnapPoints: !pending && !contentSized };
+  }
+  const vertical = direction === 'top' || direction === 'bottom';
+  const handle = dismiss.showDragHandle && dismiss.dismissible;
+  return {
+    direction,
+    showDragHandle: !pending && vertical && handle,
+    allowSnapPoints:
+      direction === 'bottom' && handle && !pending && !desktopResizable && !contentSized,
+  };
+}
+
 /**
  * Expanded bottom-sheet height leaves a tappable overlay band above the sheet:
  * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}. The floating sheet also
