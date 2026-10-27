@@ -18,8 +18,6 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
-
 ## [0.7.0-alpha.10] - 2026-10-27
 
 ### ✨ Feature
