@@ -43,6 +43,11 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Floating layout: lighter glass (blur 24px, solid under reduced transparency), a capsule behind the active dock icon with press feedback and a short haptic tap on Android, the primary pill for the active sidebar row and group labels in normal case.
 - Windows layout: the taskbar clock shows hours and minutes only and updates once a minute. Windows use the card surface with a larger radius and focus shadow, 36px title bars and 28px controls (close turns destructive on hover). The taskbar and start menu are glass, task buttons get a primary indicator for the focused window and a dash for open ones, and the desktop wash is lighter.
 - Fullscreen layout (Tauri): Back and Forward sit in a small glass group so they stay legible on any app content.
+- **CLI:** macOS desktop apps keep the traffic lights at the AppKit default position. The template no longer sets `trafficLightPosition` and no longer ships `src/macos.rs` or the `objc2` crates, and `shellui` sync removes them from apps an older template created (a custom `macos.rs` is left alone). In existing template apps the lights move: close sits about 7px from the left edge, centered in the 28px (macOS 15) or 32px (macOS 26) title bar, instead of x 16, y 24.
+
+### 🗑 Removed
+
+- **CLI:** `syncDesktopMacos`, which copied the template `macos.rs` into scaffolded apps. `removeLegacyDesktopMacos` replaces it.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 

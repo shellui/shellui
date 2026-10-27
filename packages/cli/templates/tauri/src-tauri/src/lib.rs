@@ -1,8 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[cfg(target_os = "macos")]
-mod macos;
-
 #[cfg(target_os = "ios")]
 mod ios;
 
@@ -20,18 +17,13 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .setup(|app| {
+            // `app` is only read on some targets (deep-link registration below).
+            let _ = &app;
             // Installers register the scheme. `tauri dev` registers it at runtime.
             #[cfg(all(debug_assertions, any(windows, target_os = "linux")))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
                 app.deep_link().register_all()?;
-            }
-            #[cfg(target_os = "macos")]
-            {
-                use tauri::Manager;
-                if let Some(window) = app.get_webview_window("main") {
-                    macos::install(&window);
-                }
             }
             #[cfg(target_os = "ios")]
             {

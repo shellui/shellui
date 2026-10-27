@@ -23,7 +23,7 @@ import {
   syncCargoPackageName,
   syncShellCapabilities,
   syncDesktopSignIn,
-  syncDesktopMacos,
+  removeLegacyDesktopMacos,
   SHELL_WINDOW_PERMISSIONS,
   DESKTOP_SIGN_IN_PERMISSIONS,
 } from '../tauri.js';
@@ -126,7 +126,11 @@ describe('tauri utilities', () => {
     expect(windowConf.titleBarStyle).toBe('Overlay');
     expect(windowConf.decorations).toBe(true);
     expect(windowConf.acceptFirstMouse).toBe(true);
-    expect(windowConf.trafficLightPosition).toEqual({ x: 16, y: 24 });
+    // Lights stay at the AppKit default: no position override, no macOS view code.
+    expect(windowConf.trafficLightPosition).toBeUndefined();
+    expect(fs.existsSync(path.join(getTauriTemplateDir(), 'src-tauri', 'src', 'macos.rs'))).toBe(
+      false,
+    );
   });
 
   test('tauri template allows window start-dragging', () => {
@@ -205,19 +209,70 @@ describe('tauri utilities', () => {
     expect(fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8')).toBe(libAfter);
   });
 
-  test('syncDesktopMacos copies a newer titlebar placement and skips an unchanged file', () => {
+  test('removeLegacyDesktopMacos drops the traffic-light code an older template wrote', () => {
     const srcTauri = path.join(testDir, 'src-tauri');
-    const dest = path.join(srcTauri, 'src', 'macos.rs');
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, 'old\n');
+    fs.mkdirSync(path.join(srcTauri, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(srcTauri, 'src', 'macos.rs'), 'fn place_traffic_lights() {}\n');
+    fs.writeFileSync(
+      path.join(srcTauri, 'src', 'lib.rs'),
+      [
+        '#[cfg(target_os = "macos")]',
+        'mod macos;',
+        '',
+        'pub fn run() {',
+        '    tauri::Builder::default()',
+        '        .setup(|app| {',
+        '            #[cfg(target_os = "macos")]',
+        '            {',
+        '                use tauri::Manager;',
+        '                if let Some(window) = app.get_webview_window("main") {',
+        '                    macos::install(&window);',
+        '                }',
+        '            }',
+        '            Ok(())',
+        '        })',
+        '}',
+        '',
+      ].join('\n'),
+    );
+    fs.writeFileSync(
+      path.join(srcTauri, 'Cargo.toml'),
+      [
+        '[dependencies]',
+        'tauri = { version = "2", features = [] }',
+        '',
+        `[target.'cfg(target_os = "macos")'.dependencies]`,
+        'objc2 = "0.6"',
+        'objc2-app-kit = { version = "0.3", features = ["NSView", "NSWindow"] }',
+        'objc2-foundation = { version = "0.3", features = ["NSGeometry"] }',
+        '',
+        '[features]',
+        '',
+      ].join('\n'),
+    );
 
-    syncDesktopMacos(srcTauri);
-    const copied = fs.readFileSync(dest, 'utf8');
-    expect(copied).toContain('place_traffic_lights');
-    const mtime = fs.statSync(dest).mtimeMs;
-    syncDesktopMacos(srcTauri);
-    expect(fs.readFileSync(dest, 'utf8')).toBe(copied);
-    expect(fs.statSync(dest).mtimeMs).toBe(mtime);
+    removeLegacyDesktopMacos(srcTauri);
+
+    expect(fs.existsSync(path.join(srcTauri, 'src', 'macos.rs'))).toBe(false);
+    const lib = fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8');
+    expect(lib).not.toMatch(/macos/);
+    expect(lib).toContain('.setup(|app| {\n            Ok(())');
+    const cargo = fs.readFileSync(path.join(srcTauri, 'Cargo.toml'), 'utf8');
+    expect(cargo).not.toContain('objc2');
+    expect(cargo).toContain('[features]');
+  });
+
+  test('removeLegacyDesktopMacos leaves a custom macos.rs alone', () => {
+    const srcTauri = path.join(testDir, 'src-tauri');
+    fs.mkdirSync(path.join(srcTauri, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(srcTauri, 'src', 'macos.rs'), 'pub fn mine() {}\n');
+    const lib = '#[cfg(target_os = "macos")]\nmod macos;\n\npub fn run() {}\n';
+    fs.writeFileSync(path.join(srcTauri, 'src', 'lib.rs'), lib);
+
+    removeLegacyDesktopMacos(srcTauri);
+
+    expect(fs.existsSync(path.join(srcTauri, 'src', 'macos.rs'))).toBe(true);
+    expect(fs.readFileSync(path.join(srcTauri, 'src', 'lib.rs'), 'utf8')).toBe(lib);
   });
 
   test('syncShellCapabilities adds missing window permissions to an older app', () => {
