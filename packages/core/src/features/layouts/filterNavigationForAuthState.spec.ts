@@ -32,10 +32,12 @@ describe('filterNavigationForAuthState', () => {
     ]);
   });
 
-  it('hides login and logged-in entries while the session restore is loading', () => {
+  it('hides login entries but keeps logged-in entries while the session restore is loading', () => {
     expect(
       paths(filterNavigationForAuthState([home, login, dashboard], false, false, true)),
-    ).toEqual(['']);
-    expect(filterNavigationForAuthState([accountGroup], false, false, true)).toEqual([]);
+    ).toEqual(['', 'dashboard']);
+    expect(paths(filterNavigationForAuthState([accountGroup], false, false, true))).toEqual([
+      'dashboard',
+    ]);
   });
 });
