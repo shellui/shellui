@@ -83,6 +83,9 @@ function SidebarPanelIcon({ className }: { className?: string }) {
   );
 }
 
+/** Web brand row height (spec: 52px). */
+const FLOATING_BRAND_ROW_PX = 52;
+
 /** Floating glass sidebar for desktop floating layout (collapsible). */
 export function FloatingSidebar({
   title,
@@ -104,7 +107,7 @@ export function FloatingSidebar({
   onToggleCollapsed: () => void;
 }) {
   const location = useLocation();
-  const { i18n, t } = useTranslation('settings');
+  const { i18n } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const lang = i18n.language || 'en';
   const isTauriEnv = useIsTauriClient();
@@ -144,8 +147,8 @@ export function FloatingSidebar({
       };
 
   const toggleLabel = collapsed
-    ? t('develop.layout.showSidebar', { defaultValue: 'Show sidebar' })
-    : t('develop.layout.hideSidebar', { defaultValue: 'Hide sidebar' });
+    ? tc('shellChrome.expandSidebar')
+    : tc('shellChrome.collapseSidebar');
 
   const renderItem = (navItem: NavigationItem) => {
     const pathPrefix = getNavPathPrefix(navItem);
@@ -367,7 +370,7 @@ export function FloatingSidebar({
             <div
               className={cn(
                 'flex shrink-0 items-center border-b border-sidebar-border/80',
-                tauriRuntime ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
+                tauriRuntime ? 'pr-2.5' : 'pr-2 pl-3.5',
               )}
               style={
                 tauriRuntime
@@ -375,11 +378,16 @@ export function FloatingSidebar({
                       height: SHELL_HEADER_HEIGHT_PX,
                       paddingTop: SHELL_HEADER_PAD_TOP_PX,
                     }
-                  : undefined
+                  : { height: FLOATING_BRAND_ROW_PX }
               }
               {...(tauriRuntime ? MAC_DRAG_REGION_PROPS : {})}
             >
-              <div className="flex h-full min-w-0 flex-1 items-center gap-1">
+              <div
+                className={cn(
+                  'flex h-full min-w-0 flex-1 items-center',
+                  tauriRuntime ? 'gap-1' : 'gap-1.5',
+                )}
+              >
                 {isTauriEnv && !collapsed ? (
                   <DesktopHistoryButtons className="self-center" />
                 ) : null}
@@ -387,8 +395,18 @@ export function FloatingSidebar({
                   <AppBrandIcon
                     appIcon={appIcon}
                     title={title}
-                    className="size-7 shrink-0"
+                    className={cn('shrink-0', tauriRuntime ? 'size-7' : 'size-5')}
                   />
+                ) : null}
+                {/* Web brand row: logo + name (the Tauri bar hides the name, like the mock). */}
+                {!tauriRuntime && title ? (
+                  <span
+                    aria-hidden={appIcon ? true : undefined}
+                    data-shellui-floating-brand-name=""
+                    className="ml-0.5 min-w-0 truncate text-sm font-semibold text-sidebar-foreground"
+                  >
+                    {title}
+                  </span>
                 ) : null}
                 <span
                   className="min-h-full min-w-0 flex-1 self-stretch"
@@ -398,7 +416,7 @@ export function FloatingSidebar({
                   type="button"
                   tabIndex={collapsed ? -1 : 0}
                   data-shellui-no-drag=""
-                  className="shellui-floating-nav-control flex size-8 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  className="shellui-floating-nav-control flex size-9 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                   aria-label={toggleLabel}
                   aria-expanded={!collapsed}
                   onClick={onToggleCollapsed}

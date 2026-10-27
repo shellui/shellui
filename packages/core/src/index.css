@@ -1939,6 +1939,13 @@ html:not([data-shellui-host='tauri'])
   border-radius: 999px;
   background: color-mix(in oklch, var(--sidebar-foreground) 22%, transparent);
 }
+/* More sheet group label (sidebar sheet label size, 12.5px / 600). */
+.shellui-more-sheet-label {
+  padding: 14px 12px 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--shellui-nav-label);
+}
 .shellui-more-sheet-row {
   min-height: 48px;
   padding-inline: 12px;
