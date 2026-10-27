@@ -241,30 +241,18 @@ html[data-shellui-nav-contrast='low'] {
   --shellui-inset-right: 0px;
   --shellui-inset-bottom: 0px;
   --shellui-inset-left: 0px;
-  --shellui-floating-sidebar-radius: min(var(--radius), 5rem);
+  --shellui-floating-sidebar-radius: var(--shellui-r-float);
   /* Any positive --radius → huge radius (pill); 0 → square. */
   --shellui-floating-mobile-radius: calc(var(--radius) * 999);
 }
 
 .shellui-floating-glass {
   color: var(--sidebar-foreground);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in oklch, white 40%, transparent) 0%,
-      color-mix(in oklch, white 10%, transparent) 42%,
-      color-mix(in oklch, white 16%, transparent) 100%
-    ),
-    /* Frost from sidebar surface so chrome tracks theme, not raw background grey */
-    color-mix(in oklch, var(--sidebar) 82%, transparent);
-  backdrop-filter: blur(40px) saturate(160%);
-  -webkit-backdrop-filter: blur(40px) saturate(160%);
-  border: 1px solid color-mix(in oklch, var(--sidebar-border) 80%, transparent);
-  box-shadow:
-    0 1px 0 color-mix(in oklch, white 40%, transparent) inset,
-    0 -1px 0 color-mix(in oklch, black 6%, transparent) inset,
-    0 10px 32px color-mix(in oklch, black 14%, transparent),
-    0 2px 6px color-mix(in oklch, black 6%, transparent);
+  background: var(--shellui-glass);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
 }
 
 .shellui-floating-sidebar-panel .shellui-floating-glass,
@@ -277,27 +265,10 @@ html[data-shellui-nav-contrast='low'] {
   border-radius: 0;
 }
 
-.dark .shellui-floating-glass {
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in oklch, white 16%, transparent) 0%,
-      color-mix(in oklch, white 4%, transparent) 45%,
-      color-mix(in oklch, white 9%, transparent) 100%
-    ),
-    color-mix(in oklch, var(--sidebar) 78%, transparent);
-  border-color: color-mix(in oklch, var(--sidebar-border) 90%, transparent);
-  box-shadow:
-    0 1px 0 color-mix(in oklch, white 12%, transparent) inset,
-    0 -1px 0 color-mix(in oklch, black 30%, transparent) inset,
-    0 14px 40px color-mix(in oklch, black 40%, transparent),
-    0 2px 8px color-mix(in oklch, black 22%, transparent);
-}
-
 /* Desktop floating nav rows / chrome controls: match capped sidebar radius. */
 .shellui-floating-sidebar-panel .shellui-floating-nav-item,
 .shellui-floating-sidebar-panel .shellui-floating-nav-control {
-  border-radius: var(--shellui-floating-sidebar-radius);
+  border-radius: min(var(--shellui-floating-sidebar-radius), 10px);
 }
 
 /* Phone/tablet floating dock + pill FAB: binary radius (0 theme → square). */
@@ -1751,5 +1722,197 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   .shellui-appbar-item,
   .shellui-appbar-end {
     transition: none;
+  }
+}
+
+/*
+ * Floating layout: desktop glass sidebar rows, phone / tablet dock, More sheet.
+ */
+.shellui-floating-nav-item {
+  font-size: 13.5px;
+  font-weight: 450;
+  color: var(--shellui-nav-fg);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-floating-nav-item .shellui-nav-icon {
+  color: var(--shellui-nav-icon);
+}
+.shellui-floating-nav-item:hover {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-accent-foreground);
+}
+.shellui-floating-nav-item:hover .shellui-nav-icon {
+  color: currentColor;
+}
+.shellui-floating-nav-item.is-active,
+.shellui-floating-nav-item.is-active:hover {
+  background-color: var(--shellui-nav-active);
+  color: var(--shellui-nav-active-fg);
+  font-weight: 550;
+}
+.shellui-floating-nav-item.is-active .shellui-nav-icon {
+  color: var(--shellui-nav-active-icon);
+}
+.shellui-floating-nav-item:focus-visible,
+.shellui-floating-nav-control:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+}
+.shellui-floating-nav-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--shellui-nav-label);
+}
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-floating-nav-item {
+    height: 30px;
+    font-size: 13px;
+  }
+}
+
+.shellui-dock-tab {
+  color: var(--shellui-dock-dim);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  min-height: 48px;
+}
+.shellui-dock-tab:focus-visible {
+  outline: none;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-dock-tab .shellui-dock-label {
+  font-size: 11px;
+  line-height: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+[data-dock-align='center'] .shellui-dock-tab .shellui-dock-label {
+  font-size: 12px;
+  line-height: 15px;
+}
+.shellui-dock-capsule {
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--shellui-floating-mobile-radius);
+  transition:
+    background-color 240ms var(--shellui-ease),
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.shellui-dock-capsule .shellui-dock-glyph {
+  width: 21px;
+  height: 21px;
+}
+.shellui-dock-tab[data-state='active'] {
+  color: var(--sidebar-foreground);
+}
+.shellui-dock-tab[data-state='active'] .shellui-dock-label {
+  font-weight: 650;
+}
+.shellui-dock-tab[data-state='active'] .shellui-dock-capsule {
+  background-color: var(--shellui-dock-capsule);
+}
+.shellui-dock-tab:active .shellui-dock-capsule {
+  transform: scale(0.9);
+  background-color: color-mix(in oklch, var(--sidebar-foreground) 10%, transparent);
+  transition-duration: 90ms;
+  transition-timing-function: ease-out;
+}
+.shellui-dock-tab:active {
+  color: var(--sidebar-foreground);
+}
+.shellui-dock-tab:focus-visible .shellui-dock-capsule {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: 1px;
+}
+
+/* Phone More sheet (vaul). */
+.shellui-more-sheet {
+  left: calc(8px + var(--shellui-safe-area-left));
+  right: calc(8px + var(--shellui-safe-area-right));
+  bottom: calc(8px + var(--shellui-safe-area-bottom));
+  padding-top: 8px;
+  border-radius: calc(var(--shellui-r-float) + 8px);
+  background: color-mix(in oklch, var(--sidebar) 92%, transparent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
+}
+.shellui-more-sheet-handle {
+  width: 36px;
+  height: 5px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--sidebar-foreground) 22%, transparent);
+}
+.shellui-more-sheet-row {
+  min-height: 48px;
+  padding-inline: 12px;
+  border-radius: min(var(--shellui-r-float), 12px);
+  font-size: 15.5px;
+  color: var(--sidebar-foreground);
+  -webkit-tap-highlight-color: transparent;
+}
+.shellui-more-sheet-row .shellui-dock-glyph {
+  width: 20px;
+  height: 20px;
+  color: var(--shellui-nav-icon);
+}
+.shellui-more-sheet-row:active,
+.shellui-more-sheet-row:hover {
+  background-color: var(--shellui-nav-hover);
+}
+.shellui-more-sheet-row[data-active='true'] {
+  background-color: var(--shellui-dock-capsule);
+  font-weight: 600;
+}
+.shellui-more-sheet-row:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+}
+.shellui-more-sheet-account:empty {
+  display: none;
+}
+/* vaul paints an ::after below bottom drawers; the sheet floats, so drop it. */
+.shellui-more-sheet::after {
+  content: none !important;
+}
+
+/* Soft keyboard open: dock and FAB step aside (same slide as scroll hide). */
+html[data-shellui-keyboard='open'] [data-shellui-floating-dock],
+html[data-shellui-keyboard='open']
+  [data-shellui-chrome-actions-fab][data-shellui-floating-fab='true'] {
+  translate: 0 120%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .shellui-more-sheet {
+    background: var(--shellui-glass-solid);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .shellui-more-sheet {
+    background: var(--shellui-glass-solid);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-floating-nav-item,
+  .shellui-dock-capsule {
+    transition: none;
+  }
+  .shellui-dock-tab:active .shellui-dock-capsule {
+    transform: none;
   }
 }

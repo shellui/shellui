@@ -26,6 +26,7 @@ import { FloatingBottomDock } from './FloatingBottomDock';
 import { FloatingSidebar } from './FloatingSidebar';
 import { FloatingStatusScrim } from './FloatingStatusScrim';
 import { useFloatingChrome } from './useFloatingChrome';
+import { useSoftKeyboard } from './useSoftKeyboard';
 import { SafeAreaTopbarOffset, isShellUiRootWindow } from '../chrome/SafeAreaTopbar';
 import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvider';
 import { actionChromeFlags } from '../../chromeActions/computeActionInsets';
@@ -46,6 +47,8 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
   const { navigationItem } = useNavigationItems();
   const viewport = useViewport();
   const { chromeVisible, sidebarCollapsed, toggleSidebarCollapsed } = useFloatingChrome(viewport);
+  // Phones and tablets: hide the dock and FAB while the soft keyboard is up.
+  useSoftKeyboard(viewport !== 'desktop');
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
   const currentLanguage = i18n.language || 'en';

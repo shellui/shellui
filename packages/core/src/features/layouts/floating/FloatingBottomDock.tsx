@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Drawer as VaulDrawer } from 'vaul';
 import { useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
@@ -37,6 +38,7 @@ import { useChromeActionsSnapshot } from '../../chromeActions/ChromeActionsProvi
 import { SHELL_DEVELOP_CHROME_ACTIONS_FRAME } from '../../chromeActions/chromeActionsStore';
 import { CHROME_ACTIONS_FAB_SIZE_FLOATING } from '../../chromeActions/computeActionInsets';
 import { MoreHorizontalIcon } from '../../chromeActions/ChromeActionIcons';
+import { Z_INDEX } from '../../../lib/z-index';
 
 const MORE_TAB_KEY = '__more__';
 
@@ -52,12 +54,12 @@ function TabGlyph({ item, label }: { item: NavigationItem; label: string }) {
     return (
       <NavIcon
         src={iconSrc}
-        className="size-5"
+        className="shellui-dock-glyph size-5"
       />
     );
   }
   return (
-    <span className="flex size-5 items-center justify-center text-xs font-semibold leading-none">
+    <span className="shellui-dock-glyph flex size-5 items-center justify-center text-xs font-semibold leading-none">
       {label.charAt(0).toUpperCase() || '?'}
     </span>
   );
@@ -85,10 +87,36 @@ function useMainHasPrimaryFab(): boolean {
   }, [all]);
 }
 
+// Colours, the active capsule and press feedback live in index.css (`.shellui-dock-tab`).
 const tabTriggerClass =
-  'h-auto min-w-0 flex-1 basis-0 flex-col gap-0.5 px-2 py-1.5 text-[11px] font-medium leading-tight text-muted-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none';
+  'shellui-dock-tab h-auto min-w-0 flex-1 basis-0 flex-col gap-0.5 px-1 py-1 text-[11px] font-medium leading-tight data-[state=active]:bg-transparent data-[state=active]:shadow-none';
 const tabTriggerClassTablet =
-  'h-auto min-w-0 flex-1 basis-0 flex-col gap-1 px-3.5 py-2 text-xs font-medium leading-tight text-muted-foreground data-[state=active]:bg-muted data-[state=active]:text-foreground data-[state=active]:shadow-none';
+  'shellui-dock-tab h-auto min-w-0 flex-1 basis-0 flex-col gap-1 px-3.5 py-1.5 text-xs font-medium leading-tight data-[state=active]:bg-transparent data-[state=active]:shadow-none';
+
+/** Icon inside the capsule that marks the active tab and scales on press. */
+function DockCapsule({ children }: { children: ReactNode }) {
+  return (
+    <span
+      aria-hidden
+      data-shellui-dock-capsule=""
+      className="shellui-dock-capsule flex items-center justify-center"
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Short tap feedback on Android web; iOS web has no vibration API (the scale is the cue). */
+function tabChangeHaptic() {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+  if (typeof window === 'undefined' || !window.matchMedia?.('(pointer: coarse)').matches) return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  try {
+    navigator.vibrate(8);
+  } catch {
+    // Blocked before the first user gesture in some browsers.
+  }
+}
 
 /**
  * Floating phone/tablet bottom nav: shadcn Tabs with equal slots.
@@ -110,7 +138,8 @@ export function FloatingBottomDock({
 }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { i18n, t } = useTranslation('settings');
+  const { i18n } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   const lang = i18n.language || 'en';
   const [moreOpen, setMoreOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -223,7 +252,10 @@ export function FloatingBottomDock({
   const onTabChange = (value: string) => {
     setMoreOpen(false);
     const navItem = primary.find((item) => itemKey(item) === value);
-    if (navItem) activateItem(navItem);
+    if (navItem) {
+      if (value !== activeTabKey) tabChangeHaptic();
+      activateItem(navItem);
+    }
   };
 
   const bottomPad = floatingTabBarBottomPadCss(viewport);
@@ -275,11 +307,11 @@ export function FloatingBottomDock({
           <TabsList
             ref={listRef}
             data-shellui-floating-dock-list=""
-            aria-label={t('develop.layout.floating', { defaultValue: 'Floating' })}
+            aria-label={tc('shellChrome.mainNav')}
             className={cn(
-              'flex h-full min-w-0 gap-1 border border-border/60 bg-background/90 p-1.5 text-muted-foreground shadow-sm backdrop-blur-md',
+              'shellui-glass flex h-full min-w-0 gap-0.5 p-1 text-sidebar-foreground',
               // Override TabsList default `h-10` so height matches the FAB.
-              isTablet ? 'h-16 gap-1.5 p-2' : 'h-14',
+              isTablet ? 'h-16 gap-1 p-1.5' : 'h-14',
               isPhone ? 'w-full' : 'w-auto',
             )}
             style={{
@@ -303,11 +335,13 @@ export function FloatingBottomDock({
                   className={triggerClass}
                   aria-current={isActive ? 'page' : undefined}
                 >
-                  <TabGlyph
-                    item={navItem}
-                    label={label}
-                  />
-                  <span className="w-full truncate text-center">{label}</span>
+                  <DockCapsule>
+                    <TabGlyph
+                      item={navItem}
+                      label={label}
+                    />
+                  </DockCapsule>
+                  <span className="shellui-dock-label w-full truncate text-center">{label}</span>
                 </TabsTrigger>
               );
             })}
@@ -319,7 +353,7 @@ export function FloatingBottomDock({
                 aria-hidden
               />
             ) : null}
-            {showMoreFinal ? (
+            {showMoreFinal && !isPhone ? (
               <DropdownMenu
                 open={moreOpen}
                 onOpenChange={setMoreOpen}
@@ -330,16 +364,20 @@ export function FloatingBottomDock({
                     role="tab"
                     aria-selected={activeTabKey === MORE_TAB_KEY}
                     aria-current={activeTabKey === MORE_TAB_KEY ? 'page' : undefined}
+                    aria-haspopup={isPhone ? 'dialog' : 'menu'}
+                    aria-expanded={moreOpen}
                     data-state={activeTabKey === MORE_TAB_KEY ? 'active' : 'inactive'}
                     data-shellui-floating-dock-tab=""
                     className={cn(
-                      'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                      'inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
                       triggerClass,
                     )}
                   >
-                    <MoreHorizontalIcon className="size-5" />
-                    <span className="w-full truncate text-center">
-                      {t('develop.layout.more', { defaultValue: 'More' })}
+                    <DockCapsule>
+                      <MoreHorizontalIcon className="shellui-dock-glyph size-5" />
+                    </DockCapsule>
+                    <span className="shellui-dock-label w-full truncate text-center">
+                      {tc('desktopChrome.more')}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
@@ -361,6 +399,7 @@ export function FloatingBottomDock({
                       <DropdownMenuItem
                         key={itemKey(item)}
                         className={cn(isActive && 'bg-accent font-medium')}
+                        aria-current={isActive ? 'page' : undefined}
                         onSelect={() => activateItem(item)}
                       >
                         <TabGlyph
@@ -402,9 +441,149 @@ export function FloatingBottomDock({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
+            {showMoreFinal && isPhone ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((open) => !open)}
+                  role="tab"
+                  aria-selected={activeTabKey === MORE_TAB_KEY}
+                  aria-current={activeTabKey === MORE_TAB_KEY ? 'page' : undefined}
+                  aria-haspopup={isPhone ? 'dialog' : 'menu'}
+                  aria-expanded={moreOpen}
+                  data-state={activeTabKey === MORE_TAB_KEY ? 'active' : 'inactive'}
+                  data-shellui-floating-dock-tab=""
+                  className={cn(
+                    'inline-flex items-center justify-center whitespace-nowrap focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+                    triggerClass,
+                  )}
+                >
+                  <DockCapsule>
+                    <MoreHorizontalIcon className="shellui-dock-glyph size-5" />
+                  </DockCapsule>
+                  <span className="shellui-dock-label w-full truncate text-center">
+                    {tc('desktopChrome.more')}
+                  </span>
+                </button>
+                <FloatingMoreSheet
+                  open={moreOpen}
+                  onOpenChange={setMoreOpen}
+                  title={tc('desktopChrome.more')}
+                  closeLabel={tc('shellChrome.closeMenu')}
+                  externalLabel={tc('shellChrome.externalLink')}
+                  lang={lang}
+                  overflowItems={moreOverflowItems}
+                  endItems={moreEndItems}
+                  showAuthButton={showAuthButton}
+                  activePathPrefix={activePathPrefix}
+                  onActivate={activateItem}
+                />
+              </>
+            ) : null}
           </TabsList>
         </Tabs>
       </div>
     </div>
+  );
+}
+
+/** Phone More: bottom sheet (vaul) for one-hand reach. Tablet keeps the dropdown. */
+function FloatingMoreSheet({
+  open,
+  onOpenChange,
+  title,
+  closeLabel,
+  externalLabel,
+  lang,
+  overflowItems,
+  endItems,
+  showAuthButton,
+  activePathPrefix,
+  onActivate,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  closeLabel: string;
+  externalLabel: string;
+  lang: string;
+  overflowItems: NavigationItem[];
+  endItems: NavigationItem[];
+  showAuthButton: boolean;
+  activePathPrefix: string | null;
+  onActivate: (item: NavigationItem) => void;
+}) {
+  const renderRow = (item: NavigationItem) => {
+    const label = resolveLocalizedString(item.label, lang);
+    const isActive =
+      item.openIn !== 'modal' &&
+      item.openIn !== 'drawer' &&
+      item.openIn !== 'external' &&
+      getNavPathPrefix(item) === activePathPrefix;
+    return (
+      <button
+        key={itemKey(item)}
+        type="button"
+        data-shellui-more-sheet-row=""
+        data-active={isActive ? 'true' : undefined}
+        aria-current={isActive ? 'page' : undefined}
+        className="shellui-more-sheet-row flex w-full items-center gap-3 text-left"
+        onClick={() => onActivate(item)}
+      >
+        <TabGlyph
+          item={item}
+          label={label}
+        />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        {item.openIn === 'external' ? <span className="sr-only">{externalLabel}</span> : null}
+      </button>
+    );
+  };
+
+  return (
+    <VaulDrawer.Root
+      open={open}
+      onOpenChange={onOpenChange}
+      direction="bottom"
+    >
+      <VaulDrawer.Portal>
+        <VaulDrawer.Overlay
+          data-shellui-more-sheet-overlay=""
+          className="fixed inset-0"
+          style={{ zIndex: Z_INDEX.SIDEBAR_SHEET_OVERLAY, background: 'var(--shellui-scrim)' }}
+        />
+        <VaulDrawer.Content
+          data-shellui-more-sheet=""
+          aria-describedby={undefined}
+          className="shellui-more-sheet fixed flex max-h-[80dvh] flex-col text-sidebar-foreground outline-none"
+          style={{ zIndex: Z_INDEX.SIDEBAR_SHEET_CONTENT }}
+        >
+          <div
+            aria-hidden
+            className="shellui-more-sheet-handle mx-auto shrink-0"
+          />
+          <VaulDrawer.Title className="sr-only">{title}</VaulDrawer.Title>
+          <nav
+            aria-label={title}
+            className="min-h-0 flex-1 overflow-y-auto px-2 pb-2"
+          >
+            {overflowItems.map(renderRow)}
+            {overflowItems.length > 0 && (endItems.length > 0 || showAuthButton) ? (
+              <div
+                aria-hidden
+                className="mx-3 my-1 h-px bg-[var(--shellui-hairline)]"
+              />
+            ) : null}
+            {endItems.map(renderRow)}
+            {showAuthButton ? (
+              <div className="shellui-more-sheet-account px-1 py-1">
+                <LoginButton variant="sidebar" />
+              </div>
+            ) : null}
+          </nav>
+          <VaulDrawer.Close className="sr-only">{closeLabel}</VaulDrawer.Close>
+        </VaulDrawer.Content>
+      </VaulDrawer.Portal>
+    </VaulDrawer.Root>
   );
 }

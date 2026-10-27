@@ -20,12 +20,17 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### ✨ Feature
+
+- **Core:** Floating layout: on phones, More opens a bottom sheet (swipe down, scrim tap or Escape to close), and the dock and FAB step aside while the soft keyboard is open (`html[data-shellui-keyboard="open"]`).
+
 ### 🛠 Improvements
 
 - **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop background, in light and dark. Glass turns solid under reduced transparency.
 - **Core:** `applyTheme` checks the active nav pair against 4.5:1 and sets `data-shellui-nav-contrast="low"`, so themes with a pale primary get a tinted active pill.
 - **Core:** Sidebar nav marks the active row with `aria-current`, names its landmarks (Main, Account), announces external links and uses an inset focus ring. Toggle and resize labels are now translated (en, fr).
 - **Core:** App bar nav is a named landmark, marks the current page with `aria-current`, flags menu triggers with `aria-haspopup` and labels external end links.
+- **Core:** Floating dock is labelled "Main" instead of the layout name, and external links in the floating sidebar and More sheet are announced.
 
 ### 🚨 Changed
 
@@ -33,6 +38,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Sidebar-inset layout: content card uses the theme card radius with a softer shadow, a raised active pill, a hover tint that reads on the chrome tray and no footer hairline.
 - **Core:** App bar layout: the active item gets a primary underline, hover uses the nav hover token, menus have touch-size rows on phones and the Tauri desktop app uses denser items.
 - **Core:** App-bar-inset layout: the active item is a raised pill on the chrome tray, hover reads on the tray and the content card uses the theme card radius.
+- **Core:** Floating layout: lighter glass (blur 24px, solid under reduced transparency), a capsule behind the active dock icon with press feedback and a short haptic tap on Android, the primary pill for the active sidebar row and group labels in normal case.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 
