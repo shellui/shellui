@@ -56,8 +56,10 @@ import { InsetMobileRadiusOverlay } from '../chrome/InsetMobileRadiusOverlay';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  MAC_LIGHTS_SAFE_FULLSCREEN_PX,
+  MAC_LIGHTS_SAFE_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { useIsTauriRuntime, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 
@@ -278,6 +280,7 @@ function AppBarNavLink({
       <button
         type="button"
         className={className}
+        data-shellui-no-drag=""
         data-active={isActive ? 'true' : undefined}
         onClick={() => navigateToItem(item)}
       >
@@ -290,6 +293,7 @@ function AppBarNavLink({
     <Link
       to={pathPrefix}
       className={className}
+      data-shellui-no-drag=""
       data-active={isActive ? 'true' : undefined}
       aria-current={isActive ? 'page' : undefined}
     >
@@ -378,6 +382,7 @@ function AppBarNavCategory({
           variant="ghost"
           size="sm"
           className={cn(navTriggerClass(active))}
+          data-shellui-no-drag=""
           data-active={active ? 'true' : undefined}
           aria-haspopup="menu"
           aria-expanded={open}
@@ -433,6 +438,7 @@ function AppBarNavMore({
           variant="ghost"
           size="sm"
           className={cn(navTriggerClass(moreActive))}
+          data-shellui-no-drag=""
           data-active={moreActive ? 'true' : undefined}
           aria-label={t('desktopChrome.more')}
           aria-haspopup="menu"
@@ -789,8 +795,18 @@ export function AppBarLayout({
   const showSafeAreaTopbar = isShellUiRootWindow();
   const scrollHideLayout = isInset ? 'app-bar-inset' : 'app-bar';
   const titlebarAligned = isTauriRuntime && !isMobile;
-  const barHeightPx = titlebarAligned ? DESKTOP_TITLEBAR_HEIGHT_PX : APP_BAR_HEIGHT_PX;
-  const barPadTopPx = titlebarAligned ? DESKTOP_TITLEBAR_PAD_TOP_PX : APP_BAR_PAD_TOP_PX;
+  // macOS: the bar is the 32px strip. Windows / Linux (native caption bar above): 42px.
+  const macStrip = overlay;
+  const barHeightPx = macStrip
+    ? DESKTOP_TITLEBAR_HEIGHT_PX
+    : titlebarAligned
+      ? SHELL_HEADER_HEIGHT_PX
+      : APP_BAR_HEIGHT_PX;
+  const barPadTopPx = macStrip
+    ? DESKTOP_TITLEBAR_PAD_TOP_PX
+    : titlebarAligned
+      ? SHELL_HEADER_PAD_TOP_PX
+      : APP_BAR_PAD_TOP_PX;
   const { chromeVisible } = useScrollHideChrome({
     enabled: isMobile,
     layout: scrollHideLayout,
@@ -843,9 +859,12 @@ export function AppBarLayout({
     }
   }, [location.pathname, title, navigationItems, currentLanguage]);
 
+  // Drag-only safe area next to the lights: 80px, 12px in native fullscreen (lights hidden).
   const chromeInset = trafficLights
-    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
-    : undefined;
+    ? MAC_LIGHTS_SAFE_PX
+    : macStrip
+      ? MAC_LIGHTS_SAFE_FULLSCREEN_PX
+      : undefined;
 
   const hasStartNav = startSections.some((s) => s.items.length > 0);
   // Keep in sync with <main> inset frame pad — bar content aligns to the card border.
@@ -996,8 +1015,12 @@ export function AppBarLayout({
           )}
           style={headerStyle}
           data-layout={isInset ? 'app-bar-inset' : 'app-bar'}
-          {...(trafficLights
-            ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+          {...(macStrip
+            ? {
+                'data-shellui-drag-region': '',
+                'data-tauri-drag-region': '',
+                'data-shellui-mac-strip': '',
+              }
             : {})}
         >
           {appIcon ? (
@@ -1006,7 +1029,7 @@ export function AppBarLayout({
               title={title}
               data-shellui-no-drag=""
               className="mr-1 shrink-0"
-              imgClassName="app-bar-app-icon size-6"
+              imgClassName={cn('app-bar-app-icon', macStrip ? 'size-5' : 'size-6')}
             />
           ) : null}
 
@@ -1031,7 +1054,7 @@ export function AppBarLayout({
               data-shellui-no-drag=""
               className="shrink-0"
             >
-              <DesktopHistoryButtons />
+              <DesktopHistoryButtons strip={macStrip} />
             </div>
           ) : null}
 
@@ -1045,6 +1068,7 @@ export function AppBarLayout({
 
           <div
             data-shellui-no-drag=""
+            data-shellui-strip-end=""
             className="flex shrink-0 items-center gap-0.5"
           >
             {endNavItems.length > 0 ? (

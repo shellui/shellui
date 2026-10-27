@@ -1,6 +1,6 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
-import { DESKTOP_TITLEBAR_HEIGHT_PX } from '../layouts/chrome/constants';
-import { isTauriRuntime } from '../layouts/chrome/runtime';
+import { DESKTOP_TITLEBAR_HEIGHT_PX, SHELL_HEADER_HEIGHT_PX } from '../layouts/chrome/constants';
+import { isMacOSDesktop, isTauriRuntime } from '../layouts/chrome/runtime';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_CONTENT_CLEARANCE,
@@ -96,8 +96,11 @@ export function chromeActionsTopMargin(
   const { layout, viewport } = context;
   if (layout === 'floating') {
     if (isTauriRuntime() && viewport === 'desktop') {
-      // Center the row in the overlay titlebar, then nudge it off the window edge.
-      return Math.round((DESKTOP_TITLEBAR_HEIGHT_PX - chromeActionsTopBarHeight(viewport)) / 2) + 4;
+      // Center the row in the title bar band, then nudge it off the window edge.
+      // macOS: 32px strip, (32 - 32) / 2 + 4 = 4. The row starts right of the panel or,
+      // collapsed, right of the strip glass group, so it never enters the lights safe area.
+      const band = isMacOSDesktop() ? DESKTOP_TITLEBAR_HEIGHT_PX : SHELL_HEADER_HEIGHT_PX;
+      return Math.round((band - chromeActionsTopBarHeight(viewport)) / 2) + 4;
     }
     return viewport === 'desktop' ? CHROME_ACTIONS_TOP_MARGIN_DESKTOP : CHROME_ACTIONS_TOP_MARGIN;
   }

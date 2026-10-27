@@ -1,5 +1,5 @@
 import type { LayoutChromeInsets, LayoutChromeViewport } from '@shellui/sdk';
-import { MAC_TRAFFIC_LIGHTS_WIDTH_PX } from '../chrome/constants';
+import { MAC_LIGHTS_SAFE_PX } from '../chrome/constants';
 import { isMacOSDesktop, isTauriRuntime } from '../chrome/runtime';
 import { isTauri } from '../../../service-worker/register';
 
@@ -89,14 +89,30 @@ export const FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA =
 export const FLOATING_HISTORY_CLUSTER_PX = 72;
 
 /**
+ * macOS collapsed strip glass group: expand, back, forward (3 x 24px) with 2px gaps
+ * and 2px padding.
+ */
+export const FLOATING_MAC_STRIP_GROUP_PX = 80;
+/** macOS collapsed: content starts under the 32px strip plus 20px. */
+export const FLOATING_MAC_COLLAPSED_CONTENT_TOP = 52;
+
+/** Live macOS Tauri webview (lights in the window corner). */
+function isMacTauriWindow(): boolean {
+  return typeof window !== 'undefined' && isTauriRuntime() && isMacOSDesktop();
+}
+
+/**
  * Left offset for the top action row when the desktop sidebar is collapsed.
- * Tauri also clears the traffic lights and the history buttons before the chip.
+ * macOS clears the 80px safe area and the strip glass group. Other Tauri hosts
+ * clear the history buttons before the chip.
  */
 export function floatingCollapsedActionsLeadingPx(): number {
+  if (isMacTauriWindow()) {
+    return MAC_LIGHTS_SAFE_PX + FLOATING_MAC_STRIP_GROUP_PX + FLOATING_CONTENT_CLEARANCE;
+  }
   let leading = FLOATING_COLLAPSED_ACTIONS_LEADING_EXTRA;
   if (typeof window === 'undefined' || !isTauri()) return leading;
   leading += FLOATING_HISTORY_CLUSTER_PX;
-  if (isTauriRuntime() && isMacOSDesktop()) leading += MAC_TRAFFIC_LIGHTS_WIDTH_PX;
   return leading;
 }
 /**
@@ -126,6 +142,8 @@ export function computeFloatingInsets(options: {
    * Tauri passes `0` so the title row meets the traffic lights.
    */
   edgeMargin?: number;
+  /** macOS Tauri desktop: collapsed content clears the 32px strip (top 52). */
+  macStrip?: boolean;
 }): LayoutChromeInsets {
   const safe: FloatingSafeArea = {
     top: options.safeArea?.top ?? 0,
@@ -155,7 +173,7 @@ export function computeFloatingInsets(options: {
 
   if (options.sidebarCollapsed) {
     return {
-      top: safe.top,
+      top: options.macStrip ? safe.top + FLOATING_MAC_COLLAPSED_CONTENT_TOP : safe.top,
       right: safe.right,
       bottom: safe.bottom,
       left: safe.left,

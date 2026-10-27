@@ -1381,9 +1381,65 @@ html.shellui-theme-switching
   -webkit-app-region: no-drag;
 }
 
+/*
+ * macOS strip (rules v2). The traffic lights stay at the AppKit default; the shell adapts
+ * to them. Strip 32px, lights centre 16px, drag-only safe area 80px from the left edge.
+ * In native fullscreen AppKit hides the lights and the safe area collapses to 12px.
+ */
+html {
+  --shellui-mac-titlebar-h: 32px;
+  --shellui-mac-lights-cy: 16px;
+  --shellui-mac-lights-safe: 12px;
+  --shellui-titlebar-height: var(--shellui-mac-titlebar-h);
+}
+
 html[data-shellui-overlay-chrome] {
-  --shellui-titlebar-height: 42px;
-  --shellui-traffic-lights-width: 78px;
+  --shellui-mac-lights-safe: 80px;
+  --shellui-traffic-lights-width: 68px;
+}
+
+.shellui-mac-safe {
+  width: var(--shellui-mac-lights-safe, 80px);
+  transition: width 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-mac-safe {
+    transition: none;
+  }
+}
+
+/* Strip controls: 24px boxes, 16px icons, centred on the lights line. */
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item {
+  height: 24px;
+  font-size: 13px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item svg,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-item img {
+  width: 15px;
+  height: 15px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-end,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] [data-shellui-strip-end] button {
+  height: 24px;
+  min-width: 24px;
+}
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] .shellui-appbar-end,
+html[data-shellui-mac-chrome] [data-shellui-mac-strip] [data-shellui-strip-end] button.size-7 {
+  width: 24px;
+}
+html[data-shellui-mac-chrome]
+  [data-shellui-mac-strip]
+  [data-shellui-strip-end]
+  [data-slot='avatar'] {
+  width: 22px;
+  height: 22px;
+}
+
+/* Inactive window: AppKit greys the lights, the strip text follows. */
+html[data-shellui-window-inactive] [data-shellui-mac-strip],
+html[data-shellui-window-inactive] [data-shellui-mac-strip] :is(button, a, span) {
+  color: var(--shellui-nav-label);
 }
 
 /* Keep sidebar chrome above the full-width drag strip so Back / trigger stay clickable. */
@@ -1425,14 +1481,14 @@ html[data-shellui-overlay-chrome] [data-slot='sidebar-container'] {
   }
 }
 
-/* Collapsed Tauri: full-width 42px titlebar; push sidebar + content below it. */
+/* Collapsed Tauri: full-width 32px macOS strip; push sidebar + content below it. */
 html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: var(--shellui-titlebar-height, 42px);
-  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 42px));
+  top: var(--shellui-titlebar-height, 32px);
+  height: calc(var(--shellui-app-height, 100dvh) - var(--shellui-titlebar-height, 32px));
 }
 
 html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
@@ -1440,10 +1496,10 @@ html[data-shellui-collapsed-titlebar][data-shellui-safe-area-topbar]
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar']
   > [data-slot='sidebar-container'] {
-  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 42px));
+  top: calc(var(--shellui-safe-area-top) + var(--shellui-titlebar-height, 32px));
   height: calc(
     var(--shellui-app-height, 100dvh) - var(--shellui-safe-area-top) -
-      var(--shellui-titlebar-height, 42px)
+      var(--shellui-titlebar-height, 32px)
   );
 }
 
@@ -1451,7 +1507,7 @@ html[data-shellui-collapsed-titlebar]
   [data-shellui-sidebar-layout]:not([data-shellui-layout-variant='inset'])
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
-  padding-top: var(--shellui-titlebar-height, 42px);
+  padding-top: var(--shellui-titlebar-height, 32px);
 }
 
 /* Inset card keeps its own radius: sit the frame under the titlebar instead of
@@ -1460,7 +1516,7 @@ html[data-shellui-collapsed-titlebar]
   [data-shellui-layout-variant='inset']
   > [data-slot='sidebar-wrapper']
   > [data-slot='sidebar-inset'] {
-  margin-top: var(--shellui-titlebar-height, 42px);
+  margin-top: var(--shellui-titlebar-height, 32px);
   padding-top: 0;
 }
 
@@ -2026,12 +2082,18 @@ html[data-shellui-keyboard='open']
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid var(--shellui-glass-edge);
-  padding: 0 90px;
 }
+/* Centred on the window, text only: drag passes through to the strip. */
 .shellui-windows-strip-title {
-  font-size: 13px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: calc(100% - 2 * 180px);
+  transform: translate(-50%, -50%);
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--sidebar-foreground);
+  pointer-events: none;
 }
 .shellui-start {
   display: flex;

@@ -16,13 +16,14 @@ import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
+import { useIsTauriClient, useIsTauriRuntime, useMacOverlayChrome } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
+import { MAC_DRAG_REGION_PROPS, MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
 import {
   FLOATING_CHROME_MARGIN,
   FLOATING_HISTORY_CLUSTER_PX,
@@ -106,15 +107,14 @@ export function FloatingSidebar({
   const { i18n, t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
   const lang = i18n.language || 'en';
-  const trafficLights = useMacTrafficLights();
   const isTauriEnv = useIsTauriClient();
   const tauriRuntime = useIsTauriRuntime();
-  /** Tauri drops the floating edge gap so this row shares the traffic-light band. */
+  /** macOS: the panel top is the 32px strip; collapsed, a 32px strip runs over the content. */
+  const macStrip = useMacOverlayChrome();
+  /** Tauri drops the floating edge gap so this row shares the title bar band. */
   const edgeMargin = tauriRuntime ? 0 : FLOATING_CHROME_MARGIN;
-  /** Collapsed chip clears the corner lights and the history cluster. */
-  const chipLeadingPx =
-    (trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 0) +
-    (isTauriEnv ? FLOATING_HISTORY_CLUSTER_PX : 0);
+  /** Collapsed chip clears the history cluster (Windows / Linux Tauri). */
+  const chipLeadingPx = isTauriEnv ? FLOATING_HISTORY_CLUSTER_PX : 0;
 
   const sidebarNav = useMemo(() => filterNavigationForSidebar(navigation), [navigation]);
   const sections = useMemo(() => buildSections(sidebarNav), [sidebarNav]);
@@ -132,8 +132,8 @@ export function FloatingSidebar({
 
   const chipEdgePad = tauriRuntime
     ? {
-        height: DESKTOP_TITLEBAR_HEIGHT_PX,
-        paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+        height: SHELL_HEADER_HEIGHT_PX,
+        paddingTop: SHELL_HEADER_PAD_TOP_PX,
         paddingLeft: `calc(var(--shellui-safe-area-left, 0px) + ${chipLeadingPx}px)`,
         boxSizing: 'border-box' as const,
         alignItems: 'center',
@@ -230,8 +230,47 @@ export function FloatingSidebar({
 
   return (
     <>
+      {macStrip ? (
+        /*
+         * macOS collapsed: 32px strip over the content. Safe area 80, one glass group
+         * (expand, back, forward), then a drag spacer.
+         */
+        <div
+          data-shellui-floating-sidebar="collapsed"
+          data-shellui-mac-strip=""
+          {...MAC_DRAG_REGION_PROPS}
+          className={cn(
+            'absolute inset-x-0 top-0 z-[46] flex items-center select-none',
+            collapsed ? 'opacity-100' : 'pointer-events-none opacity-0',
+          )}
+          style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX, paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX }}
+          aria-hidden={!collapsed}
+          inert={!collapsed ? true : undefined}
+        >
+          <MacLightsSafeArea />
+          <div
+            data-shellui-no-drag=""
+            className="shellui-history-glass flex shrink-0 items-center text-sidebar-foreground"
+          >
+            <button
+              type="button"
+              tabIndex={collapsed ? 0 : -1}
+              className="shellui-floating-nav-control flex size-6 shrink-0 items-center justify-center transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              aria-label={toggleLabel}
+              aria-expanded={false}
+              onClick={onToggleCollapsed}
+            >
+              <SidebarPanelIcon className="size-4" />
+            </button>
+            {isTauriEnv ? <DesktopHistoryButtons strip /> : null}
+          </div>
+          <MacStripSpacer />
+        </div>
+      ) : null}
+
       {/* Collapsed expand chip — fades/scales in after the panel slides away. */}
       <div
+        hidden={macStrip}
         data-shellui-floating-sidebar="collapsed"
         className={cn(
           'shellui-floating-sidebar-chip pointer-events-none absolute top-0 left-0 z-[46] flex',
@@ -283,62 +322,92 @@ export function FloatingSidebar({
           style={{ width: FLOATING_SIDEBAR_WIDTH }}
           aria-label={tc('shellChrome.mainNav')}
         >
-          <div
-            className={cn(
-              'flex shrink-0 items-center border-b border-sidebar-border/80',
-              tauriRuntime ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
-            )}
-            style={
-              tauriRuntime
-                ? {
-                    height: DESKTOP_TITLEBAR_HEIGHT_PX,
-                    paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
-                  }
-                : undefined
-            }
-            {...(tauriRuntime
-              ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-              : {})}
-          >
-            {trafficLights ? (
+          {macStrip ? (
+            <>
+              {/* macOS strip: safe 80, drag spacer, back, forward, collapse. */}
               <div
-                className="h-full shrink-0"
-                style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
-                aria-hidden
-              />
-            ) : null}
-            <div
-              className="flex h-full min-w-0 flex-1 items-center gap-1"
-              style={{
-                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_GAP_PX : undefined,
-              }}
-            >
-              {isTauriEnv && !collapsed ? <DesktopHistoryButtons className="self-center" /> : null}
-              {appIcon ? (
-                <AppBrandIcon
-                  appIcon={appIcon}
-                  title={title}
-                  className="size-7 shrink-0"
-                />
-              ) : null}
-              <span
-                className="min-h-full min-w-0 flex-1 self-stretch"
-                {...(tauriRuntime
-                  ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
-                  : {})}
-              />
-              <button
-                type="button"
-                tabIndex={collapsed ? -1 : 0}
-                className="shellui-floating-nav-control flex size-8 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                aria-label={toggleLabel}
-                aria-expanded={!collapsed}
-                onClick={onToggleCollapsed}
+                data-shellui-mac-strip=""
+                {...MAC_DRAG_REGION_PROPS}
+                className="flex shrink-0 items-center pr-2"
+                style={{
+                  height: DESKTOP_TITLEBAR_HEIGHT_PX,
+                  paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+                }}
               >
-                <SidebarPanelIcon className="size-4" />
-              </button>
+                <MacLightsSafeArea />
+                <MacStripSpacer />
+                {isTauriEnv && !collapsed ? <DesktopHistoryButtons strip /> : null}
+                <button
+                  type="button"
+                  tabIndex={collapsed ? -1 : 0}
+                  data-shellui-no-drag=""
+                  className="shellui-floating-nav-control flex size-6 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label={toggleLabel}
+                  aria-expanded={!collapsed}
+                  onClick={onToggleCollapsed}
+                >
+                  <SidebarPanelIcon className="size-4" />
+                </button>
+              </div>
+              {/* Brand row under the strip: not a drag region. */}
+              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-sidebar-border/80 px-3 text-sidebar-foreground">
+                {appIcon ? (
+                  <AppBrandIcon
+                    appIcon={appIcon}
+                    title={title}
+                    className="size-5 shrink-0"
+                  />
+                ) : null}
+                {title ? (
+                  <span className="min-w-0 truncate text-[13px] font-semibold">{title}</span>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div
+              className={cn(
+                'flex shrink-0 items-center border-b border-sidebar-border/80',
+                tauriRuntime ? 'pr-2.5' : 'gap-2 px-2.5 py-2.5',
+              )}
+              style={
+                tauriRuntime
+                  ? {
+                      height: SHELL_HEADER_HEIGHT_PX,
+                      paddingTop: SHELL_HEADER_PAD_TOP_PX,
+                    }
+                  : undefined
+              }
+              {...(tauriRuntime ? MAC_DRAG_REGION_PROPS : {})}
+            >
+              <div className="flex h-full min-w-0 flex-1 items-center gap-1">
+                {isTauriEnv && !collapsed ? (
+                  <DesktopHistoryButtons className="self-center" />
+                ) : null}
+                {appIcon ? (
+                  <AppBrandIcon
+                    appIcon={appIcon}
+                    title={title}
+                    className="size-7 shrink-0"
+                  />
+                ) : null}
+                <span
+                  className="min-h-full min-w-0 flex-1 self-stretch"
+                  {...(tauriRuntime ? MAC_DRAG_REGION_PROPS : {})}
+                />
+                <button
+                  type="button"
+                  tabIndex={collapsed ? -1 : 0}
+                  data-shellui-no-drag=""
+                  className="shellui-floating-nav-control flex size-8 shrink-0 items-center justify-center text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  aria-label={toggleLabel}
+                  aria-expanded={!collapsed}
+                  onClick={onToggleCollapsed}
+                >
+                  <SidebarPanelIcon className="size-4" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2">
             {sections.map((section, sectionIndex) => {

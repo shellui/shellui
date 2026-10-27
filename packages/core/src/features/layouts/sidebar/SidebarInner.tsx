@@ -10,13 +10,15 @@ import {
 import { NavigationContent } from './NavigationContent';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
+import { MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
   DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  MAC_LIGHTS_SAFE_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 
@@ -48,9 +50,7 @@ export function SidebarInner({
   const showOverlayHeader = overlay && !collapsed;
   // Narrow Tauri window: sheet header must clear native traffic lights.
   const mobileSheetHeader = isMobile && trafficLights;
-  const mobileTrafficInset = mobileSheetHeader
-    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
-    : undefined;
+  const mobileTrafficInset = mobileSheetHeader ? MAC_LIGHTS_SAFE_PX : undefined;
   // Keep trigger on the right whenever an icon is configured (even while collapsed),
   // so it rides the sidebar width animation instead of jumping left.
   const hasAppIcon = Boolean(appIcon);
@@ -61,7 +61,9 @@ export function SidebarInner({
       title={title}
       data-shellui-no-drag=""
       className={cn(
-        'ml-1 w-5 min-w-0 shrink-0 overflow-hidden transition-[width,opacity,margin] duration-200 ease-linear',
+        'w-5 min-w-0 shrink-0 overflow-hidden transition-[width,opacity,margin] duration-200 ease-linear',
+        // macOS strip: the icon starts right at the 80px safe area edge.
+        showOverlayHeader ? 'ml-0' : 'ml-1',
         // Sync with sidebar collapse; icon fades/shrinks while trigger stays put.
         'group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0',
       )}
@@ -90,13 +92,17 @@ export function SidebarInner({
           inset && showOverlayHeader && '-mt-3 -ml-3 w-[calc(100%+1.5rem)]',
         )}
         style={{
-          height: DESKTOP_TITLEBAR_HEIGHT_PX,
-          // Nudge controls down so they optically match centered traffic lights.
-          paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
+          // macOS: the header is the 32px strip. Web, phones and caption bar hosts: 42px.
+          height: showOverlayHeader ? DESKTOP_TITLEBAR_HEIGHT_PX : SHELL_HEADER_HEIGHT_PX,
+          paddingTop: showOverlayHeader ? DESKTOP_TITLEBAR_PAD_TOP_PX : SHELL_HEADER_PAD_TOP_PX,
           ...(mobileSheetHeader ? { paddingLeft: mobileTrafficInset } : {}),
         }}
         {...(showOverlayHeader
-          ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
+          ? {
+              'data-shellui-drag-region': '',
+              'data-tauri-drag-region': '',
+              'data-shellui-mac-strip': '',
+            }
           : {})}
       >
         {showOverlayHeader ? (
@@ -105,37 +111,27 @@ export function SidebarInner({
             data-shellui-drag-region=""
             data-tauri-drag-region=""
           >
-            {trafficLights ? (
-              <div
-                className="h-full shrink-0"
-                style={{ width: MAC_TRAFFIC_LIGHTS_WIDTH_PX }}
-                aria-hidden
-              />
-            ) : null}
-            <div
-              className="flex h-full min-w-0 flex-1 items-center gap-1"
-              style={{
-                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_GAP_PX : 8,
-              }}
-            >
+            {/* 80px drag-only safe area next to the lights (12px in native fullscreen). */}
+            <MacLightsSafeArea />
+            <div className="flex h-full min-w-0 flex-1 items-center gap-1">
               {hasAppIcon ? brandIcon : null}
               {!hasAppIcon ? (
                 <SidebarTrigger
                   data-shellui-no-drag=""
-                  className="size-7 shrink-0 touch-manipulation"
+                  className="size-6 shrink-0 touch-manipulation"
                 />
               ) : null}
-              <div
-                aria-hidden
-                data-shellui-drag-region=""
-                data-tauri-drag-region=""
-                className="min-h-full min-w-[8px] flex-1 self-stretch"
-              />
-              {isTauriEnv ? <DesktopHistoryButtons className="self-center" /> : null}
+              <MacStripSpacer className="min-w-[8px]" />
+              {isTauriEnv ? (
+                <DesktopHistoryButtons
+                  strip
+                  className="self-center"
+                />
+              ) : null}
               {hasAppIcon ? (
                 <SidebarTrigger
                   data-shellui-no-drag=""
-                  className="size-7 shrink-0 touch-manipulation"
+                  className="size-6 shrink-0 touch-manipulation"
                 />
               ) : null}
               {hasAppIcon ? trailingInset : null}

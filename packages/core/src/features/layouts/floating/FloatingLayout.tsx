@@ -16,11 +16,11 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { useViewport } from '../../../hooks/use-viewport';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useMacTrafficLights } from '../chrome/runtime';
+import { useIsTauriClient, useMacOverlayChrome, useMacTrafficLights } from '../chrome/runtime';
 import {
-  DESKTOP_TITLEBAR_HEIGHT_PX,
-  DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  MAC_LIGHTS_SAFE_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { FloatingBottomDock } from './FloatingBottomDock';
 import { FloatingSidebar } from './FloatingSidebar';
@@ -51,6 +51,7 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
   useSoftKeyboard(viewport !== 'desktop');
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
+  const macStrip = useMacOverlayChrome();
   const currentLanguage = i18n.language || 'en';
 
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
@@ -117,13 +118,14 @@ export function FloatingLayout({ title, appIcon, navigation = [] }: FloatingLayo
       <SafeAreaTopbarOffset enabled={showSafeAreaTopbar} />
       <FloatingStatusScrim enabled={showStatusScrim} />
 
-      {isTauriEnv && !(showSidebar && !sidebarCollapsed) ? (
+      {/* macOS desktop: FloatingSidebar owns the strip, expanded or collapsed. */}
+      {isTauriEnv && !(showSidebar && !sidebarCollapsed) && !(showSidebar && macStrip) ? (
         <div
           className="pointer-events-auto absolute top-0 left-0 z-[46] flex items-center"
           style={{
-            height: DESKTOP_TITLEBAR_HEIGHT_PX,
-            paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
-            paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
+            height: SHELL_HEADER_HEIGHT_PX,
+            paddingTop: SHELL_HEADER_PAD_TOP_PX,
+            paddingLeft: trafficLights ? MAC_LIGHTS_SAFE_PX : 8,
           }}
           {...(trafficLights
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }

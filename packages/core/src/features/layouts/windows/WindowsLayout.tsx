@@ -37,11 +37,17 @@ import { useIsMobile } from '../../../hooks/use-mobile';
 import { readSafeAreaInsetBottom, readSafeAreaInsetTop } from '../chrome/viewport';
 import {
   DESKTOP_TITLEBAR_HEIGHT_PX,
-  DESKTOP_TITLEBAR_PAD_TOP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  SHELL_HEADER_HEIGHT_PX,
+  SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
-import { useIsTauriClient, useIsTauriRuntime, useMacTrafficLights } from '../chrome/runtime';
+import {
+  useIsTauriClient,
+  useIsTauriRuntime,
+  useMacOverlayChrome,
+  useMacTrafficLights,
+} from '../chrome/runtime';
+import { MAC_DRAG_REGION_PROPS, MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
 import { WindowTitleBarActions } from '../../chromeActions';
 import { DesktopDots } from './DesktopDots';
 
@@ -225,7 +231,10 @@ function AppWindow({
   const tauriRuntime = useIsTauriRuntime();
   const isTauriEnv = useIsTauriClient();
   const trafficLights = useMacTrafficLights();
-  const topInset = trafficLights ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
+  const macOverlay = useMacOverlayChrome();
+  // macOS: 32px strip on top (also in native fullscreen); windows clamp below it.
+  const macStrip = trafficLights || macOverlay;
+  const topInset = macStrip ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
   const topInsetRef = useRef(topInset);
   topInsetRef.current = topInset;
   const [frameUuid, setFrameUuid] = useState<string | null>(null);
@@ -565,9 +574,10 @@ function AppWindow({
         style={
           flushTitlebar
             ? {
-                height: DESKTOP_TITLEBAR_HEIGHT_PX,
-                paddingTop: DESKTOP_TITLEBAR_PAD_TOP_PX,
-                paddingLeft: trafficLights ? MAC_TRAFFIC_LIGHTS_WIDTH_PX : 8,
+                // Maximized under a native caption bar (Windows / Linux). macOS keeps its strip.
+                height: SHELL_HEADER_HEIGHT_PX,
+                paddingTop: SHELL_HEADER_PAD_TOP_PX,
+                paddingLeft: 8,
               }
             : undefined
         }
@@ -788,7 +798,11 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   /** Fullscreen phone chrome — includes iPhone landscape (wide but short). */
   const phoneMode = useWindowsPhoneMode();
   const trafficLights = useMacTrafficLights();
-  const topInset = trafficLights ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
+  const isTauriEnv = useIsTauriClient();
+  const macOverlay = useMacOverlayChrome();
+  // macOS: 32px strip on top (also in native fullscreen); windows clamp below it.
+  const macStrip = trafficLights || macOverlay;
+  const topInset = macStrip ? DESKTOP_TITLEBAR_HEIGHT_PX : 0;
   const currentLanguage = i18n.language || 'en';
   const hasCustomLoginNav = useMemo(() => hasLoginNavigationItem(navigation), [navigation]);
   const authAwareNavigation = useMemo(
@@ -995,17 +1009,25 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         />
         <DesktopDots watchRoot={desktopRef} />
 
-        {trafficLights ? (
+        {macStrip ? (
+          /* macOS strip: safe area 80, back, forward, drag spacer, focused title centred. */
           <div
             data-shellui-windows-titlebar=""
-            data-shellui-drag-region=""
-            data-tauri-drag-region=""
-            aria-hidden
-            className="shellui-windows-strip absolute inset-x-0 top-0 flex items-center justify-center"
+            data-shellui-mac-strip=""
+            {...MAC_DRAG_REGION_PROPS}
+            className="shellui-windows-strip absolute inset-x-0 top-0 flex items-center select-none"
             style={{ height: DESKTOP_TITLEBAR_HEIGHT_PX, zIndex: Z_INDEX.WINDOWS_TITLEBAR }}
           >
+            <MacLightsSafeArea />
+            {isTauriEnv ? <DesktopHistoryButtons strip /> : null}
+            <MacStripSpacer />
             {frontWindowLabel ? (
-              <span className="shellui-windows-strip-title truncate">{frontWindowLabel}</span>
+              <span
+                aria-hidden
+                className="shellui-windows-strip-title truncate"
+              >
+                {frontWindowLabel}
+              </span>
             ) : null}
           </div>
         ) : null}

@@ -24,6 +24,7 @@ export default defineConfig({
       'src/features/overlays/**/*.spec.ts',
       'src/features/theme/**/*.spec.ts',
       'src/features/layouts/chrome/**/*.spec.ts',
+      'src/features/layouts/chrome/**/*.spec.tsx',
       'src/features/layouts/branding/**/*.spec.ts',
       'src/features/layouts/floating/**/*.spec.ts',
       'src/features/layouts/windows/**/*.spec.ts',

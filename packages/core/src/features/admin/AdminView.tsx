@@ -10,8 +10,8 @@ import { useConfig } from '../config/useConfig';
 import type { NavigationItem } from '../config/types';
 import { AppLayout } from '../layouts/AppLayout';
 import {
-  MAC_TRAFFIC_LIGHTS_GAP_PX,
-  MAC_TRAFFIC_LIGHTS_WIDTH_PX,
+  DESKTOP_TITLEBAR_HEIGHT_PX,
+  MAC_LIGHTS_SAFE_PX,
   isShellUiRootWindow,
   SafeAreaTopbarOffset,
   SafeAreaTopbarStrip,
@@ -74,9 +74,9 @@ export const AdminView = () => {
 
   const showSafeAreaTopbar = isShellUiRootWindow();
   const trafficLights = useMacTrafficLights();
-  const chromeInset = trafficLights
-    ? MAC_TRAFFIC_LIGHTS_WIDTH_PX + MAC_TRAFFIC_LIGHTS_GAP_PX
-    : undefined;
+  const chromeInset = trafficLights ? MAC_LIGHTS_SAFE_PX : undefined;
+  // macOS desktop: the header is the 32px strip, controls centre on the lights line.
+  const macStrip = trafficLights && !isMobile;
   const headerStyle = {
     paddingLeft: chromeInset ?? 'max(0.5rem, var(--shellui-safe-area-left))',
     paddingRight: 'max(0.75rem, var(--shellui-safe-area-right))',
@@ -85,7 +85,7 @@ export const AdminView = () => {
           paddingTop: 'var(--shellui-safe-area-top)',
           height: `calc(${ADMIN_HEADER_HEIGHT_PX}px + var(--shellui-safe-area-top))`,
         }
-      : { height: ADMIN_HEADER_HEIGHT_PX }),
+      : { height: macStrip ? DESKTOP_TITLEBAR_HEIGHT_PX : ADMIN_HEADER_HEIGHT_PX }),
   } as const;
 
   return (
@@ -102,11 +102,13 @@ export const AdminView = () => {
           {...(trafficLights
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
             : {})}
+          {...(macStrip ? { 'data-shellui-mac-strip': '' } : {})}
         >
           <Button
             type="button"
             variant="ghost"
             size="sm"
+            className={macStrip ? 'h-6 px-2 text-[13px]' : undefined}
             data-shellui-no-drag=""
             onClick={() => navigate('/')}
           >
@@ -127,6 +129,7 @@ export const AdminView = () => {
           </Button>
           <div
             data-shellui-no-drag=""
+            data-shellui-strip-end=""
             className="flex items-center gap-2"
           >
             <LoginButton

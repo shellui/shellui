@@ -9,7 +9,7 @@ import {
   type LayoutChromeViewport,
   type ScrollChromeState,
 } from '@shellui/sdk';
-import { useIsTauriRuntime } from '../chrome/runtime';
+import { isMacOSDesktop, isTauriRuntime, useIsTauriRuntime } from '../chrome/runtime';
 import {
   computeFloatingInsets,
   floatingCollapsedActionsLeadingPx,
@@ -73,6 +73,7 @@ function buildChrome(
       sidebarCollapsed: desktopCollapsed,
       safeArea,
       edgeMargin,
+      macStrip: viewport === 'desktop' && isTauriRuntime() && isMacOSDesktop(),
     }),
   };
 }
@@ -198,6 +199,7 @@ export function useFloatingChrome(viewport: LayoutChromeViewport) {
       sidebarCollapsed: viewport === 'desktop' && sidebarCollapsed,
       safeArea,
       edgeMargin,
+      macStrip: viewport === 'desktop' && isTauriRuntime() && isMacOSDesktop(),
     });
   }, [viewport, sidebarCollapsed, edgeMargin]);
 
