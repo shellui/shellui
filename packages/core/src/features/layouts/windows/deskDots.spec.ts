@@ -4,12 +4,14 @@ import { DESK_DOTS, bucketAlpha, gridSize, isAccentDot } from './deskDots';
 import { isDesktopCovered } from './DesktopDots';
 
 describe('DESK_DOTS', () => {
-  it('keeps the calm parameters from the spec', () => {
+  it('runs at the website normal speed, capped at 30 fps', () => {
     expect(DESK_DOTS.fps).toBe(30);
     expect(DESK_DOTS.dprMax).toBe(2);
-    expect(DESK_DOTS.gustPx).toBe(3.5);
-    expect(DESK_DOTS.crossMs).toEqual([30000, 40000]);
-    expect(DESK_DOTS.everyMs).toEqual([9000, 15000]);
+    expect(DESK_DOTS.gustPx).toBe(7);
+    expect(DESK_DOTS.frontWidth).toBe(70);
+    expect(DESK_DOTS.crossMs).toEqual([6700, 10000]);
+    expect(DESK_DOTS.everyMs).toEqual([1000, 3000]);
+    expect([DESK_DOTS.spring, DESK_DOTS.damp]).toEqual([0.06, 0.82]);
   });
 });
 

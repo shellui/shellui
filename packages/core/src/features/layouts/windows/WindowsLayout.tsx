@@ -1002,7 +1002,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
         className="fixed inset-0 overflow-hidden bg-background"
         style={{ paddingBottom: TASKBAR_SLOT_CSS }}
       >
-        {/* Desktop: two low primary washes at the bottom, under the calm dot field. */}
+        {/* Desktop: two low primary washes at the bottom, under the dot field. */}
         <div
           aria-hidden
           className="shellui-desk-wash pointer-events-none absolute inset-0"

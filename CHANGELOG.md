@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🛠 Improvements
 
 - **Core:** Sidebar account block: initials or picture, name with email below and an up/down chevron, avatar only when collapsed.
+- **Core:** Windows layout: the desktop dot field moves at the website's normal speed, so the motion is visible. Reduced motion keeps the static grid.
 
 ## [0.7.0-alpha.10] - 2026-10-27
 
