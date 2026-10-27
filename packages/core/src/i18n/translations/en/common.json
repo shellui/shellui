@@ -155,5 +155,27 @@
     "navigation": "Navigation",
     "openNavigation": "Open navigation",
     "more": "More"
+  },
+  "shellChrome": {
+    "externalLink": "Opens in a new tab",
+    "mainNav": "Main",
+    "accountNav": "Account",
+    "toggleSidebar": "Toggle sidebar",
+    "resizeSidebar": "Resize sidebar",
+    "dragToResize": "Drag to resize",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "closeMenu": "Close menu",
+    "unreadCount": "{{count}} unread"
+  },
+  "windows": {
+    "applications": "Applications",
+    "chooseApp": "Choose an app to open in a window",
+    "noApps": "No applications available",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close",
+    "taskbar": "Taskbar",
+    "openApps": "Open windows"
   }
 }

@@ -155,5 +155,27 @@
     "navigation": "Navigation",
     "openNavigation": "Ouvrir la navigation",
     "more": "Plus"
+  },
+  "shellChrome": {
+    "externalLink": "S'ouvre dans un nouvel onglet",
+    "mainNav": "Principal",
+    "accountNav": "Compte",
+    "toggleSidebar": "Afficher ou masquer la barre latérale",
+    "resizeSidebar": "Redimensionner la barre latérale",
+    "dragToResize": "Faire glisser pour redimensionner",
+    "collapseSidebar": "Réduire la barre latérale",
+    "expandSidebar": "Développer la barre latérale",
+    "closeMenu": "Fermer le menu",
+    "unreadCount": "{{count}} non lus"
+  },
+  "windows": {
+    "applications": "Applications",
+    "chooseApp": "Choisissez une application à ouvrir dans une fenêtre",
+    "noApps": "Aucune application disponible",
+    "maximize": "Agrandir",
+    "restore": "Restaurer",
+    "close": "Fermer",
+    "taskbar": "Barre des tâches",
+    "openApps": "Fenêtres ouvertes"
   }
 }

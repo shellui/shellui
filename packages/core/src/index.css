@@ -96,6 +96,96 @@
 }
 
 /*
+ * Shell chrome tokens (layouts redesign). Every value is a theme token or a
+ * color-mix of tokens. They stay on :root / .dark so they resolve on <html>,
+ * where applyThemeToDocument writes the theme vars inline.
+ */
+:root {
+  --shellui-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --shellui-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --shellui-r-row: max(0px, calc(var(--radius) - 1px));
+  --shellui-r-card: calc(var(--radius) + 6px);
+  --shellui-r-float: min(calc(var(--radius) * 2), 1.25rem);
+  --shellui-r-pill: calc(var(--radius) * 999);
+  --shellui-nav-fg: color-mix(in oklch, var(--sidebar-foreground) 88%, transparent);
+  --shellui-nav-icon: color-mix(in oklch, var(--sidebar-foreground) 66%, transparent);
+  --shellui-nav-label: color-mix(in oklch, var(--sidebar-foreground) 58%, transparent);
+  --shellui-nav-hover: var(--sidebar-accent);
+  --shellui-nav-hover-inset: color-mix(in oklch, var(--sidebar-foreground) 7%, transparent);
+  --shellui-nav-active: var(--sidebar-primary);
+  --shellui-nav-active-fg: var(--sidebar-primary-foreground);
+  --shellui-nav-indicator: var(--sidebar-primary);
+  --shellui-hairline: color-mix(in oklch, var(--sidebar-border) 80%, transparent);
+  --shellui-dock-capsule: color-mix(in oklch, var(--sidebar-primary) 24%, transparent);
+  --shellui-dock-dim: color-mix(in oklch, var(--sidebar-foreground) 62%, transparent);
+  --shellui-glass: color-mix(in oklch, var(--sidebar) 72%, transparent);
+  --shellui-glass-solid: color-mix(in oklch, var(--sidebar) 97%, transparent);
+  --shellui-glass-edge: color-mix(in oklch, var(--sidebar-border) 70%, transparent);
+  --shellui-glass-hi: color-mix(in oklch, white 38%, transparent);
+  --shellui-glass-shadow:
+    0 1px 0 var(--shellui-glass-hi) inset, 0 8px 28px color-mix(in oklch, black 12%, transparent),
+    0 1px 3px color-mix(in oklch, black 8%, transparent);
+  --shellui-win-shadow:
+    0 1px 2px color-mix(in oklch, black 8%, transparent),
+    0 20px 44px -14px color-mix(in oklch, black 26%, transparent);
+  --shellui-win-shadow-idle:
+    0 1px 2px color-mix(in oklch, black 6%, transparent),
+    0 10px 24px -12px color-mix(in oklch, black 16%, transparent);
+  --shellui-desk-dot: color-mix(in oklch, var(--foreground) 15%, transparent);
+  --shellui-desk-wash: color-mix(in oklch, var(--primary) 12%, transparent);
+  --shellui-scrim: color-mix(in oklch, black 38%, transparent);
+}
+
+.dark {
+  --shellui-glass: color-mix(in oklch, var(--sidebar) 70%, transparent);
+  --shellui-glass-hi: color-mix(in oklch, white 10%, transparent);
+  --shellui-glass-shadow:
+    0 1px 0 var(--shellui-glass-hi) inset, 0 12px 36px color-mix(in oklch, black 42%, transparent),
+    0 1px 4px color-mix(in oklch, black 24%, transparent);
+  --shellui-win-shadow:
+    0 1px 2px color-mix(in oklch, black 30%, transparent),
+    0 24px 52px -14px color-mix(in oklch, black 60%, transparent);
+  --shellui-win-shadow-idle:
+    0 1px 2px color-mix(in oklch, black 24%, transparent),
+    0 12px 28px -12px color-mix(in oklch, black 40%, transparent);
+  --shellui-desk-dot: color-mix(in oklch, var(--foreground) 11%, transparent);
+  --shellui-desk-wash: color-mix(in oklch, var(--primary) 9%, transparent);
+  --shellui-dock-capsule: color-mix(in oklch, var(--sidebar-primary) 26%, transparent);
+  --shellui-scrim: color-mix(in oklch, black 55%, transparent);
+}
+
+/* Glass falls back to a near solid fill when transparency is unwanted or unsupported. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --shellui-glass: var(--shellui-glass-solid);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --shellui-glass: var(--shellui-glass-solid);
+  }
+}
+
+/* Shared glass surface: floating chrome, taskbar, start menu, phone dock. */
+.shellui-glass {
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--shellui-glass-edge);
+  box-shadow: var(--shellui-glass-shadow);
+}
+
+/* Chrome focus: inset ring, no detached halo on tinted chrome backgrounds. */
+.shellui-chrome-focus:focus-visible,
+[data-shellui-chrome-focus] :is(a, button, [role='tab'], [role='menuitem']):focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+
+/*
  * Padding only — never fold these into shell height. Use for chrome clearance
  * (titlebar, sheet edges, home indicator). The shell itself is sized by
  * --shellui-app-height (100dvh in CSS).

@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🛠 Improvements
+
+- **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop background, in light and dark. Glass turns solid under reduced transparency.
+
 ## [0.7.0-alpha.9] - 2026-10-27
 
 ### 🚨 Changed
