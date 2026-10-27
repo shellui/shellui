@@ -38,8 +38,9 @@ describe('navContrast', () => {
   });
 
   it('applyTheme sets and clears the attribute on <html>', () => {
-    const twitter = curatedThemes.find((t) => t.name === 'twitter')!;
-    const shellui = curatedThemes.find((t) => t.name === 'shellui')!;
+    const twitter = curatedThemes.find((t) => t.name === 'twitter');
+    const shellui = curatedThemes.find((t) => t.name === 'shellui');
+    if (!twitter || !shellui) throw new Error('curated themes twitter and shellui are required');
     applyTheme({ ...twitter, fontFiles: [] }, false);
     expect(document.documentElement.getAttribute('data-shellui-nav-contrast')).toBe('low');
     applyTheme({ ...shellui, fontFiles: [] }, false);
