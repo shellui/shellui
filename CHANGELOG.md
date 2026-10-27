@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+
+- **Core:** `shellui start` no longer serves cached shell scripts and styles from the dev service worker, so an upgrade shows the new shell on the first load. Dev caches are named after the core version and older ones are removed.
+
 ## [0.7.0-alpha.10] - 2026-10-27
 
 ### ✨ Feature

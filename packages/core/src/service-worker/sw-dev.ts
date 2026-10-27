@@ -2,26 +2,31 @@
 
 import { cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { getLogger } from '@shellui/sdk';
+import { version as coreVersion } from '../../package.json';
+import { devCacheNames, isStaleDevCache } from './devCaches';
 
 const _logger = getLogger('shellcore');
 
 declare const self: ServiceWorkerGlobalScope;
 
+const CACHE = devCacheNames(coreVersion);
+
 // Clean up old caches
 cleanupOutdatedCaches();
 
-// In dev mode, we don't precache (no manifest available)
-// But we can still cache resources on-demand
+// In dev mode, we don't precache (no manifest available).
+// Scripts, styles and workers always come from the dev server: Vite serves them at
+// the same URLs in every version, so a cached copy would show an older shell.
 
 // Cache images with CacheFirst strategy
 registerRoute(
   ({ request }) => request.destination === 'image',
   new CacheFirst({
-    cacheName: 'images',
+    cacheName: CACHE.images,
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200],
@@ -38,23 +43,7 @@ registerRoute(
 registerRoute(
   ({ request }) => request.destination === 'document',
   new NetworkFirst({
-    cacheName: 'html-cache',
-    plugins: [
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  }),
-);
-
-// Cache CSS and JS files with StaleWhileRevalidate
-registerRoute(
-  ({ request }) =>
-    request.destination === 'style' ||
-    request.destination === 'script' ||
-    request.destination === 'worker',
-  new StaleWhileRevalidate({
-    cacheName: 'static-resources',
+    cacheName: CACHE.html,
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200],
@@ -67,7 +56,7 @@ registerRoute(
 registerRoute(
   ({ request }) => request.destination === 'font',
   new CacheFirst({
-    cacheName: 'fonts',
+    cacheName: CACHE.fonts,
     plugins: [
       new CacheableResponsePlugin({
         statuses: [0, 200],
@@ -87,5 +76,16 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Drop caches from older dev workers (unversioned names or another core version).
+      const names = await caches.keys();
+      await Promise.all(
+        names
+          .filter((name) => isStaleDevCache(name, coreVersion))
+          .map((name) => caches.delete(name)),
+      );
+      await self.clients.claim();
+    })(),
+  );
 });
