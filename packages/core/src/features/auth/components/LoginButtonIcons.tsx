@@ -1,10 +1,5 @@
-export const SidebarCaretIcon = ({
-  className,
-  isOpen,
-}: {
-  className?: string;
-  isOpen: boolean;
-}) => (
+/** lucide chevrons-up-down */
+export const ChevronsUpDownIcon = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -18,7 +13,8 @@ export const SidebarCaretIcon = ({
     className={className}
     aria-hidden
   >
-    {isOpen ? <path d="m15 6-6 6 6 6" /> : <path d="m9 6 6 6-6 6" />}
+    <path d="m7 15 5 5 5-5" />
+    <path d="m7 9 5-5 5 5" />
   </svg>
 );
 

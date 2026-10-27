@@ -20,6 +20,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### 🛠 Improvements
+
+- **Core:** Sidebar account block: initials or picture, name with email below and an up/down chevron, avatar only when collapsed.
+
 ## [0.7.0-alpha.10] - 2026-10-27
 
 ### ✨ Feature
