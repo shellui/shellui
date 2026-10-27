@@ -1642,3 +1642,94 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
     box-shadow: 0 1px 2px color-mix(in oklch, black 5%, transparent);
   }
 }
+
+/*
+ * App bar (app-bar and app-bar-inset): nav items, end buttons and menus.
+ * Underline marks the active item; the inset bar uses a raised pill instead.
+ */
+.shellui-appbar-item,
+.shellui-appbar-end {
+  position: relative;
+  border-radius: var(--shellui-r-row);
+  color: var(--shellui-dock-dim);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-appbar-item {
+  padding-inline: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.shellui-appbar-item:hover,
+.shellui-appbar-item[aria-expanded='true'],
+.shellui-appbar-end:hover {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-foreground);
+}
+.shellui-appbar-item.is-active,
+.shellui-appbar-end.is-active {
+  color: var(--sidebar-foreground);
+  font-weight: 600;
+}
+.shellui-appbar-item.is-active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--shellui-nav-indicator);
+}
+.shellui-appbar-end.is-active {
+  background-color: var(--shellui-nav-hover);
+}
+.shellui-appbar-item:focus-visible,
+.shellui-appbar-end:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-appbar-menu {
+  padding: 4px;
+  border-radius: calc(var(--radius) + 2px);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 12px 32px -8px color-mix(in oklch, black 22%, transparent),
+    0 2px 6px color-mix(in oklch, black 8%, transparent);
+}
+.shellui-appbar-menu .shellui-appbar-menu-item {
+  min-height: 32px;
+  font-size: 13.5px;
+  border-radius: var(--shellui-r-row);
+}
+.shellui-appbar-menu .shellui-appbar-menu-item.is-active {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 550;
+}
+.shellui-appbar-menu .shellui-appbar-menu-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .shellui-appbar-menu .shellui-appbar-menu-item {
+    min-height: 44px;
+    font-size: 15px;
+  }
+}
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-appbar-item {
+    height: 30px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-appbar-item,
+  .shellui-appbar-end {
+    transition: none;
+  }
+}

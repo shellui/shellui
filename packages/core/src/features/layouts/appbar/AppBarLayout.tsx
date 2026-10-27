@@ -243,12 +243,11 @@ function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }
 
 const navTriggerClass = (active: boolean) =>
   cn(
-    // h-8 fills the taller app-bar after the top pad.
-    'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium transition-colors',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-    active
-      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-      : 'text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+    // h-8 fills the taller app-bar after the top pad. Colours, hover and the
+    // active indicator live in index.css (`.shellui-appbar-item`).
+    'shellui-appbar-item inline-flex h-8 shrink-0 items-center gap-1.5 px-2.5 text-sm font-medium',
+    'focus-visible:outline-none',
+    active && 'is-active',
   );
 
 /** Text link / action used in the bar (not inside a dropdown). */
@@ -279,6 +278,7 @@ function AppBarNavLink({
       <button
         type="button"
         className={className}
+        data-active={isActive ? 'true' : undefined}
         onClick={() => navigateToItem(item)}
       >
         {content}
@@ -290,6 +290,8 @@ function AppBarNavLink({
     <Link
       to={pathPrefix}
       className={className}
+      data-active={isActive ? 'true' : undefined}
+      aria-current={isActive ? 'page' : undefined}
     >
       {content}
     </Link>
@@ -309,7 +311,7 @@ function AppBarNavMenuItem({
 }) {
   const isActive = navItemIsActive(item, activePathPrefix);
   const pathPrefix = getNavPathPrefix(item);
-  const itemClass = cn('gap-2 text-sm', isActive && 'bg-accent text-accent-foreground');
+  const itemClass = cn('shellui-appbar-menu-item gap-2 text-sm', isActive && 'is-active');
   const content = (
     <>
       <AppBarItemIcon
@@ -342,6 +344,7 @@ function AppBarNavMenuItem({
       <Link
         to={pathPrefix}
         onClick={onNavigate}
+        aria-current={isActive ? 'page' : undefined}
       >
         {content}
       </Link>
@@ -375,14 +378,17 @@ function AppBarNavCategory({
           variant="ghost"
           size="sm"
           className={cn(navTriggerClass(active))}
+          data-active={active ? 'true' : undefined}
+          aria-haspopup="menu"
           aria-expanded={open}
         >
           <span className="truncate">{label}</span>
-          <CaretDownIcon className="size-3 shrink-0 opacity-70" />
+          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
+        className="shellui-appbar-menu"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         {items.map((item, index) => (
@@ -427,17 +433,19 @@ function AppBarNavMore({
           variant="ghost"
           size="sm"
           className={cn(navTriggerClass(moreActive))}
+          data-active={moreActive ? 'true' : undefined}
           aria-label={t('desktopChrome.more')}
+          aria-haspopup="menu"
           aria-expanded={open}
         >
           <span>{t('desktopChrome.more')}</span>
-          <CaretDownIcon className="size-3 shrink-0 opacity-70" />
+          <CaretDownIcon className="size-3.5 shrink-0 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
         onCloseAutoFocus={(event) => event.preventDefault()}
-        className="min-w-[12rem]"
+        className="shellui-appbar-menu min-w-[12rem]"
       >
         {entries.map((entry, entryIndex) => {
           if (entry.type === 'link') {
@@ -458,7 +466,7 @@ function AppBarNavMore({
           return (
             <div key={entry.key}>
               {entryIndex > 0 ? <DropdownMenuSeparator /> : null}
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+              <DropdownMenuLabel className="shellui-appbar-menu-label text-xs font-semibold text-muted-foreground">
                 {categoryLabel}
               </DropdownMenuLabel>
               {entry.items.map((item, index) => (
@@ -502,7 +510,7 @@ function AppBarNavMeasureChip({
         />
       ) : null}
       {label}
-      {withCaret ? <CaretDownIcon className="size-3 shrink-0 opacity-70" /> : null}
+      {withCaret ? <CaretDownIcon className="size-3.5 shrink-0 opacity-70" /> : null}
     </span>
   );
 }
@@ -524,7 +532,7 @@ function AppBarNav({
 }) {
   const { t } = useTranslation();
   const entries = useMemo(() => sectionsToEntries(sections), [sections]);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
   const measureRefs = useRef<(HTMLElement | null)[]>([]);
   const moreMeasureRef = useRef<HTMLElement | null>(null);
   const [visibleCount, setVisibleCount] = useState(entries.length);
@@ -587,8 +595,9 @@ function AppBarNav({
   const moreLabel = t('desktopChrome.more');
 
   return (
-    <div
+    <nav
       ref={containerRef}
+      aria-label={t('shellChrome.mainNav')}
       className="relative flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden"
     >
       {/* Off-screen width probes (no DropdownMenu — avoids portal noise). */}
@@ -665,7 +674,7 @@ function AppBarNav({
           className="h-full min-h-8 min-w-2 flex-1 self-stretch"
         />
       ) : null}
-    </div>
+    </nav>
   );
 }
 
@@ -679,6 +688,7 @@ function TopBarEndItem({
   label: string;
   activePathPrefix: string | null;
 }) {
+  const { t } = useTranslation();
   const pathPrefix = getNavPathPrefix(item);
   const isOverlay = item.openIn === 'modal' || item.openIn === 'drawer';
   const isExternal = item.openIn === 'external';
@@ -703,10 +713,8 @@ function TopBarEndItem({
   );
 
   const buttonClass = cn(
-    'flex size-8 items-center justify-center rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-    isActive
-      ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground',
+    'shellui-appbar-end flex size-8 items-center justify-center cursor-pointer focus-visible:outline-none',
+    isActive && 'is-active',
   );
 
   const wrap = (node: ReactNode) => <AppBarTooltip label={label}>{node}</AppBarTooltip>;
@@ -742,7 +750,7 @@ function TopBarEndItem({
         target="_blank"
         rel="noopener noreferrer"
         className={buttonClass}
-        aria-label={label}
+        aria-label={`${label} (${t('shellChrome.externalLink')})`}
       >
         {iconEl}
       </a>,
@@ -753,6 +761,7 @@ function TopBarEndItem({
       to={pathPrefix}
       className={buttonClass}
       aria-label={label}
+      aria-current={isActive ? 'page' : undefined}
     >
       {iconEl}
     </Link>,

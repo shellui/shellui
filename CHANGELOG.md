@@ -25,11 +25,13 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop background, in light and dark. Glass turns solid under reduced transparency.
 - **Core:** `applyTheme` checks the active nav pair against 4.5:1 and sets `data-shellui-nav-contrast="low"`, so themes with a pale primary get a tinted active pill.
 - **Core:** Sidebar nav marks the active row with `aria-current`, names its landmarks (Main, Account), announces external links and uses an inset focus ring. Toggle and resize labels are now translated (en, fr).
+- **Core:** App bar nav is a named landmark, marks the current page with `aria-current`, flags menu triggers with `aria-haspopup` and labels external end links.
 
 ### 🚨 Changed
 
 - **Core:** Sidebar layout: the active row is a primary color pill with a distinct hover state, 13.5px rows, quieter group labels, a hairline footer, touch-size rows in the mobile sheet and denser rows in the Tauri desktop app.
 - **Core:** Sidebar-inset layout: content card uses the theme card radius with a softer shadow, a raised active pill, a hover tint that reads on the chrome tray and no footer hairline.
+- **Core:** App bar layout: the active item gets a primary underline, hover uses the nav hover token, menus have touch-size rows on phones and the Tauri desktop app uses denser items.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 
