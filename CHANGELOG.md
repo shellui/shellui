@@ -32,6 +32,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Windows layout: start menu group labels at 12px / 600 in normal case, a start menu footer with the account row and a Settings button, and icon-only taskbar end items with labels and tooltips.
 - **Core:** Fullscreen layout: on phones the content clears the safe areas (top inset plus 12px, sides and bottom by their inset). Nested shells and the macOS strip are unchanged.
 
+### 🐛 Bug Fixes
+
+- **Core:** `shellui start` no longer serves cached shell scripts and styles from the dev service worker, so an upgrade shows the new shell on the first load. Dev caches are named after the core version and older ones are removed.
+
 ## [0.7.0-alpha.10] - 2026-10-27
 
 ### ✨ Feature
