@@ -154,6 +154,19 @@
   --shellui-scrim: color-mix(in oklch, black 55%, transparent);
 }
 
+/*
+ * Contrast guard: applyTheme sets data-shellui-nav-contrast="low" when the
+ * solid active pill falls under 4.5:1. Active rows switch to a tinted pill.
+ */
+:root {
+  --shellui-nav-active-icon: var(--shellui-nav-active-fg);
+}
+html[data-shellui-nav-contrast='low'] {
+  --shellui-nav-active: color-mix(in oklch, var(--sidebar-primary) 20%, transparent);
+  --shellui-nav-active-fg: var(--sidebar-foreground);
+  --shellui-nav-active-icon: var(--sidebar-primary);
+}
+
 /* Glass falls back to a near solid fill when transparency is unwanted or unsupported. */
 @media (prefers-reduced-transparency: reduce) {
   :root {

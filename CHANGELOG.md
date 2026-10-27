@@ -23,6 +23,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🛠 Improvements
 
 - **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop background, in light and dark. Glass turns solid under reduced transparency.
+- **Core:** `applyTheme` checks the active nav pair against 4.5:1 and sets `data-shellui-nav-contrast="low"`, so themes with a pale primary get a tinted active pill.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 
