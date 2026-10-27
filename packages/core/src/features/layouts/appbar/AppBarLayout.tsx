@@ -45,6 +45,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import { useSettings } from '../../settings/hooks/useSettings';
 import { EllipsisIcon, NavIcon } from '../sidebar/SidebarIcons';
 import { pickVisibleEntries } from './appBarOverflow';
+import { AppBarItemIcon } from './AppBarItemIcon';
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
 import {
@@ -211,39 +212,6 @@ function CaretDownIcon({ className }: { className?: string }) {
   );
 }
 
-function itemIconSrc(item: NavigationItem): string | null {
-  if (item.icon) return item.icon;
-  if (item.openIn === 'external') return getExternalFaviconUrl(item.url);
-  return null;
-}
-
-/** Compact icon (or first-letter fallback) for start-nav links. */
-function AppBarItemIcon({ item, label }: { item: NavigationItem; label: string }) {
-  const iconSrc = itemIconSrc(item);
-  const firstLetter = label ? label.charAt(0).toUpperCase() : '?';
-  if (iconSrc) {
-    return (
-      <span
-        className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted/60 p-0.5"
-        aria-hidden
-      >
-        <NavIcon
-          src={iconSrc}
-          className="size-3"
-        />
-      </span>
-    );
-  }
-  return (
-    <span
-      className="flex size-5 shrink-0 items-center justify-center rounded-md bg-muted p-0.5 text-[9px] font-semibold leading-none text-muted-foreground"
-      aria-hidden
-    >
-      {firstLetter}
-    </span>
-  );
-}
-
 const navTriggerClass = (active: boolean) =>
   cn(
     // h-8 fills the taller app-bar after the top pad. Colours, hover and the
@@ -268,10 +236,7 @@ function AppBarNavLink({
   const className = navTriggerClass(isActive);
   const content = (
     <>
-      <AppBarItemIcon
-        item={item}
-        label={label}
-      />
+      <AppBarItemIcon item={item} />
       <span className="truncate">{label}</span>
     </>
   );
@@ -319,10 +284,7 @@ function AppBarNavMenuItem({
   const itemClass = cn('shellui-appbar-menu-item gap-2 text-sm', isActive && 'is-active');
   const content = (
     <>
-      <AppBarItemIcon
-        item={item}
-        label={label}
-      />
+      <AppBarItemIcon item={item} />
       <span className="truncate">{label}</span>
     </>
   );
@@ -512,7 +474,7 @@ function AppBarNavMeasureChip({
     >
       {withIcon ? (
         <span
-          className="size-5 shrink-0"
+          className="size-4 shrink-0"
           aria-hidden
         />
       ) : null}

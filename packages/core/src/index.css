@@ -1758,6 +1758,9 @@ html:not([data-shellui-host='tauri'])
   font-size: 13.5px;
   border-radius: var(--shellui-r-row);
 }
+.shellui-appbar-menu .shellui-appbar-menu-item > :first-child:is(svg, img, span[aria-hidden]) {
+  color: var(--muted-foreground);
+}
 .shellui-appbar-menu .shellui-appbar-menu-item.is-active {
   background-color: var(--accent);
   color: var(--accent-foreground);

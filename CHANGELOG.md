@@ -27,6 +27,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** Sidebar layout: app name next to the logo (fades out when collapsed), no border under the header, 2px gaps between nav items, inset header pulled flush on the web, collapsed tooltips in foreground colours after 200ms, and the toggle reports `aria-expanded` and `aria-controls`.
 - **Core:** Sidebar layout on phones: 48px header with a 40px trigger and the page title centred, and a 52px sheet header with the logo, app name and a "Close menu" button.
 - **Core:** App bar: app name next to the logo on the web, the active underline sits on the bar's bottom border, More is a "···" icon button (labelled "More"), and the active item never hides inside More on narrow screens.
+- **Core:** App bar: nav items and their menus use plain 16px icons, with no muted tile or letter badge.
 
 ## [0.7.0-alpha.10] - 2026-10-27
 
