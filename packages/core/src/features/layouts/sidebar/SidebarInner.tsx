@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { NavigationItem, NavigationGroup, ThemeAsset } from '../../config/types';
 import {
   SidebarHeader,
@@ -36,6 +37,7 @@ export function SidebarInner({
   /** Sidebar-inset: the column is padded, so the title row must break out to meet the lights. */
   inset?: boolean;
 }) {
+  const { t } = useTranslation();
   const isTauriEnv = useIsTauriClient();
   const overlay = useMacOverlayChrome();
   const trafficLights = useMacTrafficLights();
@@ -153,15 +155,28 @@ export function SidebarInner({
           </div>
         )}
       </SidebarHeader>
-      <SidebarContent className="gap-1">
-        <NavigationContent navigation={startNav} />
+      <SidebarContent className="shellui-nav gap-1">
+        <nav
+          aria-label={t('shellChrome.mainNav')}
+          className="flex min-w-0 flex-col gap-1"
+        >
+          <NavigationContent navigation={startNav} />
+        </nav>
       </SidebarContent>
-      <SidebarFooter className="gap-0 border-t border-sidebar-border px-0 pt-0 pb-[max(0.5rem,var(--shellui-safe-area-bottom))]">
+      <SidebarFooter
+        data-shellui-nav-footer=""
+        className="shellui-nav gap-0 border-t border-sidebar-border px-0 pt-0 pb-[max(0.5rem,var(--shellui-safe-area-bottom))]"
+      >
         {(endItems.length > 0 || showAuthButton) && (
-          <NavigationContent
-            navigation={endItems}
-            trailing={showAuthButton ? <LoginButton variant="sidebar" /> : undefined}
-          />
+          <nav
+            aria-label={t('shellChrome.accountNav')}
+            className="flex min-w-0 flex-col"
+          >
+            <NavigationContent
+              navigation={endItems}
+              trailing={showAuthButton ? <LoginButton variant="sidebar" /> : undefined}
+            />
+          </nav>
         )}
       </SidebarFooter>
     </>

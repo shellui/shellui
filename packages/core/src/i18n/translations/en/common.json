@@ -166,7 +166,8 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "closeMenu": "Close menu",
-    "unreadCount": "{{count}} unread"
+    "unreadCount": "{{count}} unread",
+    "sheetDescription": "Main navigation and account links"
   },
   "windows": {
     "applications": "Applications",

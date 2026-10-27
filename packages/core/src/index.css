@@ -1502,3 +1502,121 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 [data-slot='sidebar-wrapper'][data-resizing] iframe {
   pointer-events: none;
 }
+
+/*
+ * Sidebar nav rows (sidebar and sidebar-inset, desktop column and mobile sheet).
+ * `.shellui-nav` wraps SidebarContent and SidebarFooter in SidebarInner, so the
+ * same rules reach the Sheet portal. Unlayered: wins over the shadcn utilities.
+ */
+.shellui-nav [data-sidebar='menu-button'] {
+  height: 32px;
+  padding-inline: 10px;
+  gap: 10px;
+  border-radius: var(--shellui-r-row);
+  font-size: 13.5px;
+  font-weight: 450;
+  color: var(--shellui-nav-fg);
+  transition:
+    background-color 150ms var(--shellui-ease),
+    color 150ms var(--shellui-ease);
+}
+.shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--shellui-nav-icon);
+  transition: color 150ms var(--shellui-ease);
+}
+.shellui-nav [data-sidebar='menu-button']:hover,
+.shellui-nav [data-sidebar='menu-button']:active {
+  background-color: var(--shellui-nav-hover);
+  color: var(--sidebar-accent-foreground);
+}
+.shellui-nav [data-sidebar='menu-button']:hover .shellui-nav-icon {
+  color: currentColor;
+}
+.shellui-nav [data-sidebar='menu-button'][data-active='true'],
+.shellui-nav [data-sidebar='menu-button'][data-active='true']:hover {
+  background-color: var(--shellui-nav-active);
+  color: var(--shellui-nav-active-fg);
+  font-weight: 550;
+}
+.shellui-nav [data-sidebar='menu-button'][data-active='true'] .shellui-nav-icon {
+  color: var(--shellui-nav-active-icon);
+}
+.shellui-nav [data-sidebar='menu-button']:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+  --tw-ring-shadow: 0 0 transparent;
+  --tw-ring-offset-shadow: 0 0 transparent;
+}
+.shellui-nav .shellui-nav-label {
+  height: auto;
+  padding: 12px 10px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--shellui-nav-label);
+}
+.shellui-nav [data-sidebar='group'] {
+  position: relative;
+}
+/* Collapsed rail: the hidden group label leaves a 24 x 1 px hairline. */
+.group[data-collapsible='icon']
+  .shellui-nav
+  [data-sidebar='group']:has(.shellui-nav-label)::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 24px;
+  height: 1px;
+  transform: translateX(-50%);
+  background: var(--shellui-hairline);
+}
+.shellui-nav[data-shellui-nav-footer] {
+  border-top-color: var(--shellui-hairline);
+  padding: 6px 0 max(8px, var(--shellui-safe-area-bottom));
+}
+
+/* Rail: 2 px ring line on hover and while dragging. */
+[data-shellui-sidebar-layout] [data-sidebar='rail']:hover::after,
+[data-shellui-sidebar-layout]
+  [data-slot='sidebar-wrapper'][data-resizing]
+  [data-sidebar='rail']::after {
+  background-color: var(--sidebar-ring);
+}
+
+/* Phones: sheet rows grow to touch size. */
+[data-mobile='true'] .shellui-nav [data-sidebar='menu-button'] {
+  height: 44px;
+  font-size: 15px;
+}
+[data-mobile='true'] .shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+[data-mobile='true'] .shellui-nav .shellui-nav-label {
+  font-size: 12.5px;
+}
+[data-sheet-overlay]:has(+ [data-sidebar='sidebar'][data-mobile='true']) {
+  background-color: var(--shellui-scrim);
+}
+
+/* Tauri desktop: denser rows, closer to native source lists. */
+@media (min-width: 768px) {
+  html[data-shellui-host='tauri'] .shellui-nav [data-sidebar='menu-button'] {
+    height: 30px;
+    font-size: 13px;
+  }
+  html[data-shellui-host='tauri'] .shellui-nav .shellui-nav-label {
+    font-size: 11.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shellui-nav [data-sidebar='menu-button'],
+  .shellui-nav [data-sidebar='menu-button'] .shellui-nav-icon {
+    transition: none;
+  }
+}

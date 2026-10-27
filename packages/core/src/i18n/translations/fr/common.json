@@ -166,7 +166,8 @@
     "collapseSidebar": "Réduire la barre latérale",
     "expandSidebar": "Développer la barre latérale",
     "closeMenu": "Fermer le menu",
-    "unreadCount": "{{count}} non lus"
+    "unreadCount": "{{count}} non lus",
+    "sheetDescription": "Navigation principale et liens du compte"
   },
   "windows": {
     "applications": "Applications",
