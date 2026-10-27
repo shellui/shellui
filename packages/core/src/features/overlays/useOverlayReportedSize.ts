@@ -27,7 +27,12 @@ export type ReportedOverlaySize = {
  * On close: last size is kept for CLOSE_SIZE_CLEAR_MS so exit animation does not
  * shrink back to the pending spinner. On open: size resets immediately (pending again).
  */
-export function useOverlayReportedSize(enabled: boolean, active: boolean) {
+export function useOverlayReportedSize(
+  enabled: boolean,
+  active: boolean,
+  /** Share of the overlay max height a report may reach. Phone sheets pass 1: CSS caps them. */
+  maxRatio = MAX_VIEWPORT_RATIO,
+) {
   const [reported, setReported] = useState<ReportedOverlaySize | null>(null);
   const [fallback, setFallback] = useState(false);
   const lastRef = useRef<ReportedOverlaySize | null>(null);
@@ -69,7 +74,7 @@ export function useOverlayReportedSize(enabled: boolean, active: boolean) {
 
       // Clamp against the shell height (not raw innerHeight / dvh), so standalone
       // iOS overlays cannot outgrow the visible screen.
-      const maxH = overlayMaxHeightPx(MAX_VIEWPORT_RATIO);
+      const maxH = overlayMaxHeightPx(maxRatio);
       const rawH = Math.ceil(height);
       const clampedH = Math.min(Math.max(rawH, MIN_CONTENT_HEIGHT), maxH);
       const wasClamped = rawH > maxH;
@@ -111,7 +116,7 @@ export function useOverlayReportedSize(enabled: boolean, active: boolean) {
       cleanup();
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     };
-  }, [enabled, active]);
+  }, [enabled, active, maxRatio]);
 
   const effectiveReported =
     reported ??

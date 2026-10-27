@@ -9,7 +9,7 @@
 const APP_HEIGHT_VAR = '--shellui-app-height';
 
 /** Read a CSS length on :root (px). `env(safe-area-*)` resolves through a probe. */
-function readRootLengthPx(cssLength: string): number {
+export function readCssLengthPx(cssLength: string): number {
   if (typeof document === 'undefined') return 0;
   const probe = document.createElement('div');
   probe.style.cssText =
@@ -22,11 +22,18 @@ function readRootLengthPx(cssLength: string): number {
 }
 
 export function readSafeAreaInsetTop(): number {
-  return readRootLengthPx('var(--shellui-safe-area-top, env(safe-area-inset-top, 0px))');
+  return readCssLengthPx('var(--shellui-safe-area-top, env(safe-area-inset-top, 0px))');
+}
+
+/** Phone bottom sheet offset from the screen bottom: the drawer gap plus the home indicator. */
+export function readDrawerBottomOffset(): number {
+  return readCssLengthPx(
+    'var(--shellui-drawer-bottom, calc(8px + env(safe-area-inset-bottom, 0px)))',
+  );
 }
 
 export function readSafeAreaInsetBottom(): number {
-  return readRootLengthPx('var(--shellui-safe-area-bottom, env(safe-area-inset-bottom, 0px))');
+  return readCssLengthPx('var(--shellui-safe-area-bottom, env(safe-area-inset-bottom, 0px))');
 }
 
 /** Current shell height in CSS pixels (falls back to innerHeight). */
@@ -40,7 +47,7 @@ export function readAppHeightPx(): number {
     }
     // Resolve dvh/vh/% via a probe so browser-tab fallback still works.
     if (raw) {
-      const viaProbe = readRootLengthPx(raw);
+      const viaProbe = readCssLengthPx(raw);
       if (viaProbe > 0) return viaProbe;
     }
   }

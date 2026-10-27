@@ -17,11 +17,13 @@ import {
 import { Drawer as VaulDrawer } from 'vaul';
 import { cn } from '../../lib/utils';
 import { Z_INDEX } from '../../lib/z-index';
+import { readCssLengthPx } from '../../features/layouts/chrome/viewport';
 
 export type DrawerDirection = 'top' | 'bottom' | 'left' | 'right';
 
 const MIN_DRAWER_SIZE = 240;
-const VIEWPORT_MARGIN = 8;
+/** Fallback edge offset (desktop gap) when the CSS token cannot be read. */
+const FALLBACK_DRAWER_OFFSET_PX = 12;
 
 const Drawer = ({
   open,
@@ -65,7 +67,7 @@ const DrawerOverlay = forwardRef<
   <VaulDrawer.Overlay
     ref={ref}
     data-drawer-overlay
-    className={cn('fixed inset-0 bg-black/50 backdrop-blur-[1px]', className)}
+    className={cn('fixed inset-0 bg-[var(--shellui-scrim)]', className)}
     style={{ zIndex: Z_INDEX.DRAWER_OVERLAY }}
     onClick={(e) => {
       if (!closeOnClick) {
@@ -80,42 +82,53 @@ const DrawerOverlay = forwardRef<
 ));
 DrawerOverlay.displayName = VaulDrawer.Overlay.displayName;
 
-/** Base layout classes per direction — max dimension is applied via style so size prop can override. */
+/**
+ * Floating panel: a gap away from the window edge on its outer sides (the offsets
+ * include the safe area), all corners rounded, hairline border and soft shadow.
+ */
+const drawerPanel =
+  'fixed flex flex-col overflow-clip border border-[var(--shellui-drawer-border)] bg-background rounded-[var(--shellui-drawer-radius)] shadow-[var(--shellui-drawer-shadow)]';
+
+/** Base layout classes per direction. Max dimension is applied via style so size prop can override. */
 const drawerContentByDirection: Record<DrawerDirection, string> = {
-  bottom:
-    'fixed inset-x-0 bottom-0 mt-24 flex h-auto flex-col rounded-t-xl border border-border bg-background pb-[var(--shellui-safe-area-bottom)]',
-  top: 'fixed inset-x-0 top-0 mb-24 flex h-auto flex-col rounded-b-xl border border-border bg-background pt-[var(--shellui-safe-area-top)]',
-  left: 'fixed inset-y-0 left-0 mr-24 flex h-full w-auto flex-col rounded-r-xl border border-border bg-background pl-[var(--shellui-safe-area-left)]',
-  right:
-    'fixed inset-y-0 right-0 ml-24 flex h-full w-auto flex-col rounded-l-xl border border-border bg-background pr-[var(--shellui-safe-area-right)]',
+  bottom: `${drawerPanel} bottom-[var(--shellui-drawer-bottom)] left-[var(--shellui-drawer-left)] right-[var(--shellui-drawer-right)] h-auto max-md:rounded-[var(--shellui-sheet-radius)]`,
+  top: `${drawerPanel} top-[var(--shellui-drawer-top)] left-[var(--shellui-drawer-left)] right-[var(--shellui-drawer-right)] h-auto`,
+  left: `${drawerPanel} top-[var(--shellui-drawer-top)] bottom-[var(--shellui-drawer-bottom)] left-[var(--shellui-drawer-left)] h-auto w-auto`,
+  right: `${drawerPanel} top-[var(--shellui-drawer-top)] bottom-[var(--shellui-drawer-bottom)] right-[var(--shellui-drawer-right)] h-auto w-auto`,
 };
 
-/** Free-edge resize handle (opposite the anchored side). */
+/** Free-edge resize handle (opposite the anchored side), 8px, inside the panel. */
 const resizeHandleByDirection: Record<DrawerDirection, { className: string; cursor: string }> = {
   right: {
-    className: 'absolute left-0 top-3 bottom-3 w-1.5 -translate-x-1/2',
+    className: 'absolute left-0 top-3 bottom-3 w-2',
     cursor: 'ew-resize',
   },
   left: {
-    className: 'absolute right-0 top-3 bottom-3 w-1.5 translate-x-1/2',
+    className: 'absolute right-0 top-3 bottom-3 w-2',
     cursor: 'ew-resize',
   },
   bottom: {
-    className: 'absolute top-0 left-3 right-3 h-1.5 -translate-y-1/2',
+    className: 'absolute top-0 left-3 right-3 h-2',
     cursor: 'ns-resize',
   },
   top: {
-    className: 'absolute bottom-0 left-3 right-3 h-1.5 translate-y-1/2',
+    className: 'absolute bottom-0 left-3 right-3 h-2',
     cursor: 'ns-resize',
   },
 };
 
+function readDrawerOffsetPx(side: 'top' | 'right' | 'bottom' | 'left'): number {
+  const px = readCssLengthPx(`var(--shellui-drawer-${side})`);
+  return px > 0 ? px : FALLBACK_DRAWER_OFFSET_PX;
+}
+
+/** Largest panel size: the viewport minus the offsets on both ends of the size axis. */
 function maxPrimarySize(direction: DrawerDirection): number {
   const isVertical = direction === 'top' || direction === 'bottom';
-  return Math.max(
-    MIN_DRAWER_SIZE,
-    (isVertical ? window.innerHeight : window.innerWidth) - VIEWPORT_MARGIN,
-  );
+  const margin = isVertical
+    ? readDrawerOffsetPx('top') + readDrawerOffsetPx('bottom')
+    : readDrawerOffsetPx('left') + readDrawerOffsetPx('right');
+  return Math.max(MIN_DRAWER_SIZE, (isVertical ? window.innerHeight : window.innerWidth) - margin);
 }
 
 function clampDrawerSize(px: number, direction: DrawerDirection): number {
@@ -264,22 +277,25 @@ const DrawerContent = forwardRef<ComponentRef<typeof VaulDrawer.Content>, Drawer
         ? isVertical
           ? {
               height: effectiveSize,
-              maxHeight: `min(${effectiveSize}, calc(var(--shellui-overlay-max-height) - ${VIEWPORT_MARGIN}px))`,
+              maxHeight: `min(${effectiveSize}, var(--shellui-drawer-max-height))`,
             }
           : {
               width: effectiveSize,
-              maxWidth: `min(${effectiveSize}, calc(100vw - ${VIEWPORT_MARGIN}px))`,
+              maxWidth: `min(${effectiveSize}, var(--shellui-drawer-max-width))`,
             }
         : size === null
           ? isVertical
-            ? { maxHeight: 'var(--shellui-overlay-max-height)' }
-            : { maxWidth: 'min(90vw, 100%)' }
+            ? { maxHeight: 'var(--shellui-drawer-max-height)' }
+            : { maxWidth: 'min(90vw, var(--shellui-drawer-max-width))' }
           : isVertical
             ? {
                 height: effectiveSize,
-                maxHeight: `min(${effectiveSize}, var(--shellui-overlay-max-height))`,
+                maxHeight: `min(${effectiveSize}, var(--shellui-drawer-max-height))`,
               }
-            : { width: effectiveSize, maxWidth: `min(${effectiveSize}, 100%)` };
+            : {
+                width: effectiveSize,
+                maxWidth: `min(${effectiveSize}, var(--shellui-drawer-max-width))`,
+              };
 
     const resizeHandle = resizeHandleByDirection[pos];
 
@@ -387,7 +403,7 @@ DrawerHeader.displayName = 'DrawerHeader';
 const DrawerFooter = ({ className, ...props }: HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      'mt-auto flex flex-col-reverse gap-2 border-t border-border px-6 pt-4 pb-[max(1rem,var(--shellui-safe-area-bottom))] sm:flex-row sm:justify-end',
+      'mt-auto flex flex-col-reverse gap-2 border-t border-border px-6 py-4 sm:flex-row sm:justify-end',
       className,
     )}
     {...props}
@@ -428,14 +444,15 @@ const DrawerHandle = forwardRef<
     ref={ref}
     data-drawer-handle
     className={cn(
-      // !important overrides Vaul's injected `background: #e2e2e4` + 5px height
-      'mx-auto mt-1.5 h-[3px] w-8 shrink-0 rounded-full !bg-muted-foreground/70 !opacity-100',
+      // Same pill as the More sheet handle: 36 x 5px, 6px from the top (Vaul adds the 44px hit area).
+      'mx-auto mt-1.5 h-[5px] w-9 shrink-0 rounded-full !opacity-100',
       className,
     )}
     style={{
-      // Inline wins over Vaul stylesheet `background` / size when utilities lose the race
-      background: 'color-mix(in oklch, var(--muted-foreground) 70%, transparent)',
-      height: '3px',
+      // Inline wins over Vaul's injected `background: #e2e2e4`
+      background: 'color-mix(in oklch, var(--foreground) 22%, transparent)',
+      width: '36px',
+      height: '5px',
       borderRadius: '9999px',
       ...style,
     }}

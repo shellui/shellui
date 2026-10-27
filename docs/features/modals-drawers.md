@@ -65,6 +65,8 @@ On mobile sheets, the drag handle also expands and collapses height: drag up unt
 
 Desktop and tablet honor `left` / `right` / `top` / `bottom`. Below 768px every drawer is a bottom sheet (same chrome as mobile `openModal`).
 
+Drawers float above the page. Each panel sits a gap away from the window edge (12px on desktop and tablet, 8px plus the safe area on phones), with rounded corners, a border and a soft shadow. On macOS desktop the panel also clears the 32px title bar strip. `size: 'full'` keeps that gap on every side. Under reduced motion, drawers fade in place instead of sliding.
+
 ```typescript
 shellui.openDrawer({
   url: '/filters',
@@ -88,22 +90,22 @@ shellui.closeDrawer();
 
 When `dismissible` is true, top/bottom drawers show a drag handle: drag down on bottom (and all mobile drawers); drag up on top (desktop/tablet). Left/right drawers on desktop have no Vaul handle - dismiss with ×, backdrop, or Escape. Set `showDragHandle: false` to hide the bar. Desktop drawers resize from the free edge by default (`resizable: false` to lock). They are not movable. Resize is off on mobile.
 
-Bottom sheets (including every mobile drawer) also snap taller from the handle: drag up to expand (leaving ~60px + top safe-area for the overlay), drag down to the original size, or drag further to close. Expand snaps are skipped when the sheet is already that tall, while pending, or when desktop free-edge resize is enabled.
+Bottom sheets (including every mobile drawer) also snap taller from the handle: drag up to expand (leaving ~60px + top safe-area for the overlay, and ending 8px above the home indicator), drag down to the original size, or drag further to close. Expand snaps are skipped when the sheet is already that tall, while pending, or when desktop free-edge resize is enabled.
 
 Left/right freeform widths (`"60vw"`, `"400px"`) map to the default bottom-sheet height (80% of `--shellui-overlay-max-height`) on mobile. Presets and top/bottom heights keep their vertical meaning.
 
 ## Size presets
 
-| Preset    | Modal (desktop)           | Drawer (vertical)              | Drawer (horizontal) |
-| --------- | ------------------------- | ------------------------------ | ------------------- |
-| `sm`      | narrow                    | ~40% of overlay max            | ~20rem              |
-| `md`      | medium                    | ~55%                           | ~28rem              |
-| `lg`      | default modal chrome      | ~75%                           | ~36rem              |
-| `xl`      | large                     | ~90%                           | ~48rem              |
-| `full`    | near-viewport             | `--shellui-overlay-max-height` | 100%                |
-| `content` | grows with iframe reports | auto                           | auto                |
+| Preset    | Modal (desktop)           | Drawer (vertical)             | Drawer (horizontal) |
+| --------- | ------------------------- | ----------------------------- | ------------------- |
+| `sm`      | narrow                    | ~40% of overlay max           | ~20rem              |
+| `md`      | medium                    | ~55%                          | ~28rem              |
+| `lg`      | default modal chrome      | ~75%                          | ~36rem              |
+| `xl`      | large                     | ~90%                          | ~48rem              |
+| `full`    | near-viewport             | `--shellui-drawer-max-height` | 100% minus the gaps |
+| `content` | grows with iframe reports | auto                          | auto                |
 
-Sizes clamp to `--shellui-overlay-max-height` (`--shellui-app-height` minus top safe area). You can pass `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number). Drawers still accept freeform CSS lengths for the primary dimension.
+Modals clamp to `--shellui-overlay-max-height` (`--shellui-app-height` minus top safe area). Drawers clamp to `--shellui-drawer-max-height` and `--shellui-drawer-max-width` (the viewport minus the drawer offsets on both ends). You can pass `width` / `height` / `maxWidth` / `maxHeight` (CSS length or px number). Drawers still accept freeform CSS lengths for the primary dimension.
 
 ## Dynamic height
 

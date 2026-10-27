@@ -5,10 +5,16 @@ import type {
   OverlaySizeValue,
   DrawerPosition,
 } from '@shellui/sdk';
-import { readSafeAreaInsetTop } from '../layouts/chrome/viewport';
+import { readDrawerBottomOffset, readSafeAreaInsetTop } from '../layouts/chrome/viewport';
 
 /** CSS max-height for overlays — matches --shellui-overlay-max-height in index.css. */
 const OVERLAY_MAX_HEIGHT_CSS = 'var(--shellui-overlay-max-height)';
+
+/**
+ * Largest floating drawer height: the shell height minus the top and bottom drawer
+ * offsets (each is the gap plus the safe area). Matches --shellui-drawer-max-height.
+ */
+const DRAWER_MAX_HEIGHT_CSS = 'var(--shellui-drawer-max-height)';
 
 /** Fraction of overlay max height — avoids raw dvh which disagrees with iOS standalone measure. */
 function overlayHeightFrac(fraction: number): string {
@@ -89,7 +95,7 @@ const DRAWER_PRESET_VERTICAL: Record<OverlaySizePreset, string> = {
   md: overlayHeightFrac(0.55),
   lg: overlayHeightFrac(0.75),
   xl: overlayHeightFrac(0.9),
-  full: OVERLAY_MAX_HEIGHT_CSS,
+  full: DRAWER_MAX_HEIGHT_CSS,
   content: 'auto',
 };
 
@@ -98,7 +104,7 @@ const DRAWER_PRESET_HORIZONTAL: Record<OverlaySizePreset, string> = {
   md: '28rem',
   lg: '36rem',
   xl: '48rem',
-  full: '100%',
+  full: 'calc(100% - 2 * var(--shellui-drawer-gap))',
   content: 'auto',
 };
 
@@ -111,6 +117,11 @@ export interface ResolvedOverlaySize {
   contentSized: boolean;
   /** Primary drawer CSS length (vaul size prop) when applicable. */
   drawerSize: string | null;
+  /**
+   * Phone sheets only: the preset height to use when the app never reports its
+   * content size (no `shellui.overlay.autoSize()`), clamped by the drawer max height.
+   */
+  fallbackHeight?: string | null;
 }
 
 function applyExplicitDimensions(
@@ -213,7 +224,7 @@ export function resolveDrawerSize(
   if (contentSized) {
     drawerSize = 'auto';
     if (isVertical) {
-      style.maxHeight = style.maxHeight ?? OVERLAY_MAX_HEIGHT_CSS;
+      style.maxHeight = style.maxHeight ?? DRAWER_MAX_HEIGHT_CSS;
       style.height = style.height ?? 'auto';
     } else {
       style.maxWidth = style.maxWidth ?? 'min(90vw, 100%)';
@@ -231,8 +242,15 @@ export function resolveDrawerSize(
 
 /**
  * Resolve drawer size for the active viewport.
- * Mobile always uses bottom-sheet chrome; horizontal freeform widths (`60vw`,
- * `400px`, explicit `width`) are dropped so they are not applied as height.
+ *
+ * Desktop: the requested edge and size.
+ *
+ * Phones: every drawer is a bottom sheet sized to its content. It listens for
+ * SHELLUI_OVERLAY_SIZE and grows with the iframe up to the drawer max height
+ * (8px plus the safe area above the bottom, the top below the notch), then the
+ * iframe scrolls. The requested size only applies as `fallbackHeight` when the
+ * app never reports. Horizontal freeform widths (`60vw`, `400px`, explicit
+ * `width`) are dropped so they are not applied as height.
  */
 export function resolveDrawerSizeForViewport(
   options?: OverlayOpenOptions | null,
@@ -244,22 +262,31 @@ export function resolveDrawerSizeForViewport(
     return resolveDrawerSize(options, effective);
   }
 
+  let presetOptions: OverlayOpenOptions | null | undefined = options;
   // left/right → bottom: width-oriented sizes must not become sheet height
   if (position === 'left' || position === 'right') {
     const dynamic = isDynamicSizing(options);
     const size = options?.size;
     const dropFreeformWidth =
       !dynamic && size !== undefined && size !== null && !isOverlaySizePreset(size);
-    const nextOptions: OverlayOpenOptions | null | undefined = dropFreeformWidth
+    presetOptions = dropFreeformWidth
       ? { ...options, size: undefined, width: undefined }
       : options?.width !== undefined
         ? { ...options, width: undefined }
         : options;
-    return resolveDrawerSize(nextOptions, 'bottom');
   }
 
-  // top → bottom (or already bottom): keep height-oriented size
-  return resolveDrawerSize(options, 'bottom');
+  const preset = resolveDrawerSize(presetOptions, 'bottom');
+  const { width: _width, height: _height, ...rest } = presetOptions ?? {};
+  const sheet = resolveDrawerSize({ ...rest, size: 'content' }, 'bottom');
+  // Content sheets never exceed the drawer max height, whatever maxHeight asks for.
+  sheet.style.maxHeight = DRAWER_MAX_HEIGHT_CSS;
+  return {
+    ...sheet,
+    fallbackHeight: preset.contentSized
+      ? null
+      : `min(${preset.drawerSize ?? DEFAULT_VERTICAL_DRAWER}, ${DRAWER_MAX_HEIGHT_CSS})`,
+  };
 }
 
 export type OverlayDismissOptions = {
@@ -283,19 +310,72 @@ export function resolveDismissOptions(
   };
 }
 
+/** How the shell presents a drawer: edge, drag handle, and whether Vaul snaps apply. */
+export type DrawerChrome = {
+  direction: DrawerPosition;
+  showDragHandle: boolean;
+  allowSnapPoints: boolean;
+};
+
+/**
+ * Resolve drawer chrome for the active viewport.
+ *
+ * Phones (below md): every drawer, whatever edge was requested, is a bottom sheet
+ * anchored above the home indicator, always with a drag handle for the thumb. Phone
+ * sheets never snap: they sit at their content height (see
+ * {@link resolveDrawerSizeForViewport}), so there is no half-height stop leaving
+ * empty space under the actions.
+ *
+ * Content-sized drawers never snap on desktop either: a snap sheet is the expanded
+ * height, so the iframe would report that height back and the sheet would end up
+ * below the screen.
+ *
+ * Desktop: the requested edge, with the handle and snaps the options ask for.
+ */
+export function resolveDrawerChrome({
+  position,
+  isMobile,
+  dismiss,
+  pending = false,
+  desktopResizable = false,
+  contentSized = false,
+}: {
+  position?: DrawerPosition;
+  isMobile: boolean;
+  dismiss: Pick<OverlayDismissOptions, 'dismissible' | 'showDragHandle'>;
+  pending?: boolean;
+  desktopResizable?: boolean;
+  contentSized?: boolean;
+}): DrawerChrome {
+  const direction = resolveEffectiveDrawerPosition(position, isMobile);
+  if (isMobile) {
+    return { direction, showDragHandle: !pending, allowSnapPoints: false };
+  }
+  const vertical = direction === 'top' || direction === 'bottom';
+  const handle = dismiss.showDragHandle && dismiss.dismissible;
+  return {
+    direction,
+    showDragHandle: !pending && vertical && handle,
+    allowSnapPoints:
+      direction === 'bottom' && handle && !pending && !desktopResizable && !contentSized,
+  };
+}
+
 /**
  * Expanded bottom-sheet height leaves a tappable overlay band above the sheet:
- * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}.
+ * top safe-area inset + {@link SHEET_EXPANDED_TOP_GAP_PX}. The floating sheet also
+ * ends a gap above the home indicator (--shellui-drawer-bottom).
  */
 export const SHEET_EXPANDED_TOP_GAP_PX = 60;
 
-/** CSS height for the expanded bottom-sheet chrome. */
-export const SHEET_EXPANDED_HEIGHT_CSS = `calc(var(--shellui-app-height) - var(--shellui-safe-area-top) - ${SHEET_EXPANDED_TOP_GAP_PX}px)`;
+/** CSS height for the expanded floating bottom sheet. */
+export const SHEET_EXPANDED_HEIGHT_CSS = `calc(var(--shellui-app-height) - var(--shellui-safe-area-top) - ${SHEET_EXPANDED_TOP_GAP_PX}px - var(--shellui-drawer-bottom))`;
 
-/** Pixel height for the expanded snap (matches {@link SHEET_EXPANDED_HEIGHT_CSS}). */
+/** Pixel height for the expanded sheet (matches {@link SHEET_EXPANDED_HEIGHT_CSS}). */
 export function sheetExpandedHeightPx(
   viewportHeightPx?: number,
   safeAreaTopPx?: number,
+  bottomOffsetPx?: number,
   topGapPx = SHEET_EXPANDED_TOP_GAP_PX,
 ): number {
   const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
@@ -303,20 +383,14 @@ export function sheetExpandedHeightPx(
   if (safeTop === undefined) {
     safeTop = typeof document !== 'undefined' ? readSafeAreaInsetTop() : 0;
   }
-  return Math.max(0, Math.round(viewport - safeTop - topGapPx));
+  let bottom = bottomOffsetPx;
+  if (bottom === undefined) {
+    bottom = typeof document !== 'undefined' ? readDrawerBottomOffset() : 0;
+  }
+  return Math.max(0, Math.round(viewport - safeTop - topGapPx - bottom));
 }
 
-/** Vaul snap fraction for the expanded height (`height / viewport`). */
-export function sheetExpandedSnapFraction(
-  viewportHeightPx?: number,
-  safeAreaTopPx?: number,
-): number {
-  const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
-  if (!(viewport > 0)) return 0.9;
-  return Number((sheetExpandedHeightPx(viewport, safeAreaTopPx) / viewport).toFixed(4));
-}
-
-/** Vertical drawer presets → window-height fraction (Vaul snapPoints). */
+/** Vertical drawer presets → visible fraction of the window height. */
 const VERTICAL_SNAP_BY_PRESET: Record<OverlaySizePreset, number> = {
   sm: 0.4,
   md: 0.55,
@@ -329,17 +403,24 @@ const VERTICAL_SNAP_BY_PRESET: Record<OverlaySizePreset, number> = {
 /**
  * Resolve `[normal, expanded]` Vaul snap points for a bottom sheet.
  * Returns null when the sheet is already near the expanded height (nothing useful to expand to).
+ *
+ * Vaul moves a bottom sheet by `translateY(H - snap)` as if the sheet started at the top
+ * of the screen. The sheet is shorter than the viewport (h < H) and floats above the home
+ * indicator, so to show a visible height v the snap is `v + (H - h)`, and the expanded
+ * snap is `1` (no translate: the whole sheet shows, ending at its bottom offset).
  */
 export function resolveBottomSheetSnapPoints(
   options?: OverlayOpenOptions | null,
   reportedHeightPx?: number | null,
   viewportHeightPx?: number,
   safeAreaTopPx?: number,
+  bottomOffsetPx?: number,
 ): number[] | null {
   const viewport = viewportHeightPx ?? (typeof window !== 'undefined' ? window.innerHeight : 0);
   if (!(viewport > 0)) return null;
 
-  const expanded = sheetExpandedSnapFraction(viewport, safeAreaTopPx);
+  const sheetPx = sheetExpandedHeightPx(viewport, safeAreaTopPx, bottomOffsetPx);
+  const expandedVisible = sheetPx / viewport;
 
   let normal: number;
   if (reportedHeightPx !== null && Number.isFinite(reportedHeightPx) && reportedHeightPx > 0) {
@@ -364,9 +445,11 @@ export function resolveBottomSheetSnapPoints(
     }
   }
 
-  // Already near expanded — expand would be a no-op
-  if (normal >= expanded - 0.04) return null;
+  // Already near expanded: expand would be a no-op
+  if (normal >= expandedVisible - 0.04) return null;
   // Keep a meaningful gap between snaps
-  normal = Math.min(Math.max(normal, 0.2), expanded - 0.05);
-  return [Number(normal.toFixed(4)), expanded];
+  normal = Math.min(Math.max(normal, 0.2), expandedVisible - 0.05);
+  // Visible height → Vaul snap (add the part of the viewport the sheet never covers)
+  const snap = normal + (viewport - sheetPx) / viewport;
+  return [Number(snap.toFixed(4)), 1];
 }

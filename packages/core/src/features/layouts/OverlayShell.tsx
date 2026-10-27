@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import type { NavigationItem } from '../config/types';
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from '../../components/ui/drawer';
+import type { WithFadeFromProps, WithoutFadeFromProps } from 'vaul';
 import { ContentView } from '../../components/ContentView';
 import { useModal } from '../modal/ModalContext';
 import { useDrawer } from '../drawer/DrawerContext';
@@ -23,6 +24,7 @@ import {
   resolveDrawerSize,
   resolveDrawerSizeForViewport,
   resolveEffectiveDrawerPosition,
+  resolveDrawerChrome,
   isDynamicSizing,
   SHEET_EXPANDED_HEIGHT_CSS,
 } from '../overlays/overlaySize';
@@ -33,6 +35,8 @@ import { OverlayDrawerPendingBar } from '../overlays/OverlayDrawerPendingBar';
 
 /** Matches --shellui-overlay-max-height in index.css */
 const OVERLAY_MAX_H = 'var(--shellui-overlay-max-height)';
+/** Matches --shellui-drawer-max-height: the viewport minus the floating offsets. */
+const DRAWER_MAX_H = 'var(--shellui-drawer-max-height)';
 
 interface OverlayShellProps {
   children: ReactNode;
@@ -228,11 +232,16 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
     usedFallback: modalSizeFallback,
     wasClamped: modalWasClamped,
   } = useOverlayReportedSize(modalContentSized, isOpen && !isDrawerOpen);
+  // Phone sheets grow up to the drawer max height (CSS), so the report is not cut at 92%.
   const {
     reported: drawerReported,
     usedFallback: drawerSizeFallback,
     wasClamped: drawerWasClamped,
-  } = useOverlayReportedSize(drawerSize.contentSized || drawerDynamic, isDrawerOpen);
+  } = useOverlayReportedSize(
+    drawerSize.contentSized || drawerDynamic,
+    isDrawerOpen,
+    isMobile ? 1 : undefined,
+  );
 
   const modalPending = isOpen && modalContentSized && !modalReported;
   const drawerPending =
@@ -351,6 +360,10 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         }),
   };
 
+  // Phone sheet from an app that never reports its size: use the requested preset.
+  const drawerPhoneFallback =
+    drawerSizeFallback && drawerSize.fallbackHeight ? drawerSize.fallbackHeight : null;
+
   const drawerContentStyle: CSSProperties = {
     ...drawerSize.style,
     ...(drawerSize.contentSized || drawerDynamic ? { transition: 'none' } : {}),
@@ -366,17 +379,19 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
             maxWidth: drawerPendingPx,
             minWidth: drawerPendingPx,
           }
-      : drawerReported
-        ? drawerIsVertical
-          ? {
-              height: drawerReported.height,
-              maxHeight: `min(${drawerReported.height}px, ${overlayMaxH})`,
-            }
-          : {
-              width: drawerReported.width ?? drawerReported.height,
-              maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
-            }
-        : {}),
+      : drawerPhoneFallback
+        ? { height: drawerPhoneFallback, maxHeight: DRAWER_MAX_H }
+        : drawerReported
+          ? drawerIsVertical
+            ? {
+                height: drawerReported.height,
+                maxHeight: `min(${drawerReported.height}px, ${DRAWER_MAX_H})`,
+              }
+            : {
+                width: drawerReported.width ?? drawerReported.height,
+                maxWidth: `min(${drawerReported.width ?? drawerReported.height}px, 92vw)`,
+              }
+          : {}),
   };
 
   const handleModalOpenChange = (open: boolean) => {
@@ -397,22 +412,28 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
   const drawerDesktopResizable =
     !drawerPending && !isMobile && !drawerDynamic && drawerOptions?.resizable !== false;
 
-  // Bottom sheets: snap between the configured height and near-full so drag-up expands.
-  // Skip when desktop free-edge resize is active (those compete with Vaul snaps).
+  // Phones: always a bottom sheet with a drag handle. Desktop: requested edge and options.
+  const drawerChrome = resolveDrawerChrome({
+    position: drawerPosition,
+    isMobile,
+    dismiss: drawerDismiss,
+    pending: drawerPending,
+    desktopResizable: drawerDesktopResizable,
+    contentSized: drawerSize.contentSized || drawerDynamic,
+  });
+
+  // Desktop bottom sheets: snap between the configured height and near-full so drag-up
+  // expands. Phones never snap (content-height sheets). Skip when desktop free-edge
+  // resize is active (those compete with Vaul snaps).
   const drawerSnapPoints = useMemo(() => {
-    if (effectiveDrawerPosition !== 'bottom') return undefined;
-    if (!drawerDismiss.showDragHandle || !drawerDismiss.dismissible) return undefined;
-    if (drawerPending || drawerDesktopResizable) return undefined;
+    if (!drawerChrome.allowSnapPoints) return undefined;
     return resolveBottomSheetSnapPoints(drawerOptions, drawerReported?.height ?? null) ?? undefined;
-  }, [
-    effectiveDrawerPosition,
-    drawerDismiss.showDragHandle,
-    drawerDismiss.dismissible,
-    drawerPending,
-    drawerDesktopResizable,
-    drawerOptions,
-    drawerReported?.height,
-  ]);
+  }, [drawerChrome.allowSnapPoints, drawerOptions, drawerReported?.height]);
+
+  // Floating sheet: show the scrim from the first snap, not only when expanded.
+  const drawerSnapProps: WithFadeFromProps | WithoutFadeFromProps = drawerSnapPoints
+    ? { snapPoints: drawerSnapPoints, fadeFromIndex: 0 }
+    : {};
 
   const [drawerActiveSnap, setDrawerActiveSnap] = useState<number | string | null>(null);
 
@@ -482,7 +503,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
         onOpenChange={handleDrawerOpenChange}
         direction={effectiveDrawerPosition}
         dismissible={drawerDismiss.dismissible}
-        snapPoints={drawerSnapPoints}
+        {...drawerSnapProps}
         activeSnapPoint={drawerSnapPoints ? drawerActiveSnap : undefined}
         setActiveSnapPoint={drawerSnapPoints ? setDrawerActiveSnap : undefined}
       >
@@ -492,13 +513,15 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           size={
             drawerSnapPoints
               ? SHEET_EXPANDED_HEIGHT_CSS
-              : drawerReported
-                ? drawerIsVertical
-                  ? `${drawerReported.height}px`
-                  : `${drawerReported.width ?? drawerReported.height}px`
-                : drawerPending
-                  ? `${drawerPendingPx}px`
-                  : drawerSize.drawerSize
+              : drawerPhoneFallback
+                ? drawerPhoneFallback
+                : drawerReported
+                  ? drawerIsVertical
+                    ? `${drawerReported.height}px`
+                    : `${drawerReported.width ?? drawerReported.height}px`
+                  : drawerPending
+                    ? `${drawerPendingPx}px`
+                    : drawerSize.drawerSize
           }
           style={
             drawerSnapPoints
@@ -511,12 +534,7 @@ export const OverlayShell = ({ children }: OverlayShellProps) => {
           }
           className={drawerSize.className}
           showCloseButton={!drawerPending && drawerDismiss.showCloseButton}
-          showDragHandle={
-            !drawerPending &&
-            drawerIsVertical &&
-            drawerDismiss.showDragHandle &&
-            drawerDismiss.dismissible
-          }
+          showDragHandle={drawerChrome.showDragHandle}
           closeOnOverlayClick={drawerDismiss.closeOnOverlayClick}
           resizable={drawerDesktopResizable}
         >

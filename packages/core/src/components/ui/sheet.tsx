@@ -35,26 +35,32 @@ const SheetOverlay = forwardRef<
   <SheetPrimitive.Overlay
     ref={ref}
     data-sheet-overlay=""
-    className={cn('fixed inset-0 bg-black/50 backdrop-blur-[1px]', className)}
+    className={cn('fixed inset-0 bg-[var(--shellui-scrim)]', className)}
     style={{ zIndex: Z_INDEX.SIDEBAR_SHEET_OVERLAY, ...style }}
     {...props}
   />
 ));
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
-const sheetVariants = cva('fixed flex flex-col gap-4 bg-background shadow-lg', {
-  variants: {
-    side: {
-      top: 'inset-x-0 top-0 border-b',
-      bottom: 'inset-x-0 bottom-0 border-t',
-      left: 'inset-y-0 left-0 h-full w-3/4 max-w-full border-r sm:max-w-sm',
-      right: 'inset-y-0 right-0 h-full w-3/4 max-w-full border-l sm:max-w-sm',
+/** Floating sheet: same offsets, radius, border and shadow as the drawer panel. */
+const sheetVariants = cva(
+  'fixed flex flex-col gap-4 overflow-clip border border-[var(--shellui-drawer-border)] bg-background rounded-[var(--shellui-drawer-radius)] shadow-[var(--shellui-drawer-shadow)]',
+  {
+    variants: {
+      side: {
+        top: 'top-[var(--shellui-drawer-top)] left-[var(--shellui-drawer-left)] right-[var(--shellui-drawer-right)]',
+        bottom:
+          'bottom-[var(--shellui-drawer-bottom)] left-[var(--shellui-drawer-left)] right-[var(--shellui-drawer-right)] max-md:rounded-[var(--shellui-sheet-radius)]',
+        left: 'top-[var(--shellui-drawer-top)] bottom-[var(--shellui-drawer-bottom)] left-[var(--shellui-drawer-left)] w-3/4 max-w-[var(--shellui-drawer-max-width)] sm:max-w-sm',
+        right:
+          'top-[var(--shellui-drawer-top)] bottom-[var(--shellui-drawer-bottom)] right-[var(--shellui-drawer-right)] w-3/4 max-w-[var(--shellui-drawer-max-width)] sm:max-w-sm',
+      },
+    },
+    defaultVariants: {
+      side: 'right',
     },
   },
-  defaultVariants: {
-    side: 'right',
-  },
-});
+);
 
 interface SheetContentProps
   extends
