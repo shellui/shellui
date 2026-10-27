@@ -32,6 +32,7 @@ export default defineConfig({
       'src/features/layouts/sidebar/**/*.spec.tsx',
       'src/features/layouts/appbar/**/*.spec.ts',
       'src/features/layouts/appbar/**/*.spec.tsx',
+      'src/features/layouts/fullscreen/**/*.spec.tsx',
       'src/features/layouts/findMatchingNavigationItem.spec.ts',
       'src/features/layouts/isFrameForAppUrl.spec.ts',
       'src/features/chromeActions/**/*.spec.ts',

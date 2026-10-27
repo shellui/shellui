@@ -13,6 +13,8 @@ import {
   SHELL_HEADER_PAD_TOP_PX,
 } from '../chrome/constants';
 import { MAC_DRAG_REGION_PROPS, MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
+import { isShellUiRootWindow } from '../chrome/SafeAreaTopbar';
+import { cn } from '../../../lib/utils';
 
 /** macOS: content starts under the 32px strip plus 16px. */
 const MAC_CONTENT_PAD_TOP_PX = 48;
@@ -39,6 +41,8 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
   const trafficLights = useMacTrafficLights();
   const macStrip = useMacOverlayChrome();
   const currentLanguage = i18n.language || 'en';
+  // Nested shell-in-iframe: the root window already cleared the safe areas.
+  const safeAreaPad = isShellUiRootWindow();
   const navigationItems = useMemo(() => flattenNavigationItems(navigation), [navigation]);
 
   useEffect(() => {
@@ -60,7 +64,12 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
 
   return (
     <main
-      className="relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background"
+      data-shellui-fullscreen=""
+      className={cn(
+        'relative flex h-full max-h-full w-full flex-col overflow-hidden bg-background',
+        // Phones: clear the notch and home indicator (nothing higher up pads them).
+        !macStrip && safeAreaPad && 'shellui-fullscreen-safe',
+      )}
       style={macStrip ? { paddingTop: MAC_CONTENT_PAD_TOP_PX } : undefined}
     >
       {macStrip ? (

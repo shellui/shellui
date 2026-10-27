@@ -2351,6 +2351,18 @@ html[data-shellui-keyboard='open']
   }
 }
 
+/*
+ * Fullscreen layout on phones: top pads by safe-area-top + 12px, sides and bottom
+ * by their safe area. The 12px only applies when there is a top inset (the min()
+ * term is 0 on a plain desktop browser).
+ */
+.shellui-fullscreen-safe {
+  padding-top: calc(var(--shellui-safe-area-top) + min(12px, var(--shellui-safe-area-top) * 1000));
+  padding-right: var(--shellui-safe-area-right);
+  padding-bottom: var(--shellui-safe-area-bottom);
+  padding-left: var(--shellui-safe-area-left);
+}
+
 /* Fullscreen layout (Tauri): a small glass group keeps history buttons legible on any content. */
 .shellui-history-glass {
   gap: 2px;
