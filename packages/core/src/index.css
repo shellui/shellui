@@ -1718,6 +1718,26 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 .shellui-appbar-end.is-active {
   background-color: var(--shellui-nav-hover);
 }
+/*
+ * Web bar (56px, 6px top pad, 1px border): the underline sits on the bar's bottom
+ * border, half the leftover height below the item. Tauri keeps it at the item bottom.
+ */
+html:not([data-shellui-host='tauri'])
+  [data-shellui-app-bar-layout]
+  > header
+  .shellui-appbar-item.is-active::after,
+html:not([data-shellui-host='tauri'])
+  [data-shellui-mobile-chrome-stack]
+  > header[data-layout]
+  .shellui-appbar-item.is-active::after {
+  bottom: calc((var(--shellui-appbar-item-h, 32px) - 49px) / 2 - 1px);
+}
+@media (max-width: 767px) {
+  [data-shellui-app-bar-layout] .shellui-appbar-item {
+    --shellui-appbar-item-h: 40px;
+    height: 40px;
+  }
+}
 .shellui-appbar-item:focus-visible,
 .shellui-appbar-end:focus-visible {
   outline: 2px solid var(--sidebar-ring);
