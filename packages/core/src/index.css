@@ -2255,6 +2255,32 @@ html[data-shellui-keyboard='open']
 .shellui-start-foot {
   border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
+.shellui-start-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.shellui-task.shellui-task-icon {
+  width: 38px;
+  justify-content: center;
+  padding: 0;
+}
+.shellui-start-settings {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--shellui-r-row);
+  color: var(--shellui-nav-icon);
+  cursor: pointer;
+}
+.shellui-start-settings:hover {
+  background: var(--shellui-nav-hover);
+  color: var(--popover-foreground);
+}
 .shellui-start-row {
   display: flex;
   width: 100%;

@@ -32,15 +32,17 @@ TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 export interface AppBarTooltipProps {
   label: string;
   children: ReactNode;
+  /** Defaults to below; the windows taskbar opens it above. */
+  side?: 'top' | 'bottom';
 }
 
 /** Themed tooltip for app-bar end buttons: no arrow, no animation. */
-function AppBarTooltip({ label, children }: AppBarTooltipProps) {
+function AppBarTooltip({ label, children, side = 'bottom' }: AppBarTooltipProps) {
   return (
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent
-        side="bottom"
+        side={side}
         align="center"
       >
         {label}

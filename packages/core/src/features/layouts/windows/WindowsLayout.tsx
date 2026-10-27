@@ -30,7 +30,9 @@ import { cn } from '../../../lib/utils';
 import { Z_INDEX } from '../../../lib/z-index';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { useAuth } from '../../auth/hooks/useAuth';
-import { ExternalLinkIcon, NavIcon } from '../sidebar/SidebarIcons';
+import { ExternalLinkIcon, NavIcon, SettingsIcon } from '../sidebar/SidebarIcons';
+import { AppBarTooltip, TooltipProvider } from '../../../components/ui/tooltip';
+import urls from '../../../constants/urls';
 import { getExternalFaviconUrl, isAppIcon } from '../sidebar/sidebarUtils';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
 import { useIsMobile } from '../../../hooks/use-mobile';
@@ -934,12 +936,16 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
   useEffect(() => {
     if (!startMenuOpen) return;
     const onDocClick = (e: MouseEvent) => {
+      // The footer account menu renders in a portal: clicks there stay in the start menu.
+      if (e.target instanceof Element && e.target.closest('[data-auth-menu-content]')) return;
       if (startPanelRef.current && !startPanelRef.current.contains(e.target as Node)) {
         setStartMenuOpen(false);
       }
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      // Escape closes the open account menu first.
+      if (document.querySelector('[data-auth-menu-content][data-state="open"]')) return;
       e.preventDefault();
       setStartMenuOpen(false);
       startButtonRef.current?.focus();
@@ -1154,10 +1160,7 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                         className={cn('space-y-1.5', isEndSection && 'shellui-start-foot pt-3')}
                       >
                         {categoryLabel ? (
-                          <h2
-                            className="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-                            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-                          >
+                          <h2 className="shellui-start-label px-2.5 text-xs font-semibold text-muted-foreground">
                             {categoryLabel}
                           </h2>
                         ) : null}
@@ -1215,6 +1218,30 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
                   })
                 )}
               </div>
+              {/* Footer: account and settings (spec). */}
+              <div
+                data-shellui-start-footer=""
+                className="shellui-start-foot flex shrink-0 items-center gap-1 px-2 py-1.5"
+              >
+                <div className="min-w-0 flex-1">
+                  <LoginButton
+                    variant="sidebar"
+                    hideWhenLoggedOut={hasCustomLoginNav}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="shellui-start-settings shellui-chrome-focus"
+                  aria-label={t('settings')}
+                  title={t('settings')}
+                  onClick={() => {
+                    setStartMenuOpen(false);
+                    shellui.openModal(urls.settings);
+                  }}
+                >
+                  <SettingsIcon className="size-4" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -1270,44 +1297,48 @@ export function WindowsLayout({ title, appIcon, logo: _logo, navigation }: Windo
 
         {/* End navigation items (right side of taskbar) — desktop only; phone uses start menu */}
         {!phoneMode && endNavItems.length > 0 && (
-          <div className="flex items-center gap-0.5 shrink-0 border-l border-sidebar-border pl-2 ml-1">
-            {endNavItems.map((item) => {
-              const label =
-                typeof item.label === 'string'
-                  ? item.label
-                  : resolveNavLabel(item.label, currentLanguage);
-              const icon =
-                item.icon ?? (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => handleNavClick(item)}
-                  className="shellui-task shellui-chrome-focus"
-                  title={label}
-                  aria-label={
-                    item.openIn === 'external'
-                      ? `${label} (${t('shellChrome.externalLink')})`
-                      : label
-                  }
-                >
-                  {icon ? (
-                    <img
-                      src={icon}
-                      alt=""
-                      className={cn(
-                        'h-4 w-4 shrink-0 rounded-sm object-cover',
-                        isAppIcon(icon) && 'opacity-90 dark:opacity-100 dark:invert',
-                      )}
-                    />
-                  ) : (
-                    <span className="h-4 w-4 shrink-0 rounded-sm bg-muted" />
-                  )}
-                  <span className="truncate max-w-[100px]">{label}</span>
-                </button>
-              );
-            })}
-          </div>
+          <TooltipProvider
+            delayDuration={200}
+            skipDelayDuration={0}
+          >
+            <div
+              data-shellui-taskbar-end=""
+              className="ml-1 flex shrink-0 items-center gap-0.5 border-l border-sidebar-border pl-2"
+            >
+              {endNavItems.map((item) => {
+                const label =
+                  typeof item.label === 'string'
+                    ? item.label
+                    : resolveNavLabel(item.label, currentLanguage);
+                const icon =
+                  item.icon ??
+                  (item.openIn === 'external' ? getExternalFaviconUrl(item.url) : null);
+                return (
+                  <AppBarTooltip
+                    key={item.path}
+                    label={label}
+                    side="top"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleNavClick(item)}
+                      className="shellui-task shellui-task-icon shellui-chrome-focus"
+                      aria-label={
+                        item.openIn === 'external'
+                          ? `${label} (${t('shellChrome.externalLink')})`
+                          : label
+                      }
+                    >
+                      <NavIcon
+                        src={icon}
+                        className="size-4"
+                      />
+                    </button>
+                  </AppBarTooltip>
+                );
+              })}
+            </div>
+          </TooltipProvider>
         )}
 
         <div className="flex items-center shrink-0 border-l border-sidebar-border pl-2 ml-1">
