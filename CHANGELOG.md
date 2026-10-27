@@ -22,6 +22,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🐛 Bug Fixes
 
+- **Core:** `shellui.login` from an app now returns through `/login/callback`, so the OAuth code is exchanged and people land back on the page they started from, signed in. Before, they came back to the login page and had to sign in again. `redirectPath` now names the page to open after sign-in.
 - **Core:** Logged-in only navigation entries stay visible while the session restores, so the sidebar no longer grows after a reload.
 
 ## [0.7.0-alpha.8] - 2026-10-24
