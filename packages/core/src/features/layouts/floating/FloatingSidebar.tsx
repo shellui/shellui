@@ -463,7 +463,10 @@ export function FloatingSidebar({
               {endItems.map(renderItem)}
               {showAuthButton ? (
                 <div className="px-0.5 pt-0.5">
-                  <LoginButton variant="sidebar" />
+                  <LoginButton
+                    variant="sidebar"
+                    dividerAbove={endItems.length > 0}
+                  />
                 </div>
               ) : null}
             </div>

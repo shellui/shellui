@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🛠 Improvements
+
+- **Core:** Sidebar, sidebar inset and floating sidebar: when signed in, a hairline divider separates the account block from the footer items above it (not drawn when the account block is the only footer item, as the footer border already separates it). Signed-out users keep the login button with no divider.
+
 ## [0.7.0-alpha.11] - 2026-10-27
 
 ### 🛠 Improvements

@@ -51,12 +51,15 @@ afterEach(() => {
   container.remove();
 });
 
-function render(open = true) {
+function render(open = true, dividerAbove = false) {
   act(() => {
     root.render(
       <MemoryRouter>
         <SidebarProvider defaultOpen={open}>
-          <LoginButton variant="sidebar" />
+          <LoginButton
+            variant="sidebar"
+            dividerAbove={dividerAbove}
+          />
         </SidebarProvider>
       </MemoryRouter>,
     );
@@ -151,5 +154,45 @@ describe('account aria strings', () => {
       expect(fr.authMenu[key]).toContain('{{name}}');
     }
     expect(fr.authMenu.openAccountMenuWithEmailAriaLabel).toContain('{{email}}');
+  });
+});
+
+describe('account divider', () => {
+  const divider = () => container.querySelector<HTMLElement>('[data-shellui-account-divider]');
+
+  it('draws a sidebar border hairline above the signed-in account block', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    const btn = render(true, true);
+    const line = divider();
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute('role')).toBe('separator');
+    expect(line?.className).toContain('bg-sidebar-border');
+    expect(line?.className).toContain('h-px');
+    expect(line?.nextElementSibling).toBe(btn);
+  });
+
+  it('stays in collapsed icon mode', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    render(false, true);
+    expect(divider()).not.toBeNull();
+  });
+
+  it('is off unless asked for', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    render(true, false);
+    expect(divider()).toBeNull();
+  });
+
+  it('never shows for the signed-out login button', () => {
+    auth.isAuthenticated = false;
+    render(true, true);
+    expect(container.querySelector('a')?.textContent).toContain(en.authMenu.login);
+    expect(divider()).toBeNull();
+  });
+
+  it('never shows while loading', () => {
+    auth.isLoading = true;
+    render(true, true);
+    expect(divider()).toBeNull();
   });
 });

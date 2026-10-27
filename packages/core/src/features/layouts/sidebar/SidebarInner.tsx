@@ -210,7 +210,14 @@ export function SidebarInner({
           >
             <NavigationContent
               navigation={endItems}
-              trailing={showAuthButton ? <LoginButton variant="sidebar" /> : undefined}
+              trailing={
+                showAuthButton ? (
+                  <LoginButton
+                    variant="sidebar"
+                    dividerAbove={endItems.length > 0}
+                  />
+                ) : undefined
+              }
             />
           </nav>
         )}

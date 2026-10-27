@@ -133,10 +133,18 @@ export const LoginButton = ({
   variant,
   hideWhenLoggedOut = false,
   logoutOnly = false,
+  dividerAbove = false,
 }: {
   variant: LoginButtonVariant;
   hideWhenLoggedOut?: boolean;
   logoutOnly?: boolean;
+  /**
+   * Hairline above the signed-in account block, separating it from the footer
+   * items above. Signed out and loading states never render it. Pass false when
+   * the account block is the first footer item (the footer border already
+   * separates it).
+   */
+  dividerAbove?: boolean;
 }) => {
   const currentVariantConfig = variantConfig[variant];
   const isMobile = useIsMobile();
@@ -300,7 +308,7 @@ export const LoginButton = ({
     return null;
   }
 
-  return (
+  const accountMenu = (
     <DropdownMenu
       open={isMenuOpen}
       onOpenChange={setIsMenuOpen}
@@ -407,5 +415,19 @@ export const LoginButton = ({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+
+  if (!dividerAbove) return accountMenu;
+
+  return (
+    <>
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        data-shellui-account-divider=""
+        className="mx-1 my-1.5 h-px shrink-0 bg-sidebar-border"
+      />
+      {accountMenu}
+    </>
   );
 };
