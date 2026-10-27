@@ -2211,3 +2211,18 @@ html[data-shellui-keyboard='open']
     transition: none;
   }
 }
+
+/* Fullscreen layout (Tauri): a small glass group keeps history buttons legible on any content. */
+.shellui-history-glass {
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--shellui-r-row);
+  background: var(--shellui-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 0 0 1px var(--shellui-glass-edge);
+}
+.shellui-history-glass :is(button, a):focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+  outline-offset: -2px;
+}

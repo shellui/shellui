@@ -65,7 +65,7 @@ export function FullscreenLayout({ title, navigation, children }: FullscreenLayo
             ? { 'data-shellui-drag-region': '', 'data-tauri-drag-region': '' }
             : {})}
         >
-          <DesktopHistoryButtons />
+          <DesktopHistoryButtons className="shellui-history-glass" />
         </div>
       ) : null}
       {children || <Outlet />}

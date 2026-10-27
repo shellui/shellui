@@ -42,6 +42,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **Core:** App-bar-inset layout: the active item is a raised pill on the chrome tray, hover reads on the tray and the content card uses the theme card radius.
 - **Core:** Floating layout: lighter glass (blur 24px, solid under reduced transparency), a capsule behind the active dock icon with press feedback and a short haptic tap on Android, the primary pill for the active sidebar row and group labels in normal case.
 - Windows layout: the taskbar clock shows hours and minutes only and updates once a minute. Windows use the card surface with a larger radius and focus shadow, 36px title bars and 28px controls (close turns destructive on hover). The taskbar and start menu are glass, task buttons get a primary indicator for the focused window and a dash for open ones, and the desktop wash is lighter.
+- Fullscreen layout (Tauri): Back and Forward sit in a small glass group so they stay legible on any app content.
 
 ## [0.7.0-alpha.9] - 2026-10-27
 
