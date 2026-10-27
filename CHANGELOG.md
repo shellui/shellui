@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- **Core:** `shellui.login` from an app now returns through `/login/callback`, so the OAuth code is exchanged and people land back on the page they started from, signed in. Before, they came back to the login page and had to sign in again. `redirectPath` now names the page to open after sign-in.
+
 ## [0.7.0-alpha.8] - 2026-10-24
 
 ### 🐛 Bug Fixes
