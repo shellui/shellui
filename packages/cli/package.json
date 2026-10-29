@@ -1,6 +1,6 @@
 {
   "name": "@shellui/cli",
-  "version": "0.7.0-alpha.12",
+  "version": "0.7.0-beta.1",
   "description": "Shellui CLI - Command-line tool for Shellui",
   "homepage": "https://shellui.com",
   "repository": {

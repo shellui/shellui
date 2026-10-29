@@ -18,7 +18,11 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-beta.1] - 2026-10-29
+
+### 🛠 Improvements
+
+- **SEO:** Package manifests and the docs site are easier for search engines and AI tools to find.
 
 ### 🏗 Chore
 

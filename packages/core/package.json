@@ -1,6 +1,6 @@
 {
   "name": "@shellui/core",
-  "version": "0.7.0-alpha.12",
+  "version": "0.7.0-beta.1",
   "description": "Shellui Core - Core React application runtime",
   "homepage": "https://shellui.com",
   "repository": {
