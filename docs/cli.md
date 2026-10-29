@@ -1,7 +1,7 @@
 ---
 title: CLI reference
 sidebar_label: CLI
-description: 'shellui commands, config files, environment substitution, tooling isolation, and preview deploy.'
+description: 'shellui commands, config files, environment substitution, tooling isolation, and preview and production deploys.'
 ---
 
 The `@shellui/cli` binary is `shellui`. Install it from the [installation page](/installation). This page is the command and config reference. For a first project, use [Create a project](/quickstart).
@@ -134,21 +134,80 @@ Commands use the account named in the project's `shellui.config.json`. Outside a
 
 ### shellui deploy [root]
 
-Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead).
+Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service). There are two targets:
+
+|            | Preview                                       | Production                                |
+| ---------- | --------------------------------------------- | ----------------------------------------- |
+| Command    | `shellui deploy`                              | `shellui deploy --prod`                   |
+| Config     | `hosting.slug` (saved after the first deploy) | `hosting.app` (the app name from admin)   |
+| Created by | the CLI, on first deploy                      | you, in admin (Hosting, New app)          |
+| Lifetime   | 7 days unless you redeploy                    | no expiry                                 |
+| Auth       | `shellui login`                               | `shellui login` or `SHELLUI_DEPLOY_TOKEN` |
 
 ```bash
 shellui deploy
 shellui deploy --build
 shellui deploy --version 1.2.0 --slug my-preview
 shellui deploy --dry-run
-shellui deploy history
-shellui deploy rollback --to 1.1.0
+shellui deploy --prod --build
+shellui deploy history [--prod]
+shellui deploy rollback --to 1.1.0 [--prod]
 shellui deploy rollback --deployment your_deployment_uuid_here
 ```
 
-Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create deployment → upload → finalize). App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. Runs `shellui build` when `dist/web/` is missing or when `--build` is passed. When hosting reports the preview origin was not added to allowed redirects, the command prints a warning and still finishes the deploy.
+Each deploy builds a `tar.gz` of `dist/web/`, then creates a draft deployment, uploads it and finalizes it. App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. The CLI runs `shellui build` when `dist/web/` is missing or when you pass `--build`. When hosting reports the origin was not added to allowed redirects, the command prints a warning and still finishes the deploy.
 
-**Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
+**Preview.** Requires `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead). `--slug` overrides config. Without `--prod`, `--app` is a deprecated alias for `--slug`.
+
+**Production.** Requires `hosting.url` and `hosting.app`. `--app <name>` overrides `hosting.app`. Production apps never expire and only accept deploys from members of their company or from a deploy token for that app.
+
+```json
+{
+  "hosting": {
+    "url": "https://hosting.example.com",
+    "app": "my-app"
+  }
+}
+```
+
+Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin, Hosting without affecting deploy.
+
+### shellui promote <deployment> [root]
+
+Make an uploaded or earlier deployment of the production app live. Use the id from `shellui deploy history --prod`. Works with a login session or `SHELLUI_DEPLOY_TOKEN`.
+
+```bash
+shellui promote your_deployment_uuid_here
+```
+
+### CI with deploy tokens
+
+A deploy token lets CI deploy one production app without a login. Create it in admin: Hosting, your app, Deploy tokens. Admin shows the token once. Store it as a secret named `SHELLUI_DEPLOY_TOKEN`, never in your repository.
+
+When `SHELLUI_DEPLOY_TOKEN` is set, the CLI skips the login session, sends the token to hosting as a bearer header and never prints it. A token can create, upload, finalize and promote deployments of its app, nothing else. Revoke it in admin when you no longer need it.
+
+```yaml
+name: Deploy
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx shellui deploy --prod --build
+        env:
+          SHELLUI_DEPLOY_TOKEN: ${{ secrets.SHELLUI_DEPLOY_TOKEN }}
+```
+
+With a deploy token, finalize does not add the site origin to allowed sign-in redirects. Add it once from the app page in admin.
 
 ## Configuration
 
@@ -305,3 +364,15 @@ The CLI does not replace your app toolchain. Set `dev.run` so one `shellui start
 **Port already in use.** Change `port` in config.
 
 **TypeScript config not loading.** Used only when no JSON or split config is present. Export a serializable `export default` or `export const config`. Install `typescript` as a dev dependency if evaluation fails.
+
+**`Not logged in`.** Run `shellui login`, or set `SHELLUI_DEPLOY_TOKEN` in CI.
+
+**`Missing production app`.** `--prod` and `promote` need `hosting.app`. Use the app name shown in admin, Hosting.
+
+**`This app is a preview site`.** `hosting.app` points at a preview slug. Create a production app in admin and use its name.
+
+**`SHELLUI_DEPLOY_TOKEN was revoked` or `has expired`.** Create a new token in admin and update the CI secret.
+
+**`This deploy token belongs to another app`.** The token was created for a different app than `hosting.app`. Use the token for this app or fix `hosting.app`.
+
+**`SHELLUI_DEPLOY_TOKEN is not a valid deploy token`.** The secret is empty, truncated or from another hosting server. Copy it again from a new token.

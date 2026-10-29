@@ -11,6 +11,7 @@ import {
   deployCommand,
   deployHistoryCommand,
   deployRollbackCommand,
+  promoteCommand,
 } from './commands/index.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -94,11 +95,18 @@ cli
   .action((root, options) => whoamiCommand(root, { config: options.config }));
 
 cli
-  .command('deploy [action] [root]', 'Deploy dist/web to shellui hosting preview (7-day TTL)')
+  .command(
+    'deploy [action] [root]',
+    'Deploy dist/web to a preview site (7-day TTL) or, with --prod, to production',
+  )
   .option('--build', 'Run shellui build before deploying')
+  .option('--prod', 'Deploy to the production app named in hosting.app')
   .option('--version <version>', 'App version (default: config.version or package.json)')
   .option('--slug <slug>', 'Preview site slug to redeploy (overrides hosting.slug)')
-  .option('--app <slug>', 'Deprecated alias for --slug')
+  .option(
+    '--app <name>',
+    'Production app (overrides hosting.app) with --prod. Without --prod: deprecated alias for --slug',
+  )
   .option('--dry-run', 'Print deployment plan without uploading')
   .option('--to <version>', 'Rollback: target app_version to activate')
   .option('--deployment <uuid>', 'Rollback: target deployment UUID to activate')
@@ -113,6 +121,12 @@ cli
     const deployRoot = action ?? root ?? '.';
     return deployCommand(deployRoot, options);
   });
+
+cli
+  .command('promote <deployment> [root]', 'Make a deployment of the production app live')
+  .option('--app <name>', 'Production app (overrides hosting.app)')
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .action((deployment, root, options) => promoteCommand(deployment, root ?? '.', options));
 
 // Setup CLI metadata
 cli.help();

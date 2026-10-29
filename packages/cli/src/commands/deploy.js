@@ -5,11 +5,17 @@ import os from 'node:os';
 import path from 'node:path';
 import pc from 'picocolors';
 import { buildCommand } from './build.js';
-import { hostingFetch, hostingUpload, readHostingError } from '../hosting/client.js';
+import {
+  DEPLOY_TOKEN_ENV,
+  deployTokenFromEnv,
+  hostingFetch,
+  hostingUpload,
+  readHostingError,
+} from '../hosting/client.js';
 import {
   resolveHostingTarget,
   validateHostingTarget,
-  deprecatedHostingAppWarning,
+  hostingAppPreviewNote,
 } from '../hosting/resolve-target.js';
 import { saveHostingSlug } from '../hosting/save-slug.js';
 import { useConfigAccount } from '../auth/resolve-target.js';
@@ -144,7 +150,7 @@ function warnOauthRedirect(payload) {
  * @param {Record<string, unknown> | null | undefined} payload
  */
 function printDeploymentResult(payload) {
-  console.log(pc.green('Preview deploy complete.'));
+  console.log(pc.green(payload?.prod ? 'Production deploy complete.' : 'Preview deploy complete.'));
   const slug = typeof payload?.slug === 'string' ? payload.slug : null;
   const urls =
     payload?.urls && typeof payload.urls === 'object'
@@ -185,6 +191,33 @@ function baseApiUrl(hostingUrl) {
 }
 
 /**
+ * Resolve and validate the hosting target. With prod, the app ref is hosting.app (or --app);
+ * otherwise it is the preview slug (--app stays a deprecated alias for --slug).
+ * @param {string} root
+ * @param {{ config?: string, slug?: string, app?: string, prod?: boolean }} options
+ * @param {{ requireRef?: boolean }} [flags]
+ */
+function resolveTarget(root, options, flags = {}) {
+  const prod = options.prod === true;
+  const target = resolveHostingTarget({
+    root,
+    config: options.config,
+    slug: prod ? options.slug : (options.slug ?? options.app),
+    app: prod ? options.app : undefined,
+  });
+  const error = validateHostingTarget(target, {
+    requireApp: prod,
+    requireSlug: !prod && flags.requireRef === true,
+  });
+  return { target, error, prod, ref: prod ? target.app : target.slug };
+}
+
+/** Log which credentials are used, without the secret. */
+function authLabel() {
+  return deployTokenFromEnv() ? `deploy token (${DEPLOY_TOKEN_ENV})` : 'shellui login session';
+}
+
+/**
  * @param {string} root
  * @param {{
  *   build?: boolean,
@@ -192,27 +225,23 @@ function baseApiUrl(hostingUrl) {
  *   slug?: string,
  *   app?: string,
  *   dryRun?: boolean,
+ *   prod?: boolean,
  *   config?: string,
  * }} options
  */
 export async function deployCommand(root = '.', options = {}) {
   const cwd = process.cwd();
   const projectRoot = getProjectRoot(root, cwd);
-  const target = resolveHostingTarget({
-    root,
-    config: options.config,
-    slug: options.slug ?? options.app,
-  });
-  const validationError = validateHostingTarget(target);
+  const { target, error: validationError, prod } = resolveTarget(root, options);
   if (validationError) {
     console.error(pc.red(validationError));
     process.exitCode = 1;
     return;
   }
   useConfigAccount({ root, config: options.config });
-  const deprecatedApp = deprecatedHostingAppWarning(root, { config: options.config });
-  if (deprecatedApp) {
-    console.warn(pc.yellow(deprecatedApp));
+  if (!prod) {
+    const note = hostingAppPreviewNote(root, { config: options.config });
+    if (note) console.warn(pc.yellow(note));
   }
 
   const distDir = getWebDistDir(root, cwd);
@@ -243,9 +272,15 @@ export async function deployCommand(root = '.', options = {}) {
   const { hostingUrl, slug: configSlug } = target;
 
   if (options.dryRun) {
-    console.log(pc.blue('Dry run — no changes will be made.'));
+    console.log(pc.blue('Dry run: no changes will be made.'));
     console.log(`${pc.bold('Hosting:')}         ${hostingUrl}`);
-    console.log(`${pc.bold('Slug:')}            ${configSlug || pc.gray('(new preview site)')}`);
+    console.log(`${pc.bold('Target:')}          ${prod ? 'production' : 'preview'}`);
+    if (prod) {
+      console.log(`${pc.bold('App:')}             ${target.app}`);
+    } else {
+      console.log(`${pc.bold('Slug:')}            ${configSlug || pc.gray('(new preview site)')}`);
+    }
+    console.log(`${pc.bold('Auth:')}            ${authLabel()}`);
     console.log(`${pc.bold('App version:')}      ${appVersion}`);
     console.log(`${pc.bold('Shellui version:')}  ${shelluiVersion}`);
     console.log(`${pc.bold('Artifact:')}        ${distDir} → artifact.tar.gz`);
@@ -266,27 +301,41 @@ export async function deployCommand(root = '.', options = {}) {
       throw new Error('dist/web/ does not exist. Run shellui build or pass --build.');
     }
 
-    console.log(pc.blue('Preparing preview site...'));
-    const { response: prepareResponse } = await hostingFetch(hostingUrl, '/hosting/v1/preview', {
-      method: 'POST',
-      body: {
-        slug: configSlug || undefined,
-        display_name: config.title || undefined,
-        app_version: appVersion,
-        shellui_version: shelluiVersion,
-      },
-    });
+    const versions = { app_version: appVersion, shellui_version: shelluiVersion };
+    console.log(
+      pc.blue(
+        prod ? `Preparing production deploy of ${target.app}...` : 'Preparing preview site...',
+      ),
+    );
+    const { response: prepareResponse } = prod
+      ? await hostingFetch(
+          hostingUrl,
+          `/hosting/v1/apps/${encodeURIComponent(target.app)}/production`,
+          { method: 'POST', body: versions },
+        )
+      : await hostingFetch(hostingUrl, '/hosting/v1/preview', {
+          method: 'POST',
+          body: {
+            slug: configSlug || undefined,
+            display_name: config.title || undefined,
+            ...versions,
+          },
+        });
     if (!prepareResponse.ok) {
       throw new Error(
-        `Failed to prepare preview (HTTP ${prepareResponse.status}): ${await readHostingError(prepareResponse)}`,
+        `Failed to prepare ${prod ? 'production deploy' : 'preview'} (HTTP ${prepareResponse.status}): ${await readHostingError(prepareResponse)}`,
       );
     }
     const prepared = await prepareResponse.json();
     warnOauthRedirect(prepared);
-    const siteSlug = typeof prepared?.slug === 'string' ? prepared.slug.trim() : '';
+    const siteSlug = prod
+      ? target.app
+      : typeof prepared?.slug === 'string'
+        ? prepared.slug.trim()
+        : '';
     const deploymentId = prepared?.deployment?.id;
     if (!siteSlug || !deploymentId) {
-      throw new Error('Hosting returned an invalid preview payload.');
+      throw new Error('Hosting returned an invalid deploy payload.');
     }
 
     console.log(pc.blue('Creating deployment artifact...'));
@@ -322,11 +371,12 @@ export async function deployCommand(root = '.', options = {}) {
     const finalized = await finalizeResponse.json();
     warnOauthRedirect(finalized);
     printDeploymentResult({
-      slug: siteSlug,
+      prod,
+      slug: prod ? null : siteSlug,
       urls: finalized?.urls,
       expires_at: finalized?.expires_at,
       deployment: finalized,
-      saveTarget: configSlug ? null : target.configDir,
+      saveTarget: prod || configSlug ? null : target.configDir,
     });
   } catch (err) {
     if (err instanceof Error && err.message.includes('Not logged in')) {
@@ -349,15 +399,16 @@ export async function deployCommand(root = '.', options = {}) {
 
 /**
  * @param {string} root
- * @param {{ slug?: string, app?: string, config?: string }} options
+ * @param {{ slug?: string, app?: string, prod?: boolean, config?: string }} options
  */
 export async function deployHistoryCommand(root = '.', options = {}) {
-  const target = resolveHostingTarget({
-    root,
-    config: options.config,
-    slug: options.slug ?? options.app,
+  const {
+    target,
+    error: validationError,
+    ref,
+  } = resolveTarget(root, options, {
+    requireRef: true,
   });
-  const validationError = validateHostingTarget(target, { requireSlug: true });
   if (validationError) {
     console.error(pc.red(validationError));
     process.exitCode = 1;
@@ -365,7 +416,8 @@ export async function deployHistoryCommand(root = '.', options = {}) {
   }
   useConfigAccount({ root, config: options.config });
 
-  const { hostingUrl, slug: siteSlug } = target;
+  const { hostingUrl } = target;
+  const siteSlug = ref;
 
   try {
     const { response } = await hostingFetch(
@@ -406,15 +458,16 @@ export async function deployHistoryCommand(root = '.', options = {}) {
 
 /**
  * @param {string} root
- * @param {{ slug?: string, app?: string, config?: string, to?: string, deployment?: string }} options
+ * @param {{ slug?: string, app?: string, prod?: boolean, config?: string, to?: string, deployment?: string }} options
  */
 export async function deployRollbackCommand(root = '.', options = {}) {
-  const target = resolveHostingTarget({
-    root,
-    config: options.config,
-    slug: options.slug ?? options.app,
+  const {
+    target,
+    error: validationError,
+    ref,
+  } = resolveTarget(root, options, {
+    requireRef: true,
   });
-  const validationError = validateHostingTarget(target, { requireSlug: true });
   if (validationError) {
     console.error(pc.red(validationError));
     process.exitCode = 1;
@@ -434,7 +487,8 @@ export async function deployRollbackCommand(root = '.', options = {}) {
     return;
   }
 
-  const { hostingUrl, slug: siteSlug } = target;
+  const { hostingUrl } = target;
+  const siteSlug = ref;
 
   try {
     let rollbackId = deploymentId;
@@ -483,6 +537,48 @@ export async function deployRollbackCommand(root = '.', options = {}) {
       expires_at: deployment?.expires_at,
       deployment,
     });
+  } catch (err) {
+    console.error(pc.red(err instanceof Error ? err.message : String(err)));
+    process.exitCode = 1;
+  }
+}
+
+/**
+ * Make an uploaded or earlier deployment of the production app live.
+ * @param {string} deploymentId
+ * @param {string} root
+ * @param {{ app?: string, config?: string }} options
+ */
+export async function promoteCommand(deploymentId, root = '.', options = {}) {
+  const id = typeof deploymentId === 'string' ? deploymentId.trim() : '';
+  if (!id) {
+    console.error(pc.red('Pass the deployment id: shellui promote <deployment>.'));
+    process.exitCode = 1;
+    return;
+  }
+  const { target, error, ref } = resolveTarget(root, { ...options, prod: true });
+  if (error) {
+    console.error(pc.red(error));
+    process.exitCode = 1;
+    return;
+  }
+  useConfigAccount({ root, config: options.config });
+  try {
+    const { response } = await hostingFetch(
+      target.hostingUrl,
+      `/hosting/v1/apps/${encodeURIComponent(ref)}/deployments/${encodeURIComponent(id)}/promote`,
+      { method: 'POST' },
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Promote failed (HTTP ${response.status}): ${await readHostingError(response)}`,
+      );
+    }
+    const deployment = await response.json();
+    console.log(
+      pc.green(`Promoted deployment ${deployment.id} (${deployment.app_version}) on ${ref}.`),
+    );
+    if (deployment?.urls?.url) console.log(`${pc.bold('Browse:')}       ${deployment.urls.url}`);
   } catch (err) {
     console.error(pc.red(err instanceof Error ? err.message : String(err)));
     process.exitCode = 1;

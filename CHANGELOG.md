@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### ✨ Feature
+
+- **CLI:** `shellui deploy --prod` deploys to the production app named in `hosting.app`, and `shellui promote <deployment>` makes a deployment live. Set `SHELLUI_DEPLOY_TOKEN` in CI to deploy without a login: the CLI never prints it, and wrong app, revoked and expired tokens get clear errors. `hosting.app` is no longer deprecated.
+
 ## [0.7.0-alpha.12] - 2026-10-29
 
 ### 🛠 Improvements

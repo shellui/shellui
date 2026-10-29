@@ -10,7 +10,7 @@ vi.mock('../../hosting/client.js', () => ({
 }));
 
 import { hostingFetch, hostingUpload } from '../../hosting/client.js';
-import { deployCommand, formatOauthRedirectWarning } from '../deploy.js';
+import { deployCommand, formatOauthRedirectWarning, promoteCommand } from '../deploy.js';
 
 const ORIGIN = 'https://demo.shellui.app';
 const REASON =
@@ -85,7 +85,7 @@ function makeProject() {
   return dir;
 }
 
-async function runDeploy(dir) {
+async function runDeploy(dir, options = {}, run = deployCommand) {
   const logs = [];
   const warns = [];
   const errors = [];
@@ -104,7 +104,7 @@ async function runDeploy(dir) {
   const previousExit = process.exitCode;
   process.exitCode = 0;
   try {
-    await deployCommand(dir);
+    await run(dir, options);
   } finally {
     console.log = log;
     console.warn = warn;
@@ -232,5 +232,62 @@ describe('deployCommand oauth redirect warning', () => {
     expect(result.errors.some((line) => line.includes('Failed to prepare preview'))).toBe(true);
     expect(signInWarnings(result.warns)).toEqual([]);
     expect(hostingUpload).not.toHaveBeenCalled();
+  });
+});
+
+describe('production deploys', () => {
+  beforeEach(() => {
+    hostingFetch.mockReset();
+    hostingUpload.mockReset();
+  });
+  afterEach(() => {
+    for (const dir of projects) fs.rmSync(dir, { recursive: true, force: true });
+    projects = [];
+  });
+
+  function withApp(dir, app) {
+    const p = path.join(dir, 'shellui.config.json');
+    const cfg = JSON.parse(fs.readFileSync(p, 'utf8'));
+    cfg.hosting.app = app;
+    fs.writeFileSync(p, JSON.stringify(cfg));
+    return dir;
+  }
+
+  test('deploy --prod uses hosting.app and the production endpoint', async () => {
+    hostingFetch.mockImplementation(async (_url, requestPath) => {
+      if (requestPath === '/hosting/v1/apps/site/production') {
+        return { response: jsonResponse({ slug: 'site', deployment: { id: 'dep-9' } }, 201) };
+      }
+      if (requestPath === '/hosting/v1/apps/site/deployments/dep-9/finalize') {
+        return { response: jsonResponse({ id: 'dep-9', urls: { url: ORIGIN } }) };
+      }
+      throw new Error(`unexpected hosting path ${requestPath}`);
+    });
+    hostingUpload.mockResolvedValue({ response: jsonResponse({ ok: true }) });
+
+    const result = await runDeploy(withApp(makeProject(), 'site'), { prod: true });
+
+    expect(result.errors, result.errors.join('\n')).toEqual([]);
+    expect(result.logs.some((l) => l.includes('Production deploy complete.'))).toBe(true);
+    expect(hostingUpload.mock.calls[0][1]).toBe('/hosting/v1/apps/site/deployments/dep-9/upload');
+  });
+
+  test('deploy --prod without hosting.app explains what to set', async () => {
+    const result = await runDeploy(makeProject(), { prod: true });
+    expect(result.exitCode).toBe(1);
+    expect(result.errors.join('\n')).toContain('hosting.app');
+    expect(hostingFetch).not.toHaveBeenCalled();
+  });
+
+  test('promote posts to the promote endpoint', async () => {
+    hostingFetch.mockResolvedValue({
+      response: jsonResponse({ id: 'dep-2', app_version: '1.0.0' }),
+    });
+    const dir = withApp(makeProject(), 'site');
+    const result = await runDeploy(dir, {}, (root, options) =>
+      promoteCommand('dep-2', root, options),
+    );
+    expect(result.errors).toEqual([]);
+    expect(hostingFetch.mock.calls[0][1]).toBe('/hosting/v1/apps/site/deployments/dep-2/promote');
   });
 });
