@@ -2,6 +2,15 @@
   "name": "@shellui/cli",
   "version": "0.7.0-alpha.12",
   "description": "Shellui CLI - Command-line tool for Shellui",
+  "homepage": "https://shellui.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shellui/shellui.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/shellui/shellui/issues"
+  },
   "main": "src/cli.js",
   "type": "module",
   "bin": {

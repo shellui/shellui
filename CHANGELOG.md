@@ -20,6 +20,11 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### 🏗 Chore
+
+- **Packages:** `@shellui/core`, `@shellui/sdk` and `@shellui/cli` list their homepage, repository and issue tracker on npm.
+- **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
+
 ### 🔒 Security
 
 - **Dependencies:** Patched launch-editor, vitest and postcss-selector-parser to clear open Dependabot alerts.

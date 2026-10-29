@@ -1,0 +1,41 @@
+# Shellui documentation
+
+> Shellui is a free, open-source web app platform (MIT). It gives your apps a shared shell with navigation, authentication, administration, and storage built in, so teams stop rebuilding the basics. Main site: https://shellui.com. Source: https://github.com/shellui/shellui.
+
+## Start here
+
+- [Introduction](https://docs.shellui.com/): what Shellui is and how the pieces fit
+- [Installation](https://docs.shellui.com/installation): install the CLI and core packages
+- [Quickstart](https://docs.shellui.com/quickstart): create and run a first project
+- [Framework starters](https://docs.shellui.com/framework-starters): starters for common frameworks
+
+## Packages
+
+- [@shellui/core](https://docs.shellui.com/core): the shell and its configuration
+- [@shellui/sdk](https://docs.shellui.com/sdk): SDK used by apps running inside the shell
+- [@shellui/cli](https://docs.shellui.com/cli): command line for init, dev, build, and deploy
+- [Backend](https://docs.shellui.com/backend): connecting the shell to Shellui services
+- [Desktop with Tauri](https://docs.shellui.com/tauri): ship the shell as a desktop app
+
+## Features
+
+- [Navigation](https://docs.shellui.com/features/navigation)
+- [Authentication](https://docs.shellui.com/features/authentication)
+- [Administration](https://docs.shellui.com/features/administration)
+- [Storage](https://docs.shellui.com/features/storage)
+- [Themes](https://docs.shellui.com/features/themes)
+- [Internationalization](https://docs.shellui.com/features/internationalization)
+- [Layouts](https://docs.shellui.com/features/layouts)
+- [Security](https://docs.shellui.com/features/security)
+
+## Services
+
+- [Identity service](https://docs.shellui.com/identity/): sign-in, OAuth, magic links, SAML, SCIM
+- [Storage service](https://docs.shellui.com/storage/): file uploads and access
+- [Email service](https://docs.shellui.com/email/): templates, providers, newsletters, rules
+- [Hosting service](https://docs.shellui.com/hosting/): deploy and serve Shellui apps
+
+## Optional
+
+- [Development](https://docs.shellui.com/development): contributing to Shellui
+- [Publishing](https://docs.shellui.com/publishing): release process for the packages
