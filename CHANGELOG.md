@@ -18,6 +18,17 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🛠 Improvements
+
+- **CLI:** `shellui deploy` saves a new preview slug to `hosting.slug` in `shellui.config.json`.
+- **CLI:** Credentials are stored per account (keychain entry each, same keys in the 0600 file fallback). Old logins migrate on first use. `shellui logout` clears the current account, `--all` clears every account.
+
+### 📚 Documentation
+
+- **CLI:** Credential storage section describes keychain first, file fallback and per-account keys.
+
 ## [0.7.0-alpha.11] - 2026-10-27
 
 ### 🛠 Improvements

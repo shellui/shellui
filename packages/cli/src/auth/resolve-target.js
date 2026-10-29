@@ -1,4 +1,5 @@
 import path from 'path';
+import { setActiveAccount } from './credentials.js';
 import { substituteEnvInConfig } from '../utils/config-env.js';
 import {
   discoverConfigMode,
@@ -157,4 +158,15 @@ export function validateAuthTarget(target) {
     return `Invalid backend URL: ${target.backendUrl}`;
   }
   return null;
+}
+
+/**
+ * Use the account from the project's shellui.config.json when it names one.
+ * Falls back to the current login otherwise.
+ * @param {{ root?: string, config?: string }} [options]
+ */
+export function useConfigAccount(options = {}) {
+  const target = resolveAuthTarget(options);
+  setActiveAccount(target.configDir && target.companyId ? target : null);
+  return target;
 }

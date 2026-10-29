@@ -1,12 +1,14 @@
 import pc from 'picocolors';
 import { getCredentialsPath } from '../auth/credentials.js';
+import { useConfigAccount } from '../auth/resolve-target.js';
 import { authFetch } from '../auth/session.js';
 
 /**
  * @param {string} [_root]
  * @param {Record<string, unknown>} [_options]
  */
-export async function whoamiCommand(_root, _options = {}) {
+export async function whoamiCommand(root = '.', options = {}) {
+  useConfigAccount({ root, config: /** @type {string | undefined} */ (options.config) });
   let response;
   let session;
   try {

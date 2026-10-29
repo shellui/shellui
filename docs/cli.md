@@ -124,15 +124,17 @@ After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
-**Credentials (Track F / L-10):** `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are stored as **plaintext JSON** with Unix mode `0600` (directory `0700`). This limits exposure to the same user account but does **not** protect against root, malware, or backups. OS keychain integration is planned separately. Tokens are never printed.
+**Credentials:** stored per account, keyed by `backend.url` plus `backend.companyId`. Each account gets its own OS keychain entry (service `shellui`, account `cli-credentials:<backend.url>#<companyId>`) through the optional `@napi-rs/keyring` package. If the keychain is not available, the CLI warns once and writes tokens to `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`, Windows `%APPDATA%\shellui\credentials.json`) with mode `0600` (directory `0700`), under the same keys. The file fallback limits exposure to your user account but does **not** protect against root, malware or backups. `accounts.json` in the same folder lists account keys and the current one, never tokens. A login stored by an older CLI version moves to the per-account layout on first use. Tokens are never printed.
+
+Commands use the account named in the project's `shellui.config.json`. Outside a project they use the last account you logged in with.
 
 ### shellui logout / whoami
 
-`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
+`shellui logout` removes the stored credentials for the current account (`shellui logout --all` removes every account) and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
 ### shellui deploy [root]
 
-Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`.
+Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead).
 
 ```bash
 shellui deploy
