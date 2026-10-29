@@ -52,7 +52,7 @@ export async function refreshSession(session) {
         ? payload.token_type
         : session.tokenType || 'bearer',
   };
-  writeCredentials(next);
+  writeCredentials(next, { makeCurrent: false });
   return next;
 }
 
