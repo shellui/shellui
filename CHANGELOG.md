@@ -18,6 +18,22 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-beta.1] - 2026-10-29
+
+### 🛠 Improvements
+
+- **SEO:** Package manifests and the docs site are easier for search engines and AI tools to find.
+
+### 🏗 Chore
+
+- **Packages:** `@shellui/core`, `@shellui/sdk` and `@shellui/cli` list their homepage, repository and issue tracker on npm.
+- **Packages:** Clearer npm descriptions and keywords for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
+- **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
+
+### 🔒 Security
+
+- **Dependencies:** Patched launch-editor, vitest and postcss-selector-parser to clear open Dependabot alerts.
+
 ## [0.7.0-alpha.12] - 2026-10-29
 
 ### ✨ Feature
