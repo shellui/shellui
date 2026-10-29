@@ -18,13 +18,11 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.7.0-alpha.12] - 2026-10-29
 
 ### ✨ Feature
 
 - **CLI:** Set `SHELLUI_DEPLOY_TOKEN` in CI to create and update 7-day previews without a login. The CLI never prints the token, redacts it from errors, and gives clear errors for invalid, revoked, expired and preview-only tokens.
-
-## [0.7.0-alpha.12] - 2026-10-29
 
 ### 🛠 Improvements
 
