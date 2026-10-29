@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🔒 Security
+
+- **Dependencies:** Patched launch-editor, vitest and postcss-selector-parser to clear open Dependabot alerts.
+
 ## [0.7.0-alpha.12] - 2026-10-29
 
 ### ✨ Feature
