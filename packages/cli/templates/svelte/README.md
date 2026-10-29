@@ -18,11 +18,10 @@ npm run preview
 From the project root after `shellui init svelte`:
 
 ```bash
-shellui start           # runs the shell (:4000) + this companion (:5173)
-shellui deploy          # uploads dist/web to a Shellui hosting preview
-shellui deploy --prod   # deploys to the production app in hosting.app
+shellui start    # runs the shell (:4000) + this companion (:5173)
+shellui deploy   # uploads dist/web to a Shellui hosting preview
 ```
 
-In CI, set `SHELLUI_DEPLOY_TOKEN` (created in admin for your app) and run `npx shellui deploy --prod --build`. See [CI with deploy tokens](https://github.com/shellui/shellui/blob/develop/docs/cli.md#ci-with-deploy-tokens).
+In CI, commit the saved `hosting.slug`, set `SHELLUI_DEPLOY_TOKEN` (created in admin, Hosting, Deploy tokens) and run `npx shellui deploy --build`. See [CI with deploy tokens](https://github.com/shellui/shellui/blob/develop/docs/cli.md#ci-with-deploy-tokens).
 
 `SHELLUI_APP_URL` (see `.env.example`) and the SvelteKit `paths.base` set where the built companion is served (default `/app`). `shellui build` applies that default automatically. After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally (unknown routes fall back to `404.html`).

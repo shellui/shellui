@@ -77,7 +77,6 @@ export function peekHostingFromConfig(startDir = '.', options = {}) {
  *   root?: string,
  *   config?: string,
  *   slug?: string,
- *   app?: string,
  * }} [options]
  */
 export function resolveHostingTarget(options = {}) {
@@ -95,15 +94,9 @@ export function resolveHostingTarget(options = {}) {
   const slugOverride =
     typeof options.slug === 'string' && options.slug.trim() ? options.slug.trim() : '';
 
-  const appFromConfig =
-    typeof fromConfig?.app === 'string' && fromConfig.app.trim() ? fromConfig.app.trim() : '';
-  const appOverride =
-    typeof options.app === 'string' && options.app.trim() ? options.app.trim() : '';
-
   return {
     hostingUrl: hostingUrlRaw.replace(/\/$/, ''),
     slug: slugOverride || slugFromConfig,
-    app: appOverride || appFromConfig,
     configDir,
   };
 }
@@ -112,10 +105,9 @@ export function resolveHostingTarget(options = {}) {
  * @param {{
  *   hostingUrl: string,
  *   slug?: string,
- *   app?: string,
  *   configDir?: string | null,
  * }} target
- * @param {{ requireSlug?: boolean, requireApp?: boolean }} [options]
+ * @param {{ requireSlug?: boolean }} [options]
  * @returns {string | null}
  */
 export function validateHostingTarget(target, options = {}) {
@@ -139,12 +131,6 @@ export function validateHostingTarget(target, options = {}) {
   } catch {
     return `Invalid hosting URL: ${target.hostingUrl}`;
   }
-  if (options.requireApp && !target.app) {
-    return (
-      `Missing production app. Set hosting.app in config at ${target.configDir} ` +
-      'to the app name from admin (Hosting), or pass --app <name>.'
-    );
-  }
   if (options.requireSlug && !target.slug) {
     return (
       `Missing preview slug. Set hosting.slug in config at ${target.configDir} ` +
@@ -155,17 +141,17 @@ export function validateHostingTarget(target, options = {}) {
 }
 
 /**
- * Note for preview deploys when hosting.app is set: it names the production app
- * and is only used by --prod, promote, and history or rollback with --prod.
+ * Warn about deprecated hosting.app when present in config (ignored for preview deploy).
  * @param {string} [startDir]
  * @param {{ config?: string }} [options]
  * @returns {string | null}
  */
-export function hostingAppPreviewNote(startDir = '.', options = {}) {
-  const { hosting } = peekHostingFromConfig(startDir, options);
+export function deprecatedHostingAppWarning(startDir = '.', options = {}) {
+  const { hosting, configDir } = peekHostingFromConfig(startDir, options);
   if (!hosting || typeof hosting.app !== 'string' || !hosting.app.trim()) return null;
   return (
-    `Note: hosting.app ("${hosting.app.trim()}") is your production app. ` +
-    'This is a preview deploy. Pass --prod to deploy to production.'
+    `Warning: hosting.app is deprecated and ignored for preview deploys` +
+    (configDir ? ` (${configDir})` : '') +
+    '. Use hosting.slug to redeploy an existing preview site, or omit it to create a new one.'
   );
 }

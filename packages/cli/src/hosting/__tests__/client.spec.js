@@ -25,14 +25,10 @@ describe('hosting client with SHELLUI_DEPLOY_TOKEN', () => {
   });
 
   test('sends the token as bearer and skips the login session', async () => {
-    const { session } = await hostingFetch(
-      'https://hosting.test',
-      '/hosting/v1/apps/a/production',
-      {
-        method: 'POST',
-        body: {},
-      },
-    );
+    const { session } = await hostingFetch('https://hosting.test', '/hosting/v1/preview', {
+      method: 'POST',
+      body: {},
+    });
     expect(session).toBeNull();
     expect(loadValidSession).not.toHaveBeenCalled();
     expect(fetch.mock.calls[0][1].headers.Authorization).toBe(`Bearer ${TOKEN}`);
@@ -43,10 +39,10 @@ describe('hosting client with SHELLUI_DEPLOY_TOKEN', () => {
       errorResponse(401, { error: 'deploy_token_revoked', message: 'x' }),
     );
     expect(revoked).toContain('was revoked');
-    const wrong = await readHostingError(
-      errorResponse(403, { error: 'deploy_token_wrong_app', message: 'x' }),
+    const previewOnly = await readHostingError(
+      errorResponse(403, { error: 'deploy_token_preview_only', message: 'x' }),
     );
-    expect(wrong).toContain('hosting.app');
+    expect(previewOnly).toContain('preview');
     const expired = await readHostingError(
       errorResponse(401, { error: 'deploy_token_expired', message: 'x' }),
     );

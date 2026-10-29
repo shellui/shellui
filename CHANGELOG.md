@@ -22,7 +22,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### ✨ Feature
 
-- **CLI:** `shellui deploy --prod` deploys to the production app named in `hosting.app`, and `shellui promote <deployment>` makes a deployment live. Set `SHELLUI_DEPLOY_TOKEN` in CI to deploy without a login: the CLI never prints it, and wrong app, revoked and expired tokens get clear errors. `hosting.app` is no longer deprecated.
+- **CLI:** Set `SHELLUI_DEPLOY_TOKEN` in CI to create and update 7-day previews without a login. The CLI never prints the token, redacts it from errors, and gives clear errors for invalid, revoked, expired and preview-only tokens.
 
 ## [0.7.0-alpha.12] - 2026-10-29
 
