@@ -148,7 +148,41 @@ shellui deploy rollback --deployment your_deployment_uuid_here
 
 Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create deployment → upload → finalize). App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. Runs `shellui build` when `dist/web/` is missing or when `--build` is passed. When hosting reports the preview origin was not added to allowed redirects, the command prints a warning and still finishes the deploy.
 
+In CI, set `SHELLUI_DEPLOY_TOKEN` instead of running `shellui login`. See [CI with deploy tokens](#ci-with-deploy-tokens).
+
 **Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
+
+### CI with deploy tokens
+
+A deploy token lets CI create and update 7-day previews without a login. Previews are meant for workshops and demos. Create the token in admin: Hosting, Deploy tokens. Admin shows it once. Store it as a secret named `SHELLUI_DEPLOY_TOKEN`, never in your repository.
+
+When `SHELLUI_DEPLOY_TOKEN` is set, the CLI skips the login session, sends the token to hosting as a bearer header and never prints it. A token belongs to your company: it can create a preview or redeploy any preview slug of your company, nothing else. Revoke it in admin when you no longer need it.
+
+Run `shellui deploy` once locally and commit the saved `hosting.slug`, so each CI run updates the same preview instead of creating a new one.
+
+```yaml
+name: Preview
+on:
+  push:
+    branches: [main]
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # Updates the preview saved in hosting.slug (shellui.config.json)
+      - run: npx shellui deploy --build
+        env:
+          SHELLUI_DEPLOY_TOKEN: ${{ secrets.SHELLUI_DEPLOY_TOKEN }}
+```
+
+With a deploy token, finalize does not add the site origin to allowed sign-in redirects. Add it once from the app page in admin.
 
 ## Configuration
 
@@ -305,3 +339,13 @@ The CLI does not replace your app toolchain. Set `dev.run` so one `shellui start
 **Port already in use.** Change `port` in config.
 
 **TypeScript config not loading.** Used only when no JSON or split config is present. Export a serializable `export default` or `export const config`. Install `typescript` as a dev dependency if evaluation fails.
+
+**`Not logged in`.** Run `shellui login`, or set `SHELLUI_DEPLOY_TOKEN` in CI.
+
+**`SHELLUI_DEPLOY_TOKEN was revoked` or `has expired`.** Create a new token in admin and update the CI secret.
+
+**`SHELLUI_DEPLOY_TOKEN is not a valid deploy token`.** The secret is empty, truncated or from another hosting server. Copy it again from a new token.
+
+**`Deploy tokens only deploy preview sites`.** `hosting.slug` names an app created in admin. Use a preview slug, or remove `hosting.slug` to create a new preview.
+
+**Each CI run creates a new preview.** Commit `hosting.slug` in `shellui.config.json`.

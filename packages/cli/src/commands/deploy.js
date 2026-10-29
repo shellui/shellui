@@ -5,7 +5,13 @@ import os from 'node:os';
 import path from 'node:path';
 import pc from 'picocolors';
 import { buildCommand } from './build.js';
-import { hostingFetch, hostingUpload, readHostingError } from '../hosting/client.js';
+import {
+  DEPLOY_TOKEN_ENV,
+  deployTokenFromEnv,
+  hostingFetch,
+  hostingUpload,
+  readHostingError,
+} from '../hosting/client.js';
 import {
   resolveHostingTarget,
   validateHostingTarget,
@@ -246,6 +252,9 @@ export async function deployCommand(root = '.', options = {}) {
     console.log(pc.blue('Dry run — no changes will be made.'));
     console.log(`${pc.bold('Hosting:')}         ${hostingUrl}`);
     console.log(`${pc.bold('Slug:')}            ${configSlug || pc.gray('(new preview site)')}`);
+    console.log(
+      `${pc.bold('Auth:')}            ${deployTokenFromEnv() ? `deploy token (${DEPLOY_TOKEN_ENV})` : 'shellui login session'}`,
+    );
     console.log(`${pc.bold('App version:')}      ${appVersion}`);
     console.log(`${pc.bold('Shellui version:')}  ${shelluiVersion}`);
     console.log(`${pc.bold('Artifact:')}        ${distDir} → artifact.tar.gz`);
