@@ -15,6 +15,7 @@ export default defineConfig({
       'src/features/auth/backends/**/*.spec.ts',
       'src/features/auth/appBackend/**/*.spec.ts',
       'src/features/auth/components/**/*.spec.tsx',
+      'src/components/ui/shell-divider.spec.tsx',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/storage/**/*.spec.ts',
       'src/service-worker/**/*.spec.ts',

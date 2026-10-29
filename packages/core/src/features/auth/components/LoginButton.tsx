@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import urls from '../../../constants/urls';
 import { cn } from '../../../lib/utils';
 import { useIsMobile } from '../../../hooks/use-mobile';
+import { ShellDivider } from '../../../components/ui/shell-divider';
 import { useAuth } from '../hooks/useAuth';
 import { UserIcon } from '../../settings/components/UserIcon';
 import { useConfig } from '../../config/useConfig';
@@ -133,10 +134,19 @@ export const LoginButton = ({
   variant,
   hideWhenLoggedOut = false,
   logoutOnly = false,
+  dividerAbove = false,
 }: {
   variant: LoginButtonVariant;
   hideWhenLoggedOut?: boolean;
   logoutOnly?: boolean;
+  /**
+   * Full-width hairline above the signed-in account block, separating it from
+   * the footer items above, plus 4px of top padding above the account row.
+   * Signed out and loading states never render it. Pass false when the account
+   * block is the first footer item (the footer divider already separates it).
+   * The parent must inset the block by 8px (sidebar group, floating footer).
+   */
+  dividerAbove?: boolean;
 }) => {
   const currentVariantConfig = variantConfig[variant];
   const isMobile = useIsMobile();
@@ -300,7 +310,7 @@ export const LoginButton = ({
     return null;
   }
 
-  return (
+  const accountMenu = (
     <DropdownMenu
       open={isMenuOpen}
       onOpenChange={setIsMenuOpen}
@@ -407,5 +417,19 @@ export const LoginButton = ({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+
+  if (!dividerAbove) return accountMenu;
+
+  // Full-width hairline (cancels the 8px row inset), then 4px so the account
+  // row breathes below it.
+  return (
+    <>
+      <ShellDivider
+        data-shellui-account-divider=""
+        className="-mx-2 mt-1"
+      />
+      <div className="pt-1">{accountMenu}</div>
+    </>
   );
 };

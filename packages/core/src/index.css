@@ -251,6 +251,21 @@ html[data-shellui-overlay-chrome] {
 }
 
 /*
+ * Shared divider for the shell panels, per the layouts redesign kit
+ * (shell.css `.sbx .foot`, `.fside .head` / `.fside .foot`, `.startm .sh` /
+ * `.startm .sf`): a full-width 1px --shellui-hairline with no margin of its own.
+ * Inside a padded container, cancel the padding with negative inline margins
+ * (e.g. -mx-2) so it still runs edge to edge. Menus keep the shadcn separator
+ * (kit `.menu hr`: full bleed, --border).
+ */
+.shellui-divider {
+  flex-shrink: 0;
+  height: 1px;
+  border: 0;
+  background: var(--shellui-hairline);
+}
+
+/*
  * Content padding that clears the notch / home indicator, then keeps the
  * configured inset beyond that edge. Override with --shellui-safe-pad-x / -y.
  */
@@ -1684,7 +1699,7 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
 .shellui-nav [data-sidebar='group'] {
   position: relative;
 }
-/* Collapsed rail: the hidden group label leaves a 24 x 1 px hairline. */
+/* Collapsed rail: the hidden group label leaves a 24 x 1 px hairline (sidebar spec). */
 .group[data-collapsible='icon']
   .shellui-nav
   [data-sidebar='group']:has(.shellui-nav-label)::before {
@@ -1698,8 +1713,7 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   background: var(--shellui-hairline);
 }
 .shellui-nav[data-shellui-nav-footer] {
-  border-top-color: var(--shellui-hairline);
-  padding: 6px 0 max(8px, var(--shellui-safe-area-bottom));
+  padding: 0 0 max(8px, var(--shellui-safe-area-bottom));
 }
 
 /* Rail: 2 px ring line on hover and while dragging. */
@@ -1756,8 +1770,11 @@ html[data-shellui-safe-area-topbar] [data-shellui-collapsed-titlebar] {
   [data-sidebar='menu-button'][data-active='true'] {
   box-shadow: 0 1px 2px color-mix(in oklch, black 10%, transparent);
 }
-[data-shellui-layout-variant='inset'] .shellui-nav[data-shellui-nav-footer] {
-  border-top-color: transparent;
+/* Inset: no footer hairline, the card edge already separates (sidebar-inset spec). */
+[data-shellui-layout-variant='inset']
+  .shellui-nav[data-shellui-nav-footer]
+  > [data-shellui-footer-divider] {
+  background: transparent;
 }
 @media (min-width: 768px) {
   [data-shellui-layout-variant='inset'] [data-slot='sidebar-inset'] {
@@ -2330,9 +2347,6 @@ html[data-shellui-keyboard='open']
   border-radius: calc(var(--radius) + 6px);
   box-shadow: var(--shellui-glass-shadow);
 }
-.shellui-start-head {
-  border-bottom: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
-}
 .shellui-start-title {
   font-size: 14px;
   font-weight: 600;
@@ -2341,9 +2355,6 @@ html[data-shellui-keyboard='open']
 .shellui-start-hint {
   margin-top: 2px;
   font-size: 12.5px;
-}
-.shellui-start-foot {
-  border-top: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
 }
 .shellui-start-label {
   font-size: 12px;

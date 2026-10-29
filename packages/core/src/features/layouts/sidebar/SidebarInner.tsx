@@ -9,6 +9,7 @@ import {
 } from '../../../components/ui/sidebar';
 import { CloseIcon } from './SidebarIcons';
 import { NavigationContent } from './NavigationContent';
+import { ShellDivider } from '../../../components/ui/shell-divider';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { MacLightsSafeArea, MacStripSpacer } from '../chrome/MacStrip';
@@ -201,16 +202,24 @@ export function SidebarInner({
       </SidebarContent>
       <SidebarFooter
         data-shellui-nav-footer=""
-        className="shellui-nav gap-0 border-t border-sidebar-border px-0 pt-0 pb-[max(0.5rem,var(--shellui-safe-area-bottom))]"
+        className="shellui-nav gap-0 px-0 pt-0 pb-[max(0.5rem,var(--shellui-safe-area-bottom))]"
       >
+        <ShellDivider data-shellui-footer-divider="" />
         {(endItems.length > 0 || showAuthButton) && (
           <nav
             aria-label={t('shellChrome.accountNav')}
-            className="flex min-w-0 flex-col gap-0.5 pb-1"
+            className="flex min-w-0 flex-col gap-0.5 pt-1.5 pb-1"
           >
             <NavigationContent
               navigation={endItems}
-              trailing={showAuthButton ? <LoginButton variant="sidebar" /> : undefined}
+              trailing={
+                showAuthButton ? (
+                  <LoginButton
+                    variant="sidebar"
+                    dividerAbove={endItems.length > 0}
+                  />
+                ) : undefined
+              }
             />
           </nav>
         )}
