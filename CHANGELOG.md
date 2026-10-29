@@ -27,6 +27,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🏗 Chore
 
 - **Packages:** `@shellui/core`, `@shellui/sdk` and `@shellui/cli` list their homepage, repository and issue tracker on npm.
+- **Packages:** Clearer npm descriptions and keywords for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
 - **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
 
 ### 🔒 Security

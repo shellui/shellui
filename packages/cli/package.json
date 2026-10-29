@@ -1,7 +1,7 @@
 {
   "name": "@shellui/cli",
   "version": "0.7.0-beta.1",
-  "description": "Shellui CLI - Command-line tool for Shellui",
+  "description": "Command-line tool for Shellui, the open-source app shell. Create a project from React, Vue, Svelte, Angular and other templates, run the dev server, build, and deploy 7-day preview links. Desktop builds with Tauri. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
     "type": "git",
@@ -32,8 +32,16 @@
   "keywords": [
     "shellui",
     "cli",
-    "microfrontend",
-    "vite"
+    "app shell",
+    "micro frontends",
+    "scaffolding",
+    "vite",
+    "react",
+    "admin dashboard",
+    "internal tools",
+    "preview deployments",
+    "tauri",
+    "open source"
   ],
   "author": "Shellui",
   "license": "MIT",

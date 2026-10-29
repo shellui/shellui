@@ -1,6 +1,6 @@
 # @shellui/core
 
-React runtime for the Shellui host. `@shellui/cli` depends on this package. Install it yourself when you import config types or `useAuth` from host code.
+React runtime for Shellui, the open-source app shell: navigation, layouts, light and dark themes, sign-in, and your apps hosted as micro frontends in one interface. `@shellui/cli` depends on this package. Install it yourself when you import config types or `useAuth` from host code.
 
 ```bash
 npm install @shellui/core

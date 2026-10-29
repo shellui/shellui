@@ -1,7 +1,7 @@
 {
   "name": "@shellui/sdk",
   "version": "0.7.0-beta.1",
-  "description": "Shellui SDK - TypeScript/JavaScript SDK for Shellui integration",
+  "description": "JavaScript and TypeScript SDK for apps hosted in Shellui, the open-source app shell. Connect any framework to the host to show toasts, dialogs and drawers, follow the theme, read the signed-in user and use storage. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
     "type": "git",
@@ -46,8 +46,16 @@
   "keywords": [
     "shellui",
     "sdk",
+    "app shell",
+    "micro frontends",
+    "iframe",
+    "postMessage",
     "javascript",
-    "microfrontend"
+    "typescript",
+    "react",
+    "vue",
+    "internal tools",
+    "open source"
   ],
   "author": "Shellui",
   "license": "MIT",

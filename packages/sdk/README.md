@@ -1,6 +1,6 @@
 # @shellui/sdk
 
-JavaScript/TypeScript SDK for iframe apps hosted in Shellui. Call `init`, then use host chrome (toasts, dialogs, overlays) and storage. Do not reach into host DOM.
+JavaScript and TypeScript SDK for apps hosted in Shellui, the open-source app shell. Works with any framework. Call `init`, then use host chrome (toasts, dialogs, overlays) and storage. Do not reach into host DOM.
 
 ## Installation
 

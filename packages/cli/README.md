@@ -1,6 +1,6 @@
 # @shellui/cli
 
-Command-line tool for Shellui. Install it, then run `shellui` to create a project, start the host, and build.
+Command-line tool for Shellui, the open-source app shell. Create a project from a React, Vue, Svelte, Angular or other template, run it, build it, and deploy 7-day preview links. Install it, then run `shellui` to create a project, start the host, and build.
 
 ## Installation
 

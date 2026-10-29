@@ -1,7 +1,7 @@
 {
   "name": "@shellui/core",
   "version": "0.7.0-beta.1",
-  "description": "Shellui Core - Core React application runtime",
+  "description": "React runtime for Shellui, the open-source app shell. Renders navigation, layouts, themes with light and dark modes, sign-in and identity, and hosts your apps as micro frontends in one interface. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
     "type": "git",
@@ -52,9 +52,17 @@
   },
   "keywords": [
     "shellui",
-    "core",
+    "app shell",
+    "micro frontends",
     "react",
-    "microfrontend"
+    "admin dashboard",
+    "internal tools",
+    "navigation",
+    "layout",
+    "themes",
+    "dark mode",
+    "authentication",
+    "open source"
   ],
   "author": "Shellui",
   "license": "MIT",
