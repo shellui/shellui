@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,9 +16,18 @@ vi.mock('../chrome/runtime', () => ({
   useMacOverlayChrome: () => false,
   useMacTrafficLights: () => false,
 }));
-vi.mock('./NavigationContent', () => ({ NavigationContent: () => null }));
+vi.mock('./NavigationContent', () => ({
+  NavigationContent: ({ trailing }: { trailing?: ReactNode }) => trailing ?? null,
+}));
 vi.mock('../../config/useConfig', () => ({ useConfig: () => ({ config: {} }) }));
-vi.mock('../../auth/components/LoginButton', () => ({ LoginButton: () => null }));
+vi.mock('../../auth/components/LoginButton', () => ({
+  LoginButton: ({ dividerAbove }: { dividerAbove?: boolean }) => (
+    <span
+      data-login=""
+      data-divider={String(Boolean(dividerAbove))}
+    />
+  ),
+}));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {
@@ -105,5 +114,36 @@ describe('SidebarInner header', () => {
 
   it('has the close label in French', () => {
     expect(fr.shellChrome.closeMenu).toBe('Fermer le menu');
+  });
+});
+
+describe('SidebarInner footer account divider', () => {
+  const footer = (endItems: { label: string; path: string; url: string }[]) => (
+    <SidebarInner
+      startNav={[]}
+      endItems={endItems}
+      showAuthButton
+      title="Acme"
+    />
+  );
+
+  it('asks for a divider when footer items sit above the account block', () => {
+    render(footer([{ label: 'Settings', path: 'settings', url: '/settings' }]));
+    expect(q(container, '[data-login]').getAttribute('data-divider')).toBe('true');
+  });
+
+  it('opens the footer with the shared full-width divider instead of a border', () => {
+    render(footer([]));
+    const foot = q(container, '[data-shellui-nav-footer]');
+    expect(foot.className).not.toContain('border-t');
+    const first = foot.firstElementChild;
+    expect(first?.getAttribute('data-shellui-divider')).toBe('');
+    expect(first?.className).toContain('shellui-divider');
+    expect(first?.hasAttribute('data-shellui-footer-divider')).toBe(true);
+  });
+
+  it('skips the account divider when the account block is the only footer item', () => {
+    render(footer([]));
+    expect(q(container, '[data-login]').getAttribute('data-divider')).toBe('false');
   });
 });

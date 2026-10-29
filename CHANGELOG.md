@@ -18,6 +18,22 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.7.0-alpha.12] - 2026-10-29
+
+### ✨ Feature
+
+- **CLI:** Set `SHELLUI_DEPLOY_TOKEN` in CI to create and update 7-day previews without a login. The CLI never prints the token, redacts it from errors, and gives clear errors for invalid, revoked, expired and preview-only tokens.
+
+### 🛠 Improvements
+
+- **Core:** One shared divider per layout, as in the layouts redesign kit: a full-width 1px hairline in the sidebar, floating sidebar and windows start menu (it replaces the footer, floating header and start menu borders), none in the sidebar inset footer, and the full-bleed separator in menus. When signed in, the same divider sits above the account block, with 4px above the account row, to separate it from the footer items (not drawn when the account block is the only footer item). Signed-out users keep the login button with no divider.
+- **CLI:** `shellui deploy` saves a new preview slug to `hosting.slug` in `shellui.config.json`.
+- **CLI:** Credentials are stored per account (keychain entry each, same keys in the 0600 file fallback). Old logins migrate on first use. `shellui logout` clears the current account, `--all` clears every account.
+
+### 📚 Documentation
+
+- **CLI:** Credential storage section describes keychain first, file fallback and per-account keys.
+
 ## [0.7.0-alpha.11] - 2026-10-27
 
 ### 🛠 Improvements

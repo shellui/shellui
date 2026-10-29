@@ -13,6 +13,7 @@ import {
 import { getExternalFaviconUrl } from '../sidebar/sidebarUtils';
 import { NavIcon, ExternalLinkIcon } from '../sidebar/SidebarIcons';
 import { AppBrandIcon } from '../branding/AppBrandIcon';
+import { ShellDivider } from '../../../components/ui/shell-divider';
 import { LoginButton } from '../../auth/components/LoginButton';
 import { cn } from '../../../lib/utils';
 import { DesktopHistoryButtons } from '../chrome/DesktopHistoryButtons';
@@ -353,7 +354,7 @@ export function FloatingSidebar({
                 </button>
               </div>
               {/* Brand row under the strip: not a drag region. */}
-              <div className="flex h-10 shrink-0 items-center gap-2 border-b border-sidebar-border/80 px-3 text-sidebar-foreground">
+              <div className="flex h-10 shrink-0 items-center gap-2 px-3 text-sidebar-foreground">
                 {appIcon ? (
                   <AppBrandIcon
                     appIcon={appIcon}
@@ -368,10 +369,7 @@ export function FloatingSidebar({
             </>
           ) : (
             <div
-              className={cn(
-                'flex shrink-0 items-center border-b border-sidebar-border/80',
-                tauriRuntime ? 'pr-2.5' : 'pr-2 pl-3.5',
-              )}
+              className={cn('flex shrink-0 items-center', tauriRuntime ? 'pr-2.5' : 'pr-2 pl-3.5')}
               style={
                 tauriRuntime
                   ? {
@@ -426,6 +424,7 @@ export function FloatingSidebar({
               </div>
             </div>
           )}
+          <ShellDivider />
 
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2">
             {sections.map((section, sectionIndex) => {
@@ -459,14 +458,20 @@ export function FloatingSidebar({
           </div>
 
           {endItems.length > 0 || showAuthButton ? (
-            <div className="flex shrink-0 flex-col gap-0.5 border-t border-sidebar-border/80 p-2">
-              {endItems.map(renderItem)}
-              {showAuthButton ? (
-                <div className="px-0.5 pt-0.5">
-                  <LoginButton variant="sidebar" />
-                </div>
-              ) : null}
-            </div>
+            <>
+              <ShellDivider />
+              <div className="flex shrink-0 flex-col gap-0.5 px-2 pt-1.5 pb-2">
+                {endItems.map(renderItem)}
+                {showAuthButton ? (
+                  <div className="pt-0.5">
+                    <LoginButton
+                      variant="sidebar"
+                      dividerAbove={endItems.length > 0}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            </>
           ) : null}
         </nav>
       </aside>

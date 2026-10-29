@@ -51,12 +51,15 @@ afterEach(() => {
   container.remove();
 });
 
-function render(open = true) {
+function render(open = true, dividerAbove = false) {
   act(() => {
     root.render(
       <MemoryRouter>
         <SidebarProvider defaultOpen={open}>
-          <LoginButton variant="sidebar" />
+          <LoginButton
+            variant="sidebar"
+            dividerAbove={dividerAbove}
+          />
         </SidebarProvider>
       </MemoryRouter>,
     );
@@ -151,5 +154,50 @@ describe('account aria strings', () => {
       expect(fr.authMenu[key]).toContain('{{name}}');
     }
     expect(fr.authMenu.openAccountMenuWithEmailAriaLabel).toContain('{{email}}');
+  });
+});
+
+describe('account divider', () => {
+  const divider = () => container.querySelector<HTMLElement>('[data-shellui-account-divider]');
+
+  it('draws the shared divider above the signed-in account block', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    const btn = render(true, true);
+    const line = divider();
+    expect(line).not.toBeNull();
+    expect(line?.getAttribute('role')).toBe('separator');
+    expect(line?.className).toContain('shellui-divider');
+    // Full width: cancels the 8px row inset of the footer group.
+    expect(line?.className).toContain('-mx-2');
+    // 4px of breathing room between the divider and the account row.
+    const pad = line?.nextElementSibling;
+    expect(pad?.className).toBe('pt-1');
+    expect(pad?.firstElementChild).toBe(btn);
+  });
+
+  it('stays in collapsed icon mode', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    render(false, true);
+    expect(divider()).not.toBeNull();
+  });
+
+  it('is off unless asked for', () => {
+    auth.user = { name: 'Alex Martin', email: 'alex@acme.dev' };
+    const btn = render(true, false);
+    expect(divider()).toBeNull();
+    expect(btn?.parentElement?.className).not.toBe('pt-1');
+  });
+
+  it('never shows for the signed-out login button', () => {
+    auth.isAuthenticated = false;
+    render(true, true);
+    expect(container.querySelector('a')?.textContent).toContain(en.authMenu.login);
+    expect(divider()).toBeNull();
+  });
+
+  it('never shows while loading', () => {
+    auth.isLoading = true;
+    render(true, true);
+    expect(divider()).toBeNull();
   });
 });

@@ -612,7 +612,7 @@ function FloatingMoreSheet({
             {overflowItems.length > 0 && (endItems.length > 0 || showAuthButton) ? (
               <div
                 aria-hidden
-                className="mx-3 my-1 h-px bg-[var(--shellui-hairline)]"
+                className="h-2"
               />
             ) : null}
             {endItems.map(renderRow)}

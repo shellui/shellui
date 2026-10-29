@@ -124,15 +124,17 @@ After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_
 
 Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
 
-**Credentials (Track F / L-10):** `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`); Windows `%APPDATA%\shellui\credentials.json`. Tokens are stored as **plaintext JSON** with Unix mode `0600` (directory `0700`). This limits exposure to the same user account but does **not** protect against root, malware, or backups. OS keychain integration is planned separately. Tokens are never printed.
+**Credentials:** stored per account, keyed by `backend.url` plus `backend.companyId`. Each account gets its own OS keychain entry (service `shellui`, account `cli-credentials:<backend.url>#<companyId>`) through the optional `@napi-rs/keyring` package. If the keychain is not available, the CLI warns once and writes tokens to `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`, Windows `%APPDATA%\shellui\credentials.json`) with mode `0600` (directory `0700`), under the same keys. The file fallback limits exposure to your user account but does **not** protect against root, malware or backups. `accounts.json` in the same folder lists account keys and the current one, never tokens. A login stored by an older CLI version moves to the per-account layout on first use. Tokens are never printed.
+
+Commands use the account named in the project's `shellui.config.json`. Outside a project they use the last account you logged in with.
 
 ### shellui logout / whoami
 
-`shellui logout` removes stored credentials and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
+`shellui logout` removes the stored credentials for the current account (`shellui logout --all` removes every account) and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
 ### shellui deploy [root]
 
-Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`.
+Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead).
 
 ```bash
 shellui deploy
@@ -146,7 +148,41 @@ shellui deploy rollback --deployment your_deployment_uuid_here
 
 Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create deployment → upload → finalize). App version comes from `--version`, `config.version`, or `package.json`. `shellui_version` comes from installed `@shellui/core`. Runs `shellui build` when `dist/web/` is missing or when `--build` is passed. When hosting reports the preview origin was not added to allowed redirects, the command prints a warning and still finishes the deploy.
 
+In CI, set `SHELLUI_DEPLOY_TOKEN` instead of running `shellui login`. See [CI with deploy tokens](#ci-with-deploy-tokens).
+
 **Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
+
+### CI with deploy tokens
+
+A deploy token lets CI create and update 7-day previews without a login. Previews are meant for workshops and demos. Create the token in admin: Hosting, Deploy tokens. Admin shows it once. Store it as a secret named `SHELLUI_DEPLOY_TOKEN`, never in your repository.
+
+When `SHELLUI_DEPLOY_TOKEN` is set, the CLI skips the login session, sends the token to hosting as a bearer header and never prints it. A token belongs to your company: it can create a preview or redeploy any preview slug of your company, nothing else. Revoke it in admin when you no longer need it.
+
+Run `shellui deploy` once locally and commit the saved `hosting.slug`, so each CI run updates the same preview instead of creating a new one.
+
+```yaml
+name: Preview
+on:
+  push:
+    branches: [main]
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      # Updates the preview saved in hosting.slug (shellui.config.json)
+      - run: npx shellui deploy --build
+        env:
+          SHELLUI_DEPLOY_TOKEN: ${{ secrets.SHELLUI_DEPLOY_TOKEN }}
+```
+
+With a deploy token, finalize does not add the site origin to allowed sign-in redirects. Add it once from the app page in admin.
 
 ## Configuration
 
@@ -303,3 +339,13 @@ The CLI does not replace your app toolchain. Set `dev.run` so one `shellui start
 **Port already in use.** Change `port` in config.
 
 **TypeScript config not loading.** Used only when no JSON or split config is present. Export a serializable `export default` or `export const config`. Install `typescript` as a dev dependency if evaluation fails.
+
+**`Not logged in`.** Run `shellui login`, or set `SHELLUI_DEPLOY_TOKEN` in CI.
+
+**`SHELLUI_DEPLOY_TOKEN was revoked` or `has expired`.** Create a new token in admin and update the CI secret.
+
+**`SHELLUI_DEPLOY_TOKEN is not a valid deploy token`.** The secret is empty, truncated or from another hosting server. Copy it again from a new token.
+
+**`Deploy tokens only deploy preview sites`.** `hosting.slug` names an app created in admin. Use a preview slug, or remove `hosting.slug` to create a new preview.
+
+**Each CI run creates a new preview.** Commit `hosting.slug` in `shellui.config.json`.

@@ -5,12 +5,20 @@ import os from 'node:os';
 import path from 'node:path';
 import pc from 'picocolors';
 import { buildCommand } from './build.js';
-import { hostingFetch, hostingUpload, readHostingError } from '../hosting/client.js';
+import {
+  DEPLOY_TOKEN_ENV,
+  deployTokenFromEnv,
+  hostingFetch,
+  hostingUpload,
+  readHostingError,
+} from '../hosting/client.js';
 import {
   resolveHostingTarget,
   validateHostingTarget,
   deprecatedHostingAppWarning,
 } from '../hosting/resolve-target.js';
+import { saveHostingSlug } from '../hosting/save-slug.js';
+import { useConfigAccount } from '../auth/resolve-target.js';
 import { loadConfig } from '../utils/index.js';
 import { getWebDistDir, getProjectRoot } from '../utils/paths.js';
 
@@ -153,11 +161,17 @@ function printDeploymentResult(payload) {
   }
   if (slug) {
     console.log(`${pc.bold('Slug:')}          ${slug}`);
-    console.log(
-      pc.gray(
-        `  Redeploy later: add ${pc.cyan(`"slug": "${slug}"`)} to hosting in shellui.config.json`,
-      ),
-    );
+    const saveTarget = typeof payload?.saveTarget === 'string' ? payload.saveTarget : null;
+    const result = saveTarget ? saveHostingSlug(saveTarget, slug) : null;
+    if (result?.saved) {
+      console.log(pc.green(`  Saved hosting.slug "${slug}" to ${result.path}`));
+    } else if (saveTarget) {
+      console.log(
+        pc.gray(
+          `  Redeploy later: add ${pc.cyan(`"slug": "${slug}"`)} to hosting in shellui.config.json (${result?.reason})`,
+        ),
+      );
+    }
   }
   if (typeof payload?.expires_at === 'string' && payload.expires_at) {
     console.log(`${pc.bold('Expires:')}      ${payload.expires_at}`);
@@ -201,6 +215,7 @@ export async function deployCommand(root = '.', options = {}) {
     process.exitCode = 1;
     return;
   }
+  useConfigAccount({ root, config: options.config });
   const deprecatedApp = deprecatedHostingAppWarning(root, { config: options.config });
   if (deprecatedApp) {
     console.warn(pc.yellow(deprecatedApp));
@@ -237,6 +252,9 @@ export async function deployCommand(root = '.', options = {}) {
     console.log(pc.blue('Dry run — no changes will be made.'));
     console.log(`${pc.bold('Hosting:')}         ${hostingUrl}`);
     console.log(`${pc.bold('Slug:')}            ${configSlug || pc.gray('(new preview site)')}`);
+    console.log(
+      `${pc.bold('Auth:')}            ${deployTokenFromEnv() ? `deploy token (${DEPLOY_TOKEN_ENV})` : 'shellui login session'}`,
+    );
     console.log(`${pc.bold('App version:')}      ${appVersion}`);
     console.log(`${pc.bold('Shellui version:')}  ${shelluiVersion}`);
     console.log(`${pc.bold('Artifact:')}        ${distDir} → artifact.tar.gz`);
@@ -317,6 +335,7 @@ export async function deployCommand(root = '.', options = {}) {
       urls: finalized?.urls,
       expires_at: finalized?.expires_at,
       deployment: finalized,
+      saveTarget: configSlug ? null : target.configDir,
     });
   } catch (err) {
     if (err instanceof Error && err.message.includes('Not logged in')) {
@@ -353,6 +372,7 @@ export async function deployHistoryCommand(root = '.', options = {}) {
     process.exitCode = 1;
     return;
   }
+  useConfigAccount({ root, config: options.config });
 
   const { hostingUrl, slug: siteSlug } = target;
 
@@ -409,6 +429,7 @@ export async function deployRollbackCommand(root = '.', options = {}) {
     process.exitCode = 1;
     return;
   }
+  useConfigAccount({ root, config: options.config });
 
   const toVersion = typeof options.to === 'string' && options.to.trim() ? options.to.trim() : null;
   const deploymentId =

@@ -20,6 +20,8 @@ shellui start    # runs the shell (:4000) + this companion (:5173)
 shellui deploy   # uploads dist/web to a Shellui hosting preview
 ```
 
+In CI, commit the saved `hosting.slug`, set `SHELLUI_DEPLOY_TOKEN` (created in admin, Hosting, Deploy tokens) and run `npx shellui deploy --build`. See [CI with deploy tokens](https://github.com/shellui/shellui/blob/develop/docs/cli.md#ci-with-deploy-tokens).
+
 `SHELLUI_APP_URL` (see `.env.example`) sets where the built companion is served (default `/app`). `shellui build` applies that default automatically; override with a project `.env` if needed. The shell build writes absolute asset paths (`/assets/…`) so a nested route loads JavaScript and CSS from the site root.
 
 After `pnpm build`, run `pnpm run serve:dist` to preview `dist/web` locally. Unknown routes fall back to `404.html` for shell deep links.
