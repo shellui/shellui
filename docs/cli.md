@@ -172,7 +172,7 @@ Each deploy builds a `tar.gz` of `dist/web/`, then creates a draft deployment, u
 
 Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin, Hosting without affecting deploy.
 
-### shellui promote <deployment> [root]
+### shellui promote `<deployment>` [root]
 
 Make an uploaded or earlier deployment of the production app live. Use the id from `shellui deploy history --prod`. Works with a login session or `SHELLUI_DEPLOY_TOKEN`.
 
