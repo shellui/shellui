@@ -5,7 +5,7 @@ import path from 'path';
 
 const require = createRequire(import.meta.url);
 
-const CREDENTIALS_VERSION = 1;
+const CREDENTIALS_VERSION = 2;
 const KEYCHAIN_SERVICE = 'shellui';
 const KEYCHAIN_ACCOUNT = 'cli-credentials';
 
@@ -24,14 +24,18 @@ export const CREDENTIAL_STORAGE_RESIDUAL = Object.freeze({
     'disk imaging of the file fallback',
   ],
   followUp:
-    'OS keychain via optional @napi-rs/keyring; file mode 0600 when that store is unavailable',
+    'OS keychain entry per account via optional @napi-rs/keyring; file mode 0600 when that store is unavailable',
 });
 
-/** @type {{ active: boolean, entry: KeychainEntry | null }} */
-let testKeychain = { active: false, entry: null };
-/** @type {KeychainEntry | null | undefined} */
-let nativeEntry;
+/** @type {{ active: boolean, factory: ((name: string) => KeychainEntry | null) | null }} */
+let testKeychain = { active: false, factory: null };
+/** @type {Map<string, KeychainEntry | null>} */
+const nativeEntries = new Map();
+let nativeUnavailable = false;
 let warnedFileFallback = false;
+let migrated = false;
+/** @type {string | null} */
+let activeAccountKey = null;
 
 /**
  * @typedef {{
@@ -42,34 +46,60 @@ let warnedFileFallback = false;
  */
 
 /**
- * @param {KeychainEntry | null} entry
+ * @param {((name: string) => KeychainEntry | null) | null} factory keychain entry per account name
  */
-export function setCredentialKeychainForTests(entry) {
-  testKeychain = { active: true, entry };
+export function setCredentialKeychainForTests(factory) {
+  testKeychain = { active: true, factory };
   warnedFileFallback = false;
+  migrated = false;
+  activeAccountKey = null;
 }
 
 export function resetCredentialKeychainForTests() {
-  testKeychain = { active: false, entry: null };
+  testKeychain = { active: false, factory: null };
   warnedFileFallback = false;
+  migrated = false;
+  activeAccountKey = null;
 }
 
 /**
+ * @param {string} name keychain account name
  * @returns {KeychainEntry | null}
  */
-function keychainEntry() {
-  if (testKeychain.active) return testKeychain.entry;
-  if (process.env.VITEST) return null;
-  if (nativeEntry !== undefined) return nativeEntry;
+function keychainEntry(name) {
+  if (testKeychain.active) return testKeychain.factory ? testKeychain.factory(name) : null;
+  if (process.env.VITEST || nativeUnavailable) return null;
+  if (nativeEntries.has(name)) return nativeEntries.get(name) ?? null;
   try {
     const { Entry } = require('@napi-rs/keyring');
-    nativeEntry = new Entry(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, {
-      linux: { store: 'secret-service' },
-    });
+    const entry = new Entry(KEYCHAIN_SERVICE, name, { linux: { store: 'secret-service' } });
+    nativeEntries.set(name, entry);
+    return entry;
   } catch {
-    nativeEntry = null;
+    nativeUnavailable = true;
+    return null;
   }
-  return nativeEntry;
+}
+
+/**
+ * Stable key for one account: identity URL plus company id.
+ * @param {{ backendUrl: string, companyId: string | number }} account
+ */
+export function accountKey(account) {
+  return `${String(account.backendUrl).trim().replace(/\/+$/, '')}#${String(account.companyId).trim()}`;
+}
+
+/** @param {string} key */
+function keychainName(key) {
+  return `${KEYCHAIN_ACCOUNT}:${key}`;
+}
+
+/**
+ * Pick the account later reads use by default (for example from shellui.config.json).
+ * @param {{ backendUrl: string, companyId: string | number } | null} account
+ */
+export function setActiveAccount(account) {
+  activeAccountKey = account && String(account.companyId ?? '').trim() ? accountKey(account) : null;
 }
 
 /**
@@ -162,32 +192,149 @@ function credentialsFromRaw(raw) {
   };
 }
 
-function readKeychainCredentials() {
-  const entry = keychainEntry();
-  if (!entry) return null;
+function getIndexPath() {
+  return path.join(getCredentialsDir(), 'accounts.json');
+}
+
+function ensureDir() {
+  const dir = getCredentialsDir();
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   try {
-    const raw = entry.getPassword();
-    if (!raw) return null;
-    return credentialsFromRaw(JSON.parse(raw));
+    fs.chmodSync(dir, 0o700);
   } catch {
-    return null;
+    // Windows may ignore chmod
   }
 }
 
-export function readCredentials() {
-  const fromKeychain = readKeychainCredentials();
-  if (fromKeychain) return fromKeychain;
-  const filePath = getCredentialsPath();
-  if (!fs.existsSync(filePath)) return null;
+/**
+ * @param {string} filePath
+ * @param {unknown} value
+ */
+function writePrivateJson(filePath, value) {
+  ensureDir();
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: 'utf8',
+    mode: 0o600,
+  });
   try {
-    return credentialsFromRaw(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+    fs.chmodSync(filePath, 0o600);
+  } catch {
+    // Windows may ignore chmod
+  }
+}
+
+/** @param {string} filePath */
+function readJson(filePath) {
+  try {
+    return fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : null;
   } catch {
     return null;
   }
 }
 
 /**
- * Persist credentials with restrictive permissions (dir 0700, file 0600).
+ * Account index (no tokens): known account keys and the current one.
+ * @returns {{ current: string | null, accounts: string[] }}
+ */
+function readIndex() {
+  const raw = readJson(getIndexPath());
+  const accounts = Array.isArray(raw?.accounts)
+    ? raw.accounts.filter((/** @type {unknown} */ k) => typeof k === 'string')
+    : [];
+  const current = typeof raw?.current === 'string' ? raw.current : null;
+  return { current, accounts };
+}
+
+/** @param {{ current: string | null, accounts: string[] }} index */
+function writeIndex(index) {
+  writePrivateJson(getIndexPath(), { version: CREDENTIALS_VERSION, ...index });
+}
+
+/**
+ * File fallback: tokens per account key, mode 0600.
+ * @returns {Record<string, unknown>}
+ */
+function readFileAccounts() {
+  const raw = readJson(getCredentialsPath());
+  if (raw && typeof raw === 'object' && raw.accounts && typeof raw.accounts === 'object') {
+    return /** @type {Record<string, unknown>} */ (raw.accounts);
+  }
+  return {};
+}
+
+/** @param {Record<string, unknown>} accounts */
+function writeFileAccounts(accounts) {
+  const filePath = getCredentialsPath();
+  if (Object.keys(accounts).length === 0) {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return;
+  }
+  writePrivateJson(filePath, { version: CREDENTIALS_VERSION, accounts });
+}
+
+/**
+ * Move the old single-slot login (keychain `cli-credentials` or flat v1 file) to a per-account entry.
+ */
+function migrateLegacy() {
+  if (migrated) return;
+  migrated = true;
+  const legacyEntry = keychainEntry(KEYCHAIN_ACCOUNT);
+  if (legacyEntry) {
+    try {
+      const raw = legacyEntry.getPassword();
+      const legacy = raw ? credentialsFromRaw(JSON.parse(raw)) : null;
+      if (legacy) writeCredentials(legacy, { makeCurrent: !readIndex().current });
+      if (raw) legacyEntry.deletePassword();
+    } catch {
+      // Leave the legacy entry; the login keeps working on next run.
+    }
+  }
+  const rawFile = readJson(getCredentialsPath());
+  const legacyFile = rawFile && !rawFile.accounts ? credentialsFromRaw(rawFile) : null;
+  if (legacyFile) {
+    fs.unlinkSync(getCredentialsPath());
+    writeCredentials(legacyFile, { makeCurrent: !readIndex().current });
+  }
+}
+
+/**
+ * @param {string} key
+ */
+function readAccount(key) {
+  const entry = keychainEntry(keychainName(key));
+  if (entry) {
+    try {
+      const raw = entry.getPassword();
+      const parsed = raw ? credentialsFromRaw(JSON.parse(raw)) : null;
+      if (parsed) return parsed;
+    } catch {
+      // try the file fallback
+    }
+  }
+  return credentialsFromRaw(readFileAccounts()[key]);
+}
+
+/**
+ * Read one account's credentials: the given account, else the active one, else the current login.
+ * @param {{ backendUrl: string, companyId: string | number } | null} [account]
+ */
+export function readCredentials(account = null) {
+  migrateLegacy();
+  const key = account ? accountKey(account) : activeAccountKey || readIndex().current;
+  return key ? readAccount(key) : null;
+}
+
+/**
+ * Keys of every stored account (no tokens).
+ * @returns {string[]}
+ */
+export function listAccounts() {
+  migrateLegacy();
+  return [...new Set([...readIndex().accounts, ...Object.keys(readFileAccounts())])];
+}
+
+/**
+ * Persist one account: OS keychain first, 0600 file fallback. Dir 0700.
  * @param {{
  *   backendUrl: string,
  *   companyId: string | number,
@@ -196,15 +343,9 @@ export function readCredentials() {
  *   expiresAt?: number | null,
  *   tokenType?: string,
  * }} session
+ * @param {{ makeCurrent?: boolean }} [options]
  */
-export function writeCredentials(session) {
-  const dir = getCredentialsDir();
-  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  try {
-    fs.chmodSync(dir, 0o700);
-  } catch {
-    // Windows may ignore chmod
-  }
+export function writeCredentials(session, options = {}) {
   const payload = {
     version: CREDENTIALS_VERSION,
     backendUrl: String(session.backendUrl).replace(/\/$/, ''),
@@ -217,38 +358,44 @@ export function writeCredentials(session) {
         : null,
     tokenType: session.tokenType || 'bearer',
   };
-  const entry = keychainEntry();
+  const key = accountKey(payload);
+  const fileAccounts = readFileAccounts();
+  const entry = keychainEntry(keychainName(key));
+  let inKeychain = false;
   if (entry) {
     try {
       entry.setPassword(JSON.stringify(payload));
-      const filePath = getCredentialsPath();
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      return;
+      inKeychain = true;
     } catch (error) {
       warnFileFallback(error);
     }
   } else {
     warnFileFallback(new Error('OS keychain is not available'));
   }
-  const filePath = getCredentialsPath();
-  fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, {
-    encoding: 'utf8',
-    mode: 0o600,
+  if (inKeychain) delete fileAccounts[key];
+  else fileAccounts[key] = payload;
+  writeFileAccounts(fileAccounts);
+
+  const index = readIndex();
+  const makeCurrent = options.makeCurrent ?? true;
+  writeIndex({
+    current: makeCurrent ? key : index.current,
+    accounts: index.accounts.includes(key) ? index.accounts : [...index.accounts, key],
   });
-  try {
-    fs.chmodSync(filePath, 0o600);
-  } catch {
-    // Windows may ignore chmod
-  }
 }
 
 /**
- * Remove stored credentials if present.
- * @returns {boolean} true if a file was removed
+ * Remove one account (given, active, or current).
+ * @param {{ backendUrl: string, companyId: string | number } | null} [account]
+ * @returns {boolean} true if something was removed
  */
-export function clearCredentials() {
+export function clearCredentials(account = null) {
+  migrateLegacy();
+  const index = readIndex();
+  const key = account ? accountKey(account) : activeAccountKey || index.current;
+  if (!key) return false;
   let removed = false;
-  const entry = keychainEntry();
+  const entry = keychainEntry(keychainName(key));
   if (entry) {
     try {
       removed = Boolean(entry.deletePassword());
@@ -256,8 +403,18 @@ export function clearCredentials() {
       // Still remove the file fallback.
     }
   }
-  const filePath = getCredentialsPath();
-  if (!fs.existsSync(filePath)) return removed;
-  fs.unlinkSync(filePath);
-  return true;
+  const fileAccounts = readFileAccounts();
+  if (key in fileAccounts) {
+    delete fileAccounts[key];
+    writeFileAccounts(fileAccounts);
+    removed = true;
+  }
+  const accounts = index.accounts.filter((k) => k !== key);
+  if (accounts.length !== index.accounts.length) removed = true;
+  if (accounts.length === 0) {
+    if (fs.existsSync(getIndexPath())) fs.unlinkSync(getIndexPath());
+  } else {
+    writeIndex({ current: index.current === key ? null : index.current, accounts });
+  }
+  return removed;
 }

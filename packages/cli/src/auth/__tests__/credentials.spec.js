@@ -3,7 +3,10 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  accountKey,
   clearCredentials,
+  listAccounts,
+  setActiveAccount,
   getCredentialsDir,
   getCredentialsPath,
   getCredentialStorageInfo,
@@ -13,6 +16,24 @@ import {
   setCredentialKeychainForTests,
   writeCredentials,
 } from '../credentials.js';
+
+function memoryKeychain() {
+  /** @type {Map<string, string>} */
+  const store = new Map();
+  return {
+    store,
+    factory: (/** @type {string} */ name) => ({
+      getPassword: () => store.get(name) ?? null,
+      setPassword: (/** @type {string} */ value) => {
+        store.set(name, value);
+      },
+      deletePassword: () => store.delete(name),
+    }),
+  };
+}
+
+const A = { backendUrl: 'https://eu.id.example', companyId: '1' };
+const B = { backendUrl: 'https://us.id.example', companyId: '2' };
 
 describe('credentials', () => {
   /** @type {string} */
@@ -105,19 +126,7 @@ describe('credentials', () => {
   });
 
   test('stores credentials in the keychain and does not leave the token file', () => {
-    /** @type {string | null} */
-    let saved = null;
-    setCredentialKeychainForTests({
-      getPassword: () => saved,
-      setPassword: (password) => {
-        saved = password;
-      },
-      deletePassword: () => {
-        const had = saved != null;
-        saved = null;
-        return had;
-      },
-    });
+    setCredentialKeychainForTests(memoryKeychain().factory);
     writeCredentials({
       backendUrl: 'https://id.shellui.com',
       companyId: '1',
@@ -133,13 +142,13 @@ describe('credentials', () => {
 
   test('falls back to the 0600 file and warns when the keychain write fails', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    setCredentialKeychainForTests({
+    setCredentialKeychainForTests(() => ({
       getPassword: () => null,
       setPassword: () => {
         throw new Error('secret service unavailable');
       },
       deletePassword: () => false,
-    });
+    }));
     writeCredentials({
       backendUrl: 'https://id.shellui.com',
       companyId: '1',
@@ -158,5 +167,66 @@ describe('credentials', () => {
     fs.mkdirSync(getCredentialsDir(), { recursive: true });
     fs.writeFileSync(getCredentialsPath(), '{not-json', 'utf8');
     expect(readCredentials()).toBeNull();
+  });
+  test('keeps one keychain entry per account and switches with setActiveAccount', () => {
+    const kc = memoryKeychain();
+    setCredentialKeychainForTests(kc.factory);
+    writeCredentials({ ...A, accessToken: 'a1', refreshToken: 'r1' });
+    writeCredentials({ ...B, accessToken: 'a2', refreshToken: 'r2' });
+    expect(kc.store.size).toBe(2);
+    expect(listAccounts()).toEqual([accountKey(A), accountKey(B)]);
+    expect(readCredentials()).toMatchObject({ accessToken: 'a2' });
+    expect(readCredentials(A)).toMatchObject({ accessToken: 'a1' });
+    setActiveAccount(A);
+    expect(readCredentials()).toMatchObject({ accessToken: 'a1' });
+    const index = fs.readFileSync(path.join(getCredentialsDir(), 'accounts.json'), 'utf8');
+    expect(index).not.toMatch(/a1|r1|a2|r2/);
+  });
+
+  test('clearCredentials removes only the given account', () => {
+    setCredentialKeychainForTests(memoryKeychain().factory);
+    writeCredentials({ ...A, accessToken: 'a1', refreshToken: 'r1' });
+    writeCredentials({ ...B, accessToken: 'a2', refreshToken: 'r2' });
+    expect(clearCredentials(A)).toBe(true);
+    expect(readCredentials(A)).toBeNull();
+    expect(readCredentials(B)).toMatchObject({ accessToken: 'a2' });
+    expect(listAccounts()).toEqual([accountKey(B)]);
+  });
+
+  test('file fallback stores accounts under the same keys', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    setCredentialKeychainForTests(null);
+    writeCredentials({ ...A, accessToken: 'a1', refreshToken: 'r1' });
+    writeCredentials({ ...B, accessToken: 'a2', refreshToken: 'r2' });
+    const file = JSON.parse(fs.readFileSync(getCredentialsPath(), 'utf8'));
+    expect(Object.keys(file.accounts)).toEqual([accountKey(A), accountKey(B)]);
+    expect(readCredentials(A)).toMatchObject({ refreshToken: 'r1' });
+    vi.restoreAllMocks();
+  });
+
+  test('migrates the legacy single keychain entry without losing the login', () => {
+    const kc = memoryKeychain();
+    kc.store.set(
+      'cli-credentials',
+      JSON.stringify({ version: 1, ...A, accessToken: 'old', refreshToken: 'oldr' }),
+    );
+    setCredentialKeychainForTests(kc.factory);
+    expect(readCredentials()).toMatchObject({ accessToken: 'old', refreshToken: 'oldr' });
+    expect(kc.store.has('cli-credentials')).toBe(false);
+    expect(kc.store.has(`cli-credentials:${accountKey(A)}`)).toBe(true);
+  });
+
+  test('migrates a legacy flat credentials file', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    fs.mkdirSync(getCredentialsDir(), { recursive: true });
+    fs.writeFileSync(
+      getCredentialsPath(),
+      JSON.stringify({ version: 1, ...A, accessToken: 'old', refreshToken: 'oldr' }),
+    );
+    setCredentialKeychainForTests(null);
+    expect(readCredentials()).toMatchObject({ accessToken: 'old' });
+    const file = JSON.parse(fs.readFileSync(getCredentialsPath(), 'utf8'));
+    expect(file.accounts[accountKey(A)]).toBeTruthy();
+    vi.restoreAllMocks();
   });
 });

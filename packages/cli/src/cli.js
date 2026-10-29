@@ -82,11 +82,16 @@ cli
     }),
   );
 
-cli.command('logout', 'Remove stored shellui CLI credentials').action(() => logoutCommand());
+cli
+  .command('logout [root]', 'Remove stored CLI credentials for this account')
+  .option('--all', 'Remove every stored account')
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .action((root, options) => logoutCommand(root, { all: options.all, config: options.config }));
 
 cli
-  .command('whoami', 'Show the profile for the stored CLI credentials')
-  .action(() => whoamiCommand());
+  .command('whoami [root]', 'Show the profile for the stored CLI credentials')
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .action((root, options) => whoamiCommand(root, { config: options.config }));
 
 cli
   .command('deploy [action] [root]', 'Deploy dist/web to shellui hosting preview (7-day TTL)')
