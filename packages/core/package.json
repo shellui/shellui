@@ -2,6 +2,15 @@
   "name": "@shellui/core",
   "version": "0.7.0-alpha.12",
   "description": "Shellui Core - Core React application runtime",
+  "homepage": "https://shellui.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shellui/shellui.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/shellui/shellui/issues"
+  },
   "main": "src/index.ts",
   "type": "module",
   "exports": {

@@ -2,6 +2,15 @@
   "name": "@shellui/sdk",
   "version": "0.7.0-alpha.12",
   "description": "Shellui SDK - TypeScript/JavaScript SDK for Shellui integration",
+  "homepage": "https://shellui.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shellui/shellui.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/shellui/shellui/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
