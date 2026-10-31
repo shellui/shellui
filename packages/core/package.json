@@ -1,6 +1,6 @@
 {
   "name": "@shellui/core",
-  "version": "0.7.0-beta.1",
+  "version": "0.7.0",
   "description": "React runtime for Shellui, the open-source app shell. Renders navigation, layouts, themes with light and dark modes, sign-in and identity, and hosts your apps as micro frontends in one interface. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
