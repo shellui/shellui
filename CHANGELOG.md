@@ -18,192 +18,76 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [0.7.0-beta.1] - 2026-10-29
-
-### 🛠 Improvements
-
-- **SEO:** Package manifests and the docs site are easier for search engines and AI tools to find.
-
-### 🏗 Chore
-
-- **Packages:** `@shellui/core`, `@shellui/sdk` and `@shellui/cli` list their homepage, repository and issue tracker on npm.
-- **Packages:** Clearer npm descriptions and keywords for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
-- **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
-
-### 🔒 Security
-
-- **Dependencies:** Patched launch-editor, vitest and postcss-selector-parser to clear open Dependabot alerts.
-
-## [0.7.0-alpha.12] - 2026-10-29
+## [0.7.0] - 2026-10-31
 
 ### ✨ Feature
 
-- **CLI:** Set `SHELLUI_DEPLOY_TOKEN` in CI to create and update 7-day previews without a login. The CLI never prints the token, redacts it from errors, and gives clear errors for invalid, revoked, expired and preview-only tokens.
-
-### 🛠 Improvements
-
-- **Core:** One shared divider per layout, as in the layouts redesign kit: a full-width 1px hairline in the sidebar, floating sidebar and windows start menu (it replaces the footer, floating header and start menu borders), none in the sidebar inset footer, and the full-bleed separator in menus. When signed in, the same divider sits above the account block, with 4px above the account row, to separate it from the footer items (not drawn when the account block is the only footer item). Signed-out users keep the login button with no divider.
-- **CLI:** `shellui deploy` saves a new preview slug to `hosting.slug` in `shellui.config.json`.
-- **CLI:** Credentials are stored per account (keychain entry each, same keys in the 0600 file fallback). Old logins migrate on first use. `shellui logout` clears the current account, `--all` clears every account.
-
-### 📚 Documentation
-
-- **CLI:** Credential storage section describes keychain first, file fallback and per-account keys.
-
-## [0.7.0-alpha.11] - 2026-10-27
-
-### 🛠 Improvements
-
-- **Core:** Sidebar account block: initials or picture, name with email below and an up/down chevron, avatar only when collapsed.
-- **Core:** Windows layout: the desktop dot field moves at the website's normal speed, so the motion is visible. Reduced motion keeps the static grid.
-- **Core:** Sidebar layout: app name next to the logo (fades out when collapsed), no border under the header, 2px gaps between nav items, inset header pulled flush on the web, collapsed tooltips in foreground colours after 200ms, and the toggle reports `aria-expanded` and `aria-controls`.
-- **Core:** Sidebar layout on phones: 48px header with a 40px trigger and the page title centred, and a 52px sheet header with the logo, app name and a "Close menu" button.
-- **Core:** App bar: app name next to the logo on the web, the active underline sits on the bar's bottom border, More is a "···" icon button (labelled "More"), and the active item never hides inside More on narrow screens.
-- **Core:** App bar: nav items and their menus use plain 16px icons, with no muted tile or letter badge.
-- **Core:** Floating layout: the web brand row shows the app name next to the logo (52px row, 36px collapse button), the collapse button uses the "Collapse sidebar" and "Expand sidebar" labels, and the More sheet and tablet More menu group items under their nav group labels.
-- **Core:** Windows layout: start menu group labels at 12px / 600 in normal case, a start menu footer with the account row and a Settings button, and icon-only taskbar end items with labels and tooltips.
-- **Core:** Fullscreen layout: on phones the content clears the safe areas (top inset plus 12px, sides and bottom by their inset). Nested shells and the macOS strip are unchanged.
-
-### 🚨 Changed
-
-- **Core:** Drawers float above the page: a 12px gap from the window edge (8px plus the safe area on phones), rounded corners, a border and a soft shadow. Phone drawer, modal and More sheets share one look and grab handle. Drawers fade instead of slide under reduced motion.
-
-### 🐛 Bug Fixes
-
-- **Core:** The expanded phone bottom sheet no longer hides its last 60px below the screen.
-- **Core:** On phones every drawer opens as a bottom sheet with a grab handle, whatever its direction or dismiss options. It fits its content up to 8px below the notch and scrolls inside when taller, with no half-height stop, and content-sized drawers no longer open below the screen.
-- **Core:** `shellui start` no longer serves cached shell scripts and styles from the dev service worker, so an upgrade shows the new shell on the first load. Dev caches are named after the core version and older ones are removed.
-
-## [0.7.0-alpha.10] - 2026-10-27
-
-### ✨ Feature
-
-- **Core:** Floating layout: a More bottom sheet on phones, and the dock steps aside while the soft keyboard is open.
-- **Core:** Windows layout: a slow dot field on the desktop that pauses when hidden or covered and stays static under reduced motion.
+- **SaaS:** Global console, saas-service and multi-region federation support. Requires identity-service 0.9.0.
+- **App identity server:** A navigation item can set `backend` for an app on another identity server, with its own session and access token.
+- **App services:** A navigation item can set `email`, `storage` and `hosting` URLs for that app.
+- **Core:** Regional app sessions use OAuth token exchange (RFC 8693) and renew with their own refresh token.
+- **Core:** The shell forwards child service URLs allowed by `childFrames.serviceOrigins`, others are `null`.
+- **SDK:** App frame (`createAppFrame`, `<ShelluiFrame>`) embeds a child app with its own regional session, a loading overlay and `email`, `storage`, `hosting` and `files` URLs.
+- **SDK:** App frames report why the child has no session (`onSession`, `renderError`).
+- **SDK:** `useShelluiNavigation` in `@shellui/sdk/react` syncs app routes with the shell.
+- **Core:** Floating layout: a More bottom sheet on phones, and the dock steps aside for the soft keyboard.
+- **Core:** Windows layout: a dot field on the desktop that pauses when hidden and stays static under reduced motion.
+- **CLI:** `SHELLUI_DEPLOY_TOKEN` creates and updates 7-day previews from CI without a login. The token is never printed.
 
 ### 🛠 Improvements
 
 - **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop, in light and dark.
-- **Core:** `applyTheme` flags low contrast nav colors with `data-shellui-nav-contrast="low"` and tints the active pill.
+- **Core:** `applyTheme` flags low contrast nav colors with `data-shellui-nav-contrast="low"`.
 - **Core:** Accessible navigation in every layout: named landmarks, `aria-current`, announced external links and translated labels (en, fr).
+- **Core:** Refreshed sidebar, app bar, floating, windows and fullscreen layouts, with phone sizes and safe areas handled.
+- **Core:** Sidebar account block with initials or picture, name and email, avatar only when collapsed.
+- **Core:** One shared divider per layout, with a divider above the account block when signed in.
+- **CLI:** `shellui deploy` saves a new preview slug to `hosting.slug` in `shellui.config.json`.
+- **CLI:** Credentials are stored per account. `shellui logout --all` clears every account.
+- **SEO:** Fuller npm descriptions, keywords and links for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
 
 ### 🚨 Changed
 
-- **Core:** Sidebar and sidebar-inset layouts: a primary active pill, quieter group labels and theme card radius.
-- **Core:** App bar and app-bar-inset layouts: a primary underline or raised pill for the active item and touch-size menu rows on phones.
-- **Core:** Floating layout: lighter glass, a capsule behind the active dock icon and the primary pill in the sidebar.
-- **Core:** Windows layout: card surface windows, glass taskbar and start menu, and a minute clock.
-- **Core:** Fullscreen layout: Back and Forward sit in a glass group in the Tauri app.
-- **Core:** macOS desktop: every layout draws a 32px strip around the system traffic lights, with an 80px drag-only safe area.
-- **CLI:** macOS traffic lights stay at the AppKit default, so they move in existing template apps (close about 7px from the left edge, centered in the title bar).
-
-### 🗑 Removed
-
-- **CLI:** `trafficLightPosition`, `src/macos.rs` and the `objc2` crates from the Tauri template; `shellui` sync removes them from existing apps.
-
-### 🏗 Chore
-
-- Tauri desktop app `Cargo.toml` and `Cargo.lock` versions follow the release again (were 0.7.0-alpha.3).
-
-## [0.7.0-alpha.9] - 2026-10-27
-
-### 🚨 Changed
-
-- **SDK:** `shellui.login` `redirectPath` now names the shell page to open after sign-in. It defaults to the page that called `login`.
-
-### 🐛 Bug Fixes
-
-- **Core:** `shellui.login` from an app returns through `/login/callback`, so people land back signed in instead of on the login page.
-- **Core:** Logged-in only navigation entries stay visible while the session restores, so the sidebar no longer grows after a reload.
-
-## [0.7.0-alpha.8] - 2026-10-24
-
-### 🐛 Bug Fixes
-
-- **SDK:** `ShelluiFrame` loads `src` once. New service URLs re-register without reloading, and a retry reloads where the child was.
-- **SDK:** `ShelluiFrame` and `ContentView` skip echoes of child navigation, so fast redirects no longer bounce or loop.
-- **SDK:** `SHELLUI_URL_CHANGED` carries `replace`, so a child redirect replaces the host entry instead of adding one.
-
-## [0.7.0-alpha.7] - 2026-10-24
-
-### ✨ Feature
-
-- **SDK:** `ShelluiFrame` and `createAppFrame` accept a `files` URL, sent to the child as `settings.storage.filesUrl`.
-
-## [0.7.0-alpha.6] - 2026-10-24
-
-### ✨ Feature
-
-- **SDK:** `ShelluiFrame` and `createAppFrame` accept `email`, `storage` and `hosting` URLs for the child app.
-- **Core:** The shell forwards child service URLs allowed by `childFrames.serviceOrigins`, others are `null`.
-
-### 🚨 Changed
-
-- **Core:** No built-in email URL: `email` without `url` now sends `settings.email: null`.
+- **SDK:** `shellui.login` `redirectPath` names the shell page to open after sign-in, defaulting to the calling page.
+- **Core:** No built-in email URL: `email` without `url` sends `settings.email: null`.
+- **Core:** New active states in every layout: primary pill or underline, glass taskbar and dock.
+- **Core:** Drawers float above the page with rounded corners, and phone drawers, modals and More sheets share one bottom sheet look.
+- **Core:** macOS desktop: every layout draws a 32px strip around the system traffic lights.
+- **CLI:** macOS traffic lights stay at the AppKit default.
 
 ### 📚 Documentation
 
 - **Core:** `AppBackendConfig.provider` documents `upstream` token exchange.
+- **CLI:** Credential storage section covers keychain first, file fallback and per-account keys.
 
-## [0.7.0-alpha.5] - 2026-10-23
+### 🗑 Removed
 
-### ✨ Feature
-
-- **Core:** Regional app sessions use OAuth token exchange (RFC 8693) instead of iframe silent sign-in.
-- **Core:** Regional sessions renew with their own refresh token first.
-- **SDK:** App frames report why the child has no session (`onSession`, `renderError`).
-
-### 🐛 Bug Fixes
-
-- **SDK:** Child navigation no longer reloads the app frame.
-
-## [0.7.0-alpha.4] - 2026-10-23
-
-### ✨ Feature
-
-- **SDK:** App frame (`createAppFrame`, `<ShelluiFrame>`) with a loading overlay embeds a child app with its own regional session.
-- **SDK:** `useShelluiNavigation` helper in `@shellui/sdk/react` syncs app routes with the shell.
-- **Core:** Regional silent sign-in uses the identity federation entry `/oauth/silent-signin`.
-
-### 🐛 Bug Fixes
-
-- **Core:** Deep links keep their query string when the shell opens an app.
-
-## [0.7.0-alpha.3] - 2026-10-23
-
-### 🐛 Bug Fixes
-
-- **Login:** A new tab no longer looks signed in without a token, so embedded apps no longer show a dead sign-in screen. It shows the sign-in page instead.
-
-## [0.7.0-alpha.2] - 2026-10-21
+- **CLI:** `trafficLightPosition`, `src/macos.rs` and the `objc2` crates from the Tauri template. `shellui` sync removes them from existing apps.
 
 ### 🐛 Bug Fixes
 
 - **Login:** Sign-in works on static hosts that add a trailing slash to `/login/callback`, such as GitHub Pages.
-
-## [0.7.0-alpha.1] - 2026-10-21
-
-### ✨ Feature
-
-- **SaaS:** First alpha of 0.7.0, preparing the global console, saas-service and multi-region federation. Requires identity-service 0.9.0.
-- **App identity server:** A navigation item can set `backend` when that embedded app uses a different identity server. The shell keeps a separate session and sends that app its own URL and access token.
-- **App services:** A navigation item can set `email`, `storage`, and `hosting` for that app. When `backend` names another server and a service is omitted, the app receives no URL for it.
-
-### 🐛 Bug Fixes
-
-- **Desktop:** Switching pages in the desktop app loads the new page instead of keeping the old one.
-- **Login:** The Cancel button is hidden when the app has no page available without signing in.
-- **Login:** The page next to the sign-in form follows dark and light mode changes.
+- **Login:** A new tab no longer looks signed in without a token, and `shellui.login` from an app lands back signed in.
+- **Login:** Cancel is hidden when no page is available without signing in, and the side panel follows dark and light mode.
+- **Desktop:** Switching pages in the desktop app loads the new page.
+- **Core:** Deep links keep their query string, and logged-in only nav entries stay visible while the session restores.
+- **SDK:** `ShelluiFrame` loads `src` once, child navigation no longer reloads or loops, and redirects replace the host entry.
+- **Core:** Phone drawers open as bottom sheets that fit their content and no longer hide below the screen.
+- **Core:** `shellui start` no longer serves cached shell files from the dev service worker after an upgrade.
 
 ### 🔒 Security
 
-- **Dependencies:** Patched `proxy-addr`, `compression` and `source-map-js` to clear the open Dependabot alerts.
-- **Login:** Web sign-in uses PKCE, required by identity-service 0.9.0.
-- **CLI:** `shellui login` uses PKCE.
-- **Docs site:** The docs build has read-only access, and a separate job publishes Pages.
-- **SDK messages:** Companion code posts to the parent only once its origin is known.
+- **Login:** Web sign-in and `shellui login` use PKCE, required by identity-service 0.9.0.
 - **CLI credentials:** Tokens go to the OS keychain, or a `0600` file with a warning.
-- **Workflows:** Actions are pinned to commit SHAs, and tests run with `contents: read`.
+- **SDK messages:** Companion code posts to the parent only once its origin is known.
+- **Workflows:** Actions are pinned to commit SHAs, tests run with `contents: read`, and the docs build is read-only.
+- **Dependencies:** Patched proxy-addr, compression, source-map-js, launch-editor, vitest and postcss-selector-parser.
+
+### 🏗 Chore
+
+- **Desktop:** The Tauri crate moves from 2.9.5 to 2.10.3 to match `@tauri-apps/api` 2.10.
+- **Desktop:** Tauri app `Cargo.toml` and `Cargo.lock` versions follow the release.
+- **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
 
 ## [0.6.2] - 2026-10-18
 

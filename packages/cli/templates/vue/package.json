@@ -11,11 +11,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@shellui/sdk": "^0.7.0-beta.1",
+    "@shellui/sdk": "^0.7.0",
     "vue": "^3.5.42"
   },
   "devDependencies": {
-    "@shellui/cli": "^0.7.0-beta.1",
+    "@shellui/cli": "^0.7.0",
     "@vitejs/plugin-vue": "^6.0.8",
     "vite": "^8.3.0"
   }
