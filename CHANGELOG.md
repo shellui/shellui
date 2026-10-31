@@ -82,6 +82,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - **SDK messages:** Companion code posts to the parent only once its origin is known.
 - **Workflows:** Actions are pinned to commit SHAs, tests run with `contents: read`, and the docs build is read-only.
 - **Dependencies:** Patched proxy-addr, compression, source-map-js, launch-editor, vitest and postcss-selector-parser.
+- **Dependencies:** Cleared the open Dependabot and `pnpm audit` alerts (critical tinypool and websocket-driver, high minimatch, rollup, ws, zod, lodash and others) with overrides, and moved `happy-dom` to 21.
 
 ### 🏗 Chore
 
