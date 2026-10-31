@@ -20,45 +20,39 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [0.7.0] - 2026-10-31
 
+Shellui 0.7.0 brings multi-region federation: each embedded app can use its own identity server and services, with regional sessions and a new SDK app frame. It also redesigns every layout for phones and accessibility, adds token-based CI previews to the CLI and hardens sign-in with PKCE.
+
 ### ✨ Feature
 
-- **SaaS:** Global console, saas-service and multi-region federation support. Requires identity-service 0.9.0.
-- **App identity server:** A navigation item can set `backend` for an app on another identity server, with its own session and access token.
-- **App services:** A navigation item can set `email`, `storage` and `hosting` URLs for that app.
-- **Core:** Regional app sessions use OAuth token exchange (RFC 8693) and renew with their own refresh token.
-- **Core:** The shell forwards child service URLs allowed by `childFrames.serviceOrigins`, others are `null`.
-- **SDK:** App frame (`createAppFrame`, `<ShelluiFrame>`) embeds a child app with its own regional session, a loading overlay and `email`, `storage`, `hosting` and `files` URLs.
-- **SDK:** App frames report why the child has no session (`onSession`, `renderError`).
-- **SDK:** `useShelluiNavigation` in `@shellui/sdk/react` syncs app routes with the shell.
-- **Core:** Floating layout: a More bottom sheet on phones, and the dock steps aside for the soft keyboard.
-- **Core:** Windows layout: a dot field on the desktop that pauses when hidden and stays static under reduced motion.
+- **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.
+- **Core:** Per-app `email`, `storage` and `hosting` URLs, forwarded to child apps when allowed by `childFrames.serviceOrigins`.
+- **Core:** Regional sessions use OAuth token exchange (RFC 8693) and renew with their own refresh token.
+- **SDK:** App frame (`ShelluiFrame`, `createAppFrame`) embeds a child app with its own session, service URLs, a loading overlay and session error reporting.
+- **SDK:** `useShelluiNavigation` in `@shellui/sdk/react` keeps app routes in sync with the shell.
 - **CLI:** `SHELLUI_DEPLOY_TOKEN` creates and updates 7-day previews from CI without a login. The token is never printed.
 
 ### 🛠 Improvements
 
-- **Core:** Shell chrome tokens for radius, motion, glass, nav states and the desktop, in light and dark.
-- **Core:** `applyTheme` flags low contrast nav colors with `data-shellui-nav-contrast="low"`.
-- **Core:** Accessible navigation in every layout: named landmarks, `aria-current`, announced external links and translated labels (en, fr).
-- **Core:** Refreshed sidebar, app bar, floating, windows and fullscreen layouts, with phone sizes and safe areas handled.
-- **Core:** Sidebar account block with initials or picture, name and email, avatar only when collapsed.
-- **Core:** One shared divider per layout, with a divider above the account block when signed in.
-- **CLI:** `shellui deploy` saves a new preview slug to `hosting.slug` in `shellui.config.json`.
+- **Core:** Redesigned sidebar, app bar, floating, windows and fullscreen layouts, with shared theme tokens in light and dark.
+- **Core:** Phone support in every layout: bottom sheets, a More sheet, safe areas and a dock that steps aside for the keyboard.
+- **Core:** Accessible navigation: named landmarks, `aria-current`, announced external links and translated labels (en, fr).
+- **Core:** Account block with picture or initials, name and email in the sidebar and windows start menu.
+- **Core:** `applyTheme` flags low contrast nav colors.
+- **CLI:** `shellui deploy` saves a new preview slug to `shellui.config.json`.
 - **CLI:** Credentials are stored per account. `shellui logout --all` clears every account.
-- **SEO:** Fuller npm descriptions, keywords and links for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
+- **Packages:** Fuller npm descriptions, keywords and links for `@shellui/core`, `@shellui/sdk` and `@shellui/cli`.
 
 ### 🚨 Changed
 
-- **SDK:** `shellui.login` `redirectPath` names the shell page to open after sign-in, defaulting to the calling page.
-- **Core:** No built-in email URL: `email` without `url` sends `settings.email: null`.
-- **Core:** New active states in every layout: primary pill or underline, glass taskbar and dock.
-- **Core:** Drawers float above the page with rounded corners, and phone drawers, modals and More sheets share one bottom sheet look.
-- **Core:** macOS desktop: every layout draws a 32px strip around the system traffic lights.
-- **CLI:** macOS traffic lights stay at the AppKit default.
+- **SDK:** `shellui.login` `redirectPath` names the shell page to open after sign-in, and defaults to the calling page.
+- **Core:** `email` without `url` sends `settings.email: null`. There is no built-in email URL.
+- **Core:** Drawers float above the page, and phone drawers, modals and sheets share one bottom sheet style.
+- **Desktop:** macOS traffic lights stay at the system default, inside a 32px strip in every layout.
 
 ### 📚 Documentation
 
-- **Core:** `AppBackendConfig.provider` documents `upstream` token exchange.
-- **CLI:** Credential storage section covers keychain first, file fallback and per-account keys.
+- **Docs:** Token exchange (`AppBackendConfig.provider`) and CLI credential storage.
+- **Docs:** docs.shellui.com serves `robots.txt` and `llms.txt`.
 
 ### 🗑 Removed
 
@@ -66,29 +60,25 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ### 🐛 Bug Fixes
 
-- **Login:** Sign-in works on static hosts that add a trailing slash to `/login/callback`, such as GitHub Pages.
-- **Login:** A new tab no longer looks signed in without a token, and `shellui.login` from an app lands back signed in.
-- **Login:** Cancel is hidden when no page is available without signing in, and the side panel follows dark and light mode.
-- **Desktop:** Switching pages in the desktop app loads the new page.
-- **Core:** Deep links keep their query string, and logged-in only nav entries stay visible while the session restores.
-- **SDK:** `ShelluiFrame` loads `src` once, child navigation no longer reloads or loops, and redirects replace the host entry.
-- **Core:** Phone drawers open as bottom sheets that fit their content and no longer hide below the screen.
-- **Core:** `shellui start` no longer serves cached shell files from the dev service worker after an upgrade.
+- **Login:** Sign-in works on static hosts that add a trailing slash, such as GitHub Pages, and apps return signed in after `shellui.login`.
+- **Login:** New tabs no longer look signed in without a token, and the sign-in page follows dark and light mode.
+- **Core:** Deep links keep their query string, and logged-in only navigation stays visible while the session restores.
+- **SDK:** `ShelluiFrame` no longer reloads, loops or adds history entries on child navigation.
+- **Core:** Phone drawers fit their content and no longer open below the screen.
+- **CLI:** `shellui start` shows the new shell right after an upgrade instead of cached files.
+- **Desktop:** Switching pages loads the new page.
 
 ### 🔒 Security
 
-- **Login:** Web sign-in and `shellui login` use PKCE, required by identity-service 0.9.0.
-- **CLI credentials:** Tokens go to the OS keychain, or a `0600` file with a warning.
-- **SDK messages:** Companion code posts to the parent only once its origin is known.
-- **Workflows:** Actions are pinned to commit SHAs, tests run with `contents: read`, and the docs build is read-only.
-- **Dependencies:** Patched proxy-addr, compression, source-map-js, launch-editor, vitest and postcss-selector-parser.
-- **Dependencies:** Cleared the open Dependabot and `pnpm audit` alerts (critical tinypool and websocket-driver, high minimatch, rollup, ws, zod, lodash and others) with overrides, and moved `happy-dom` to 21.
+- **Login:** Web sign-in and `shellui login` use PKCE.
+- **CLI:** Tokens are stored in the OS keychain, or a `0600` file with a warning.
+- **SDK:** Companion code posts to the parent only once its origin is known.
+- **Workflows:** Actions are pinned to commit SHAs with read-only permissions.
+- **Dependencies:** Cleared all critical and high audit alerts with patched versions and overrides.
 
 ### 🏗 Chore
 
-- **Desktop:** The Tauri crate moves from 2.9.5 to 2.10.3 to match `@tauri-apps/api` 2.10.
-- **Desktop:** Tauri app `Cargo.toml` and `Cargo.lock` versions follow the release.
-- **Docs site:** docs.shellui.com serves `robots.txt` and `llms.txt`.
+- **Desktop:** Tauri 2.10 to match `@tauri-apps/api`, and app versions follow the release.
 
 ## [0.6.2] - 2026-10-18
 
