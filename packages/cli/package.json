@@ -1,6 +1,6 @@
 {
   "name": "@shellui/cli",
-  "version": "0.7.0-beta.1",
+  "version": "0.7.0",
   "description": "Command-line tool for Shellui, the open-source app shell. Create a project from React, Vue, Svelte, Angular and other templates, run the dev server, build, and deploy 7-day preview links. Desktop builds with Tauri. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {

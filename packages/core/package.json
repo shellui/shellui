@@ -1,6 +1,6 @@
 {
   "name": "@shellui/core",
-  "version": "0.7.0-beta.1",
+  "version": "0.7.0",
   "description": "React runtime for Shellui, the open-source app shell. Renders navigation, layouts, themes with light and dark modes, sign-in and identity, and hosts your apps as micro frontends in one interface. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
@@ -109,7 +109,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "happy-dom": "^20.14.5",
+    "happy-dom": "^21.0.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss-animate": "^1.0.7",

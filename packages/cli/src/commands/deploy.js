@@ -313,7 +313,7 @@ export async function deployCommand(root = '.', options = {}) {
     );
     if (!uploadResponse.ok) {
       throw new Error(
-        `Failed to upload artifact (HTTP ${uploadResponse.status}): ${await readHostingError(uploadResponse)}`,
+        `Failed to upload artifact (HTTP ${uploadResponse.status}): ${await readHostingError(uploadResponse, { artifactSize })}`,
       );
     }
 
