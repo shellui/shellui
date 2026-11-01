@@ -64,3 +64,34 @@ describe('hosting client without a token', () => {
     );
   });
 });
+
+describe('readHostingError causes', () => {
+  const text = (status, body) => ({ ok: false, status, text: async () => body });
+
+  test('prints detail from JSON', async () => {
+    const msg = await readHostingError(
+      text(413, JSON.stringify({ detail: 'Artifact is 120 MB, the limit is 100 MB.' })),
+    );
+    expect(msg).toBe('Artifact is 120 MB, the limit is 100 MB.');
+  });
+
+  test('adds artifact size to a too large error without sizes', async () => {
+    const msg = await readHostingError(
+      text(413, JSON.stringify({ error: 'x', message: 'Too large', limit_bytes: 12 * 1024 ** 2 })),
+      {
+        artifactSize: 12995000,
+      },
+    );
+    expect(msg).toBe('Too large (artifact is 12.4 MB, the limit is 12 MB)');
+  });
+
+  test('falls back to plain text, stripping HTML', async () => {
+    const msg = await readHostingError(text(400, '<h1>Bad Request (400)</h1>'));
+    expect(msg).toBe('Bad Request (400)');
+  });
+
+  test('redacts tokens in plain text', async () => {
+    const msg = await readHostingError(text(500, `oops ${TOKEN}`));
+    expect(msg).not.toContain(TOKEN);
+  });
+});

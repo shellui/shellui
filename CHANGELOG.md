@@ -66,6 +66,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **SDK:** `ShelluiFrame` no longer reloads, loops or adds history entries on child navigation.
 - **Core:** Phone drawers fit their content and no longer open below the screen.
 - **CLI:** `shellui start` shows the new shell right after an upgrade instead of cached files.
+- **CLI:** `shellui deploy` errors show the server's reason, and a rejected upload shows the artifact size and limit.
 - **Desktop:** Switching pages loads the new page.
 
 ### 🔒 Security

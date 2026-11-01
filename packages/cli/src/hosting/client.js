@@ -92,16 +92,56 @@ export async function hostingUpload(hostingUrl, path, body) {
 }
 
 /**
+ * Human-readable cause from a hosting error response. Never contains a deploy token.
  * @param {Response} response
+ * @param {{ artifactSize?: number }} [options]
  * @returns {Promise<string>}
  */
-export async function readHostingError(response) {
-  const payload = await response.json().catch(() => null);
+export async function readHostingError(response, { artifactSize } = {}) {
+  const { payload, text } = await readBody(response);
   const code = payload && typeof payload.error === 'string' ? payload.error : '';
   if (ERROR_HINTS[code]) return ERROR_HINTS[code];
-  if (payload && typeof payload.message === 'string' && payload.message.trim()) {
-    return redactDeployToken(payload.message.trim());
+  let message = '';
+  for (const key of ['detail', 'message', 'error']) {
+    if (payload && typeof payload[key] === 'string' && payload[key].trim()) {
+      message = payload[key].trim();
+      break;
+    }
   }
-  if (response.status === 401 && deployTokenFromEnv()) return ERROR_HINTS.deploy_token_invalid;
-  return `HTTP ${response.status}`;
+  if (!message && text)
+    message = text
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 300);
+  if (!message && response.status === 401 && deployTokenFromEnv())
+    return ERROR_HINTS.deploy_token_invalid;
+  if (!message) message = `HTTP ${response.status}`;
+  const tooLarge =
+    response.status === 413 || code === 'upload_too_large' || /too ?(big|large)/i.test(message);
+  if (artifactSize && tooLarge && !/ MB/.test(message)) {
+    const limit =
+      payload && Number(payload.limit_bytes) > 0
+        ? `, the limit is ${toMb(payload.limit_bytes)} MB`
+        : '';
+    message = `${message} (artifact is ${toMb(artifactSize)} MB${limit})`;
+  }
+  return redactDeployToken(message);
+}
+
+function toMb(bytes) {
+  return String(Math.round((Number(bytes) / 1024 ** 2) * 10) / 10);
+}
+
+async function readBody(response) {
+  if (typeof response.text === 'function') {
+    const text = await response.text().catch(() => '');
+    try {
+      return { payload: JSON.parse(text), text };
+    } catch {
+      return { payload: null, text };
+    }
+  }
+  const payload = await response.json?.().catch(() => null);
+  return { payload: payload && typeof payload === 'object' ? payload : null, text: '' };
 }
