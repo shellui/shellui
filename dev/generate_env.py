@@ -29,7 +29,7 @@ def rsa_keypair(bits: int = 2048) -> tuple[str, str, str]:
     )
     pub_der = subprocess.check_output(
         ["openssl", "rsa", "-pubout", "-outform", "DER"],
-        input=private_pem,
+        input=private_pem.encode(),
     )
     digest = hashlib.sha256(pub_der).digest()
     kid = base64.urlsafe_b64encode(digest[:16]).rstrip(b"=").decode("ascii")
