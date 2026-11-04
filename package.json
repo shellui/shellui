@@ -33,7 +33,7 @@
     "prepare": "husky",
     "version:sync": "node scripts/sync-package-versions.js",
     "changelog:check": "node scripts/check-changelog.js",
-    "test:scripts": "node --test scripts/check-changelog.test.js"
+    "test:scripts": "node --test scripts/check-changelog.test.js dev/container/local-vite-shellui.test.mjs"
   },
   "lint-staged": {
     "*": "pnpm exec prettier --write --ignore-unknown"

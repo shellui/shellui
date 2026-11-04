@@ -57,7 +57,14 @@ const loaded = configFile
   ? await vite.loadConfigFromFile({ command: 'serve', mode: 'development' }, configFile, appDir)
   : { config: {}, path: configFile, dependencies: [] };
 
-const withLocal = mergeShelluiLocalViteConfig(loaded.config, process.env.SHELLUI_ROOT);
+const workspaceRoot =
+  typeof vite.searchForWorkspaceRoot === 'function'
+    ? vite.searchForWorkspaceRoot(appDir)
+    : appDir;
+const withLocal = mergeShelluiLocalViteConfig(loaded.config, process.env.SHELLUI_ROOT, {
+  appDir,
+  workspaceRoot,
+});
 const merged = vite.mergeConfig(withLocal, {
   server: {
     host: cliServer.host ?? true,
