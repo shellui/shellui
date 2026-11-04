@@ -30,6 +30,7 @@ import {
 import { useSettings } from './features/settings/hooks/useSettings';
 import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
 import { MessagingSecurityBootstrap } from './features/messaging/MessagingSecurityBootstrap';
+import { McpPersonalStatusPrefetch } from './features/settings/components/McpPersonalStatusPrefetch';
 
 const AppContent = () => {
   const { config } = useConfig();
@@ -138,6 +139,7 @@ const App = () => {
         <AppBackendSessionHost />
         <StorageBridge />
         <SettingsProvider>
+          <McpPersonalStatusPrefetch />
           <ShellAiHost />
           <ThemeProvider>
             <I18nProvider>

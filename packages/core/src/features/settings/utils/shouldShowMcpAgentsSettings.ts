@@ -1,6 +1,5 @@
-import { getShellIdentityBackendUrl } from '../../mcp/personalAgentsApi';
 import type { ShellUIConfig } from '../../config/types';
-import { getNormalizedAiServiceUrl } from './buildSettingsForPropagation';
+import { isMcpAgentsSettingsEligible } from './isMcpAgentsSettingsEligible';
 
 /**
  * Settings → MCP / AI agents nav is shown when an AI service URL is configured, the user
@@ -12,8 +11,6 @@ export function shouldShowMcpAgentsSettings(options: {
   /** `null` while status is loading or prerequisites are missing. */
   mcpEnabled: boolean | null;
 }): boolean {
-  if (!getNormalizedAiServiceUrl(options.config?.aiService)) return false;
-  if (!options.isAuthenticated) return false;
-  if (!getShellIdentityBackendUrl(options.config)) return false;
+  if (!isMcpAgentsSettingsEligible(options)) return false;
   return options.mcpEnabled === true;
 }

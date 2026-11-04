@@ -89,7 +89,7 @@ export const McpAgents = () => {
   const { t, i18n } = useTranslation('settings');
   const locale = i18n.language || 'en';
   const { config } = useConfig();
-  const { session, isAuthenticated } = useAuth();
+  const { session, isAuthenticated, user } = useAuth();
   const accessToken = session?.accessToken ?? null;
   const backendUrl = getShellIdentityBackendUrl(config);
   const companyId = getMcpPersonalCompanyId(config);
@@ -99,7 +99,7 @@ export const McpAgents = () => {
     loading: statusLoading,
     error: statusError,
     refresh: refreshStatus,
-  } = useMcpPersonalStatus(config, accessToken, isAuthenticated);
+  } = useMcpPersonalStatus(config, accessToken, isAuthenticated, user?.id ?? null);
 
   const [agents, setAgents] = useState<McpAgentSummary[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);

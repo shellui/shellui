@@ -70,6 +70,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 🐛 Bug Fixes
 
+- **Core:** Settings MCP / AI agents nav loads from cached identity status after sign-in, with a stable placeholder on first fetch, so the sidebar no longer shifts when the row appears.
 - **Login:** Sign-in works on static hosts that add a trailing slash, such as GitHub Pages, and apps return signed in after `shellui.login`.
 - **Login:** New tabs no longer look signed in without a token, and the sign-in page follows dark and light mode.
 - **Core:** Deep links keep their query string, and logged-in only navigation stays visible while the session restores.
