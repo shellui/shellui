@@ -27,10 +27,10 @@ shellui/
 ## Start
 
 ```bash
-cd shellui/dev
-./generate-env.sh
-docker compose --env-file .env.local up --build
+shellui/dev/start.sh
 ```
+
+On first run, `start.sh` creates `dev/.env.local` from the example (via `generate-env.sh`), then starts the **full** stack (including **email-worker** for mail delivery). Extra arguments go to Docker Compose (`-d`, a service name, and so on).
 
 Never commit `dev/.env.local`.
 
@@ -68,12 +68,7 @@ One Redis instance; each backend uses a distinct logical DB index (identity `0` 
 
 ## Workers
 
-Django **dev** targets run `runserver` only (no Celery in those containers). Sign-in and Mailpit SMTP do not require email lane workers. To deliver mail through the email-service API, register a service key (see `dev/README.md`) and start the optional worker profile:
-
-```bash
-cd shellui/dev
-docker compose --env-file .env.local --profile workers up -d email-worker
-```
+Django **dev** API containers run `runserver` only (no Celery beat in those images). **`email-worker`** uses the production entrypoint in worker mode (lane workers plus scheduler) and starts with `./start.sh` by default. Register an `esk_` service key when you need identity or other callers to use the email HTTP API (see `dev/README.md`).
 
 ## This repository in the stack
 

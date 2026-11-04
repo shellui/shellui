@@ -22,11 +22,21 @@ Compose build contexts use `../../<repo>` for siblings and `..` for this monorep
 
 ## Start
 
+From anywhere (creates `dev/.env.local` on first run):
+
 ```bash
-cd shellui/dev
-./generate-env.sh
-docker compose --env-file .env.local up --build
+shellui/dev/start.sh
 ```
+
+Or from this directory:
+
+```bash
+./start.sh
+```
+
+`./start.sh` starts the full stack, including **email-worker** (lane delivery and scheduler). Pass-through examples: `./start.sh -d`, `./start.sh identity`.
+
+To regenerate secrets, remove `.env.local` and run `./start.sh` again, or run `./generate-env.sh` once.
 
 Mailpit UI: http://localhost:8025 (SMTP on port 1025).
 
@@ -60,18 +70,14 @@ Browser-facing URLs use `localhost`. Container-to-container calls use `http://<s
 
 Identity can send auth mail through Mailpit via direct SMTP while `EMAIL_SERVICE_API_KEY` is unset.
 
-For **email-service** HTTP sends (`/send`, and so on), register an `esk_` key and start lane workers:
+For **email-service** HTTP sends (`/send`, and so on), register an `esk_` key after the stack is up (`email-worker` is already running):
 
 ```bash
 docker compose --env-file .env.local exec email \
   python manage.py create_service_key --service identity
 ```
 
-Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local`, restart callers, then:
-
-```bash
-docker compose --env-file .env.local --profile workers up -d email-worker
-```
+Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local` and restart identity, storage, hosting, and saas if needed.
 
 ## Admin and Shellui core
 
@@ -88,12 +94,13 @@ See [Local dev stack](../docs/dev-stack.md).
 
 ## Files in this directory
 
-| File                         | Role                                     |
-| ---------------------------- | ---------------------------------------- |
-| `docker-compose.yml`         | Full stack                               |
-| `.env.local.example`         | Committed env template                   |
-| `.env.local`                 | Generated secrets (gitignored)           |
-| `generate-env.sh`            | Creates `.env.local` from the example    |
-| `generate_env.py`            | Secret generator (stdlib + OpenSSL)      |
-| `shellui.config.json`        | Shell dev config for the `shell` service |
-| `postgres/init-databases.sh` | One Postgres database per backend        |
+| File                         | Role                                             |
+| ---------------------------- | ------------------------------------------------ |
+| `docker-compose.yml`         | Full stack                                       |
+| `.env.local.example`         | Committed env template                           |
+| `.env.local`                 | Generated secrets (gitignored)                   |
+| `start.sh`                   | Generate `.env.local` if needed, then compose up |
+| `generate-env.sh`            | Creates `.env.local` from the example            |
+| `generate_env.py`            | Secret generator (stdlib + OpenSSL)              |
+| `shellui.config.json`        | Shell dev config for the `shell` service         |
+| `postgres/init-databases.sh` | One Postgres database per backend                |
