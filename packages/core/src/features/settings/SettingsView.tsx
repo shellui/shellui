@@ -198,7 +198,7 @@ export const SettingsView = () => {
       ...settingsNavRoutes.filter((route) => route.path === 'ai'),
     ];
     const mcpAgentsNavRows =
-      mcpAgentsRoute != null
+      mcpAgentsRoute !== undefined
         ? [mcpAgentsRoute]
         : mcpAgentsNavPending
           ? [{ kind: 'mcp-agents-skeleton' as const }]
