@@ -33,6 +33,7 @@ export type {
   StorageConfig,
   HostingConfig,
   EmailConfig,
+  AiServiceConfig,
   CookieConsentCategory,
   CookieDefinition,
   CookieConsentConfig,

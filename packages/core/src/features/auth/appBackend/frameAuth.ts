@@ -1,5 +1,6 @@
 import type { Settings } from '@shellui/sdk';
 import type {
+  AiServiceConfig,
   EmailConfig,
   HostingConfig,
   NavigationItem,
@@ -20,6 +21,7 @@ export type FrameServiceOverrides = {
   storage?: StorageConfig | null;
   email?: EmailConfig | null;
   hosting?: HostingConfig | null;
+  aiService?: AiServiceConfig | null;
 };
 
 export type FrameAuthDelivery = {
@@ -101,6 +103,8 @@ function serviceOverrides(item: NavigationItem | null, failClosed: boolean): Fra
   else if (failClosed) overrides.email = null;
   if (item?.hosting !== undefined) overrides.hosting = item.hosting;
   else if (failClosed) overrides.hosting = null;
+  if (item?.aiService !== undefined) overrides.aiService = item.aiService;
+  else if (failClosed) overrides.aiService = null;
   return overrides;
 }
 
@@ -148,6 +152,7 @@ export type FrameAuthPropagationOptions = {
   storage?: StorageConfig | null;
   email?: EmailConfig | null;
   hosting?: HostingConfig | null;
+  aiService?: AiServiceConfig | null;
 };
 
 function toPropagationOptions(delivery: FrameAuthDelivery): FrameAuthPropagationOptions {

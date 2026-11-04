@@ -243,11 +243,12 @@ describe('buildSettingsForPropagation', () => {
     });
   });
 
-  it('sets administration, storage, and email to null when not configured', () => {
+  it('sets administration, storage, email, and aiService to null when not configured', () => {
     const result = buildSettingsForPropagation(baseSettings, undefined, 'en');
     expect(result.administration).toBeNull();
     expect(result.storage).toBeNull();
     expect(result.email).toBeNull();
+    expect(result.aiService).toBeNull();
   });
 
   it('propagates showInAdmin false when hosting admin is disabled', () => {
@@ -323,6 +324,41 @@ describe('buildSettingsForPropagation', () => {
     expect(result.email).toEqual({ url: 'https://email.shellui.com' });
   });
 
+  it('propagates aiService url and strips a trailing slash', () => {
+    const config = {
+      aiService: {
+        url: 'http://localhost:8006/',
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.aiService).toEqual({ url: 'http://localhost:8006' });
+  });
+
+  it('sends no aiService when aiService is set without url (no built-in default)', () => {
+    const config = {
+      aiService: {},
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.aiService).toBeNull();
+  });
+
+  it('propagates showInAdmin false for aiService', () => {
+    const config = {
+      aiService: {
+        url: 'http://localhost:8006',
+        showInAdmin: false,
+      },
+    } as ShellUIConfig;
+
+    const result = buildSettingsForPropagation(baseSettings, config, 'en');
+    expect(result.aiService).toEqual({
+      url: 'http://localhost:8006',
+      showInAdmin: false,
+    });
+  });
+
   const shellToken = 'shell-access-token';
   const foreignToken = 'foreign-access-token';
   const shellUser = {
@@ -345,6 +381,7 @@ describe('buildSettingsForPropagation', () => {
     storage: { url: 'https://files-api.example', filesUrl: 'https://files.example/' },
     email: { url: 'https://email.example' },
     hosting: { url: 'https://hosting.example/', app: 'shell-app' },
+    aiService: { url: 'https://ai.example' },
     navigation: [
       {
         label: 'Billing',
@@ -407,17 +444,20 @@ describe('buildSettingsForPropagation', () => {
     storage: { url: 'https://files-api.example', filesUrl: 'https://files.example/' },
     email: { url: 'https://email.example' },
     hosting: { url: 'https://hosting.example', app: 'shell-app' },
+    aiService: { url: 'https://ai.example' },
   };
 
   const expectNoShellServices = (result: ReturnType<typeof propagate>) => {
     expect(result.storage).toBeNull();
     expect(result.email).toBeNull();
     expect(result.hosting).toBeNull();
+    expect(result.aiService).toBeNull();
     const json = JSON.stringify(result);
     expect(json).not.toContain('https://files-api.example');
     expect(json).not.toContain('https://files.example');
     expect(json).not.toContain('https://email.example');
     expect(json).not.toContain('https://hosting.example');
+    expect(json).not.toContain('https://ai.example');
     expect(json).not.toContain('https://email.shellui.com');
   };
 
@@ -429,6 +469,7 @@ describe('buildSettingsForPropagation', () => {
     expect(result.storage).toEqual(shellServices.storage);
     expect(result.email).toEqual(shellServices.email);
     expect(result.hosting).toEqual(shellServices.hosting);
+    expect(result.aiService).toEqual(shellServices.aiService);
   });
 
   it('sends each foreign app its own backend URL and token', () => {
@@ -473,6 +514,7 @@ describe('buildSettingsForPropagation', () => {
     expect(files.authBackendBaseUrl).toBe('https://id.example.com');
     expect(admin.storage).toEqual(shellServices.storage);
     expect(admin.email).toEqual(shellServices.email);
+    expect(admin.aiService).toEqual(shellServices.aiService);
     expect(files.hosting).toEqual(shellServices.hosting);
   });
 
@@ -513,6 +555,7 @@ describe('buildSettingsForPropagation', () => {
     expect(result.storage).toEqual(shellServices.storage);
     expect(result.email).toEqual(shellServices.email);
     expect(result.hosting).toEqual(shellServices.hosting);
+    expect(result.aiService).toEqual(shellServices.aiService);
   });
 
   it('sends a foreign app its own service URLs and not the shell URLs', () => {

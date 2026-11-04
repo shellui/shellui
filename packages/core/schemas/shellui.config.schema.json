@@ -81,6 +81,10 @@
           "$ref": "#/definitions/EmailConfig",
           "description": "Email-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no email service (`null`). `showInAdmin: false` hides Admin → Email."
         },
+        "aiService": {
+          "$ref": "#/definitions/AiServiceConfig",
+          "description": "AI-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no ai service (`null`). `showInAdmin: false` hides Admin → AI."
+        },
         "theme": {
           "$ref": "#/definitions/ThemeRef",
           "description": "Single theme: built-in name, path to a theme JSON/folder, or inline theme object. When set without `themes`, only this theme is available in the selector."
@@ -275,6 +279,10 @@
         "hosting": {
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting service for this app. Same fallback as `email`."
+        },
+        "aiService": {
+          "$ref": "#/definitions/AiServiceConfig",
+          "description": "AI service for this app. Same fallback as `email`."
         }
       },
       "required": ["label", "path", "url"],
@@ -383,6 +391,21 @@
       },
       "additionalProperties": false,
       "description": "Optional email-service wiring for Admin → Email and iframe apps. The shell never invents a URL: without `url`, apps get no email service."
+    },
+    "AiServiceConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
     },
     "StorageConfig": {
       "type": "object",

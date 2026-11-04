@@ -6,10 +6,7 @@
   "favicon": "/favicon.svg",
   "appIcon": "/app-icon.svg",
   "logo": "/logo.svg",
-  "language": [
-    "en",
-    "fr"
-  ],
+  "language": ["en", "fr"],
   "layout": "sidebar",
   "activeTheme": "shellui"
 }

@@ -129,6 +129,7 @@ The files in `dev/config/` resolve `${VAR:-default}` placeholders from the conta
 | `PUBLIC_STORAGE_URL`        | `storage.url`                                |
 | `PUBLIC_FILES_URL`          | `storage.filesUrl`                           |
 | `PUBLIC_HOSTING_URL`        | `hosting.url`                                |
+| `PUBLIC_AI_URL`             | `aiService.url`                              |
 | `SHELL_IDENTITY_COMPANY_ID` | `backend.companyId`                          |
 | `PUBLIC_PLAYGROUND_URL`     | playground navigation (`PLAYGROUND_APP_URL`) |
 

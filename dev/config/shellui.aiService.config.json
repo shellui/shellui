@@ -1,0 +1,6 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "aiService": {
+    "url": "${PUBLIC_AI_URL:-http://localhost:8006}"
+  }
+}
