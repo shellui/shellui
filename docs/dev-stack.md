@@ -27,10 +27,10 @@ shellui/
 ## Start
 
 ```bash
-cd shellui/dev
-./generate-env.sh
-docker compose --env-file .env.local up --build
+shellui/dev/start.sh
 ```
+
+On first run, `start.sh` creates `dev/.env.local` from the example (via `generate-env.sh`). Extra arguments go to Docker Compose (`-d`, `--profile workers`, a service name, and so on).
 
 Never commit `dev/.env.local`.
 

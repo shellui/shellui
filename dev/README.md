@@ -22,11 +22,21 @@ Compose build contexts use `../../<repo>` for siblings and `..` for this monorep
 
 ## Start
 
+From anywhere (creates `dev/.env.local` on first run):
+
 ```bash
-cd shellui/dev
-./generate-env.sh
-docker compose --env-file .env.local up --build
+shellui/dev/start.sh
 ```
+
+Or from this directory:
+
+```bash
+./start.sh
+```
+
+Pass-through examples: `./start.sh -d`, `./start.sh --profile workers email-worker`, `./start.sh identity`.
+
+To regenerate secrets, remove `.env.local` and run `./start.sh` again, or run `./generate-env.sh` once.
 
 Mailpit UI: http://localhost:8025 (SMTP on port 1025).
 
@@ -88,12 +98,13 @@ See [Local dev stack](../docs/dev-stack.md).
 
 ## Files in this directory
 
-| File                         | Role                                     |
-| ---------------------------- | ---------------------------------------- |
-| `docker-compose.yml`         | Full stack                               |
-| `.env.local.example`         | Committed env template                   |
-| `.env.local`                 | Generated secrets (gitignored)           |
-| `generate-env.sh`            | Creates `.env.local` from the example    |
-| `generate_env.py`            | Secret generator (stdlib + OpenSSL)      |
-| `shellui.config.json`        | Shell dev config for the `shell` service |
-| `postgres/init-databases.sh` | One Postgres database per backend        |
+| File                         | Role                                             |
+| ---------------------------- | ------------------------------------------------ |
+| `docker-compose.yml`         | Full stack                                       |
+| `.env.local.example`         | Committed env template                           |
+| `.env.local`                 | Generated secrets (gitignored)                   |
+| `start.sh`                   | Generate `.env.local` if needed, then compose up |
+| `generate-env.sh`            | Creates `.env.local` from the example            |
+| `generate_env.py`            | Secret generator (stdlib + OpenSSL)              |
+| `shellui.config.json`        | Shell dev config for the `shell` service         |
+| `postgres/init-databases.sh` | One Postgres database per backend                |
