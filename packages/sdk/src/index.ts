@@ -103,6 +103,7 @@ export type {
   SettingsStorage,
   SettingsHosting,
   SettingsEmail,
+  SettingsAiService,
   ThemeColorsMode,
   ThemeColors,
   SettingsTheme,

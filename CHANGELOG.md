@@ -35,6 +35,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **SDK:** App frame (`ShelluiFrame`, `createAppFrame`) embeds a child app with its own session, service URLs, a loading overlay and session error reporting.
 - **SDK:** `useShelluiNavigation` in `@shellui/sdk/react` keeps app routes in sync with the shell.
 - **CLI:** `SHELLUI_DEPLOY_TOKEN` creates and updates 7-day previews from CI without a login. The token is never printed.
+- **AI service:** Optional `aiService.url` and `aiService.showInAdmin` in `shellui.config` are exposed to apps as `settings.aiService`.
 
 ### 🛠 Improvements
 

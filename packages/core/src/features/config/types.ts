@@ -88,6 +88,10 @@ export interface NavigationItem {
    * Hosting service for this app. Same fallback as `email`.
    */
   hosting?: HostingConfig;
+  /**
+   * AI service for this app. Same fallback as `email`.
+   */
+  aiService?: AiServiceConfig;
 }
 
 export interface NavigationGroup {
@@ -383,6 +387,24 @@ export interface EmailConfig {
 }
 
 /**
+ * Optional ai-service wiring for Admin → AI and iframe apps.
+ * The shell never invents a URL: without `url`, apps get no ai service.
+ */
+export interface AiServiceConfig {
+  /**
+   * Base URL of ai-service.
+   * Required for apps to get AI. There is no built-in default.
+   * Local: `http://localhost:8006`.
+   */
+  url?: string;
+  /**
+   * When false, hide Admin → AI.
+   * Default: true (shown) when `aiService` is set.
+   */
+  showInAdmin?: boolean;
+}
+
+/**
  * Custom navigation section for the staff administration panel.
  * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
  * v1 is a flat list only (no nested groups).
@@ -460,6 +482,12 @@ export interface ShellUIConfig {
    * `showInAdmin: false` hides Admin → Email.
    */
   email?: EmailConfig;
+  /**
+   * AI-service connection. Propagated to iframes via SDK settings.
+   * Without `url`, the shell sends no ai service (`null`).
+   * `showInAdmin: false` hides Admin → AI.
+   */
+  aiService?: AiServiceConfig;
   /**
    * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
    * When set without `themes`, only this theme is available in the selector.

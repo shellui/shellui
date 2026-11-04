@@ -16,6 +16,7 @@ shellui.administration.config.json
 shellui.storage.config.json
 shellui.email.config.json
 shellui.hosting.config.json
+shellui.aiService.config.json
 shellui.backend.config.json
 shellui.themes.config.json
 shellui.cookieConsent.config.json
