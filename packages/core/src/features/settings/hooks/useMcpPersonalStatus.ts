@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { isAiFeatureEnabled } from '../../ai/isAiFeatureEnabled';
 import {
   fetchMcpPersonalStatus,
   getMcpPersonalCompanyId,
@@ -7,6 +6,7 @@ import {
   type McpPersonalStatus,
 } from '../../mcp/personalAgentsApi';
 import type { ShellUIConfig } from '../../config/types';
+import { getNormalizedAiServiceUrl } from '../utils/buildSettingsForPropagation';
 
 export type McpPersonalStatusState = {
   status: McpPersonalStatus | null;
@@ -30,8 +30,8 @@ export function useMcpPersonalStatus(
 
   useEffect(() => {
     const backendUrl = getShellIdentityBackendUrl(config);
-    const aiOn = isAiFeatureEnabled(config);
-    if (!aiOn || !isAuthenticated || !backendUrl || !accessToken) {
+    const aiServiceConfigured = Boolean(getNormalizedAiServiceUrl(config?.aiService));
+    if (!aiServiceConfigured || !isAuthenticated || !backendUrl || !accessToken) {
       setStatus(null);
       setLoading(false);
       setError(false);

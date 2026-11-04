@@ -95,7 +95,7 @@ export const SettingsView = () => {
       routes = routes.filter((route) => route.path !== 'legal-documents');
     }
     if (!isAiFeatureEnabled(config)) {
-      routes = routes.filter((route) => route.path !== 'ai' && route.path !== 'mcp-agents');
+      routes = routes.filter((route) => route.path !== 'ai');
     }
     if (
       !shouldShowMcpAgentsSettings({
