@@ -17,6 +17,15 @@
       },
       {
         "label": {
+          "en": "Mailpit",
+          "fr": "Mailpit"
+        },
+        "path": "mailpit",
+        "url": "http://localhost:8025",
+        "openIn": "external"
+      },
+      {
+        "label": {
           "en": "Django admin",
           "fr": "Admin Django"
         },
