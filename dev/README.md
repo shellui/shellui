@@ -18,7 +18,7 @@ Setup, URLs, common commands and troubleshooting: [docs/dev-stack.md](../docs/de
 | `.env.local.example`         | Committed env template                           |
 | `.env.local`                 | Generated secrets (gitignored)                   |
 | `start.sh`                   | Generate or update `.env.local`, then compose up |
-| `generate-env.sh`            | Creates or updates `.env.local` from the example |
+| `generate-env.sh`            | Creates or updates `.env.local` from the example, including dev-only RS256 keys |
 | `generate_env.py`            | Secret generator (stdlib and OpenSSL)            |
 | `config/`                    | Shell dev config (split files) for `shell`       |
 | `postgres/init-databases.sh` | One Postgres database per backend                |
