@@ -59,32 +59,40 @@ export function shelluiSourceAliases(shelluiRoot) {
 
 /**
  * @param {import('vite').UserConfig} config
- * @param {string | null} shelluiRoot
+ * @param {string | null | undefined} shelluiRoot
+ * @param {{ appDir?: string; workspaceRoot?: string }} [options]
  * @returns {import('vite').UserConfig}
  */
-export function mergeShelluiLocalViteConfig(config, shelluiRoot) {
+export function mergeShelluiLocalViteConfig(config, shelluiRoot, options = {}) {
   const root = resolveShelluiRoot(shelluiRoot ?? process.env.SHELLUI_ROOT);
   if (!root) return config;
 
   const localAliases = shelluiSourceAliases(root);
   if (Object.keys(localAliases).length === 0) return config;
 
+  const appDir = path.resolve(options.appDir ?? process.cwd());
+  const workspaceRoot = path.resolve(options.workspaceRoot ?? appDir);
+
   const existingAlias = config.resolve?.alias ?? {};
-  const normalized =
-    Array.isArray(existingAlias)
-      ? Object.fromEntries(
-          existingAlias.map((entry) =>
-            typeof entry === 'object' && entry && 'find' in entry
-              ? [String(entry.find), entry.replacement]
-              : ['', ''],
-          ),
-        )
-      : { ...existingAlias };
+  const normalized = Array.isArray(existingAlias)
+    ? Object.fromEntries(
+        existingAlias.map((entry) =>
+          typeof entry === 'object' && entry && 'find' in entry
+            ? [String(entry.find), entry.replacement]
+            : ['', ''],
+        ),
+      )
+    : { ...existingAlias };
 
   /** Prefer app vite.config aliases, then fill gaps from the monorepo. */
   const alias = { ...localAliases, ...normalized };
 
   const allowRoots = new Set(config.server?.fs?.allow ?? []);
+  allowRoots.add(appDir);
+  allowRoots.add(workspaceRoot);
+  if (config.root) {
+    allowRoots.add(path.resolve(appDir, config.root));
+  }
   allowRoots.add(root);
   allowRoots.add(path.join(root, 'packages'));
   allowRoots.add(path.join(root, 'node_modules'));
