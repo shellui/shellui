@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate .env.local secrets from .env.local.example."""
+"""Generate dev/.env.local secrets from dev/.env.local.example."""
 
 from __future__ import annotations
 

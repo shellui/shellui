@@ -1,4 +1,0 @@
-# Local dev stack entrypoint. From repository root:
-#   docker compose -f compose.dev.yml --env-file .env.local up --build
-include:
-  - path: dev/docker-compose.yml

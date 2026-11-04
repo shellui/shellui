@@ -1,5 +1,5 @@
-# Shellui local dev stack. From repo root:
-#   docker compose -f compose.dev.yml --env-file .env.local up --build
+# Shellui local dev stack. From dev/:
+#   ./generate-env.sh && docker compose --env-file .env.local up --build
 name: shellui-dev
 
 x-django-common: &django-common

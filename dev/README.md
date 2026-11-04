@@ -1,12 +1,12 @@
 # Shellui local dev stack
 
-Docker Compose for the full Shellui stack lives in this directory. Environment variables live at the **repository root** (`.env.local.example`, generated `.env.local`).
+Everything for the local Docker stack lives in this directory.
 
 ## Clone layout
 
 ```text
 shellui/
-  shellui/              ← this monorepo
+  shellui/              ← this monorepo (you are in shellui/dev/)
   identity-service/
   storage-service/
   hosting-service/
@@ -18,19 +18,14 @@ shellui/
   files/
 ```
 
+Compose build contexts use `../../<repo>` for siblings and `..` for this monorepo (shell service).
+
 ## Start
 
-From the **shellui monorepo root**:
-
 ```bash
+cd shellui/dev
 ./generate-env.sh
-docker compose -f compose.dev.yml --env-file .env.local up --build
-```
-
-Equivalent:
-
-```bash
-docker compose -f dev/docker-compose.yml --env-file .env.local up --build
+docker compose --env-file .env.local up --build
 ```
 
 Mailpit UI: http://localhost:8025 (SMTP on port 1025).
@@ -68,24 +63,37 @@ Identity can send auth mail through Mailpit via direct SMTP while `EMAIL_SERVICE
 For **email-service** HTTP sends (`/send`, and so on), register an `esk_` key and start lane workers:
 
 ```bash
-docker compose -f compose.dev.yml --env-file .env.local exec email \
+docker compose --env-file .env.local exec email \
   python manage.py create_service_key --service identity
 ```
 
-Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local` with the printed key, restart callers, then:
+Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local`, restart callers, then:
 
 ```bash
-docker compose -f compose.dev.yml --env-file .env.local --profile workers up -d email-worker
+docker compose --env-file .env.local --profile workers up -d email-worker
 ```
 
 ## Admin and Shellui core
 
-The admin `dev` image reads `@shellui/core` from `SHELLUI_ROOT` (default `/opt/shellui`). Compose bind-mounts this monorepo at `/opt/shellui` so core edits hot reload in admin.
+The admin `dev` image reads `@shellui/core` from `SHELLUI_ROOT` (default `/opt/shellui`). Compose bind-mounts the monorepo at `/opt/shellui` so core edits hot reload in admin.
 
 ## Requirements
 
 - Docker Compose v2
 - Sibling repos on `develop` with a `dev` Dockerfile target
-- OpenSSL (for `./generate-env.sh`)
+- **uv** or **Python 3** on `PATH` for `./generate-env.sh` (`uv run --no-project python` when `uv` is installed; otherwise `python3`)
+- **OpenSSL** on `PATH` (`openssl` for RSA keys in `generate_env.py`)
 
 See [Local dev stack](../docs/dev-stack.md).
+
+## Files in this directory
+
+| File                         | Role                                     |
+| ---------------------------- | ---------------------------------------- |
+| `docker-compose.yml`         | Full stack                               |
+| `.env.local.example`         | Committed env template                   |
+| `.env.local`                 | Generated secrets (gitignored)           |
+| `generate-env.sh`            | Creates `.env.local` from the example    |
+| `generate_env.py`            | Secret generator (stdlib + OpenSSL)      |
+| `shellui.config.json`        | Shell dev config for the `shell` service |
+| `postgres/init-databases.sh` | One Postgres database per backend        |
