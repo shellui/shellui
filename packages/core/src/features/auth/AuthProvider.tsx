@@ -16,6 +16,7 @@ import { isSilentAuthCallbackFrame } from './appBackend/silentSignIn';
 import { createAuthBackend } from './backends';
 import { AuthContext, type AuthContextValue, type OAuthCallbackResult } from './hooks/useAuth';
 import type { AuthEvent, AuthSession, AuthUser, UserPreferences } from './types';
+import { clearMcpPersonalStatusCache } from '../settings/utils/mcpPersonalStatusCache';
 import {
   AuthRequestError,
   clearStoredAuthSession,
@@ -661,6 +662,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     clearStoredAuthSession();
+    clearMcpPersonalStatusCache();
     setSession(null);
     setAuthEvent(null);
     setError(null);

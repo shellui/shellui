@@ -1,17 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import {
-  fetchMcpPersonalStatus,
-  getMcpPersonalCompanyId,
-  getShellIdentityBackendUrl,
-  type McpPersonalStatus,
-} from '../../mcp/personalAgentsApi';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { McpPersonalStatus } from '../../mcp/personalAgentsApi';
 import type { ShellUIConfig } from '../../config/types';
-import { getNormalizedAiServiceUrl } from '../utils/buildSettingsForPropagation';
+import { getCachedMcpPersonalStatus, loadMcpPersonalStatus } from '../utils/loadMcpPersonalStatus';
+import { isMcpAgentsSettingsEligible } from '../utils/isMcpAgentsSettingsEligible';
 
 export type McpPersonalStatusState = {
   status: McpPersonalStatus | null;
   mcpEnabled: boolean | null;
   loading: boolean;
+  navPending: boolean;
   error: boolean;
   refresh: () => void;
 };
@@ -20,36 +17,52 @@ export function useMcpPersonalStatus(
   config: ShellUIConfig | undefined,
   accessToken: string | null,
   isAuthenticated: boolean,
+  userId: string | null,
 ): McpPersonalStatusState {
-  const [status, setStatus] = useState<McpPersonalStatus | null>(null);
-  const [loading, setLoading] = useState(false);
+  const eligible = isMcpAgentsSettingsEligible({ config, isAuthenticated });
+
+  const cacheInput = useMemo(
+    () => ({ config, accessToken, isAuthenticated, userId }),
+    [config, accessToken, isAuthenticated, userId],
+  );
+
+  const cachedStatus = useMemo(
+    () => (eligible ? getCachedMcpPersonalStatus(cacheInput) : null),
+    [eligible, cacheInput],
+  );
+
+  const [status, setStatus] = useState<McpPersonalStatus | null>(() => cachedStatus);
+  const [loading, setLoading] = useState(() => eligible && cachedStatus === null);
   const [error, setError] = useState(false);
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => setTick((value) => value + 1), []);
 
   useEffect(() => {
-    const backendUrl = getShellIdentityBackendUrl(config);
-    const aiServiceConfigured = Boolean(getNormalizedAiServiceUrl(config?.aiService));
-    if (!aiServiceConfigured || !isAuthenticated || !backendUrl || !accessToken) {
+    if (!eligible) {
       setStatus(null);
       setLoading(false);
       setError(false);
       return;
     }
 
-    let cancelled = false;
-    setLoading(true);
+    const fromCache = getCachedMcpPersonalStatus(cacheInput);
+    if (fromCache) {
+      setStatus(fromCache);
+    } else {
+      setStatus(null);
+      setLoading(true);
+    }
     setError(false);
-    void fetchMcpPersonalStatus(backendUrl, accessToken, getMcpPersonalCompanyId(config))
+
+    let cancelled = false;
+    void loadMcpPersonalStatus(cacheInput)
       .then((next) => {
-        if (!cancelled) {
+        if (cancelled) return;
+        if (next) {
           setStatus(next);
           setError(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
+        } else if (!fromCache) {
           setStatus(null);
           setError(true);
         }
@@ -61,9 +74,10 @@ export function useMcpPersonalStatus(
     return () => {
       cancelled = true;
     };
-  }, [config, accessToken, isAuthenticated, tick]);
+  }, [eligible, cacheInput, tick]);
 
-  const mcpEnabled = loading ? null : error ? false : (status?.mcpEnabled ?? false);
+  const mcpEnabled = status ? status.mcpEnabled : loading ? null : false;
+  const navPending = eligible && mcpEnabled === null;
 
-  return { status, mcpEnabled, loading, error, refresh };
+  return { status, mcpEnabled, loading, navPending, error, refresh };
 }
