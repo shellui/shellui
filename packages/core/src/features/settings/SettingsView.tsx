@@ -36,6 +36,8 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
 import { shouldShowStorageSettings } from './utils/shouldShowStorageSettings';
 import { isAiFeatureEnabled } from '../ai/isAiFeatureEnabled';
+import { useMcpPersonalStatus } from './hooks/useMcpPersonalStatus';
+import { shouldShowMcpAgentsSettings } from './utils/shouldShowMcpAgentsSettings';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -45,6 +47,11 @@ export const SettingsView = () => {
   const { user, session, logout, isAuthenticated, supportsAccountDeletion, supportsProfileUpdate } =
     useAuth();
   const { t, i18n } = useTranslation('settings');
+  const { mcpEnabled: mcpAgentsNavEnabled } = useMcpPersonalStatus(
+    config,
+    session?.accessToken ?? null,
+    isAuthenticated,
+  );
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
 
@@ -88,7 +95,16 @@ export const SettingsView = () => {
       routes = routes.filter((route) => route.path !== 'legal-documents');
     }
     if (!isAiFeatureEnabled(config)) {
-      routes = routes.filter((route) => route.path !== 'ai');
+      routes = routes.filter((route) => route.path !== 'ai' && route.path !== 'mcp-agents');
+    }
+    if (
+      !shouldShowMcpAgentsSettings({
+        config,
+        isAuthenticated,
+        mcpEnabled: mcpAgentsNavEnabled,
+      })
+    ) {
+      routes = routes.filter((route) => route.path !== 'mcp-agents');
     }
     const aiEnabledForStorage = isAiFeatureEnabled(config) && settings.ai?.enabled !== false;
     if (
@@ -101,7 +117,7 @@ export const SettingsView = () => {
       routes = routes.filter((route) => route.path !== 'storage');
     }
     return routes;
-  }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled]);
+  }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled, mcpAgentsNavEnabled]);
 
   // Application settings from navigation items with settings URL
   const applicationRoutes = useMemo(() => {
@@ -175,6 +191,7 @@ export const SettingsView = () => {
           ...userRoute,
           ...settingsNavRoutes.filter((route) => route.path === 'storage'),
           ...settingsNavRoutes.filter((route) => route.path === 'ai'),
+          ...settingsNavRoutes.filter((route) => route.path === 'mcp-agents'),
         ],
       },
       {
