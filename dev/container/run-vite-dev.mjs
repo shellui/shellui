@@ -7,7 +7,13 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { resolveShelluiRoot, shelluiSourceAliases } from './local-vite-shellui.mjs';
+import {
+  generateViteDevWrapperSource,
+  resolveShelluiRoot,
+  resolveViteLaunch,
+  shelluiSourceAliases,
+  viteDevWrapperConfigPath,
+} from './local-vite-shellui.mjs';
 
 const appDir = process.cwd();
 const devContainerDir = path.dirname(fileURLToPath(import.meta.url));
@@ -32,8 +38,10 @@ if (!vitePkg) {
   process.exit(1);
 }
 
-const viteBin = path.join(path.dirname(vitePkg), 'bin', 'vite.js');
-const viteBinShim = path.join(appDir, 'node_modules', '.bin', 'vite');
+const { command: viteCommand, argsPrefix: viteArgsPrefix } = resolveViteLaunch({
+  appDir,
+  vitePkgPath: vitePkg,
+});
 
 const configFiles = ['vite.config.ts', 'vite.config.js', 'vite.config.mjs'];
 let appConfigFile = null;
@@ -53,62 +61,19 @@ const aliasKeys = Object.keys(localAliases).sort((a, b) => b.length - a.length);
  * Vite resolves some dependencies (e.g. tailwindcss for @tailwindcss/vite) from the
  * config file directory. Generate the wrapper under the app without importing /opt/shellui.
  */
-const configStubDir = path.join(appDir, 'node_modules', '.shellui');
-const configStub = path.join(configStubDir, 'vite-dev.config.mjs');
-fs.mkdirSync(configStubDir, { recursive: true });
+const configStub = viteDevWrapperConfigPath(appDir);
+fs.mkdirSync(path.dirname(configStub), { recursive: true });
 
 const appConfigHref = appConfigFile ? pathToFileURL(appConfigFile).href : '';
 
 fs.writeFileSync(
   configStub,
-  `export default async (env) => {
-  ${
-    appConfigHref
-      ? `const mod = await import(${JSON.stringify(appConfigHref)});
-  const exported = mod.default ?? mod;
-  const userConfig = typeof exported === 'function' ? await exported(env) : exported;`
-      : 'const userConfig = {};'
-  }
-  const localAliases = ${JSON.stringify(localAliases)};
-  const aliasKeys = ${JSON.stringify(aliasKeys)};
-  const shelluiMonorepoRoot = ${JSON.stringify(monorepoRoot)};
-  const shelluiPlugins =
-    aliasKeys.length > 0
-      ? [
-          {
-            name: 'shellui-dev-local-packages',
-            enforce: 'pre',
-            resolveId(source) {
-              for (const key of aliasKeys) {
-                if (source === key) {
-                  return localAliases[key];
-                }
-              }
-              return null;
-            },
-            configResolved(resolved) {
-              if (!shelluiMonorepoRoot) return;
-              const dedupe = new Set(resolved.resolve.dedupe ?? []);
-              for (const pkg of ['react', 'react-dom', '@shellui/sdk', '@shellui/core']) {
-                dedupe.add(pkg);
-              }
-              resolved.resolve.dedupe = [...dedupe];
-              const exclude = new Set(resolved.optimizeDeps.exclude ?? []);
-              exclude.add('@shellui/sdk');
-              exclude.add('@shellui/core');
-              resolved.optimizeDeps.exclude = [...exclude];
-              const allow = new Set(resolved.server.fs.allow);
-              allow.add(shelluiMonorepoRoot);
-              allow.add(shelluiMonorepoRoot + '/packages');
-              allow.add(shelluiMonorepoRoot + '/node_modules');
-              resolved.server.fs.allow = [...allow];
-            },
-          },
-        ]
-      : [];
-  return { ...userConfig, plugins: [...(userConfig.plugins ?? []), ...shelluiPlugins] };
-};
-`,
+  generateViteDevWrapperSource({
+    appConfigHref,
+    localAliases,
+    aliasKeys,
+    monorepoRoot,
+  }),
 );
 
 const argv = process.argv.slice(2);
@@ -121,21 +86,11 @@ const spawnEnv = {
   SHELLUI_ROOT: shelluiRoot,
 };
 
-/** @type {import('node:child_process').ChildProcess} */
-let child;
-if (fs.existsSync(viteBinShim)) {
-  child = spawn(viteBinShim, viteArgs, {
-    cwd: appDir,
-    env: spawnEnv,
-    stdio: 'inherit',
-  });
-} else {
-  child = spawn(process.execPath, [viteBin, ...viteArgs], {
-    cwd: appDir,
-    env: spawnEnv,
-    stdio: 'inherit',
-  });
-}
+const child = spawn(viteCommand, [...viteArgsPrefix, ...viteArgs], {
+  cwd: appDir,
+  env: spawnEnv,
+  stdio: 'inherit',
+});
 
 child.on('exit', (code, signal) => {
   if (signal) {
