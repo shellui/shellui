@@ -235,7 +235,8 @@ services:
     build:
       context: ../../email-service
       dockerfile: Dockerfile
-    entrypoint: ['/app/tools/docker-entrypoint.sh']
+      target: dev
+    entrypoint: ['bash', '/app/tools/docker-entrypoint.sh']
     command: ['worker']
     environment:
       DEBUG: 'true'
