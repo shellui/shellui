@@ -9,6 +9,7 @@ import {
   RefreshDoubleIcon,
   HardDriveIcon,
   SparklesIcon,
+  McpAgentsIcon,
 } from './SettingsIcons';
 import { Appearance } from './components/Appearance';
 import { LanguageAndRegion } from './components/LanguageAndRegion';
@@ -22,7 +23,6 @@ import { Storage } from './components/Storage';
 import { Ai } from './components/Ai';
 import { McpAgents } from './components/McpAgents';
 import { isTauri } from '../../service-worker/register';
-import { McpAgentsIcon } from './SettingsIcons';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
   {
