@@ -1,0 +1,13 @@
+# Keep the dev image build context small: only package.json, lockfiles, packages, tools and static are copied.
+**/node_modules
+**/dist
+**/.turbo
+**/.vite
+**/coverage
+.git
+dev/.env.local
+dev/postgres
+**/.env*
+!**/.env*.example
+src-tauri/target
+**/target
