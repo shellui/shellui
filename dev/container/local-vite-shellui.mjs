@@ -74,16 +74,15 @@ export function mergeShelluiLocalViteConfig(config, shelluiRoot, options = {}) {
   const workspaceRoot = path.resolve(options.workspaceRoot ?? appDir);
 
   const existingAlias = config.resolve?.alias ?? {};
-  const normalized =
-    Array.isArray(existingAlias)
-      ? Object.fromEntries(
-          existingAlias.map((entry) =>
-            typeof entry === 'object' && entry && 'find' in entry
-              ? [String(entry.find), entry.replacement]
-              : ['', ''],
-          ),
-        )
-      : { ...existingAlias };
+  const normalized = Array.isArray(existingAlias)
+    ? Object.fromEntries(
+        existingAlias.map((entry) =>
+          typeof entry === 'object' && entry && 'find' in entry
+            ? [String(entry.find), entry.replacement]
+            : ['', ''],
+        ),
+      )
+    : { ...existingAlias };
 
   /** Prefer app vite.config aliases, then fill gaps from the monorepo. */
   const alias = { ...localAliases, ...normalized };

@@ -58,9 +58,7 @@ const loaded = configFile
   : { config: {}, path: configFile, dependencies: [] };
 
 const workspaceRoot =
-  typeof vite.searchForWorkspaceRoot === 'function'
-    ? vite.searchForWorkspaceRoot(appDir)
-    : appDir;
+  typeof vite.searchForWorkspaceRoot === 'function' ? vite.searchForWorkspaceRoot(appDir) : appDir;
 const withLocal = mergeShelluiLocalViteConfig(loaded.config, process.env.SHELLUI_ROOT, {
   appDir,
   workspaceRoot,
