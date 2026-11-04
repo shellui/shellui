@@ -20,5 +20,5 @@ Setup, URLs, common commands and troubleshooting: [docs/dev-stack.md](../docs/de
 | `start.sh`                   | Generate or update `.env.local`, then compose up |
 | `generate-env.sh`            | Creates or updates `.env.local` from the example |
 | `generate_env.py`            | Secret generator (stdlib and OpenSSL)            |
-| `shellui.config.json`        | Shell dev config for the `shell` service         |
+| `config/`                    | Shell dev config (split files) for `shell`       |
 | `postgres/init-databases.sh` | One Postgres database per backend                |

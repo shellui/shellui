@@ -8,7 +8,7 @@ dev/.env.local
 .pnpm-store/
 shellui.config.*
 !packages/core/schemas/shellui.config.schema.json
-!dev/shellui.config.json
+!dev/config/shellui.*.config.json
 shellui.config.ts
 shellui.config.json
 shellui.root.config.json

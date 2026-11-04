@@ -18,4 +18,4 @@ RUN pnpm install --frozen-lockfile
 
 EXPOSE 4000
 
-CMD ["node", "packages/cli/bin/shellui.js", "start", "--host", "--config", "dev/shellui.config.json"]
+CMD ["node", "packages/cli/bin/shellui.js", "start", "--host", "--config", "dev/config"]
