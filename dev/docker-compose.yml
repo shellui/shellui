@@ -346,6 +346,11 @@ services:
       EMAIL_SERVICE_API_KEY: ${AI_EMAIL_SERVICE_API_KEY}
       EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
       SAAS_SERVICE_URL: http://saas:8000
+      # Public resources identity binds downstream MCP tokens to (calls still use the internal URLs above).
+      STORAGE_SERVICE_PUBLIC_URL: ${PUBLIC_STORAGE_URL}
+      HOSTING_SERVICE_PUBLIC_URL: ${PUBLIC_HOSTING_URL}
+      EMAIL_SERVICE_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
+      SAAS_SERVICE_PUBLIC_URL: ${PUBLIC_SAAS_URL}
     volumes:
       - ../../ai-service:/app
       - ai-data:/app/data
