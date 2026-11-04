@@ -16,5 +16,21 @@ if [[ -f "${TARGET}" ]]; then
   exit 1
 fi
 
-python3 "${ROOT}/dev/generate_env.py" "${EXAMPLE}" "${TARGET}"
+run_generate_env() {
+  if command -v uv >/dev/null 2>&1; then
+    uv run --no-project python "$@"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 "$@"
+  else
+    cat >&2 <<'EOF'
+generate-env.sh could not find a Python interpreter.
+
+Install uv (https://docs.astral.sh/uv/) or Python 3, then re-run ./generate-env.sh.
+The generator uses only the standard library plus OpenSSL on PATH for RSA keys.
+EOF
+    exit 1
+  fi
+}
+
+run_generate_env "${ROOT}/dev/generate_env.py" "${EXAMPLE}" "${TARGET}"
 echo "Wrote ${TARGET}"

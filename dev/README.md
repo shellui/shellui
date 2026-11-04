@@ -86,6 +86,7 @@ The admin `dev` image reads `@shellui/core` from `SHELLUI_ROOT` (default `/opt/s
 
 - Docker Compose v2
 - Sibling repos on `develop` with a `dev` Dockerfile target
-- OpenSSL (for `./generate-env.sh`)
+- **uv** or **Python 3** on `PATH` to run `./generate-env.sh` (`uv run --no-project python` when `uv` is installed; otherwise `python3`)
+- **OpenSSL** on `PATH` (`openssl` for RSA keys in `dev/generate_env.py`)
 
 See [Local dev stack](../docs/dev-stack.md).

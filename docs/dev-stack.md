@@ -35,6 +35,13 @@ docker compose -f compose.dev.yml --env-file .env.local up --build
 
 Never commit `.env.local`.
 
+## Prerequisites
+
+- Docker Compose v2
+- **uv** or **Python 3** for `./generate-env.sh` (stdlib-only `dev/generate_env.py`; prefers `uv run --no-project python` when `uv` is on `PATH`)
+- **OpenSSL** (`openssl` CLI for generated JWT and signing keys)
+- Sibling service repos on `develop` with a Dockerfile **`dev`** target (storage-service: merge [PR #52](https://github.com/shellui/storage-service/pull/52) when available)
+
 ## Ports
 
 | Service      | Host port |
