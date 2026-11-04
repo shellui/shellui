@@ -7,13 +7,8 @@
     "adminPathname": "/admin",
     "adminUrl": "${PUBLIC_ADMIN_URL:-http://localhost:5173}",
     "login": {
-      "methods": [
-        "oauth",
-        "magic_link"
-      ],
-      "oauthProviders": [
-        "github"
-      ]
+      "methods": ["oauth", "magic_link"],
+      "oauthProviders": ["github"]
     }
   }
 }
