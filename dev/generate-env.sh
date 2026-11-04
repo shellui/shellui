@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Fill .env.local from .env.local.example with generated secrets and keys.
+# Fill dev/.env.local from dev/.env.local.example with generated secrets and keys.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXAMPLE="${ROOT}/.env.local.example"
-TARGET="${ROOT}/.env.local"
+DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EXAMPLE="${DEV_DIR}/.env.local.example"
+TARGET="${DEV_DIR}/.env.local"
 
 if [[ ! -f "${EXAMPLE}" ]]; then
   echo "Missing ${EXAMPLE}" >&2
@@ -32,5 +32,5 @@ EOF
   fi
 }
 
-run_generate_env "${ROOT}/dev/generate_env.py" "${EXAMPLE}" "${TARGET}"
+run_generate_env "${DEV_DIR}/generate_env.py" "${EXAMPLE}" "${TARGET}"
 echo "Wrote ${TARGET}"
