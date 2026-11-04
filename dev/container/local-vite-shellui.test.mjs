@@ -10,6 +10,7 @@ import {
   generateViteDevWrapperSource,
   mergeShelluiLocalViteConfig,
   resolveViteLaunch,
+  shelluiViteDevWatchIgnored,
   viteDevWrapperConfigPath,
 } from './local-vite-shellui.mjs';
 
@@ -25,10 +26,14 @@ test('mergeShelluiLocalViteConfig adds dev stack plugins when shellui root is va
   const merged = mergeShelluiLocalViteConfig({}, repoRoot);
   assert.equal(merged.plugins?.length, 1);
   assert.equal(merged.plugins?.[0]?.name, 'shellui-dev-local-packages');
+  assert.deepEqual(merged.server?.watch?.ignored, shelluiViteDevWatchIgnored);
 });
 
 test('mergeShelluiLocalViteConfig adds no plugins without a valid shellui root', () => {
-  assert.deepEqual(mergeShelluiLocalViteConfig({}, '/nonexistent'), { plugins: [] });
+  assert.deepEqual(mergeShelluiLocalViteConfig({}, '/nonexistent'), {
+    plugins: [],
+    server: { watch: { ignored: shelluiViteDevWatchIgnored } },
+  });
 });
 
 test('shellui dev plugin extends fs.allow for the monorepo mount', () => {
@@ -64,6 +69,7 @@ test('generated vite wrapper loads the app config via loadConfigFromFile and app
   assert.doesNotMatch(source, /await import\(/);
   assert.match(source, /configFile: false/);
   assert.match(source, /\[\.\.\.\(userConfig\.plugins \?\? \[\]\), \.\.\.shelluiPlugins\]/);
+  assert.match(source, /ignored: mergedIgnored/);
   assert.ok(source.includes(JSON.stringify(appConfigPath)));
 });
 

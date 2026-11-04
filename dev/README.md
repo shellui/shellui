@@ -10,6 +10,8 @@ This creates `.env.local` on first run (later runs append any new variables), th
 
 Setup, URLs, common commands and troubleshooting: [docs/dev-stack.md](../docs/dev-stack.md).
 
+Optional tuning in `.env.local`: `DEV_FILE_WATCH_POLLING=true` if Vite misses file changes on macOS; `DJANGO_STATRELOAD_SLEEP` and `EMAIL_LANE_WORKER_POLL_SECONDS` trade idle CPU for reload latency.
+
 ## Files
 
 | File                         | Role                                                                            |
