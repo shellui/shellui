@@ -22,6 +22,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 Shellui 0.7.0 brings multi-region federation: each embedded app can use its own identity server and services, with regional sessions and a new SDK app frame. It also redesigns every layout for phones and accessibility, adds token-based CI previews to the CLI and hardens sign-in with PKCE.
 
+### 📚 Documentation
+
+- **Dev stack:** `dev/docker-compose.yml`, root `.env.local.example`, `compose.dev.yml`, and `./generate-env.sh` to run the shell, Files (5175), and sibling services locally.
+
 ### ✨ Feature
 
 - **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.

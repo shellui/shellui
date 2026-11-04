@@ -6,6 +6,8 @@ description: 'Install pnpm, build @shellui/cli, @shellui/core, and @shellui/sdk,
 
 This repository is the CLI, core, and SDK workspace. Use it when you change Shellui itself. App authors should follow [Create a project](/quickstart) with the published CLI.
 
+To run the full Shellui stack (shell, identity, storage, admin, and siblings), see [Local dev stack](/dev-stack).
+
 ```text
 .
 ├── packages/
