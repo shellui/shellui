@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Fill dev/.env.local from dev/.env.local.example with generated secrets and keys.
+# An existing dev/.env.local is kept; only variables it is missing are appended.
 set -euo pipefail
 
 DEV_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,11 +9,6 @@ TARGET="${DEV_DIR}/.env.local"
 
 if [[ ! -f "${EXAMPLE}" ]]; then
   echo "Missing ${EXAMPLE}" >&2
-  exit 1
-fi
-
-if [[ -f "${TARGET}" ]]; then
-  echo "${TARGET} already exists. Remove it or edit in place." >&2
   exit 1
 fi
 
@@ -33,4 +29,4 @@ EOF
 }
 
 run_generate_env "${DEV_DIR}/generate_env.py" "${EXAMPLE}" "${TARGET}"
-echo "Wrote ${TARGET}"
+echo "Ready: ${TARGET}"

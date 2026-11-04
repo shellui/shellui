@@ -46,7 +46,7 @@ cd shellui/dev
 ./start.sh
 ```
 
-On first run, `start.sh` creates `dev/.env.local` with fresh secrets (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, `email-worker` included. Extra arguments go to Compose, for example `./start.sh -d`.
+On first run, `start.sh` creates `dev/.env.local` with fresh secrets. Later runs keep it and only append variables added to the example since (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, `email-worker` included. Extra arguments go to Compose, for example `./start.sh -d`.
 
 Never commit `dev/.env.local`.
 
@@ -103,14 +103,7 @@ The Django dev containers run `runserver` only. `email-worker` runs lane deliver
 
 ## Email
 
-Mail lands in Mailpit at http://localhost:8025. `generate-env.sh` writes a random `IDENTITY_EMAIL_SERVICE_API_KEY` that email-service does not know yet. To call the email-service HTTP API, create a real key once the stack is up:
-
-```bash
-docker compose --env-file .env.local exec email \
-  python manage.py create_service_key --service identity
-```
-
-Put it in `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local`, then restart identity, storage, hosting, saas and ai.
+Mail lands in Mailpit at http://localhost:8025. `generate-env.sh` writes one email-service key per caller (`IDENTITY_`, `STORAGE_`, `HOSTING_`, `SAAS_` and `AI_EMAIL_SERVICE_API_KEY`). On start, email-service registers them from `EMAIL_DEV_SERVICE_KEYS`, storing only their hashes. Nothing to do by hand. This only runs with `DEBUG=true`, so production never seeds keys.
 
 ## This repository in the stack
 
