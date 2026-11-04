@@ -16,7 +16,8 @@
     "url": "${PUBLIC_EMAIL_URL}"
   },
   "storage": {
-    "url": "${PUBLIC_STORAGE_URL}"
+    "url": "${PUBLIC_STORAGE_URL}",
+    "filesUrl": "${PUBLIC_FILES_URL}/"
   },
   "hosting": {
     "url": "${PUBLIC_HOSTING_URL}"

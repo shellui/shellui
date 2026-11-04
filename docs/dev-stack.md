@@ -74,4 +74,28 @@ The **shell** service builds the `dev` target from the root [Dockerfile](https:/
 
 **admin** mounts the same checkout at `/opt/shellui` so Vite resolves `@shellui/core` from your local tree (`SHELLUI_ROOT`).
 
-Per-service variables are documented in each sibling repo (`docs/devstack.md`, `docs/local-dev-stack.md`, or `docs/dev-stack.md` on `develop`).
+**files** runs on port 5175 with `VITE_STORAGE_URL`, `VITE_IDENTITY_URL`, and HMR env vars set in compose. The shell config sets `storage.url` to `http://localhost:8002` and `storage.filesUrl` to `http://localhost:5175/` via `PUBLIC_STORAGE_URL` and `PUBLIC_FILES_URL`.
+
+### Shell service env
+
+[dev/shellui.config.json](https://github.com/shellui/shellui/blob/develop/dev/shellui.config.json) resolves `${PUBLIC_*}` placeholders from the container environment (same names as root `.env.local`).
+
+| `.env.local` variable | Purpose |
+| --------------------- | ------- |
+| `PUBLIC_IDENTITY_URL` | `backend.url` |
+| `PUBLIC_ADMIN_URL` | `backend.adminUrl` |
+| `PUBLIC_EMAIL_URL` | `email.url` |
+| `PUBLIC_STORAGE_URL` | `storage.url` |
+| `PUBLIC_FILES_URL` | `storage.filesUrl` |
+| `PUBLIC_HOSTING_URL` | `hosting.url` |
+| `SHELL_IDENTITY_COMPANY_ID` | `backend.companyId` |
+
+| Path | Role |
+| ---- | ---- |
+| `.env.local.example` | Committed template (prefixed secrets per service) |
+| `compose.dev.yml` | Root entrypoint including `dev/docker-compose.yml` |
+| `generate-env.sh` | Fills `.env.local` from the example |
+
+More operator detail: [dev/README.md](https://github.com/shellui/shellui/blob/develop/dev/README.md).
+
+Per-service variables are documented in each sibling repo on `develop` (`docs/devstack.md`, `docs/local-dev-stack.md`, or similar).

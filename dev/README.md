@@ -88,4 +88,4 @@ The admin `dev` image reads `@shellui/core` from `SHELLUI_ROOT` (default `/opt/s
 - Sibling repos on `develop` with a `dev` Dockerfile target
 - OpenSSL (for `./generate-env.sh`)
 
-See [Local dev stack](../docs/dev-stack.md) and [docs/devstack.md](../docs/devstack.md).
+See [Local dev stack](../docs/dev-stack.md).

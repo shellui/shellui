@@ -24,7 +24,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 📚 Documentation
 
-- **Dev stack:** `dev/docker-compose.yml`, root `.env.local.example`, `compose.dev.yml`, and `./generate-env.sh` to run the shell and sibling services locally.
+- **Dev stack:** `dev/docker-compose.yml`, root `.env.local.example`, `compose.dev.yml`, and `./generate-env.sh` to run the shell, Files (5175), and sibling services locally.
 
 ### ✨ Feature
 

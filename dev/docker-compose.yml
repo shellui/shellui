@@ -395,6 +395,9 @@ services:
       CHOKIDAR_USEPOLLING: "true"
       VITE_USE_POLLING: "true"
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
+      VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
+      VITE_DEV_ORIGIN: ${PUBLIC_FILES_URL}
+      VITE_DEV_PORT: "5175"
     volumes:
       - ../../files:/app
       - files-node-modules:/app/node_modules
