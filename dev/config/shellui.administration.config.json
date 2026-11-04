@@ -1,0 +1,29 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "administration": {
+    "title": {
+      "en": "Applications",
+      "fr": "Applications"
+    },
+    "navigation": [
+      {
+        "label": {
+          "en": "Playground",
+          "fr": "Playground"
+        },
+        "path": "playground",
+        "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/",
+        "icon": "/icons/play.svg"
+      },
+      {
+        "label": {
+          "en": "Django admin",
+          "fr": "Admin Django"
+        },
+        "path": "django-admin",
+        "url": "/admin/",
+        "requiresStaff": true
+      }
+    ]
+  }
+}

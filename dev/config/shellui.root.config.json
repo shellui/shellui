@@ -1,0 +1,15 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "port": 4000,
+  "title": "Shellui",
+  "version": "0.7.0-dev",
+  "favicon": "/favicon.svg",
+  "appIcon": "/app-icon.svg",
+  "logo": "/logo.svg",
+  "language": [
+    "en",
+    "fr"
+  ],
+  "layout": "sidebar",
+  "activeTheme": "shellui"
+}
