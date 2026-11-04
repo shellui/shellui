@@ -31,6 +31,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### ✨ Feature
 
+- **Core:** Settings adds MCP / AI agents when `ai.enabled` is on and identity reports MCP for the company: company MCP URL, connected OAuth and personal agents, activity logs, and one-time personal token creation.
 - **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.
 - **Core:** Per-app `email`, `storage` and `hosting` URLs, forwarded to child apps when allowed by `childFrames.serviceOrigins`.
 - **Core:** Regional sessions use OAuth token exchange (RFC 8693) and renew with their own refresh token.
