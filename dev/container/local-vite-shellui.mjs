@@ -57,6 +57,52 @@ export function shelluiSourceAliases(shelluiRoot) {
   return alias;
 }
 
+/** @param {string | null | undefined} shelluiRoot */
+export function createShelluiDevStackPlugins(shelluiRoot) {
+  const root = resolveShelluiRoot(shelluiRoot ?? process.env.SHELLUI_ROOT);
+  if (!root) {
+    return [];
+  }
+
+  const localAliases = shelluiSourceAliases(root);
+  const aliasKeys = Object.keys(localAliases).sort((a, b) => b.length - a.length);
+
+  /** @type {import('vite').Plugin} */
+  const devStackPlugin = {
+    name: 'shellui-dev-local-packages',
+    enforce: 'pre',
+    resolveId(source) {
+      for (const key of aliasKeys) {
+        if (source === key) {
+          return localAliases[key];
+        }
+      }
+      return null;
+    },
+    configResolved(resolved) {
+      const dedupe = new Set(resolved.resolve.dedupe ?? []);
+      dedupe.add('react');
+      dedupe.add('react-dom');
+      dedupe.add('@shellui/sdk');
+      dedupe.add('@shellui/core');
+      resolved.resolve.dedupe = [...dedupe];
+
+      const exclude = new Set(resolved.optimizeDeps.exclude ?? []);
+      exclude.add('@shellui/sdk');
+      exclude.add('@shellui/core');
+      resolved.optimizeDeps.exclude = [...exclude];
+
+      const allow = new Set(resolved.server.fs.allow);
+      allow.add(root);
+      allow.add(path.join(root, 'packages'));
+      allow.add(path.join(root, 'node_modules'));
+      resolved.server.fs.allow = [...allow];
+    },
+  };
+
+  return [devStackPlugin];
+}
+
 /**
  * @param {import('vite').UserConfig} config
  * @param {string | null | undefined} shelluiRoot
@@ -64,67 +110,9 @@ export function shelluiSourceAliases(shelluiRoot) {
  * @returns {import('vite').UserConfig}
  */
 export function mergeShelluiLocalViteConfig(config, shelluiRoot, options = {}) {
-  const root = resolveShelluiRoot(shelluiRoot ?? process.env.SHELLUI_ROOT);
-  if (!root) return config;
-
-  const localAliases = shelluiSourceAliases(root);
-  if (Object.keys(localAliases).length === 0) return config;
-
-  const appDir = path.resolve(options.appDir ?? process.cwd());
-  const workspaceRoot = path.resolve(options.workspaceRoot ?? appDir);
-
-  const existingAlias = config.resolve?.alias ?? {};
-  const normalized = Array.isArray(existingAlias)
-    ? Object.fromEntries(
-        existingAlias.map((entry) =>
-          typeof entry === 'object' && entry && 'find' in entry
-            ? [String(entry.find), entry.replacement]
-            : ['', ''],
-        ),
-      )
-    : { ...existingAlias };
-
-  /** Prefer app vite.config aliases, then fill gaps from the monorepo. */
-  const alias = { ...localAliases, ...normalized };
-
-  const allowRoots = new Set(config.server?.fs?.allow ?? []);
-  allowRoots.add(appDir);
-  allowRoots.add(workspaceRoot);
-  if (config.root) {
-    allowRoots.add(path.resolve(appDir, config.root));
-  }
-  allowRoots.add(root);
-  allowRoots.add(path.join(root, 'packages'));
-  allowRoots.add(path.join(root, 'node_modules'));
-
-  const optimizeDeps = { ...(config.optimizeDeps ?? {}) };
-  const exclude = new Set(optimizeDeps.exclude ?? []);
-  exclude.add('@shellui/sdk');
-  exclude.add('@shellui/core');
-  optimizeDeps.exclude = [...exclude];
-
+  void config;
+  void options;
   return {
-    ...config,
-    resolve: {
-      ...config.resolve,
-      alias,
-      dedupe: [
-        ...new Set([
-          ...(config.resolve?.dedupe ?? []),
-          'react',
-          'react-dom',
-          '@shellui/sdk',
-          '@shellui/core',
-        ]),
-      ],
-    },
-    optimizeDeps,
-    server: {
-      ...config.server,
-      fs: {
-        ...config.server?.fs,
-        allow: [...allowRoots],
-      },
-    },
+    plugins: createShelluiDevStackPlugins(shelluiRoot),
   };
 }
