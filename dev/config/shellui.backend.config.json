@@ -1,0 +1,19 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "backend": {
+    "type": "shellui",
+    "url": "${PUBLIC_IDENTITY_URL:-http://localhost:8001}",
+    "companyId": "${SHELL_IDENTITY_COMPANY_ID:-1}",
+    "adminPathname": "/admin",
+    "adminUrl": "${PUBLIC_ADMIN_URL:-http://localhost:5173}",
+    "login": {
+      "methods": [
+        "oauth",
+        "magic_link"
+      ],
+      "oauthProviders": [
+        "github"
+      ]
+    }
+  }
+}

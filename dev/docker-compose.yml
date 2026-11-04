@@ -72,6 +72,8 @@ services:
       PUBLIC_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       PUBLIC_HOSTING_URL: ${PUBLIC_HOSTING_URL}
       SHELL_IDENTITY_COMPANY_ID: ${SHELL_IDENTITY_COMPANY_ID}
+      PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
+      FILES_URL: ${PUBLIC_FILES_URL}
     volumes:
       - ..:/app
       - shell-node-modules:/app/node_modules
@@ -408,6 +410,27 @@ services:
       - files-node-modules:/app/node_modules
     restart: unless-stopped
 
+  # Playground companion (sibling repo ../../playground). Vite dev server with hot reload.
+  playground:
+    image: node:22-bookworm-slim
+    working_dir: /app
+    command:
+      [
+        'sh',
+        '-c',
+        'corepack enable && pnpm install --frozen-lockfile && pnpm exec vite --host 0.0.0.0',
+      ]
+    ports:
+      - '5176:5176'
+    environment:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      CHOKIDAR_USEPOLLING: 'true'
+      PLAYGROUND_DEV_PORT: '5176'
+    volumes:
+      - ../../playground:/app
+      - playground-node-modules:/app/node_modules
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   identity-data:
@@ -420,3 +443,4 @@ volumes:
   admin-node-modules:
   dashboard-node-modules:
   files-node-modules:
+  playground-node-modules:

@@ -1,0 +1,18 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "cookieConsent": {
+    "cookies": [
+      {
+        "name": "Sentry Error Reporting",
+        "host": "sentry.io",
+        "durationSeconds": 31536000,
+        "type": "third_party",
+        "category": "functional_performance",
+        "description": {
+          "en": "Helps us fix errors and improve stability.",
+          "fr": "Nous aide à corriger les erreurs et à améliorer la stabilité."
+        }
+      }
+    ]
+  }
+}

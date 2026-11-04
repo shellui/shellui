@@ -1,0 +1,8 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "storage": {
+    "url": "${PUBLIC_STORAGE_URL:-http://localhost:8002}",
+    "filesUrl": "${PUBLIC_FILES_URL:-http://localhost:5175}",
+    "showInSettings": true
+  }
+}

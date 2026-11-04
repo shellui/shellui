@@ -1,0 +1,6 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "hosting": {
+    "url": "${PUBLIC_HOSTING_URL:-http://localhost:8003}"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "email": {
+    "url": "${PUBLIC_EMAIL_URL:-http://localhost:8004}",
+    "showInAdmin": true
+  }
+}
