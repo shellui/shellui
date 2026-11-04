@@ -111,7 +111,16 @@ Mail lands in Mailpit at http://localhost:8025. `generate-env.sh` writes one ema
 
 The **shell** service builds the `dev` target from the root [Dockerfile](https://github.com/shellui/shellui/blob/develop/Dockerfile), bind-mounts the monorepo at `/app`, and runs the CLI dev server on port 4000 with the split config in [dev/config/](https://github.com/shellui/shellui/tree/develop/dev/config) (one `shellui.<section>.config.json` per section, like `shellui config split` writes).
 
-**admin** mounts the monorepo at `/opt/shellui` so Vite resolves `@shellui/core` from your local tree (`SHELLUI_ROOT`).
+### Local `@shellui/*` packages (no npm publish)
+
+The dev stack bind-mounts this monorepo into every front-end container at `/opt/shellui` (read-only). Scripts in [dev/container/](https://github.com/shellui/shellui/tree/develop/dev/container) run on container start:
+
+1. **`link-local-shellui-packages.mjs`** replaces `node_modules/@shellui/*` with symlinks into `/opt/shellui/packages/*` for every `@shellui` dependency declared in that app (lockfiles stay on published versions; only the Compose `node_modules` volume is touched).
+2. **`run-vite-dev.mjs`** loads the app’s normal `vite.config.*` and adds Vite aliases so `@shellui/sdk` and `@shellui/core` resolve to TypeScript source for hot reload.
+
+**shell** already runs from the mounted monorepo workspace (`/app`). **admin**, **dashboard**, **files**, and **playground** use the shared entrypoint and Vite wrapper. Production Dockerfiles and CI are unchanged.
+
+After you change `pnpm-lock.yaml` in a sibling app, rebuild that service: `./start.sh -d <service>`.
 
 **playground** runs the [playground](https://github.com/shellui/playground) Vite dev server on port 5176 with hot reload (`PLAYGROUND_DEV_PORT`). Admin owns 5173 in the stack.
 

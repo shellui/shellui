@@ -14,6 +14,7 @@ Setup, URLs, common commands and troubleshooting: [docs/dev-stack.md](../docs/de
 
 | File                         | Role                                             |
 | ---------------------------- | ------------------------------------------------ |
+| `container/`                 | Dev-only entrypoints and local `@shellui/*` link |
 | `docker-compose.yml`         | Full stack                                       |
 | `.env.local.example`         | Committed env template                           |
 | `.env.local`                 | Generated secrets (gitignored)                   |

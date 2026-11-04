@@ -18,6 +18,12 @@ x-identity-jwt: &identity-jwt
   IDENTITY_ISSUER: ${PUBLIC_IDENTITY_URL}
   IDENTITY_AUDIENCE: ${JWT_AUDIENCE}
 
+x-frontend-shellui-local: &frontend-shellui-local
+  environment:
+    SHELLUI_ROOT: /opt/shellui
+  volumes:
+    - ..:/opt/shellui:ro
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -60,6 +66,7 @@ services:
       context: ..
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/app/dev/container/shell-dev-entrypoint.sh']
     ports:
       - '4000:4000'
     environment:
@@ -342,10 +349,14 @@ services:
     restart: unless-stopped
 
   admin:
+    <<: *frontend-shellui-local
     build:
       context: ../../admin
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5173']
     ports:
       - '5173:5173'
     environment:
@@ -363,17 +374,22 @@ services:
     volumes:
       - ../../admin:/app
       - admin-node-modules:/app/node_modules
-      - ..:/opt/shellui
+      - ..:/opt/shellui:ro
     restart: unless-stopped
 
   dashboard:
+    <<: *frontend-shellui-local
     build:
       context: ../../dashboard
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5174']
     ports:
       - '5174:5174'
     environment:
+      SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'true'
       VITE_USE_POLLING: 'true'
       DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
@@ -391,16 +407,22 @@ services:
     volumes:
       - ../../dashboard:/app
       - dashboard-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
     restart: unless-stopped
 
   files:
+    <<: *frontend-shellui-local
     build:
       context: ../../files
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5175']
     ports:
       - '5175:5175'
     environment:
+      SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'true'
       VITE_USE_POLLING: 'true'
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
@@ -410,27 +432,28 @@ services:
     volumes:
       - ../../files:/app
       - files-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
     restart: unless-stopped
 
   # Playground companion (sibling repo ../../playground). Vite dev server with hot reload.
   playground:
+    <<: *frontend-shellui-local
     image: node:22-bookworm-slim
     working_dir: /app
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
     command:
-      [
-        'sh',
-        '-c',
-        'corepack enable && pnpm install --frozen-lockfile && pnpm exec vite --host 0.0.0.0',
-      ]
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5176']
     ports:
       - '5176:5176'
     environment:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'true'
       PLAYGROUND_DEV_PORT: '5176'
     volumes:
       - ../../playground:/app
       - playground-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
     restart: unless-stopped
 
 volumes:
