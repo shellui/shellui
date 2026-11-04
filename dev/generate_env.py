@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Generate .env.local secrets from .env.local.example."""
+
+from __future__ import annotations
+
+import base64
+import hashlib
+import re
+import secrets
+import subprocess
+import sys
+from pathlib import Path
+
+
+def secret_key() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def fernet_key() -> str:
+    return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
+
+
+def rsa_keypair(bits: int = 2048) -> tuple[str, str, str]:
+    private_pem = subprocess.check_output(["openssl", "genrsa", str(bits)], text=True)
+    public_pem = subprocess.check_output(
+        ["openssl", "rsa", "-pubout"],
+        input=private_pem,
+        text=True,
+    )
+    pub_der = subprocess.check_output(
+        ["openssl", "rsa", "-pubout", "-outform", "DER"],
+        input=private_pem,
+    )
+    digest = hashlib.sha256(pub_der).digest()
+    kid = base64.urlsafe_b64encode(digest[:16]).rstrip(b"=").decode("ascii")
+    return private_pem, public_pem, kid
+
+
+def pem_for_env(pem: str) -> str:
+    return pem.strip().replace("\n", "\\n")
+
+
+def esk_key() -> str:
+    return "esk_" + secrets.token_urlsafe(32)
+
+
+def main() -> int:
+    if len(sys.argv) != 3:
+        print("usage: generate_env.py <example> <output>", file=sys.stderr)
+        return 2
+
+    example_path = Path(sys.argv[1])
+    output_path = Path(sys.argv[2])
+    text = example_path.read_text(encoding="utf-8")
+
+    jwt_private, jwt_public, jwt_kid = rsa_keypair()
+    ai_private, _ai_public, ai_kid = rsa_keypair()
+
+    replacements = {
+        "__POSTGRES_PASSWORD__": secrets.token_urlsafe(24),
+        "__IDENTITY_SECRET_KEY__": secret_key(),
+        "__STORAGE_SECRET_KEY__": secret_key(),
+        "__HOSTING_SECRET_KEY__": secret_key(),
+        "__EMAIL_SECRET_KEY__": secret_key(),
+        "__SAAS_SECRET_KEY__": secret_key(),
+        "__AI_SECRET_KEY__": secret_key(),
+        "__JWT_PRIVATE_KEY__": pem_for_env(jwt_private),
+        "__JWT_PUBLIC_KEY__": pem_for_env(jwt_public),
+        "__JWT_KEY_ID__": jwt_kid,
+        "__AI_SERVICE_SIGNING_KEY__": pem_for_env(ai_private),
+        "__AI_SERVICE_SIGNING_KID__": ai_kid,
+        "__EMAIL_SERVICE_API_KEY__": esk_key(),
+        "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
+        "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
+        "__EMAIL_VARIABLES_KEY__": fernet_key(),
+        "__EMAIL_HASH_PEPPER__": secrets.token_urlsafe(32),
+    }
+
+    for marker, value in replacements.items():
+        text = text.replace(marker, value)
+
+    if re.search(r"__[-A-Z0-9_]+__", text):
+        print("Unresolved placeholders remain in output", file=sys.stderr)
+        return 1
+
+    output_path.write_text(text, encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

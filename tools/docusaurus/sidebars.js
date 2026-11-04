@@ -210,6 +210,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'dev-stack',
+          label: 'Local dev stack',
+        },
+        {
+          type: 'doc',
           id: 'publishing',
           label: 'Publishing',
         },
