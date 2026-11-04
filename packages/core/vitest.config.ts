@@ -21,6 +21,7 @@ export default defineConfig({
       'src/service-worker/**/*.spec.ts',
       'src/features/transfers/**/*.spec.ts',
       'src/features/ai/**/*.spec.ts',
+      'src/features/mcp/**/*.spec.ts',
       'src/features/security/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
       'src/routes/utils/**/*.spec.ts',

@@ -17,6 +17,7 @@
     "legalDocuments": "Documents légaux",
     "storage": "Stockage",
     "ai": "IA",
+    "mcpAgents": "Agents MCP / IA",
     "develop": "Développement",
     "serviceWorker": "Service Worker"
   },
@@ -273,6 +274,129 @@
       "empty": "Aucun détail de sonde pour le moment."
     },
     "footnote": "Les gros modèles prennent de l'espace disque et peuvent chauffer le GPU au premier chargement. Traitez les invites des applications comme du contenu non fiable."
+  },
+  "mcpAgents": {
+    "description": "Connectez des clients IA à votre entreprise via le MCP Shellui. Les applications OAuth et les jetons personnels apparaissent ici.",
+    "signInRequired": "Connectez-vous pour gérer les agents MCP.",
+    "status": {
+      "loading": "Vérification du statut MCP…",
+      "error": "Impossible de charger le statut MCP.",
+      "unavailable": "Le MCP n'est pas activé pour cette entreprise.",
+      "retry": "Réessayer"
+    },
+    "gateway": {
+      "title": "Passerelle MCP de l'entreprise",
+      "enabledHint": "Le MCP est activé pour cette entreprise. Utilisez l'URL ci-dessous dans votre client IA.",
+      "copyUrl": "Copier l'URL",
+      "setupTitle": "Configuration des clients",
+      "hints": {
+        "chatgpt": "ChatGPT : ajoutez un connecteur MCP personnalisé et collez l'URL MCP. Connectez-vous avec OAuth ou un jeton d'agent personnel.",
+        "claude": "Claude Desktop : ajoutez l'URL MCP dans les paramètres MCP, puis autorisez ou collez un jeton bearer.",
+        "cursor": "Cursor : ouvrez les paramètres MCP, ajoutez l'URL MCP, puis connectez-vous avec OAuth ou un jeton personnel.",
+        "other": "Autres clients : pointez le transport MCP vers l'URL et envoyez Authorization: Bearer avec votre jeton d'agent ou session OAuth."
+      }
+    },
+    "clipboard": {
+      "copyFailedTitle": "Échec de la copie",
+      "unavailable": "L'API presse-papiers n'est pas disponible dans cet environnement.",
+      "copiedTitle": "Copié",
+      "copiedDescription": "{{label}} copié dans le presse-papiers.",
+      "failed": "Impossible de copier dans le presse-papiers."
+    },
+    "tokenReveal": {
+      "title": "Jeton d'agent (affiché une seule fois)",
+      "warning": "Copiez ce jeton maintenant. Shellui ne pourra plus l'afficher après avoir quitté cette page.",
+      "copyToken": "Copier le jeton",
+      "expires": "Le jeton expire le {{date}}.",
+      "usageTitle": "Appeler le MCP",
+      "usageBody": "Envoyez le jeton à chaque requête vers l'URL MCP :",
+      "tokenPlaceholder": "<votre-jeton-agent>",
+      "dismiss": "J'ai enregistré le jeton"
+    },
+    "agents": {
+      "title": "Agents connectés",
+      "description": "Connexions OAuth et jetons personnels que vous avez créés pour cette entreprise.",
+      "refresh": "Actualiser les agents",
+      "loading": "Chargement des agents…",
+      "error": "Impossible de charger les agents.",
+      "retry": "Réessayer",
+      "empty": "Aucun agent pour l'instant. Créez un jeton personnel ci-dessous ou connectez un client via OAuth.",
+      "kind": {
+        "oauth": "OAuth",
+        "personal": "Jeton personnel"
+      },
+      "status": {
+        "active": "Actif",
+        "inactive": "Inactif",
+        "revoked": "Révoqué",
+        "paused": "En pause",
+        "expired": "Expiré"
+      },
+      "rightsSummary": "{{access}} · {{read}} · {{destructive}}",
+      "destructiveOn": "Actions destructives autorisées",
+      "destructiveOff": "Actions destructives désactivées",
+      "services": "Services : {{list}}",
+      "expires": "Expire le {{date}}",
+      "lastActivity": "Dernière activité {{date}}"
+    },
+    "accessMode": {
+      "read_only": "Lecture seule",
+      "ask": "Demander avant modification",
+      "full": "Accès complet"
+    },
+    "readLevel": {
+      "safe": "Lectures sûres",
+      "sensitive": "Données sensibles"
+    },
+    "services": {
+      "identity": "Identity",
+      "storage": "Storage",
+      "hosting": "Hosting",
+      "email": "Email",
+      "saas": "SaaS"
+    },
+    "activity": {
+      "show": "Journal d'activité",
+      "hide": "Masquer l'activité",
+      "loading": "Chargement de l'activité…",
+      "error": "Impossible de charger l'activité.",
+      "retry": "Réessayer",
+      "empty": "Aucun appel d'outil récent pour cet agent.",
+      "columns": {
+        "time": "Heure",
+        "tool": "Outil",
+        "service": "Service",
+        "result": "Résultat",
+        "clientIp": "IP client"
+      }
+    },
+    "revoke": {
+      "action": "Révoquer",
+      "title": "Révoquer cet agent ?",
+      "description": "« {{name}} » perdra l'accès immédiatement. Les clients connectés devront se reconnecter ou utiliser un nouveau jeton.",
+      "confirm": "Révoquer l'agent",
+      "cancel": "Annuler",
+      "successTitle": "Agent révoqué",
+      "successDescription": "« {{name}} » ne peut plus appeler le MCP.",
+      "errorTitle": "Impossible de révoquer l'agent"
+    },
+    "create": {
+      "title": "Créer un jeton d'agent",
+      "description": "Les jetons personnels reprennent les droits choisis ici. Identity peut refuser des périmètres au-delà de votre adhésion.",
+      "nameLabel": "Nom",
+      "namePlaceholder": "CLI de mon ordinateur",
+      "servicesLabel": "Services",
+      "servicesHint": "L'IA est toujours incluse côté serveur. Choisissez au moins un autre service.",
+      "accessModeLabel": "Mode d'accès",
+      "readLevelLabel": "Niveau de lecture",
+      "destructiveLabel": "Autoriser les actions destructives sans demander",
+      "destructiveHint": "Désactivé par défaut. Activez uniquement si vous faites confiance au client.",
+      "expiresLabel": "Expiration (obligatoire)",
+      "expiryInvalid": "Choisissez une date et une heure d'expiration dans le futur.",
+      "submit": "Créer le jeton",
+      "submitting": "Création…",
+      "errorGeneric": "Impossible de créer le jeton d'agent."
+    }
   },
   "dataPrivacy": {
     "title": "Confidentialité des données",

@@ -53,10 +53,17 @@ const propagateHosting = (hosting: HostingConfig | null | undefined): SettingsHo
   };
 };
 
+/** Normalized AI service base URL from config, or null when unset or blank. */
+export function getNormalizedAiServiceUrl(
+  aiService: AiServiceConfig | null | undefined,
+): string | null {
+  return aiService?.url?.trim().replace(/\/+$/, '') || null;
+}
+
 const propagateAiService = (
   aiService: AiServiceConfig | null | undefined,
 ): SettingsAiService | null => {
-  const url = aiService?.url?.trim().replace(/\/+$/, '') || null;
+  const url = getNormalizedAiServiceUrl(aiService);
   if (!url) return null;
   return {
     url,
