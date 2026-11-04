@@ -68,6 +68,12 @@ def main() -> int:
 
     jwt_private, jwt_public, jwt_kid = rsa_keypair()
     ai_private, _ai_public, ai_kid = rsa_keypair()
+    # Dev only: one RS256 key per service for internal MCP assertions to identity,
+    # plus the saas provisioning key. Production keys are never generated here.
+    storage_private, _storage_public, _ = rsa_keypair()
+    hosting_private, _hosting_public, _ = rsa_keypair()
+    email_private, _email_public, _ = rsa_keypair()
+    provisioning_private, provisioning_public, _ = rsa_keypair()
 
     replacements = {
         "__POSTGRES_PASSWORD__": secrets.token_urlsafe(24),
@@ -82,6 +88,11 @@ def main() -> int:
         "__JWT_KEY_ID__": jwt_kid,
         "__AI_SERVICE_SIGNING_KEY__": pem_for_env(ai_private),
         "__AI_SERVICE_SIGNING_KID__": ai_kid,
+        "__STORAGE_SERVICE_SIGNING_KEY__": pem_for_env(storage_private),
+        "__HOSTING_SERVICE_SIGNING_KEY__": pem_for_env(hosting_private),
+        "__EMAIL_SERVICE_SIGNING_KEY__": pem_for_env(email_private),
+        "__PROVISIONING_SIGNING_KEY__": pem_for_env(provisioning_private),
+        "__PROVISIONING_PUBLIC_KEY__": pem_for_env(provisioning_public),
         "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
         "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
         "__EMAIL_VARIABLES_KEY__": fernet_key(),
