@@ -82,7 +82,7 @@ Run these from `shellui/dev`.
 docker compose --env-file .env.local logs -f identity   # follow one service
 docker compose --env-file .env.local down          # stop everything
 ./start.sh -d identity                             # rebuild and restart one service
-docker compose --env-file .env.local exec identity python manage.py createsuperuser
+docker compose --env-file .env.local exec identity python manage.py createsuperuser  # extra users; admin/admin is seeded
 docker compose --env-file .env.local down -v       # stop and delete all data volumes
 ```
 
@@ -134,7 +134,13 @@ The files in `dev/config/` resolve `${VAR:-default}` placeholders from the conta
 
 ### Sign in
 
-The shell offers magic link and GitHub. Magic link works out of the box: the email lands in Mailpit. `backend.companyId` is `1`, and identity does not create a company on its own, so create one in the identity admin (http://localhost:8001/admin/) after `createsuperuser`, and set `SHELL_IDENTITY_COMPANY_ID` if it is not `1`.
+Identity seeds itself on every start (`IDENTITY_DEV_SEED=true` in the compose file, and only when `DEBUG=true`). There is nothing to create by hand:
+
+- **Company 1**, named Shellui Dev, with magic link on and the dev front-ends (ports 4000, 5173 to 5176) allowed as redirects.
+- **`admin` / `admin`**, a superuser for the identity admin (http://localhost:8001/admin/) and the admin app. Local only. Staff accounts cannot use magic links, so sign in with the password.
+- **`dev@localhost`**, a normal member of company 1 for magic link. Request a link in the shell (http://localhost:4000) and open it from Mailpit (http://localhost:8025).
+
+The seed never overwrites existing rows, so a changed admin password or company settings survive restarts. To start fresh, run `docker compose --env-file .env.local down -v`.
 
 GitHub is optional. Without credentials the stack starts normally and only the GitHub button fails. To enable it, create a GitHub OAuth app with homepage `http://localhost:4000` and the callback URL identity shows in its OAuth setup, then add the client ID and secret to company 1 in the admin app (http://localhost:5173) or the identity admin. Credentials are stored per company, not in `.env.local`.
 
