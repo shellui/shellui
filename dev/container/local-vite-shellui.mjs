@@ -123,17 +123,19 @@ export function viteDevWrapperConfigPath(appDir) {
 }
 
 /**
- * @param {{ appConfigHref?: string; localAliases: Record<string, string>; aliasKeys: string[]; monorepoRoot: string | null }} opts
+ * @param {{ appConfigPath?: string; localAliases: Record<string, string>; aliasKeys: string[]; monorepoRoot: string | null }} opts
  */
 export function generateViteDevWrapperSource(opts) {
-  const { appConfigHref = '', localAliases, aliasKeys, monorepoRoot } = opts;
-  const userConfigBlock = appConfigHref
-    ? `const mod = await import(${JSON.stringify(appConfigHref)});
-  const exported = mod.default ?? mod;
-  const userConfig = typeof exported === 'function' ? await exported(env) : exported;`
+  const { appConfigPath = '', localAliases, aliasKeys, monorepoRoot } = opts;
+  const userConfigBlock = appConfigPath
+    ? `const appRoot = process.env.SHELLUI_VITE_APP_DIR || process.cwd();
+  const loaded = await loadConfigFromFile(env, ${JSON.stringify(appConfigPath)}, appRoot);
+  const userConfig = loaded?.config ?? {};`
     : 'const userConfig = {};';
 
-  return `export default async (env) => {
+  return `import { loadConfigFromFile } from 'vite';
+
+export default async (env) => {
   ${userConfigBlock}
   const localAliases = ${JSON.stringify(localAliases)};
   const aliasKeys = ${JSON.stringify(aliasKeys)};
@@ -172,7 +174,11 @@ export function generateViteDevWrapperSource(opts) {
           },
         ]
       : [];
-  return { ...userConfig, plugins: [...(userConfig.plugins ?? []), ...shelluiPlugins] };
+  return {
+    ...userConfig,
+    configFile: false,
+    plugins: [...(userConfig.plugins ?? []), ...shelluiPlugins],
+  };
 };
 `;
 }

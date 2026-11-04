@@ -64,12 +64,10 @@ const aliasKeys = Object.keys(localAliases).sort((a, b) => b.length - a.length);
 const configStub = viteDevWrapperConfigPath(appDir);
 fs.mkdirSync(path.dirname(configStub), { recursive: true });
 
-const appConfigHref = appConfigFile ? pathToFileURL(appConfigFile).href : '';
-
 fs.writeFileSync(
   configStub,
   generateViteDevWrapperSource({
-    appConfigHref,
+    appConfigPath: appConfigFile ?? '',
     localAliases,
     aliasKeys,
     monorepoRoot,

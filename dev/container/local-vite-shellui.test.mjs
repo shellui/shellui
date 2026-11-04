@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   createShelluiDevStackPlugins,
   generateViteDevWrapperSource,
@@ -13,6 +14,12 @@ import {
 } from './local-vite-shellui.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const cliRequire = createRequire(path.join(repoRoot, 'packages/cli/package.json'));
+
+/** @returns {string} */
+function vitePackageDir() {
+  return path.dirname(cliRequire.resolve('vite/package.json'));
+}
 
 test('mergeShelluiLocalViteConfig adds dev stack plugins when shellui root is valid', () => {
   const merged = mergeShelluiLocalViteConfig({}, repoRoot);
@@ -44,18 +51,55 @@ test('vite dev wrapper config lives under the app node_modules tree', () => {
   );
 });
 
-test('generated vite wrapper loads the app config once and appends dev plugins', () => {
-  const href = 'file:///app/vite.config.js';
+test('generated vite wrapper loads the app config via loadConfigFromFile and appends dev plugins', () => {
+  const appConfigPath = '/app/vite.config.js';
   const source = generateViteDevWrapperSource({
-    appConfigHref: href,
+    appConfigPath,
     localAliases: { '@shellui/sdk': '/opt/shellui/packages/sdk/src/index.ts' },
     aliasKeys: ['@shellui/sdk'],
     monorepoRoot: '/opt/shellui',
   });
-  assert.equal((source.match(/await import/g) ?? []).length, 1);
-  assert.doesNotMatch(source, /loadConfigFromFile|createServer/);
+  assert.match(source, /import \{ loadConfigFromFile \} from 'vite'/);
+  assert.match(source, /loadConfigFromFile\(env,/);
+  assert.doesNotMatch(source, /await import\(/);
+  assert.match(source, /configFile: false/);
   assert.match(source, /\[\.\.\.\(userConfig\.plugins \?\? \[\]\), \.\.\.shelluiPlugins\]/);
-  assert.ok(source.includes(JSON.stringify(href)));
+  assert.ok(source.includes(JSON.stringify(appConfigPath)));
+});
+
+test('generated vite wrapper loads vite.config.ts that uses __dirname', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'shellui-vite-wrapper-'));
+  const appConfigPath = path.join(tmp, 'vite.config.ts');
+  fs.writeFileSync(
+    appConfigPath,
+    `import path from 'node:path';
+export default {
+  root: path.join(__dirname, 'src'),
+};
+`,
+  );
+
+  const viteLink = path.join(tmp, 'node_modules', 'vite');
+  fs.mkdirSync(path.dirname(viteLink), { recursive: true });
+  fs.symlinkSync(vitePackageDir(), viteLink, 'dir');
+
+  const wrapperPath = path.join(tmp, 'node_modules', '.shellui', 'vite-dev.config.mjs');
+  fs.mkdirSync(path.dirname(wrapperPath), { recursive: true });
+  fs.writeFileSync(
+    wrapperPath,
+    generateViteDevWrapperSource({
+      appConfigPath,
+      localAliases: {},
+      aliasKeys: [],
+      monorepoRoot: null,
+    }),
+  );
+
+  process.env.SHELLUI_VITE_APP_DIR = tmp;
+  const mod = await import(pathToFileURL(wrapperPath).href);
+  const config = await mod.default({ command: 'serve', mode: 'development' });
+  assert.equal(config.root, path.join(tmp, 'src'));
+  assert.equal(config.configFile, false);
 });
 
 test('resolveViteLaunch prefers node_modules/.bin/vite when present', () => {

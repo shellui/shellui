@@ -4,20 +4,24 @@ on:
   push:
     paths:
       - 'packages/**'
+      - 'dev/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'eslint.config.js'
       - 'tools/docusaurus/**'
+      - '.dockerignore'
       - '.github/workflows/test.yml'
   pull_request:
     paths:
       - 'packages/**'
+      - 'dev/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
       - 'eslint.config.js'
       - 'tools/docusaurus/**'
+      - '.dockerignore'
       - '.github/workflows/test.yml'
 
 permissions:

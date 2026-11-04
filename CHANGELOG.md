@@ -29,6 +29,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **Dev stack:** `dev/start.sh` starts the full compose stack (including **email-worker**); no Compose profile needed for workers.
 - **Dev stack:** Front-ends in the compose stack link `@shellui/core`, `@shellui/sdk`, and `@shellui/cli` from the bind-mounted monorepo for hot reload without an npm release.
 - **Dev stack:** Vite dev for compose front-ends loads each app config once via `node_modules/.shellui/vite-dev.config.mjs` and the pnpm `vite` shim so React refresh and Tailwind resolve correctly.
+- **Dev stack:** The Vite dev wrapper loads each app's `vite.config.*` through Vite's `loadConfigFromFile` so configs that use `__dirname` work in ESM.
 
 ### ✨ Feature
 
