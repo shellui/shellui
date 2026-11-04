@@ -34,7 +34,7 @@ Or from this directory:
 ./start.sh
 ```
 
-Pass-through examples: `./start.sh -d`, `./start.sh --profile workers email-worker`, `./start.sh identity`.
+`./start.sh` starts the full stack, including **email-worker** (lane delivery and scheduler). Pass-through examples: `./start.sh -d`, `./start.sh identity`.
 
 To regenerate secrets, remove `.env.local` and run `./start.sh` again, or run `./generate-env.sh` once.
 
@@ -70,18 +70,14 @@ Browser-facing URLs use `localhost`. Container-to-container calls use `http://<s
 
 Identity can send auth mail through Mailpit via direct SMTP while `EMAIL_SERVICE_API_KEY` is unset.
 
-For **email-service** HTTP sends (`/send`, and so on), register an `esk_` key and start lane workers:
+For **email-service** HTTP sends (`/send`, and so on), register an `esk_` key after the stack is up (`email-worker` is already running):
 
 ```bash
 docker compose --env-file .env.local exec email \
   python manage.py create_service_key --service identity
 ```
 
-Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local`, restart callers, then:
-
-```bash
-docker compose --env-file .env.local --profile workers up -d email-worker
-```
+Update `IDENTITY_EMAIL_SERVICE_API_KEY` in `.env.local` and restart identity, storage, hosting, and saas if needed.
 
 ## Admin and Shellui core
 

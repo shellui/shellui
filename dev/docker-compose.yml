@@ -232,7 +232,6 @@ services:
     restart: unless-stopped
 
   email-worker:
-    profiles: ['workers']
     build:
       context: ../../email-service
       dockerfile: Dockerfile
