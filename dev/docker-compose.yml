@@ -3,14 +3,14 @@
 name: shellui-dev
 
 x-django-common: &django-common
-  DEBUG: "true"
+  DEBUG: 'true'
   CSRF_TRUSTED_ORIGINS: ${DEV_CSRF_TRUSTED_ORIGINS}
-  CORS_ALLOW_ALL_ORIGINS: "true"
-  SCHEDULER_ENABLED: "false"
-  POSTGRES_SSL_REQUIRE: "false"
-  SECURE_SSL_REDIRECT: "false"
-  SESSION_COOKIE_SECURE: "false"
-  CSRF_COOKIE_SECURE: "false"
+  CORS_ALLOW_ALL_ORIGINS: 'true'
+  SCHEDULER_ENABLED: 'false'
+  POSTGRES_SSL_REQUIRE: 'false'
+  SECURE_SSL_REDIRECT: 'false'
+  SESSION_COOKIE_SECURE: 'false'
+  CSRF_COOKIE_SECURE: 'false'
 
 x-identity-jwt: &identity-jwt
   IDENTITY_SERVICE_URL: http://identity:8000
@@ -26,12 +26,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -40,9 +40,9 @@ services:
   redis:
     image: redis:8-alpine
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -51,8 +51,8 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     ports:
-      - "8025:8025"
-      - "1025:1025"
+      - '8025:8025'
+      - '1025:1025'
     restart: unless-stopped
 
   shell:
@@ -61,9 +61,9 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "4000:4000"
+      - '4000:4000'
     environment:
-      SHELLUI_HOST: "1"
+      SHELLUI_HOST: '1'
       PUBLIC_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       PUBLIC_ADMIN_URL: ${PUBLIC_ADMIN_URL}
       PUBLIC_FILES_URL: ${PUBLIC_FILES_URL}
@@ -83,7 +83,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8001:8000"
+      - '8001:8000'
     environment:
       <<: *django-common
       ALLOWED_HOSTS: localhost,127.0.0.1,identity
@@ -110,8 +110,8 @@ services:
       DASHBOARD_WEBHOOK_INTERNAL_URL: ${IDENTITY_DASHBOARD_WEBHOOK_INTERNAL_URL}
       DASHBOARD_WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
       EMAIL_HOST: mailpit
-      EMAIL_PORT: "1025"
-      EMAIL_USE_TLS: "false"
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
     volumes:
       - ../../identity-service:/app
       - identity-data:/app/data
@@ -128,7 +128,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8002:8000"
+      - '8002:8000'
     environment:
       <<: [*django-common, *identity-jwt]
       ALLOWED_HOSTS: localhost,127.0.0.1,storage
@@ -137,13 +137,17 @@ services:
       POSTGRES_DATABASE_URL: ${STORAGE_POSTGRES_DATABASE_URL}
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
-      EMAIL_SERVICE_ALLOW_PRIVATE: "true"
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
       STORAGE_BACKEND: filesystem
     volumes:
       - ../../storage-service:/app
       - storage-data:/app/data
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/storage/v1/health')\""]
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:8000/storage/v1/health'')"',
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -163,19 +167,19 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8003:8000"
+      - '8003:8000'
     environment:
       <<: [*django-common, *identity-jwt]
       ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local
       SECRET_KEY: ${HOSTING_SECRET_KEY}
       REDIS_URL: ${HOSTING_REDIS_URL}
       POSTGRES_DATABASE_URL: ${HOSTING_POSTGRES_DATABASE_URL}
-      HOSTING_DEBUG_OPEN: "true"
+      HOSTING_DEBUG_OPEN: 'true'
       HOSTING_APP_DOMAIN: shellui.local
       HOSTING_APP_SCHEME: http
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
-      EMAIL_SERVICE_ALLOW_PRIVATE: "true"
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
     volumes:
       - ../../hosting-service:/app
       - hosting-data:/app/data
@@ -194,7 +198,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8004:8000"
+      - '8004:8000'
     environment:
       <<: [*django-common, *identity-jwt]
       ALLOWED_HOSTS: localhost,127.0.0.1,email
@@ -208,10 +212,10 @@ services:
       EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER}
       EMAIL_FALLBACK_PROVIDER: smtp
       EMAIL_HOST: mailpit
-      EMAIL_PORT: "1025"
-      EMAIL_USE_TLS: "false"
-      EMAIL_USE_SSL: "false"
-      EMAIL_SMTP_VERIFY_CERT: "false"
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+      EMAIL_USE_SSL: 'false'
+      EMAIL_SMTP_VERIFY_CERT: 'false'
       EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1
     volumes:
       - ../../email-service:/app
@@ -228,29 +232,29 @@ services:
     restart: unless-stopped
 
   email-worker:
-    profiles: ["workers"]
+    profiles: ['workers']
     build:
       context: ../../email-service
       dockerfile: Dockerfile
-    entrypoint: ["/app/tools/docker-entrypoint.sh"]
-    command: ["worker"]
+    entrypoint: ['/app/tools/docker-entrypoint.sh']
+    command: ['worker']
     environment:
-      DEBUG: "true"
+      DEBUG: 'true'
       SECRET_KEY: ${EMAIL_SECRET_KEY}
       REDIS_URL: ${EMAIL_REDIS_URL}
       POSTGRES_DATABASE_URL: ${EMAIL_POSTGRES_DATABASE_URL}
-      POSTGRES_SSL_REQUIRE: "false"
+      POSTGRES_SSL_REQUIRE: 'false'
       PUBLIC_BASE_URL: ${PUBLIC_EMAIL_URL}
       EMAIL_FALLBACK_PROVIDER: smtp
       EMAIL_HOST: mailpit
-      EMAIL_PORT: "1025"
-      EMAIL_USE_TLS: "false"
-      EMAIL_SMTP_VERIFY_CERT: "false"
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+      EMAIL_SMTP_VERIFY_CERT: 'false'
       EMAIL_CREDENTIALS_KEY: ${EMAIL_CREDENTIALS_KEY}
       EMAIL_VARIABLES_KEY: ${EMAIL_VARIABLES_KEY}
       EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER}
-      SCHEDULER_ENABLED: "true"
-      EMAIL_WORKERS_ENABLED: "true"
+      SCHEDULER_ENABLED: 'true'
+      EMAIL_WORKERS_ENABLED: 'true'
     volumes:
       - ../../email-service:/app
       - email-data:/app/data
@@ -269,7 +273,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8005:8000"
+      - '8005:8000'
     environment:
       <<: [*django-common, *identity-jwt]
       ALLOWED_HOSTS: localhost,127.0.0.1,saas
@@ -282,7 +286,7 @@ services:
       CORS_ALLOWED_ORIGINS: ${PUBLIC_DASHBOARD_URL},http://127.0.0.1:5174
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
-      EMAIL_SERVICE_ALLOW_PRIVATE: "true"
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
       AI_SERVICE_URL: ${PUBLIC_AI_URL}
       STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
       HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
@@ -304,7 +308,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "8006:8000"
+      - '8006:8000'
     environment:
       <<: [*django-common, *identity-jwt]
       ALLOWED_HOSTS: localhost,127.0.0.1,ai
@@ -318,7 +322,7 @@ services:
       HOSTING_SERVICE_URL: http://hosting:8000
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
-      EMAIL_SERVICE_ALLOW_PRIVATE: "true"
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
       SAAS_SERVICE_URL: http://saas:8000
     volumes:
       - ../../ai-service:/app
@@ -338,18 +342,18 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "5173:5173"
+      - '5173:5173'
     environment:
       SHELLUI_ROOT: /opt/shellui
-      CHOKIDAR_USEPOLLING: "true"
-      VITE_USE_POLLING: "true"
+      CHOKIDAR_USEPOLLING: 'true'
+      VITE_USE_POLLING: 'true'
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       VITE_HOSTING_URL: ${PUBLIC_HOSTING_URL}
       VITE_EMAIL_URL: ${PUBLIC_EMAIL_URL}
       VITE_AI_SERVICE_URL: ${PUBLIC_AI_URL}
       VITE_FILES_URL: ${PUBLIC_FILES_URL}
-      VITE_HMR_CLIENT_PORT: "5173"
+      VITE_HMR_CLIENT_PORT: '5173'
       VITE_HMR_HOST: localhost
     volumes:
       - ../../admin:/app
@@ -363,10 +367,10 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "5174:5174"
+      - '5174:5174'
     environment:
-      CHOKIDAR_USEPOLLING: "true"
-      VITE_USE_POLLING: "true"
+      CHOKIDAR_USEPOLLING: 'true'
+      VITE_USE_POLLING: 'true'
       DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
       IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_URL}
       IDENTITY_COMPANY_ID: ${DASHBOARD_IDENTITY_COMPANY_ID}
@@ -390,14 +394,14 @@ services:
       dockerfile: Dockerfile
       target: dev
     ports:
-      - "5175:5175"
+      - '5175:5175'
     environment:
-      CHOKIDAR_USEPOLLING: "true"
-      VITE_USE_POLLING: "true"
+      CHOKIDAR_USEPOLLING: 'true'
+      VITE_USE_POLLING: 'true'
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       VITE_DEV_ORIGIN: ${PUBLIC_FILES_URL}
-      VITE_DEV_PORT: "5175"
+      VITE_DEV_PORT: '5175'
     volumes:
       - ../../files:/app
       - files-node-modules:/app/node_modules

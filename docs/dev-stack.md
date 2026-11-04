@@ -37,22 +37,22 @@ Never commit `.env.local`.
 
 ## Ports
 
-| Service   | Host port |
-| --------- | --------- |
-| shell     | 4000      |
-| identity  | 8001      |
-| storage   | 8002      |
-| hosting   | 8003      |
-| email     | 8004      |
-| saas      | 8005      |
-| ai        | 8006      |
-| admin     | 5173      |
-| dashboard | 5174      |
-| files     | 5175      |
-| Postgres  | 5432      |
-| Redis     | 6379      |
-| Mailpit UI | 8025     |
-| Mailpit SMTP | 1025   |
+| Service      | Host port |
+| ------------ | --------- |
+| shell        | 4000      |
+| identity     | 8001      |
+| storage      | 8002      |
+| hosting      | 8003      |
+| email        | 8004      |
+| saas         | 8005      |
+| ai           | 8006      |
+| admin        | 5173      |
+| dashboard    | 5174      |
+| files        | 5175      |
+| Postgres     | 5432      |
+| Redis        | 6379      |
+| Mailpit UI   | 8025      |
+| Mailpit SMTP | 1025      |
 
 Public URLs use `http://localhost:<port>`. JWKS fetch, webhooks, and MCP forwarding inside Docker use `http://<compose-service-name>:8000`.
 
@@ -80,21 +80,21 @@ The **shell** service builds the `dev` target from the root [Dockerfile](https:/
 
 [dev/shellui.config.json](https://github.com/shellui/shellui/blob/develop/dev/shellui.config.json) resolves `${PUBLIC_*}` placeholders from the container environment (same names as root `.env.local`).
 
-| `.env.local` variable | Purpose |
-| --------------------- | ------- |
-| `PUBLIC_IDENTITY_URL` | `backend.url` |
-| `PUBLIC_ADMIN_URL` | `backend.adminUrl` |
-| `PUBLIC_EMAIL_URL` | `email.url` |
-| `PUBLIC_STORAGE_URL` | `storage.url` |
-| `PUBLIC_FILES_URL` | `storage.filesUrl` |
-| `PUBLIC_HOSTING_URL` | `hosting.url` |
+| `.env.local` variable       | Purpose             |
+| --------------------------- | ------------------- |
+| `PUBLIC_IDENTITY_URL`       | `backend.url`       |
+| `PUBLIC_ADMIN_URL`          | `backend.adminUrl`  |
+| `PUBLIC_EMAIL_URL`          | `email.url`         |
+| `PUBLIC_STORAGE_URL`        | `storage.url`       |
+| `PUBLIC_FILES_URL`          | `storage.filesUrl`  |
+| `PUBLIC_HOSTING_URL`        | `hosting.url`       |
 | `SHELL_IDENTITY_COMPANY_ID` | `backend.companyId` |
 
-| Path | Role |
-| ---- | ---- |
-| `.env.local.example` | Committed template (prefixed secrets per service) |
-| `compose.dev.yml` | Root entrypoint including `dev/docker-compose.yml` |
-| `generate-env.sh` | Fills `.env.local` from the example |
+| Path                 | Role                                               |
+| -------------------- | -------------------------------------------------- |
+| `.env.local.example` | Committed template (prefixed secrets per service)  |
+| `compose.dev.yml`    | Root entrypoint including `dev/docker-compose.yml` |
+| `generate-env.sh`    | Fills `.env.local` from the example                |
 
 More operator detail: [dev/README.md](https://github.com/shellui/shellui/blob/develop/dev/README.md).
 

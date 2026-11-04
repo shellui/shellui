@@ -35,8 +35,8 @@ docker compose -f dev/docker-compose.yml --env-file .env.local up --build
 
 Mailpit UI: http://localhost:8025 (SMTP on port 1025).
 
-| Service   | URL |
-| --------- | --- |
+| Service   | URL                   |
+| --------- | --------------------- |
 | shell     | http://localhost:4000 |
 | identity  | http://localhost:8001 |
 | storage   | http://localhost:8002 |
