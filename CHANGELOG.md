@@ -28,6 +28,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **Dev stack:** `generate-env.sh` creates dev-only RS256 keys for each service's internal MCP assertions and saas provisioning, and compose registers them as identity's trusted callers, so `./start.sh` needs no manual key setup.
 - **Dev stack:** `dev/start.sh` starts the full compose stack (including **email-worker**); no Compose profile needed for workers.
 - **Dev stack:** Front-ends in the compose stack link `@shellui/core`, `@shellui/sdk`, and `@shellui/cli` from the bind-mounted monorepo for hot reload without an npm release.
+- **Dev stack:** Vite dev for compose front-ends loads each app config once via `node_modules/.shellui/vite-dev.config.mjs` and the pnpm `vite` shim so React refresh and Tailwind resolve correctly.
 
 ### ✨ Feature
 

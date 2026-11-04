@@ -116,3 +116,79 @@ export function mergeShelluiLocalViteConfig(config, shelluiRoot, options = {}) {
     plugins: createShelluiDevStackPlugins(shelluiRoot),
   };
 }
+
+/** @param {string} appDir */
+export function viteDevWrapperConfigPath(appDir) {
+  return path.join(appDir, 'node_modules', '.shellui', 'vite-dev.config.mjs');
+}
+
+/**
+ * @param {{ appConfigHref?: string; localAliases: Record<string, string>; aliasKeys: string[]; monorepoRoot: string | null }} opts
+ */
+export function generateViteDevWrapperSource(opts) {
+  const { appConfigHref = '', localAliases, aliasKeys, monorepoRoot } = opts;
+  const userConfigBlock = appConfigHref
+    ? `const mod = await import(${JSON.stringify(appConfigHref)});
+  const exported = mod.default ?? mod;
+  const userConfig = typeof exported === 'function' ? await exported(env) : exported;`
+    : 'const userConfig = {};';
+
+  return `export default async (env) => {
+  ${userConfigBlock}
+  const localAliases = ${JSON.stringify(localAliases)};
+  const aliasKeys = ${JSON.stringify(aliasKeys)};
+  const shelluiMonorepoRoot = ${JSON.stringify(monorepoRoot)};
+  const shelluiPlugins =
+    aliasKeys.length > 0
+      ? [
+          {
+            name: 'shellui-dev-local-packages',
+            enforce: 'pre',
+            resolveId(source) {
+              for (const key of aliasKeys) {
+                if (source === key) {
+                  return localAliases[key];
+                }
+              }
+              return null;
+            },
+            configResolved(resolved) {
+              if (!shelluiMonorepoRoot) return;
+              const dedupe = new Set(resolved.resolve.dedupe ?? []);
+              for (const pkg of ['react', 'react-dom', '@shellui/sdk', '@shellui/core']) {
+                dedupe.add(pkg);
+              }
+              resolved.resolve.dedupe = [...dedupe];
+              const exclude = new Set(resolved.optimizeDeps.exclude ?? []);
+              exclude.add('@shellui/sdk');
+              exclude.add('@shellui/core');
+              resolved.optimizeDeps.exclude = [...exclude];
+              const allow = new Set(resolved.server.fs.allow);
+              allow.add(shelluiMonorepoRoot);
+              allow.add(shelluiMonorepoRoot + '/packages');
+              allow.add(shelluiMonorepoRoot + '/node_modules');
+              resolved.server.fs.allow = [...allow];
+            },
+          },
+        ]
+      : [];
+  return { ...userConfig, plugins: [...(userConfig.plugins ?? []), ...shelluiPlugins] };
+};
+`;
+}
+
+/**
+ * Prefer pnpm's node_modules/.bin/vite shim so NODE_PATH includes the app dependency tree.
+ *
+ * @param {{ appDir: string; vitePkgPath: string }} opts
+ * @returns {{ command: string; argsPrefix: string[] }}
+ */
+export function resolveViteLaunch(opts) {
+  const { appDir, vitePkgPath } = opts;
+  const viteBin = path.join(path.dirname(vitePkgPath), 'bin', 'vite.js');
+  const viteBinShim = path.join(appDir, 'node_modules', '.bin', 'vite');
+  if (fs.existsSync(viteBinShim)) {
+    return { command: viteBinShim, argsPrefix: [] };
+  }
+  return { command: process.execPath, argsPrefix: [viteBin] };
+}
