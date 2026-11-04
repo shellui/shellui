@@ -1,21 +1,27 @@
 ---
 title: Companion origin isolation
 sidebar_label: Companion isolation
-description: 'Iframe sandbox, distinct-origin dev companions, and production same-origin plan (Track F / M-18).'
+description: 'Iframe sandbox, distinct-origin dev companions, and the residual risks of same-origin production.'
 ---
 
-Shellui embeds companion microfrontends in a sandboxed iframe (`ContentView`). This page documents the **M-18** threat model and the incremental isolation plan from the 2026-09-17 security review.
+Shellui embeds companion micro frontends in a sandboxed iframe (`ContentView`). This page describes the threat model, what Shellui does today, and the risks that remain.
 
 ## Current architecture
 
 | Mode                       | Shell origin                      | Companion origin                              | Isolation mechanism                                                       |
 | -------------------------- | --------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------- |
 | **Dev** (`shellui start`)  | `http://localhost:4000` (typical) | `http://localhost:5173`, `:3000`, `:4200`, …  | **Distinct origins** + companion `frame-ancestors` CSP allowing the shell |
-| **Prod** (`shellui build`) | Your deploy origin                | Same origin under `/app/` (relative nav URLs) | Same-origin companion path; no cross-origin framing                       |
+| **Prod** (`shellui build`) | Your deploy origin                | Same origin under `/app/` (relative nav URLs) | Same-origin companion path; no isolation between shell and companion      |
 
-Generated starters wire `dev.url` to a loopback companion port and set `frame-ancestors` on Next.js / Nuxt so the shell can frame the dev server safely.
+Generated starters wire `dev.url` to a loopback companion port. The Next.js and Nuxt starters send this header:
 
-## Iframe sandbox (incremental tightening)
+```text
+Content-Security-Policy: frame-ancestors 'self' http://localhost:4000 http://127.0.0.1:4000
+```
+
+Only the companion's own origin and a shell on port 4000 of `localhost` or `127.0.0.1` can frame it. If your shell runs on another port or a deployed origin, update this header. The other starters do not set `frame-ancestors`.
+
+## Iframe sandbox
 
 The content iframe uses:
 
@@ -23,33 +29,34 @@ The content iframe uses:
 allow-same-origin allow-scripts allow-forms allow-popups
 ```
 
-**Removed in Track F:** `allow-popups-to-escape-sandbox` — popups from companion content stay sandboxed.
+Shellui does not grant `allow-popups-to-escape-sandbox`, so popups opened by companion content stay sandboxed.
 
-### Residual: `allow-same-origin` + `allow-scripts`
-
-When the iframe document is same-origin to its configured URL, scripts can remove the sandbox attribute. This combination is **required today** so companions can use cookies, `localStorage`, and SDK postMessage on their origin during dev.
-
-**Mitigations:**
-
-1. **Distinct origins in dev** — shell and companion run on different ports; navigation `url` origin checks prevent the iframe from drifting to an unexpected origin.
-2. **Trusted navigation URLs** — only load companions you configure in `navigation[].url` / init templates.
-3. **Production same-origin** — serve built companions from `/app/` on the shell origin so framing stays first-party.
-
-### Future work (documented, not in scope for #65)
-
-- Tighter sandbox when shell and iframe origins match in production (evaluate dropping `allow-same-origin` once all SDK paths work with opaque-origin companions).
-- Optional `navigation` origin allowlist in config schema.
+Shellui sets the `sandbox` attribute only on the content iframe it renders. It does not set a sandbox on nested frames. Frames a companion creates inside its own page, including frames rendered with the SDK frame component, get only the attributes the companion passes.
 
 Implementation: `packages/core/src/components/contentIframeSandbox.ts` (resolved in `ContentView`).
 
-## Same-origin refresh token
+### Mitigations
 
-Production companions load from `/app/` on the shell origin. The content iframe uses `allow-same-origin`, so a script in that frame can read the shell's `sessionStorage`, including the refresh token at `shellui.auth.refresh`.
+1. **Distinct origins in dev.** Shell and companion run on different ports. Navigation `url` origin checks keep the iframe from drifting to an unexpected origin.
+2. **Trusted navigation URLs.** Only load companions you configure in `navigation[].url` or init templates.
 
-This release leaves that storage in place. A refresh token kept only in memory would sign you out on reload. An HttpOnly cookie on the shell origin would still be included when the iframe calls shell routes.
+### Residual risk: `allow-same-origin` + `allow-scripts`
 
-Serve companions on a different origin, including the desktop webview. Keep the refresh token in an HttpOnly cookie on the shell host, or in shell memory plus that cookie. The companion origin must not be able to call the routes that use the cookie.
+When the iframe document is same-origin to its configured URL, scripts can remove the sandbox attribute. Companions need this combination today to use cookies, `localStorage`, and SDK postMessage on their origin during dev.
 
-## Related CLI hardening (Track F)
+### Residual risk: same-origin production
 
-Companion URL validation for `dev.url` / `--follow` lives in the CLI ([CLI reference — companion process](/cli#companion-process)). Loopback login nonce binding is documented under [CLI login](/cli#shellui-login-root).
+Production companions load from `/app/` on the shell origin. Framing stays first-party, but the sandbox gives no isolation between shell and companion: the companion runs with the shell's origin. A script in that frame can read the shell's `sessionStorage`, including the refresh token at `shellui.auth.refresh`.
+
+Shellui leaves that storage in place for now. A refresh token kept only in memory would sign you out on reload. An HttpOnly cookie on the shell origin would still be included when the iframe calls shell routes.
+
+To reduce this risk, serve companions on a different origin, including the desktop webview. Keep the refresh token in an HttpOnly cookie on the shell host, or in shell memory plus that cookie. The companion origin must not be able to call the routes that use the cookie.
+
+### Future work
+
+- A tighter sandbox when shell and iframe origins match in production. Shellui will evaluate dropping `allow-same-origin` once all SDK paths work with opaque-origin companions.
+- An optional `navigation` origin allowlist in the config schema.
+
+## Related CLI hardening
+
+Companion URL validation for `dev.url` and `--follow` lives in the CLI ([CLI reference: companion process](/cli#companion-process)). Loopback login nonce binding is documented under [CLI login](/cli#shellui-login-root).
