@@ -151,6 +151,66 @@ describe('mcp personal fetch helpers', () => {
     expect(init.headers).toMatchObject({ Authorization: 'Bearer tok' });
   });
 
+  it('createMcpPersonalAgent strips saas unless allowSaas is true', async () => {
+    const agent = {
+      id: 'a1',
+      kind: 'personal',
+      name: 'CLI',
+      access_mode: 'ask',
+      read_level: 'safe',
+      allow_destructive_without_asking: false,
+      services_allowed: ['identity'],
+      expires_at: '2026-12-01T00:00:00Z',
+      paused_at: null,
+      revoked_at: null,
+      is_active: true,
+      created_at: '2026-01-01T00:00:00Z',
+      oauth_client_id: null,
+      personal_token_id: 'p1',
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        agent,
+        access_token: 'once',
+        token_type: 'bearer',
+        expires_at: '2026-12-01T00:00:00Z',
+        resource: 'https://ai.test/c/1/mcp',
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const input = {
+      name: 'CLI',
+      services: ['identity', 'saas'] as const,
+      accessMode: 'ask' as const,
+      readLevel: 'safe' as const,
+      allowDestructive: false,
+      expiresAt: '2026-12-01T00:00:00Z',
+    };
+
+    await createMcpPersonalAgent('https://id.example.com', 'tok', '1', {
+      ...input,
+      services: [...input.services],
+    });
+    let body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.services).toEqual(['identity']);
+
+    fetchMock.mockClear();
+    await createMcpPersonalAgent(
+      'https://id.example.com',
+      'tok',
+      '1',
+      {
+        ...input,
+        services: [...input.services],
+      },
+      { allowSaas: true },
+    );
+    body = JSON.parse(String((fetchMock.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body.services).toEqual(['identity', 'saas']);
+  });
+
   it('createMcpPersonalAgent posts snake_case body', async () => {
     const agent = {
       id: 'a1',

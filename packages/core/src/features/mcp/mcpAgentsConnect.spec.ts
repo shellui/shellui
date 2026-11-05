@@ -31,8 +31,12 @@ describe('isGlobalIdentitySession', () => {
     );
   });
 
-  it('defaults to true when the flag is omitted', () => {
-    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null })).toBe(true);
+  it('is false when globalIdentity is omitted or false', () => {
+    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null })).toBe(false);
+    expect(isGlobalIdentitySession(null)).toBe(false);
+    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null, globalIdentity: true })).toBe(
+      true,
+    );
   });
 });
 

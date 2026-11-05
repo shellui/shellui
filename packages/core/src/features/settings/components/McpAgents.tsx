@@ -9,6 +9,7 @@ import {
   buildAgentPrompt,
   buildCompanyMcpUrl,
   defaultPersonalAgentExpiresAt,
+  formatAgentExpiry,
   formatConnectionDate,
   formatDefaultAgentName,
   getDefaultPersonalAgentServices,
@@ -189,6 +190,7 @@ export const McpAgents = () => {
           allowDestructive: false,
           expiresAt: defaultPersonalAgentExpiresAt(),
         },
+        { allowSaas: includeSaas },
       );
       const promptMcpUrl = buildCompanyMcpUrl(aiServiceUrl, companyId, result.resource) ?? mcpUrl;
       const prompt = buildAgentPrompt(promptMcpUrl, result.accessToken);
@@ -397,6 +399,13 @@ export const McpAgents = () => {
                       })}
                     </p>
                     <p className="text-sm text-muted-foreground">{scopeLabel(agent)}</p>
+                    {formatAgentExpiry(agent.expiresAt, locale) ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t('mcpAgents.connections.expiresMeta', {
+                          date: formatAgentExpiry(agent.expiresAt, locale),
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                   <Button
                     type="button"

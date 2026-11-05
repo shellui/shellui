@@ -264,13 +264,23 @@ export const fetchMcpPersonalAgents = (
     (payload) => parseMcpAgentList(payload),
   );
 
+export type CreateMcpPersonalAgentOptions = {
+  /** When false, `saas` is removed from the request (regional identity surfaces). */
+  allowSaas?: boolean;
+};
+
 export const createMcpPersonalAgent = (
   backendUrl: string,
   accessToken: string,
   companyId: string,
   input: CreatePersonalAgentInput,
-): Promise<CreatePersonalAgentResult> =>
-  mcpJsonRequest(
+  options: CreateMcpPersonalAgentOptions = {},
+): Promise<CreatePersonalAgentResult> => {
+  const allowSaas = options.allowSaas === true;
+  const services = allowSaas
+    ? input.services
+    : input.services.filter((service) => service !== 'saas');
+  return mcpJsonRequest(
     backendUrl,
     accessToken,
     companyId,
@@ -279,7 +289,7 @@ export const createMcpPersonalAgent = (
       method: 'POST',
       body: JSON.stringify({
         name: input.name,
-        services: input.services,
+        services,
         access_mode: input.accessMode,
         read_level: input.readLevel,
         allow_destructive: input.allowDestructive,
@@ -288,6 +298,7 @@ export const createMcpPersonalAgent = (
     },
     parseCreatePersonalAgentResult,
   );
+};
 
 export const revokeMcpPersonalAgent = (
   backendUrl: string,

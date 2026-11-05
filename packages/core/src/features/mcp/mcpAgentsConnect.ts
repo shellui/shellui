@@ -25,10 +25,7 @@ export function buildCompanyMcpUrl(
 }
 
 export function isGlobalIdentitySession(status: McpPersonalStatus | null): boolean {
-  if (typeof status?.globalIdentity === 'boolean') {
-    return status.globalIdentity;
-  }
-  return true;
+  return status?.globalIdentity === true;
 }
 
 export function getDefaultPersonalAgentServices(includeSaas: boolean): McpPersonalService[] {
@@ -66,6 +63,11 @@ export function formatConnectionDate(iso: string, locale: string): string {
   } catch {
     return iso;
   }
+}
+
+export function formatAgentExpiry(iso: string | null, locale: string): string | null {
+  if (!iso?.trim()) return null;
+  return formatConnectionDate(iso, locale);
 }
 
 export function isActiveMcpConnection(agent: McpAgentSummary, nowMs = Date.now()): boolean {
