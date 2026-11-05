@@ -91,7 +91,8 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 - **A build fails on a sibling repo.** Pull `develop` in that repo. Every image needs a `dev` target in its Dockerfile.
 - **Port already in use.** Stop the local process on that port, or the other stack using it.
 - **Postgres auth fails after new secrets.** You removed `.env.local` but kept old volumes. Run `docker compose --env-file .env.local down -v`, then `./start.sh`.
-- **No hot reload on macOS.** The front-ends already poll (`CHOKIDAR_USEPOLLING`, `VITE_USE_POLLING`). Restart the service if a change is still missed.
+- **No hot reload on macOS.** Set `DEV_FILE_WATCH_POLLING=true` in `dev/.env.local`, then restart the front-end service. Docker Desktop virtiofs usually works with inotify when polling is off.
+- **High idle CPU.** Defaults favor inotify and slower Django or worker polls. Raise `DEV_FILE_WATCH_POLLING`, lower `DJANGO_STATRELOAD_SLEEP`, or lower `EMAIL_LANE_WORKER_POLL_SECONDS` only if you need snappier reloads.
 - **Dependencies changed.** Rebuild that service: `./start.sh -d <service>`.
 - **`generate-env.sh` fails.** Check that `uv` or `python3`, and `openssl`, are on `PATH`.
 

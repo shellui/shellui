@@ -276,25 +276,13 @@
     "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
   },
   "mcpAgents": {
-    "description": "Connect AI clients to your company through Shellui MCP. OAuth apps and personal tokens appear here.",
+    "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
     "signInRequired": "Sign in to manage MCP agents.",
     "status": {
       "loading": "Checking MCP status…",
       "error": "Unable to load MCP status.",
       "unavailable": "MCP is not enabled for this company.",
       "retry": "Try again"
-    },
-    "gateway": {
-      "title": "Company MCP gateway",
-      "enabledHint": "MCP is enabled for this company. Use the URL below in your AI client.",
-      "copyUrl": "Copy URL",
-      "setupTitle": "Client setup",
-      "hints": {
-        "chatgpt": "ChatGPT: add a custom MCP connector and paste the MCP URL. Sign in with OAuth or use a personal agent token.",
-        "claude": "Claude Desktop: add the MCP URL in your MCP server settings, then authorize or paste a bearer token.",
-        "cursor": "Cursor: open MCP settings, add the MCP URL, and connect with OAuth or a personal token.",
-        "other": "Other clients: point the MCP transport at the URL and send Authorization: Bearer with your agent token or OAuth session."
-      }
     },
     "clipboard": {
       "copyFailedTitle": "Copy failed",
@@ -303,99 +291,49 @@
       "copiedDescription": "{{label}} copied to clipboard.",
       "failed": "Unable to copy to the clipboard."
     },
-    "tokenReveal": {
-      "title": "Agent token (shown once)",
-      "warning": "Copy this token now. Shellui cannot show it again after you leave this page.",
-      "copyToken": "Copy token",
-      "expires": "Token expires {{date}}.",
-      "usageTitle": "How to call MCP",
-      "usageBody": "Send the token on every request to the MCP URL:",
-      "tokenPlaceholder": "<your-agent-token>",
-      "dismiss": "I saved the token"
+    "connections": {
+      "title": "Active connections",
+      "empty": "No active connections.",
+      "connect": "Connect an agent",
+      "connectedMeta": "{{name}} · Connected {{date}}",
+      "revokedMeta": "{{name}} · Revoked {{date}}",
+      "scopeRegional": "All regional services",
+      "scopeRegionalSaas": "All regional services + saas",
+      "showRevoked": "Show revoked",
+      "hideRevoked": "Hide revoked",
+      "loading": "Loading connections…",
+      "error": "Unable to load connections.",
+      "retry": "Try again"
     },
-    "agents": {
-      "title": "Connected agents",
-      "description": "OAuth connections and personal tokens you created for this company.",
-      "refresh": "Refresh agents",
-      "loading": "Loading agents…",
-      "error": "Unable to load agents.",
-      "retry": "Try again",
-      "empty": "No agents yet. Create a personal token below or connect a client with OAuth.",
-      "kind": {
-        "oauth": "OAuth",
-        "personal": "Personal token"
-      },
-      "status": {
-        "active": "Active",
-        "inactive": "Inactive",
-        "revoked": "Revoked",
-        "paused": "Paused",
-        "expired": "Expired"
-      },
-      "rightsSummary": "{{access}} · {{read}} · {{destructive}}",
-      "destructiveOn": "Destructive allowed",
-      "destructiveOff": "Destructive off",
-      "services": "Services: {{list}}",
-      "expires": "Expires {{date}}",
-      "lastActivity": "Last activity {{date}}"
-    },
-    "accessMode": {
-      "read_only": "Read only",
-      "ask": "Ask before changes",
-      "full": "Full access"
-    },
-    "readLevel": {
-      "safe": "Safe reads",
-      "sensitive": "Sensitive data"
-    },
-    "services": {
-      "identity": "Identity",
-      "storage": "Storage",
-      "hosting": "Hosting",
-      "email": "Email",
-      "saas": "SaaS"
-    },
-    "activity": {
-      "show": "Activity log",
-      "hide": "Hide activity",
-      "loading": "Loading activity…",
-      "error": "Unable to load activity.",
-      "retry": "Try again",
-      "empty": "No recent tool calls for this agent.",
-      "columns": {
-        "time": "Time",
-        "tool": "Tool",
-        "service": "Service",
-        "result": "Result",
-        "clientIp": "Client IP"
-      }
+    "success": {
+      "title": "Connection created",
+      "warning": "Copy the prompt now. Shellui shows the token only once.",
+      "promptLabel": "Agent prompt",
+      "copyPrompt": "Copy prompt",
+      "copyTokenOnly": "Copy token only"
     },
     "revoke": {
       "action": "Revoke",
-      "title": "Revoke this agent?",
-      "description": "\"{{name}}\" will lose access immediately. Connected clients must sign in again or use a new token.",
-      "confirm": "Revoke agent",
+      "title": "Revoke this connection?",
+      "description": "The agent stops working with this company until you connect it again.",
+      "confirm": "Revoke",
       "cancel": "Cancel",
-      "successTitle": "Agent revoked",
-      "successDescription": "\"{{name}}\" can no longer call MCP.",
-      "errorTitle": "Could not revoke the agent"
+      "successTitle": "Connection revoked",
+      "successDescription": "{{name}} no longer has access.",
+      "errorTitle": "Could not revoke the connection"
     },
     "create": {
-      "title": "Create agent token",
-      "description": "Personal tokens inherit rights you choose here. Identity may reject scopes above your membership.",
+      "title": "Connect an agent",
       "nameLabel": "Name",
-      "namePlaceholder": "My laptop CLI",
-      "servicesLabel": "Services",
-      "servicesHint": "AI is always included on the server. Pick at least one other service.",
-      "accessModeLabel": "Access mode",
-      "readLevelLabel": "Read level",
-      "destructiveLabel": "Allow destructive actions without asking",
-      "destructiveHint": "Off by default. Turn on only when you trust the client.",
-      "expiresLabel": "Expiry (required)",
-      "expiryInvalid": "Choose a future expiry date and time.",
-      "submit": "Create token",
+      "namePlaceholder": "ChatGPT on my laptop",
+      "nameHelper": "Shown in this list. You can change it later.",
+      "accessHelperGlobal": "This token can call every regional service for this company, and saas.",
+      "accessHelperRegional": "This token can call every regional service for this company.",
+      "submit": "Create connection",
       "submitting": "Creating…",
-      "errorGeneric": "Could not create the agent token."
+      "cancel": "Cancel",
+      "errorGeneric": "Could not create the connection.",
+      "errorMissingMcpUrl": "MCP URL is not configured. Set aiService.url in your Shellui config."
     }
   },
   "dataPrivacy": {

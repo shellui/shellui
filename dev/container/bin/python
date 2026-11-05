@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Dev stack shim: route `manage.py runserver` through django-runserver.py.
+set -euo pipefail
+
+real_python="${SHELLUI_REAL_PYTHON:-/opt/venv/bin/python}"
+if [ ! -x "${real_python}" ]; then
+  real_python="$(command -v python3 2>/dev/null || true)"
+fi
+if [ -z "${real_python}" ] || [ ! -x "${real_python}" ]; then
+  echo "shellui dev: could not find Python (tried /opt/venv/bin/python)" >&2
+  exit 127
+fi
+
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  if [ "${args[i]}" = "runserver" ]; then
+    exec "${real_python}" /opt/shellui/dev/container/django-runserver.py "${args[@]:i+1}"
+  fi
+done
+
+exec "${real_python}" "$@"

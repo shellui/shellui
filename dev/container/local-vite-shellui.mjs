@@ -57,6 +57,9 @@ export function shelluiSourceAliases(shelluiRoot) {
   return alias;
 }
 
+/** @type {string[]} */
+export const shelluiViteDevWatchIgnored = ['**/node_modules/**', '**/.git/**'];
+
 /** @param {string | null | undefined} shelluiRoot */
 export function createShelluiDevStackPlugins(shelluiRoot) {
   const root = resolveShelluiRoot(shelluiRoot ?? process.env.SHELLUI_ROOT);
@@ -114,6 +117,11 @@ export function mergeShelluiLocalViteConfig(config, shelluiRoot, options = {}) {
   void options;
   return {
     plugins: createShelluiDevStackPlugins(shelluiRoot),
+    server: {
+      watch: {
+        ignored: shelluiViteDevWatchIgnored,
+      },
+    },
   };
 }
 
@@ -174,10 +182,25 @@ export default async (env) => {
           },
         ]
       : [];
+  const watchIgnored = ${JSON.stringify(shelluiViteDevWatchIgnored)};
+  const userWatch = userConfig.server?.watch ?? {};
+  const userIgnored = userWatch.ignored;
+  const mergedIgnored = Array.isArray(userIgnored)
+    ? [...userIgnored, ...watchIgnored]
+    : userIgnored
+      ? [userIgnored, ...watchIgnored]
+      : watchIgnored;
   return {
     ...userConfig,
     configFile: false,
     plugins: [...(userConfig.plugins ?? []), ...shelluiPlugins],
+    server: {
+      ...userConfig.server,
+      watch: {
+        ...userWatch,
+        ignored: mergedIgnored,
+      },
+    },
   };
 };
 `;

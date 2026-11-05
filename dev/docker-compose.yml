@@ -24,6 +24,13 @@ x-frontend-shellui-local: &frontend-shellui-local
   volumes:
     - ..:/opt/shellui:ro
 
+x-frontend-file-watch: &frontend-file-watch
+  CHOKIDAR_USEPOLLING: ${DEV_FILE_WATCH_POLLING:-false}
+  VITE_USE_POLLING: ${DEV_FILE_WATCH_POLLING:-false}
+
+x-django-dev-env: &django-dev-env
+  DJANGO_STATRELOAD_SLEEP: ${DJANGO_STATRELOAD_SLEEP:-3}
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -38,8 +45,10 @@ services:
       - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
-      interval: 5s
+      interval: 30s
       timeout: 5s
+      start_period: 60s
+      start_interval: 5s
       retries: 10
     restart: unless-stopped
 
@@ -49,8 +58,10 @@ services:
       - '6379:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
-      interval: 5s
+      interval: 30s
       timeout: 3s
+      start_period: 60s
+      start_interval: 5s
       retries: 10
     restart: unless-stopped
 
@@ -82,6 +93,7 @@ services:
       SHELL_IDENTITY_COMPANY_ID: ${SHELL_IDENTITY_COMPANY_ID}
       PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
       FILES_URL: ${PUBLIC_FILES_URL}
+      SHELLUI_DISABLE_CONFIG_WATCH: '1'
     volumes:
       - ..:/app
       - shell-node-modules:/app/node_modules
@@ -92,10 +104,12 @@ services:
       context: ../../identity-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
     ports:
       - '8001:8000'
     environment:
-      <<: *django-common
+      <<: [*django-common, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,identity
       SECRET_KEY: ${IDENTITY_SECRET_KEY}
       JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
@@ -133,6 +147,7 @@ services:
     volumes:
       - ../../identity-service:/app
       - identity-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,10 +160,11 @@ services:
       context: ../../storage-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-dev.sh']
     ports:
       - '8002:8000'
     environment:
-      <<: [*django-common, *identity-jwt]
+      <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,storage
       SECRET_KEY: ${STORAGE_SECRET_KEY}
       REDIS_URL: ${STORAGE_REDIS_URL}
@@ -163,16 +179,18 @@ services:
     volumes:
       - ../../storage-service:/app
       - storage-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     healthcheck:
       test:
         [
           'CMD-SHELL',
           'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:8000/storage/v1/health'')"',
         ]
-      interval: 15s
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 90s
+      start_interval: 5s
     depends_on:
       postgres:
         condition: service_healthy
@@ -187,10 +205,12 @@ services:
       context: ../../hosting-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-entrypoint.sh']
+    command: ['dev']
     ports:
       - '8003:8000'
     environment:
-      <<: [*django-common, *identity-jwt]
+      <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local
       SECRET_KEY: ${HOSTING_SECRET_KEY}
       REDIS_URL: ${HOSTING_REDIS_URL}
@@ -207,6 +227,7 @@ services:
     volumes:
       - ../../hosting-service:/app
       - hosting-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -221,10 +242,12 @@ services:
       context: ../../email-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
     ports:
       - '8004:8000'
     environment:
-      <<: [*django-common, *identity-jwt]
+      <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,email
       SECRET_KEY: ${EMAIL_SECRET_KEY}
       REDIS_URL: ${EMAIL_REDIS_URL}
@@ -247,6 +270,7 @@ services:
     volumes:
       - ../../email-service:/app
       - email-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -263,9 +287,9 @@ services:
       context: ../../email-service
       dockerfile: Dockerfile
       target: dev
-    entrypoint: ['bash', '/app/tools/docker-entrypoint.sh']
-    command: ['worker']
+    entrypoint: ['/opt/shellui/dev/container/email-worker-dev-entrypoint.sh']
     environment:
+      EMAIL_LANE_WORKER_POLL_SECONDS: ${EMAIL_LANE_WORKER_POLL_SECONDS:-5}
       DEBUG: 'true'
       SECRET_KEY: ${EMAIL_SECRET_KEY}
       REDIS_URL: ${EMAIL_REDIS_URL}
@@ -287,6 +311,7 @@ services:
     volumes:
       - ../../email-service:/app
       - email-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -301,10 +326,12 @@ services:
       context: ../../saas-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-entrypoint.sh']
+    command: ['dev']
     ports:
       - '8005:8000'
     environment:
-      <<: [*django-common, *identity-jwt]
+      <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,saas
       SECRET_KEY: ${SAAS_SECRET_KEY}
       REDIS_URL: ${SAAS_REDIS_URL}
@@ -324,6 +351,7 @@ services:
     volumes:
       - ../../saas-service:/app
       - saas-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -338,10 +366,12 @@ services:
       context: ../../ai-service
       dockerfile: Dockerfile
       target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/docker-entrypoint.sh']
+    command: ['dev']
     ports:
       - '8006:8000'
     environment:
-      <<: [*django-common, *identity-jwt]
+      <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,ai
       SECRET_KEY: ${AI_SECRET_KEY}
       REDIS_URL: ${AI_REDIS_URL}
@@ -363,6 +393,7 @@ services:
     volumes:
       - ../../ai-service:/app
       - ai-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -384,9 +415,10 @@ services:
     ports:
       - '5173:5173'
     environment:
+      <<: *frontend-file-watch
       SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'false'
-      VITE_USE_POLLING: 'true'
+      VITE_USE_POLLING: 'false'
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       VITE_HOSTING_URL: ${PUBLIC_HOSTING_URL}
@@ -413,9 +445,10 @@ services:
     ports:
       - '5174:5174'
     environment:
+      <<: *frontend-file-watch
       SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'false'
-      VITE_USE_POLLING: 'true'
+      VITE_USE_POLLING: 'false'
       DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
       IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_URL}
       IDENTITY_COMPANY_ID: ${DASHBOARD_IDENTITY_COMPANY_ID}
@@ -446,9 +479,10 @@ services:
     ports:
       - '5175:5175'
     environment:
+      <<: *frontend-file-watch
       SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'false'
-      VITE_USE_POLLING: 'true'
+      VITE_USE_POLLING: 'false'
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       VITE_DEV_ORIGIN: ${PUBLIC_FILES_URL}
@@ -470,6 +504,7 @@ services:
     ports:
       - '5176:5176'
     environment:
+      <<: *frontend-file-watch
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       SHELLUI_ROOT: /opt/shellui
       CHOKIDAR_USEPOLLING: 'false'
