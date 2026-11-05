@@ -385,40 +385,43 @@ export const McpAgents = () => {
           <p className="text-sm text-muted-foreground">{t('mcpAgents.connections.empty')}</p>
         ) : (
           <ul className="space-y-3">
-            {activeAgents.map((agent) => (
-              <li
-                key={agent.id}
-                className="rounded-lg border bg-card p-4"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1 min-w-0">
-                    <p className="text-sm font-medium">
-                      {t('mcpAgents.connections.connectedMeta', {
-                        name: agent.name,
-                        date: formatConnectionDate(agent.createdAt, locale),
-                      })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{scopeLabel(agent)}</p>
-                    {formatAgentExpiry(agent.expiresAt, locale) ? (
-                      <p className="text-sm text-muted-foreground">
-                        {t('mcpAgents.connections.expiresMeta', {
-                          date: formatAgentExpiry(agent.expiresAt, locale),
-                        })}
+            {activeAgents.map((agent) => {
+              const connectedDate = formatConnectionDate(agent.createdAt, locale);
+              const expiryLabel = formatAgentExpiry(agent.expiresAt, locale);
+              return (
+                <li
+                  key={agent.id}
+                  className="rounded-lg border bg-card p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-sm font-medium">
+                        {expiryLabel
+                          ? t('mcpAgents.connections.connectedMetaWithExpiry', {
+                              name: agent.name,
+                              date: connectedDate,
+                              expiry: expiryLabel,
+                            })
+                          : t('mcpAgents.connections.connectedMeta', {
+                              name: agent.name,
+                              date: connectedDate,
+                            })}
                       </p>
-                    ) : null}
+                      <p className="text-sm text-muted-foreground">{scopeLabel(agent)}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => handleRevoke(agent)}
+                    >
+                      {t('mcpAgents.revoke.action')}
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    className="shrink-0"
-                    onClick={() => handleRevoke(agent)}
-                  >
-                    {t('mcpAgents.revoke.action')}
-                  </Button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
 
