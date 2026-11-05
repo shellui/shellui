@@ -1,5 +1,9 @@
-import type { McpPersonalService, McpAgentSummary, McpPersonalStatus } from './personalAgentsApi';
-import { MCP_PERSONAL_SERVICE_OPTIONS } from './personalAgentsApi';
+import {
+  MCP_PERSONAL_SERVICE_OPTIONS,
+  type McpAgentSummary,
+  type McpPersonalService,
+  type McpPersonalStatus,
+} from './personalAgentsApi';
 
 /** Regional services selectable for personal agent tokens (`ai` is added server-side). */
 export const MCP_REGIONAL_PERSONAL_SERVICES = MCP_PERSONAL_SERVICE_OPTIONS.filter(
