@@ -28,6 +28,7 @@ import {
 import { useConfig } from '../../config/useConfig';
 import { getNormalizedAiServiceUrl } from '../utils/buildSettingsForPropagation';
 import { useMcpPersonalStatus } from '../hooks/useMcpPersonalStatus';
+import { McpPendingApprovals } from './McpPendingApprovals';
 
 type IssuedConnection = {
   accessToken: string;
@@ -292,6 +293,13 @@ export const McpAgents = () => {
           </div>
         </section>
       ) : null}
+
+      <McpPendingApprovals
+        backendUrl={backendUrl ?? ''}
+        accessToken={accessToken ?? ''}
+        companyId={companyId}
+        enabled={Boolean(backendUrl && accessToken && status?.mcpEnabled)}
+      />
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
