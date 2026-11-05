@@ -93,6 +93,7 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 - **Postgres auth fails after new secrets.** You removed `.env.local` but kept old volumes. Run `docker compose --env-file .env.local down -v`, then `./start.sh`.
 - **No hot reload on macOS.** Set `DEV_FILE_WATCH_POLLING=true` in `dev/.env.local`, then restart the front-end service. Docker Desktop virtiofs usually works with inotify when polling is off.
 - **High idle CPU.** Defaults favor inotify and slower Django or worker polls. Raise `DEV_FILE_WATCH_POLLING`, lower `DJANGO_STATRELOAD_SLEEP`, or lower `EMAIL_LANE_WORKER_POLL_SECONDS` only if you need snappier reloads.
+- **Compose stop shows `Error while Killing`.** Update Docker Compose (Desktop includes it). The dev stack does not set a restart policy so `docker compose down` and Ctrl-C on `./start.sh` can stop containers without racing the engine. Services use `init: true` so SIGTERM reaches runserver, Vite, and the email worker children.
 - **Dependencies changed.** Rebuild that service: `./start.sh -d <service>`.
 - **`generate-env.sh` fails.** Check that `uv` or `python3`, and `openssl`, are on `PATH`.
 
