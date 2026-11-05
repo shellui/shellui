@@ -116,7 +116,7 @@ async function mcpJsonRequest<T>(
 }
 
 /**
- * Identity member API (pending merge). OpenAPI: GET /api/v1/mcp/personal/tool-approvals/pending
+ * Identity member API. OpenAPI: GET /api/v1/mcp/approvals
  */
 export const fetchMcpPendingToolApprovals = (
   backendUrl: string,
@@ -127,13 +127,13 @@ export const fetchMcpPendingToolApprovals = (
     backendUrl,
     accessToken,
     companyId,
-    '/api/v1/mcp/personal/tool-approvals/pending',
+    '/api/v1/mcp/approvals',
     { method: 'GET' },
     parseMcpPendingToolApprovalsList,
   );
 
 /**
- * Identity member API (pending merge). OpenAPI: POST /api/v1/mcp/personal/tool-approvals/{id}/decide
+ * Identity member API. OpenAPI: POST /api/v1/mcp/approvals/{id}/decide
  */
 export const decideMcpToolApproval = (
   backendUrl: string,
@@ -146,7 +146,7 @@ export const decideMcpToolApproval = (
     backendUrl,
     accessToken,
     companyId,
-    `/api/v1/mcp/personal/tool-approvals/${encodeURIComponent(approvalId)}/decide`,
+    `/api/v1/mcp/approvals/${encodeURIComponent(approvalId)}/decide`,
     {
       method: 'POST',
       body: JSON.stringify({ decision }),

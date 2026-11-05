@@ -94,9 +94,7 @@ describe('mcp tool approval fetch helpers', () => {
 
     await fetchMcpPendingToolApprovals('https://id.example.com', 'tok', '7');
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe(
-      'https://id.example.com/api/v1/mcp/personal/tool-approvals/pending?company_id=7',
-    );
+    expect(url).toBe('https://id.example.com/api/v1/mcp/approvals?company_id=7');
     expect(init.headers).toMatchObject({ Authorization: 'Bearer tok' });
   });
 
@@ -109,7 +107,7 @@ describe('mcp tool approval fetch helpers', () => {
 
     await decideMcpToolApproval('https://id.example.com', 'tok', '1', 'ap-9', 'deny');
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('/api/v1/mcp/personal/tool-approvals/ap-9/decide');
+    expect(url).toContain('/api/v1/mcp/approvals/ap-9/decide');
     expect(JSON.parse(String(init.body))).toEqual({ decision: 'deny' });
   });
 });
