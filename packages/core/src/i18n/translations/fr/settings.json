@@ -323,6 +323,25 @@
       "successDescription": "{{name}} n'a plus accès.",
       "errorTitle": "Impossible de révoquer la connexion"
     },
+    "pendingApprovals": {
+      "title": "Approbations en attente",
+      "meta": "{{agentName}} · Expire dans {{expiresInMinutes}} min",
+      "destructiveBadge": "Peut modifier des données",
+      "approve": "Approuver",
+      "deny": "Refuser",
+      "confirmApprove": {
+        "title": "Approuver {{toolName}} ?",
+        "description": "Cela peut modifier des données dans {{companyName}}.",
+        "confirm": "Approuver",
+        "cancel": "Annuler"
+      },
+      "toast": {
+        "approvedTitle": "Outil approuvé",
+        "deniedTitle": "Outil refusé",
+        "description": "{{toolName}}",
+        "errorTitle": "Impossible de mettre à jour l'approbation"
+      }
+    },
     "create": {
       "title": "Connecter un agent",
       "nameLabel": "Nom",

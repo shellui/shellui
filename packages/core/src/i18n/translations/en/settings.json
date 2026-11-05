@@ -323,6 +323,25 @@
       "successDescription": "{{name}} no longer has access.",
       "errorTitle": "Could not revoke the connection"
     },
+    "pendingApprovals": {
+      "title": "Pending approvals",
+      "meta": "{{agentName}} · Expires in {{expiresInMinutes}} min",
+      "destructiveBadge": "Can change data",
+      "approve": "Approve",
+      "deny": "Deny",
+      "confirmApprove": {
+        "title": "Approve {{toolName}}?",
+        "description": "This can change data in {{companyName}}.",
+        "confirm": "Approve",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "approvedTitle": "Tool approved",
+        "deniedTitle": "Tool denied",
+        "description": "{{toolName}}",
+        "errorTitle": "Could not update the approval"
+      }
+    },
     "create": {
       "title": "Connect an agent",
       "nameLabel": "Name",
