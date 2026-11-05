@@ -23,11 +23,7 @@ print(json.dumps(mod.build_runserver_argv(extra)))
   const result = spawnSync('python3', ['-c', code, argsJson], {
     encoding: 'utf8',
   });
-  assert.equal(
-    result.status,
-    0,
-    result.stderr || result.stdout || 'python subprocess failed',
-  );
+  assert.equal(result.status, 0, result.stderr || result.stdout || 'python subprocess failed');
   return JSON.parse(result.stdout.trim());
 }
 
