@@ -46,6 +46,16 @@ describe('parseMcpPersonalStatus', () => {
     ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/c/1/mcp' });
   });
 
+  it('parses global_identity when present', () => {
+    expect(
+      parseMcpPersonalStatus({
+        mcp_enabled: true,
+        mcp_url: null,
+        global_identity: false,
+      }),
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalIdentity: false });
+  });
+
   it('returns null for invalid payloads', () => {
     expect(parseMcpPersonalStatus({ mcp_enabled: 'yes' })).toBeNull();
   });
