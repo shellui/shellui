@@ -385,7 +385,7 @@ services:
       - '5173:5173'
     environment:
       SHELLUI_ROOT: /opt/shellui
-      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_USEPOLLING: 'false'
       VITE_USE_POLLING: 'true'
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
@@ -414,7 +414,7 @@ services:
       - '5174:5174'
     environment:
       SHELLUI_ROOT: /opt/shellui
-      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_USEPOLLING: 'false'
       VITE_USE_POLLING: 'true'
       DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
       IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_URL}
@@ -447,7 +447,7 @@ services:
       - '5175:5175'
     environment:
       SHELLUI_ROOT: /opt/shellui
-      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_USEPOLLING: 'false'
       VITE_USE_POLLING: 'true'
       VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
       VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
@@ -472,7 +472,7 @@ services:
     environment:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       SHELLUI_ROOT: /opt/shellui
-      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_USEPOLLING: 'false'
       PLAYGROUND_DEV_PORT: '5176'
     volumes:
       - ../../playground:/app
