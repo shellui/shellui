@@ -60,6 +60,17 @@ def find_manage_py(start: Path | None = None) -> Path | None:
     return None
 
 
+def ensure_manage_py_sys_path(manage_py: Path | None = None) -> Path | None:
+    """Match `python manage.py`: put the service project root on sys.path."""
+    path = manage_py or find_manage_py()
+    if path is None:
+        return None
+    root = str(path.parent.resolve())
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    return path
+
+
 def ensure_django_settings_module(manage_py: Path | None = None) -> None:
     """Mirror manage.py's DJANGO_SETTINGS_MODULE default when the shim bypasses it."""
     if os.environ.get("DJANGO_SETTINGS_MODULE"):
@@ -72,9 +83,16 @@ def ensure_django_settings_module(manage_py: Path | None = None) -> None:
         os.environ.setdefault("DJANGO_SETTINGS_MODULE", module)
 
 
+def prepare_manage_py_environment(manage_py: Path | None = None) -> Path | None:
+    """Apply manage.py import path and settings defaults before runserver."""
+    path = ensure_manage_py_sys_path(manage_py)
+    ensure_django_settings_module(path)
+    return path
+
+
 def main() -> None:
     _patch_stat_reloader_sleep()
-    ensure_django_settings_module()
+    prepare_manage_py_environment()
     argv = build_runserver_argv()
     from django.core.management import execute_from_command_line
 

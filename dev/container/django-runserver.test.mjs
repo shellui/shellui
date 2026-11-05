@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -41,9 +41,10 @@ print(json.dumps(mod.build_runserver_argv(extra)))
 
 /**
  * @param {string} settingsModule
- * @param {Record<string, string | undefined>} [env]
+ * @param {{ env?: Record<string, string | undefined>; withConfigPackage?: boolean }} [options]
  */
-function ensureSettingsFromManagePy(settingsModule, env = {}) {
+function fixtureManagePyProject(settingsModule, options = {}) {
+  const { env = {}, withConfigPackage = false } = options;
   const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'django-runserver-'));
   const managePy = path.join(tmpDir, 'manage.py');
   writeFileSync(
@@ -61,7 +62,25 @@ if __name__ == "__main__":
     main()
 `,
   );
+  if (withConfigPackage) {
+    mkdirSync(path.join(tmpDir, 'config'), { recursive: true });
+    writeFileSync(path.join(tmpDir, 'config', '__init__.py'), '');
+    writeFileSync(
+      path.join(tmpDir, 'config', 'settings.py'),
+      'SECRET_KEY = "test"\nDEBUG = True\n',
+    );
+  }
+  return { tmpDir, managePy, env };
+}
+
+/**
+ * @param {string} prepareFn
+ * @param {string} managePy
+ * @param {Record<string, string | undefined>} env
+ */
+function runManagePyPrepare(prepareFn, managePy, env) {
   const code = `
+import importlib
 import importlib.util
 import json
 import os
@@ -71,11 +90,20 @@ spec = importlib.util.spec_from_file_location("django_runserver", ${JSON.stringi
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 manage_py = sys.argv[1]
-mod.ensure_django_settings_module(__import__("pathlib").Path(manage_py))
-print(json.dumps(os.environ.get("DJANGO_SETTINGS_MODULE")))
+mod.${prepareFn}(__import__("pathlib").Path(manage_py))
+payload = {
+    "settings_module": os.environ.get("DJANGO_SETTINGS_MODULE"),
+    "sys_path_head": sys.path[0],
+    "can_import_config": False,
+}
+try:
+    importlib.import_module("config.settings")
+    payload["can_import_config"] = True
+except ModuleNotFoundError:
+    pass
+print(json.dumps(payload))
 `;
-  const stdout = runPython(code, [managePy], env);
-  return { tmpDir, module: JSON.parse(stdout) };
+  return JSON.parse(runPython(code, [managePy], env));
 }
 
 test('build_runserver_argv defaults bind when no args are passed', () => {
@@ -95,13 +123,34 @@ test('build_runserver_argv preserves runserver flags without injecting addrport'
 });
 
 test('ensure_django_settings_module reads default from manage.py', () => {
-  const { module } = ensureSettingsFromManagePy('config.settings.dev');
-  assert.equal(module, 'config.settings.dev');
+  const { managePy } = fixtureManagePyProject('config.settings.dev');
+  const result = runManagePyPrepare('ensure_django_settings_module', managePy, {});
+  assert.equal(result.settings_module, 'config.settings.dev');
 });
 
 test('ensure_django_settings_module leaves an existing env value unchanged', () => {
-  const { module } = ensureSettingsFromManagePy('config.settings.dev', {
+  const { managePy } = fixtureManagePyProject('config.settings.dev');
+  const result = runManagePyPrepare('ensure_django_settings_module', managePy, {
     DJANGO_SETTINGS_MODULE: 'already.configured',
   });
-  assert.equal(module, 'already.configured');
+  assert.equal(result.settings_module, 'already.configured');
+});
+
+test('ensure_manage_py_sys_path prepends the project root like python manage.py', () => {
+  const { tmpDir, managePy } = fixtureManagePyProject('config.settings', {
+    withConfigPackage: true,
+  });
+  const result = runManagePyPrepare('ensure_manage_py_sys_path', managePy, {});
+  assert.equal(result.sys_path_head, tmpDir);
+  assert.equal(result.can_import_config, true);
+});
+
+test('prepare_manage_py_environment sets settings and import path together', () => {
+  const { tmpDir, managePy } = fixtureManagePyProject('config.settings', {
+    withConfigPackage: true,
+  });
+  const result = runManagePyPrepare('prepare_manage_py_environment', managePy, {});
+  assert.equal(result.settings_module, 'config.settings');
+  assert.equal(result.sys_path_head, tmpDir);
+  assert.equal(result.can_import_config, true);
 });
