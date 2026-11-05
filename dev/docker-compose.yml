@@ -31,8 +31,13 @@ x-frontend-file-watch: &frontend-file-watch
 x-django-dev-env: &django-dev-env
   DJANGO_STATRELOAD_SLEEP: ${DJANGO_STATRELOAD_SLEEP:-3}
 
+# init forwards SIGTERM to PID 1 children; omit restart so compose stop does not race the engine.
+x-dev-container: &dev-container
+  init: true
+
 services:
   postgres:
+    <<: *dev-container
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -50,9 +55,9 @@ services:
       start_period: 60s
       start_interval: 5s
       retries: 10
-    restart: unless-stopped
 
   redis:
+    <<: *dev-container
     image: redis:8-alpine
     ports:
       - '6379:6379'
@@ -63,16 +68,16 @@ services:
       start_period: 60s
       start_interval: 5s
       retries: 10
-    restart: unless-stopped
 
   mailpit:
+    <<: *dev-container
     image: axllent/mailpit:latest
     ports:
       - '8025:8025'
       - '1025:1025'
-    restart: unless-stopped
 
   shell:
+    <<: *dev-container
     build:
       context: ..
       dockerfile: Dockerfile
@@ -97,9 +102,9 @@ services:
     volumes:
       - ..:/app
       - shell-node-modules:/app/node_modules
-    restart: unless-stopped
 
   identity:
+    <<: *dev-container
     build:
       context: ../../identity-service
       dockerfile: Dockerfile
@@ -153,9 +158,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: unless-stopped
 
   storage:
+    <<: *dev-container
     build:
       context: ../../storage-service
       dockerfile: Dockerfile
@@ -198,9 +203,9 @@ services:
         condition: service_healthy
       identity:
         condition: service_started
-    restart: unless-stopped
 
   hosting:
+    <<: *dev-container
     build:
       context: ../../hosting-service
       dockerfile: Dockerfile
@@ -235,9 +240,9 @@ services:
         condition: service_healthy
       identity:
         condition: service_started
-    restart: unless-stopped
 
   email:
+    <<: *dev-container
     build:
       context: ../../email-service
       dockerfile: Dockerfile
@@ -280,9 +285,10 @@ services:
         condition: service_started
       identity:
         condition: service_started
-    restart: unless-stopped
 
   email-worker:
+    <<: *dev-container
+    stop_grace_period: 30s
     build:
       context: ../../email-service
       dockerfile: Dockerfile
@@ -319,9 +325,9 @@ services:
         condition: service_healthy
       email:
         condition: service_started
-    restart: unless-stopped
 
   saas:
+    <<: *dev-container
     build:
       context: ../../saas-service
       dockerfile: Dockerfile
@@ -359,9 +365,9 @@ services:
         condition: service_healthy
       identity:
         condition: service_started
-    restart: unless-stopped
 
   ai:
+    <<: *dev-container
     build:
       context: ../../ai-service
       dockerfile: Dockerfile
@@ -401,10 +407,9 @@ services:
         condition: service_healthy
       identity:
         condition: service_started
-    restart: unless-stopped
 
   admin:
-    <<: *frontend-shellui-local
+    <<: [*dev-container, *frontend-shellui-local]
     build:
       context: ../../admin
       dockerfile: Dockerfile
@@ -431,10 +436,9 @@ services:
       - ../../admin:/app
       - admin-node-modules:/app/node_modules
       - ..:/opt/shellui:ro
-    restart: unless-stopped
 
   dashboard:
-    <<: *frontend-shellui-local
+    <<: [*dev-container, *frontend-shellui-local]
     build:
       context: ../../dashboard
       dockerfile: Dockerfile
@@ -465,10 +469,9 @@ services:
       - ../../dashboard:/app
       - dashboard-node-modules:/app/node_modules
       - ..:/opt/shellui:ro
-    restart: unless-stopped
 
   files:
-    <<: *frontend-shellui-local
+    <<: [*dev-container, *frontend-shellui-local]
     build:
       context: ../../files
       dockerfile: Dockerfile
@@ -491,11 +494,10 @@ services:
       - ../../files:/app
       - files-node-modules:/app/node_modules
       - ..:/opt/shellui:ro
-    restart: unless-stopped
 
   # Playground companion (sibling repo ../../playground). Vite dev server with hot reload.
   playground:
-    <<: *frontend-shellui-local
+    <<: [*dev-container, *frontend-shellui-local]
     image: node:22-bookworm-slim
     working_dir: /app
     entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
@@ -513,7 +515,6 @@ services:
       - ../../playground:/app
       - playground-node-modules:/app/node_modules
       - ..:/opt/shellui:ro
-    restart: unless-stopped
 
 volumes:
   postgres-data:

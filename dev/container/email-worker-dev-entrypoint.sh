@@ -45,6 +45,7 @@ SCHEDULER_ARGS=(
 
 # shellcheck source=supervise-children.sh
 . /opt/shellui/dev/container/supervise-children.sh
+supervise_init_traps
 
 cd /app
 prepare_data_dir
