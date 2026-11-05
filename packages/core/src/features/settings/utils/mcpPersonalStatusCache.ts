@@ -11,6 +11,7 @@ export type McpPersonalStatusCacheScope = {
 type McpPersonalStatusCacheEntry = McpPersonalStatusCacheScope & {
   mcpEnabled: boolean;
   mcpUrl: string | null;
+  globalIdentity?: boolean;
   fetchedAt: number;
 };
 
@@ -28,8 +29,18 @@ const parseCacheEntry = (raw: string): McpPersonalStatusCacheEntry | null => {
     if (typeof parsed.mcpEnabled !== 'boolean') return null;
     const mcpUrl =
       parsed.mcpUrl === null ? null : typeof parsed.mcpUrl === 'string' ? parsed.mcpUrl : null;
+    const globalIdentity =
+      typeof parsed.globalIdentity === 'boolean' ? parsed.globalIdentity : undefined;
     const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : 0;
-    return { userId, backendUrl, companyId, mcpEnabled: parsed.mcpEnabled, mcpUrl, fetchedAt };
+    return {
+      userId,
+      backendUrl,
+      companyId,
+      mcpEnabled: parsed.mcpEnabled,
+      mcpUrl,
+      ...(globalIdentity !== undefined ? { globalIdentity } : {}),
+      fetchedAt,
+    };
   } catch {
     return null;
   }
@@ -46,7 +57,11 @@ export const readMcpPersonalStatusCache = (
   if (!raw) return null;
   const entry = parseCacheEntry(raw);
   if (!entry || !scopesMatch(entry, scope)) return null;
-  return { mcpEnabled: entry.mcpEnabled, mcpUrl: entry.mcpUrl };
+  return {
+    mcpEnabled: entry.mcpEnabled,
+    mcpUrl: entry.mcpUrl,
+    ...(entry.globalIdentity !== undefined ? { globalIdentity: entry.globalIdentity } : {}),
+  };
 };
 
 export const writeMcpPersonalStatusCache = (
@@ -58,6 +73,7 @@ export const writeMcpPersonalStatusCache = (
     ...scope,
     mcpEnabled: status.mcpEnabled,
     mcpUrl: status.mcpUrl,
+    ...(status.globalIdentity !== undefined ? { globalIdentity: status.globalIdentity } : {}),
     fetchedAt: Date.now(),
   };
   sessionStorage.setItem(MCP_PERSONAL_STATUS_CACHE_KEY, JSON.stringify(entry));

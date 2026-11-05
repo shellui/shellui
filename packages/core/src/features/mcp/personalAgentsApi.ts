@@ -19,6 +19,8 @@ export type McpPersonalService = (typeof MCP_PERSONAL_SERVICE_OPTIONS)[number];
 export type McpPersonalStatus = {
   mcpEnabled: boolean;
   mcpUrl: string | null;
+  /** When false, the signed-in session is regional-only (no saas grant). */
+  globalIdentity?: boolean;
 };
 
 export type McpAgentSummary = {
@@ -88,9 +90,12 @@ export const parseMcpPersonalStatus = (payload: unknown): McpPersonalStatus | nu
   const record = payload as Record<string, unknown>;
   if (typeof record.mcp_enabled !== 'boolean') return null;
   const mcpUrl = asString(record.mcp_url);
+  const globalIdentity =
+    typeof record.global_identity === 'boolean' ? record.global_identity : undefined;
   return {
     mcpEnabled: record.mcp_enabled,
     mcpUrl,
+    ...(globalIdentity !== undefined ? { globalIdentity } : {}),
   };
 };
 
