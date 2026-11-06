@@ -8,6 +8,7 @@ import {
   getShellIdentityBackendUrl,
   parseCreatePersonalAgentResult,
   parseMcpAgentList,
+  parseMcpAgentActivity,
   parseMcpAgentSummary,
   parseMcpPersonalStatus,
   revokeMcpPersonalAgent,
@@ -94,6 +95,42 @@ describe('parseMcpAgentSummary', () => {
 describe('parseMcpAgentList', () => {
   it('filters invalid rows', () => {
     expect(parseMcpAgentList({ agents: [{ id: 'x' }, null] })).toEqual([]);
+  });
+});
+
+describe('parseMcpAgentActivity', () => {
+  it('maps optional enrichment fields', () => {
+    const parsed = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'ok',
+          outcome: 'allowed',
+          access_kind: 'read',
+          duration_ms: 42,
+          resource_label: 'Members',
+          company_name: 'Acme',
+          actor: 'staff@example.com',
+          agent_name: 'My bot',
+          approval_request_id: 'ap-9',
+          error_message: 'upstream timeout',
+        },
+      ],
+    });
+    expect(parsed?.activity[0]).toMatchObject({
+      outcome: 'allowed',
+      accessKind: 'read',
+      durationMs: 42,
+      resourceLabel: 'Members',
+      companyLabel: 'Acme',
+      actorLabel: 'staff@example.com',
+      agentName: 'My bot',
+      approvalRequestId: 'ap-9',
+      errorMessage: 'upstream timeout',
+    });
   });
 });
 

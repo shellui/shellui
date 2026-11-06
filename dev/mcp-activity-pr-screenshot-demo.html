@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <title>Shellui MCP settings (demo screenshot)</title>
+    <style>
+      :root {
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #0a0a0a;
+        background: #fafafa;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        max-width: 720px;
+      }
+      h1 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 8px;
+      }
+      .muted {
+        color: #737373;
+        font-size: 13px;
+        line-height: 1.5;
+        margin: 0 0 20px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #e5e5e5;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .title {
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 4px;
+      }
+      .sub {
+        font-size: 13px;
+        color: #737373;
+        margin: 0;
+      }
+      .btn-danger {
+        background: #dc2626;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 13px;
+        cursor: default;
+      }
+      .section-label {
+        font-size: 11px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #737373;
+        margin: 16px 0 8px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e5e5;
+      }
+      .activity-item {
+        border: 1px solid #e5e5e5;
+        border-radius: 6px;
+        background: rgba(245, 245, 245, 0.5);
+        padding: 10px 12px;
+        margin-bottom: 8px;
+      }
+      .summary {
+        font-size: 13px;
+        margin: 0 0 8px;
+      }
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .badge {
+        display: inline-flex;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        border: 1px solid transparent;
+      }
+      .badge-sec {
+        background: #f5f5f5;
+        border-color: #e5e5e5;
+      }
+      .badge-out {
+        background: #fff;
+        border-color: #e5e5e5;
+      }
+      .badge-muted {
+        background: rgba(245, 245, 245, 0.8);
+        border-color: #e5e5e5;
+        color: #737373;
+      }
+      dl {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 4px 8px;
+        font-size: 11px;
+        color: #737373;
+        margin: 0;
+      }
+      @media (min-width: 480px) {
+        dl {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      dt {
+        display: inline;
+        font-weight: 500;
+        color: rgba(10, 10, 10, 0.75);
+      }
+      dd {
+        display: inline;
+        margin: 0;
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+      .mono {
+        font-family: ui-monospace, monospace;
+        font-size: 10px;
+        word-break: break-all;
+      }
+      .link {
+        font-size: 12px;
+        color: #2563eb;
+        margin-top: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MCP / AI agents</h1>
+    <p class="muted">
+      Demo layout for documentation: Sample company · consistent identity labels (not live data).
+    </p>
+    <div class="card">
+      <div class="row">
+        <div>
+          <p class="title">ChatGPT on my laptop · Connected Nov 6, 2026 · Expires Nov 6, 2027</p>
+          <p class="sub">All regional services + saas</p>
+        </div>
+        <button
+          type="button"
+          class="btn-danger"
+        >
+          Revoke
+        </button>
+      </div>
+      <p class="section-label">Recent activity</p>
+      <div class="activity-item">
+        <p class="summary">identity Members directory: identity_list_users (Acme Corp)</p>
+        <div class="badges">
+          <span class="badge badge-sec">Allowed</span>
+          <span class="badge badge-out">Read</span>
+        </div>
+        <dl>
+          <div>
+            <dt>When:</dt>
+            <dd>Nov 6, 2026, 9:15 AM</dd>
+          </div>
+          <div>
+            <dt>Duration:</dt>
+            <dd>48 ms</dd>
+          </div>
+          <div>
+            <dt>Actor:</dt>
+            <dd>jamie@acme.example</dd>
+          </div>
+          <div>
+            <dt>Connection:</dt>
+            <dd>ChatGPT on my laptop</dd>
+          </div>
+          <div class="full">
+            <dt>Server result:</dt>
+            <dd class="mono">ok</dd>
+          </div>
+        </dl>
+      </div>
+      <div class="activity-item">
+        <p class="summary">saas Company roster: saas_invite_member (Acme Corp)</p>
+        <div class="badges">
+          <span class="badge badge-sec">Pending approval</span>
+          <span class="badge badge-out">Write</span>
+        </div>
+        <dl>
+          <div>
+            <dt>When:</dt>
+            <dd>Nov 6, 2026, 9:18 AM</dd>
+          </div>
+          <div>
+            <dt>Duration:</dt>
+            <dd>Not reported</dd>
+          </div>
+          <div>
+            <dt>Actor:</dt>
+            <dd>Not reported</dd>
+          </div>
+          <div>
+            <dt>Connection:</dt>
+            <dd>ChatGPT on my laptop</dd>
+          </div>
+          <div class="full">
+            <dt>Server result:</dt>
+            <dd class="mono">pending_approval</dd>
+          </div>
+        </dl>
+        <p class="link">Jump to pending approvals (same tool name)</p>
+      </div>
+      <div class="activity-item">
+        <p class="summary">storage Quarterly reports: storage_delete (Acme Corp)</p>
+        <div class="badges">
+          <span class="badge badge-sec">Denied</span>
+          <span class="badge badge-out">Destructive</span>
+          <span class="badge badge-muted">Can change data</span>
+        </div>
+        <dl>
+          <div>
+            <dt>When:</dt>
+            <dd>Nov 6, 2026, 9:20 AM</dd>
+          </div>
+          <div>
+            <dt>Duration:</dt>
+            <dd>1.2 s</dd>
+          </div>
+          <div>
+            <dt>Actor:</dt>
+            <dd>Not reported</dd>
+          </div>
+          <div>
+            <dt>Connection:</dt>
+            <dd>ChatGPT on my laptop</dd>
+          </div>
+          <div class="full">
+            <dt>Server result:</dt>
+            <dd class="mono">policy_denied</dd>
+          </div>
+          <div class="full">
+            <dt>Service error:</dt>
+            <dd>Object not found</dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </body>
+</html>

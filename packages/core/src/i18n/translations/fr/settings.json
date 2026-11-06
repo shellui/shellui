@@ -277,6 +277,18 @@
   },
   "mcpAgents": {
     "description": "Connectez un agent IA à cette entreprise via MCP. Chaque connexion reçoit son propre jeton. Révoquez une connexion lorsque vous n'utilisez plus cet agent.",
+    "global": {
+      "title": "Se connecter à Shellui (MCP global)",
+      "intro": "Utilisez deux connexions MCP : une portée compte globale et une par entreprise. Elles ont des points de terminaison et des jetons différents.",
+      "scopeAccount": "MCP global (Shellui saas) : entreprises, projets, régions, membres, forfaits. Il n'accède jamais aux données de vos applications.",
+      "scopeRegional": "MCP projet régional : vos applications d'entreprise et services régionaux. Les jetons à courte durée restent dans ce locataire.",
+      "approvals": "Les écritures qui nécessitent une personne suivent le même flux d'approbation pour les outils globaux et régionaux. Les outils destructifs exigent toujours une approbation explicite.",
+      "sessionNote": "Les connexions normales durent environ 60 secondes. Une session de 10 à 15 minutes pour une configuration initiale d'entreprise de confiance n'est pas entièrement branchée dans l'interface tant que le contrat backend partagé n'est pas fusionné (PR GitHub shellui/saas-service#32).",
+      "prerequisite": "Vous avez besoin d'un compte humain Shellui avec les conditions d'utilisation acceptées avant de créer des connexions. Le produit n'offre pas de contournement d'authentification par agent.",
+      "statusReady": "Cette session inclut l'octroi saas, créez une connexion ci-dessous quand vous avez besoin des outils globaux et régionaux.",
+      "statusPending": "Cette session est régionale seulement. Ouvrez le tableau de bord Shellui global pour connecter le MCP global lorsque votre compte a l'octroi saas.",
+      "backendNote": "Cette interface appelle des routes d'identité encore alignées sur la PR 32 de saas-service. Si la création ou l'activité échoue, vérifiez le déploiement backend."
+    },
     "signInRequired": "Connectez-vous pour gérer les agents MCP.",
     "status": {
       "loading": "Vérification du statut MCP…",
@@ -322,6 +334,45 @@
       "successTitle": "Connexion révoquée",
       "successDescription": "{{name}} n'a plus accès.",
       "errorTitle": "Impossible de révoquer la connexion"
+    },
+    "activity": {
+      "title": "Activité récente",
+      "show": "Afficher l'activité",
+      "hide": "Masquer l'activité",
+      "loading": "Chargement de l'activité…",
+      "error": "Impossible de charger l'activité.",
+      "retry": "Réessayer",
+      "empty": "Aucune activité enregistrée pour cette connexion pour le moment.",
+      "destructiveBadge": "Peut modifier des données",
+      "outcome": {
+        "allowed": "Autorisé",
+        "denied": "Refusé",
+        "failed": "Échec",
+        "pendingApproval": "En attente d'approbation",
+        "sessionUsed": "Session utilisée",
+        "unknown": "Résultat non classé"
+      },
+      "access": {
+        "read": "Lecture",
+        "write": "Écriture",
+        "destructive": "Destructif",
+        "unknown": "Accès non classé"
+      },
+      "detail": {
+        "when": "Quand",
+        "duration": "Durée",
+        "notProvided": "Non communiqué",
+        "actor": "Acteur",
+        "actorUnknown": "Non communiqué",
+        "agent": "Connexion",
+        "rawResult": "Résultat serveur",
+        "error": "Erreur du service",
+        "errorUnavailable": "Aucun détail d'erreur sûr du serveur pour cette ligne."
+      },
+      "link": {
+        "openApprovalById": "Aller aux approbations en attente",
+        "openApprovalsSection": "Aller aux approbations en attente (même nom d'outil)"
+      }
     },
     "pendingApprovals": {
       "title": "Approbations en attente",
