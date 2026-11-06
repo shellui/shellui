@@ -31,5 +31,7 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   }
   assert.doesNotMatch(example, /REGION_LOCAL_/);
   assert.match(example, /^GLOBAL_AGENT_SIGNING_KEY=/m);
+  assert.match(example, /^GLOBAL_AGENT_KEY_ID=/m);
   assert.match(compose, /GLOBAL_AGENT_SIGNING_KEY:\s*\$\{GLOBAL_AGENT_SIGNING_KEY\}/);
+  assert.match(compose, /GLOBAL_AGENT_KEY_ID:\s*\$\{GLOBAL_AGENT_KEY_ID\}/);
 });

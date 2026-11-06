@@ -5,9 +5,10 @@ If the output already exists, only variables it does not define yet are appended
 so existing secrets and database passwords are kept.
 
 Global agent material (SaaS signing key and identity GLOBAL_JWKS) is always derived
-from the same private PEM. On every run, GLOBAL_JWKS and GLOBAL_AGENT_SIGNING_KID
+from the same private PEM. On every run, GLOBAL_JWKS and GLOBAL_AGENT_KEY_ID
 are recomputed from GLOBAL_AGENT_SIGNING_KEY so a stale JWKS cannot drift from
-the PEM. Sensitive values are never printed.
+the PEM. GLOBAL_AGENT_KEY_ID is the JWKS **`kid`** SaaS uses when minting. Sensitive
+values are never printed.
 """
 
 from __future__ import annotations
@@ -165,7 +166,7 @@ def global_agent_updates_from_private(private_pem: str, audience_template: str) 
     # audience may reference ${PUBLIC_SAAS_URL}; keep literal from template
     return {
         "GLOBAL_AGENT_SIGNING_KEY": '"' + pem_for_env(private_pem) + '"',
-        "GLOBAL_AGENT_SIGNING_KID": kid,
+        "GLOBAL_AGENT_KEY_ID": kid,
         "GLOBAL_JWKS": jwks_quoted,
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE": audience_template,
     }
@@ -213,7 +214,7 @@ def apply_example(
         "__PROVISIONING_PUBLIC_KEY__": "",  # filled below
         "__GLOBAL_AGENT_SIGNING_KEY__": '"' + pem_env + '"',
         "__GLOBAL_AGENT_JWKS_JSON__": global_jwks_quoted,
-        "__GLOBAL_AGENT_SIGNING_KID__": global_kid,
+        "__GLOBAL_AGENT_KEY_ID__": global_kid,
         "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
         "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
         "__EMAIL_VARIABLES_KEY__": fernet_key(),
@@ -296,7 +297,7 @@ def main() -> int:
             for line in current.splitlines()
             if not (
                 line.startswith("GLOBAL_AGENT_PRIVATE_KEY=")
-                or line.startswith("GLOBAL_AGENT_KEY_ID=")
+                or line.startswith("GLOBAL_AGENT_SIGNING_KID=")
             )
         )
         if not current.endswith("\n"):

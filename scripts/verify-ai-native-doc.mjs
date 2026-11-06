@@ -35,7 +35,7 @@ const required = [
   'api_v1_templates_render_preview',
   'api_v1_templates_list',
   'GLOBAL_AGENT_SIGNING_KEY',
-  'GLOBAL_AGENT_SIGNING_KID',
+  'GLOBAL_AGENT_KEY_ID',
   'SHELLUI_INSTANCE_ROLE',
   'McpAgentActivitySection.tsx',
   'projects create',
@@ -66,7 +66,6 @@ const required = [
   'waiting_approval',
   'grant_version',
   'company_binding_version',
-  'cursor/handbook-mcp-docs-d2d2',
 ];
 
 const problems = [];

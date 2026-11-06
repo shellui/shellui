@@ -100,14 +100,15 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 ## Global agent JWT trust (dev)
 
 `dev/generate_env.py` fills **`GLOBAL_AGENT_SIGNING_KEY`** and
-**`GLOBAL_AGENT_SIGNING_KID`**, builds **`GLOBAL_JWKS`** for **identity**, and
-re-syncs JWKS to the signing PEM on every run so the pair cannot drift.
+**`GLOBAL_AGENT_KEY_ID`**, builds **`GLOBAL_JWKS`** for **identity**, and
+re-syncs JWKS to the signing PEM on every run so the pair cannot drift
+(**`GLOBAL_AGENT_KEY_ID`** is the **`kid`** in **`GLOBAL_JWKS`**).
 **`dev/docker-compose.yml`** passes `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
 `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, and **`SHELLUI_INSTANCE_ROLE=region`**
-into **identity**, and signing material into **saas**, so regions verify global
-agent JWTs offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
-Legacy **`GLOBAL_AGENT_PRIVATE_KEY`** / **`GLOBAL_AGENT_KEY_ID`** names are not
-used in the current example file.
+into **identity**, and **`GLOBAL_AGENT_SIGNING_KEY`**, **`GLOBAL_AGENT_KEY_ID`**,
+and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** into **saas**, so regions verify
+global agent JWTs offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+**`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
 
 ## Redis
 

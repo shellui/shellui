@@ -50,10 +50,8 @@ Remote default branch tips from **`git ls-remote`** on this VM (2026-11-06):
 - **ai-service**
   **`73ec12f0648fda69266b369f3e5b1c2fef1474ae`**
 
-**saas-service** is private; this environment cannot read its default branch
-tip. SaaS **`docs/global-mcp.md`** on
-**`cursor/handbook-mcp-docs-d2d2`** is the org handbook for global MCP mint.
-Read it from your checkout or GitHub UI.
+**saas-service** is not available to this agent, so SaaS code and docs paths are
+not verified here. Use your org checkout for SaaS mint details.
 
 ## Global vs regional (no master token)
 
@@ -79,11 +77,9 @@ Read it from your checkout or GitHub UI.
   exchange from a global agent JWT to a regional MCP resource when
   **`SHELLUI_INSTANCE_ROLE=region`** and **`GLOBAL_ISSUER_URL`**,
   **`GLOBAL_JWKS`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** are set
-  [identity-mcp]. SaaS
-  mints the global subject JWT; see SaaS **`docs/global-mcp.md`** on
-  **`cursor/handbook-mcp-docs-d2d2`**. This monorepo does not run a full mint
-  plus exchange proof in CI; verify on your machine with a private SaaS
-  checkout.
+  [identity-mcp]. SaaS mints the global subject JWT; confirm variable names and
+  mint steps from your **`saas-service`** checkout. This monorepo does not run a
+  full mint plus exchange proof in CI.
 - **Global approval forwarding:** delegated agents (**`global_agent_id`**) must
   route internal approvals through **ai-service**; storage, hosting, and email
   get **409** **`out_of_sync`** if they create approvals directly
@@ -110,20 +106,18 @@ Set **`SHELLUI_INSTANCE_ROLE=region`**, **`GLOBAL_ISSUER_URL`**,
 **token exchange** answers **404** [identity-mcp].
 
 **`GLOBAL_JWKS` and signing key:**
-`dev/generate_env.py` derives **`GLOBAL_JWKS`** and
-**`GLOBAL_AGENT_SIGNING_KID`** from the same **`GLOBAL_AGENT_SIGNING_KEY`** PEM
-on every run so Identity offline verify and SaaS mint cannot drift
-[generate-env] [compose-yml].
+`dev/generate_env.py` derives **`GLOBAL_JWKS`** and **`GLOBAL_AGENT_KEY_ID`**
+from the same **`GLOBAL_AGENT_SIGNING_KEY`** PEM on every run so Identity
+offline verify and SaaS mint cannot drift [generate-env] [compose-yml].
 
-**`dev/docker-compose.yml`** passes **`GLOBAL_AGENT_SIGNING_KEY`** and
-**`GLOBAL_AGENT_SIGNING_KID`** into **saas** (along with
-**`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`**). Some handbooks still say
-**`GLOBAL_AGENT_KEY_ID`**; use **`GLOBAL_AGENT_SIGNING_KID`** in this stack.
+**`dev/docker-compose.yml`** passes **`GLOBAL_AGENT_SIGNING_KEY`**,
+**`GLOBAL_AGENT_KEY_ID`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** into
+**saas** [compose-yml]. **`GLOBAL_AGENT_KEY_ID`** equals the **`kid`** in
+**`GLOBAL_JWKS`** (single-key JWKS object) [generate-env].
 
-If you replace the SaaS signing material by hand, set **`GLOBAL_JWKS`** to the
-public JWKS **SaaS serves** for that key (same **`kid`** and **`n`** /
-**`e`** as **`/.well-known/jwks.json`**), or rerun **`generate-env.sh`** so PEM
-and JWKS stay matched.
+If you replace the signing material by hand, keep **`GLOBAL_JWKS`** in sync with
+the key **SaaS** and **identity** use (same **`kid`**, **`n`**, and **`e`**), or
+rerun **`generate-env.sh`**.
 
 ## Human account and Terms before agent work
 

@@ -60,6 +60,13 @@ def jwks_matches_signing_pem(text: str, dev: Path) -> None:
     pem = raw[1:-1].replace("\\n", "\n")
     doc = assert_jwks_parses(text)
     kid = mod.kid_from_private_pem(pem)
+    kid_line = None
+    for line in text.splitlines():
+        if line.startswith("GLOBAL_AGENT_KEY_ID="):
+            kid_line = line.split("=", 1)[1].strip()
+            break
+    assert kid_line == kid, "GLOBAL_AGENT_KEY_ID must match JWKS kid and derived PEM kid"
+    assert doc["keys"][0]["kid"] == kid, "GLOBAL_JWKS kid must match GLOBAL_AGENT_KEY_ID"
     pub = mod.public_pem_from_private(pem)
     expect = json.loads(mod.jwks_for_rsa_public_pem(pub, kid))
     assert doc == expect, "GLOBAL_JWKS must match signing key public material"
@@ -84,7 +91,7 @@ def global_signing_lines(text: str) -> dict[str, str]:
     """Lines for global agent signing material (must not change on append-only regen)."""
     wanted = (
         "GLOBAL_AGENT_SIGNING_KEY",
-        "GLOBAL_AGENT_SIGNING_KID",
+        "GLOBAL_AGENT_KEY_ID",
         "GLOBAL_JWKS",
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE",
     )
