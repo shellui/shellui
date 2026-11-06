@@ -8,7 +8,7 @@ import {
 import { writeCliDashboardSessionFile } from '../cli-context/session-file.js';
 import { dashboardServiceFetch } from '../http/dashboard-http.js';
 import { formatHttpFailure, readJsonErrorBody, redactSensitive } from '../http/service-http.js';
-import { saasApiV1Path, saasDashboardPath } from '../http/saas-paths.js';
+import { saasApiV1Path } from '../http/saas-paths.js';
 import { cliErrorMessage, printCliJson } from './cli-output.js';
 import { resolveSaasBaseUrl } from './service-resolve.js';
 
@@ -82,10 +82,7 @@ export async function projectsCommand(action, arg, options = {}) {
     }
 
     if (action === 'list') {
-      const { response } = await dashboardServiceFetch(
-        baseUrl,
-        `${saasDashboardPath('companies/')}`,
-      );
+      const { response } = await dashboardServiceFetch(baseUrl, `${saasApiV1Path('companies/')}`);
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);
         console.error(pc.red(formatHttpFailure(response.status, msg)));
@@ -131,7 +128,7 @@ export async function projectsCommand(action, arg, options = {}) {
 
       const { response } = await dashboardServiceFetch(
         baseUrl,
-        `${saasDashboardPath(`companies/${encodeURIComponent(id)}/`)}`,
+        `${saasApiV1Path(`companies/${encodeURIComponent(id)}/`)}`,
       );
       if (response.status === 404) {
         const msg = await readJsonErrorBody(response);
