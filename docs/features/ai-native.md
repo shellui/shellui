@@ -4,359 +4,398 @@ sidebar_label: AI native platform
 description: Local compose path for MCP OAuth, gateway tools, and approvals.
 ---
 
-Run **Shellui** **`shellui/dev`** next to sibling service repos, then test
-**regional** MCP on the ai gateway with **curl** and a browser. This page adds
-Shellui-specific **startup** and **CLI** notes. Identity owns OAuth semantics
-[identity-mcp]. The gateway owns **`tools/list`**, approvals, and
-**`session_allow`** rules [ai-mcp].
-
-Use [AI native MCP](./ai-native-mcp) only for short connector URL pointers.
+Run **Shellui** `shellui/dev` next to the sibling service repos, then drive
+regional MCP with curl and a browser. Identity owns OAuth. The ai gateway owns
+`tools/list`, approvals, and `session_allow`. Use
+[AI native MCP](./ai-native-mcp) for short connector URL pointers.
+Links use the `develop` branch.
 
 ## What this repo validates vs what you run locally
 
 **What this repo validates:**
 
-- `pnpm run test:scripts` (runs `python3 tools/test_generate_env.py`).
-- That script writes a temp env file, then when **`docker`** is installed runs:
+- `pnpm run test:scripts` runs `python3 tools/test_generate_env.py`.
+- When `docker` is installed, that script writes a temp env file and runs:
 
 ```bash
 docker compose -f dev/docker-compose.yml \
   --env-file <temp> config --format json
 ```
 
-It asserts resolved **`environment`** on **`identity`**, **`ai`**, and
-**`saas`**. Public issuer and audience: **`JWT_ISSUER`**,
-**`GLOBAL_ISSUER_URL`** (SaaS origin),
-**`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`**, **`AI_SERVICE_ISSUER`**,
-**`AI_SERVICE_JWKS_URL`**. On **ai**, internal identity URLs:
-**`IDENTITY_SERVICE_URL`**, **`IDENTITY_JWKS_URL`**
-(**`http://identity:8000`**). On **saas**, **`IDENTITY_INTERNAL_URL`**. It also
-checks **`GLOBAL_JWKS`** includes a **`kid`**. Static compose resolution only,
-not HTTP to running services.
+It checks resolved `environment` on `identity`, `ai`, and `saas`:
+`JWT_ISSUER`, `GLOBAL_ISSUER_URL` (SaaS origin),
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, `AI_SERVICE_ISSUER`,
+`AI_SERVICE_JWKS_URL`, identity `IDENTITY_SERVICE_URL` and
+`IDENTITY_JWKS_URL` (`http://identity:8000`), saas
+`IDENTITY_INTERNAL_URL`, and a `kid` inside `GLOBAL_JWKS`. That is
+compose JSON. It does not send HTTP to the containers.
 
 - `node scripts/verify-ai-native-doc.mjs`
 - `pnpm run docs:build`
 
-If **`docker`** is missing, the script prints **`docker not available; skipped
-compose config validation`**. **`pnpm run test:scripts`** still passes. That is
-**not** a failure: issuer and audience checks did not run on that host.
+If `docker` is missing, the script prints `docker not available; skipped
+compose config validation` and `pnpm run test:scripts` still passes. Issuer
+checks did not run on that host.
 
-**Live on your machine:** after **`shellui/dev`** is up, you can drive regional
-OAuth, **`tools/list`** on **`http://localhost:8006/c/`**, human
-**`GET /api/v1/mcp/approvals`**, **`POST /api/v1/mcp/approvals/`** **`{id}`**
-**`/decide`**, activity in **`McpAgentActivitySection.tsx`**, and SaaS
-**`http://localhost:8005/mcp`** when your **`saas-service`** checkout is on the
-wire [identity-mcp] [activity-tsx]. Full-stack HTTP is **not** verified by this
-repo's automated tests.
-
-## Handbook anchors and remote heads
-
-Stable handbook links use **`develop`** on GitHub. For issue review **135**,
-handbook text for OAuth, global exchange, approvals, and call logs matches
-**identity-service** commit **`6a271764f0132a27d979945663a20380cfb94a68`**
-[identity-mcp]. **storage-service** and **hosting-service** serializers and dev
-notes for the same review sit at **`c2cb6ef05f5b5f697d15f849167c16c009885072`**
-and **`71403d9c3cd6ffa3a0ee6d561662070ad31e0581`** [storage-serializer]
-[storage-test].
-
-Remote default branch tips from **`git ls-remote`** on this VM (2026-11-06):
-
-- **identity-service**
-  **`f669ddda6491faf77ebb8d87261eb4b4b0204e71`**
-- **storage-service**
-  **`17df0791ef0b8c91a31ac2a16fe9283a9556f75f`**
-- **hosting-service**
-  **`8015c0a28765ddda3fcc2653a10ef5368a7604d5`**
-- **email-service**
-  **`919bcf7d7977ddc825ac415388638fca1714c99c`**
-- **ai-service**
-  **`73ec12f0648fda69266b369f3e5b1c2fef1474ae`**
-
-**saas-service** is not available to this agent, so SaaS code and docs paths are
-not verified here. Use your org checkout for SaaS mint details.
+**Live on your machine:** with `shellui/dev` up, you run the regional OAuth
+steps below, `tools/list` on `http://localhost:8006/c/1/mcp`, human
+`GET /api/v1/mcp/approvals`, and
+`POST /api/v1/mcp/approvals/{id}/decide`. Activity is rendered by
+`McpAgentActivitySection.tsx`. SaaS MCP is `POST http://localhost:8005/mcp`.
+Mint, exchange, gateway approval, and a downstream call are separate manual
+steps. This repo's pytest does not run that chain. Identity pytest covers
+exchange with fixtures. That is not this compose stack.
 
 ## Global vs regional (no master token)
 
-- **Global:** **`POST http://localhost:8005/mcp`** surfaces SaaS tools such as
-  **`list_services`**, **`api_v1_templates_list`**,
-  **`api_v1_templates_render_preview`**, **`api_v1_companies_create`**, and
-  **`api_v1_companies_retrieve`**. **`list_services`** returns each service
-  **`/mcp`** origin Identity expects for downstream minting [identity-mcp].
+- **Global MCP** is `POST http://localhost:8005/mcp`. Identity
+  `list_services` builds that URL from `SAAS_SERVICE_URL` plus `/mcp`.
+  It does not read regional identity, storage, hosting, or email data.
+- **Regional gateway** is `POST http://localhost:8006/c/1/mcp` for the
+  seeded company. `POST http://localhost:8006/mcp` returns 404
+  `company_required`.
+- A regional access token `aud` is that per-company URL. The global agent
+  JWT `aud` is `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`
+  (`shellui_global_agent_dev` in `dev/.env.local.example`), not
+  `http://localhost:8005/mcp`. There is no master token.
+- Regional calls use a short-lived token from RFC 8693 exchange. Do not
+  send the global JWT to a regional `/mcp`, and do not mint a stand-in
+  with Django admin.
+- `GET /api/v1/mcp/approvals` and decide routes need a human company
+  token, not an agent Bearer token.
+- `GET /oauth/authorize` on the SaaS origin is user OpenID (`scope`
+  `openid email profile`). It is not the agent token endpoint.
 
-- **Regional:** **`POST http://localhost:8006/c/<regional_company_id>/mcp`**
-  is the only supported gateway path per company. Plain
-  **`POST http://localhost:8006/mcp`** answers **404** with **`company_required`**
-  [ai-mcp].
+## Install and start (Shellui `develop`)
 
-- **Token scope:** access token **`aud`** must match the gateway URL you call.
-  There is **no** one token that replaces per-company URLs [ai-mcp].
-
-- **Humans vs agents:** **`GET /api/v1/mcp/approvals`** and approval decide
-  routes need a **human** company token, not agent Bearer [identity-mcp]
-  [permissions-src].
-
-- **Global agent RFC 8693:** Identity documents **`POST /oauth/token`** token
-  exchange from a global agent JWT to a regional MCP resource when
-  **`SHELLUI_INSTANCE_ROLE=region`** and **`GLOBAL_ISSUER_URL`**,
-  **`GLOBAL_JWKS`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** are set
-  [identity-mcp]. SaaS mints the global subject JWT; confirm variable names and
-  mint steps from your **`saas-service`** checkout. This monorepo does not run a
-  full mint plus exchange proof in CI.
-- **Global approval forwarding:** delegated agents (**`global_agent_id`**) must
-  route internal approvals through **ai-service**; storage, hosting, and email
-  get **409** **`out_of_sync`** if they create approvals directly
-  [identity-mcp]. Remaining product gaps for global versus regional admin flows
-  are tracked in SaaS issue **34**; treat those paths as uncertain until that
-  issue closes.
-
-## Install and start (**Shellui** `develop`)
-
-Clone repos side by side and run **`shellui/dev`**: see [dev-stack]. Then:
+Clone the repos side by side and start `shellui/dev`. See [dev-stack]. Then:
 
 ```bash
 cd shellui/dev
 ./start.sh
 ```
 
-`start.sh` runs **`generate-env.sh`** then **`docker compose --env-file
-.env.local up --build`** [start-sh] [compose-yml]. Identity maps
-**`- '8001:8000'`** [compose-yml]. **hosting** publishes **`8003:8000`** on the
-host [compose-yml].
+`start.sh` runs `generate-env.sh`, then
+`docker compose --env-file .env.local up --build`.
+Identity publishes `- '8001:8000'`.
+Hosting publishes `8003:8000`.
 
-Set **`SHELLUI_INSTANCE_ROLE=region`**, **`GLOBAL_ISSUER_URL`**,
-**`GLOBAL_JWKS`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** or regional
-**token exchange** answers **404** [identity-mcp].
+Set `SHELLUI_INSTANCE_ROLE=region`, `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
+and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or regional token exchange
+returns 404.
 
-**`GLOBAL_JWKS` and signing key:**
-`dev/generate_env.py` derives **`GLOBAL_JWKS`** and **`GLOBAL_AGENT_KEY_ID`**
-from the same **`GLOBAL_AGENT_SIGNING_KEY`** PEM on every run so Identity
-offline verify and SaaS mint cannot drift [generate-env] [compose-yml].
-
-**`dev/docker-compose.yml`** passes **`GLOBAL_AGENT_SIGNING_KEY`**,
-**`GLOBAL_AGENT_KEY_ID`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** into
-**saas** [compose-yml]. **`GLOBAL_AGENT_KEY_ID`** equals the **`kid`** in
-**`GLOBAL_JWKS`** (single-key JWKS object) [generate-env].
-
-If you replace the signing material by hand, keep **`GLOBAL_JWKS`** in sync with
-the key **SaaS** and **identity** use (same **`kid`**, **`n`**, and **`e`**), or
-rerun **`generate-env.sh`**.
+`dev/generate_env.py` derives `GLOBAL_JWKS` and `GLOBAL_AGENT_KEY_ID`
+from the same `GLOBAL_AGENT_SIGNING_KEY` PEM on every run.
+`GLOBAL_AGENT_KEY_ID` is the `kid` in that JWKS.
+`dev/docker-compose.yml` passes the PEM, the key id, and the audience
+into `saas`. If you replace the PEM by hand, rerun `generate-env.sh`.
 
 ## Human account and Terms before agent work
 
-Use a **normal member** account for MCP OAuth, not **staff**. [dev-stack] seeds
-**`dev@localhost`** for company **1** with the email link. Open Mailpit, finish
-sign-in, then use MCP **`/oauth/mcp/authorize`**. **`admin` / `admin`** is only
-for Django admin (`http://localhost:8001/admin/`). Staff cannot use the email
-link and cannot authorize MCP clients [identity-mcp] [dev-stack]. Accept any
-**Terms** or similar prompts Identity shows during that browser flow. Wording
-comes from the running identity build. Do not route agent OAuth through the
-staff admin shortcut.
+`seed_dev` creates company **1** and a non-staff member `dev@localhost`.
+Request a magic link in the shell at `http://localhost:4000`, then open
+it from Mailpit at `http://localhost:8025`.
 
-## Official MCP clients (supported where documented)
+Accept Terms of Service on that human account before any agent step:
+register, authorize, token exchange, or `tools/call`. Staff accounts
+cannot authorize MCP clients. Sign in with `dev@localhost`.
 
-The ai-service repo ships **`./tools/mcp-e2e/run.sh`**, which runs **identity**,
-**ai-service**, **postgres**, **redis**, and **saas-mock** only. It proves:
+Company id **1** is the seeded id (`SHELL_IDENTITY_COMPANY_ID`). The
+resource path below uses `/c/1/mcp`. If your membership is a different
+company, put that integer in the path.
 
-- **`@modelcontextprotocol/sdk`** (TypeScript) with registration,
-  **`GET /.well-known/oauth-protected-resource/c/<company_id>/mcp`**, PKCE S256,
-  **`POST /oauth/mcp/token`**, refresh, **`initialize`**, **`tools/list`**, and
-  a harmless **`tools/call`**
-- official **Python `mcp`** with the same flow
-- **`@modelcontextprotocol/inspector --cli`** for **`tools/list`** with the
-  OAuth access token [ai-e2e]
+## Official MCP clients
 
-That job **empties** storage, hosting, and email URLs on purpose. It is **not**
-proof of **`shellui/dev`** with every sibling [ai-e2e].
+ai-service `./tools/mcp-e2e/run.sh` starts identity, ai-service, Postgres,
+Redis, and a saas-mock. It runs the TypeScript MCP SDK, the Python `mcp`
+SDK, and `@modelcontextprotocol/inspector --cli` through registration,
+PKCE S256, `POST /oauth/mcp/token`, `initialize`, `tools/list`, and one
+harmless `tools/call`. That job clears storage, hosting, and email URLs.
+It is not `shellui/dev`. Shellui does not add a second Inspector script
+on the full stack. See [ai-e2e].
 
-**Shellui** does **not** ship a second scripted Inspector run on top of the full
-**`shellui/dev`** stack; after **`shellui login`**, you paste the per-company
-connector URL into your MCP product or run [ai-e2e] against **ai-service**
-**`develop`** [identity-mcp].
+## Regional curl
 
-## Regional **curl** (**POST /oauth/mcp/register** onward)
+Use one loopback redirect in register, authorize, and token:
+`http://127.0.0.1:8765/callback`. Identity compares it to the registered
+list exactly. Start the listener before you open the authorize URL. It
+binds `127.0.0.1` port 8765, reads `code` from the query, and writes
+`/tmp/shellui-mcp-code`. Keep the same shell for the later blocks, or
+read those files.
 
-Use **one** loopback **`redirect_uri`** in **`POST /oauth/mcp/register`**, the
-**`GET /oauth/mcp/authorize`** query, and the token step. Identity compares the
-value to the registered list exactly [identity-mcp].
-
-### Register
+### Callback listener
 
 ```bash
-curl -sS -X POST "http://localhost:8001/oauth/mcp/register" \
-  -H "Content-Type: application/json" \
-  -d '{"client_name":"local_dev_agent","redirect_uris":
-  ["http://localhost:8765/callback"]}'
+rm -f /tmp/shellui-mcp-code
+python3 - <<'PY' &
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qs, urlparse
+class H(BaseHTTPRequestHandler):
+    def do_GET(self):
+        q = parse_qs(urlparse(self.path).query)
+        code = (q.get("code") or [""])[0]
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        if not code:
+            self.wfile.write(b"no code\n")
+            return
+        open("/tmp/shellui-mcp-code", "w").write(code)
+        self.wfile.write(b"code saved\n")
+        self.server.stop = True
+    def log_message(self, *a):
+        return
+s = HTTPServer(("127.0.0.1", 8765), H)
+s.stop = False
+while not s.stop:
+    s.handle_request()
+PY
 ```
 
-### PKCE verifier and challenge
+### Register and save `client_id`
 
-```bash
-V="$(openssl rand -base64 48 | tr -d '\n')"
-D="$(printf '%s' "$V" | openssl dgst -binary -sha256 |
-  openssl base64 | tr -d '\n')"
-C="$(printf '%s' "$D" | tr '+/' '-_' | tr -d '=')"
-```
-
-### Authorize URL (fill placeholders)
+`POST /oauth/mcp/register` returns 201 and `client_id`. The next block
+stores that id for the authorize URL and the token request.
 
 ```bash
 python3 - <<'PY'
-import urllib.parse as u
-q = dict(
-  response_type="code",
-  client_id="your_client_id_here",
-  redirect_uri="http://localhost:8765/callback",
-  scope="openid",
-  state="your_state_here",
-  code_challenge="your_code_challenge_here",
-  code_challenge_method="S256",
-  resource="http://localhost:8006/c/1234567890123/mcp",
+import json, urllib.request
+body = json.dumps({
+    "client_name": "local_dev_agent",
+    "redirect_uris": ["http://127.0.0.1:8765/callback"],
+}).encode()
+req = urllib.request.Request(
+    "http://localhost:8001/oauth/mcp/register",
+    data=body,
+    headers={"Content-Type": "application/json"},
 )
+with urllib.request.urlopen(req) as res:
+    cid = json.load(res)["client_id"]
+open("/tmp/shellui-mcp-client", "w").write(cid)
+print(cid)
+PY
+```
+
+### PKCE and authorize URL
+
+`GET /oauth/mcp/authorize` reads `response_type`, `client_id`,
+`redirect_uri`, `resource`, `code_challenge`, and
+`code_challenge_method` (`S256`). It does not read `scope` or `services`.
+A repeated query key keeps the first value only. `saas_offered=1` is the
+extra query ai-service adds when `SAAS_SERVICE_URL` is set. It does not
+grant SaaS by itself. `urllib.parse.urlencode` percent-encodes the query.
+Identity decodes it and matches `redirect_uri` to the registered string.
+
+```bash
+python3 - <<'PY'
+import base64, hashlib, secrets
+import urllib.parse as u
+cid = open("/tmp/shellui-mcp-client").read().strip()
+v = secrets.token_urlsafe(48)
+raw = hashlib.sha256(v.encode()).digest()
+c = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+open("/tmp/shellui-mcp-verifier", "w").write(v)
+q = [
+    ("response_type", "code"),
+    ("client_id", cid),
+    ("redirect_uri", "http://127.0.0.1:8765/callback"),
+    ("resource", "http://localhost:8006/c/1/mcp"),
+    ("code_challenge", c),
+    ("code_challenge_method", "S256"),
+    ("state", "local_dev"),
+    ("saas_offered", "1"),
+]
 print("http://localhost:8001/oauth/mcp/authorize?" + u.urlencode(q))
 PY
 ```
 
-Open the URL, sign in, approve consent (repeated **`services=`**, optional
-**`include_saas`**) [identity-mcp] [mcp-tok].
+Open that URL as `dev@localhost`. If identity shows its sign-in page,
+finish the Mailpit link in this browser, then return to the same URL.
+On consent, check the services you want. Identity pre-checks identity
+and adds `ai` because the resource is the gateway. Those boxes are POST
+fields named `services`, not authorize query parameters. `include_saas`
+is a separate checkbox, shown only when `saas_offered=1` is set. Its
+label is "Also allow SaaS tools (global Shellui account sign-in
+required)". Leave `include_saas` unchecked until Terms are accepted.
+Click **Allow**. The listener stores `code`.
 
-### Token (**`/oauth/mcp/token`**)
+### Token
 
-Authorization server metadata lists **`POST /oauth/token`**.
-**`POST /oauth/mcp/token`** is the same MCP handler [identity-mcp].
+Authorization-server metadata lists `token_endpoint` as
+`POST /oauth/token`. `POST /oauth/mcp/token` is the same handler.
+Send form fields, not JSON, so repeated keys survive. This block uses
+the saved client id, the captured code, and the PKCE verifier.
 
 ```bash
+CODE=$(cat /tmp/shellui-mcp-code)
+CID=$(cat /tmp/shellui-mcp-client)
+V=$(cat /tmp/shellui-mcp-verifier)
 curl -sS -X POST "http://localhost:8001/oauth/mcp/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "grant_type=authorization_code" \
-  --data-urlencode "client_id=your_client_id_here" \
-  --data-urlencode "code=your_authorization_code_here" \
-  --data-urlencode "redirect_uri=http://localhost:8765/callback" \
-  --data-urlencode "code_verifier=$V" \
-  --data-urlencode "resource=http://localhost:8006/c/1234567890123/mcp"
+  --data-urlencode "client_id=${CID}" \
+  --data-urlencode "code=${CODE}" \
+  --data-urlencode "redirect_uri=http://127.0.0.1:8765/callback" \
+  --data-urlencode "code_verifier=${V}" \
+  --data-urlencode "resource=http://localhost:8006/c/1/mcp" \
+  -o /tmp/shellui-mcp-token.json
+python3 - <<'PY'
+import json
+tok = json.load(open("/tmp/shellui-mcp-token.json"))
+open("/tmp/shellui-mcp-access", "w").write(tok["access_token"])
+print("access_token bytes", len(tok["access_token"]))
+PY
 ```
 
-### Gateway **`tools/list`**
+### Gateway `tools/list`
 
 ```bash
-read -r -s regional_agent_access_token_here
-curl -sS -X POST "http://localhost:8006/c/1234567890123/mcp" \
+TOK=$(cat /tmp/shellui-mcp-access)
+curl -sS -X POST "http://localhost:8006/c/1/mcp" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $regional_agent_access_token_here" \
+  -H "Authorization: Bearer ${TOK}" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
-Exported names are prefixed (for example **`storage_list_buckets`**) [ai-mcp].
-Storage list **`path_params`** use **`bucket_id`** with
-**`ObjectListRequestSerializer`** [storage-serializer].
+Names use a service prefix, for example `storage_list_bucket`. Object
+list takes path parameter `bucket_id` on
+`storage/v1/object/list/<bucket_id>` and a body from
+`ObjectListRequestSerializer`. The gateway name is
+`storage_create_object_list`.
 
-## Downstream mint (**`mcp-downstream-access-token`**)
+## Downstream mint
 
-The gateway calls **`POST /api/v1/mcp/internal/mcp-downstream-access-token`**
-on Identity with an ai-service RS256 assertion when it reaches another service
-**`/mcp`** resource [identity-mcp].
+The gateway calls
+`POST /api/v1/mcp/internal/mcp-downstream-access-token` on identity
+with an ai-service RS256 assertion when it calls another service
+`/mcp`. The minted token `aud` is that resource URL. It is short-lived
+and per company. It is not the global agent JWT.
 
-## Approvals (**`allow_session`**, destructive)
+## Approvals
 
-- **List:** **`GET /api/v1/mcp/approvals`**. Pending rows list **`service`**,
-  **`action`**, **`tool_name`**, **`target`**, **`is_destructive`**,
-  **`short_action_summary`**, and **`arguments_redacted`** (always **`{}`** for
-  internal creates) [identity-mcp].
-- **Decide:** **`POST /api/v1/mcp/approvals/{id}/decide`** with
-  **`{"decision":"approve"}`** or **`"deny"`** [identity-mcp].
-- **Gateway retries:** **`allow_session`** (**`session_allow`** in chat
-  metadata) is for **non-destructive** tools; default session TTL is **about
-  60s** via **`MCP_APPROVAL_SESSION_TTL_SECONDS`** (clamped **30** to **60**)
-  [identity-mcp] [ai-mcp].
-- **Destructive:** **`session_allow` never** applies when the tool is
-  destructive; **`mcp_access` `ask`** still requires approval for destructive
-  tools even when **`full`** would allow non-destructive writes [ai-mcp].
-  Identity rejects OAuth **"destructive without asking"** for new consent and
-  keeps delegated **`mcp_destructive`** aligned with that rule [identity-mcp].
-- **Legacy:** **`allow_destructive_without_asking`** may remain on old
-  **`Agent`** rows [identity-mcp].
+- **List:** `GET /api/v1/mcp/approvals` with a human company token.
+  Pending rows include `service`, `action`, `tool_name`, `target`,
+  `is_destructive`, `short_action_summary`, and `arguments_redacted`
+  (always `{}` for internal creates).
+- **Decide:** `POST /api/v1/mcp/approvals/{id}/decide` with
+  `{"decision":"approve"}` or `"deny"`.
+- **Session:** in-chat `allow_session` (`session_allow` in chat
+  metadata) applies to non-destructive tools. Default TTL is 60s
+  (`MCP_APPROVAL_SESSION_TTL_SECONDS`, clamped 30 to 60).
+- **Destructive:** `session_allow` does not apply. `mcp_access` `ask`
+  still asks on destructive tools when `full` would allow other writes.
+  New consent cannot enable destructive access without asking.
+  `allow_destructive_without_asking` can remain on old `Agent` rows.
+- Delegated agents (`global_agent_id` set) must take approvals from
+  ai-service. Storage, hosting, and email get 409 `out_of_sync` if they
+  create those approvals.
 
-## Activity, call logs, and revocation
+## Call logs
 
-**`POST /api/v1/mcp/internal/mcp-call-logs`** requires **`outcome`** in
-**`allowed`**, **`failed`**, **`denied`**, **`waiting_approval`**, or
-**`session_used`**. **`company_id`** and **`grant_version`** (JSON integer,
-match the **`Agent`**) are required. Delegated agents also send
-**`global_company_id`** (uuid) and **`company_binding_version`** (JSON
-integer) matching the row. Identity rejects **`arguments`**,
-**`arguments_redacted`**, and client-supplied **`operation_title`** /
-**`resource_label`**; it derives labels from **`tool`**, **`method`**,
-**`path`**, **`service`** [identity-mcp].
+`POST /api/v1/mcp/internal/mcp-call-logs` requires `outcome` in
+`allowed`, `failed`, `denied`, `waiting_approval`, or `session_used`.
+`grant_version` is required (JSON integer) and must match the Agent.
 
-Revoke agents with **`POST /api/v1/mcp/agents/{id}/revoke`** and poll
-**`GET /api/v1/mcp/internal/mcp-revocations`** as in [identity-mcp].
+Delegated agents must also send `global_company_id` (uuid string) and
+`company_binding_version` (JSON integer). That pair plus `grant_version`
+is the authority triple. All three must match the row. A mismatch
+returns 409. Personal agents omit the binding fields. Session check
+uses the same live triple when the agent is delegated.
 
-## Global token exchange (fields)
+`method` must be `POST` and `path` must be `/mcp`.
 
-When a **real** global agent JWT exists, **`POST /oauth/mcp/token`** on Identity
-(or **`POST /oauth/token`**, same handler) carries **`grant_type`**
-**`urn:ietf:params:oauth:grant-type:token-exchange`**, **`subject_token`**,
-**`requested_token_type`** and **`subject_token_type`**
-**`urn:ietf:params:oauth:token-type:access_token`**, and **`resource`** set to
-**`http://localhost:8006/c/<id>/mcp`** [identity-mcp]. Human vault federation
-still uses **`handle_token_exchange`** on **`POST /oauth/token`**, not agent
-exchange [identity-mcp]. Global agent **`aud`** is
-**`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`**, not **`http://localhost:8005/mcp`**
-[identity-mcp]. Example SaaS create still sends **`"region":"ch"`** on
-**`api_v1_companies_create`** next to **`api_v1_companies_retrieve`**
-[identity-mcp].
+Identity stores the label as `POST /mcp` with the service id. Another
+method or path returns 400.
 
-## **`shellui.config.json`** (human CLI)
+Omit `arguments`, `arguments_redacted`, `operation_title`, and
+`resource_label`.
+
+Revoke with `POST /api/v1/mcp/agents/{id}/revoke`. Poll
+`GET /api/v1/mcp/internal/mcp-revocations` as in [identity-mcp].
+
+## Global token exchange (manual)
+
+Finish the human account and Terms first. Complete global MCP OAuth on
+saas-service using the authorization and token routes in its `develop`
+handbook [saas-dev]. This page does not fold that consent into one
+command, and it does not mint the subject token from Django admin.
+
+When you have that global agent JWT, exchange it on identity. Repeated
+`services` keys belong on this form body. They narrow the global agent.
+They are not authorize query parameters. The subject `scope` is one
+space-separated string and must include `ai`. `POST /oauth/token` and
+`POST /oauth/mcp/token` share the handler. Human vault federation still
+uses `handle_token_exchange` on `POST /oauth/token`, not this grant.
+
+```bash
+G=urn:ietf:params:oauth:grant-type:token-exchange
+A=urn:ietf:params:oauth:token-type:access_token
+curl -sS -X POST "http://localhost:8001/oauth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=${G}" \
+  --data-urlencode "subject_token=${SUBJECT_TOKEN}" \
+  --data-urlencode "subject_token_type=${A}" \
+  --data-urlencode "requested_token_type=${A}" \
+  --data-urlencode "company_id=1" \
+  --data-urlencode "resource=http://localhost:8006/c/1/mcp" \
+  --data-urlencode "access_mode=read_only" \
+  --data-urlencode "read_level=safe" \
+  --data-urlencode "allow_destructive=false" \
+  --data-urlencode "services=identity" \
+  --data-urlencode "services=storage"
+```
+
+Set `SUBJECT_TOKEN` to the global agent access JWT before you run it.
+The response is a regional token for company 1. This repo has not run
+mint, this exchange, a gateway approval, and a downstream call together.
+`pnpm run test:scripts` does not perform that HTTP sequence.
+
+Local compose sets `DEV_REGION_CODE` to `ch`. Tool names for SaaS company
+create and retrieve stay in the saas-service handbook.
+
+## `shellui.config.json` (human CLI)
 
 ```json
 {
   "backend": {
     "type": "shellui",
     "url": "http://localhost:8001",
-    "companyId": "1234567890123"
+    "companyId": "1"
   },
   "saas": { "url": "http://localhost:8005" }
 }
 ```
 
-**`REGION_CH_IDENTITY_ORIGIN`** labels the dashboard region row; **`saas.url`**
-is the base for **`GET /api/v1/companies/`** [projects-js].
+`REGION_CH_IDENTITY_ORIGIN` labels the dashboard region row. `saas.url`
+is the base for `GET /api/v1/companies/`.
 
 ## Shellui CLI routes (human session)
 
-After **`shellui login`** (token not printed):
+After `shellui login` (the token is not printed):
 
-- **`shellui projects list`**: **`GET {saas.url}/api/v1/companies/`**
-- **`shellui projects get <uuid>`**:
-  **`GET {saas.url}/api/v1/companies/{uuid}/`**
-- **`shellui projects regions`**: **`GET {saas.url}/api/v1/regions/`**
-- **`shellui projects endpoints <uuid>`**:
-  **`GET {saas.url}/api/v1/companies/{uuid}/endpoints/`**
-- **`shellui projects use <uuid>`**: stores default UUID for endpoints
-- **`shellui projects create`**: **not** implemented (**`projects create`**)
-  [projects-js]
+- `shellui projects list`: `GET {saas.url}/api/v1/companies/`
+- `shellui projects get <uuid>`:
+  `GET {saas.url}/api/v1/companies/{uuid}/`
+- `shellui projects regions`: `GET {saas.url}/api/v1/regions/`
+- `shellui projects endpoints <uuid>`:
+  `GET {saas.url}/api/v1/companies/{uuid}/endpoints/`
+- `shellui projects use <uuid>`: stores the default UUID
+- `shellui projects create`: not implemented (`projects create`)
 
-## Not covered as a one-command flow here
+## Not a one-command flow here
 
-- **Full** **`@modelcontextprotocol/inspector --cli`** against **`shellui/dev`**
-  with scripted OAuth (beyond [ai-e2e] or a manual connector) is **not** in this
-  repo.
-- **saas-service** mint, webhooks, and dashboard flows must be validated from
-  your private checkout and SaaS docs.
+- Inspector against `shellui/dev` with scripted OAuth is not in this
+  repo. Use [ai-e2e] or the curl above.
+- Global OAuth consent, then exchange, then approval, then a downstream
+  `tools/call` is manual. Shellui pytest does not execute it.
 
 ## Reference links
 
 [dev-stack]: https://github.com/shellui/shellui/blob/develop/docs/dev-stack.md
-[start-sh]: https://github.com/shellui/shellui/blob/develop/dev/start.sh
-[compose-yml]: https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml
-[generate-env]: https://github.com/shellui/shellui/blob/develop/dev/generate_env.py
-[projects-js]: https://github.com/shellui/shellui/blob/develop/packages/cli/src/commands/projects.js
-[identity-mcp]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/docs/mcp-and-agents.md
+[identity-mcp]: https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md
+[mcp-views]: https://github.com/shellui/identity-service/blob/develop/apps/agents/oauth_views.py
 [ai-mcp]: https://github.com/shellui/ai-service/blob/develop/docs/mcp.md
 [ai-e2e]: https://github.com/shellui/ai-service/blob/develop/docs/mcp-e2e-conformance.md
-[mcp-tok]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/oauth_views.py
-[decide-src]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/admin_views.py
-[permissions-src]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/permissions.py
-[internal-approval]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/internal_views.py
-[storage-serializer]: https://github.com/shellui/storage-service/blob/c2cb6ef05f5b5f697d15f849167c16c009885072/apps/storage/serializers.py
-[storage-test]: https://github.com/shellui/storage-service/blob/c2cb6ef05f5b5f697d15f849167c16c009885072/apps/storage/tests/test_mcp.py
+[storage-serializer]: https://github.com/shellui/storage-service/blob/develop/apps/storage/serializers.py
+[saas-dev]: https://github.com/shellui/saas-service/blob/develop/docs/dev-stack.md
 [activity-tsx]: https://github.com/shellui/shellui/blob/develop/packages/core/src/features/settings/components/McpAgentActivitySection.tsx

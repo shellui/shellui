@@ -299,6 +299,7 @@ services:
       target: dev
     entrypoint: ['/opt/shellui/dev/container/email-worker-dev-entrypoint.sh']
     environment:
+      <<: *identity-jwt
       EMAIL_LANE_WORKER_POLL_SECONDS: ${EMAIL_LANE_WORKER_POLL_SECONDS:-5}
       DEBUG: 'true'
       SECRET_KEY: ${EMAIL_SECRET_KEY}
