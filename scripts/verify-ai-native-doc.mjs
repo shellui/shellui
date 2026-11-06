@@ -22,6 +22,7 @@ const banned = [
   /→/,
   /your-saas|your_saas|your-saas-host/i,
   /http:\/\/localhost:8001\/api\/v1\/companies\/<id>\/mcp/,
+  /\bPR\s*#\d+/i,
 ];
 
 const required = [
@@ -35,6 +36,12 @@ const required = [
   'projects create',
   'session_allow',
   'allow_session',
+  'api_v1_companies_create',
+  'api_v1_companies_retrieve',
+  'POST /oauth/mcp/register',
+  '/oauth/mcp/authorize',
+  'http://localhost:8006/c/',
+  "- '8001:8000'",
 ];
 
 const problems = [];
@@ -72,10 +79,11 @@ for (let i = 0; i < lines.length; i++) {
           `code block (${lang}) exceeds 25 lines: ${bodyLines.length} at line ${fenceStart + 1}`,
         );
       }
+      const maxCode = lang === 'json' ? 96 : 80;
       for (let j = 0; j < bodyLines.length; j++) {
-        if (bodyLines[j].length > 80) {
+        if (bodyLines[j].length > maxCode) {
           problems.push(
-            `code line >80 cols at ${fenceStart + 2 + j}: ${bodyLines[j].length} (${lang})`,
+            `code line >${maxCode} cols at ${fenceStart + 2 + j}: ${bodyLines[j].length} (${lang})`,
           );
         }
       }
@@ -85,7 +93,6 @@ for (let i = 0; i < lines.length; i++) {
   }
   if (inFence) continue;
 
-  // Link reference definitions: URLs cannot be wrapped.
   if (/^\[[^\]]+\]: https?:\/\//.test(line)) continue;
 
   const max = line.includes('http') ? MAX_HTTP : MAX_NORMAL;

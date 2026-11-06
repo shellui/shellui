@@ -24,7 +24,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 📚 Documentation
 
-- **AI native guide:** `docs/features/ai-native.md` is reworked into a numbered product story (dev stack, human account, SaaS endpoints, regional AI URL, RFC 8693 exchange, approvals, CLI, revoke) with handbook links, compact tables, and fenced examples checked by `scripts/verify-ai-native-doc.mjs`.
+- **AI native guide:** `docs/features/ai-native.md` now documents `dev/start.sh` and `generate-env.sh`, compose ports (including `- '8001:8000'`), dynamic client registration, PKCE authorize, global SaaS MCP `api_v1_companies_create` and `retrieve`, human approval on `/api/v1/mcp/approvals/{approval_id}/decide`, RFC 8693 exchange, storage, hosting, and email `tools/call` payloads from service source, and activity outcomes; `docs/features/ai-native-mcp.md` links here; `dev/generate_env.test.py` adds retention checks; `scripts/verify-ai-native-doc.mjs` guards the doc.
 - **Dev stack:** `dev/docker-compose.yml` passes `GLOBAL_AGENT_PRIVATE_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **saas** and sets `AI_PUBLIC_URL` on **ai** so MCP resource URLs match `PUBLIC_AI_URL`.
 - **Dev stack:** `dev/docker-compose.yml`, `dev/.env.local.example`, and `dev/generate-env.sh` to run the shell, Files (5175), and sibling services locally.
 - **Dev stack:** `generate-env.sh` creates dev-only RS256 keys for each service's internal MCP assertions and saas provisioning, and compose registers them as identity's trusted callers, so `./start.sh` needs no manual key setup.
