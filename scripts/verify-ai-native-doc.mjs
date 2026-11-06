@@ -35,6 +35,7 @@ const required = [
   'api_v1_templates_render_preview',
   'api_v1_templates_list',
   'GLOBAL_AGENT_SIGNING_KEY',
+  'GLOBAL_AGENT_SIGNING_KID',
   'SHELLUI_INSTANCE_ROLE',
   'McpAgentActivitySection.tsx',
   'projects create',
@@ -61,7 +62,11 @@ const required = [
   'GET /api/v1/mcp/approvals',
   'POST /api/v1/mcp/approvals/',
   "- '8001:8000'",
-  'not implemented in saas yet',
+  'out_of_sync',
+  'waiting_approval',
+  'grant_version',
+  'company_binding_version',
+  'cursor/handbook-mcp-docs-d2d2',
 ];
 
 const problems = [];

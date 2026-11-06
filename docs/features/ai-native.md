@@ -27,29 +27,33 @@ wire [identity-mcp] [activity-tsx].
 
 CI in this monorepo does not run that stack end to end or mint real JWTs.
 
-## Source pins (read on this VM)
+## Handbook anchors and remote heads
 
-These SHAs match the open PR heads you listed:
+Stable handbook links use **`develop`** on GitHub. For issue review **135**,
+handbook text for OAuth, global exchange, approvals, and call logs matches
+**identity-service** commit **`6a271764f0132a27d979945663a20380cfb94a68`**
+[identity-mcp]. **storage-service** and **hosting-service** serializers and dev
+notes for the same review sit at **`c2cb6ef05f5b5f697d15f849167c16c009885072`**
+and **`71403d9c3cd6ffa3a0ee6d561662070ad31e0581`** [storage-serializer]
+[storage-test].
 
-- **identity-service** branch head:
-  **`d79d433278ac18695a6165448bf0b8cfe56c88a5`** [identity-mcp]
-- **storage-service** branch head:
-  **`a470938a76f453048acba61661847aa88466c318`** [storage-serializer]
-  [storage-test]
-- **hosting-service** branch head:
-  **`cdd1c3a57d308c0bae7ea12f9618ed04f830c077`**
-- **email-service** branch head:
-  **`17c900d07938f5fbd15a0241ba6e58d8a704c9d0`**
-- **ai-service** branch head: **`6eb54d3a887a4db9f02743533388aa7e51ce3d8d`**
-  [ai-mcp] [ai-e2e]
+Remote default branch tips from **`git ls-remote`** on this VM (2026-11-06):
 
-**saas-service** is a **private** org repo on GitHub. This environment cannot
-clone it; use your org checkout when you verify **`GLOBAL_AGENT_SIGNING_KEY`**
-mint and **`POST http://localhost:8005/mcp`**. Some internal docs still say
-global agent mint after SaaS MCP consent is **not implemented in saas yet**;
-until your SaaS branch closes that, treat **global agent JWT then regional RFC
-8693 token exchange** as **not** supported end to end in public copy here
-[identity-mcp].
+- **identity-service**
+  **`f669ddda6491faf77ebb8d87261eb4b4b0204e71`**
+- **storage-service**
+  **`17df0791ef0b8c91a31ac2a16fe9283a9556f75f`**
+- **hosting-service**
+  **`8015c0a28765ddda3fcc2653a10ef5368a7604d5`**
+- **email-service**
+  **`919bcf7d7977ddc825ac415388638fca1714c99c`**
+- **ai-service**
+  **`73ec12f0648fda69266b369f3e5b1c2fef1474ae`**
+
+**saas-service** is private; this environment cannot read its default branch
+tip. SaaS **`docs/global-mcp.md`** on
+**`cursor/handbook-mcp-docs-d2d2`** is the org handbook for global MCP mint.
+Read it from your checkout or GitHub UI.
 
 ## Global vs regional (no master token)
 
@@ -71,6 +75,22 @@ until your SaaS branch closes that, treat **global agent JWT then regional RFC
   routes need a **human** company token, not agent Bearer [identity-mcp]
   [permissions-src].
 
+- **Global agent RFC 8693:** Identity documents **`POST /oauth/token`** token
+  exchange from a global agent JWT to a regional MCP resource when
+  **`SHELLUI_INSTANCE_ROLE=region`** and **`GLOBAL_ISSUER_URL`**,
+  **`GLOBAL_JWKS`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** are set
+  [identity-mcp]. SaaS
+  mints the global subject JWT; see SaaS **`docs/global-mcp.md`** on
+  **`cursor/handbook-mcp-docs-d2d2`**. This monorepo does not run a full mint
+  plus exchange proof in CI; verify on your machine with a private SaaS
+  checkout.
+- **Global approval forwarding:** delegated agents (**`global_agent_id`**) must
+  route internal approvals through **ai-service**; storage, hosting, and email
+  get **409** **`out_of_sync`** if they create approvals directly
+  [identity-mcp]. Remaining product gaps for global versus regional admin flows
+  are tracked in SaaS issue **34**; treat those paths as uncertain until that
+  issue closes.
+
 ## Install and start (**Shellui** `develop`)
 
 Clone repos side by side and run **`shellui/dev`**: see [dev-stack]. Then:
@@ -82,18 +102,39 @@ cd shellui/dev
 
 `start.sh` runs **`generate-env.sh`** then **`docker compose --env-file
 .env.local up --build`** [start-sh] [compose-yml]. Identity maps
-**`- '8001:8000'`** [compose-yml].
+**`- '8001:8000'`** [compose-yml]. **hosting** publishes **`8003:8000`** on the
+host [compose-yml].
 
 Set **`SHELLUI_INSTANCE_ROLE=region`**, **`GLOBAL_ISSUER_URL`**,
 **`GLOBAL_JWKS`**, and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** or regional
-**token exchange** answers **404** [identity-mcp]. For SaaS that mints global
-agent JWTs, set **`GLOBAL_AGENT_SIGNING_KEY`** (and kid) per
-**`dev/.env.local.example`** [compose-yml].
+**token exchange** answers **404** [identity-mcp].
+
+**`GLOBAL_JWKS` and signing key:**
+`dev/generate_env.py` derives **`GLOBAL_JWKS`** and
+**`GLOBAL_AGENT_SIGNING_KID`** from the same **`GLOBAL_AGENT_SIGNING_KEY`** PEM
+on every run so Identity offline verify and SaaS mint cannot drift
+[generate-env] [compose-yml].
+
+**`dev/docker-compose.yml`** passes **`GLOBAL_AGENT_SIGNING_KEY`** and
+**`GLOBAL_AGENT_SIGNING_KID`** into **saas** (along with
+**`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`**). Some handbooks still say
+**`GLOBAL_AGENT_KEY_ID`**; use **`GLOBAL_AGENT_SIGNING_KID`** in this stack.
+
+If you replace the SaaS signing material by hand, set **`GLOBAL_JWKS`** to the
+public JWKS **SaaS serves** for that key (same **`kid`** and **`n`** /
+**`e`** as **`/.well-known/jwks.json`**), or rerun **`generate-env.sh`** so PEM
+and JWKS stay matched.
 
 ## Human account and Terms before agent work
 
-Create a **non-staff** dashboard member and accept Terms. Staff cannot finish
-MCP OAuth on Identity [identity-mcp].
+Use a **normal member** account for MCP OAuth, not **staff**. [dev-stack] seeds
+**`dev@localhost`** for company **1** with the email link. Open Mailpit, finish
+sign-in, then use MCP **`/oauth/mcp/authorize`**. **`admin` / `admin`** is only
+for Django admin (`http://localhost:8001/admin/`). Staff cannot use the email
+link and cannot authorize MCP clients [identity-mcp] [dev-stack]. Accept any
+**Terms** or similar prompts Identity shows during that browser flow. Wording
+comes from the running identity build. Do not route agent OAuth through the
+staff admin shortcut.
 
 ## Official MCP clients (supported where documented)
 
@@ -113,8 +154,8 @@ proof of **`shellui/dev`** with every sibling [ai-e2e].
 
 **Shellui** does **not** ship a second scripted Inspector run on top of the full
 **`shellui/dev`** stack; after **`shellui login`**, you paste the per-company
-connector URL into your MCP product or run [ai-e2e] against clones at the pin
-above [identity-mcp].
+connector URL into your MCP product or run [ai-e2e] against **ai-service**
+**`develop`** [identity-mcp].
 
 ## Regional **curl** (**POST /oauth/mcp/register** onward)
 
@@ -202,8 +243,8 @@ on Identity with an ai-service RS256 assertion when it reaches another service
 
 - **List:** **`GET /api/v1/mcp/approvals`**. Pending rows list **`service`**,
   **`action`**, **`tool_name`**, **`target`**, **`is_destructive`**,
-  **`short_action_summary`**, and **`arguments_redacted`**. Internal rows keep
-  **`arguments_redacted` as `{}`** [identity-mcp].
+  **`short_action_summary`**, and **`arguments_redacted`** (always **`{}`** for
+  internal creates) [identity-mcp].
 - **Decide:** **`POST /api/v1/mcp/approvals/{id}/decide`** with
   **`{"decision":"approve"}`** or **`"deny"`** [identity-mcp].
 - **Gateway retries:** **`allow_session`** (**`session_allow`** in chat
@@ -218,14 +259,22 @@ on Identity with an ai-service RS256 assertion when it reaches another service
 - **Legacy:** **`allow_destructive_without_asking`** may remain on old
   **`Agent`** rows [identity-mcp].
 
-## Activity and revocation
+## Activity, call logs, and revocation
 
-Call log ingest rejects **`arguments`** and **`arguments_redacted`** bodies so
-stored **`arguments_redacted` stays `{}`** [identity-mcp]. Revoke agents with
-**`POST /api/v1/mcp/agents/{id}/revoke`** and poll
+**`POST /api/v1/mcp/internal/mcp-call-logs`** requires **`outcome`** in
+**`allowed`**, **`failed`**, **`denied`**, **`waiting_approval`**, or
+**`session_used`**. **`company_id`** and **`grant_version`** (JSON integer,
+match the **`Agent`**) are required. Delegated agents also send
+**`global_company_id`** (uuid) and **`company_binding_version`** (JSON
+integer) matching the row. Identity rejects **`arguments`**,
+**`arguments_redacted`**, and client-supplied **`operation_title`** /
+**`resource_label`**; it derives labels from **`tool`**, **`method`**,
+**`path`**, **`service`** [identity-mcp].
+
+Revoke agents with **`POST /api/v1/mcp/agents/{id}/revoke`** and poll
 **`GET /api/v1/mcp/internal/mcp-revocations`** as in [identity-mcp].
 
-## Global token exchange (reference fields only)
+## Global token exchange (fields)
 
 When a **real** global agent JWT exists, **`POST /oauth/mcp/token`** on Identity
 (or **`POST /oauth/token`**, same handler) carries **`grant_type`**
@@ -275,21 +324,23 @@ After **`shellui login`** (token not printed):
 - **Full** **`@modelcontextprotocol/inspector --cli`** against **`shellui/dev`**
   with scripted OAuth (beyond [ai-e2e] or a manual connector) is **not** in this
   repo.
-- **saas-service** behavior must be validated from your private checkout.
+- **saas-service** mint, webhooks, and dashboard flows must be validated from
+  your private checkout and SaaS docs.
 
 ## Reference links
 
 [dev-stack]: https://github.com/shellui/shellui/blob/develop/docs/dev-stack.md
 [start-sh]: https://github.com/shellui/shellui/blob/develop/dev/start.sh
 [compose-yml]: https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml
+[generate-env]: https://github.com/shellui/shellui/blob/develop/dev/generate_env.py
 [projects-js]: https://github.com/shellui/shellui/blob/develop/packages/cli/src/commands/projects.js
-[identity-mcp]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/docs/mcp-and-agents.md
-[ai-mcp]: https://github.com/shellui/ai-service/blob/6eb54d3a887a4db9f02743533388aa7e51ce3d8d/docs/mcp.md
-[ai-e2e]: https://github.com/shellui/ai-service/blob/6eb54d3a887a4db9f02743533388aa7e51ce3d8d/docs/mcp-e2e-conformance.md
-[mcp-tok]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/oauth_views.py
-[decide-src]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/admin_views.py
-[permissions-src]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/permissions.py
-[internal-approval]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/internal_views.py
-[storage-serializer]: https://github.com/shellui/storage-service/blob/a470938a76f453048acba61661847aa88466c318/apps/storage/serializers.py
-[storage-test]: https://github.com/shellui/storage-service/blob/a470938a76f453048acba61661847aa88466c318/apps/storage/tests/test_mcp.py
+[identity-mcp]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/docs/mcp-and-agents.md
+[ai-mcp]: https://github.com/shellui/ai-service/blob/develop/docs/mcp.md
+[ai-e2e]: https://github.com/shellui/ai-service/blob/develop/docs/mcp-e2e-conformance.md
+[mcp-tok]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/oauth_views.py
+[decide-src]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/admin_views.py
+[permissions-src]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/permissions.py
+[internal-approval]: https://github.com/shellui/identity-service/blob/6a271764f0132a27d979945663a20380cfb94a68/apps/agents/internal_views.py
+[storage-serializer]: https://github.com/shellui/storage-service/blob/c2cb6ef05f5b5f697d15f849167c16c009885072/apps/storage/serializers.py
+[storage-test]: https://github.com/shellui/storage-service/blob/c2cb6ef05f5b5f697d15f849167c16c009885072/apps/storage/tests/test_mcp.py
 [activity-tsx]: https://github.com/shellui/shellui/blob/develop/packages/core/src/features/settings/components/McpAgentActivitySection.tsx
