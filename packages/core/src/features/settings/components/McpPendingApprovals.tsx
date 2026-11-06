@@ -1,70 +1,32 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import {
   decideMcpToolApproval,
-  fetchMcpPendingToolApprovals,
-  getMcpSettingsCompanyDisplayName,
   mcpApprovalExpiresInMinutes,
   type McpPendingToolApproval,
 } from '../../mcp/mcpToolApprovalsApi';
-import { useConfig } from '../../config/useConfig';
-
-const PENDING_POLL_MS = 5_000;
 
 type Props = {
   backendUrl: string;
   accessToken: string;
   companyId: string;
   enabled: boolean;
+  companyName: string;
+  approvals: McpPendingToolApproval[];
+  pendingCount: number;
+  onRefresh: () => Promise<void>;
 };
 
-export const McpPendingApprovals = ({ backendUrl, accessToken, companyId, enabled }: Props) => {
+export const McpPendingApprovals = forwardRef<HTMLElement, Props>(function McpPendingApprovals(
+  { backendUrl, accessToken, companyId, enabled, companyName, approvals, pendingCount, onRefresh },
+  ref,
+) {
   const { t } = useTranslation('settings');
-  const { config } = useConfig();
-  const companyName = getMcpSettingsCompanyDisplayName(config);
 
-  const [approvals, setApprovals] = useState<McpPendingToolApproval[]>([]);
-  const [pendingCount, setPendingCount] = useState(0);
   const [decidingId, setDecidingId] = useState<string | null>(null);
-  const mountedRef = useRef(true);
-
-  const loadPending = useCallback(async () => {
-    if (!enabled || !backendUrl || !accessToken) {
-      setApprovals([]);
-      setPendingCount(0);
-      return;
-    }
-    try {
-      const list = await fetchMcpPendingToolApprovals(backendUrl, accessToken, companyId);
-      if (!mountedRef.current) return;
-      const live = list.approvals.filter((row) => mcpApprovalExpiresInMinutes(row.expiresAt) > 0);
-      setApprovals(live);
-      setPendingCount(list.pendingCount > 0 ? list.pendingCount : live.length);
-    } catch {
-      if (!mountedRef.current) return;
-      setApprovals([]);
-      setPendingCount(0);
-    }
-  }, [accessToken, backendUrl, companyId, enabled]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    void loadPending();
-    if (!enabled) return undefined;
-    const timer = window.setInterval(() => {
-      void loadPending();
-    }, PENDING_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, loadPending]);
 
   const runDecide = useCallback(
     async (approval: McpPendingToolApproval, decision: 'approve' | 'deny') => {
@@ -81,7 +43,7 @@ export const McpPendingApprovals = ({ backendUrl, accessToken, companyId, enable
             toolName: approval.toolName,
           }),
         });
-        await loadPending();
+        await onRefresh();
       } catch {
         shellui.toast({
           type: 'error',
@@ -91,7 +53,7 @@ export const McpPendingApprovals = ({ backendUrl, accessToken, companyId, enable
         setDecidingId(null);
       }
     },
-    [accessToken, backendUrl, companyId, loadPending, t],
+    [accessToken, backendUrl, companyId, onRefresh, t],
   );
 
   const handleApprove = useCallback(
@@ -120,14 +82,17 @@ export const McpPendingApprovals = ({ backendUrl, accessToken, companyId, enable
     [companyName, runDecide, t],
   );
 
-  if (pendingCount <= 0 || approvals.length === 0) {
+  if (!enabled || pendingCount <= 0 || approvals.length === 0) {
     return null;
   }
 
   const countLabel = String(pendingCount);
 
   return (
-    <section className="space-y-4">
+    <section
+      ref={ref}
+      className="space-y-4 scroll-mt-8"
+    >
       <div className="flex flex-wrap items-center gap-2">
         <h2
           className="text-sm font-medium leading-none"
@@ -198,4 +163,6 @@ export const McpPendingApprovals = ({ backendUrl, accessToken, companyId, enable
       </ul>
     </section>
   );
-};
+});
+
+McpPendingApprovals.displayName = 'McpPendingApprovals';

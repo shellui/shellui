@@ -277,6 +277,19 @@
   },
   "mcpAgents": {
     "description": "Connectez un agent IA à cette entreprise via MCP. Chaque connexion reçoit son propre jeton. Révoquez une connexion lorsque vous n'utilisez plus cet agent.",
+    "global": {
+      "title": "Se connecter à Shellui (MCP global)",
+      "intro": "Vous pouvez utiliser plusieurs connexions MCP. Une portée liée au tableau de bord couvre votre compte Shellui (projets, entreprises, régions et forfaits). Cette page des paramètres couvre cette entreprise seulement (services régionaux et API d'application).",
+      "scopeAccount": "MCP tableau de bord : métadonnées de compte pour Shellui. Il ne lit pas les données de votre application hébergée.",
+      "scopeRegional": "Cette page : MCP pour cette entreprise (services régionaux). Les jetons sont à courte durée et liés à cette entreprise.",
+      "accessModes": "L'accès exact est lecture seule, écriture avec demande (ask) ou complet, selon les réglages du jeton.",
+      "approvals": "Les écritures qui nécessitent une personne passent par la liste d'approbations ci-dessous. Les outils destructifs exigent toujours une approbation.",
+      "prerequisite": "Vous devez avoir un compte Shellui avec les conditions d'utilisation acceptées avant de créer une connexion.",
+      "dashboardUrlLabel": "URL de base du tableau de bord (référence seulement, pas pour les clients MCP) :",
+      "dashboardUrlUnknown": "Définissez backend.adminUrl dans shellui.config.ts pour afficher l'URL de base du tableau de bord ici.",
+      "statusReady": "Votre session peut joindre saas. Créez une connexion ci-dessous quand vous voulez la portée tableau de bord plus entreprise.",
+      "statusPending": "Votre session est régionale seulement. Connectez-vous depuis le tableau de bord Shellui si vous avez besoin du MCP tableau de bord."
+    },
     "signInRequired": "Connectez-vous pour gérer les agents MCP.",
     "status": {
       "loading": "Vérification du statut MCP…",
@@ -322,6 +335,47 @@
       "successTitle": "Connexion révoquée",
       "successDescription": "{{name}} n'a plus accès.",
       "errorTitle": "Impossible de révoquer la connexion"
+    },
+    "activity": {
+      "title": "Activité récente",
+      "show": "Afficher l'activité",
+      "hide": "Masquer l'activité",
+      "loading": "Chargement de l'activité…",
+      "error": "Impossible de charger l'activité.",
+      "retry": "Réessayer",
+      "empty": "Aucune activité enregistrée pour cette connexion pour le moment.",
+      "destructiveBadge": "Peut modifier des données",
+      "outcome": {
+        "allowed": "Autorisé",
+        "denied": "Refusé",
+        "failed": "Échec",
+        "pendingApproval": "En attente d'approbation",
+        "sessionUsed": "Session utilisée",
+        "unknown": "Résultat non classé"
+      },
+      "access": {
+        "read": "Lecture",
+        "write": "Écriture",
+        "destructive": "Destructif",
+        "unknown": "Accès non classé"
+      },
+      "toolUnknown": "Outil inconnu",
+      "detail": {
+        "when": "Quand",
+        "duration": "Durée",
+        "notProvided": "Non communiqué",
+        "actor": "Acteur",
+        "actorUnknown": "Non communiqué",
+        "agent": "Connexion",
+        "result": "Résultat",
+        "resultUnknown": "Non classé",
+        "error": "Erreur du service",
+        "errorUnavailable": "Aucun détail d'erreur sûr du serveur pour cette ligne."
+      },
+      "link": {
+        "openApprovalById": "Aller aux approbations en attente",
+        "openApprovalsSection": "Aller aux approbations en attente (même nom d'outil)"
+      }
     },
     "pendingApprovals": {
       "title": "Approbations en attente",

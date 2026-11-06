@@ -277,6 +277,19 @@
   },
   "mcpAgents": {
     "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
+    "global": {
+      "title": "Connect to Shellui (global MCP)",
+      "intro": "You can use more than one MCP connection. A dashboard-scoped path covers your Shellui account (projects, companies, regions, and plans). This settings page covers this company only (regional services and app APIs).",
+      "scopeAccount": "Dashboard MCP: account metadata for Shellui. It does not read your hosted app data.",
+      "scopeRegional": "This page: MCP for this company (regional services). Tokens are short-lived and tied to this company.",
+      "accessModes": "Exact access is read-only, write that asks first (ask), or full, per token settings.",
+      "approvals": "Writes that need a person use the pending approvals list here. Destructive tools always need approval.",
+      "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
+      "dashboardUrlLabel": "Dashboard base URL (reference only, not for MCP clients):",
+      "dashboardUrlUnknown": "Set backend.adminUrl in shellui.config.ts to show the dashboard base URL here.",
+      "statusReady": "Your session can reach saas. Create a connection below when you need dashboard plus company scope.",
+      "statusPending": "Your session is regional only. Sign in from the Shellui dashboard when you need dashboard MCP."
+    },
     "signInRequired": "Sign in to manage MCP agents.",
     "status": {
       "loading": "Checking MCP status…",
@@ -322,6 +335,47 @@
       "successTitle": "Connection revoked",
       "successDescription": "{{name}} no longer has access.",
       "errorTitle": "Could not revoke the connection"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "show": "Show activity",
+      "hide": "Hide activity",
+      "loading": "Loading activity…",
+      "error": "Unable to load activity.",
+      "retry": "Try again",
+      "empty": "No activity recorded for this connection yet.",
+      "destructiveBadge": "Can change data",
+      "outcome": {
+        "allowed": "Allowed",
+        "denied": "Denied",
+        "failed": "Failed",
+        "pendingApproval": "Pending approval",
+        "sessionUsed": "Session used",
+        "unknown": "Result not classified"
+      },
+      "access": {
+        "read": "Read",
+        "write": "Write",
+        "destructive": "Destructive",
+        "unknown": "Access not classified"
+      },
+      "toolUnknown": "Unknown tool",
+      "detail": {
+        "when": "When",
+        "duration": "Duration",
+        "notProvided": "Not reported",
+        "actor": "Actor",
+        "actorUnknown": "Not reported",
+        "agent": "Connection",
+        "result": "Result",
+        "resultUnknown": "Not classified",
+        "error": "Service error",
+        "errorUnavailable": "No safe error detail from the server for this row."
+      },
+      "link": {
+        "openApprovalById": "Jump to pending approvals",
+        "openApprovalsSection": "Jump to pending approvals (same tool name)"
+      }
     },
     "pendingApprovals": {
       "title": "Pending approvals",

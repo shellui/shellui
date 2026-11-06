@@ -76,7 +76,16 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderPanel() {
+async function renderPanelWithApprovals(
+  approvals: {
+    id: string;
+    toolName: string;
+    agentName: string;
+    expiresAt: string;
+    shortActionSummary: string | null;
+    isDestructive: boolean;
+  }[],
+) {
   act(() => {
     root.render(
       <McpPendingApprovals
@@ -84,31 +93,30 @@ function renderPanel() {
         accessToken="tok"
         companyId="1"
         enabled
+        companyName="Acme"
+        approvals={approvals}
+        pendingCount={approvals.length ? 1 : 0}
+        onRefresh={async () => {}}
       />,
     );
+  });
+  await act(async () => {
+    await Promise.resolve();
   });
 }
 
 describe('McpPendingApprovals', () => {
   it('renders pending rows with Wilson copy', async () => {
-    api.fetchMcpPendingToolApprovals.mockResolvedValue({
-      pendingCount: 1,
-      approvals: [
-        {
-          id: 'ap-1',
-          toolName: 'storage_delete',
-          agentName: 'ChatGPT on my laptop',
-          expiresAt: futureExpiry(),
-          shortActionSummary: 'Delete report.pdf',
-          isDestructive: true,
-        },
-      ],
-    });
-
-    renderPanel();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await renderPanelWithApprovals([
+      {
+        id: 'ap-1',
+        toolName: 'storage_delete',
+        agentName: 'ChatGPT on my laptop',
+        expiresAt: futureExpiry(),
+        shortActionSummary: 'Delete report.pdf',
+        isDestructive: true,
+      },
+    ]);
 
     expect(container.textContent).toContain('Pending approvals');
     expect(container.textContent).toContain('storage_delete');
@@ -121,42 +129,18 @@ describe('McpPendingApprovals', () => {
   });
 
   it('denies without a confirm dialog', async () => {
-    api.fetchMcpPendingToolApprovals.mockResolvedValue({
-      pendingCount: 1,
-      approvals: [
-        {
-          id: 'ap-2',
-          toolName: 'identity_list_users',
-          agentName: 'Agent',
-          expiresAt: futureExpiry(),
-          shortActionSummary: null,
-          isDestructive: false,
-        },
-      ],
-    });
     api.decideMcpToolApproval.mockResolvedValue(undefined);
-    api.fetchMcpPendingToolApprovals.mockResolvedValueOnce({
-      pendingCount: 1,
-      approvals: [
-        {
-          id: 'ap-2',
-          toolName: 'identity_list_users',
-          agentName: 'Agent',
-          expiresAt: futureExpiry(),
-          shortActionSummary: null,
-          isDestructive: false,
-        },
-      ],
-    });
-    api.fetchMcpPendingToolApprovals.mockResolvedValueOnce({
-      pendingCount: 0,
-      approvals: [],
-    });
 
-    renderPanel();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await renderPanelWithApprovals([
+      {
+        id: 'ap-2',
+        toolName: 'identity_list_users',
+        agentName: 'Agent',
+        expiresAt: futureExpiry(),
+        shortActionSummary: null,
+        isDestructive: false,
+      },
+    ]);
 
     const denyBtn = Array.from(container.querySelectorAll('button')).find(
       (btn) => btn.textContent === 'Deny',
@@ -178,24 +162,16 @@ describe('McpPendingApprovals', () => {
   });
 
   it('opens destructive approve confirm', async () => {
-    api.fetchMcpPendingToolApprovals.mockResolvedValue({
-      pendingCount: 1,
-      approvals: [
-        {
-          id: 'ap-3',
-          toolName: 'hosting_deploy',
-          agentName: 'Cursor',
-          expiresAt: futureExpiry(),
-          shortActionSummary: '',
-          isDestructive: true,
-        },
-      ],
-    });
-
-    renderPanel();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await renderPanelWithApprovals([
+      {
+        id: 'ap-3',
+        toolName: 'hosting_deploy',
+        agentName: 'Cursor',
+        expiresAt: futureExpiry(),
+        shortActionSummary: '',
+        isDestructive: true,
+      },
+    ]);
 
     const approveBtn = Array.from(container.querySelectorAll('button')).find(
       (btn) => btn.textContent === 'Approve',
@@ -218,15 +194,7 @@ describe('McpPendingApprovals', () => {
   });
 
   it('hides the section when there are no pending items', async () => {
-    api.fetchMcpPendingToolApprovals.mockResolvedValue({
-      pendingCount: 0,
-      approvals: [],
-    });
-
-    renderPanel();
-    await act(async () => {
-      await Promise.resolve();
-    });
+    await renderPanelWithApprovals([]);
 
     expect(container.textContent).not.toContain('Pending approvals');
   });

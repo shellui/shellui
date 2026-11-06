@@ -40,12 +40,42 @@ export type McpAgentSummary = {
   personalTokenId: string | null;
 };
 
+export type McpActivityAccessKind = 'read' | 'write' | 'destructive' | 'unknown';
+
+export type McpActivityOutcomeKind =
+  | 'allowed'
+  | 'denied'
+  | 'failed'
+  | 'pending_approval'
+  | 'session_used'
+  | 'unknown';
+
 export type McpAgentActivityRow = {
   timestamp: string;
   tool: string;
   service: string;
   result: string;
   clientIp: string | null;
+  /** When the row refers to a specific company (often global MCP). */
+  companyId: string | null;
+  /** Human label for the company when the API provides one. */
+  companyLabel: string | null;
+  /** Safe description of the target resource (no secrets, query strings, or raw args). */
+  resourceLabel: string | null;
+  /** Actor that performed the action when provided by the API. */
+  actorLabel: string | null;
+  /** Connected agent or client name when provided. */
+  agentName: string | null;
+  /** Explicit access classification when provided. */
+  accessKind: McpActivityAccessKind | null;
+  /** Request duration in milliseconds when provided. */
+  durationMs: number | null;
+  /** Machine-readable outcome when provided (preferred over inferring from `result`). */
+  outcome: McpActivityOutcomeKind | null;
+  /** Linked pending approval id when provided (matches approvals list). */
+  approvalRequestId: string | null;
+  /** Safe, concise service error text when provided (already redacted server-side when possible). */
+  errorMessage: string | null;
 };
 
 export type CreatePersonalAgentInput = {
@@ -139,6 +169,40 @@ export const parseMcpAgentList = (payload: unknown): McpAgentSummary[] => {
     .filter((row): row is McpAgentSummary => row !== null);
 };
 
+const asNumber = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+};
+
+const parseAccessKind = (value: unknown): McpActivityAccessKind | null => {
+  const s = asString(value)?.toLowerCase();
+  if (!s) return null;
+  if (s === 'read' || s === 'read_only' || s === 'readonly') return 'read';
+  if (s === 'write' || s === 'mutate' || s === 'mutation') return 'write';
+  if (s === 'destructive' || s === 'destructive_write' || s === 'delete') return 'destructive';
+  if (s === 'unknown') return 'unknown';
+  return null;
+};
+
+const parseOutcomeKind = (value: unknown): McpActivityOutcomeKind | null => {
+  const s = asString(value)
+    ?.toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  if (!s) return null;
+  if (s === 'allowed' || s === 'ok' || s === 'success') return 'allowed';
+  if (s === 'denied' || s === 'forbidden') return 'denied';
+  if (s === 'failed' || s === 'error') return 'failed';
+  if (s === 'pending' || s === 'pending_approval' || s === 'awaiting_approval')
+    return 'pending_approval';
+  if (s === 'session_used' || s === 'session') return 'session_used';
+  if (s === 'unknown') return 'unknown';
+  return null;
+};
+
 export const parseMcpAgentActivity = (
   payload: unknown,
 ): { agentId: string; activity: McpAgentActivityRow[] } | null => {
@@ -156,12 +220,23 @@ export const parseMcpAgentActivity = (
     const service = asString(item.service);
     const result = asString(item.result);
     if (!timestamp || !tool || !service || !result) continue;
+    const durationRaw = asNumber(item.duration_ms);
     activity.push({
       timestamp,
       tool,
       service,
       result,
       clientIp: asString(item.client_ip),
+      companyId: asString(item.company_id),
+      companyLabel: asString(item.company_name),
+      resourceLabel: asString(item.resource_label),
+      actorLabel: asString(item.actor),
+      agentName: asString(item.agent_name),
+      accessKind: parseAccessKind(item.access_kind),
+      durationMs: durationRaw,
+      outcome: parseOutcomeKind(item.outcome),
+      approvalRequestId: asString(item.approval_request_id),
+      errorMessage: asString(item.error_message),
     });
   }
   return { agentId, activity };

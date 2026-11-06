@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui } from '@shellui/sdk';
 import { Button } from '../../../components/ui/button';
@@ -25,9 +25,12 @@ import {
   type CreatePersonalAgentResult,
   type McpAgentSummary,
 } from '../../mcp/personalAgentsApi';
+import { getMcpSettingsCompanyDisplayName } from '../../mcp/mcpToolApprovalsApi';
 import { useConfig } from '../../config/useConfig';
 import { getNormalizedAiServiceUrl } from '../utils/buildSettingsForPropagation';
 import { useMcpPersonalStatus } from '../hooks/useMcpPersonalStatus';
+import { useMcpPendingToolApprovals } from '../hooks/useMcpPendingToolApprovals';
+import { McpAgentActivitySection } from './McpAgentActivitySection';
 import { McpPendingApprovals } from './McpPendingApprovals';
 
 type IssuedConnection = {
@@ -54,6 +57,38 @@ export const McpAgents = () => {
   } = useMcpPersonalStatus(config, accessToken, isAuthenticated, user?.id ?? null);
 
   const includeSaas = isGlobalIdentitySession(status);
+  const companyDisplayName = getMcpSettingsCompanyDisplayName(config);
+  const pendingEnabled = Boolean(backendUrl && accessToken && status?.mcpEnabled);
+  const {
+    approvals: pendingApprovals,
+    pendingCount: pendingCountState,
+    refresh: refreshPending,
+  } = useMcpPendingToolApprovals(backendUrl ?? '', accessToken ?? '', companyId, pendingEnabled);
+  const pendingSectionRef = useRef<HTMLElement | null>(null);
+
+  const scrollToPendingApprovals = useCallback(() => {
+    pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const dashboardMcpDisplayUrl = useMemo(() => {
+    const raw = config?.backend?.adminUrl?.trim();
+    if (!raw) return null;
+    try {
+      const u = new URL(raw);
+      const fromConfig = config?.backend?.adminPathname?.trim();
+      const path =
+        fromConfig && fromConfig.length > 0
+          ? fromConfig.startsWith('/')
+            ? fromConfig
+            : `/${fromConfig}`
+          : u.pathname && u.pathname !== '/'
+            ? u.pathname
+            : '/admin';
+      return `${u.origin}${path}`.replace(/\/+$/, '') || `${u.origin}${path}`;
+    } catch {
+      return null;
+    }
+  }, [config?.backend?.adminPathname, config?.backend?.adminUrl]);
   const companyMcpUrl = useMemo(
     () => buildCompanyMcpUrl(aiServiceUrl, companyId, status?.mcpUrl),
     [aiServiceUrl, companyId, status?.mcpUrl],
@@ -252,6 +287,43 @@ export const McpAgents = () => {
     <div className="space-y-8 max-w-3xl">
       <p className="text-sm text-muted-foreground">{t('mcpAgents.description')}</p>
 
+      <section className="rounded-lg border bg-card p-4 space-y-3">
+        <h2
+          className="text-sm font-medium leading-none"
+          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+        >
+          {t('mcpAgents.global.title')}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t('mcpAgents.global.intro')}</p>
+        <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+          <li>{t('mcpAgents.global.scopeAccount')}</li>
+          <li>{t('mcpAgents.global.scopeRegional')}</li>
+          <li>{t('mcpAgents.global.accessModes')}</li>
+          <li>{t('mcpAgents.global.approvals')}</li>
+        </ul>
+        <p className="text-sm text-muted-foreground">{t('mcpAgents.global.prerequisite')}</p>
+        {dashboardMcpDisplayUrl ? (
+          <p className="text-sm text-muted-foreground">
+            {t('mcpAgents.global.dashboardUrlLabel')}{' '}
+            <span
+              className="select-none font-mono text-xs text-muted-foreground/80"
+              translate="no"
+            >
+              {dashboardMcpDisplayUrl}
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t('mcpAgents.global.dashboardUrlUnknown')}
+          </p>
+        )}
+        {includeSaas ? (
+          <p className="text-sm text-foreground">{t('mcpAgents.global.statusReady')}</p>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('mcpAgents.global.statusPending')}</p>
+        )}
+      </section>
+
       {issuedConnection ? (
         <section className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-4">
           <div className="space-y-1">
@@ -295,10 +367,15 @@ export const McpAgents = () => {
       ) : null}
 
       <McpPendingApprovals
+        ref={pendingSectionRef}
         backendUrl={backendUrl ?? ''}
         accessToken={accessToken ?? ''}
         companyId={companyId}
         enabled={Boolean(backendUrl && accessToken && status?.mcpEnabled)}
+        companyName={companyDisplayName}
+        approvals={pendingApprovals}
+        pendingCount={pendingCountState}
+        onRefresh={refreshPending}
       />
 
       <section className="space-y-4">
@@ -427,6 +504,15 @@ export const McpAgents = () => {
                       {t('mcpAgents.revoke.action')}
                     </Button>
                   </div>
+                  <McpAgentActivitySection
+                    backendUrl={backendUrl ?? ''}
+                    accessToken={accessToken ?? ''}
+                    companyId={companyId}
+                    enabled={Boolean(backendUrl && accessToken && status?.mcpEnabled)}
+                    agent={agent}
+                    pendingApprovals={pendingApprovals}
+                    onJumpToApprovals={scrollToPendingApprovals}
+                  />
                 </li>
               );
             })}
