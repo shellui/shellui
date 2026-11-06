@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
+import { MCP_ACTIVITY_ERROR_CODE_I18N_KEYS } from '../../mcp/mcpActivityErrorCodeI18n';
 import {
   buildActivityPrimarySummary,
   formatActivityDurationMs,
@@ -13,7 +14,6 @@ import {
 } from '../../mcp/mcpAgentActivityPresentation';
 import {
   fetchMcpPersonalAgentActivity,
-  type McpActivityErrorCode,
   type McpAgentActivityRow,
   type McpAgentSummary,
 } from '../../mcp/personalAgentsApi';
@@ -126,24 +126,9 @@ export const McpAgentActivitySection = ({
   );
 
   const errorCodeLabel = useCallback(
-    (code: McpActivityErrorCode | null) => {
+    (code: McpAgentActivityRow['errorCode']) => {
       if (!code) return null;
-      switch (code) {
-        case 'identity_unreachable':
-          return t('mcpAgents.activity.detail.errorCode.identityUnreachable');
-        case 'invalid_grant':
-          return t('mcpAgents.activity.detail.errorCode.invalidGrant');
-        case 'permission_changed':
-          return t('mcpAgents.activity.detail.errorCode.permissionChanged');
-        case 'request_expired':
-          return t('mcpAgents.activity.detail.errorCode.requestExpired');
-        case 'downstream_error':
-          return t('mcpAgents.activity.detail.errorCode.downstreamError');
-        case 'server_error':
-          return t('mcpAgents.activity.detail.errorCode.serverError');
-        default:
-          return t('mcpAgents.activity.detail.errorCode.unknown');
-      }
+      return t(MCP_ACTIVITY_ERROR_CODE_I18N_KEYS[code]);
     },
     [t],
   );

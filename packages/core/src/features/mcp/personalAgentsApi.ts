@@ -55,12 +55,30 @@ export type McpActivityOutcomeKind =
   | 'session_used'
   | 'unknown';
 
-/** Identity `error_code` for activity rows; settings UI shows only these labels, never raw error bodies. */
+/**
+ * Identity `error_code` for activity rows: fixed allowlist from identity (and gateway when present).
+ * Parse accepts only these tokens (contract tests); settings maps each to translated labels only.
+ */
 export type McpActivityErrorCode =
+  | 'bad_request'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'not_found'
+  | 'conflict'
+  | 'rate_limited'
+  | 'denied'
+  | 'expired'
+  | 'timeout'
+  | 'upstream_error'
+  | 'internal_error'
+  | 'out_of_sync'
   | 'identity_unreachable'
+  | 'identity_unavailable'
+  | 'identity_invalid'
   | 'invalid_grant'
   | 'permission_changed'
   | 'request_expired'
+  | 'agent_revoked'
   | 'downstream_error'
   | 'server_error'
   | 'unknown';
@@ -93,11 +111,6 @@ export type McpAgentActivityRow = {
   approvalRequestId: string | null;
   /** Allowlisted machine error from identity; UI maps to translated labels only. */
   errorCode: McpActivityErrorCode | null;
-  /**
-   * Optional raw provider error from identity; parsed for contract tests only.
-   * Shellui settings never displays this field.
-   */
-  errorDetailRaw: string | null;
 };
 
 export type CreatePersonalAgentInput = {
@@ -263,11 +276,26 @@ export const parseStrictMcpActivityOutcome = (value: unknown): McpActivityOutcom
   return null;
 };
 
-const MCP_ACTIVITY_ERROR_CODES: readonly McpActivityErrorCode[] = [
+export const MCP_ACTIVITY_ERROR_CODES: readonly McpActivityErrorCode[] = [
+  'bad_request',
+  'unauthorized',
+  'forbidden',
+  'not_found',
+  'conflict',
+  'rate_limited',
+  'denied',
+  'expired',
+  'timeout',
+  'upstream_error',
+  'internal_error',
+  'out_of_sync',
   'identity_unreachable',
+  'identity_unavailable',
+  'identity_invalid',
   'invalid_grant',
   'permission_changed',
   'request_expired',
+  'agent_revoked',
   'downstream_error',
   'server_error',
   'unknown',
@@ -300,6 +328,8 @@ export const parseMcpAgentActivity = (
     const result = asString(item.result);
     if (!timestamp || !tool || !service || !result) continue;
     const durationRaw = asNumber(item.duration_ms);
+    const durationMs =
+      durationRaw !== null && durationRaw >= 0 && Number.isFinite(durationRaw) ? durationRaw : null;
     activity.push({
       timestamp,
       tool,
@@ -313,11 +343,10 @@ export const parseMcpAgentActivity = (
       actorLabel: asString(item.actor),
       agentName: asString(item.agent_name),
       accessKind: parseAccessKind(item.access_kind),
-      durationMs: durationRaw,
+      durationMs,
       outcome: parseStrictMcpActivityOutcome(item.outcome),
       approvalRequestId: asString(item.approval_request_id),
       errorCode: parseStrictMcpActivityErrorCode(item.error_code),
-      errorDetailRaw: asString(item.error_message),
     });
   }
   return { agentId, activity };
