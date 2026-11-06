@@ -177,6 +177,8 @@ When `saas.url` includes a path (for example `https://example.com/saas`), reques
 | `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |
 | `create`           | Not implemented (use dashboard or global MCP when policy allows)                            |
 
+SaaS also serves **`GET /api/v1/companies`** without the `saas` prefix. The CLI uses **`/saas/api/v1/companies/`** for `list` and `get` today. If you hand-call the API, confirm which path your reverse proxy or OpenAPI documents.
+
 `shellui projects list --json` on a working stack returns JSON (shape depends on the SaaS API). Errors from services are redacted and never include access tokens.
 
 ### shellui storage buckets \<action> [name] [root]
@@ -347,7 +349,7 @@ Shellui config can execute code: TypeScript configs run via `tsx` with the CLI's
 
 - Prefer **`shellui.config.json`** (or split JSON). Run `shellui config migrate` to move off TypeScript for CI-safe configs.
 - **`--config` / `SHELLUI_CONFIG`:** loading config from outside the project root prints a warning. World-writable config paths are rejected; symlink escapes outside the project root are rejected.
-- TypeScript load prints an additional warning. Treat config like source code — only from trusted repositories.
+- TypeScript load prints an additional warning. Treat config like source code, but only from trusted repositories.
 
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 
