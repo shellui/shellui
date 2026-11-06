@@ -12,4 +12,3 @@ packages/cli/templates/vue/
 packages/cli/templates/angular/
 *.log
 .DS_Store
-dev/*.py
