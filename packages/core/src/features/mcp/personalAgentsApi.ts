@@ -20,7 +20,7 @@ export type McpPersonalStatus = {
   mcpEnabled: boolean;
   mcpUrl: string | null;
   /**
-   * Full global MCP URL from identity: trusted DASHBOARD_PUBLIC_URL without a trailing slash, plus `/mcp`.
+   * Full global MCP URL from identity: trusted `DASHBOARD_PUBLIC_URL` without a trailing slash, plus `/mcp`.
    * Validated http(s) URL with path `/mcp` only. Identity may omit until ready. Use as the direct MCP endpoint in UI.
    */
   globalMcpUrl: string | null;
