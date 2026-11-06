@@ -3,8 +3,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { writeCredentials, resetCredentialKeychainForTests } from '../../auth/credentials.js';
-import { writeCliSessionFile } from '../../cli-context/session-file.js';
-import { resolveCompanyScope } from '../../cli-context/company-scope.js';
+import { writeCliRegionalSessionFile } from '../../cli-context/session-file.js';
+import { resolveRegionalCompanyScope } from '../../cli-context/company-scope.js';
 import { redactSensitive } from '../../http/service-http.js';
 import { projectsCommand } from '../projects.js';
 import { storageBucketsCommand } from '../storage-buckets.js';
@@ -55,7 +55,7 @@ describe('AI-native CLI helpers', () => {
     expect(redactSensitive(s)).toContain('***');
   });
 
-  test('resolveCompanyScope uses explicit --company over config', () => {
+  test('resolveRegionalCompanyScope uses explicit --company over config', () => {
     const dir = fs.mkdtempSync(path.join(tmpHome, 'proj-'));
     fs.writeFileSync(
       path.join(dir, 'shellui.config.json'),
@@ -63,14 +63,17 @@ describe('AI-native CLI helpers', () => {
         backend: { type: 'shellui', url: 'https://id.example.com', companyId: '1' },
       }),
     );
-    const scope = resolveCompanyScope({ root: dir, company: '99' });
+    const scope = resolveRegionalCompanyScope({ root: dir, company: '99' });
     expect(scope.companyId).toBe('99');
     expect(scope.source).toBe('flag');
   });
 
-  test('resolveCompanyScope uses cli-session default when logged in', () => {
+  test('resolveRegionalCompanyScope uses cli-session default when logged in', () => {
     writeCredentials({ ...sessionFixture, companyId: '42' }, { makeCurrent: true });
-    writeCliSessionFile({ backendUrl: sessionFixture.backendUrl, defaultCompanyId: '42' });
+    writeCliRegionalSessionFile({
+      backendUrl: sessionFixture.backendUrl,
+      regionalCompanyId: '42',
+    });
     const dir = fs.mkdtempSync(path.join(tmpHome, 'proj2-'));
     fs.writeFileSync(
       path.join(dir, 'shellui.config.json'),
@@ -78,12 +81,12 @@ describe('AI-native CLI helpers', () => {
         backend: { type: 'shellui', url: 'https://id.example.com', companyId: '1' },
       }),
     );
-    const scope = resolveCompanyScope({ root: dir });
+    const scope = resolveRegionalCompanyScope({ root: dir });
     expect(scope.companyId).toBe('42');
     expect(scope.source).toBe('cli-session');
   });
 
-  test('projects list sends bearer and company_id, never prints tokens', async () => {
+  test('projects list sends bearer to dashboard companies path, no company_id query', async () => {
     const dir = fs.mkdtempSync(path.join(tmpHome, 'proj3-'));
     fs.writeFileSync(
       path.join(dir, 'shellui.config.json'),
@@ -97,11 +100,17 @@ describe('AI-native CLI helpers', () => {
     loadValidSession.mockResolvedValue({ ...sessionFixture });
 
     const fetchMock = vi.fn(async (url, init) => {
-      expect(String(url)).toContain('/api/v1/projects/');
-      expect(String(url)).toContain('company_id=7');
+      expect(String(url)).toContain('/saas/api/v1/companies');
+      expect(String(url)).not.toMatch(/company_id=/);
       expect(init.headers.Authorization).toBe('Bearer access-test');
       return new Response(
-        JSON.stringify([{ id: 'p1', name: 'Alpha', slug: 'alpha', region: 'eu-west' }]),
+        JSON.stringify([
+          {
+            id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            name: 'Alpha',
+            slug: 'alpha',
+          },
+        ]),
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -114,7 +123,7 @@ describe('AI-native CLI helpers', () => {
     const errSpy = vi.spyOn(console, 'error').mockImplementation((...a) => logs.push(a.join(' ')));
     const logSpy = vi.spyOn(console, 'log').mockImplementation((...a) => logs.push(a.join(' ')));
 
-    await projectsCommand('list', undefined, { root: dir, company: '7', json: false });
+    await projectsCommand('list', undefined, { root: dir, json: false });
 
     errSpy.mockRestore();
     logSpy.mockRestore();
@@ -125,7 +134,7 @@ describe('AI-native CLI helpers', () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
-  test('storage buckets list includes company_id query', async () => {
+  test('storage buckets list omits company_id query (JWT tenant)', async () => {
     const dir = fs.mkdtempSync(path.join(tmpHome, 'proj4-'));
     fs.writeFileSync(
       path.join(dir, 'shellui.config.json'),
@@ -140,7 +149,7 @@ describe('AI-native CLI helpers', () => {
 
     const fetchMock = vi.fn(async (url) => {
       expect(String(url)).toContain('/storage/v1/bucket');
-      expect(String(url)).toContain('company_id=7');
+      expect(String(url)).not.toMatch(/company_id=/);
       return new Response(JSON.stringify([{ id: 'b1', name: 'company' }]), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -177,7 +186,7 @@ describe('AI-native CLI helpers', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await hostingDeploymentsCommand('list', undefined, { root: dir, company: '7' });
+    await hostingDeploymentsCommand('list', undefined, { root: dir });
 
     expect(fetchMock).toHaveBeenCalled();
   });

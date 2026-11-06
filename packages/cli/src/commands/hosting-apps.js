@@ -1,7 +1,6 @@
 import pc from 'picocolors';
 
 import { useConfigAccount } from '../auth/resolve-target.js';
-import { resolveCompanyScope } from '../cli-context/company-scope.js';
 import {
   formatHttpFailure,
   readJsonErrorBody,
@@ -13,18 +12,13 @@ import { resolveHostingBaseUrl } from './service-resolve.js';
 /**
  * @param {'list' | 'get'} action
  * @param {string} [ref]
- * @param {{ root?: string, config?: string, company?: string, json?: boolean }} options
+ * @param {{ root?: string, config?: string, json?: boolean }} options
  */
 export async function hostingAppsCommand(action, ref, options = {}) {
   useConfigAccount({ root: options.root ?? '.', config: options.config });
   const jsonMode = options.json === true;
 
   try {
-    resolveCompanyScope({
-      root: options.root,
-      config: options.config,
-      company: options.company,
-    });
     const baseUrl = resolveHostingBaseUrl({ root: options.root, config: options.config });
     if (!baseUrl) {
       console.error(
@@ -41,7 +35,7 @@ export async function hostingAppsCommand(action, ref, options = {}) {
         baseUrl,
         '/hosting/v1/apps',
         {},
-        { companyId: null },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);
@@ -84,7 +78,7 @@ export async function hostingAppsCommand(action, ref, options = {}) {
         baseUrl,
         `/hosting/v1/apps/${encodeURIComponent(slug)}`,
         {},
-        { companyId: null },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);

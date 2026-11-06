@@ -1,7 +1,6 @@
 import pc from 'picocolors';
 
 import { useConfigAccount } from '../auth/resolve-target.js';
-import { resolveCompanyScope } from '../cli-context/company-scope.js';
 import {
   formatHttpFailure,
   readJsonErrorBody,
@@ -11,20 +10,17 @@ import { cliErrorMessage, printCliJson } from './cli-output.js';
 import { resolveHostingBaseUrl, resolveHostingSlugFromConfig } from './service-resolve.js';
 
 /**
+ * There is no per-deployment GET; `status` loads the list and finds the UUID.
+ *
  * @param {'list' | 'status'} action
  * @param {string} [arg]
- * @param {{ root?: string, config?: string, company?: string, json?: boolean, slug?: string }} options
+ * @param {{ root?: string, config?: string, json?: boolean, slug?: string }} options
  */
 export async function hostingDeploymentsCommand(action, arg, options = {}) {
   useConfigAccount({ root: options.root ?? '.', config: options.config });
   const jsonMode = options.json === true;
 
   try {
-    resolveCompanyScope({
-      root: options.root,
-      config: options.config,
-      company: options.company,
-    });
     const baseUrl = resolveHostingBaseUrl({ root: options.root, config: options.config });
     if (!baseUrl) {
       console.error(
@@ -38,7 +34,7 @@ export async function hostingDeploymentsCommand(action, arg, options = {}) {
 
     let slug =
       (typeof options.slug === 'string' && options.slug.trim() ? options.slug.trim() : '') ||
-      (typeof arg === 'string' && arg.trim() ? arg.trim() : '') ||
+      (typeof arg === 'string' && action === 'list' && arg.trim() ? arg.trim() : '') ||
       '';
     if (!slug) {
       slug = resolveHostingSlugFromConfig({ root: options.root, config: options.config }) || '';
@@ -56,7 +52,7 @@ export async function hostingDeploymentsCommand(action, arg, options = {}) {
         baseUrl,
         `/hosting/v1/apps/${encodeURIComponent(slug)}/deployments`,
         {},
-        { companyId: null },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);
@@ -102,7 +98,7 @@ export async function hostingDeploymentsCommand(action, arg, options = {}) {
         baseUrl,
         `/hosting/v1/apps/${encodeURIComponent(slug)}/deployments`,
         {},
-        { companyId: null },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);

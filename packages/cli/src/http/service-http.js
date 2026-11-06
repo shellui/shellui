@@ -59,14 +59,14 @@ export function formatHttpFailure(status, message) {
  * @param {string} baseUrl
  * @param {string} path
  * @param {{ method?: string, body?: unknown, headers?: Record<string, string> }} [init]
- * @param {{ companyId?: string | null }} [query]
+ * @param {{ companyId?: string | null, omitCompanyQuery?: boolean }} [query]
  */
 export async function serviceFetchWithSession(session, baseUrl, path, init = {}, query = {}) {
   const base = baseUrl.replace(/\/$/, '');
   const url = new URL(
     path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`,
   );
-  if (query.companyId != null && String(query.companyId).trim()) {
+  if (!query.omitCompanyQuery && query.companyId != null && String(query.companyId).trim()) {
     url.searchParams.set('company_id', String(query.companyId).trim());
   }
 
@@ -105,7 +105,7 @@ export async function serviceFetchWithSession(session, baseUrl, path, init = {},
  * @param {string} baseUrl
  * @param {string} path
  * @param {{ method?: string, body?: unknown, headers?: Record<string, string> }} [init]
- * @param {{ companyId?: string | null }} [query]
+ * @param {{ companyId?: string | null, omitCompanyQuery?: boolean }} [query]
  */
 export async function regionalServiceFetch(baseUrl, path, init = {}, query = {}) {
   const session = await loadValidSession();

@@ -1,11 +1,12 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 
 import { getCredentialsDir } from '../auth/credentials.js';
 
-const SESSION_VERSION = 1;
+const SESSION_VERSION = 2;
 const SESSION_FILENAME = 'cli-session.json';
+
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /** @returns {string} */
 export function getCliSessionPath() {
@@ -16,7 +17,8 @@ export function getCliSessionPath() {
  * @returns {{
  *   version: number,
  *   backendUrl?: string,
- *   defaultCompanyId?: string,
+ *   regionalCompanyId?: string,
+ *   dashboardCompanyUuid?: string,
  * } | null}
  */
 export function readCliSessionFile() {
@@ -30,20 +32,63 @@ export function readCliSessionFile() {
       typeof raw.backendUrl === 'string' && raw.backendUrl.trim()
         ? raw.backendUrl.replace(/\/+$/, '')
         : undefined;
-    const defaultCompanyId =
-      typeof raw.defaultCompanyId === 'string' && /^\d+$/.test(raw.defaultCompanyId.trim())
-        ? raw.defaultCompanyId.trim()
-        : undefined;
-    return { version: raw.version, backendUrl, defaultCompanyId };
+
+    let regionalCompanyId;
+    if (typeof raw.regionalCompanyId === 'string' && /^\d+$/.test(raw.regionalCompanyId.trim())) {
+      regionalCompanyId = raw.regionalCompanyId.trim();
+    } else if (
+      typeof raw.defaultCompanyId === 'string' &&
+      /^\d+$/.test(raw.defaultCompanyId.trim())
+    ) {
+      regionalCompanyId = raw.defaultCompanyId.trim();
+    }
+
+    let dashboardCompanyUuid;
+    if (
+      typeof raw.dashboardCompanyUuid === 'string' &&
+      UUID_RE.test(raw.dashboardCompanyUuid.trim())
+    ) {
+      dashboardCompanyUuid = raw.dashboardCompanyUuid.trim().toLowerCase();
+    }
+
+    return { version: raw.version, backendUrl, regionalCompanyId, dashboardCompanyUuid };
   } catch {
     return null;
   }
 }
 
 /**
- * @param {{ backendUrl: string, defaultCompanyId: string }} input
+ * @param {{ backendUrl: string, regionalCompanyId: string }} input
  */
-export function writeCliSessionFile(input) {
+export function writeCliRegionalSessionFile(input) {
+  const prev = readCliSessionFile();
+  writeCliSessionFileMerged({
+    backendUrl: input.backendUrl,
+    regionalCompanyId: input.regionalCompanyId,
+    dashboardCompanyUuid: prev?.dashboardCompanyUuid,
+  });
+}
+
+/**
+ * @param {{ backendUrl: string, dashboardCompanyUuid: string }} input
+ */
+export function writeCliDashboardSessionFile(input) {
+  const prev = readCliSessionFile();
+  writeCliSessionFileMerged({
+    backendUrl: input.backendUrl,
+    regionalCompanyId: prev?.regionalCompanyId,
+    dashboardCompanyUuid: input.dashboardCompanyUuid,
+  });
+}
+
+/**
+ * @param {{
+ *   backendUrl: string,
+ *   regionalCompanyId?: string,
+ *   dashboardCompanyUuid?: string,
+ * }} input
+ */
+function writeCliSessionFileMerged(input) {
   const dir = getCredentialsDir();
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   try {
@@ -54,7 +99,12 @@ export function writeCliSessionFile(input) {
   const payload = {
     version: SESSION_VERSION,
     backendUrl: String(input.backendUrl).replace(/\/+$/, ''),
-    defaultCompanyId: String(input.defaultCompanyId).trim(),
+    ...(input.regionalCompanyId
+      ? { regionalCompanyId: String(input.regionalCompanyId).trim() }
+      : {}),
+    ...(input.dashboardCompanyUuid
+      ? { dashboardCompanyUuid: String(input.dashboardCompanyUuid).trim().toLowerCase() }
+      : {}),
   };
   const filePath = getCliSessionPath();
   fs.writeFileSync(filePath, `${JSON.stringify(payload, null, 2)}\n`, {

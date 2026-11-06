@@ -20,6 +20,12 @@ export async function authStatusCommand(_root = '.', options = {}) {
   const accounts = listAccounts();
   const storageInfo = getCredentialStorageInfo();
 
+  const regionalDefault =
+    sessionFile?.regionalCompanyId ??
+    (sessionFile && typeof sessionFile.defaultCompanyId === 'string'
+      ? sessionFile.defaultCompanyId
+      : undefined);
+
   /** @type {Record<string, unknown>} */
   const out = {
     loggedIn: Boolean(session),
@@ -31,7 +37,8 @@ export async function authStatusCommand(_root = '.', options = {}) {
     },
     cliSession: sessionFile
       ? {
-          defaultCompanyId: sessionFile.defaultCompanyId ?? null,
+          regionalCompanyId: regionalDefault ?? null,
+          dashboardCompanyUuid: sessionFile.dashboardCompanyUuid ?? null,
           backendUrl: sessionFile.backendUrl ?? null,
         }
       : null,
@@ -74,11 +81,18 @@ export async function authStatusCommand(_root = '.', options = {}) {
   if (!session) {
     console.log(pc.yellow('Not logged in. Run shellui login.'));
     console.log(pc.dim(`Credential file: ${getCredentialsPath()}`));
-    if (sessionFile?.defaultCompanyId) {
+    if (regionalDefault) {
       console.log(
         pc.dim(
-          `CLI default company (applies when logged in): ${sessionFile.defaultCompanyId}` +
-            (sessionFile.backendUrl ? ` @ ${sessionFile.backendUrl}` : ''),
+          `CLI default regional company (shellui companies use): ${regionalDefault}` +
+            (sessionFile?.backendUrl ? ` @ ${sessionFile.backendUrl}` : ''),
+        ),
+      );
+    }
+    if (sessionFile?.dashboardCompanyUuid) {
+      console.log(
+        pc.dim(
+          `CLI default dashboard company UUID (shellui projects use): ${sessionFile.dashboardCompanyUuid}`,
         ),
       );
     }
@@ -90,13 +104,20 @@ export async function authStatusCommand(_root = '.', options = {}) {
     if (u.email) console.log(`${pc.bold('Email:')} ${u.email}`);
     if (u.name) console.log(`${pc.bold('Name:')}  ${u.name}`);
   }
-  console.log(`${pc.bold('Company:')} ${session.companyId}`);
-  console.log(`${pc.bold('Backend:')} ${session.backendUrl}`);
-  if (sessionFile?.defaultCompanyId && sessionFile.defaultCompanyId !== session.companyId) {
+  console.log(`${pc.bold('Credential company (JWT tenant):')} ${session.companyId}`);
+  console.log(`${pc.bold('Identity backend:')} ${session.backendUrl}`);
+  if (regionalDefault && regionalDefault !== session.companyId) {
     console.log(
       pc.dim(
-        `CLI default company (shellui companies use): ${sessionFile.defaultCompanyId}` +
-          (sessionFile.backendUrl ? ` @ ${sessionFile.backendUrl}` : ''),
+        `CLI default regional company (shellui companies use): ${regionalDefault}` +
+          (sessionFile?.backendUrl ? ` @ ${sessionFile.backendUrl}` : ''),
+      ),
+    );
+  }
+  if (sessionFile?.dashboardCompanyUuid) {
+    console.log(
+      pc.dim(
+        `Default dashboard company UUID (shellui projects use): ${sessionFile.dashboardCompanyUuid}`,
       ),
     );
   }

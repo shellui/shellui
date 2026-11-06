@@ -125,27 +125,14 @@ cli
 cli
   .command(
     'projects <action> [id] [root]',
-    'SaaS projects (requires saas.url or SHELLUI_SAAS_URL; uses logged-in session)',
+    'SaaS dashboard companies and api/v1 regions-endpoints (saas.url; human session, no company_id query)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option(
-    '--company <id>',
-    'Company id (defaults to backend.companyId, CLI default, or shellui companies use)',
-  )
-  .option('--region <code>', 'Region code (create only)')
-  .option('--name <name>', 'Display name (create only)')
-  .option('--slug <slug>', 'Project slug (create only)')
-  .option('--dry-run', 'Print create plan without calling the API')
   .option('--json', 'Machine-readable JSON on stdout')
   .action((action, id, root, options) =>
     projectsCommand(action, id, {
       root: root ?? '.',
       config: options.config,
-      company: options.company,
-      region: options.region,
-      name: options.name,
-      slug: options.slug,
-      dryRun: options.dryRun,
       json: options.json,
     }),
   );
@@ -153,10 +140,13 @@ cli
 cli
   .command(
     'storage buckets <action> [name] [root]',
-    'List, get, or create storage buckets (storage.url; create usually returns 403 on current service)',
+    'List or get storage buckets (storage.url; JWT company claim only, no company_id query)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--company <id>', 'Company id for company_id query on the request')
+  .option(
+    '--company <id>',
+    'Select regional tenant for CLI session (backend.companyId); does not add query params to storage',
+  )
   .option('--json', 'Machine-readable JSON on stdout')
   .action((action, name, root, options) =>
     storageBucketsCommand(action, name, {
@@ -170,16 +160,14 @@ cli
 cli
   .command(
     'hosting apps <action> [ref] [root]',
-    'List hosted sites or get one by slug (hosting.url)',
+    'List hosted sites or get one by slug (hosting.url; JWT company claim only)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--company <id>', 'Company id for JWT context when required')
   .option('--json', 'Machine-readable JSON on stdout')
   .action((action, ref, root, options) =>
     hostingAppsCommand(action, ref, {
       root: root ?? '.',
       config: options.config,
-      company: options.company,
       json: options.json,
     }),
   );
@@ -190,14 +178,12 @@ cli
     'List deployments for a site (hosting.url; slug from --slug or hosting.slug)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--company <id>', 'Company id for JWT context when required')
   .option('--slug <slug>', 'Site slug (preview slug)')
   .option('--json', 'Machine-readable JSON on stdout')
   .action((root, options) =>
     hostingDeploymentsCommand('list', undefined, {
       root: root ?? '.',
       config: options.config,
-      company: options.company,
       slug: options.slug,
       json: options.json,
     }),
@@ -206,17 +192,15 @@ cli
 cli
   .command(
     'hosting deployments status <uuid> [root]',
-    'Show one deployment by UUID (hosting.url; slug from --slug or hosting.slug)',
+    'Resolve one deployment from list by UUID (no per-deployment GET on service)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--company <id>', 'Company id for JWT context when required')
   .option('--slug <slug>', 'Site slug (preview slug)')
   .option('--json', 'Machine-readable JSON on stdout')
   .action((uuid, root, options) =>
     hostingDeploymentsCommand('status', uuid, {
       root: root ?? '.',
       config: options.config,
-      company: options.company,
       slug: options.slug,
       json: options.json,
     }),

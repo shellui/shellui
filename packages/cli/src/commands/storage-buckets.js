@@ -1,7 +1,7 @@
 import pc from 'picocolors';
 
 import { useConfigAccount } from '../auth/resolve-target.js';
-import { resolveCompanyScope } from '../cli-context/company-scope.js';
+import { resolveRegionalCompanyScope } from '../cli-context/company-scope.js';
 import {
   formatHttpFailure,
   readJsonErrorBody,
@@ -11,7 +11,9 @@ import { cliErrorMessage, printCliJson } from './cli-output.js';
 import { resolveStorageBaseUrl } from './service-resolve.js';
 
 /**
- * @param {'list' | 'get' | 'create'} action
+ * Storage bucket list/detail. JWT carries `company_id`; storage-service does not use a company_id query on these routes.
+ *
+ * @param {'list' | 'get'} action
  * @param {string} [bucketName]
  * @param {{ root?: string, config?: string, company?: string, json?: boolean }} options
  */
@@ -20,7 +22,7 @@ export async function storageBucketsCommand(action, bucketName, options = {}) {
   const jsonMode = options.json === true;
 
   try {
-    const { companyId } = resolveCompanyScope({
+    resolveRegionalCompanyScope({
       root: options.root,
       config: options.config,
       company: options.company,
@@ -41,7 +43,7 @@ export async function storageBucketsCommand(action, bucketName, options = {}) {
         baseUrl,
         '/storage/v1/bucket',
         {},
-        { companyId },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);
@@ -68,33 +70,6 @@ export async function storageBucketsCommand(action, bucketName, options = {}) {
       return;
     }
 
-    if (action === 'create') {
-      const { response } = await regionalServiceFetch(
-        baseUrl,
-        '/storage/v1/bucket',
-        { method: 'POST', body: {} },
-        { companyId },
-      );
-      const msg = await readJsonErrorBody(response);
-      if (!response.ok) {
-        if (jsonMode) {
-          printCliJson({ ok: false, status: response.status, message: msg });
-        } else {
-          console.error(pc.red(formatHttpFailure(response.status, msg)));
-        }
-        process.exitCode = 1;
-        return;
-      }
-      const row = await response.json().catch(() => null);
-      if (jsonMode) {
-        printCliJson(row);
-      } else {
-        console.log(pc.green('Bucket created.'));
-        console.log(JSON.stringify(row, null, 2));
-      }
-      return;
-    }
-
     if (action === 'get') {
       const name =
         typeof bucketName === 'string' && bucketName.trim() ? bucketName.trim() : 'company';
@@ -102,7 +77,7 @@ export async function storageBucketsCommand(action, bucketName, options = {}) {
         baseUrl,
         `/storage/v1/bucket/${encodeURIComponent(name)}`,
         {},
-        { companyId },
+        { companyId: null, omitCompanyQuery: true },
       );
       if (!response.ok) {
         const msg = await readJsonErrorBody(response);
@@ -119,7 +94,11 @@ export async function storageBucketsCommand(action, bucketName, options = {}) {
       return;
     }
 
-    console.error(pc.red(`Unknown storage buckets action: ${action}`));
+    console.error(
+      pc.red(
+        `Unknown storage buckets action: ${action}. Custom bucket POST is disabled on storage-service (403 bucket_create_disabled); use the dashboard or operator flows.`,
+      ),
+    );
     process.exitCode = 1;
   } catch (err) {
     console.error(pc.red(cliErrorMessage(err)));
