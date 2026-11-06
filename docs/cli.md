@@ -166,10 +166,12 @@ Company selection for **`storage buckets`**: `--company <id>` wins, then the CLI
 
 Calls the SaaS host with the same Bearer session as `shellui login`. Requires `saas.url` in config or `SHELLUI_SAAS_URL`. The CLI default when neither is set is `http://localhost:8005` (self-host smoke only). **No** `company_id` query is sent; dashboard companies are **UUIDs** in URL paths.
 
+When `saas.url` includes a path (for example `https://example.com/saas`), requests use that origin plus the paths below (for example `https://example.com/saas/api/v1/companies/`). The CLI does not add a second `saas/` segment after the base.
+
 | Action             | HTTP (relative to `{saas}` base)                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------- |
-| `list`             | `GET /saas/api/v1/companies/`                                                               |
-| `get <uuid>`       | `GET /saas/api/v1/companies/<uuid>/`                                                        |
+| `list`             | `GET /api/v1/companies/`                                                                    |
+| `get <uuid>`       | `GET /api/v1/companies/<uuid>/`                                                             |
 | `use <uuid>`       | Writes default dashboard UUID to `cli-session.json` (no HTTP)                               |
 | `regions`          | `GET /api/v1/regions/`                                                                      |
 | `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |

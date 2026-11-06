@@ -100,7 +100,7 @@ describe('AI-native CLI helpers', () => {
     loadValidSession.mockResolvedValue({ ...sessionFixture });
 
     const fetchMock = vi.fn(async (url, init) => {
-      expect(String(url)).toContain('/saas/api/v1/companies');
+      expect(String(url)).toContain('/api/v1/companies');
       expect(String(url)).not.toMatch(/company_id=/);
       expect(init.headers.Authorization).toBe('Bearer access-test');
       return new Response(

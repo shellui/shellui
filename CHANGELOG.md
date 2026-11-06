@@ -83,6 +83,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **CLI:** `shellui start` shows the new shell right after an upgrade instead of cached files.
 - **CLI:** `shellui deploy` errors show the server's reason, and a rejected upload shows the artifact size and limit.
 - **Desktop:** Switching pages loads the new page.
+- **CLI:** `shellui projects list` and `get` request `/api/v1/companies/...` on the SaaS base (same `api/v1` mount as `regions` and `endpoints`), not `/saas/api/v1/...`.
 
 ### 🔒 Security
 
