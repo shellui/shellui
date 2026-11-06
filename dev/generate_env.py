@@ -9,11 +9,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import json
 import re
 import secrets
 import subprocess
 import sys
 from pathlib import Path
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 def secret_key() -> str:
@@ -42,6 +46,22 @@ def rsa_keypair(bits: int = 2048) -> tuple[str, str, str]:
 
 def pem_for_env(pem: str) -> str:
     return pem.strip().replace("\n", "\\n")
+
+
+def jwks_for_rsa_public_pem(public_pem: str, kid: str) -> str:
+    """Single-key JWKS JSON for RS256 global agent verification (identity GLOBAL_JWKS)."""
+    key = serialization.load_pem_public_key(public_pem.encode("utf-8"))
+    if not isinstance(key, rsa.RSAPublicKey):
+        raise TypeError("expected RSA public key")
+    numbers = key.public_numbers()
+    n = base64.urlsafe_b64encode(numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, "big")).rstrip(b"=").decode(
+        "ascii"
+    )
+    e = base64.urlsafe_b64encode(numbers.e.to_bytes((numbers.e.bit_length() + 7) // 8, "big")).rstrip(b"=").decode(
+        "ascii"
+    )
+    doc = {"keys": [{"kty": "RSA", "kid": kid, "use": "sig", "alg": "RS256", "n": n, "e": e}]}
+    return json.dumps(doc, separators=(",", ":"))
 
 
 def esk_key() -> str:
@@ -74,6 +94,9 @@ def main() -> int:
     hosting_private, _hosting_public, _ = rsa_keypair()
     email_private, _email_public, _ = rsa_keypair()
     provisioning_private, provisioning_public, _ = rsa_keypair()
+    global_agent_private, global_agent_public, global_agent_kid = rsa_keypair()
+    global_agent_jwks_obj = jwks_for_rsa_public_pem(global_agent_public, global_agent_kid)
+    global_agent_jwks_quoted = "'" + global_agent_jwks_obj + "'"
 
     replacements = {
         "__POSTGRES_PASSWORD__": secrets.token_urlsafe(24),
@@ -93,6 +116,9 @@ def main() -> int:
         "__EMAIL_SERVICE_SIGNING_KEY__": pem_for_env(email_private),
         "__PROVISIONING_SIGNING_KEY__": pem_for_env(provisioning_private),
         "__PROVISIONING_PUBLIC_KEY__": pem_for_env(provisioning_public),
+        "__GLOBAL_AGENT_PRIVATE_KEY__": pem_for_env(global_agent_private),
+        "__GLOBAL_AGENT_JWKS_JSON__": global_agent_jwks_quoted,
+        "__GLOBAL_AGENT_KEY_ID__": global_agent_kid,
         "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
         "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
         "__EMAIL_VARIABLES_KEY__": fernet_key(),

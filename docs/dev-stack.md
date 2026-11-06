@@ -97,6 +97,10 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 - **Dependencies changed.** Rebuild that service: `./start.sh -d <service>`.
 - **`generate-env.sh` fails.** Check that `uv` or `python3`, and `openssl`, are on `PATH`.
 
+## Global agent JWT trust (dev)
+
+`dev/generate_env.py` generates a second RSA key pair and a one-key JSON Web Key Set (JWKS) for `GLOBAL_JWKS`. Identity receives `GLOBAL_ISSUER_URL=${PUBLIC_SAAS_URL}`, `GLOBAL_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` from `dev/docker-compose.yml` so regional identity can verify global agent access tokens offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). Saas-service must mint those tokens with the same audience and signing key; confirm variable names on your `saas-service` revision and set any missing env in compose to match.
+
 ## Redis
 
 One Redis instance. Each backend uses its own DB: identity `0`, storage `1`, hosting `2`, email `3`, saas `4`, ai `5`. Values live in `dev/.env.local.example` as `*_REDIS_URL`.
