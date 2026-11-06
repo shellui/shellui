@@ -10,6 +10,13 @@ Each command is a separate file that exports a command function:
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.json` boilerplate
 - `config.js` - `config migrate` / `config split` / `config unsplit`
+- `auth-status.js` - `auth status` (session summary, no token output)
+- `companies.js` - `companies list|get|use` (identity `/api/v1/companies`)
+- `projects.js` - `projects list|get|create` (SaaS REST base from `saas.url` or `SHELLUI_SAAS_URL`)
+- `storage-buckets.js` - `storage buckets list|get|create` (storage-service)
+- `hosting-apps.js` / `hosting-deployments.js` - `hosting apps|deployments` (hosting-service)
+
+Regional HTTP calls share `../http/service-http.js` (bearer session + `company_id` query). Company scope resolves in `../cli-context/company-scope.js`.
 
 ## Adding a New Command
 
@@ -43,3 +50,8 @@ export { newCommandCommand } from './new-command.js';
 - **init** - Creates a `shellui.config.json` boilerplate
 - **config migrate** - Evaluates TypeScript config and writes JSON
 - **config split** / **config unsplit** - Split or merge JSON configuration files
+- **auth status** - Login and credential summary (no tokens)
+- **companies** - List or fetch companies; `use` stores a default company id for regional commands
+- **projects** - SaaS project API (human session bearer; `company_id` query)
+- **storage buckets** - List or get buckets; optional create matches OpenAPI (often 403 in production)
+- **hosting apps** / **hosting deployments** - Inspect sites and deployment rows (same JWT as deploy)

@@ -36,6 +36,12 @@ shellui login
 shellui logout
 shellui whoami
 shellui deploy
+shellui auth status
+shellui companies list
+shellui projects list --json
+shellui storage buckets list
+shellui hosting apps list
+shellui hosting deployments list
 shellui start --config ./config
 ```
 

@@ -132,6 +132,63 @@ Commands use the account named in the project's `shellui.config.json`. Outside a
 
 `shellui logout` removes the stored credentials for the current account (`shellui logout --all` removes every account) and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
+### shellui auth status [root]
+
+Shows whether CLI credentials exist, which company id the active login uses, and (without printing tokens) whether a live identity profile call succeeds. Use `--json` for machine-readable output.
+
+- Credentials stay in the same store as `shellui login` (`getCredentialStorageInfo()` in `@shellui/cli` documents the keychain vs file layout).
+- Optional default company for regional commands is listed when set (see `shellui companies use`).
+
+### shellui companies \<action> [id] [root]
+
+Reads organizations through identity `GET /api/v1/companies/` and `GET /api/v1/companies/<id>/`. Requires `shellui login`. Use `--json` for JSON on stdout.
+
+| Action     | Meaning                                                                                                                                                                                      |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list`     | Companies the signed-in user belongs to                                                                                                                                                      |
+| `get <id>` | One company by numeric id                                                                                                                                                                    |
+| `use <id>` | Saves a default company id for regional CLI calls (stored next to credentials, mode `0600`), keyed with `backend.url`. Still pass `--company` when you need another tenant in the same shell |
+
+Company selection for other commands: `--company <id>` wins, then the CLI session default from `companies use`, then `backend.companyId` in config.
+
+### shellui projects \<action> [id] [root]
+
+Calls the SaaS dashboard REST API with the same bearer session as the shell (not MCP agent OAuth). Requires `saas.url` in config or `SHELLUI_SAAS_URL` (dev default in the CLI is `http://localhost:8005` when neither is set). Sends `company_id` on every request. Uses `--company`, CLI session default, or `backend.companyId`.
+
+| Action     | Meaning                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `list`     | `GET {saas}/api/v1/projects/?company_id=…`                                                                                                 |
+| `get <id>` | `GET {saas}/api/v1/projects/<id>/?company_id=…`                                                                                            |
+| `create`   | `POST {saas}/api/v1/projects/?company_id=…` with `--name`, `--slug`, `--region`. Use `--dry-run` to print the body without calling the API |
+
+`--region` sets the project region string for create. Errors from regional services are redacted and never include access tokens.
+
+### shellui storage buckets \<action> [name] [root]
+
+Uses `storage.url` from config (or `shellui.storage.config.json` when split) and the logged-in JWT. Sends `company_id` as a query parameter on each request.
+
+| Action       | Meaning                                                                                                                                                                                          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `list`       | `GET /storage/v1/bucket?company_id=…`                                                                                                                                                            |
+| `get [name]` | `GET /storage/v1/bucket/<name>?company_id=…` (defaults to the `company` bucket)                                                                                                                  |
+| `create`     | `POST /storage/v1/bucket?company_id=…`. Current storage-service responds with `403 bucket_create_disabled` when the API is closed; the CLI still exposes the route so automation matches OpenAPI |
+
+### shellui hosting apps \<action> [ref] [root]
+
+Uses `hosting.url`. Lists or fetches apps (sites) with the same JWT as `shellui deploy` (not a deploy token).
+
+| Action       | Meaning                                                         |
+| ------------ | --------------------------------------------------------------- |
+| `list`       | `GET /hosting/v1/apps`                                          |
+| `get <slug>` | `GET /hosting/v1/apps/<slug>` (slug is the public preview slug) |
+
+### shellui hosting deployments list [root] / shellui hosting deployments status \<uuid> [root]
+
+Inspect deployments without uploading artifacts.
+
+- `list` loads `GET /hosting/v1/apps/<slug>/deployments`. Slug comes from `--slug`, else `hosting.slug` in config.
+- `status` finds one deployment UUID in that list and prints status, versions, and URL fields when present.
+
 ### shellui deploy [root]
 
 Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead).
