@@ -177,8 +177,6 @@ When `saas.url` includes a path (for example `https://example.com/saas`), reques
 | `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |
 | `create`           | Not implemented (use dashboard or global MCP when policy allows)                            |
 
-SaaS also serves **`GET /api/v1/companies`** without the `saas` prefix. The CLI uses **`/saas/api/v1/companies/`** for `list` and `get` today. If you hand-call the API, confirm which path your reverse proxy or OpenAPI documents.
-
 `shellui projects list --json` on a working stack returns JSON (shape depends on the SaaS API). Errors from services are redacted and never include access tokens.
 
 ### shellui storage buckets \<action> [name] [root]
