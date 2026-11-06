@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import {
   buildActivityPrimarySummary,
   formatActivityDurationMs,
+  formatActivityResultForDisplay,
   formatActivityWhen,
   inferActivityAccessKind,
   parseActivityOutcome,
@@ -167,8 +168,12 @@ export const McpAgentActivitySection = ({
           ) : (
             <ul className="space-y-2">
               {rows.map((row, index) => {
-                const summary = buildActivityPrimarySummary(row);
+                const summary = buildActivityPrimarySummary(row, {
+                  toolUnknown: t('mcpAgents.activity.toolUnknown'),
+                });
                 const outcome = parseActivityOutcome(row.result, row.outcome);
+                const { human: resultHuman, safeRaw: resultSafeRaw } =
+                  formatActivityResultForDisplay(row.result);
                 const safeError = sanitizeMcpActivityErrorMessage(row.errorMessage);
                 const duration = formatActivityDurationMs(row.durationMs, locale);
                 const when = formatActivityWhen(row.timestamp, locale);
@@ -243,9 +248,17 @@ export const McpAgentActivitySection = ({
                       </div>
                       <div className="sm:col-span-2">
                         <dt className="inline font-medium text-foreground/80">
-                          {t('mcpAgents.activity.detail.rawResult')}:{' '}
+                          {t('mcpAgents.activity.detail.result')}:{' '}
                         </dt>
-                        <dd className="inline break-all font-mono text-[11px]">{row.result}</dd>
+                        <dd className="inline">
+                          {(resultHuman ?? resultSafeRaw) ||
+                            t('mcpAgents.activity.detail.resultUnknown')}
+                        </dd>
+                        {resultHuman && resultHuman !== resultSafeRaw ? (
+                          <div className="mt-0.5 break-all font-mono text-[11px] text-muted-foreground">
+                            {resultSafeRaw}
+                          </div>
+                        ) : null}
                       </div>
                       {safeError ? (
                         <div className="sm:col-span-2">

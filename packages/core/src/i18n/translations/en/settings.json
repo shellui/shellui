@@ -279,15 +279,16 @@
     "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
     "global": {
       "title": "Connect to Shellui (global MCP)",
-      "intro": "Use two MCP connections: one global account scope and one per company. They use different endpoints and tokens.",
-      "scopeAccount": "Global MCP (Shellui saas): companies, projects, regions, members, plans. It never accesses your app data.",
-      "scopeRegional": "Regional project MCP: your company apps and regional services. Short-lived tokens stay in that tenant.",
-      "approvals": "Writes that need a person follow the same approval flow for global and regional tools. Destructive tools always require explicit approval.",
-      "sessionNote": "Normal connections last about 60 seconds. A 10 to 15 minute session for trusted new-company setup is not fully wired in the UI until the shared backend contract lands (GitHub PR shellui/saas-service#32).",
-      "prerequisite": "You need a human Shellui account with accepted Terms of Service before you create connections. The product does not offer an agent-auth bypass.",
-      "statusReady": "This session includes the saas grant, so create a connection below when you need global plus regional tools.",
-      "statusPending": "This session is regional only. Open the global Shellui dashboard to connect global MCP when your account has the saas grant.",
-      "backendNote": "This UI calls identity routes that are still being aligned with saas-service PR 32. If create or activity fails, check backend deployment."
+      "intro": "You can use more than one MCP connection. A dashboard-scoped path covers your Shellui account (projects, companies, regions, and plans). This settings page covers this company only (regional services and app APIs).",
+      "scopeAccount": "Dashboard MCP: account metadata for Shellui. It does not read your hosted app data.",
+      "scopeRegional": "This page: MCP for this company (regional services). Tokens are short-lived and tied to this company.",
+      "accessModes": "Exact access is read-only, write that asks first (ask), or full, per token settings.",
+      "approvals": "Writes that need a person use the pending approvals list here. Destructive tools always need approval.",
+      "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
+      "dashboardUrlLabel": "Dashboard base URL (reference only, not for MCP clients):",
+      "dashboardUrlUnknown": "Set backend.adminUrl in shellui.config.ts to show the dashboard base URL here.",
+      "statusReady": "Your session can reach saas. Create a connection below when you need dashboard plus company scope.",
+      "statusPending": "Your session is regional only. Sign in from the Shellui dashboard when you need dashboard MCP."
     },
     "signInRequired": "Sign in to manage MCP agents.",
     "status": {
@@ -358,6 +359,7 @@
         "destructive": "Destructive",
         "unknown": "Access not classified"
       },
+      "toolUnknown": "Unknown tool",
       "detail": {
         "when": "When",
         "duration": "Duration",
@@ -365,7 +367,8 @@
         "actor": "Actor",
         "actorUnknown": "Not reported",
         "agent": "Connection",
-        "rawResult": "Server result",
+        "result": "Result",
+        "resultUnknown": "Not classified",
         "error": "Service error",
         "errorUnavailable": "No safe error detail from the server for this row."
       },

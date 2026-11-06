@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { McpAgentActivityRow } from './personalAgentsApi';
 import {
   buildActivityPrimarySummary,
+  formatActivityResultForDisplay,
   parseActivityOutcome,
   resolveActivityPendingLink,
   sanitizeMcpActivityErrorMessage,
@@ -58,9 +59,31 @@ describe('buildActivityPrimarySummary', () => {
       resourceLabel: 'Members directory',
       companyLabel: 'Acme Corp',
     });
-    expect(buildActivityPrimarySummary(row)).toBe(
-      'identity Members directory: list_users (Acme Corp)',
+    expect(buildActivityPrimarySummary(row, { toolUnknown: 'Unknown tool' })).toBe(
+      'identity Members directory: Unknown tool (Acme Corp)',
     );
+  });
+
+  it('uses registry labels for known tools', () => {
+    const row = baseRow({
+      service: 'storage',
+      tool: 'storage_delete',
+      resourceLabel: 'Reports',
+      companyLabel: 'Acme Corp',
+    });
+    expect(buildActivityPrimarySummary(row, { toolUnknown: 'Unknown tool' })).toBe(
+      'storage Reports: Delete stored object (Acme Corp)',
+    );
+  });
+});
+
+describe('formatActivityResultForDisplay', () => {
+  it('maps known result tokens and strips URL queries from raw line', () => {
+    expect(formatActivityResultForDisplay('ok')).toEqual({ human: 'Completed', safeRaw: 'ok' });
+    expect(formatActivityResultForDisplay('https://x.example/a?q=1')).toEqual({
+      human: null,
+      safeRaw: 'https://x.example/a',
+    });
   });
 });
 

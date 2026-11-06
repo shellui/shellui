@@ -91,7 +91,6 @@ export const McpPendingApprovals = forwardRef<HTMLElement, Props>(function McpPe
   return (
     <section
       ref={ref}
-      id="mcp-pending-approvals"
       className="space-y-4 scroll-mt-8"
     >
       <div className="flex flex-wrap items-center gap-2">

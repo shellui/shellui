@@ -3,6 +3,7 @@ import type {
   McpActivityAccessKind,
   McpActivityOutcomeKind,
 } from './personalAgentsApi';
+import { humanizeMcpActivityResult, humanizeMcpToolName } from './mcpToolActivityRegistry';
 
 export type { McpActivityAccessKind, McpActivityOutcomeKind } from './personalAgentsApi';
 
@@ -136,17 +137,43 @@ export function resolveActivityPendingLink(
   return null;
 }
 
-export function buildActivityPrimarySummary(row: McpAgentActivityRow): string {
-  const tool = row.tool.trim() || 'MCP tool';
+export type ActivitySummaryLabels = {
+  toolUnknown: string;
+};
+
+export function buildActivityPrimarySummary(
+  row: McpAgentActivityRow,
+  labels: ActivitySummaryLabels,
+): string {
+  const rawTool = row.tool.trim();
   const service = row.service.trim() || 'service';
   const resource = row.resourceLabel?.trim();
   const company = row.companyLabel?.trim();
+  const humanTool = rawTool ? humanizeMcpToolName(rawTool) : null;
+  const toolDisplay = humanTool ?? labels.toolUnknown;
   const parts: string[] = [];
   if (resource) {
-    parts.push(`${service} ${resource}: ${tool}`);
+    parts.push(`${service} ${resource}: ${toolDisplay}`);
   } else {
-    parts.push(`${service}: ${tool}`);
+    parts.push(`${service}: ${toolDisplay}`);
   }
   if (company) parts.push(`(${company})`);
   return parts.join(' ');
+}
+
+export function formatActivityResultForDisplay(raw: string): {
+  human: string | null;
+  safeRaw: string;
+} {
+  const trimmed = raw.trim();
+  const human = trimmed ? humanizeMcpActivityResult(trimmed) : null;
+  let safeRaw = trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (u.search) u.search = '';
+    safeRaw = u.toString();
+  } catch {
+    /* not a URL */
+  }
+  return { human, safeRaw };
 }

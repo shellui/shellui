@@ -220,11 +220,7 @@ export const parseMcpAgentActivity = (
     const service = asString(item.service);
     const result = asString(item.result);
     if (!timestamp || !tool || !service || !result) continue;
-    const durationRaw =
-      asNumber(item.duration_ms) ??
-      asNumber(item.durationMs) ??
-      asNumber(item.latency_ms) ??
-      asNumber(item.elapsed_ms);
+    const durationRaw = asNumber(item.duration_ms);
     activity.push({
       timestamp,
       tool,
@@ -232,20 +228,15 @@ export const parseMcpAgentActivity = (
       result,
       clientIp: asString(item.client_ip),
       companyId: asString(item.company_id),
-      companyLabel: asString(item.company_name) ?? asString(item.company_label),
-      resourceLabel:
-        asString(item.resource_label) ??
-        asString(item.resource) ??
-        asString(item.target) ??
-        asString(item.summary),
-      actorLabel: asString(item.actor) ?? asString(item.actor_label) ?? asString(item.user_label),
+      companyLabel: asString(item.company_name),
+      resourceLabel: asString(item.resource_label),
+      actorLabel: asString(item.actor),
       agentName: asString(item.agent_name),
-      accessKind: parseAccessKind(item.access_kind ?? item.access),
+      accessKind: parseAccessKind(item.access_kind),
       durationMs: durationRaw,
-      outcome: parseOutcomeKind(item.outcome ?? item.status),
-      approvalRequestId: asString(item.approval_request_id) ?? asString(item.approval_id),
-      errorMessage:
-        asString(item.error_message) ?? asString(item.service_error) ?? asString(item.error),
+      outcome: parseOutcomeKind(item.outcome),
+      approvalRequestId: asString(item.approval_request_id),
+      errorMessage: asString(item.error_message),
     });
   }
   return { agentId, activity };
