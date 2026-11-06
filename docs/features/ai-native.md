@@ -34,8 +34,10 @@ compose JSON. It does not send HTTP to the containers.
 - `pnpm run docs:build`
 
 If `docker` is missing, the script prints `docker not available; skipped
-compose config validation` and `pnpm run test:scripts` still passes. Issuer
-checks did not run on that host.
+compose config validation` and `pnpm run test:scripts` still passes.
+Compose config assertions did not run on that host, not only the issuer
+checks. Those assertions also cover internal identity URLs and
+`EMAIL_PUBLIC_URL` on `email` and `email-worker`.
 
 **Live on your machine:** with `shellui/dev` up, you run the regional OAuth
 steps below, `tools/list` on `http://localhost:8006/c/1/mcp`, human
