@@ -11,6 +11,7 @@ export type McpPersonalStatusCacheScope = {
 type McpPersonalStatusCacheEntry = McpPersonalStatusCacheScope & {
   mcpEnabled: boolean;
   mcpUrl: string | null;
+  globalMcpUrl: string | null;
   globalIdentity?: boolean;
   fetchedAt: number;
 };
@@ -29,6 +30,12 @@ const parseCacheEntry = (raw: string): McpPersonalStatusCacheEntry | null => {
     if (typeof parsed.mcpEnabled !== 'boolean') return null;
     const mcpUrl =
       parsed.mcpUrl === null ? null : typeof parsed.mcpUrl === 'string' ? parsed.mcpUrl : null;
+    const globalMcpUrl =
+      parsed.globalMcpUrl === null || parsed.globalMcpUrl === undefined
+        ? null
+        : typeof parsed.globalMcpUrl === 'string'
+          ? parsed.globalMcpUrl
+          : null;
     const globalIdentity =
       typeof parsed.globalIdentity === 'boolean' ? parsed.globalIdentity : undefined;
     const fetchedAt = typeof parsed.fetchedAt === 'number' ? parsed.fetchedAt : 0;
@@ -38,6 +45,7 @@ const parseCacheEntry = (raw: string): McpPersonalStatusCacheEntry | null => {
       companyId,
       mcpEnabled: parsed.mcpEnabled,
       mcpUrl,
+      globalMcpUrl,
       ...(globalIdentity !== undefined ? { globalIdentity } : {}),
       fetchedAt,
     };
@@ -60,6 +68,7 @@ export const readMcpPersonalStatusCache = (
   return {
     mcpEnabled: entry.mcpEnabled,
     mcpUrl: entry.mcpUrl,
+    globalMcpUrl: entry.globalMcpUrl,
     ...(entry.globalIdentity !== undefined ? { globalIdentity: entry.globalIdentity } : {}),
   };
 };
@@ -73,6 +82,7 @@ export const writeMcpPersonalStatusCache = (
     ...scope,
     mcpEnabled: status.mcpEnabled,
     mcpUrl: status.mcpUrl,
+    globalMcpUrl: status.globalMcpUrl,
     ...(status.globalIdentity !== undefined ? { globalIdentity: status.globalIdentity } : {}),
     fetchedAt: Date.now(),
   };

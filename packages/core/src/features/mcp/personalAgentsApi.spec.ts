@@ -44,7 +44,17 @@ describe('parseMcpPersonalStatus', () => {
   it('parses enabled status and url', () => {
     expect(
       parseMcpPersonalStatus({ mcp_enabled: true, mcp_url: 'https://ai.test/c/1/mcp' }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/c/1/mcp' });
+    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/c/1/mcp', globalMcpUrl: null });
+  });
+
+  it('parses global_mcp_url when present', () => {
+    expect(
+      parseMcpPersonalStatus({
+        mcp_enabled: true,
+        mcp_url: null,
+        global_mcp_url: 'https://dash.example.com',
+      }),
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: 'https://dash.example.com' });
   });
 
   it('parses global_identity when present', () => {
@@ -54,7 +64,7 @@ describe('parseMcpPersonalStatus', () => {
         mcp_url: null,
         global_identity: false,
       }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalIdentity: false });
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: null, globalIdentity: false });
   });
 
   it('returns null for invalid payloads', () => {
@@ -178,12 +188,17 @@ describe('mcp personal fetch helpers', () => {
   it('fetchMcpPersonalStatus sends bearer and company_id', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ mcp_enabled: true, mcp_url: 'https://ai.test/c/1/mcp' }),
+      json: async () => ({
+        mcp_enabled: true,
+        mcp_url: 'https://ai.test/c/1/mcp',
+        global_mcp_url: null,
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
     const status = await fetchMcpPersonalStatus('https://id.example.com', 'tok', '7');
     expect(status.mcpEnabled).toBe(true);
+    expect(status.globalMcpUrl).toBeNull();
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://id.example.com/api/v1/mcp/personal/status?company_id=7');

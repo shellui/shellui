@@ -279,16 +279,16 @@
     "description": "Connectez un agent IA à cette entreprise via MCP. Chaque connexion reçoit son propre jeton. Révoquez une connexion lorsque vous n'utilisez plus cet agent.",
     "global": {
       "title": "Se connecter à Shellui (MCP global)",
-      "intro": "Vous pouvez utiliser plusieurs connexions MCP. Une portée liée au tableau de bord couvre votre compte Shellui (projets, entreprises, régions et forfaits). Cette page des paramètres couvre cette entreprise seulement (services régionaux et API d'application).",
-      "scopeAccount": "MCP tableau de bord : métadonnées de compte pour Shellui. Il ne lit pas les données de votre application hébergée.",
+      "intro": "Vous pouvez utiliser deux points d'entrée MCP : un sur le tableau de bord Shellui pour votre compte (projets, entreprises, régions et forfaits) et un depuis cette page pour cette entreprise (services régionaux et API d'application). Ils utilisent des URL et des jetons différents.",
+      "scopeAccount": "MCP global sur le tableau de bord Shellui : portée compte OAuth sur SaaS. Il couvre les métadonnées de compte. Il ne lit pas les données de votre application hébergée.",
       "scopeRegional": "Cette page : MCP pour cette entreprise (services régionaux). Les jetons sont à courte durée et liés à cette entreprise.",
-      "accessModes": "L'accès exact est lecture seule, écriture avec demande (ask) ou complet, selon les réglages du jeton.",
-      "approvals": "Les écritures qui nécessitent une personne passent par la liste d'approbations ci-dessous. Les outils destructifs exigent toujours une approbation.",
+      "sessions": "Une connexion normale dure environ 60s pour un travail non destructif tant que le jeton est en mode Allow (ask). Une configuration initiale d'entreprise de confiance peut utiliser une session de 10 à 15 min quand votre hôte l'active. Les outils destructifs exigent toujours une approbation récente, même si le jeton autorise d'autres écritures.",
+      "approvals": "Les approbations du MCP global passent par les points de terminaison d'approbation et de repli SaaS. La liste d'attente sur cette page concerne les outils régionaux pour cette entreprise.",
       "prerequisite": "Vous devez avoir un compte Shellui avec les conditions d'utilisation acceptées avant de créer une connexion.",
-      "dashboardUrlLabel": "URL de base du tableau de bord (référence seulement, pas pour les clients MCP) :",
-      "dashboardUrlUnknown": "Définissez backend.adminUrl dans shellui.config.ts pour afficher l'URL de base du tableau de bord ici.",
-      "statusReady": "Votre session peut joindre saas. Créez une connexion ci-dessous quand vous voulez la portée tableau de bord plus entreprise.",
-      "statusPending": "Votre session est régionale seulement. Connectez-vous depuis le tableau de bord Shellui si vous avez besoin du MCP tableau de bord."
+      "globalMcpUrlLabel": "Point de terminaison MCP global (référence seulement) :",
+      "globalMcpUrlUnknown": "Identity n'a pas encore renvoyé d'URL MCP global. Après la mise à jour d'identity par votre hôte, rechargez cette page.",
+      "statusReady": "Votre session OAuth inclut SaaS (portée compte). Quand le point de terminaison global apparaît ci-dessus, utilisez-le pour le MCP à l'échelle du compte. Les connexions que vous créez ci-dessous restent régionales pour cette entreprise seulement. Elles ne sont pas interchangeables et cette page ne configure pas le client du tableau de bord.",
+      "statusPending": "Votre session est régionale seulement. Connectez-vous avec un compte Shellui qui inclut SaaS si vous avez besoin du MCP global quand le point de terminaison apparaît ci-dessus."
     },
     "signInRequired": "Connectez-vous pour gérer les agents MCP.",
     "status": {

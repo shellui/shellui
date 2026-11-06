@@ -279,16 +279,16 @@
     "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
     "global": {
       "title": "Connect to Shellui (global MCP)",
-      "intro": "You can use more than one MCP connection. A dashboard-scoped path covers your Shellui account (projects, companies, regions, and plans). This settings page covers this company only (regional services and app APIs).",
-      "scopeAccount": "Dashboard MCP: account metadata for Shellui. It does not read your hosted app data.",
+      "intro": "You can use two MCP entry points: one on the Shellui dashboard for your account (projects, companies, regions, and plans) and one from this page for this company (regional services and app APIs). They use different URLs and tokens.",
+      "scopeAccount": "Global MCP on the Shellui dashboard: OAuth account scope on SaaS. It covers account metadata. It does not read your hosted app data.",
       "scopeRegional": "This page: MCP for this company (regional services). Tokens are short-lived and tied to this company.",
-      "accessModes": "Exact access is read-only, write that asks first (ask), or full, per token settings.",
-      "approvals": "Writes that need a person use the pending approvals list here. Destructive tools always need approval.",
+      "sessions": "A normal connection lasts about 60s for non-destructive work while the token uses Allow (ask) mode. Trusted new-company setup can use a 10 to 15 min session when your host enables it. Destructive tools always need a fresh approval, even when the token allows other writes.",
+      "approvals": "Global MCP approvals use the SaaS approval and fallback endpoints. The pending list on this page is for regional tools for this company.",
       "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
-      "dashboardUrlLabel": "Dashboard base URL (reference only, not for MCP clients):",
-      "dashboardUrlUnknown": "Set backend.adminUrl in shellui.config.ts to show the dashboard base URL here.",
-      "statusReady": "Your session can reach saas. Create a connection below when you need dashboard plus company scope.",
-      "statusPending": "Your session is regional only. Sign in from the Shellui dashboard when you need dashboard MCP."
+      "globalMcpUrlLabel": "Global MCP endpoint (reference only):",
+      "globalMcpUrlUnknown": "Identity has not returned a global MCP URL yet. After your host upgrades identity, reload this page.",
+      "statusReady": "Your OAuth session includes SaaS (account scope). When the global endpoint appears above, use it for account-wide MCP. Connections you create below stay regional for this company only. They are not interchangeable and this page does not configure the dashboard client.",
+      "statusPending": "Your session is regional only. Sign in with a Shellui account that has SaaS if you need global MCP when the endpoint appears above."
     },
     "signInRequired": "Sign in to manage MCP agents.",
     "status": {

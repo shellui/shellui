@@ -70,25 +70,12 @@ export const McpAgents = () => {
     pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  const dashboardMcpDisplayUrl = useMemo(() => {
-    const raw = config?.backend?.adminUrl?.trim();
-    if (!raw) return null;
-    try {
-      const u = new URL(raw);
-      const fromConfig = config?.backend?.adminPathname?.trim();
-      const path =
-        fromConfig && fromConfig.length > 0
-          ? fromConfig.startsWith('/')
-            ? fromConfig
-            : `/${fromConfig}`
-          : u.pathname && u.pathname !== '/'
-            ? u.pathname
-            : '/admin';
-      return `${u.origin}${path}`.replace(/\/+$/, '') || `${u.origin}${path}`;
-    } catch {
-      return null;
-    }
-  }, [config?.backend?.adminPathname, config?.backend?.adminUrl]);
+  const globalMcpEndpoint = useMemo(() => {
+    const base = status?.globalMcpUrl?.trim().replace(/\/+$/, '') ?? '';
+    if (!base) return null;
+    return `${base}/mcp`;
+  }, [status?.globalMcpUrl]);
+
   const companyMcpUrl = useMemo(
     () => buildCompanyMcpUrl(aiServiceUrl, companyId, status?.mcpUrl),
     [aiServiceUrl, companyId, status?.mcpUrl],
@@ -298,23 +285,23 @@ export const McpAgents = () => {
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>{t('mcpAgents.global.scopeAccount')}</li>
           <li>{t('mcpAgents.global.scopeRegional')}</li>
-          <li>{t('mcpAgents.global.accessModes')}</li>
+          <li>{t('mcpAgents.global.sessions')}</li>
           <li>{t('mcpAgents.global.approvals')}</li>
         </ul>
         <p className="text-sm text-muted-foreground">{t('mcpAgents.global.prerequisite')}</p>
-        {dashboardMcpDisplayUrl ? (
+        {globalMcpEndpoint ? (
           <p className="text-sm text-muted-foreground">
-            {t('mcpAgents.global.dashboardUrlLabel')}{' '}
+            {t('mcpAgents.global.globalMcpUrlLabel')}{' '}
             <span
               className="select-none font-mono text-xs text-muted-foreground/80"
               translate="no"
             >
-              {dashboardMcpDisplayUrl}
+              {globalMcpEndpoint}
             </span>
           </p>
         ) : (
           <p className="text-sm text-muted-foreground">
-            {t('mcpAgents.global.dashboardUrlUnknown')}
+            {t('mcpAgents.global.globalMcpUrlUnknown')}
           </p>
         )}
         {includeSaas ? (

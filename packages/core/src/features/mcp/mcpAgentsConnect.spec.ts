@@ -26,17 +26,29 @@ describe('buildCompanyMcpUrl', () => {
 
 describe('isGlobalIdentitySession', () => {
   it('reads globalIdentity from status when present', () => {
-    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null, globalIdentity: false })).toBe(
-      false,
-    );
+    expect(
+      isGlobalIdentitySession({
+        mcpEnabled: true,
+        mcpUrl: null,
+        globalMcpUrl: null,
+        globalIdentity: false,
+      }),
+    ).toBe(false);
   });
 
   it('is false when globalIdentity is omitted or false', () => {
-    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null })).toBe(false);
-    expect(isGlobalIdentitySession(null)).toBe(false);
-    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null, globalIdentity: true })).toBe(
-      true,
+    expect(isGlobalIdentitySession({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: null })).toBe(
+      false,
     );
+    expect(isGlobalIdentitySession(null)).toBe(false);
+    expect(
+      isGlobalIdentitySession({
+        mcpEnabled: true,
+        mcpUrl: null,
+        globalMcpUrl: null,
+        globalIdentity: true,
+      }),
+    ).toBe(true);
   });
 });
 

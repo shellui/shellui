@@ -38,6 +38,7 @@ describe('loadMcpPersonalStatus', () => {
     const fetchSpy = vi.spyOn(personalAgentsApi, 'fetchMcpPersonalStatus').mockResolvedValue({
       mcpEnabled: true,
       mcpUrl: 'https://ai.test/mcp',
+      globalMcpUrl: null,
     });
 
     const input = {
@@ -50,7 +51,7 @@ describe('loadMcpPersonalStatus', () => {
     const [a, b] = await Promise.all([loadMcpPersonalStatus(input), loadMcpPersonalStatus(input)]);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(a).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/mcp' });
+    expect(a).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/mcp', globalMcpUrl: null });
     expect(b).toEqual(a);
     expect(
       readMcpPersonalStatusCache({
@@ -58,7 +59,7 @@ describe('loadMcpPersonalStatus', () => {
         backendUrl: 'https://id.example.com',
         companyId: '1',
       }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/mcp' });
+    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/mcp', globalMcpUrl: null });
   });
 
   it('returns null without calling identity when prerequisites are missing', async () => {
