@@ -1,7 +1,7 @@
 ---
 title: AI native platform (developer guide)
 sidebar_label: AI native platform
-description: Local stack, OAuth, SaaS MCP, token exchange, and regional MCP.
+description: Local stack, OAuth, SaaS MCP, token exchange, regional MCP.
 ---
 
 This guide lists **source-backed** commands from identity-service, ai-service,
@@ -10,25 +10,6 @@ when this file was last revised).
 
 It does **not** claim a full Docker MCP run was completed in CI here. For deeper
 API coverage, read each service handbook (linked at the end).
-
-## Table of contents
-
-- [Verification status](#verification-status)
-- [SaaS global MCP (readme in clone)](#saas-global-mcp-readme-in-clone)
-- [Start stack and ports](#start-stack-and-ports)
-- [Dev region and JWT audience](#dev-region-and-jwt-audience)
-- [Human account and token roles](#human-account-and-token-roles)
-- [OAuth registration](#dynamic-client-registration-and-oauth)
-- [Global consent POST](#global-consent-post)
-- [First company on global SaaS MCP](#first-company-on-global-saas-mcp)
-- [Dashboard UUID and regional id](#dashboard-uuid-and-regional-id)
-- [Regional agent exchange RFC 8693](#regional-agent-exchange-rfc-8693)
-- [Human /oauth/token](#optional-human-session-exchange-at-oauthtoken)
-- [Service MCP examples](#service-mcp-examples)
-- [shellui.config.json](#shelluiconfigjson)
-- [Approvals, session, revocation](#approvals-session-revocation)
-- [CLI scope](#cli-scope)
-- [Troubleshooting](#troubleshooting)
 
 ## SaaS global MCP (readme in clone)
 
@@ -97,16 +78,21 @@ SaaS registers **ch** and **eu** in real installs; **`local` is not** a SaaS
 region code, so first company creation uses **`"region":"ch"`** against your
 local SaaS MCP.
 
-`PUBLIC_SAAS_URL` is the SaaS API base (`POST /mcp` for global MCP). For **RFC
-8693 global-agent exchange**, identity verifies the **subject** JWT against
-`GLOBAL_ISSUER_URL` and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` (`exchange.py`).
-That **aud** string is **not** the same as the **issued** regional token `aud`.
-The issued `aud` is the MCP `resource` URL from the exchange body
-(`mcp_resources.py`).
+`PUBLIC_SAAS_URL` is the SaaS host (`POST /mcp` is global MCP JSON-RPC).
+`list_mcp_services` (`services.py`) lists plain `{origin}/mcp` URLs for SaaS,
+identity, and others, plus AI on `{AI_URL}/mcp`.
+`resolve_mcp_resource` in `mcp_resources.py` maps URLs to service ids.
 
-**Global resource URL:** OAuth `resource` is a normal **http** or **https** URL.
-The ai gateway form is `http://localhost:8006/c/<company_id>/mcp` and only works
-on loopback hosts (`mcp_resources.py`). Do not invent `saas://` URIs.
+**RFC 8693 global-agent exchange:** on the region, `handle_agent_token_exchange`
+verifies the subject JWT with `GLOBAL_ISSUER_URL` and
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` (`apps/agents/exchange.py`). Issued token
+`aud` is the exchange `resource` URL, which is **not** the same string as the
+global agent subject `aud`.
+
+**Gateway resource:** `http://localhost:8006/c/<company_id>/mcp` only on loopback.
+**Company id in the path must exist** (`parse_authorize_request` sets
+`company_id` from `resource_company_id`; unknown companies fail after sign-in).
+Use your real regional id (from SaaS retrieve or dev seed company **1**).
 
 This stack passes `GLOBAL_AGENT_PRIVATE_KEY` and `GLOBAL_AGENT_KEY_ID` into
 **saas** and mirrors the same PEM and kid as `GLOBAL_AGENT_SIGNING_KEY` and
@@ -132,12 +118,22 @@ global agent subject. For browser flows, the shell holds the human session
 **Human session** (Bearer from login or browser) is for approvals, dashboard,
 and `shellui projects list`.
 
-**Regional MCP agent JWT** (after browser consent and auth-code exchange at
-`POST /oauth/mcp/token`) carries `aud` equal to the **resource** you sent
-(usually the ai gateway URL). That token calls the gateway and SaaS tools.
-**Global agent JWT** (minted by SaaS for `api_v1_companies_create`) uses
-`aud` = `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` and is the **subject** for RFC 8693
-at `POST /oauth/mcp/token` on the region (`exchange.py`).
+**Regional MCP agent JWT** (after consent and auth-code exchange at
+`POST /oauth/mcp/token`) has `aud` equal to the **resource** URL you authorized
+(`encode_access_token`). Authorize today needs a **gateway** `resource` with a
+company id in the path, so `aud` matches that gateway URL.
+
+**Global agent JWT** (SaaS mints for `api_v1_companies_create`) uses `aud` =
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`. It is the **subject** for RFC 8693 agent
+exchange on the region (`handle_agent_token_exchange`).
+
+**Human session exchange** uses **`POST /oauth/token`** on the region
+(`TokenView`, `federation/provider.py`).
+It calls `handle_token_exchange`. That is **not** the MCP token endpoint.
+
+`shellui login` never prints tokens. Prefer **Settings** in the dashboard for
+approvals; only use curl when you already have a human Bearer by a path you
+trust.
 
 ## Dynamic client registration and OAuth
 
@@ -167,19 +163,24 @@ your_challenge_here="$(printf '%s' "$your_verifier_here" | \
   tr '+/' '-_' | tr -d '=')"
 ```
 
-### Authorize URL (GET)
+### Authorize URL (GET) when a regional company already exists
 
-`parse_authorize_request` requires `code_challenge` and
-`code_challenge_method` S256 ([parse-auth][parse-auth]).
+`parse_authorize_request` requires PKCE **S256** ([parse-auth][parse-auth]). It
+parses `resource` with `resolve_mcp_resource` and **requires** a company id from
+**gateway** URLs (`resource_company_id` in `mcp_signin.py`). Plain `{SAAS}/mcp`
+does **not** yield a company id in Identity **develop**. That yields
+**`company_required`** at authorize time.
 
-Consent **checkboxes** list identity, storage, hosting, and email only
-(`oauth_views.py` builds `services` without the **ai** id). The **ai** connector
-is the OAuth **resource** (`http://localhost:8006/c/your_regional_id_here/mcp`).
-SaaS is a separate **`include_saas`** checkbox when the server offers it
-(`mcp_saas_consent`).
+**Runnable path:** use the seeded company (**1** in `dev/.env.local.example`) or
+any real regional id, then set `resource` to the **gateway**:
 
-For `["saas","ai"]` intent: turn on **include_saas** and set **resource** to
-the ai gateway URL below.
+```text
+http://localhost:8006/c/1/mcp
+```
+
+The **ai** service id comes from that URL; checkboxes still list storage,
+hosting, email (`oauth_views` drops **ai** from the POST list). Turn on
+**include_saas** for SaaS in `services_allowed` (`mcp_saas_consent`).
 
 ```bash
 python3 - <<'PY'
@@ -192,19 +193,20 @@ q = {
   "state": "your_state_here",
   "code_challenge": "your_challenge_here",
   "code_challenge_method": "S256",
-  "resource": "http://127.0.0.1:8006/c/your_company_id_here/mcp",
+  "resource": "http://127.0.0.1:8006/c/1/mcp",
 }
 print("http://127.0.0.1:8001/oauth/mcp/authorize?" + urllib.parse.urlencode(q))
 PY
 ```
 
-Open the printed URL while signed in, or follow
-[Global consent POST](#global-consent-post).
+Open the printed URL while signed in. See **Global consent POST** below
+(`## Global consent POST`).
 
 ### Token (authorization_code)
 
-After the redirect carries `code`, prefer **form** bodies. `mcp_token` uses
-`parse_oauth_post_body`:
+Only **`POST /oauth/mcp/token`** handles MCP authorization codes (`mcp_token`).
+Use **form** bodies (`parse_oauth_post_body`). `resource` must match the
+authorization row.
 
 ```bash
 curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
@@ -214,26 +216,24 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
   --data-urlencode "code=your_authorization_code_here" \
   --data-urlencode "redirect_uri=http://127.0.0.1:8765/callback" \
   --data-urlencode "code_verifier=$your_verifier_here" \
-  --data-urlencode "resource=http://127.0.0.1:8006/c/your_company_id_here/mcp"
+  --data-urlencode "resource=http://127.0.0.1:8006/c/1/mcp"
 ```
 
-JSON bodies are also accepted. The JSON payload includes `access_token`,
+JSON bodies are also accepted. Response JSON includes `access_token`,
 `token_type`, `expires_in`, and `refresh_token` (`oauth_views.py`). Never log
 tokens.
 
-The access token **aud** matches **resource** from the authorization row
-(`oauth_views.py` binds `encode_access_token` to that URL). Staff accounts get
-**403** on token redemption (`is_mcp_oauth_refused_user`).
+The access token **aud** matches **resource** (`encode_access_token`). Staff
+accounts get **403** (`is_mcp_oauth_refused_user`).
 
 ## Global consent POST
 
 The consent form on `GET /oauth/mcp/authorize` submits to the same path with
-Django `csrfmiddlewaretoken` ([consent-html][consent-html]). A machine client
-must send a **human** browser session (Cookie) and the CSRF token from the
-GET response. Standard MCP stacks without an embedded browser need their own
-integration for this POST.
+Django `csrfmiddlewaretoken` ([consent-html][consent-html]). Prefer **Settings**
+in the dashboard in a normal browser; curl is only for people who already hold
+Cookie plus CSRF material.
 
-`your_mcp_authorize_post.sh` (run after you copy CSRF and session values):
+`your_mcp_authorize_post.sh` (only when you have session plus CSRF):
 
 ```bash
 curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/authorize" \
@@ -243,11 +243,11 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/authorize" \
   -F "response_type=code" \
   -F "client_id=your_client_id_here" \
   -F "redirect_uri=http://127.0.0.1:8765/callback" \
-  -F "resource=http://127.0.0.1:8006/c/your_company_id_here/mcp" \
+  -F "resource=http://127.0.0.1:8006/c/1/mcp" \
   -F "state=your_state_here" \
   -F "code_challenge=your_challenge_here" \
   -F "code_challenge_method=S256" \
-  -F "services=identity" -F "services=storage" -F "services=hosting" \
+  -F "services=storage" -F "services=hosting" \
   -F "services=email" \
   -F "include_saas=on" \
   -F "access_mode=ask" -F "read_level=safe" \
@@ -255,26 +255,21 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/authorize" \
   -F "decision=approve"
 ```
 
+SaaS opt-in can redirect through global identity sign-in
+(`start_global_identity_signin` in `mcp_saas_consent.py`) before
+`complete_pending_mcp_consent` finishes the row.
+
 ## First company on global SaaS MCP
 
-After Terms, a **human** creates the first company via global SaaS MCP.
+**Order in Identity `develop`:** `parse_authorize_request` needs a **numeric
+company id** in **gateway** `resource` URLs (`resource_company_id` in
+`mcp_signin.py`). Plain `{PUBLIC_SAAS_URL}/mcp` has **no** company id there, so
+you get **`company_required`**. Keep `SHELL_IDENTITY_COMPANY_ID=1` from
+`./generate-env.sh` until you have a real row, or create a company first, then
+use `http://127.0.0.1:8006/c/<id>/mcp` in authorize.
 
-Use `POST {PUBLIC_SAAS_URL}/mcp` with the **global agent** JWT from SaaS consent
-(see saas `docs/mcp.md` in your clone).
-
-`shellui projects create` has no handler.
-
-After the row exists, use read-only SaaS CLI commands.
-
-Examples:
-
-- `shellui projects list`
-- `shellui projects get`
-- `shellui projects regions`
-- `shellui projects endpoints`
-- `shellui projects use`
-
-Human identity cookies are not valid as `Bearer` on SaaS MCP.
+Minting the **global agent** JWT for SaaS `POST /mcp` is in **saas-service**
+([requires SaaS source access](#saas-global-mcp-readme-in-clone)):
 
 `your_create_company_here.json`:
 
@@ -299,57 +294,48 @@ Human identity cookies are not valid as `Bearer` on SaaS MCP.
 ```bash
 read -r -s SAAS_AGENT_BEARER
 export SAAS_AGENT_BEARER
-curl -sS -X POST "$SAAS_ORIGIN/mcp" \
+curl -sS -X POST "${SAAS_ORIGIN}/mcp" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $SAAS_AGENT_BEARER" \
   -d @your_create_company_here.json
 ```
 
-When `isError` is true, read approval metadata (approval id, tool name) from
-the structured content your saas build returns.
+`shellui projects create` has no handler. After the row exists, read-only CLI:
 
-Treat durations as **server authority** (**600** to **900** seconds may apply on
-first non-destructive setup). That window must stay **within** token lifetime.
-The gateway **session_allow** path is **60** seconds, **non-destructive**, **one
-connection** [identity-mcp].
+- `shellui projects list`
+- `shellui projects get`
+- `shellui projects regions`
+- `shellui projects endpoints`
+- `shellui projects use`
 
-Destructive tools need a **fresh** human approval each time, including `full`
-access, unless `allow_destructive_without_asking` is enabled in your identity
-config [identity-mcp].
+When `isError` is true, read **approval** metadata from the tool result in your
+SaaS build (clone). Treat **600** to **900** second windows as **server
+authority** when your SaaS docs say so. Stay inside token **exp** on the agent
+JWT.
 
-### Approve as human member
+**Session allow** on the gateway is **60** seconds, **non-destructive**, **one
+connection** [identity-mcp]. **Destructive** tools need a **fresh** human
+approval **every** time, in **every** access mode, **full** included, even after
+**session_allow**. **Deny** and **revocation** override session allow
+[identity-mcp].
 
-Human **Bearer** is the regional identity JWT from `shellui login`, **not** a
-global agent or SaaS token. Approvals APIs **reject agent** Bearer
-(`require_approval_actor`, `allow_agent_token=False`).
+### Approve as a signed-in human (Settings first)
 
-`GET /api/v1/mcp/approvals` has **no** `status` query in source; it already
-returns **pending** rows only (`McpApprovalListView`).
+`shellui login` does not print tokens. Prefer **Settings** plus **pending
+approvals** in the dashboard UI at `PUBLIC_DASHBOARD_URL`.
 
-```bash
-curl -sS \
-  "$REGIONAL_IDENTITY_ORIGIN/api/v1/mcp/approvals?company_id=your_id_here" \
-  -H "Authorization: Bearer $HUMAN_IDENTITY_BEARER"
-```
+Server route: **`POST /api/v1/mcp/approvals/{approval_id}/decide`** with JSON
+`{"decision":"approve"}` (`McpApprovalDecideView`). **`decision`** may be
+**approve**, **allow**, **deny**, or **reject** [decide-src].
 
-```bash
-APPROVALS="$REGIONAL_IDENTITY_ORIGIN/api/v1/mcp/approvals"
-APP_DEC="$APPROVALS/your_approval_uuid_here/decide"
-curl -sS -X POST "${APP_DEC}?company_id=your_id_here" \
-  -H "Authorization: Bearer $HUMAN_IDENTITY_BEARER" \
-  -H "Content-Type: application/json" \
-  -d '{"decision":"approve"}'
-```
+Approvals need a **human** regional JWT. They **reject agent** Bearer
+(`require_approval_actor`, `allow_agent_token=False` [permissions-src]).
+`GET /api/v1/mcp/approvals` lists **pending** rows only [decide-src].
+There is **no** `status` query.
 
-`decision` may be **approve**, **allow**, **deny**, or **reject**
-(`McpApprovalDecideView`). Open the dashboard app at `PUBLIC_DASHBOARD_URL` for
-the same queue in UI. Session allow for the gateway stays separate
-(`session_allow`, `allow_session`) [identity-mcp]. Retry the same `tools/call`
-after approval.
-
-Authorization binds one **company** and one **agent** grant. A new company needs
-a **new** browser consent and code exchange. You cannot reuse one global JWT as
-a universal app-data token across companies.
+Authorization ties one **company** and one **agent** row; a **new** company in
+SaaS needs a **new** global agent subject and a **new** regional exchange. There
+is no stable dashboard UUID that replaces regional numeric ids in exchanges.
 
 ## Dashboard UUID and regional id
 
@@ -379,21 +365,25 @@ does not carry regional application data in the global JWT.
 
 ## Regional agent exchange RFC 8693
 
-Call `POST $REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token` with the token-exchange
-grant (`handle_agent_token_exchange`, `oauth_views.py`).
+In Identity **develop**, **`POST /oauth/mcp/token`** calls
+`handle_agent_token_exchange` when `grant_type` is RFC 8693 (`mcp_token`).
+**`POST /oauth/token`** routes **human** `handle_token_exchange` (`TokenView`).
+Agent exchange is **not** on `/oauth/token` in this tree.
 
 The subject is a SaaS **global agent** access JWT. Identity checks `aud` with
-`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` and `iss` with `GLOBAL_ISSUER_URL`
-(`PUBLIC_SAAS_URL`). That check is **not** the gateway URL. The minted token
-uses `aud` equal to the `resource` URL you post (often the gateway URL).
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` and `iss` with `GLOBAL_ISSUER_URL`. The
+issued token `aud` is the `resource` URL you post.
 
-Repeat service ids from the global `scope` claim; optional `services` may only
-**narrow** that list. Include **ai** when `resource` is the gateway. On dev the
-gateway URL is `http://127.0.0.1:8006/c/<company_id>/mcp` (`mcp_resources.py`).
+Global agent `scope` is **space-separated** service ids (`parse_services` in
+`apps/agents/scope.py`). Optional `services` in the exchange body may only
+**narrow** that list. Include **ai** when `resource` is the gateway URL. Repeat
+`services` keys for each id. `parse_oauth_post_body` accepts repeated fields.
+
+Example after first company exists (here **1** matches the dev seed):
 
 ```bash
 read -r -s GLOBAL_AGENT_JWT
-EX_RES="http://127.0.0.1:8006/c/your_regional_id_here/mcp"
+EX_RES="http://127.0.0.1:8006/c/1/mcp"
 GT="urn:ietf:params:oauth:grant-type:token-exchange"
 AT="urn:ietf:params:oauth:token-type:access_token"
 curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
@@ -402,12 +392,11 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
   --data-urlencode "subject_token=$GLOBAL_AGENT_JWT" \
   --data-urlencode "subject_token_type=$AT" \
   --data-urlencode "requested_token_type=$AT" \
-  --data-urlencode "company_id=your_regional_id_here" \
+  --data-urlencode "company_id=1" \
   --data-urlencode "resource=$EX_RES" \
   --data-urlencode "access_mode=read_only" \
   --data-urlencode "read_level=safe" \
   --data-urlencode "allow_destructive=false" \
-  --data-urlencode "services=identity" \
   --data-urlencode "services=storage" \
   --data-urlencode "services=hosting" \
   --data-urlencode "services=email" \
@@ -415,116 +404,58 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
   --data-urlencode "services=ai"
 ```
 
-JSON bodies work too. JSON responses include `access_token` and
+JSON bodies work too. Response JSON includes `access_token` and
 `issued_token_type`, plus `token_type`, `expires_in`, and `refresh_token`
 (`handle_agent_token_exchange`).
-Each subject **jti** is one-time (`_consume_subject_jti`). Minted tokens are
-**regional** with `aud` equal to `resource`. Staff global agents are refused
-(`_staff_refused`).
+Each subject **jti** is one-time (`_consume_subject_jti`).
+Staff global agents fail (`_staff_refused`).
 
-## Optional human session exchange at `/oauth/token`
+## Human session exchange at `/oauth/token`
 
-On the **regional** identity host, `POST /oauth/token` accepts the same
-token-exchange grant when the deployment is a region (`handle_token_exchange`).
-The subject is a **global human session** access token; its `aud` must match
-`GLOBAL_ACCESS_TOKEN_AUDIENCE` in settings (not the MCP resource string). This
-path differs from `/oauth/mcp/token` and from agent exchange above.
+On the **regional** host, `POST /oauth/token` with the same `grant_type`
+delegates to **`handle_token_exchange`** for a **global human session** access
+token (`TokenView`). Subject `aud` follows `GLOBAL_ACCESS_TOKEN_AUDIENCE` in
+settings (`federation/exchange.py`). This path is **not** MCP agent exchange.
 
-### Gateway tool names
+### Gateway tools
 
-On the ai gateway, downstream tools are usually named **`service_tool`**
-(one underscore), for example `storage_list_buckets` [ai-mcp].
+Use **`POST {PUBLIC_AI_URL}/c/<company_id>/mcp`** with a token whose `aud` is
+that same URL (auth code or agent exchange). Call **`tools/list`**, then call
+`tools/call` with the **name** and **arguments** shape from that list [ai-mcp].
+Downstream token mint uses
+`POST /api/v1/mcp/internal/mcp-downstream-access-token` on ai-service
+[identity-mcp]. Identity answers `list_services` on regional `POST /mcp`
+JSON-RPC [identity-mcp].
 
-On a service host, OpenAPI tools keep names like `storage_v1_object_list_create`
-[storage-test].
-
-Gateway `tools/list`. Use a regional agent JWT from exchange or auth code:
+Gateway exports often use a `storage_` prefix.
+Example: **`storage_list_buckets`**.
+Service OpenAPI names look like `storage_v1_object_list_create` [storage-test].
 
 ```bash
 read -r -s REGIONAL_AGENT_JWT
 curl -sS -X POST \
-  "$PUBLIC_AI_URL/c/your_regional_id_here/mcp" \
+  "$PUBLIC_AI_URL/c/1/mcp" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $REGIONAL_AGENT_JWT" \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/list","params":{}}'
 ```
 
-Downstream token mint happens at
-`POST /api/v1/mcp/internal/mcp-downstream-access-token` inside ai-service
-[identity-mcp]. Identity `list_services` is a tool on `POST`
-`$REGIONAL_IDENTITY_ORIGIN/mcp` [identity-mcp].
-
 ## Service MCP examples
 
 Handbooks: [storage MCP][storage-handbook], [hosting MCP][hosting-handbook],
-[email MCP][email-handbook]. `tools/call` shape matches storage tests
-[storage-test].
+[email MCP][email-handbook]. Use **gateway** `tools/list` output to fill `name`
+and `arguments`; static JSON here is **illustrative** only.
 
-### Storage list (direct service `/mcp`)
+### Storage list
 
-Use bucket id **`company`**, the fixed company bucket name in storage-service
-(`COMPANY_BUCKET_NAME`). The CLI blocks custom bucket creation; do not invent
-another id for the default stack.
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 4,
-  "method": "tools/call",
-  "params": {
-    "name": "storage_v1_object_list_create",
-    "arguments": {
-      "path": "/storage/v1/object/list/{bucket_id}",
-      "path_params": { "bucket_id": "company" },
-      "method": "POST",
-      "query": {},
-      "body": {
-        "prefix": "your_prefix_here",
-        "limit": 50,
-        "offset": 0,
-        "search": "",
-        "sortBy": { "column": "name", "order": "asc" }
-      }
-    }
-  }
-}
-```
-
-```bash
-read -r -s STORAGE_AGENT_JWT
-curl -sS -X POST "$STORAGE_ORIGIN/mcp" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $STORAGE_AGENT_JWT" \
-  -d @your_storage_list_here.json
-```
-
-### Storage list via gateway (name pattern)
-
-Call the same JSON-RPC against `{PUBLIC_AI_URL}/c/your_regional_id_here/mcp` but
-set `"name"` to the gateway export, for example `storage_list_buckets`, from
-your live `tools/list` [ai-mcp].
-
-### Storage write and read bytes
-
-MCP JSON cannot carry raw upload bytes. Use REST with the same agent bearer
-([storage-urls][storage-urls]):
-
-```bash
-printf 'your_sample_bytes' > your_sample_here.bin
-curl -sS -X POST \
-  "$STORAGE_ORIGIN/storage/v1/object/company/your_path_here.bin" \
-  -H "Authorization: Bearer $STORAGE_AGENT_JWT" \
-  -H "Content-Type: application/octet-stream" \
-  --data-binary @your_sample_here.bin
-curl -sS \
-  "$STORAGE_ORIGIN/storage/v1/object/company/your_path_here.bin" \
-  -H "Authorization: Bearer $STORAGE_AGENT_JWT" \
-  -o your_download_here.bin
-```
+Use bucket id **`company`** (`COMPANY_BUCKET_NAME` in storage-service
+`access.py`). Sort uses **`sortBy`** with `column` and `order` as in
+`ObjectListRequestSerializer` ([storage-serializer]).
 
 ### Hosting lifecycle
 
-Create site ([hosting][hosting-views]):
+Create site ([hosting][hosting-views] `AppCreateSerializer` uses **`name`**
+only):
 
 ```json
 {
@@ -538,15 +469,15 @@ Create site ([hosting][hosting-views]):
       "method": "POST",
       "query": {},
       "body": {
-        "name": "your_slug_here",
-        "display_name": "Your Title"
+        "name": "my-app"
       }
     }
   }
 }
 ```
 
-Open deployment:
+Open deployment (`DeploymentCreateSerializer`: **`app_version`**,
+**`shellui_version`**):
 
 ```json
 {
@@ -557,13 +488,12 @@ Open deployment:
     "name": "hosting_v1_apps_deployments_create",
     "arguments": {
       "path": "/hosting/v1/apps/{app_ref}/deployments",
-      "path_params": { "app_ref": "your_slug_here" },
+      "path_params": { "app_ref": "my-app" },
       "method": "POST",
       "query": {},
       "body": {
         "app_version": "0.1.0",
-        "shellui_version": "0.7.0",
-        "pinned": false
+        "shellui_version": "0.7.0"
       }
     }
   }
@@ -582,7 +512,7 @@ Upload URL:
     "arguments": {
       "path": "/hosting/v1/apps/{app_ref}/deployments/{deployment_id}/artifact_upload_url",
       "path_params": {
-        "app_ref": "your_slug_here",
+        "app_ref": "my-app",
         "deployment_id": "your_uuid_here"
       },
       "method": "POST",
@@ -598,7 +528,10 @@ result tells you whether to add `Authorization: Bearer` on the PUT
 (`ArtifactUploadUrlResponseSerializer`). Send `Content-Type` from the `headers`
 map.
 
+Build a small bundle with a top-level **`index.html`**:
+
 ```bash
+tar -czf your_archive_here.tar.gz -C your_site_dir_here index.html
 curl -sS -X PUT "$your_upload_url_here" \
   -H "Content-Type: application/gzip" \
   --data-binary @your_archive_here.tar.gz
@@ -616,7 +549,7 @@ Complete:
     "arguments": {
       "path": "/hosting/v1/apps/{app_ref}/deployments/{deployment_id}/artifact_upload_complete",
       "path_params": {
-        "app_ref": "your_slug_here",
+        "app_ref": "my-app",
         "deployment_id": "your_uuid_here"
       },
       "method": "POST",
@@ -639,7 +572,7 @@ Finalize:
     "arguments": {
       "path": "/hosting/v1/apps/{app_ref}/deployments/{deployment_id}/finalize",
       "path_params": {
-        "app_ref": "your_slug_here",
+        "app_ref": "my-app",
         "deployment_id": "your_uuid_here"
       },
       "method": "POST",
@@ -652,13 +585,13 @@ Finalize:
 
 ### Email template list and render-preview
 
-List template copies first so you have a real `template_id` integer
-(`api_v1_templates_list` in [email-openapi-registry]).
+List template copies first so you have a real `template_id` integer from your
+company rows (`api_v1_templates_list` in [email-openapi-registry]).
 
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 9,
+  "id": 10,
   "method": "tools/call",
   "params": {
     "name": "api_v1_templates_list",
@@ -680,13 +613,13 @@ Response includes `subject`, `html`, `text`, `missing_variables`.
 ```json
 {
   "jsonrpc": "2.0",
-  "id": 10,
+  "id": 11,
   "method": "tools/call",
   "params": {
     "name": "api_v1_templates_render_preview",
     "arguments": {
       "path": "/api/v1/templates/{template_id}/render-preview",
-      "path_params": { "template_id": "your_id_here" },
+      "path_params": { "template_id": "your_company_template_id_here" },
       "method": "POST",
       "query": {},
       "body": {
@@ -700,24 +633,21 @@ Response includes `subject`, `html`, `text`, `missing_variables`.
 
 ## shellui.config.json
 
-CLI commands share the schema in the monorepo Shellui config schema on
-GitHub. Minimal local keys:
+Minimal keys for **`shellui projects`** and **`shellui auth status`**
+([projects][projects-js]):
 
 ```json
 {
   "backend": {
     "type": "shellui",
     "url": "http://127.0.0.1:8001",
-    "companyId": "your_regional_decimal_id_here"
+    "companyId": "1"
   },
-  "saas": { "url": "http://127.0.0.1:8005" },
-  "storage": { "url": "http://127.0.0.1:8002" },
-  "hosting": { "url": "http://127.0.0.1:8003" },
-  "email": { "url": "http://127.0.0.1:8004" }
+  "saas": { "url": "http://127.0.0.1:8005" }
 }
 ```
 
-SaaS paths are `/api/v1/` routes under `saas.url` ([projects][projects-js]).
+Add `storage`, `hosting`, `email` only when your app reads them from config.
 
 ## Approvals, session, revocation
 
@@ -725,9 +655,9 @@ SaaS paths are `/api/v1/` routes under `saas.url` ([projects][projects-js]).
 - **AI gateway chat:** `_meta.shellui_approval` with `session_allow` [ai-mcp].
 - **Identity internal:** `allow_session` for automation [identity-mcp].
 
-Destructive tools need a **new** human approval in **every** access mode unless
-`allow_destructive_without_asking` is on [identity-mcp]. Deny and revocation
-override session allow [identity-mcp].
+Destructive tools need a **fresh** human approval **every** time, in **every**
+access mode, including `full` and after **session_allow** [identity-mcp]. Deny
+and revocation override session allow [identity-mcp].
 
 **Narrowing:** the exchange body may only tighten `services`, `access_mode`,
 `read_level`, and `allow_destructive` [identity-mcp].
@@ -783,6 +713,8 @@ bytes instead.
 [identity-mcp]: https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md
 [ai-mcp]: https://github.com/shellui/ai-service/blob/develop/docs/mcp.md
 [decide-src]: https://github.com/shellui/identity-service/blob/develop/apps/agents/admin_views.py
+[permissions-src]: https://github.com/shellui/identity-service/blob/develop/apps/agents/permissions.py
+[storage-serializer]: https://github.com/shellui/storage-service/blob/develop/apps/storage/serializers.py
 [storage-test]: https://github.com/shellui/storage-service/blob/develop/apps/storage/tests/test_mcp.py
 [storage-handbook]: https://github.com/shellui/storage-service/blob/develop/docs/mcp.md
 [storage-urls]: https://github.com/shellui/storage-service/blob/develop/apps/storage/urls.py
