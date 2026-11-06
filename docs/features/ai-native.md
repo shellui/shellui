@@ -204,8 +204,8 @@ on Identity with an ai-service RS256 assertion when it reaches another service
   **`action`**, **`tool_name`**, **`target`**, **`is_destructive`**,
   **`short_action_summary`**, and **`arguments_redacted`**. Internal rows keep
   **`arguments_redacted` as `{}`** [identity-mcp].
-- **Decide:** **`POST /api/v1/mcp/approvals/{id}/decide`** with **`approve`** or
-  **`deny`** [identity-mcp].
+- **Decide:** **`POST /api/v1/mcp/approvals/{id}/decide`** with
+  **`{"decision":"approve"}`** or **`"deny"`** [identity-mcp].
 - **Gateway retries:** **`allow_session`** (**`session_allow`** in chat
   metadata) is for **non-destructive** tools; default session TTL is **about
   60s** via **`MCP_APPROVAL_SESSION_TTL_SECONDS`** (clamped **30** to **60**)
