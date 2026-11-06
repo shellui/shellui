@@ -6,7 +6,6 @@ import {
   isRecognizedActivityResultToken,
   parseActivityOutcomeFromFields,
   resolveActivityPendingLink,
-  sanitizeMcpActivityErrorMessage,
 } from './mcpAgentActivityPresentation';
 
 const baseRow = (overrides: Partial<McpAgentActivityRow> = {}): McpAgentActivityRow => ({
@@ -25,29 +24,12 @@ const baseRow = (overrides: Partial<McpAgentActivityRow> = {}): McpAgentActivity
   durationMs: null,
   outcome: null,
   approvalRequestId: null,
-  errorMessage: null,
+  errorCode: null,
+  errorDetailRaw: null,
   ...overrides,
 });
 
 const labels = { toolUnknown: 'Unknown tool', operationSuffix: 'Operation' };
-
-describe('sanitizeMcpActivityErrorMessage', () => {
-  it('redacts entire message when token appears anywhere including URL query', () => {
-    expect(sanitizeMcpActivityErrorMessage('failed https://x.test/a?token=secret')).toBe(
-      '[Details redacted]',
-    );
-  });
-
-  it('strips queries from http URLs when no secret markers', () => {
-    expect(sanitizeMcpActivityErrorMessage('bad https://api.example.com/v1/x?foo=1')).toBe(
-      'bad https://api.example.com/v1/x',
-    );
-  });
-
-  it('redacts bearer phrases', () => {
-    expect(sanitizeMcpActivityErrorMessage('invalid bearer')).toBe('[Details redacted]');
-  });
-});
 
 describe('parseActivityOutcomeFromFields', () => {
   it('prefers parsed outcome from API when set', () => {
@@ -88,13 +70,13 @@ describe('buildActivityPrimarySummary', () => {
     );
   });
 
-  it('shows raw tool name when not allowlisted', () => {
+  it('falls back to Operation {tool} when not humanized', () => {
     const row = baseRow({
       service: 'identity',
       tool: 'list_users',
       resourceLabel: 'Members',
     });
-    expect(buildActivityPrimarySummary(row, labels)).toBe('identity Members: list_users');
+    expect(buildActivityPrimarySummary(row, labels)).toBe('identity Members: Operation list_users');
   });
 });
 

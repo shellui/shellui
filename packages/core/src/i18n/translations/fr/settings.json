@@ -282,8 +282,8 @@
       "intro": "Vous pouvez utiliser deux points d'entrée MCP : un sur le tableau de bord Shellui pour votre compte (projets, entreprises, régions et forfaits) et un depuis cette page pour cette entreprise (services régionaux et API d'application). Ils utilisent des URL et des jetons différents.",
       "scopeAccount": "MCP global sur le tableau de bord Shellui : portée compte OAuth sur SaaS. Il couvre les métadonnées de compte. Il ne lit pas les données de votre application hébergée.",
       "scopeRegional": "Cette page : MCP pour cette entreprise (services régionaux). Les jetons sont à courte durée et liés à cette entreprise.",
-      "sessions": "Pour les outils non destructifs, l'autorisation pour cette session (Allow for this session) sur la connexion MCP actuelle dure environ 60 secondes. La connexion elle-même peut rester active plus longtemps. Une configuration initiale d'entreprise de confiance peut émettre un jeton avec une durée de vie absolue côté serveur de 12 minutes à partir de l'émission. Le client peut demander une fenêtre de 600 à 900 secondes, mais le serveur peut la réduire pour respecter l'expiration d'accès ou une échéance de configuration. Le mode full ne contourne pas l'approbation récente pour les outils destructifs.",
-      "approvals": "Les approbations du MCP global passent par les points de terminaison d'approbation et de repli SaaS. La liste d'attente sur cette page concerne les outils régionaux pour cette entreprise.",
+      "sessions": "Sur cette page, MCP régional ordinaire : l'autorisation pour cette session (Allow for this session) dure environ 60 secondes pour les appels non destructifs sur la connexion en cours. Ce n'est pas la durée de vie entière du jeton ni de la connexion. Certaines configurations de première entreprise permettent d'autoriser les appels non destructifs pendant 600 à 900 secondes, dans la limite de l'expiration de configuration côté serveur. Ensuite, chaque appel nécessite une nouvelle approbation sauf si la session est rafraîchie. Les appels destructifs exigent toujours une approbation récente. Le mode full ne la contourne pas pour les outils destructifs.",
+      "approvals": "Le MCP global utilise les points de terminaison d'approbation et de repli SaaS ; cette page est identity régionale seulement. La liste d'attente ici concerne les outils régionaux pour cette entreprise.",
       "prerequisite": "Vous devez avoir un compte Shellui avec les conditions d'utilisation acceptées avant de créer une connexion.",
       "globalMcpUrlLabel": "URL MCP globale (connexion directe, référence seulement) :",
       "globalMcpUrlUnknown": "Identity n'a pas encore renvoyé le point de terminaison MCP global. Il doit être l'URL complète issue de DASHBOARD_PUBLIC_URL de votre hôte sans slash final plus /mcp. Après la mise à jour d'identity, rechargez cette page.",
@@ -369,9 +369,18 @@
         "actorUnknown": "Non communiqué",
         "agent": "Connexion",
         "result": "Résultat classé",
-        "resultUnknown": "Identity n'a pas renvoyé de résultat connu et le texte fournisseur n'est pas affiché ici pour éviter toute confusion avec un identifiant secret.",
-        "error": "Erreur du service",
-        "errorUnavailable": "Aucun détail d'erreur sûr du serveur pour cette ligne."
+        "resultUnknown": "Aucun résultat sûr disponible.",
+        "error": "Code d'erreur",
+        "errorUnavailable": "Aucun code d'erreur identity pour cette ligne.",
+        "errorCode": {
+          "identityUnreachable": "Identity injoignable",
+          "invalidGrant": "Octroi invalide",
+          "permissionChanged": "Permission modifiée",
+          "requestExpired": "Demande expirée",
+          "downstreamError": "Erreur en aval",
+          "serverError": "Erreur serveur",
+          "unknown": "Erreur inconnue"
+        }
       },
       "link": {
         "openApprovalById": "Aller aux approbations en attente",

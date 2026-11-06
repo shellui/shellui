@@ -11,6 +11,7 @@ import {
   parseMcpAgentActivity,
   parseMcpAgentSummary,
   parseMcpPersonalStatus,
+  parseStrictMcpActivityErrorCode,
   parseStrictMcpActivityOutcome,
   parseValidatedGlobalMcpEndpointUrl,
   revokeMcpPersonalAgent,
@@ -147,6 +148,14 @@ describe('parseStrictMcpActivityOutcome', () => {
   });
 });
 
+describe('parseStrictMcpActivityErrorCode', () => {
+  it('accepts identity taxonomy only', () => {
+    expect(parseStrictMcpActivityErrorCode('downstream_error')).toBe('downstream_error');
+    expect(parseStrictMcpActivityErrorCode('DOWNSTREAM_ERROR')).toBe('downstream_error');
+    expect(parseStrictMcpActivityErrorCode('custom_failure')).toBeNull();
+  });
+});
+
 describe('parseMcpAgentActivity', () => {
   it('maps optional enrichment fields', () => {
     const parsed = parseMcpAgentActivity({
@@ -166,7 +175,9 @@ describe('parseMcpAgentActivity', () => {
           actor: 'staff@example.com',
           agent_name: 'My bot',
           approval_request_id: 'ap-9',
-          error_message: 'upstream timeout',
+          error_code: 'downstream_error',
+          error_message:
+            'Exception: https://evil.example/nonce token=secret-key https://x.test?token=1',
         },
       ],
     });
@@ -180,7 +191,9 @@ describe('parseMcpAgentActivity', () => {
       actorLabel: 'staff@example.com',
       agentName: 'My bot',
       approvalRequestId: 'ap-9',
-      errorMessage: 'upstream timeout',
+      errorCode: 'downstream_error',
+      errorDetailRaw:
+        'Exception: https://evil.example/nonce token=secret-key https://x.test?token=1',
     });
   });
 
@@ -198,6 +211,41 @@ describe('parseMcpAgentActivity', () => {
       ],
     });
     expect(parsed?.activity[0]?.outcome).toBeNull();
+  });
+
+  it('parses error_code and ignores invalid error_code', () => {
+    const ok = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'failed',
+          outcome: 'failed',
+          error_code: 'identity_unreachable',
+        },
+      ],
+    });
+    expect(ok?.activity[0]).toMatchObject({
+      errorCode: 'identity_unreachable',
+      outcome: 'failed',
+    });
+
+    const bad = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'failed',
+          outcome: 'failed',
+          error_code: 'vendor_oops',
+        },
+      ],
+    });
+    expect(bad?.activity[0]).toMatchObject({ errorCode: null });
   });
 });
 

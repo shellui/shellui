@@ -55,6 +55,16 @@ export type McpActivityOutcomeKind =
   | 'session_used'
   | 'unknown';
 
+/** Identity `error_code` for activity rows; settings UI shows only these labels, never raw error bodies. */
+export type McpActivityErrorCode =
+  | 'identity_unreachable'
+  | 'invalid_grant'
+  | 'permission_changed'
+  | 'request_expired'
+  | 'downstream_error'
+  | 'server_error'
+  | 'unknown';
+
 export type McpAgentActivityRow = {
   timestamp: string;
   tool: string;
@@ -81,8 +91,13 @@ export type McpAgentActivityRow = {
   outcome: McpActivityOutcomeKind | null;
   /** Linked pending approval id when provided (matches approvals list). */
   approvalRequestId: string | null;
-  /** Safe, concise service error text when provided (already redacted server-side when possible). */
-  errorMessage: string | null;
+  /** Allowlisted machine error from identity; UI maps to translated labels only. */
+  errorCode: McpActivityErrorCode | null;
+  /**
+   * Optional raw provider error from identity; parsed for contract tests only.
+   * Shellui settings never displays this field.
+   */
+  errorDetailRaw: string | null;
 };
 
 export type CreatePersonalAgentInput = {
@@ -248,6 +263,25 @@ export const parseStrictMcpActivityOutcome = (value: unknown): McpActivityOutcom
   return null;
 };
 
+const MCP_ACTIVITY_ERROR_CODES: readonly McpActivityErrorCode[] = [
+  'identity_unreachable',
+  'invalid_grant',
+  'permission_changed',
+  'request_expired',
+  'downstream_error',
+  'server_error',
+  'unknown',
+] as const;
+
+export const parseStrictMcpActivityErrorCode = (value: unknown): McpActivityErrorCode | null => {
+  const s = asString(value);
+  if (!s) return null;
+  const n = normEnum(s);
+  return (MCP_ACTIVITY_ERROR_CODES as readonly string[]).includes(n)
+    ? (n as McpActivityErrorCode)
+    : null;
+};
+
 export const parseMcpAgentActivity = (
   payload: unknown,
 ): { agentId: string; activity: McpAgentActivityRow[] } | null => {
@@ -282,7 +316,8 @@ export const parseMcpAgentActivity = (
       durationMs: durationRaw,
       outcome: parseStrictMcpActivityOutcome(item.outcome),
       approvalRequestId: asString(item.approval_request_id),
-      errorMessage: asString(item.error_message),
+      errorCode: parseStrictMcpActivityErrorCode(item.error_code),
+      errorDetailRaw: asString(item.error_message),
     });
   }
   return { agentId, activity };

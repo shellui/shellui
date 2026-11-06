@@ -7,61 +7,6 @@ import { humanizeMcpToolName } from './mcpToolActivityRegistry';
 
 export type { McpActivityAccessKind, McpActivityOutcomeKind } from './personalAgentsApi';
 
-const SENSITIVE_SUBSTRINGS = [
-  'token',
-  'secret',
-  'password',
-  'api_key',
-  'apikey',
-  'bearer',
-  'authorization',
-  'cookie',
-  'credential',
-];
-
-const MAX_SAFE_FIELD_LEN = 120;
-
-/** http(s) URL substring detector for stripping queries from anywhere in a message */
-const URL_IN_TEXT = /https?:\/\/[^\s<>"'{}|\\^`[\]]+/gi;
-
-function bodyContainsSensitiveSecret(body: string): boolean {
-  const lower = body.toLowerCase();
-  return SENSITIVE_SUBSTRINGS.some((needle) => lower.includes(needle));
-}
-
-/**
- * Strips query strings from http(s) URLs anywhere in the string.
- * If any secret marker appears in the full string, redacts entirely.
- */
-function sanitizeUrlsAndSecretsInText(raw: string): string {
-  if (!raw.trim()) return raw;
-  if (bodyContainsSensitiveSecret(raw)) {
-    return '[Details redacted]';
-  }
-  return raw.replace(URL_IN_TEXT, (url) => {
-    try {
-      const u = new URL(url);
-      u.search = '';
-      return u.toString();
-    } catch {
-      return url;
-    }
-  });
-}
-
-function truncateSafeField(text: string): string {
-  if (text.length <= MAX_SAFE_FIELD_LEN) return text;
-  return `${text.slice(0, MAX_SAFE_FIELD_LEN - 1)}…`;
-}
-
-/** Same pipeline for error display: URLs stripped globally, secrets redact whole string. */
-export function sanitizeMcpActivityErrorMessage(raw: string | null | undefined): string | null {
-  if (!raw?.trim()) return null;
-  const sanitized = sanitizeUrlsAndSecretsInText(raw.trim());
-  if (sanitized === '[Details redacted]') return sanitized;
-  return truncateSafeField(sanitized);
-}
-
 function normalizeResultKey(value: string): string {
   return value
     .trim()
@@ -176,7 +121,8 @@ export function buildActivityPrimarySummary(
   const resource = row.resourceLabel?.trim();
   const company = row.companyLabel?.trim();
   const registry = rawTool ? humanizeMcpToolName(rawTool) : null;
-  const toolLine = registry ?? (rawTool ? rawTool : labels.toolUnknown);
+  const op = rawTool ? `${labels.operationSuffix} ${rawTool}` : labels.operationSuffix;
+  const toolLine = registry ?? (rawTool ? op : labels.toolUnknown);
 
   const parts: string[] = [];
   if (resource) {
@@ -198,8 +144,7 @@ export function isRecognizedActivityResultToken(raw: string | null | undefined):
 }
 
 /**
- * Returns a display token only for recognized provider result codes. Never returns arbitrary or sanitized text
- * (so nothing that could be mistaken for a credential).
+ * Returns a display token only for recognized provider result codes. Never returns arbitrary text.
  */
 export function formatActivityResultForDisplay(raw: string | null | undefined): string | null {
   if (!raw?.trim()) return null;

@@ -282,8 +282,8 @@
       "intro": "You can use two MCP entry points: one on the Shellui dashboard for your account (projects, companies, regions, and plans) and one from this page for this company (regional services and app APIs). They use different URLs and tokens.",
       "scopeAccount": "Global MCP on the Shellui dashboard: OAuth account scope on SaaS. It covers account metadata. It does not read your hosted app data.",
       "scopeRegional": "This page: MCP for this company (regional services). Tokens are short-lived and tied to this company.",
-      "sessions": "Allow for this session on the current MCP connection lasts about 60 seconds for non-destructive tools. The connection itself can live longer. Trusted new-company setup may mint a token with a server-absolute 12 minute lifetime from issue time. The client may request a 600 to 900 second window, but the server can shorten it to meet access expiry or a setup deadline. Full mode does not bypass fresh approval for destructive tools.",
-      "approvals": "Global MCP approvals use the SaaS approval and fallback endpoints. The pending list on this page is for regional tools for this company.",
+      "sessions": "On this page, ordinary regional MCP: Allow for this session lasts about 60 seconds for non-destructive calls on the current connection. This is not the whole token or connection lifetime. Some first-company setup flows let the user allow non-destructive calls for 600 to 900 seconds, limited by the server setup expiry. After that window, each call needs approval again unless the session is refreshed. Destructive calls always need a fresh approval. Full mode does not skip that for destructive tools.",
+      "approvals": "Global MCP uses the SaaS approval and fallback endpoints; this page is regional identity only. The pending list here is for regional tools for this company.",
       "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
       "globalMcpUrlLabel": "Global MCP URL (direct connect, reference only):",
       "globalMcpUrlUnknown": "Identity has not returned the global MCP endpoint yet. It should be the full URL from your host DASHBOARD_PUBLIC_URL without a trailing slash plus /mcp. After identity is upgraded, reload this page.",
@@ -369,9 +369,18 @@
         "actorUnknown": "Not reported",
         "agent": "Connection",
         "result": "Classified outcome",
-        "resultUnknown": "Identity did not return a known outcome and the provider result is not shown here so it is never mistaken for a credential.",
-        "error": "Service error",
-        "errorUnavailable": "No safe error detail from the server for this row."
+        "resultUnknown": "No safe outcome available.",
+        "error": "Error code",
+        "errorUnavailable": "No error code from identity for this row.",
+        "errorCode": {
+          "identityUnreachable": "Identity unreachable",
+          "invalidGrant": "Invalid grant",
+          "permissionChanged": "Permission changed",
+          "requestExpired": "Request expired",
+          "downstreamError": "Downstream error",
+          "serverError": "Server error",
+          "unknown": "Unknown error"
+        }
       },
       "link": {
         "openApprovalById": "Jump to pending approvals",
