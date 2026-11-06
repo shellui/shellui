@@ -8,7 +8,7 @@ import {
   formatActivityResultForDisplay,
   formatActivityWhen,
   inferActivityAccessKind,
-  parseActivityOutcome,
+  parseActivityOutcomeFromFields,
   resolveActivityPendingLink,
   sanitizeMcpActivityErrorMessage,
   type ActivityPendingLink,
@@ -80,7 +80,7 @@ export const McpAgentActivitySection = ({
   }, [open, load]);
 
   const outcomeLabel = useCallback(
-    (kind: ReturnType<typeof parseActivityOutcome>) => {
+    (kind: ReturnType<typeof parseActivityOutcomeFromFields>) => {
       switch (kind) {
         case 'allowed':
           return t('mcpAgents.activity.outcome.allowed');
@@ -101,8 +101,7 @@ export const McpAgentActivitySection = ({
 
   const accessLabel = useCallback(
     (row: McpAgentActivityRow) => {
-      const toolLower = row.tool.toLowerCase();
-      const kind = inferActivityAccessKind(row, toolLower);
+      const kind = inferActivityAccessKind(row);
       switch (kind) {
         case 'read':
           return t('mcpAgents.activity.access.read');
@@ -170,17 +169,16 @@ export const McpAgentActivitySection = ({
               {rows.map((row, index) => {
                 const summary = buildActivityPrimarySummary(row, {
                   toolUnknown: t('mcpAgents.activity.toolUnknown'),
+                  operationSuffix: t('mcpAgents.activity.operationSuffix'),
                 });
-                const outcome = parseActivityOutcome(row.result, row.outcome);
-                const { human: resultHuman, safeRaw: resultSafeRaw } =
-                  formatActivityResultForDisplay(row.result);
+                const outcome = parseActivityOutcomeFromFields(row.result, row.outcome);
+                const resultDisplay = formatActivityResultForDisplay(row.result);
                 const safeError = sanitizeMcpActivityErrorMessage(row.errorMessage);
                 const duration = formatActivityDurationMs(row.durationMs, locale);
                 const when = formatActivityWhen(row.timestamp, locale);
                 const access = accessLabel(row);
                 const link = resolveActivityPendingLink(row, pendingToolNames);
-                const showDestructiveBadge =
-                  inferActivityAccessKind(row, row.tool.toLowerCase()) === 'destructive';
+                const showDestructiveBadge = row.accessKind === 'destructive';
 
                 return (
                   <li
@@ -250,15 +248,9 @@ export const McpAgentActivitySection = ({
                         <dt className="inline font-medium text-foreground/80">
                           {t('mcpAgents.activity.detail.result')}:{' '}
                         </dt>
-                        <dd className="inline">
-                          {(resultHuman ?? resultSafeRaw) ||
-                            t('mcpAgents.activity.detail.resultUnknown')}
+                        <dd className="inline break-all font-mono text-[11px]">
+                          {resultDisplay || t('mcpAgents.activity.detail.resultUnknown')}
                         </dd>
-                        {resultHuman && resultHuman !== resultSafeRaw ? (
-                          <div className="mt-0.5 break-all font-mono text-[11px] text-muted-foreground">
-                            {resultSafeRaw}
-                          </div>
-                        ) : null}
                       </div>
                       {safeError ? (
                         <div className="sm:col-span-2">
