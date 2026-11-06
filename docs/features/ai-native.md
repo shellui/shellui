@@ -16,9 +16,12 @@ config` when Docker is on the host),
 `node scripts/verify-ai-native-doc.mjs`, and
 `pnpm run docs:build`.
 
-**Live on your machine:** human account and Terms in the dashboard,
-global SaaS MCP OAuth, regional MCP consent, `tools/call` through the AI
-gateway, and human approval in Settings.
+**Live on your machine:** human account and Terms in the dashboard, regional MCP
+consent, `tools/call` through the AI gateway, and human approval in Settings.
+The SaaS host may answer at **`http://localhost:8005/mcp`**, but the full global
+agent path (mint after SaaS MCP consent, then regional exchange) is **not**
+finished in SaaS until that gap closes
+[identity-mcp].
 CI here does not run that stack end to end; it does not drive a browser or mint
 real agent JWTs.
 
@@ -132,7 +135,7 @@ Follow in order.
 curl -sS -X POST "http://localhost:8001/oauth/mcp/register" \
   -H "Content-Type: application/json" \
   -d '{"client_name":"local_dev_agent","redirect_uris":
-  ["http://localhost:8765/"]}'
+  ["http://localhost:8765/callback"]}'
 ```
 
 ### PKCE secret and challenge
@@ -190,11 +193,12 @@ curl -sS -X POST "http://localhost:8006/c/1/mcp" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
-## Global SaaS MCP (optional branch)
+## Global SaaS MCP (blocked on SaaS gap)
 
-When your **saas-service** clone documents **`docs/global-mcp.md`**, use that
-file for
-**`POST http://localhost:8005/mcp`**
+Do **not** treat the global path as a working end-to-end loop until SaaS
+implements global agent mint after SaaS MCP consent; identity documents that
+gap [identity-mcp]. When your SaaS clone is ready and documents
+**`docs/global-mcp.md`**, use it for **`POST http://localhost:8005/mcp`**
 (**`tools/list`**, **`api_v1_companies_create`** with **`"region":"ch"`**,
 **`api_v1_companies_retrieve`**).
 The **`aud`** on the global agent JWT is
@@ -202,9 +206,9 @@ The **`aud`** on the global agent JWT is
 (see **`dev/.env.local.example`**), not **`http://localhost:8005/mcp`**
 [identity-mcp].
 
-RFC 8693 exchange to the regional gateway uses **`POST /oauth/mcp/token`** on
-identity
-with **`requested_token_type`** and **`subject_token_type`** set to
+After a real global agent token exists, RFC 8693 exchange to the regional
+gateway uses **`POST /oauth/mcp/token`** on identity with
+**`requested_token_type`** and **`subject_token_type`** set to
 **`urn:ietf:params:oauth:token-type:access_token`**, plus **`grant_type`**
 **`urn:ietf:params:oauth:grant-type:token-exchange`**
 [identity-mcp].
