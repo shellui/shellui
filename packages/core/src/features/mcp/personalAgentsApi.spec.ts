@@ -54,6 +54,12 @@ describe('parseValidatedGlobalMcpEndpointUrl', () => {
     );
   });
 
+  it('accepts http localhost global MCP for local development', () => {
+    expect(parseValidatedGlobalMcpEndpointUrl('http://127.0.0.1:8080/mcp')).toBe(
+      'http://127.0.0.1:8080/mcp',
+    );
+  });
+
   it('rejects bare origin, double path, queries, and non-http(s)', () => {
     expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com')).toBeNull();
     expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp/mcp')).toBeNull();
@@ -219,6 +225,7 @@ describe('parseMcpAgentActivity', () => {
     });
     expect(parsed?.activity[0]).toMatchObject({ errorCode: 'internal_error' });
     expect(parsed?.activity[0]).not.toHaveProperty('errorDetailRaw');
+    expect(parsed?.activity[0]).not.toHaveProperty('errorMessage');
   });
 
   it('treats negative duration_ms as not reported', () => {
