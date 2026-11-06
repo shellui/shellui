@@ -299,6 +299,7 @@ services:
       target: dev
     entrypoint: ['/opt/shellui/dev/container/email-worker-dev-entrypoint.sh']
     environment:
+      <<: *identity-jwt
       EMAIL_LANE_WORKER_POLL_SECONDS: ${EMAIL_LANE_WORKER_POLL_SECONDS:-5}
       DEBUG: 'true'
       SECRET_KEY: ${EMAIL_SECRET_KEY}
@@ -306,6 +307,7 @@ services:
       POSTGRES_DATABASE_URL: ${EMAIL_POSTGRES_DATABASE_URL}
       POSTGRES_SSL_REQUIRE: 'false'
       PUBLIC_BASE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
       EMAIL_FALLBACK_PROVIDER: smtp
       EMAIL_HOST: mailpit
       EMAIL_PORT: '1025'

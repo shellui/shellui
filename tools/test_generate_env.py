@@ -79,6 +79,24 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
 
     assert saas.get("IDENTITY_INTERNAL_URL") == internal_identity
     assert saas.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    # In-network send URL. Identity discovery uses the public origin below.
+    assert saas.get("EMAIL_SERVICE_URL") == "http://email:8000"
+
+    internal_jwks = f"{internal_identity}/.well-known/jwks.json"
+    public_email = dotenv["PUBLIC_EMAIL_URL"]
+    for name in ("email", "email-worker"):
+        env = service_env(doc, name)
+        assert env.get("IDENTITY_SERVICE_URL") == internal_identity, name
+        assert env.get("IDENTITY_JWKS_URL") == internal_jwks, name
+        # MCP resource is EMAIL_PUBLIC_URL + /mcp. The identity-jwt anchor does not set it.
+        assert env.get("EMAIL_PUBLIC_URL") == public_email, name
+        joined = f"{env.get('IDENTITY_SERVICE_URL', '')} {env.get('IDENTITY_JWKS_URL', '')}"
+        assert "localhost:8001" not in joined, name
+
+    # Identity list_services publishes the public email origin when the key is set.
+    assert ident.get("EMAIL_SERVICE_URL") == dotenv["PUBLIC_EMAIL_URL"]
+    assert ident.get("EMAIL_SERVICE_INTERNAL_URL") == "http://email:8000"
+    assert ident.get("EMAIL_SERVICE_API_KEY"), "identity EMAIL_SERVICE_API_KEY"
 
 
 def main() -> int:
