@@ -24,7 +24,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 📚 Documentation
 
-- **AI native guide:** `docs/features/ai-native.md` documents global agent signing env from `dev/.env.local.example`, consolidated MCP walkthroughs, ai gateway tool naming, and compose notes (saas global agent keys, `AI_PUBLIC_URL`).
+- **AI native guide:** `docs/features/ai-native.md` documents global agent signing env, SaaS `regions` and `endpoints` via the CLI, OpenAPI-backed tool names, hosting and email examples from service handbooks, and explicit global versus regional MCP scope without release coordination notes.
 - **Dev stack:** `dev/docker-compose.yml` passes `GLOBAL_AGENT_PRIVATE_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **saas** and sets `AI_PUBLIC_URL` on **ai** so MCP resource URLs match `PUBLIC_AI_URL`.
 - **Dev stack:** `dev/docker-compose.yml`, `dev/.env.local.example`, and `dev/generate-env.sh` to run the shell, Files (5175), and sibling services locally.
 - **Dev stack:** `generate-env.sh` creates dev-only RS256 keys for each service's internal MCP assertions and saas provisioning, and compose registers them as identity's trusted callers, so `./start.sh` needs no manual key setup.
