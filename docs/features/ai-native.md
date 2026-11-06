@@ -19,16 +19,23 @@ config` when Docker is on the host),
 **Live on your machine:** human account and Terms in the dashboard,
 global SaaS MCP OAuth, regional MCP consent, `tools/call` through the AI
 gateway, and human approval in Settings.
-CI here does not drive a browser or mint real agent JWTs.
+CI here does not run that stack end to end; it does not drive a browser or mint
+real agent JWTs.
 
-**Gaps:** Identity states global agent JWTs should be minted **after** global
-MCP OAuth consent on SaaS,
-and notes that path is **not implemented in saas yet** [identity-mcp].
-Until your **saas-service** branch implements that mint, you cannot complete the
-full RFC 8693 exchange from a real global agent JWT without a manual
-substitute (for example a test harness in your clone).
+**Gap (SaaS):** Your SaaS clone may still say global agent mint after SaaS MCP
+consent is **not implemented in saas yet**; follow that repo for whether that
+path is live.
+Until it is, you cannot complete the full RFC 8693 exchange from a real global
+agent JWT without a manual substitute (for example a test harness in your SaaS
+clone).
 Regional MCP OAuth (authorize, token, refresh) and regional human approvals on
 identity are still the source-backed core for local testing.
+
+**Inspected sources (fetch on this VM, read-only):** identity-service
+**`d79d433278ac18695a6165448bf0b8cfe56c88a5`**, storage-service
+**`310e29a6e2b96455fdb8dac4b077813d83a60396`**. There is no public GitHub repo
+named **`shellui/saas-service`**, so a SaaS head was not cloned here; use your
+local SaaS checkout when its global MCP behavior matters.
 
 ## Concepts you must keep separate
 
@@ -88,25 +95,36 @@ Follow in order.
    **`ObjectListRequestSerializer`** [storage-serializer].
    **`storage_list_buckets`** appears in storage MCP tests [storage-test].
 5. **Delegated downstream:** ai-service obtains downstream access via
-   **`mcp-downstream-access-token`** on identity [identity-mcp] [ai-mcp].
+   **`mcp-downstream-access-token`** on identity [identity-mcp].
 6. **Human approval (regional writes):** when **`access_mode`** is **`ask`**,
    expect a pending row.
    Owners approve with **`POST /api/v1/mcp/approvals/{id}/decide`** and
    **`{"decision":"approve"}`** or **`"deny"`** [identity-mcp].
-   Pending rows include **`tool_name`**, **`is_destructive`**,
-   **`arguments_redacted`** [identity-mcp].
+   **`GET /api/v1/mcp/approvals`** lists **`service`**, **`action`**,
+   **`tool_name`**, **`target`**, **`is_destructive`**,
+   **`short_action_summary`**, and **`arguments_redacted`**.
+   For internal creates **`arguments_redacted` is always `{}`**. Ingest rejects
+   **`arguments_redacted`** in the internal create body and clears legacy stored
+   blobs [identity-mcp] [internal-approval].
 7. **Session allow (non-destructive only):** the MCP client path uses
    **`allow_session`**
    (**`session_allow`** in chat metadata).
    Duration is **about 60s** per connection, driven by
    **`MCP_APPROVAL_SESSION_TTL_SECONDS`** (clamped **30** to **60**).
    This is **not** access token lifetime [identity-mcp].
-8. **Destructive tools:** with **`allow_destructive_without_asking`** off
-   (default), destructive tools still need human approval even in **`full`**
+8. **Destructive tools:** Identity **never** grants destructive tools without a
+   separate human approval. Delegated regional JWTs keep **`mcp_destructive`**
+   **`false`**.
+   OAuth consent no longer enables **`destructive without asking`**, and
+   Settings reject turning **`allow_destructive_without_asking`** on; legacy
+   rows may still store the old flag until someone narrows the agent
    [identity-mcp].
 9. **Activity in Shellui:** Settings surfaces agent activity via
    **`McpAgentActivitySection.tsx`** [activity-tsx].
-   Identity stores **call logs** with redacted args only [identity-mcp].
+   **Call logs** store **`outcome`** (for example **`allowed`**,
+   **`pending_approval`**) and authoritative tool metadata; ingest rejects
+   **`arguments`** and **`arguments_redacted`** so stored
+   **`arguments_redacted`** stays **`{}`** [identity-mcp].
 
 ### Register
 
@@ -238,15 +256,15 @@ After **`shellui login`** (token not printed):
 
 ## Reference links
 
-[start-sh]: https://github.com/shellui/shellui/blob/develop/dev/start.sh
-[compose-yml]: https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml
-[projects-js]: https://github.com/shellui/shellui/blob/develop/packages/cli/src/commands/projects.js
-[identity-mcp]: https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md
-[ai-mcp]: https://github.com/shellui/ai-service/blob/develop/docs/mcp.md
-[mcp-tok]: https://github.com/shellui/identity-service/blob/develop/apps/agents/oauth_views.py
-[decide-src]: https://github.com/shellui/identity-service/blob/develop/apps/agents/admin_views.py
-[permissions-src]: https://github.com/shellui/identity-service/blob/develop/apps/agents/permissions.py
-[storage-serializer]: https://github.com/shellui/storage-service/blob/develop/apps/storage/serializers.py
-[storage-test]: https://github.com/shellui/storage-service/blob/develop/apps/storage/tests/test_mcp.py
+[start-sh]: https://github.com/shellui/shellui/blob/cursor/dev-saas-cors-ai-native-guide-0ef6/dev/start.sh
+[compose-yml]: https://github.com/shellui/shellui/blob/cursor/dev-saas-cors-ai-native-guide-0ef6/dev/docker-compose.yml
+[projects-js]: https://github.com/shellui/shellui/blob/cursor/dev-saas-cors-ai-native-guide-0ef6/packages/cli/src/commands/projects.js
+[identity-mcp]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/docs/mcp-and-agents.md
+[mcp-tok]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/oauth_views.py
+[decide-src]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/admin_views.py
+[permissions-src]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/permissions.py
+[internal-approval]: https://github.com/shellui/identity-service/blob/d79d433278ac18695a6165448bf0b8cfe56c88a5/apps/agents/internal_views.py
+[storage-serializer]: https://github.com/shellui/storage-service/blob/310e29a6e2b96455fdb8dac4b077813d83a60396/apps/storage/serializers.py
+[storage-test]: https://github.com/shellui/storage-service/blob/310e29a6e2b96455fdb8dac4b077813d83a60396/apps/storage/tests/test_mcp.py
 [email-schema]: https://github.com/shellui/email-service/blob/develop/apps/email/schema.py
-[activity-tsx]: https://github.com/shellui/shellui/blob/develop/packages/core/src/features/settings/components/McpAgentActivitySection.tsx
+[activity-tsx]: https://github.com/shellui/shellui/blob/cursor/dev-saas-cors-ai-native-guide-0ef6/packages/core/src/features/settings/components/McpAgentActivitySection.tsx
