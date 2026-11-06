@@ -26,14 +26,16 @@ const banned = [
 ];
 
 const required = [
+  'What this repo validates',
+  'Live on your machine',
   'list_services',
   'urn:ietf:params:oauth:grant-type:token-exchange',
   '/oauth/mcp/token',
   'mcp-downstream-access-token',
-  'hosting_v1_apps_create',
   'api_v1_templates_render_preview',
   'api_v1_templates_list',
   'GLOBAL_AGENT_SIGNING_KEY',
+  'SHELLUI_INSTANCE_ROLE',
   'McpAgentActivitySection.tsx',
   'projects create',
   'session_allow',
@@ -49,8 +51,17 @@ const required = [
   'storage_list_buckets',
   'POST /oauth/mcp/register',
   '/oauth/mcp/authorize',
+  'http://localhost:8005/mcp',
   'http://localhost:8006/c/',
+  'bucket_id',
+  'allow_destructive_without_asking',
+  'MCP_APPROVAL_SESSION_TTL_SECONDS',
+  'handle_token_exchange',
+  'api/v1/companies/',
+  'GET /api/v1/mcp/approvals',
+  'POST /api/v1/mcp/approvals/',
   "- '8001:8000'",
+  'not implemented in saas yet',
 ];
 
 const problems = [];
