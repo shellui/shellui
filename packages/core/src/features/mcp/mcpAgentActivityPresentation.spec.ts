@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { McpAgentActivityRow } from './personalAgentsApi';
 import {
   buildActivityPrimarySummary,
+  formatActivityDurationMs,
   formatActivityResultForDisplay,
   isRecognizedActivityResultToken,
   parseActivityOutcomeFromFields,
@@ -25,7 +26,6 @@ const baseRow = (overrides: Partial<McpAgentActivityRow> = {}): McpAgentActivity
   outcome: null,
   approvalRequestId: null,
   errorCode: null,
-  errorDetailRaw: null,
   ...overrides,
 });
 
@@ -96,6 +96,13 @@ describe('isRecognizedActivityResultToken', () => {
   it('flags only allowlisted keys', () => {
     expect(isRecognizedActivityResultToken('ok')).toBe(true);
     expect(isRecognizedActivityResultToken('nope')).toBe(false);
+  });
+});
+
+describe('formatActivityDurationMs', () => {
+  it('returns null for negative or non-finite values', () => {
+    expect(formatActivityDurationMs(-1, 'en')).toBeNull();
+    expect(formatActivityDurationMs(Number.NaN, 'en')).toBeNull();
   });
 });
 

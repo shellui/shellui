@@ -15,6 +15,7 @@ import {
   parseStrictMcpActivityOutcome,
   parseValidatedGlobalMcpEndpointUrl,
   revokeMcpPersonalAgent,
+  MCP_ACTIVITY_ERROR_CODES,
 } from './personalAgentsApi';
 
 describe('getShellIdentityBackendUrl', () => {
@@ -149,10 +150,16 @@ describe('parseStrictMcpActivityOutcome', () => {
 });
 
 describe('parseStrictMcpActivityErrorCode', () => {
-  it('accepts identity taxonomy only', () => {
-    expect(parseStrictMcpActivityErrorCode('downstream_error')).toBe('downstream_error');
-    expect(parseStrictMcpActivityErrorCode('DOWNSTREAM_ERROR')).toBe('downstream_error');
+  it('accepts fixed allowlist only', () => {
+    for (const code of MCP_ACTIVITY_ERROR_CODES) {
+      expect(parseStrictMcpActivityErrorCode(code)).toBe(code);
+      expect(parseStrictMcpActivityErrorCode(code.toUpperCase())).toBe(code);
+    }
     expect(parseStrictMcpActivityErrorCode('custom_failure')).toBeNull();
+  });
+
+  it('drops injection-shaped keys that are not allowlisted tokens', () => {
+    expect(parseStrictMcpActivityErrorCode("'; DROP TABLE activity; --")).toBeNull();
   });
 });
 
@@ -192,9 +199,42 @@ describe('parseMcpAgentActivity', () => {
       agentName: 'My bot',
       approvalRequestId: 'ap-9',
       errorCode: 'downstream_error',
-      errorDetailRaw:
-        'Exception: https://evil.example/nonce token=secret-key https://x.test?token=1',
     });
+  });
+
+  it('ignores error_message and does not retain it on the row', () => {
+    const parsed = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'failed',
+          outcome: 'failed',
+          error_code: 'internal_error',
+          error_message: 'forbidden upstream text with https://evil.example',
+        },
+      ],
+    });
+    expect(parsed?.activity[0]).toMatchObject({ errorCode: 'internal_error' });
+    expect(parsed?.activity[0]).not.toHaveProperty('errorDetailRaw');
+  });
+
+  it('treats negative duration_ms as not reported', () => {
+    const parsed = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T00:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'ok',
+          duration_ms: -5,
+        },
+      ],
+    });
+    expect(parsed?.activity[0]?.durationMs).toBeNull();
   });
 
   it('drops unrecognized outcome strings', () => {
