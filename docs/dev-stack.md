@@ -99,7 +99,7 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 
 ## Global agent JWT trust (dev)
 
-`dev/generate_env.py` generates a second RSA key pair and a one-key JSON Web Key Set (JWKS) for `GLOBAL_JWKS`. Identity receives `GLOBAL_ISSUER_URL=${PUBLIC_SAAS_URL}`, `GLOBAL_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` from `dev/docker-compose.yml` so regional identity can verify global agent access tokens offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). Saas-service must mint those tokens with the same audience and signing key; confirm variable names on your `saas-service` revision and set any missing env in compose to match.
+`dev/generate_env.py` generates a second RSA key pair and a one-key JSON Web Key Set (JWKS). Identity receives `GLOBAL_ISSUER_URL=${PUBLIC_SAAS_URL}`, `GLOBAL_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` from `dev/docker-compose.yml` so regional identity can verify global agent access tokens offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). `dev/.env.local.example` defines `GLOBAL_AGENT_PRIVATE_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` for saas-service; `dev/docker-compose.yml` passes them into the **saas** container so the dashboard host can mint tokens with the same key id and audience identity trusts. If your checked-out `saas-service` uses different names, align compose and env with that repo’s `develop` docs.
 
 ## Redis
 
