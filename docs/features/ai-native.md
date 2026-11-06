@@ -14,18 +14,40 @@ Use [AI native MCP](./ai-native-mcp) only for short connector URL pointers.
 
 ## What this repo validates vs what you run locally
 
-**What this repo validates:** `pnpm run test:scripts` (including `docker compose
-config` when Docker is on the host),
-`node scripts/verify-ai-native-doc.mjs`, and `pnpm run docs:build`.
+**What this repo validates:**
 
-**Live on your machine:** after compose from **`shellui/dev`**, you can drive
-regional OAuth, **`tools/list`** on **`http://localhost:8006/c/`**, human
+- `pnpm run test:scripts` (runs `python3 tools/test_generate_env.py`).
+- That script writes a temp env file, then when **`docker`** is installed runs:
+
+```bash
+docker compose -f dev/docker-compose.yml \
+  --env-file <temp> config --format json
+```
+
+It asserts resolved **`environment`** on **`identity`**, **`ai`**, and
+**`saas`**. Public issuer and audience: **`JWT_ISSUER`**,
+**`GLOBAL_ISSUER_URL`** (SaaS origin),
+**`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`**, **`AI_SERVICE_ISSUER`**,
+**`AI_SERVICE_JWKS_URL`**. On **ai**, internal identity URLs:
+**`IDENTITY_SERVICE_URL`**, **`IDENTITY_JWKS_URL`**
+(**`http://identity:8000`**). On **saas**, **`IDENTITY_INTERNAL_URL`**. It also
+checks **`GLOBAL_JWKS`** includes a **`kid`**. Static compose resolution only,
+not HTTP to running services.
+
+- `node scripts/verify-ai-native-doc.mjs`
+- `pnpm run docs:build`
+
+If **`docker`** is missing, the script prints **`docker not available; skipped
+compose config validation`**. **`pnpm run test:scripts`** still passes. That is
+**not** a failure: issuer and audience checks did not run on that host.
+
+**Live on your machine:** after **`shellui/dev`** is up, you can drive regional
+OAuth, **`tools/list`** on **`http://localhost:8006/c/`**, human
 **`GET /api/v1/mcp/approvals`**, **`POST /api/v1/mcp/approvals/`** **`{id}`**
 **`/decide`**, activity in **`McpAgentActivitySection.tsx`**, and SaaS
 **`http://localhost:8005/mcp`** when your **`saas-service`** checkout is on the
-wire [identity-mcp] [activity-tsx].
-
-CI in this monorepo does not run that stack end to end or mint real JWTs.
+wire [identity-mcp] [activity-tsx]. Full-stack HTTP is **not** verified by this
+repo's automated tests.
 
 ## Handbook anchors and remote heads
 
