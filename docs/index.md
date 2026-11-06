@@ -39,7 +39,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 ### Platform
 
-- [AI native platform](/features/ai-native) - local stack, SaaS MCP, OAuth, token exchange, regional tools
+- [AI native platform](/features/ai-native) - local stack, SaaS MCP, OAuth, token exchange, regional tools; you can build an MCP client or agent against these endpoints from any workspace that reaches localhost
 - [Administration](/features/administration) - staff admin iframe and custom sidebar links
 - [Storage](/features/storage) - storage-service quota and `shellui.storage`
 - [Storage picker](/features/storage-picker) - `selectFolders` / `selectFiles`

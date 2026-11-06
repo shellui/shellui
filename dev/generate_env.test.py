@@ -53,7 +53,13 @@ def assert_no_duplicate_var_definitions(text: str) -> None:
 
 def global_signing_lines(text: str) -> dict[str, str]:
     """Lines for global agent signing material (must not change on append-only regen)."""
-    wanted = ("GLOBAL_AGENT_PRIVATE_KEY", "GLOBAL_JWKS", "GLOBAL_AGENT_KEY_ID")
+    wanted = (
+        "GLOBAL_AGENT_PRIVATE_KEY",
+        "GLOBAL_AGENT_SIGNING_KEY",
+        "GLOBAL_JWKS",
+        "GLOBAL_AGENT_KEY_ID",
+        "GLOBAL_AGENT_SIGNING_KID",
+    )
     out: dict[str, str] = {}
     for line in text.splitlines():
         for key in wanted:

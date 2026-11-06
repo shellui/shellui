@@ -32,6 +32,8 @@ const required = [
   'mcp-downstream-access-token',
   'hosting_v1_apps_create',
   'api_v1_templates_render_preview',
+  'api_v1_templates_list',
+  'GLOBAL_AGENT_SIGNING_KEY',
   'McpAgentActivitySection.tsx',
   'projects create',
   'session_allow',
