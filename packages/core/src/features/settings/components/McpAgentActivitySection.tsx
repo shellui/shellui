@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import {
   buildActivityPrimarySummary,
   formatActivityDurationMs,
-  formatActivityResultForDisplay,
   formatActivityWhen,
   inferActivityAccessKind,
   parseActivityOutcomeFromFields,
@@ -172,7 +171,10 @@ export const McpAgentActivitySection = ({
                   operationSuffix: t('mcpAgents.activity.operationSuffix'),
                 });
                 const outcome = parseActivityOutcomeFromFields(row.result, row.outcome);
-                const resultDisplay = formatActivityResultForDisplay(row.result);
+                const resultDetail =
+                  outcome === 'unknown'
+                    ? t('mcpAgents.activity.detail.resultUnknown')
+                    : outcomeLabel(outcome);
                 const safeError = sanitizeMcpActivityErrorMessage(row.errorMessage);
                 const duration = formatActivityDurationMs(row.durationMs, locale);
                 const when = formatActivityWhen(row.timestamp, locale);
@@ -248,9 +250,7 @@ export const McpAgentActivitySection = ({
                         <dt className="inline font-medium text-foreground/80">
                           {t('mcpAgents.activity.detail.result')}:{' '}
                         </dt>
-                        <dd className="inline break-all font-mono text-[11px]">
-                          {resultDisplay || t('mcpAgents.activity.detail.resultUnknown')}
-                        </dd>
+                        <dd className="inline">{resultDetail}</dd>
                       </div>
                       {safeError ? (
                         <div className="sm:col-span-2">

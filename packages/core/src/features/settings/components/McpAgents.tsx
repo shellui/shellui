@@ -70,10 +70,9 @@ export const McpAgents = () => {
     pendingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
-  const globalMcpEndpoint = useMemo(() => {
-    const base = status?.globalMcpUrl?.trim().replace(/\/+$/, '') ?? '';
-    if (!base) return null;
-    return `${base}/mcp`;
+  const globalMcpDisplayUrl = useMemo(() => {
+    const u = status?.globalMcpUrl?.trim() ?? '';
+    return u || null;
   }, [status?.globalMcpUrl]);
 
   const companyMcpUrl = useMemo(
@@ -289,14 +288,14 @@ export const McpAgents = () => {
           <li>{t('mcpAgents.global.approvals')}</li>
         </ul>
         <p className="text-sm text-muted-foreground">{t('mcpAgents.global.prerequisite')}</p>
-        {globalMcpEndpoint ? (
+        {globalMcpDisplayUrl ? (
           <p className="text-sm text-muted-foreground">
             {t('mcpAgents.global.globalMcpUrlLabel')}{' '}
             <span
               className="select-none font-mono text-xs text-muted-foreground/80"
               translate="no"
             >
-              {globalMcpEndpoint}
+              {globalMcpDisplayUrl}
             </span>
           </p>
         ) : (

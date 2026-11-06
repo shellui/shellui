@@ -51,12 +51,12 @@ describe('mcpPersonalStatusCache', () => {
     writeMcpPersonalStatusCache(scope, {
       mcpEnabled: true,
       mcpUrl: 'https://ai.test/mcp',
-      globalMcpUrl: 'https://dash.example.com',
+      globalMcpUrl: 'https://dash.example.com/mcp',
     });
     expect(readMcpPersonalStatusCache(scope)).toEqual({
       mcpEnabled: true,
       mcpUrl: 'https://ai.test/mcp',
-      globalMcpUrl: 'https://dash.example.com',
+      globalMcpUrl: 'https://dash.example.com/mcp',
     });
     expect(readMcpPersonalStatusCache({ ...scope, userId: 'user-2' })).toBeNull();
 

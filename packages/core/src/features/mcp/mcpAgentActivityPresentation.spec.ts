@@ -3,6 +3,7 @@ import type { McpAgentActivityRow } from './personalAgentsApi';
 import {
   buildActivityPrimarySummary,
   formatActivityResultForDisplay,
+  isRecognizedActivityResultToken,
   parseActivityOutcomeFromFields,
   resolveActivityPendingLink,
   sanitizeMcpActivityErrorMessage,
@@ -49,12 +50,16 @@ describe('sanitizeMcpActivityErrorMessage', () => {
 });
 
 describe('parseActivityOutcomeFromFields', () => {
-  it('uses exact outcome field tokens only', () => {
+  it('prefers parsed outcome from API when set', () => {
     expect(parseActivityOutcomeFromFields('not_allowed', 'denied')).toBe('denied');
-    expect(parseActivityOutcomeFromFields('ok', 'not_a_real_outcome')).toBe('unknown');
+    expect(parseActivityOutcomeFromFields('ok', 'allowed')).toBe('allowed');
   });
 
-  it('maps exact result tokens only', () => {
+  it('uses unknown explicit outcome even when result looks mappable', () => {
+    expect(parseActivityOutcomeFromFields('ok', 'unknown')).toBe('unknown');
+  });
+
+  it('maps exact result tokens only when outcome is null', () => {
     expect(parseActivityOutcomeFromFields('ok', null)).toBe('allowed');
     expect(parseActivityOutcomeFromFields('pending_approval', null)).toBe('pending_approval');
     expect(parseActivityOutcomeFromFields('not allowed', null)).toBe('unknown');
@@ -83,25 +88,32 @@ describe('buildActivityPrimarySummary', () => {
     );
   });
 
-  it('falls back to Operation {tool} when unknown', () => {
+  it('shows raw tool name when not allowlisted', () => {
     const row = baseRow({
       service: 'identity',
       tool: 'list_users',
       resourceLabel: 'Members',
     });
-    expect(buildActivityPrimarySummary(row, labels)).toBe('identity Members: Operation list_users');
+    expect(buildActivityPrimarySummary(row, labels)).toBe('identity Members: list_users');
   });
 });
 
 describe('formatActivityResultForDisplay', () => {
-  it('sanitizes like errors and truncates', () => {
+  it('returns token only when recognized', () => {
     expect(formatActivityResultForDisplay('ok')).toBe('ok');
-    const long = 'x'.repeat(200);
-    expect(formatActivityResultForDisplay(long).length).toBeLessThanOrEqual(120);
+    expect(formatActivityResultForDisplay('PENDING_APPROVAL')).toBe('pending_approval');
   });
 
-  it('redacts when token appears in URL query', () => {
-    expect(formatActivityResultForDisplay('https://x.test/a?token=1')).toBe('[Details redacted]');
+  it('returns null for unrecognized provider strings', () => {
+    expect(formatActivityResultForDisplay('upstream said nope')).toBeNull();
+    expect(formatActivityResultForDisplay('https://x.test/a?token=1')).toBeNull();
+  });
+});
+
+describe('isRecognizedActivityResultToken', () => {
+  it('flags only allowlisted keys', () => {
+    expect(isRecognizedActivityResultToken('ok')).toBe(true);
+    expect(isRecognizedActivityResultToken('nope')).toBe(false);
   });
 });
 

@@ -14,6 +14,8 @@ import type { ShellUIConfig } from '@shellui/core';
 
 Docs: [Core](https://docs.shellui.com/core), [CLI](https://docs.shellui.com/cli).
 
+**Note:** MCP settings copy and identity field contracts (for example `global_mcp_url` as the full dashboard `/mcp` URL) are tracked with [shellui/shellui#182](https://github.com/shellui/shellui/pull/182). Declarative docs will be updated when that pull request lands.
+
 ## License
 
 MIT

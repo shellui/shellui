@@ -11,6 +11,8 @@ import {
   parseMcpAgentActivity,
   parseMcpAgentSummary,
   parseMcpPersonalStatus,
+  parseStrictMcpActivityOutcome,
+  parseValidatedGlobalMcpEndpointUrl,
   revokeMcpPersonalAgent,
 } from './personalAgentsApi';
 
@@ -40,6 +42,25 @@ describe('getMcpPersonalCompanyId', () => {
   });
 });
 
+describe('parseValidatedGlobalMcpEndpointUrl', () => {
+  it('accepts https origin + /mcp only', () => {
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp')).toBe(
+      'https://dash.example.com/mcp',
+    );
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp/')).toBe(
+      'https://dash.example.com/mcp',
+    );
+  });
+
+  it('rejects bare origin, double path, queries, and non-http(s)', () => {
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp/mcp')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp?x=1')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('ftp://dash.example.com/mcp')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://user@dash.example.com/mcp')).toBeNull();
+  });
+});
+
 describe('parseMcpPersonalStatus', () => {
   it('parses enabled status and url', () => {
     expect(
@@ -52,9 +73,19 @@ describe('parseMcpPersonalStatus', () => {
       parseMcpPersonalStatus({
         mcp_enabled: true,
         mcp_url: null,
+        global_mcp_url: 'https://dash.example.com/mcp',
+      }),
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: 'https://dash.example.com/mcp' });
+  });
+
+  it('drops invalid global_mcp_url', () => {
+    expect(
+      parseMcpPersonalStatus({
+        mcp_enabled: true,
+        mcp_url: null,
         global_mcp_url: 'https://dash.example.com',
       }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: 'https://dash.example.com' });
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: null });
   });
 
   it('parses global_identity when present', () => {
@@ -108,6 +139,14 @@ describe('parseMcpAgentList', () => {
   });
 });
 
+describe('parseStrictMcpActivityOutcome', () => {
+  it('maps only exact normalized tokens', () => {
+    expect(parseStrictMcpActivityOutcome('allowed')).toBe('allowed');
+    expect(parseStrictMcpActivityOutcome('Denied')).toBe('denied');
+    expect(parseStrictMcpActivityOutcome('not-a-known-outcome')).toBeNull();
+  });
+});
+
 describe('parseMcpAgentActivity', () => {
   it('maps optional enrichment fields', () => {
     const parsed = parseMcpAgentActivity({
@@ -143,6 +182,22 @@ describe('parseMcpAgentActivity', () => {
       approvalRequestId: 'ap-9',
       errorMessage: 'upstream timeout',
     });
+  });
+
+  it('drops unrecognized outcome strings', () => {
+    const parsed = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'custom_vendor_code',
+          outcome: 'vendor_says_maybe',
+        },
+      ],
+    });
+    expect(parsed?.activity[0]?.outcome).toBeNull();
   });
 });
 
