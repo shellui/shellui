@@ -156,4 +156,8 @@ The seed never overwrites existing rows, so a changed admin password or company 
 
 GitHub is optional. Without credentials the stack starts normally and only the GitHub button fails. To enable it, create a GitHub OAuth app with homepage `http://localhost:4000` and the callback URL identity shows in its OAuth setup, then add the client ID and secret to company 1 in the admin app (http://localhost:5173) or the identity admin. Credentials are stored per company, not in `.env.local`.
 
+### SaaS API CORS
+
+`saas-service` reads `CORS_ALLOWED_ORIGINS` from compose. The generated `dev/.env.local` sets `SAAS_CORS_ALLOWED_ORIGINS` to the shell (`http://localhost:4000` and `http://127.0.0.1:4000`) and the global dashboard Vite app (`http://localhost:5174` and `http://127.0.0.1:5174`). If you change `PUBLIC_SHELL_URL` or serve the dashboard on another origin, append that origin to `SAAS_CORS_ALLOWED_ORIGINS` and run `docker compose --env-file .env.local up -d saas` (or `./start.sh`). Internal service calls use Docker network URLs (`http://saas:8000`); they do not rely on this list.
+
 Service-specific notes live in each repo: [identity](https://github.com/shellui/identity-service/blob/develop/docs/local-dev-stack.md), [storage](https://github.com/shellui/storage-service/blob/develop/docs/devstack.md), [hosting](https://github.com/shellui/hosting-service/blob/develop/docs/local-dev-stack.md), [email](https://github.com/shellui/email-service/blob/develop/docs/devstack.md), [saas](https://github.com/shellui/saas-service/blob/develop/docs/dev-stack.md), [ai](https://github.com/shellui/ai-service/blob/develop/docs/devstack.md) and [dashboard](https://github.com/shellui/dashboard/blob/develop/docs/devstack.md).

@@ -345,7 +345,8 @@ services:
       DASHBOARD_PUBLIC_URL: ${PUBLIC_SAAS_URL}
       IDENTITY_INTERNAL_URL: http://identity:8000
       WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
-      CORS_ALLOWED_ORIGINS: ${PUBLIC_DASHBOARD_URL},http://127.0.0.1:5174
+      # Browser clients: dashboard dev server, shell dev server, and loopback aliases for OAuth redirects.
+      CORS_ALLOWED_ORIGINS: ${SAAS_CORS_ALLOWED_ORIGINS}
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${SAAS_EMAIL_SERVICE_API_KEY}
       PROVISIONING_SIGNING_KEY: ${PROVISIONING_SIGNING_KEY}
