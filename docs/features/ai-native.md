@@ -7,12 +7,15 @@ description: Local stack, OAuth, SaaS MCP, token exchange, and regional MCP.
 ## Table of contents
 
 - [Start stack and ports](#start-stack-and-ports)
+- [Dev region and JWT audience](#dev-region-and-jwt-audience)
 - [Human account and token roles](#human-account-and-token-roles)
 - [OAuth registration](#dynamic-client-registration-and-oauth)
+- [Global consent POST](#global-consent-post)
 - [First company on global SaaS MCP](#first-company-on-global-saas-mcp)
 - [Dashboard UUID and regional id](#dashboard-uuid-and-regional-id)
 - [Regional token exchange RFC 8693](#regional-token-exchange-rfc-8693)
 - [Service MCP examples](#service-mcp-examples)
+- [shellui.config.json](#shelluiconfigjson)
 - [Approvals, session, revocation](#approvals-session-revocation)
 - [CLI scope](#cli-scope)
 - [Troubleshooting](#troubleshooting)
@@ -30,7 +33,9 @@ From `shellui/dev`:
 ```
 
 `./start.sh` runs `./generate-env.sh`, then brings compose up with your
-`dev/.env.local` ([start][start-sh]).
+`dev/.env.local` ([start][start-sh]). `generate-env.sh` uses `uv run
+--no-project --with cryptography` when `uv` is present so `cryptography`
+imports succeed.
 
 Host ports from [compose][compose-yml]:
 
@@ -41,7 +46,7 @@ Host ports from [compose][compose-yml]:
 | Storage    | 8002    | `/storage/v1/`                              |
 | Hosting    | 8003    | `/hosting/v1/`                              |
 | Email      | 8004    | `/api/v1/` under `/`                        |
-| SaaS API   | 8005    | `/api/v1/`                                  |
+| SaaS API   | 8005    | `/api/v1/` and `POST /mcp`                  |
 | AI gateway | 8006    | `http://localhost:8006/c/your_id_here/mcp`  |
 | Mailpit    | 8025    | Web UI                                      |
 | Admin      | 5173    | Vite                                        |
@@ -62,6 +67,21 @@ export EMAIL_ORIGIN="http://127.0.0.1:8004"
 export PUBLIC_AI_URL="http://127.0.0.1:8006"
 ```
 
+## Dev region and JWT audience
+
+`dev/.env.local.example` sets `DEV_REGION_CODE=ch` and `REGION_CH_*_ORIGIN`
+rows that point at local ports (identity **8001**, storage **8002**, hosting
+**8003**, email **8004**, SaaS **8005**, AI **8006**). For example
+`REGION_CH_IDENTITY_ORIGIN` expands to `PUBLIC_IDENTITY_URL` on port **8001**.
+SaaS registers **ch** and **eu** in real installs; **`local` is not** a SaaS
+region code, so first company creation uses **`"region":"ch"`** against your
+local SaaS MCP.
+
+`PUBLIC_SAAS_URL` is the browser-visible SaaS base; global agent JWTs use
+`aud` = `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` (one line in `.env.local`, no
+self-referential duplicate). Identity and SaaS both read that string from
+compose.
+
 ## Human account and token roles
 
 Before any agent work:
@@ -69,14 +89,18 @@ Before any agent work:
 1. Create a **non-staff** member in the shell or dashboard dev app.
 2. Accept **Terms of Service** in the product UI.
 
-**Human session** comes from the browser or `shellui login`. Use it for
-`GET /api/v1/mcp/approvals` and dashboard flows.
+Order matters: **human Terms and dashboard session exist before** global agent
+OAuth or MCP writes. `shellui login` stores a **regional** human JWT for CLI;
+it never prints access tokens ([CLI login][cli-login]). That JWT is **not** the
+global agent subject. For browser flows, the shell holds the human session
+(see `/api/auth/session` in `@shellui/core`); do not paste human JWTs into
+`.env` for agents.
 
-**Agent JWT** comes from OAuth at identity (`POST /oauth/mcp/token`). Use it
-for `POST /mcp` JSON-RPC on each regional service.
+**Human session** (Bearer from login or browser) is for approvals, dashboard,
+and `shellui projects list`.
 
-`shellui login` stores tokens in the OS keychain and does not print them
-([CLI login][cli-login]).
+**Global agent JWT** comes from `POST /oauth/mcp/token` after consent and is for
+`POST {PUBLIC_SAAS_URL}/mcp` JSON-RPC.
 
 ## Dynamic client registration and OAuth
 
@@ -108,8 +132,16 @@ your_challenge_here="$(printf '%s' "$your_verifier_here" | \
 
 ### Authorize URL (GET)
 
-`parse_authorize_request` requires `code_challenge` and `code_challenge_method`
-S256 ([parse-auth][parse-auth]).
+`parse_authorize_request` requires `code_challenge` and
+`code_challenge_method` S256 ([parse-auth][parse-auth]). Global consent lists
+**`services`**.
+
+Include **SaaS and AI** for the control plane ([consent-html][consent-html]).
+Add `["saas","ai"]` and the data-plane services you need in the HTML form.
+
+```json
+{ "services": ["saas", "ai"] }
+```
 
 ```bash
 python3 - <<'PY'
@@ -128,10 +160,8 @@ print("http://127.0.0.1:8001/oauth/mcp/authorize?" + urllib.parse.urlencode(q))
 PY
 ```
 
-Open the printed URL in a browser while signed in. The consent **POST** fields
-match [consent.html][consent-html] (`services`, `access_mode`, `read_level`,
-`agent_name`, optional `include_saas`). Headless agents need a stored session
-cookie from that login before they can replay a `POST` with the same fields.
+Open the printed URL while signed in, or follow
+[Global consent POST](#global-consent-post).
 
 ### Token (authorization_code)
 
@@ -154,12 +184,42 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
       resource:$res}')"
 ```
 
-Response fields are documented in [mcp_token][mcp-tok]. Never log tokens.
+The global agent access token uses `aud` = `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`
+from your `dev/.env.local`. Never log tokens.
+
+## Global consent POST
+
+The consent form on `GET /oauth/mcp/authorize` submits to the same path with
+Django `csrfmiddlewaretoken` ([consent-html][consent-html]). A machine client
+must send a **human** browser session (Cookie) and the CSRF token from the
+GET response. Standard MCP stacks without an embedded browser need their own
+integration for this POST.
+
+`your_mcp_authorize_post.sh` (run after you copy CSRF and session values):
+
+```bash
+curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/authorize" \
+  -H "Cookie: sessionid=your_session_id_here" \
+  -H "X-CSRFToken: your_csrftoken_here" \
+  -F "csrfmiddlewaretoken=your_csrftoken_here" \
+  -F "response_type=code" \
+  -F "client_id=your_client_id_here" \
+  -F "redirect_uri=http://127.0.0.1:8765/callback" \
+  -F "resource=http://127.0.0.1:8006/c/your_company_id_here/mcp" \
+  -F "state=your_state_here" \
+  -F "code_challenge=your_challenge_here" \
+  -F "code_challenge_method=S256" \
+  -F "services=identity" -F "services=storage" -F "services=hosting" \
+  -F "services=email" -F "services=saas" -F "services=ai" \
+  -F "access_mode=ask" -F "read_level=safe" \
+  -F "agent_name=your_agent_label_here" \
+  -F "decision=approve"
+```
 
 ## First company on global SaaS MCP
 
-Use the **global agent** JWT from SaaS consent (see saas `docs/mcp.md` in your
-clone). Human identity cookies are not valid as `Bearer` on SaaS MCP.
+Use the **global agent** JWT from SaaS-facing consent (see saas `docs/mcp.md`
+in your clone). Human identity cookies are not valid as `Bearer` on SaaS MCP.
 
 `your_create_company_here.json`:
 
@@ -175,7 +235,7 @@ clone). Human identity cookies are not valid as `Bearer` on SaaS MCP.
       "path_params": {},
       "query": {},
       "method": "POST",
-      "body": { "name": "Acme", "region": "local" }
+      "body": { "name": "Acme", "region": "ch" }
     }
   }
 }
@@ -190,16 +250,22 @@ curl -sS -X POST "$SAAS_ORIGIN/mcp" \
   -d @your_create_company_here.json
 ```
 
-When `isError` is true, read approval metadata using the stable ids your
-saas-service version returns. Destructive tools always need a fresh approval,
-even in `full` mode, unless `allow_destructive_without_asking` is on
-[identity-mcp].
+When `isError` is true, read approval metadata (approval id, tool name) from
+the structured content your saas build returns. Server responses may include
+`mcp_new_company_grant` metadata and setup timers.
 
-SaaS may grant a longer **non-destructive** session on first setup (for
-example **600** to **900** seconds) per saas-service policy. The AI gateway
-session allow stays near **60** seconds [identity-mcp].
+Treat durations as **server authority** (**600** to **900** seconds may apply on
+first non-destructive setup). The AI gateway `session_allow` window stays near
+**60** seconds [identity-mcp].
+
+Destructive tools need a **fresh** human approval each time, including `full`
+access, unless `allow_destructive_without_asking` is enabled in your identity
+config [identity-mcp].
 
 ### Approve as human member
+
+Human **Bearer** is the same regional identity JWT as `shellui login`, passed as
+`Authorization` (read from memory or `jq`, never log):
 
 ```bash
 curl -sS \
@@ -216,7 +282,14 @@ curl -sS -X POST "$APP/your_approval_uuid_here/decide" \
 ```
 
 Identity **develop** accepts `decision` **approve** or **deny** only
-([decide][decide-src]). Retry the same `tools/call` file after approval.
+([decide][decide-src]). Session allow for the gateway is separate
+(`session_allow` in gateway chat, `allow_session` internally)
+[identity-mcp]. Retry the same `tools/call` file after approval.
+
+If SaaS emits a new **grant version** after you add a company, repeat **human**
+consent so the same identity binds the updated dashboard row, then exchange
+again. Separate companies need separate scoped exchanges; there is no universal
+application token that hops tenants.
 
 ## Dashboard UUID and regional id
 
@@ -242,9 +315,14 @@ Identity **develop** accepts `decision` **approve** or **deny** only
 
 `regional_company_id` may be absent until provisioning finishes. Exchange must
 use the real decimal once present. Global MCP lists regional service URLs but
-does not act as an application-data API for those services.
+does not carry regional application data in the global JWT.
 
 ## Regional token exchange RFC 8693
+
+Global consent can list **`ai`** as a service for the control-plane resource,
+but **downstream** `services` on exchange should name regional data planes only
+(identity, storage, hosting, email, saas). **AI** is selected by `resource`
+`http://localhost:8006/c/your_regional_id_here/mcp`, not by listing `ai` here.
 
 ```bash
 read -r -s GLOBAL_AGENT_JWT
@@ -266,7 +344,9 @@ curl -sS -X POST "$REGIONAL_IDENTITY_ORIGIN/oauth/mcp/token" \
       services:["identity","storage","hosting","email","saas"]}')"
 ```
 
-Optional fields only **narrow** the global grant [identity-mcp].
+Optional fields only **narrow** the global grant [identity-mcp]. The minted
+token is **regional**, with its own expiry and service tool names (`serviceName`
+prefix plus OpenAPI `operationId`).
 
 Gateway `tools/list`:
 
@@ -492,6 +572,27 @@ Fields are `number`, `subject`, `preheader`, `document`, `theme`, `variables`
 }
 ```
 
+## shellui.config.json
+
+CLI commands share the schema in
+`packages/core/schemas/shellui.config.schema.json`. Minimal local keys:
+
+```json
+{
+  "backend": {
+    "type": "shellui",
+    "url": "http://127.0.0.1:8001",
+    "companyId": "your_regional_decimal_id_here"
+  },
+  "saas": { "url": "http://127.0.0.1:8005" },
+  "storage": { "url": "http://127.0.0.1:8002" },
+  "hosting": { "url": "http://127.0.0.1:8003" },
+  "email": { "url": "http://127.0.0.1:8004" }
+}
+```
+
+SaaS paths are `/api/v1/` routes under `saas.url` ([projects][projects-js]).
+
 ## Approvals, session, revocation
 
 - **Identity (human):** `POST /api/v1/mcp/approvals/{approval_id}/decide`.
@@ -500,24 +601,36 @@ Fields are `number`, `subject`, `preheader`, `document`, `theme`, `variables`
 
 Activity labels in Shellui Settings come from `McpAgentActivitySection.tsx`:
 `pending_approval`, `allowed`, `denied`, `failed`, `session_used`, plus
-`unknown` for legacy rows [activity-tsx].
+`unknown` for legacy rows [activity-tsx]. Only path, tool name, static status,
+and safe metadata belong in client-facing rows.
 
-Revocation blocks reuse of old refresh tokens. A new global JWT cannot revive a
-revoked agent binding [identity-mcp].
+Deny supersedes an earlier session allowance. Revocation invalidates older
+refresh chains; a **new** global access token cannot reactivate a revoked
+binding [identity-mcp].
 
 ## CLI scope
 
 `shellui projects create` is **not** implemented ([projects][projects-js]).
-`shellui deploy` uploads a preview bundle; hosting MCP uses artifact upload
-URLs instead.
+`shellui deploy` uploads a preview tarball; hosting MCP uses presigned URLs for
+bytes instead.
+
+- **`shellui auth status`:** login and session summary (no tokens).
+- **`shellui projects list`:** `GET /api/v1/companies/` on `saas.url`.
+- **`shellui projects regions`:** `GET /api/v1/regions/`.
+- **`shellui projects endpoints`:** `GET /api/v1/companies/{uuid}/endpoints/`.
+- **`shellui storage buckets list`:** `GET /storage/v1/bucket`.
+- **`shellui hosting apps list`:** `GET /hosting/v1/apps`.
 
 ## Troubleshooting
 
-- **`401` wrong `aud`:** token issuer or resource does not match the host.
-- **`403` staff:** staff cannot authorize MCP [identity-mcp].
-- **`404` on plain AI `/mcp`:** use `/c/{id}/mcp` [ai-mcp].
-- **`404` token exchange:** region lacks `GLOBAL_*` trust [identity-mcp].
-- **Revocation poll failure:** service denies MCP until identity is up.
+- HTTP **401** wrong `aud`: token minted for another issuer or audience string.
+- HTTP **403** staff: staff accounts cannot finish MCP consent [identity-mcp].
+- HTTP **403** Terms: human has not accepted Terms for that identity tenant.
+- HTTP **404** on AI host `/mcp`: use `/c/your_regional_id_here/mcp` [ai-mcp].
+- HTTP **404** on global MCP: POST JSON-RPC to `PUBLIC_SAAS_URL` + `/mcp`.
+- HTTP **404** on `regions` or `endpoints`: fix `saas.url` or the UUID path.
+- HTTP **503** polls: regional services fail closed without identity.
+- **Company id:** must match `regional_company_id` in the RFC 8693 exchange.
 
 [start-sh]: https://github.com/shellui/shellui/blob/develop/dev/start.sh
 [compose-yml]: https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml

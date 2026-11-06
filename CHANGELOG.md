@@ -24,10 +24,12 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 📚 Documentation
 
-- **AI native guide:** `docs/features/ai-native.md` now documents `dev/start.sh` and `generate-env.sh`, compose ports (including `- '8001:8000'`), dynamic client registration, PKCE authorize, global SaaS MCP `api_v1_companies_create` and `retrieve`, human approval on `/api/v1/mcp/approvals/{approval_id}/decide`, RFC 8693 exchange, storage, hosting, and email `tools/call` payloads from service source, and activity outcomes; `docs/features/ai-native-mcp.md` links here; `dev/generate_env.test.py` adds retention checks; `scripts/verify-ai-native-doc.mjs` guards the doc.
+- **AI native guide:** `docs/features/ai-native.md` covers `ch` as the dev SaaS region, two-level OAuth (`services` includes SaaS and AI; RFC 8693 lists regional data planes), global consent POST fields, `shellui.config.json` keys, CLI scope, and troubleshooting. `docs/cli.md` notes variadic nested commands and fixes local hosting port **8003**. `scripts/verify-ai-native-doc.mjs` adds required substrings for those flows.
+- **Dev stack:** `dev/.env.local.example` uses `DEV_REGION_CODE=ch` and `REGION_CH_*_ORIGIN` (replacing `REGION_LOCAL_*`) so the dashboard matches SaaS region codes; identity no longer self-duplicates `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`.
 - **Dev stack:** `dev/docker-compose.yml` passes `GLOBAL_AGENT_PRIVATE_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **saas** and sets `AI_PUBLIC_URL` on **ai** so MCP resource URLs match `PUBLIC_AI_URL`.
 - **Dev stack:** `dev/docker-compose.yml`, `dev/.env.local.example`, and `dev/generate-env.sh` to run the shell, Files (5175), and sibling services locally.
 - **Dev stack:** `generate-env.sh` creates dev-only RS256 keys for each service's internal MCP assertions and saas provisioning, and compose registers them as identity's trusted callers, so `./start.sh` needs no manual key setup.
+- **Dev stack:** `generate-env.sh` runs `uv` with `--with cryptography` when present; `generate_env.py` builds JWKS with **cryptography** when installed or falls back to **openssl** so plain `python3` works in CI.
 - **Dev stack:** `dev/start.sh` starts the full compose stack (including **email-worker**); no Compose profile needed for workers.
 - **Dev stack:** Front-ends in the compose stack link `@shellui/core`, `@shellui/sdk`, and `@shellui/cli` from the bind-mounted monorepo for hot reload without an npm release.
 - **Dev stack:** Vite dev for compose front-ends loads each app config once via `node_modules/.shellui/vite-dev.config.mjs` and the pnpm `vite` shim so React refresh and Tailwind resolve correctly.
@@ -37,7 +39,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### ✨ Feature
 
-- **CLI:** `shellui auth status`, `shellui companies`, `shellui projects`, `shellui storage buckets`, `shellui hosting apps`, and `shellui hosting deployments` call identity, SaaS, storage, and hosting HTTP APIs with the same logged-in session as `shellui deploy`, optional `--company`, persisted default company (`shellui companies use`), `--json`, and redacted errors. Config adds optional `saas.url` (or use `SHELLUI_SAAS_URL`).
+- **CLI:** `shellui auth status`, `shellui companies`, `shellui projects`, `shellui storage buckets`, `shellui hosting apps`, and `shellui hosting deployments` call identity, SaaS, storage, and hosting HTTP APIs with the same logged-in session as `shellui deploy`, optional `--company`, persisted default company (`shellui companies use`), `--json`, and redacted errors. Config adds optional `saas.url` (or use `SHELLUI_SAAS_URL`). Multi-word commands use variadic dispatch so `auth status`, `storage buckets`, `hosting apps`, `hosting deployments`, and `projects` no longer no-op; unknown subcommands exit nonzero.
 - **Core:** Settings adds MCP / AI agents when `aiService.url` is configured and identity reports MCP for the company: company MCP URL, connected OAuth and personal agents, activity logs, and one-time personal token creation.
 - **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.
 - **Core:** Per-app `email`, `storage` and `hosting` URLs, forwarded to child apps when allowed by `childFrames.serviceOrigins`.

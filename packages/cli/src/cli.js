@@ -11,13 +11,9 @@ import {
   deployCommand,
   deployHistoryCommand,
   deployRollbackCommand,
-  authStatusCommand,
   companiesCommand,
-  projectsCommand,
-  storageBucketsCommand,
-  hostingAppsCommand,
-  hostingDeploymentsCommand,
 } from './commands/index.js';
+import { dispatchVariadicCli } from './cli-dispatch.js';
 import pkg from '../package.json' with { type: 'json' };
 
 const cli = cac('shellui');
@@ -100,14 +96,6 @@ cli
   .action((root, options) => whoamiCommand(root, { config: options.config }));
 
 cli
-  .command('auth status [root]', 'Show login/session status (no tokens)')
-  .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--json', 'Machine-readable JSON on stdout')
-  .action((root, options) =>
-    authStatusCommand(root ?? '.', { config: options.config, json: options.json }),
-  );
-
-cli
   .command(
     'companies <action> [id] [root]',
     'List or inspect organizations (identity /api/v1/companies)',
@@ -122,25 +110,36 @@ cli
     }),
   );
 
+const variadicNestedOpts = (o) => ({
+  config: o.config,
+  json: o.json === true,
+  company: o.company,
+  slug: o.slug,
+});
+
 cli
-  .command(
-    'projects <action> [id] [root]',
-    'SaaS dashboard companies and api/v1 regions-endpoints (saas.url; human session, no company_id query)',
-  )
+  .command('auth [...words]', 'Show login/session status (no tokens)')
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option('--json', 'Machine-readable JSON on stdout')
-  .action((action, id, root, options) =>
-    projectsCommand(action, id, {
-      root: root ?? '.',
-      config: options.config,
-      json: options.json,
-    }),
+  .action((words, options) =>
+    dispatchVariadicCli(['auth', ...(words || [])], variadicNestedOpts(options)),
   );
 
 cli
   .command(
-    'storage buckets <action> [name] [root]',
-    'List or get storage buckets (storage.url; JWT company claim only, no company_id query)',
+    'projects [...words]',
+    'SaaS dashboard companies and api/v1 regions-endpoints (saas.url; human session, no company_id query)',
+  )
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .option('--json', 'Machine-readable JSON on stdout')
+  .action((words, options) =>
+    dispatchVariadicCli(['projects', ...(words || [])], variadicNestedOpts(options)),
+  );
+
+cli
+  .command(
+    'storage [...words]',
+    'Storage buckets: list or get (storage.url; JWT company claim only, no company_id query)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option(
@@ -148,62 +147,20 @@ cli
     'Select regional tenant for CLI session (backend.companyId); does not add query params to storage',
   )
   .option('--json', 'Machine-readable JSON on stdout')
-  .action((action, name, root, options) =>
-    storageBucketsCommand(action, name, {
-      root: root ?? '.',
-      config: options.config,
-      company: options.company,
-      json: options.json,
-    }),
+  .action((words, options) =>
+    dispatchVariadicCli(['storage', ...(words || [])], variadicNestedOpts(options)),
   );
 
 cli
   .command(
-    'hosting apps <action> [ref] [root]',
-    'List hosted sites or get one by slug (hosting.url; JWT company claim only)',
-  )
-  .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--json', 'Machine-readable JSON on stdout')
-  .action((action, ref, root, options) =>
-    hostingAppsCommand(action, ref, {
-      root: root ?? '.',
-      config: options.config,
-      json: options.json,
-    }),
-  );
-
-cli
-  .command(
-    'hosting deployments list [root]',
-    'List deployments for a site (hosting.url; slug from --slug or hosting.slug)',
+    'hosting [...words]',
+    'Hosting apps and deployments (hosting.url; slug from --slug or hosting.slug for deployments)',
   )
   .option('--config <path>', CONFIG_OPTION_HELP)
   .option('--slug <slug>', 'Site slug (preview slug)')
   .option('--json', 'Machine-readable JSON on stdout')
-  .action((root, options) =>
-    hostingDeploymentsCommand('list', undefined, {
-      root: root ?? '.',
-      config: options.config,
-      slug: options.slug,
-      json: options.json,
-    }),
-  );
-
-cli
-  .command(
-    'hosting deployments status <uuid> [root]',
-    'Resolve one deployment from list by UUID (no per-deployment GET on service)',
-  )
-  .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--slug <slug>', 'Site slug (preview slug)')
-  .option('--json', 'Machine-readable JSON on stdout')
-  .action((uuid, root, options) =>
-    hostingDeploymentsCommand('status', uuid, {
-      root: root ?? '.',
-      config: options.config,
-      slug: options.slug,
-      json: options.json,
-    }),
+  .action((words, options) =>
+    dispatchVariadicCli(['hosting', ...(words || [])], variadicNestedOpts(options)),
   );
 
 cli

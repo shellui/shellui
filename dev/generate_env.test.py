@@ -11,11 +11,14 @@ from pathlib import Path
 MARKER_LINE = "SHELLUI_AGENT_DOC_RETENTION_TEST=keep_me_across_runs\n"
 
 
-def run_generator(example: Path, out: Path) -> None:
+def run_generator(example: Path, out: Path) -> subprocess.CompletedProcess[str]:
     dev = example.parent
-    subprocess.check_call(
+    return subprocess.run(
         [sys.executable, str(dev / "generate_env.py"), str(example), str(out)],
         cwd=str(dev),
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
 
@@ -24,9 +27,28 @@ def assert_jwks_parses(text: str) -> None:
         if line.startswith("GLOBAL_JWKS="):
             raw = line.split("=", 1)[1].strip()
             assert raw[0] == "'" and raw[-1] == "'", "GLOBAL_JWKS must be single-quoted JSON"
-            json.loads(raw[1:-1])
+            assert "BEGIN" not in raw
+            doc = json.loads(raw[1:-1])
+            keys = doc.get("keys")
+            assert isinstance(keys, list) and keys, "GLOBAL_JWKS must list keys"
+            assert "n" in keys[0] and "e" in keys[0], "GLOBAL_JWKS must be a public JWKS"
             return
     raise AssertionError("GLOBAL_JWKS= missing from generated env")
+
+
+def assert_no_duplicate_var_definitions(text: str) -> None:
+    counts: dict[str, int] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if "=" not in stripped:
+            continue
+        name = stripped.split("=", 1)[0].strip()
+        if name:
+            counts[name] = counts.get(name, 0) + 1
+    dups = [k for k, v in counts.items() if v > 1]
+    assert not dups, f"duplicate env keys in output: {', '.join(dups)}"
 
 
 def global_signing_lines(text: str) -> dict[str, str]:
@@ -47,12 +69,14 @@ def test_retention_preserves_secrets() -> None:
         tdir = Path(tmp)
         seeded = tdir / "seeded.env"
         seeded.write_text(MARKER_LINE, encoding="utf-8")
-        run_generator(example, seeded)
+        p1 = run_generator(example, seeded)
+        assert "eyJ" not in (p1.stdout or "") and "eyJ" not in (p1.stderr or "")
         first = seeded.read_text(encoding="utf-8")
         assert MARKER_LINE.strip() in first
         before = global_signing_lines(first)
 
-        run_generator(example, seeded)
+        p2 = run_generator(example, seeded)
+        assert "eyJ" not in (p2.stdout or "") and "eyJ" not in (p2.stderr or "")
         second = seeded.read_text(encoding="utf-8")
         assert second.count(MARKER_LINE.strip()) == 1, "duplicate retention marker lines"
         after = global_signing_lines(second)
@@ -65,9 +89,11 @@ def main() -> int:
     with tempfile.NamedTemporaryFile(mode="w+", suffix=".env", delete=False) as tmp:
         out = Path(tmp.name)
     try:
-        run_generator(example, out)
+        p0 = run_generator(example, out)
+        assert "eyJ" not in (p0.stdout or "") and "eyJ" not in (p0.stderr or "")
         text = out.read_text(encoding="utf-8")
         assert_jwks_parses(text)
+        assert_no_duplicate_var_definitions(text)
         test_retention_preserves_secrets()
         return 0
     finally:

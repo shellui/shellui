@@ -16,8 +16,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+try:
+    from cryptography.hazmat.primitives import serialization as _crypt_ser
+    from cryptography.hazmat.primitives.asymmetric import rsa as _crypt_rsa
+
+    _HAVE_CRYPTO = True
+except ImportError:
+    _HAVE_CRYPTO = False
 
 
 def secret_key() -> str:
@@ -50,16 +55,38 @@ def pem_for_env(pem: str) -> str:
 
 def jwks_for_rsa_public_pem(public_pem: str, kid: str) -> str:
     """Single-key JWKS JSON for RS256 global agent verification (identity GLOBAL_JWKS)."""
-    key = serialization.load_pem_public_key(public_pem.encode("utf-8"))
-    if not isinstance(key, rsa.RSAPublicKey):
-        raise TypeError("expected RSA public key")
-    numbers = key.public_numbers()
-    n = base64.urlsafe_b64encode(numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, "big")).rstrip(b"=").decode(
-        "ascii"
-    )
-    e = base64.urlsafe_b64encode(numbers.e.to_bytes((numbers.e.bit_length() + 7) // 8, "big")).rstrip(b"=").decode(
-        "ascii"
-    )
+    if _HAVE_CRYPTO:
+        key = _crypt_ser.load_pem_public_key(public_pem.encode("utf-8"))
+        if not isinstance(key, _crypt_rsa.RSAPublicKey):
+            raise TypeError("expected RSA public key")
+        numbers = key.public_numbers()
+        n = base64.urlsafe_b64encode(
+            numbers.n.to_bytes((numbers.n.bit_length() + 7) // 8, "big"),
+        ).rstrip(b"=").decode("ascii")
+        e = base64.urlsafe_b64encode(
+            numbers.e.to_bytes((numbers.e.bit_length() + 7) // 8, "big"),
+        ).rstrip(b"=").decode("ascii")
+    else:
+        mod_line = subprocess.check_output(
+            ["openssl", "rsa", "-pubin", "-inform", "PEM", "-modulus", "-noout"],
+            input=public_pem,
+            text=True,
+        ).strip()
+        if not mod_line.startswith("Modulus="):
+            raise ValueError("unexpected openssl -modulus output")
+        mod_hex = mod_line.split("=", 1)[1].lower()
+        mod_bytes = bytes.fromhex(mod_hex)
+        n = base64.urlsafe_b64encode(mod_bytes).rstrip(b"=").decode("ascii")
+        exp_line = subprocess.check_output(
+            ["openssl", "rsa", "-pubin", "-inform", "PEM", "-text", "-noout"],
+            input=public_pem,
+            text=True,
+        )
+        m = re.search(r"Exponent:\s*(\d+)", exp_line)
+        exp_int = int(m.group(1)) if m else 65537
+        e = base64.urlsafe_b64encode(exp_int.to_bytes((exp_int.bit_length() + 7) // 8, "big")).rstrip(
+            b"=",
+        ).decode("ascii")
     doc = {"keys": [{"kty": "RSA", "kid": kid, "use": "sig", "alg": "RS256", "n": n, "e": e}]}
     return json.dumps(doc, separators=(",", ":"))
 
