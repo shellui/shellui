@@ -1,10 +1,11 @@
 ---
 title: AI native MCP (compat)
 sidebar_label: AI native MCP
-description: Pointer to the developer guide for global MCP and regional gateways.
+description: Pointer to the AI native local testing guide.
 ---
 
-Use [AI native platform](./ai-native) for the full developer guide (local stack,
-OAuth, first company, token exchange, and service examples).
-
-This page stays as a stable short link for older bookmarks.
+Stable bookmark. Use [AI native local MCP testing](./ai-native) for **`shellui/dev`**
+startup, OAuth **`POST /oauth/mcp/register`**, regional gateway URLs, approvals,
+**`session_allow`**, TypeScript or Python MCP client notes from [ai-service
+mcp-e2e](https://github.com/shellui/ai-service/blob/6eb54d3a887a4db9f02743533388aa7e51ce3d8d/docs/mcp-e2e-conformance.md),
+and linked service handbooks.
