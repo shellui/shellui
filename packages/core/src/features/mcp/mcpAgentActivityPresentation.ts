@@ -7,68 +7,6 @@ import { humanizeMcpToolName } from './mcpToolActivityRegistry';
 
 export type { McpActivityAccessKind, McpActivityOutcomeKind } from './personalAgentsApi';
 
-const SENSITIVE_SUBSTRINGS = [
-  'token',
-  'secret',
-  'password',
-  'api_key',
-  'apikey',
-  'bearer',
-  'authorization',
-  'cookie',
-  'credential',
-];
-
-const MAX_SAFE_FIELD_LEN = 120;
-
-/** http(s) URL substring detector for stripping queries from anywhere in a message */
-const URL_IN_TEXT = /https?:\/\/[^\s<>"'{}|\\^`[\]]+/gi;
-
-function bodyContainsSensitiveSecret(body: string): boolean {
-  const lower = body.toLowerCase();
-  return SENSITIVE_SUBSTRINGS.some((needle) => lower.includes(needle));
-}
-
-/**
- * Strips query strings from http(s) URLs anywhere in the string.
- * If any secret marker appears in the full string, redacts entirely.
- */
-function sanitizeUrlsAndSecretsInText(raw: string): string {
-  if (!raw.trim()) return raw;
-  if (bodyContainsSensitiveSecret(raw)) {
-    return '[Details redacted]';
-  }
-  return raw.replace(URL_IN_TEXT, (url) => {
-    try {
-      const u = new URL(url);
-      u.search = '';
-      return u.toString();
-    } catch {
-      return url;
-    }
-  });
-}
-
-function truncateSafeField(text: string): string {
-  if (text.length <= MAX_SAFE_FIELD_LEN) return text;
-  return `${text.slice(0, MAX_SAFE_FIELD_LEN - 1)}…`;
-}
-
-/** Same pipeline for error and short result display: URLs stripped globally, secrets redact whole string. */
-export function sanitizeMcpActivityErrorMessage(raw: string | null | undefined): string | null {
-  if (!raw?.trim()) return null;
-  const sanitized = sanitizeUrlsAndSecretsInText(raw.trim());
-  if (sanitized === '[Details redacted]') return sanitized;
-  return truncateSafeField(sanitized);
-}
-
-export function sanitizeActivityResultField(raw: string | null | undefined): string {
-  if (!raw?.trim()) return '';
-  const sanitized = sanitizeUrlsAndSecretsInText(raw.trim());
-  if (sanitized === '[Details redacted]') return sanitized;
-  return truncateSafeField(sanitized);
-}
-
 function normalizeResultKey(value: string): string {
   return value
     .trim()
@@ -96,25 +34,12 @@ const KNOWN_RESULT_OUTCOMES: Record<string, McpActivityOutcomeKind> = {
   unknown: 'unknown',
 };
 
-const normOutcome = (s: string): string => normalizeResultKey(s);
-
 export function parseActivityOutcomeFromFields(
   result: string,
-  explicitOutcome: string | null | undefined,
+  explicitOutcome: McpActivityOutcomeKind | null | undefined,
 ): McpActivityOutcomeKind {
-  const fromExplicit = explicitOutcome?.trim();
-  if (fromExplicit) {
-    const n = normOutcome(fromExplicit);
-    if (n === 'allowed' || n === 'allow' || n === 'allow_success' || n === 'allowed_success')
-      return 'allowed';
-    if (n === 'denied' || n === 'forbidden') return 'denied';
-    if (n === 'failed' || n === 'error') return 'failed';
-    if (n === 'pending' || n === 'pending_approval' || n === 'awaiting_approval')
-      return 'pending_approval';
-    if (n === 'session_used' || n === 'session') return 'session_used';
-    if (n === 'unknown') return 'unknown';
-    /* Non-normalized provider strings: do not guess */
-    return 'unknown';
+  if (explicitOutcome !== null && explicitOutcome !== undefined) {
+    return explicitOutcome;
   }
 
   const r = result.trim();
@@ -209,6 +134,21 @@ export function buildActivityPrimarySummary(
   return parts.join(' ');
 }
 
-export function formatActivityResultForDisplay(raw: string): string {
-  return sanitizeActivityResultField(raw);
+export function isRecognizedActivityResultToken(raw: string | null | undefined): boolean {
+  if (!raw?.trim()) return false;
+  const r = raw.trim();
+  return (
+    Object.prototype.hasOwnProperty.call(KNOWN_RESULT_OUTCOMES, r) ||
+    Object.prototype.hasOwnProperty.call(KNOWN_RESULT_OUTCOMES, normalizeResultKey(r))
+  );
+}
+
+/**
+ * Returns a display token only for recognized provider result codes. Never returns arbitrary text.
+ */
+export function formatActivityResultForDisplay(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const trimmed = raw.trim();
+  if (!isRecognizedActivityResultToken(trimmed)) return null;
+  return KNOWN_RESULT_OUTCOMES[trimmed] !== undefined ? trimmed : normalizeResultKey(trimmed);
 }

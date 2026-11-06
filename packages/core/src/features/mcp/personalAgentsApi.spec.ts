@@ -11,6 +11,9 @@ import {
   parseMcpAgentActivity,
   parseMcpAgentSummary,
   parseMcpPersonalStatus,
+  parseStrictMcpActivityErrorCode,
+  parseStrictMcpActivityOutcome,
+  parseValidatedGlobalMcpEndpointUrl,
   revokeMcpPersonalAgent,
 } from './personalAgentsApi';
 
@@ -40,11 +43,50 @@ describe('getMcpPersonalCompanyId', () => {
   });
 });
 
+describe('parseValidatedGlobalMcpEndpointUrl', () => {
+  it('accepts https origin + /mcp only', () => {
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp')).toBe(
+      'https://dash.example.com/mcp',
+    );
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp/')).toBe(
+      'https://dash.example.com/mcp',
+    );
+  });
+
+  it('rejects bare origin, double path, queries, and non-http(s)', () => {
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp/mcp')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://dash.example.com/mcp?x=1')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('ftp://dash.example.com/mcp')).toBeNull();
+    expect(parseValidatedGlobalMcpEndpointUrl('https://user@dash.example.com/mcp')).toBeNull();
+  });
+});
+
 describe('parseMcpPersonalStatus', () => {
   it('parses enabled status and url', () => {
     expect(
       parseMcpPersonalStatus({ mcp_enabled: true, mcp_url: 'https://ai.test/c/1/mcp' }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/c/1/mcp' });
+    ).toEqual({ mcpEnabled: true, mcpUrl: 'https://ai.test/c/1/mcp', globalMcpUrl: null });
+  });
+
+  it('parses global_mcp_url when present', () => {
+    expect(
+      parseMcpPersonalStatus({
+        mcp_enabled: true,
+        mcp_url: null,
+        global_mcp_url: 'https://dash.example.com/mcp',
+      }),
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: 'https://dash.example.com/mcp' });
+  });
+
+  it('drops invalid global_mcp_url', () => {
+    expect(
+      parseMcpPersonalStatus({
+        mcp_enabled: true,
+        mcp_url: null,
+        global_mcp_url: 'https://dash.example.com',
+      }),
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: null });
   });
 
   it('parses global_identity when present', () => {
@@ -54,7 +96,7 @@ describe('parseMcpPersonalStatus', () => {
         mcp_url: null,
         global_identity: false,
       }),
-    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalIdentity: false });
+    ).toEqual({ mcpEnabled: true, mcpUrl: null, globalMcpUrl: null, globalIdentity: false });
   });
 
   it('returns null for invalid payloads', () => {
@@ -98,6 +140,22 @@ describe('parseMcpAgentList', () => {
   });
 });
 
+describe('parseStrictMcpActivityOutcome', () => {
+  it('maps only exact normalized tokens', () => {
+    expect(parseStrictMcpActivityOutcome('allowed')).toBe('allowed');
+    expect(parseStrictMcpActivityOutcome('Denied')).toBe('denied');
+    expect(parseStrictMcpActivityOutcome('not-a-known-outcome')).toBeNull();
+  });
+});
+
+describe('parseStrictMcpActivityErrorCode', () => {
+  it('accepts identity taxonomy only', () => {
+    expect(parseStrictMcpActivityErrorCode('downstream_error')).toBe('downstream_error');
+    expect(parseStrictMcpActivityErrorCode('DOWNSTREAM_ERROR')).toBe('downstream_error');
+    expect(parseStrictMcpActivityErrorCode('custom_failure')).toBeNull();
+  });
+});
+
 describe('parseMcpAgentActivity', () => {
   it('maps optional enrichment fields', () => {
     const parsed = parseMcpAgentActivity({
@@ -117,7 +175,9 @@ describe('parseMcpAgentActivity', () => {
           actor: 'staff@example.com',
           agent_name: 'My bot',
           approval_request_id: 'ap-9',
-          error_message: 'upstream timeout',
+          error_code: 'downstream_error',
+          error_message:
+            'Exception: https://evil.example/nonce token=secret-key https://x.test?token=1',
         },
       ],
     });
@@ -131,8 +191,61 @@ describe('parseMcpAgentActivity', () => {
       actorLabel: 'staff@example.com',
       agentName: 'My bot',
       approvalRequestId: 'ap-9',
-      errorMessage: 'upstream timeout',
+      errorCode: 'downstream_error',
+      errorDetailRaw:
+        'Exception: https://evil.example/nonce token=secret-key https://x.test?token=1',
     });
+  });
+
+  it('drops unrecognized outcome strings', () => {
+    const parsed = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'custom_vendor_code',
+          outcome: 'vendor_says_maybe',
+        },
+      ],
+    });
+    expect(parsed?.activity[0]?.outcome).toBeNull();
+  });
+
+  it('parses error_code and ignores invalid error_code', () => {
+    const ok = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'failed',
+          outcome: 'failed',
+          error_code: 'identity_unreachable',
+        },
+      ],
+    });
+    expect(ok?.activity[0]).toMatchObject({
+      errorCode: 'identity_unreachable',
+      outcome: 'failed',
+    });
+
+    const bad = parseMcpAgentActivity({
+      agent_id: 'a1',
+      activity: [
+        {
+          timestamp: '2026-01-01T12:00:00Z',
+          tool: 'x',
+          service: 'identity',
+          result: 'failed',
+          outcome: 'failed',
+          error_code: 'vendor_oops',
+        },
+      ],
+    });
+    expect(bad?.activity[0]).toMatchObject({ errorCode: null });
   });
 });
 
@@ -178,12 +291,17 @@ describe('mcp personal fetch helpers', () => {
   it('fetchMcpPersonalStatus sends bearer and company_id', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ mcp_enabled: true, mcp_url: 'https://ai.test/c/1/mcp' }),
+      json: async () => ({
+        mcp_enabled: true,
+        mcp_url: 'https://ai.test/c/1/mcp',
+        global_mcp_url: null,
+      }),
     });
     vi.stubGlobal('fetch', fetchMock);
 
     const status = await fetchMcpPersonalStatus('https://id.example.com', 'tok', '7');
     expect(status.mcpEnabled).toBe(true);
+    expect(status.globalMcpUrl).toBeNull();
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe('https://id.example.com/api/v1/mcp/personal/status?company_id=7');

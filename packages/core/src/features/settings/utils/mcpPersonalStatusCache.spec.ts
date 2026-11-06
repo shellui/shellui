@@ -36,11 +36,27 @@ describe('mcpPersonalStatusCache', () => {
       backendUrl: 'https://id.example.com',
       companyId: '7',
     };
-    writeMcpPersonalStatusCache(scope, { mcpEnabled: true, mcpUrl: 'https://ai.test/mcp' });
+    writeMcpPersonalStatusCache(scope, {
+      mcpEnabled: true,
+      mcpUrl: 'https://ai.test/mcp',
+      globalMcpUrl: null,
+    });
 
     expect(readMcpPersonalStatusCache(scope)).toEqual({
       mcpEnabled: true,
       mcpUrl: 'https://ai.test/mcp',
+      globalMcpUrl: null,
+    });
+
+    writeMcpPersonalStatusCache(scope, {
+      mcpEnabled: true,
+      mcpUrl: 'https://ai.test/mcp',
+      globalMcpUrl: 'https://dash.example.com/mcp',
+    });
+    expect(readMcpPersonalStatusCache(scope)).toEqual({
+      mcpEnabled: true,
+      mcpUrl: 'https://ai.test/mcp',
+      globalMcpUrl: 'https://dash.example.com/mcp',
     });
     expect(readMcpPersonalStatusCache({ ...scope, userId: 'user-2' })).toBeNull();
 
@@ -53,7 +69,7 @@ describe('mcpPersonalStatusCache', () => {
     vi.stubGlobal('sessionStorage', memoryStorage());
     writeMcpPersonalStatusCache(
       { userId: 'u', backendUrl: 'https://id.example.com', companyId: '1' },
-      { mcpEnabled: false, mcpUrl: null },
+      { mcpEnabled: false, mcpUrl: null, globalMcpUrl: null },
     );
     clearMcpPersonalStatusCache();
     expect(sessionStorage.getItem(MCP_PERSONAL_STATUS_CACHE_KEY)).toBeNull();

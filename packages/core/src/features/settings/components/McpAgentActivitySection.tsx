@@ -5,16 +5,15 @@ import { Button } from '../../../components/ui/button';
 import {
   buildActivityPrimarySummary,
   formatActivityDurationMs,
-  formatActivityResultForDisplay,
   formatActivityWhen,
   inferActivityAccessKind,
   parseActivityOutcomeFromFields,
   resolveActivityPendingLink,
-  sanitizeMcpActivityErrorMessage,
   type ActivityPendingLink,
 } from '../../mcp/mcpAgentActivityPresentation';
 import {
   fetchMcpPersonalAgentActivity,
+  type McpActivityErrorCode,
   type McpAgentActivityRow,
   type McpAgentSummary,
 } from '../../mcp/personalAgentsApi';
@@ -126,6 +125,29 @@ export const McpAgentActivitySection = ({
     [t],
   );
 
+  const errorCodeLabel = useCallback(
+    (code: McpActivityErrorCode | null) => {
+      if (!code) return null;
+      switch (code) {
+        case 'identity_unreachable':
+          return t('mcpAgents.activity.detail.errorCode.identityUnreachable');
+        case 'invalid_grant':
+          return t('mcpAgents.activity.detail.errorCode.invalidGrant');
+        case 'permission_changed':
+          return t('mcpAgents.activity.detail.errorCode.permissionChanged');
+        case 'request_expired':
+          return t('mcpAgents.activity.detail.errorCode.requestExpired');
+        case 'downstream_error':
+          return t('mcpAgents.activity.detail.errorCode.downstreamError');
+        case 'server_error':
+          return t('mcpAgents.activity.detail.errorCode.serverError');
+        default:
+          return t('mcpAgents.activity.detail.errorCode.unknown');
+      }
+    },
+    [t],
+  );
+
   return (
     <div className="mt-4 border-t pt-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -172,8 +194,11 @@ export const McpAgentActivitySection = ({
                   operationSuffix: t('mcpAgents.activity.operationSuffix'),
                 });
                 const outcome = parseActivityOutcomeFromFields(row.result, row.outcome);
-                const resultDisplay = formatActivityResultForDisplay(row.result);
-                const safeError = sanitizeMcpActivityErrorMessage(row.errorMessage);
+                const resultDetail =
+                  outcome === 'unknown'
+                    ? t('mcpAgents.activity.detail.resultUnknown')
+                    : outcomeLabel(outcome);
+                const errorDetailLabel = errorCodeLabel(row.errorCode);
                 const duration = formatActivityDurationMs(row.durationMs, locale);
                 const when = formatActivityWhen(row.timestamp, locale);
                 const access = accessLabel(row);
@@ -248,16 +273,14 @@ export const McpAgentActivitySection = ({
                         <dt className="inline font-medium text-foreground/80">
                           {t('mcpAgents.activity.detail.result')}:{' '}
                         </dt>
-                        <dd className="inline break-all font-mono text-[11px]">
-                          {resultDisplay || t('mcpAgents.activity.detail.resultUnknown')}
-                        </dd>
+                        <dd className="inline">{resultDetail}</dd>
                       </div>
-                      {safeError ? (
+                      {errorDetailLabel ? (
                         <div className="sm:col-span-2">
                           <dt className="inline font-medium text-foreground/80">
                             {t('mcpAgents.activity.detail.error')}:{' '}
                           </dt>
-                          <dd className="inline">{safeError}</dd>
+                          <dd className="inline">{errorDetailLabel}</dd>
                         </div>
                       ) : outcome === 'failed' ? (
                         <div className="sm:col-span-2 text-muted-foreground">

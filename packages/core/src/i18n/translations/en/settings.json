@@ -279,16 +279,16 @@
     "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
     "global": {
       "title": "Connect to Shellui (global MCP)",
-      "intro": "You can use more than one MCP connection. A dashboard-scoped path covers your Shellui account (projects, companies, regions, and plans). This settings page covers this company only (regional services and app APIs).",
-      "scopeAccount": "Dashboard MCP: account metadata for Shellui. It does not read your hosted app data.",
+      "intro": "You can use two MCP entry points: one on the Shellui dashboard for your account (projects, companies, regions, and plans) and one from this page for this company (regional services and app APIs). They use different URLs and tokens.",
+      "scopeAccount": "Global MCP on the Shellui dashboard: OAuth account scope on SaaS. It covers account metadata. It does not read your hosted app data.",
       "scopeRegional": "This page: MCP for this company (regional services). Tokens are short-lived and tied to this company.",
-      "accessModes": "Exact access is read-only, write that asks first (ask), or full, per token settings.",
-      "approvals": "Writes that need a person use the pending approvals list here. Destructive tools always need approval.",
+      "sessions": "On this page, ordinary regional MCP: Allow for this session lasts about 60 seconds for non-destructive calls on the current connection. This is not the whole token or connection lifetime. Some first-company setup flows let the user allow non-destructive calls for 600 to 900 seconds, limited by the server setup expiry. After that window, each call needs approval again unless the session is refreshed. Destructive calls always need a fresh approval. Full mode does not skip that for destructive tools.",
+      "approvals": "Global MCP uses the SaaS approval and fallback endpoints; this page is regional identity only. The pending list here is for regional tools for this company.",
       "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
-      "dashboardUrlLabel": "Dashboard base URL (reference only, not for MCP clients):",
-      "dashboardUrlUnknown": "Set backend.adminUrl in shellui.config.ts to show the dashboard base URL here.",
-      "statusReady": "Your session can reach saas. Create a connection below when you need dashboard plus company scope.",
-      "statusPending": "Your session is regional only. Sign in from the Shellui dashboard when you need dashboard MCP."
+      "globalMcpUrlLabel": "Global MCP URL (direct connect, reference only):",
+      "globalMcpUrlUnknown": "Identity has not returned the global MCP endpoint yet. It should be the full URL from your host DASHBOARD_PUBLIC_URL without a trailing slash plus /mcp. After identity is upgraded, reload this page.",
+      "statusReady": "Your OAuth session includes SaaS (account scope). When the global endpoint appears above, use it for account-wide MCP. Connections you create below stay regional for this company only. They are not interchangeable and this page does not configure the dashboard client.",
+      "statusPending": "Your session is regional only. Sign in with a Shellui account that has SaaS if you need global MCP when the endpoint appears above."
     },
     "signInRequired": "Sign in to manage MCP agents.",
     "status": {
@@ -368,10 +368,19 @@
         "actor": "Actor",
         "actorUnknown": "Not reported",
         "agent": "Connection",
-        "result": "Result",
-        "resultUnknown": "Not classified",
-        "error": "Service error",
-        "errorUnavailable": "No safe error detail from the server for this row."
+        "result": "Classified outcome",
+        "resultUnknown": "No safe outcome available.",
+        "error": "Error code",
+        "errorUnavailable": "No error code from identity for this row.",
+        "errorCode": {
+          "identityUnreachable": "Identity unreachable",
+          "invalidGrant": "Invalid grant",
+          "permissionChanged": "Permission changed",
+          "requestExpired": "Request expired",
+          "downstreamError": "Downstream error",
+          "serverError": "Server error",
+          "unknown": "Unknown error"
+        }
       },
       "link": {
         "openApprovalById": "Jump to pending approvals",

@@ -19,6 +19,11 @@ export type McpPersonalService = (typeof MCP_PERSONAL_SERVICE_OPTIONS)[number];
 export type McpPersonalStatus = {
   mcpEnabled: boolean;
   mcpUrl: string | null;
+  /**
+   * Full global MCP URL from identity: trusted DASHBOARD_PUBLIC_URL without a trailing slash, plus `/mcp`.
+   * Validated http(s) URL with path `/mcp` only. Identity may omit until ready. Use as the direct MCP endpoint in UI.
+   */
+  globalMcpUrl: string | null;
   /** When false, the signed-in session is regional-only (no saas grant). */
   globalIdentity?: boolean;
 };
@@ -50,6 +55,16 @@ export type McpActivityOutcomeKind =
   | 'session_used'
   | 'unknown';
 
+/** Identity `error_code` for activity rows; settings UI shows only these labels, never raw error bodies. */
+export type McpActivityErrorCode =
+  | 'identity_unreachable'
+  | 'invalid_grant'
+  | 'permission_changed'
+  | 'request_expired'
+  | 'downstream_error'
+  | 'server_error'
+  | 'unknown';
+
 export type McpAgentActivityRow = {
   timestamp: string;
   tool: string;
@@ -76,8 +91,13 @@ export type McpAgentActivityRow = {
   outcome: McpActivityOutcomeKind | null;
   /** Linked pending approval id when provided (matches approvals list). */
   approvalRequestId: string | null;
-  /** Safe, concise service error text when provided (already redacted server-side when possible). */
-  errorMessage: string | null;
+  /** Allowlisted machine error from identity; UI maps to translated labels only. */
+  errorCode: McpActivityErrorCode | null;
+  /**
+   * Optional raw provider error from identity; parsed for contract tests only.
+   * Shellui settings never displays this field.
+   */
+  errorDetailRaw: string | null;
 };
 
 export type CreatePersonalAgentInput = {
@@ -117,16 +137,38 @@ const asStringArray = (value: unknown): string[] => {
   return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '');
 };
 
+/**
+ * Identity `global_mcp_url`: full MCP endpoint `https?://host/mcp` (no query, hash, userinfo).
+ * Rejects a bare origin, `/mcp/mcp`, or any path other than `/mcp`.
+ */
+export function parseValidatedGlobalMcpEndpointUrl(raw: unknown): string | null {
+  const s = asString(raw);
+  if (!s) return null;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+    if (u.username || u.password) return null;
+    if (u.search || u.hash) return null;
+    const path = (u.pathname || '/').replace(/\/+$/, '') || '/';
+    if (path !== '/mcp') return null;
+    return `${u.origin}/mcp`;
+  } catch {
+    return null;
+  }
+}
+
 export const parseMcpPersonalStatus = (payload: unknown): McpPersonalStatus | null => {
   if (!payload || typeof payload !== 'object') return null;
   const record = payload as Record<string, unknown>;
   if (typeof record.mcp_enabled !== 'boolean') return null;
   const mcpUrl = asString(record.mcp_url);
+  const globalMcpUrl = parseValidatedGlobalMcpEndpointUrl(record.global_mcp_url);
   const globalIdentity =
     typeof record.global_identity === 'boolean' ? record.global_identity : undefined;
   return {
     mcpEnabled: record.mcp_enabled,
     mcpUrl,
+    globalMcpUrl,
     ...(globalIdentity !== undefined ? { globalIdentity } : {}),
   };
 };
@@ -199,7 +241,7 @@ const parseAccessKind = (value: unknown): McpActivityAccessKind | null => {
 };
 
 /** Identity `outcome`: exact tokens only (no substring matching). */
-const parseOutcomeKind = (value: unknown): McpActivityOutcomeKind | null => {
+export const parseStrictMcpActivityOutcome = (value: unknown): McpActivityOutcomeKind | null => {
   const s = asString(value);
   if (!s) return null;
   const n = normEnum(s);
@@ -219,6 +261,25 @@ const parseOutcomeKind = (value: unknown): McpActivityOutcomeKind | null => {
   if (n === 'session_used' || n === 'session') return 'session_used';
   if (n === 'unknown') return 'unknown';
   return null;
+};
+
+const MCP_ACTIVITY_ERROR_CODES: readonly McpActivityErrorCode[] = [
+  'identity_unreachable',
+  'invalid_grant',
+  'permission_changed',
+  'request_expired',
+  'downstream_error',
+  'server_error',
+  'unknown',
+] as const;
+
+export const parseStrictMcpActivityErrorCode = (value: unknown): McpActivityErrorCode | null => {
+  const s = asString(value);
+  if (!s) return null;
+  const n = normEnum(s);
+  return (MCP_ACTIVITY_ERROR_CODES as readonly string[]).includes(n)
+    ? (n as McpActivityErrorCode)
+    : null;
 };
 
 export const parseMcpAgentActivity = (
@@ -253,9 +314,10 @@ export const parseMcpAgentActivity = (
       agentName: asString(item.agent_name),
       accessKind: parseAccessKind(item.access_kind),
       durationMs: durationRaw,
-      outcome: parseOutcomeKind(item.outcome),
+      outcome: parseStrictMcpActivityOutcome(item.outcome),
       approvalRequestId: asString(item.approval_request_id),
-      errorMessage: asString(item.error_message),
+      errorCode: parseStrictMcpActivityErrorCode(item.error_code),
+      errorDetailRaw: asString(item.error_message),
     });
   }
   return { agentId, activity };
