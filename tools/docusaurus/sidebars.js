@@ -183,6 +183,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          id: 'mcp',
+          label: 'Global SaaS MCP',
+        },
+        {
+          type: 'doc',
           id: 'core',
           label: 'Core',
         },

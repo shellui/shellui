@@ -50,6 +50,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 ## Packages
 
 - [CLI](/cli) - commands, config files, env substitution, and `shellui deploy`
+- [Global SaaS MCP](/mcp) - OAuth discovery, tool names, and approvals on the SaaS host
 - [Core](/core) - React runtime, config types, and `useAuth`
 - [SDK](/sdk) - iframe APIs, including the CDN tiny script
 - [Desktop app](/tauri) - `shellui dev --app` and Tauri 2 bundles

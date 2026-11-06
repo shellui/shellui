@@ -65,6 +65,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 📚 Documentation
 
+- **Docs:** `docs/mcp.md` global SaaS MCP reference (OAuth metadata, tool naming, approvals).
 - **Docs:** Token exchange (`AppBackendConfig.provider`) and CLI credential storage.
 - **Docs:** docs.shellui.com serves `robots.txt` and `llms.txt`.
 
