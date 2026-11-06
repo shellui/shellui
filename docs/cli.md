@@ -132,6 +132,78 @@ Commands use the account named in the project's `shellui.config.json`. Outside a
 
 `shellui logout` removes the stored credentials for the current account (`shellui logout --all` removes every account) and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
 
+### shellui auth status [root]
+
+Shows whether CLI credentials exist, which **regional** tenant id the active JWT uses (`credential companyId`), and (without printing tokens) whether a live identity profile call succeeds. Use `--json` for machine-readable output.
+
+- Credentials stay in the same store as `shellui login` (`getCredentialStorageInfo()` in `@shellui/cli` documents the keychain vs file layout).
+- When present, `cli-session.json` (v2) may list **regional** default `regionalCompanyId` (from `shellui companies use`) and **dashboard** default `dashboardCompanyUuid` (from `shellui projects use`). Those are separate identifiers; see below.
+
+### Regional tenant id and dashboard company UUID
+
+The CLI distinguishes two company identifiers:
+
+| Kind                                 | Shape                                    | Source                                                                             | Used for                                                                                         |
+| ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Regional** (identity tenant)       | Decimal digits, same as JWT `company_id` | `backend.companyId`, `shellui companies use`, optional `storage buckets --company` | Identity-backed flows; credential account; resolving regional scope for commands that require it |
+| **Dashboard / global** (SaaS record) | UUID                                     | `shellui projects list`, then `shellui projects use <uuid>`                        | SaaS paths under `saas.url` that take a company UUID in the path (`endpoints`, company detail)   |
+
+Do not pass a regional decimal id where the SaaS API expects a dashboard UUID (and the reverse). Human CLI commands use the same Bearer session as `shellui login` (OAuth loopback to identity). **Global MCP** agents use a separate OAuth client and tool approval path for writes; the CLI does not substitute for that. `projects create` is **not implemented** from the CLI (exit `not_implemented`); create companies in the dashboard or through approved automation when your policy allows.
+
+### shellui companies \<action> [id] [root]
+
+Reads organizations through identity `GET /api/v1/companies/` and `GET /api/v1/companies/<id>/`. Requires `shellui login`. Use `--json` for JSON on stdout.
+
+| Action     | Meaning                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `list`     | Companies the signed-in user belongs to (**regional** ids, decimal)                                                                                                                              |
+| `get <id>` | One company by **regional** numeric id                                                                                                                                                           |
+| `use <id>` | Saves a default **regional** tenant id in `cli-session.json` (next to credentials, mode `0600`), keyed with `backend.url`. Still pass `--company` when you need another tenant in the same shell |
+
+Company selection for **`storage buckets`**: `--company <id>` wins, then the CLI session default from `companies use`, then `backend.companyId` in config. That only validates scope; requests do **not** send `company_id` as a query parameter (the JWT carries the tenant). Other services (`hosting` read-only commands) do not take `--company`; they rely on the logged-in JWT only.
+
+### shellui projects \<action> [id] [root]
+
+Calls the SaaS host with the same Bearer session as `shellui login`. Requires `saas.url` in config or `SHELLUI_SAAS_URL`. The CLI default when neither is set is `http://localhost:8005` (self-host smoke only). **No** `company_id` query is sent; dashboard companies are **UUIDs** in URL paths.
+
+| Action             | HTTP (relative to `{saas}` base)                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `list`             | `GET /saas/api/v1/companies/`                                                               |
+| `get <uuid>`       | `GET /saas/api/v1/companies/<uuid>/`                                                        |
+| `use <uuid>`       | Writes default dashboard UUID to `cli-session.json` (no HTTP)                               |
+| `regions`          | `GET /api/v1/regions/`                                                                      |
+| `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |
+| `create`           | Not implemented (use dashboard or global MCP when policy allows)                            |
+
+`shellui projects list --json` on a working stack returns JSON (shape depends on the SaaS API). Errors from services are redacted and never include access tokens.
+
+### shellui storage buckets \<action> [name] [root]
+
+Uses `storage.url` from config (or `shellui.storage.config.json` when split) and the logged-in JWT. The storage API uses the **JWT `company_id` claim** only; the CLI does **not** append `company_id` to the query string.
+
+| Action       | Meaning                                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| `list`       | `GET /storage/v1/bucket`                                                |
+| `get [name]` | `GET /storage/v1/bucket/<name>` (defaults to the `company` bucket name) |
+
+Other actions are not exposed; bucket create remains an operator or dashboard concern (`bucket_create_disabled` on typical installs).
+
+### shellui hosting apps \<action> [ref] [root]
+
+Uses `hosting.url` and the logged-in JWT (**not** `SHELLUI_DEPLOY_TOKEN`; deploy tokens apply only to `shellui deploy`). **No** `company_id` query.
+
+| Action       | Meaning                                                         |
+| ------------ | --------------------------------------------------------------- |
+| `list`       | `GET /hosting/v1/apps`                                          |
+| `get <slug>` | `GET /hosting/v1/apps/<slug>` (slug is the public preview slug) |
+
+### shellui hosting deployments list [root] / shellui hosting deployments status \<uuid> [root]
+
+Inspect deployments without uploading artifacts. Same JWT as above.
+
+- `list` loads `GET /hosting/v1/apps/<slug>/deployments`. Slug comes from `--slug`, else `hosting.slug` in config.
+- `status` loads the same list and picks the row whose `id` matches `<uuid>` (there is no separate `GET` for one deployment on the service today).
+
 ### shellui deploy [root]
 
 Upload `dist/web/` to [hosting-service](https://github.com/shellui/hosting-service) as a **preview** site (7-day TTL unless you redeploy the same slug). Requires `shellui login` and `hosting.url`. After the first deploy of a new preview, the CLI saves the returned slug to `hosting.slug` in `shellui.config.json` and prints the path. It never overwrites an existing `hosting.slug`, skips `--slug` deploys, and leaves split configs untouched (it prints the slug to add instead).
@@ -250,6 +322,7 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`port`** (number, optional): dev server port. Default `3000` if omitted (`init` writes `4000`).
 - **`title`** (string, optional): chrome title.
 - **`backend`**: see [Backend](/backend).
+- **`saas`**: `url` (required for `shellui projects …`). Same logical key as in Docker Compose and self-host stacks (for example `http://localhost:8005` during smoke tests). Override with `SHELLUI_SAAS_URL` when you must not commit the origin.
 - **`storage`**: `url` (required when set), optional `filesUrl`, `showInSettings`. See [Storage](/features/storage).
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
 - **`email`**: optional `url`, optional `showInAdmin`.

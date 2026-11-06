@@ -35,6 +35,7 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### ✨ Feature
 
+- **CLI:** `shellui auth status`, `shellui companies`, `shellui projects`, `shellui storage buckets`, `shellui hosting apps`, and `shellui hosting deployments` call identity, SaaS, storage, and hosting HTTP APIs with the same logged-in session as `shellui deploy`, optional `--company`, persisted default company (`shellui companies use`), `--json`, and redacted errors. Config adds optional `saas.url` (or use `SHELLUI_SAAS_URL`).
 - **Core:** Settings adds MCP / AI agents when `aiService.url` is configured and identity reports MCP for the company: company MCP URL, connected OAuth and personal agents, activity logs, and one-time personal token creation.
 - **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.
 - **Core:** Per-app `email`, `storage` and `hosting` URLs, forwarded to child apps when allowed by `childFrames.serviceOrigins`.

@@ -10,6 +10,13 @@ Each command is a separate file that exports a command function:
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.json` boilerplate
 - `config.js` - `config migrate` / `config split` / `config unsplit`
+- `auth-status.js` - `auth status` (session summary, no token output)
+- `companies.js` - `companies list|get|use` (identity `GET /api/v1/companies/`; `use` stores a **regional** decimal tenant id in `cli-session.json`)
+- `projects.js` - `projects list|get|use|regions|endpoints` (SaaS dashboard on `saas.url`; global company **UUIDs** in paths; `create` is not implemented). See `../http/dashboard-http.js` and `../http/saas-paths.js`
+- `storage-buckets.js` - `storage buckets list|get` (storage-service; Bearer JWT only, **no** `company_id` query)
+- `hosting-apps.js` / `hosting-deployments.js` - `hosting apps|deployments` (hosting-service; same JWT pattern)
+
+Regional services use `../http/service-http.js` (`regionalServiceFetch`). Optional `company_id` query is omitted for storage and hosting (`omitCompanyQuery: true`); the JWT carries the tenant. `resolveRegionalCompanyScope` in `../cli-context/company-scope.js` validates the regional id for commands that need an explicit tenant choice (`storage buckets` uses it so a missing `backend.companyId` fails fast with a clear error).
 
 ## Adding a New Command
 
@@ -43,3 +50,8 @@ export { newCommandCommand } from './new-command.js';
 - **init** - Creates a `shellui.config.json` boilerplate
 - **config migrate** - Evaluates TypeScript config and writes JSON
 - **config split** / **config unsplit** - Split or merge JSON configuration files
+- **auth status** - Login and credential summary (no tokens)
+- **companies** - List or fetch regional organizations; `use` stores a default **decimal** tenant id for identity-backed flows
+- **projects** - SaaS dashboard companies and `api/v1` regions or endpoints (human `shellui login` session; no `company_id` query). **create** exits with `not_implemented` (use the dashboard or global MCP OAuth where policy allows)
+- **storage buckets** - List or get buckets (JWT tenant only)
+- **hosting apps** / **hosting deployments** - Inspect sites and deployment rows (JWT tenant only; `deployments status` resolves UUID from the list; there is no per-deployment GET)

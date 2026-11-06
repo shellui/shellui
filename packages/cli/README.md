@@ -36,10 +36,29 @@ shellui login
 shellui logout
 shellui whoami
 shellui deploy
+shellui auth status
+shellui companies list
+shellui projects list --json
+shellui projects regions
+shellui projects endpoints
+shellui storage buckets list
+shellui hosting apps list
+shellui hosting deployments list
 shellui start --config ./config
 ```
 
 `dev` is an alias for `start`. `--shell-only` ignores `config.dev.run`. Do not pass `--no-run`.
+
+### AI-native commands (auth session, not deploy tokens)
+
+These require `shellui login` (human OAuth loopback to identity). They send `Authorization: Bearer <access token>`. They do **not** use `SHELLUI_DEPLOY_TOKEN`; that env var applies only to `shellui deploy`.
+
+- **`shellui companies`** - Identity `GET /api/v1/companies/`. Ids are **regional** decimal tenant ids. `companies use <id>` stores that default in `cli-session.json` (v2 field `regionalCompanyId`).
+- **`shellui projects`** - SaaS on `saas.url` or `SHELLUI_SAAS_URL` (dev fallback in the CLI: `http://localhost:8005`; self-host smoke stacks often use the same host). Companies here are **dashboard UUIDs**, not regional decimals: `GET {saas}/saas/api/v1/companies/`, `GET {saas}/saas/api/v1/companies/<uuid>/`, `GET {saas}/api/v1/regions/`, `GET {saas}/api/v1/companies/<uuid>/endpoints/`. No `company_id` query. `projects use <uuid>` saves `dashboardCompanyUuid` for `endpoints` when you omit the argument. **`projects create` is not implemented** (exit with guidance to use the dashboard or global MCP OAuth where policy allows).
+- **`shellui storage buckets list|get`** - Storage `GET /storage/v1/bucket` and `GET /storage/v1/bucket/<name>`. Tenant comes from the JWT only (no `company_id` query). Optional `--company` selects the regional scope for validation (flag, `companies use`, or `backend.companyId`).
+- **`shellui hosting apps` / `hosting deployments`** - Hosting read APIs with the same JWT. `deployments status` loads the deployments list and finds the UUID (there is no separate per-deployment GET).
+
+Global MCP agents use OAuth and in-product tool approvals for writes; the CLI session is a separate channel. See the published CLI reference for tables and troubleshooting.
 
 **init frameworks:** `empty`, `react`, `vue`, `angular`, `next`, `nuxt`, `svelte`, `alpine`. Each JS starter wires theme and i18n with `@shellui/sdk/tiny`. See [Framework starters](https://docs.shellui.com/framework-starters).
 

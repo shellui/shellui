@@ -77,6 +77,10 @@
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting-service connection. Propagated to iframes via SDK settings. Enables `shellui deploy` when `url` is set."
         },
+        "saas": {
+          "$ref": "#/definitions/SaasConfig",
+          "description": "Optional SaaS dashboard API base URL for CLI commands such as `shellui projects`. The shell runtime ignores this key today."
+        },
         "email": {
           "$ref": "#/definitions/EmailConfig",
           "description": "Email-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no email service (`null`). `showInAdmin: false` hides Admin → Email."
@@ -280,6 +284,10 @@
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting service for this app. Same fallback as `email`."
         },
+        "saas": {
+          "$ref": "#/definitions/SaasConfig",
+          "description": "SaaS dashboard API for this app. Same fallback as `email`."
+        },
         "aiService": {
           "$ref": "#/definitions/AiServiceConfig",
           "description": "AI service for this app. Same fallback as `email`."
@@ -454,6 +462,18 @@
       "required": ["url"],
       "additionalProperties": false,
       "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
+    },
+    "SaasConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of the SaaS dashboard API (for example `http://localhost:8005`). Used by CLI commands such as `shellui projects`. Override with `SHELLUI_SAAS_URL` when unset."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional SaaS API URL for CLI regional calls. The in-shell experience does not read this block yet."
     },
     "NavigationGroup": {
       "type": "object",
