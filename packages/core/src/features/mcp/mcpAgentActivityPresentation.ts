@@ -3,7 +3,7 @@ import type {
   McpActivityAccessKind,
   McpActivityOutcomeKind,
 } from './personalAgentsApi';
-import { humanizeMcpActivityResult, humanizeMcpToolName } from './mcpToolActivityRegistry';
+import { humanizeMcpToolName } from './mcpToolActivityRegistry';
 
 export type { McpActivityAccessKind, McpActivityOutcomeKind } from './personalAgentsApi';
 
@@ -19,72 +19,112 @@ const SENSITIVE_SUBSTRINGS = [
   'credential',
 ];
 
-/** Redacts likely secrets and strips query strings from URLs; never returns raw tokens. */
-export function sanitizeMcpActivityErrorMessage(raw: string | null | undefined): string | null {
-  if (!raw?.trim()) return null;
-  let text = raw.trim();
-  if (text.length > 280) {
-    text = `${text.slice(0, 277)}…`;
-  }
-  try {
-    const u = new URL(text);
-    if (u.search) {
-      u.search = '';
-      text = u.toString();
-    }
-  } catch {
-    /* not a URL */
-  }
-  const lower = text.toLowerCase();
-  for (const needle of SENSITIVE_SUBSTRINGS) {
-    if (lower.includes(needle)) {
-      return '[Error details redacted]';
-    }
-  }
-  return text;
+const MAX_SAFE_FIELD_LEN = 120;
+
+/** http(s) URL substring detector for stripping queries from anywhere in a message */
+const URL_IN_TEXT = /https?:\/\/[^\s<>"'{}|\\^`[\]]+/gi;
+
+function bodyContainsSensitiveSecret(body: string): boolean {
+  const lower = body.toLowerCase();
+  return SENSITIVE_SUBSTRINGS.some((needle) => lower.includes(needle));
 }
 
-function normalizeToken(value: string): string {
+/**
+ * Strips query strings from http(s) URLs anywhere in the string.
+ * If any secret marker appears in the full string, redacts entirely.
+ */
+function sanitizeUrlsAndSecretsInText(raw: string): string {
+  if (!raw.trim()) return raw;
+  if (bodyContainsSensitiveSecret(raw)) {
+    return '[Details redacted]';
+  }
+  return raw.replace(URL_IN_TEXT, (url) => {
+    try {
+      const u = new URL(url);
+      u.search = '';
+      return u.toString();
+    } catch {
+      return url;
+    }
+  });
+}
+
+function truncateSafeField(text: string): string {
+  if (text.length <= MAX_SAFE_FIELD_LEN) return text;
+  return `${text.slice(0, MAX_SAFE_FIELD_LEN - 1)}…`;
+}
+
+/** Same pipeline for error and short result display: URLs stripped globally, secrets redact whole string. */
+export function sanitizeMcpActivityErrorMessage(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const sanitized = sanitizeUrlsAndSecretsInText(raw.trim());
+  if (sanitized === '[Details redacted]') return sanitized;
+  return truncateSafeField(sanitized);
+}
+
+export function sanitizeActivityResultField(raw: string | null | undefined): string {
+  if (!raw?.trim()) return '';
+  const sanitized = sanitizeUrlsAndSecretsInText(raw.trim());
+  if (sanitized === '[Details redacted]') return sanitized;
+  return truncateSafeField(sanitized);
+}
+
+function normalizeResultKey(value: string): string {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[\s_-]+/g, '_');
+    .replace(/[\s-]+/g, '_');
 }
 
-export function parseActivityOutcome(
+/** Exact `result` string -> outcome mapping only; unlisted falls back to `outcome` field parsing. */
+const KNOWN_RESULT_OUTCOMES: Record<string, McpActivityOutcomeKind> = {
+  ok: 'allowed',
+  success: 'allowed',
+  allowed: 'allowed',
+  allow: 'allowed',
+  allow_success: 'allowed',
+  allowed_success: 'allowed',
+  denied: 'denied',
+  forbidden: 'denied',
+  failed: 'failed',
+  error: 'failed',
+  pending: 'pending_approval',
+  pending_approval: 'pending_approval',
+  awaiting_approval: 'pending_approval',
+  session: 'session_used',
+  session_used: 'session_used',
+  unknown: 'unknown',
+};
+
+const normOutcome = (s: string): string => normalizeResultKey(s);
+
+export function parseActivityOutcomeFromFields(
   result: string,
-  explicit?: string | null,
+  explicitOutcome: string | null | undefined,
 ): McpActivityOutcomeKind {
-  const fromExplicit = explicit?.trim().toLowerCase();
+  const fromExplicit = explicitOutcome?.trim();
   if (fromExplicit) {
-    if (fromExplicit.includes('allow')) return 'allowed';
-    if (fromExplicit.includes('denied') || fromExplicit.includes('deny')) return 'denied';
-    if (fromExplicit.includes('fail') || fromExplicit.includes('error')) return 'failed';
-    if (fromExplicit.includes('pending') || fromExplicit.includes('approval'))
+    const n = normOutcome(fromExplicit);
+    if (n === 'allowed' || n === 'allow' || n === 'allow_success' || n === 'allowed_success')
+      return 'allowed';
+    if (n === 'denied' || n === 'forbidden') return 'denied';
+    if (n === 'failed' || n === 'error') return 'failed';
+    if (n === 'pending' || n === 'pending_approval' || n === 'awaiting_approval')
       return 'pending_approval';
-    if (fromExplicit.includes('session')) return 'session_used';
+    if (n === 'session_used' || n === 'session') return 'session_used';
+    if (n === 'unknown') return 'unknown';
+    /* Non-normalized provider strings: do not guess */
+    return 'unknown';
   }
-  const n = normalizeToken(result);
-  if (!n) return 'unknown';
-  if (n.includes('pending') || n.includes('await') || n.includes('approval'))
-    return 'pending_approval';
-  if (n.includes('deny') || n.includes('reject') || n.includes('forbidden')) return 'denied';
-  if (n.includes('fail') || n.includes('error')) return 'failed';
-  if (n.includes('allow') || n.includes('ok') || n.includes('success')) return 'allowed';
-  if (n.includes('session')) return 'session_used';
-  return 'unknown';
+
+  const r = result.trim();
+  if (!r) return 'unknown';
+  const exact = KNOWN_RESULT_OUTCOMES[r] ?? KNOWN_RESULT_OUTCOMES[normalizeResultKey(r)];
+  return exact ?? 'unknown';
 }
 
-export function inferActivityAccessKind(
-  row: McpAgentActivityRow,
-  toolLower: string,
-): McpActivityAccessKind {
-  if (row.accessKind) return row.accessKind;
-  const haystack = `${toolLower} ${normalizeToken(row.result)}`;
-  if (/(delete|destroy|remove|revoke|drop|purge)/.test(haystack)) return 'destructive';
-  if (/(write|update|set|put|post|patch|create|deploy|modify)/.test(haystack)) return 'write';
-  if (/(read|get|list|fetch|describe|search)/.test(haystack)) return 'read';
-  return 'unknown';
+export function inferActivityAccessKind(row: McpAgentActivityRow): McpActivityAccessKind {
+  return row.accessKind ?? 'unknown';
 }
 
 export function formatActivityDurationMs(
@@ -129,7 +169,7 @@ export function resolveActivityPendingLink(
   if (row.approvalRequestId?.trim()) {
     return { type: 'id', approvalId: row.approvalRequestId.trim() };
   }
-  const outcome = parseActivityOutcome(row.result, row.outcome);
+  const outcome = parseActivityOutcomeFromFields(row.result, row.outcome);
   if (outcome !== 'pending_approval') return null;
   const tool = row.tool.trim();
   if (!tool) return null;
@@ -139,41 +179,36 @@ export function resolveActivityPendingLink(
 
 export type ActivitySummaryLabels = {
   toolUnknown: string;
+  operationSuffix: string;
 };
 
 export function buildActivityPrimarySummary(
   row: McpAgentActivityRow,
   labels: ActivitySummaryLabels,
 ): string {
+  const title = row.operationTitle?.trim();
+  if (title) {
+    return title;
+  }
+
   const rawTool = row.tool.trim();
   const service = row.service.trim() || 'service';
   const resource = row.resourceLabel?.trim();
   const company = row.companyLabel?.trim();
-  const humanTool = rawTool ? humanizeMcpToolName(rawTool) : null;
-  const toolDisplay = humanTool ?? labels.toolUnknown;
+  const registry = rawTool ? humanizeMcpToolName(rawTool) : null;
+  const op = rawTool ? `${labels.operationSuffix} ${rawTool}` : labels.operationSuffix;
+  const toolLine = registry ?? (rawTool ? op : labels.toolUnknown);
+
   const parts: string[] = [];
   if (resource) {
-    parts.push(`${service} ${resource}: ${toolDisplay}`);
+    parts.push(`${service} ${resource}: ${toolLine}`);
   } else {
-    parts.push(`${service}: ${toolDisplay}`);
+    parts.push(`${service}: ${toolLine}`);
   }
   if (company) parts.push(`(${company})`);
   return parts.join(' ');
 }
 
-export function formatActivityResultForDisplay(raw: string): {
-  human: string | null;
-  safeRaw: string;
-} {
-  const trimmed = raw.trim();
-  const human = trimmed ? humanizeMcpActivityResult(trimmed) : null;
-  let safeRaw = trimmed;
-  try {
-    const u = new URL(trimmed);
-    if (u.search) u.search = '';
-    safeRaw = u.toString();
-  } catch {
-    /* not a URL */
-  }
-  return { human, safeRaw };
+export function formatActivityResultForDisplay(raw: string): string {
+  return sanitizeActivityResultField(raw);
 }

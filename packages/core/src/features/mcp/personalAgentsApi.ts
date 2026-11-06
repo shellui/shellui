@@ -62,6 +62,8 @@ export type McpAgentActivityRow = {
   companyLabel: string | null;
   /** Safe description of the target resource (no secrets, query strings, or raw args). */
   resourceLabel: string | null;
+  /** Human title for the operation when identity sends it (preferred over local tool registry). */
+  operationTitle: string | null;
   /** Actor that performed the action when provided by the API. */
   actorLabel: string | null;
   /** Connected agent or client name when provided. */
@@ -178,28 +180,44 @@ const asNumber = (value: unknown): number | null => {
   return null;
 };
 
+const normEnum = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+
+/** Identity `access_kind`: exact tokens only. */
 const parseAccessKind = (value: unknown): McpActivityAccessKind | null => {
-  const s = asString(value)?.toLowerCase();
+  const s = asString(value);
   if (!s) return null;
-  if (s === 'read' || s === 'read_only' || s === 'readonly') return 'read';
-  if (s === 'write' || s === 'mutate' || s === 'mutation') return 'write';
-  if (s === 'destructive' || s === 'destructive_write' || s === 'delete') return 'destructive';
-  if (s === 'unknown') return 'unknown';
+  const n = normEnum(s);
+  if (n === 'read' || n === 'read_only' || n === 'readonly') return 'read';
+  if (n === 'write') return 'write';
+  if (n === 'destructive') return 'destructive';
+  if (n === 'unknown') return 'unknown';
   return null;
 };
 
+/** Identity `outcome`: exact tokens only (no substring matching). */
 const parseOutcomeKind = (value: unknown): McpActivityOutcomeKind | null => {
-  const s = asString(value)
-    ?.toLowerCase()
-    .replace(/[\s-]+/g, '_');
+  const s = asString(value);
   if (!s) return null;
-  if (s === 'allowed' || s === 'ok' || s === 'success') return 'allowed';
-  if (s === 'denied' || s === 'forbidden') return 'denied';
-  if (s === 'failed' || s === 'error') return 'failed';
-  if (s === 'pending' || s === 'pending_approval' || s === 'awaiting_approval')
+  const n = normEnum(s);
+  if (
+    n === 'allowed' ||
+    n === 'ok' ||
+    n === 'success' ||
+    n === 'allow' ||
+    n === 'allow_success' ||
+    n === 'allowed_success'
+  )
+    return 'allowed';
+  if (n === 'denied' || n === 'forbidden') return 'denied';
+  if (n === 'failed' || n === 'error') return 'failed';
+  if (n === 'pending' || n === 'pending_approval' || n === 'awaiting_approval')
     return 'pending_approval';
-  if (s === 'session_used' || s === 'session') return 'session_used';
-  if (s === 'unknown') return 'unknown';
+  if (n === 'session_used' || n === 'session') return 'session_used';
+  if (n === 'unknown') return 'unknown';
   return null;
 };
 
@@ -230,6 +248,7 @@ export const parseMcpAgentActivity = (
       companyId: asString(item.company_id),
       companyLabel: asString(item.company_name),
       resourceLabel: asString(item.resource_label),
+      operationTitle: asString(item.operation_title),
       actorLabel: asString(item.actor),
       agentName: asString(item.agent_name),
       accessKind: parseAccessKind(item.access_kind),

@@ -360,6 +360,7 @@
         "unknown": "Accès non classé"
       },
       "toolUnknown": "Outil inconnu",
+      "operationSuffix": "Opération",
       "detail": {
         "when": "Quand",
         "duration": "Durée",
