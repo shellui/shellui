@@ -1,270 +1,602 @@
 ---
-title: AI native platform (control plane, data plane, MCP)
+title: AI native platform (global SaaS, regional MCP, human CLI)
 sidebar_label: AI native platform
-description: Ordered workflow, global SaaS versus regional services, identity MCP HTTP routes, sessions, approvals, CLI scope, and local compose URLs.
+description: End-to-end Shellui MCP, OAuth, approvals, regional delegation, SaaS REST paths, local compose, and troubleshooting. Sources are identity, ai, storage, hosting, email handbooks and this repository.
 ---
 
-This page is for **operators and integrators**. It states **ordering rules** you cannot skip, lists **HTTP paths this repo implements** (`@shellui/cli`, `@shellui/core`), and points to **live OpenAPI** on each service. It flags **in-flight** identity and ai-service work so you do not treat design targets as shipped behavior until those pull requests merge.
+This guide ties together **global** control plane (SaaS), **regional** data plane (identity, storage, hosting, email, ai gateway), and the **human** CLI. It cites **published handbook files** on `develop` where we could read them with `gh api` and **this repo** for the shell and CLI.
 
-## Preconditions (mandatory order)
+Rules for this page: **Shellui** naming, hyphen `-` for pauses, straight `"`, ellipsis `…`, no banned filler from the [writing guidelines](https://shellui.com/guidelines/writing.md).
 
-1. **Human account** exists and is signed in through normal identity OAuth (not an MCP agent).
-2. **Terms of Service** (and any other global legal gates your deployment enforces) are **accepted before** you create a company, attach regions, or register any MCP agent (global or regional). There is no optional branch here.
-3. **Staff accounts** (`is_staff` / operator identities) are **never** authorized as MCP agents. Identity **refuses** personal and OAuth MCP credentials for staff principals. Do not describe staff as "extra gates"; they are **out of scope** for agent tokens.
+## One-line mental model
 
-If any step above is incomplete, stop. No regional provisioning flow and no MCP `create` fixes that.
+You have **one human identity** in regional identity-service (OAuth). That identity can hold **memberships** in regional companies (numeric ids). Separately, the **global** SaaS plane holds dashboard records (UUIDs in API responses), regions, endpoints, and **global MCP** for account-level tools. **No** single credential can call every surface: each token has a narrow `aud`, `company_id`, and scope. Regional shells exchange to app sessions with RFC 8693. Global MCP agent JWTs exchange down to regional agent JWTs with RFC 8693 at `POST /oauth/mcp/token` on the regional identity (see handbook). **AI-service** is the per-company MCP gateway: it aggregates downstream tools as `service_toolname` (one underscore) and never stores identity signing keys ([ai-service `docs/mcp.md`](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md), [identity `docs/mcp-and-agents.md`](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
 
-## Contract status (check before you rely on wording)
+## Preconditions you cannot skip
 
-| Area                                            | Source                                                                                   | State (this writing)                                                                                                            |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| SaaS global MCP URLs (`/mcp`, `/oauth/mcp`)     | saas-service (not cloned in this workspace); API inaccessible from the GitHub token here | **Pending** confirmation in OpenAPI after [saas-service#32](https://github.com/shellui/saas-service/pull/32) and related merges |
-| Grant versioning / immediate revoke on mismatch | [identity-service#135](https://github.com/shellui/identity-service/pull/135)             | **Open** (not merged at last check)                                                                                             |
-| MCP approvals / setup session TTL alignment     | [ai-service#24](https://github.com/shellui/ai-service/pull/24)                           | **Open** (not merged at last check)                                                                                             |
-| Storage connector + MCP parity                  | [storage-service#58](https://github.com/shellui/storage-service/pull/58)                 | **Merged** (verify on your tag)                                                                                                 |
-| Hosting domains / env / logs (MCP-related ops)  | [hosting-service#77](https://github.com/shellui/hosting-service/pull/77)                 | **Merged** (verify on your tag)                                                                                                 |
+1. **Human account** completed sign-in on identity (not a deploy token, not an agent JWT).
+2. **Accepted Terms of Service** (and any other **global** legal gates your operator configures) **before** you create dashboard companies, bind regions, or authorize **any** MCP agent (global or regional). Identity’s MCP sign-in and consent flows assume a normal member; there is no parallel “agent-only” path that skips legal state.
+3. **Staff** (`user_metadata.is_staff` true) **cannot** authorize MCP OAuth ([identity MCP handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). Staff **cannot** use the email link on `/oauth/mcp/signin`. Treat **denied** as **expected**, not misconfiguration.
 
-Re-read OpenAPI after upgrading images. Handbooks under [Docs site](/docs-site) are fetched from default branches and may trail a hotfix branch.
+## Where to read the contracts
 
-## Identifiers you must not confuse
+| Topic                                                              | Canonical file                                                                                                               |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| OAuth, exchange, approvals, revocation, internal assertions        | [identity-service `docs/mcp-and-agents.md`](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md) |
+| Gateway aggregation, elicitation, session allow, downstream tokens | [ai-service `docs/mcp.md`](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md)                                   |
+| Storage tools, `x-mcp`, connectors                                 | [storage-service `docs/mcp.md`](https://github.com/shellui/storage-service/blob/develop/docs/mcp.md)                         |
+| Hosting tools, domains, env, logs                                  | [hosting-service `docs/mcp.md`](https://github.com/shellui/hosting-service/blob/develop/docs/mcp.md)                         |
+| Email tools, templates, rules, actions                             | [email-service `docs/mcp.md`](https://github.com/shellui/email-service/blob/develop/docs/mcp.md)                             |
+| Shell Settings HTTP (today)                                        | `packages/core/src/features/mcp/personalAgentsApi.ts`, `mcpToolApprovalsApi.ts`                                              |
 
-- **Regional company id:** decimal string, same as JWT `company_id` and `shellui companies list`. Local seed in compose is company **`1`** ([Local dev stack](/dev-stack#sign-in)). If you create another company, run `shellui companies list` and use that id. This doc uses **`2` only as a numeric demo** where a second company exists.
-- **Dashboard company UUID:** RFC 4122 UUID returned by SaaS list paths. `shellui projects list` reads them. Never pass a regional decimal id to a path that expects a UUID.
+Interactive OpenAPI on each running service: **`GET /api/schema/`**, **`GET /api/docs/`** (see each service’s `docs/api.md` or index).
 
-## Architecture (compose hostnames)
+SaaS-service **repository** is not readable with the GitHub token available to this agent (`404` on `repos/shellui/saas-service/contents/...`). Treat **SaaS OpenAPI on your running container** (`http://localhost:8005/api/schema/`) as the source for global MCP and REST. The **dashboard** in compose sets `DASHBOARD_API_URL` to `PUBLIC_SAAS_URL` ([`dev/docker-compose.yml`](https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml)).
 
-Browser and CLI use `PUBLIC_*_URL` from [dev/.env.local.example](https://github.com/shellui/shellui/blob/develop/dev/.env.local.example). Published ports in [dev/docker-compose.yml](https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml):
+## Local compose URLs (verified from this repo)
 
-| Role                           | Default URL             |
-| ------------------------------ | ----------------------- |
-| Shell                          | `http://localhost:4000` |
-| identity                       | `http://localhost:8001` |
-| storage                        | `http://localhost:8002` |
-| hosting                        | `http://localhost:8003` |
-| email                          | `http://localhost:8004` |
-| saas (API + dashboard backend) | `http://localhost:8005` |
-| ai (regional MCP gateway)      | `http://localhost:8006` |
-| Global dashboard Vite          | `http://localhost:5174` |
+These come from [`dev/docker-compose.yml`](https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml) and [`dev/.env.local.example`](https://github.com/shellui/shellui/blob/develop/dev/.env.local.example):
 
-Docker DNS names (`http://identity:8000`, `http://saas:8000`, …) are for east-west calls only.
+| Role                    | Published URL           | In-network base        |
+| ----------------------- | ----------------------- | ---------------------- |
+| Shell                   | `http://localhost:4000` | `shell` container      |
+| identity                | `http://localhost:8001` | `http://identity:8000` |
+| storage                 | `http://localhost:8002` | `http://storage:8000`  |
+| hosting                 | `http://localhost:8003` | `http://hosting:8000`  |
+| email                   | `http://localhost:8004` | `http://email:8000`    |
+| SaaS                    | `http://localhost:8005` | `http://saas:8000`     |
+| ai gateway              | `http://localhost:8006` | `http://ai:8000`       |
+| Global dashboard (Vite) | `http://localhost:5174` | n/a                    |
 
-```mermaid
-flowchart TB
-  subgraph browser["Browser"]
-    Shell["Shell :4000"]
-    Dash["Dashboard :5174"]
-  end
-  subgraph global["Global plane"]
-    SaaS["saas :8005"]
-  end
-  subgraph regional["Regional plane"]
-    Id["identity :8001"]
-    AI["ai :8006"]
-    St["storage :8002"]
-    Ho["hosting :8003"]
-    Em["email :8004"]
-  end
-  Shell -->|Bearer JWT OAuth| Id
-  Dash -->|Bearer same login session| SaaS
-  Shell -->|aiService.url| AI
-  Id -->|MCP token + approvals| AI
-  Id -->|JWT verify| St
-  Id -->|JWT verify| Ho
-  Id -->|JWT verify| Em
+**CORS for SaaS browser calls:** `SAAS_CORS_ALLOWED_ORIGINS` must list the shell and dashboard origins ([Local dev stack](/dev-stack#saas-api-cors)).
+
+**No fake success:** if a sibling service fails to build or a route returns `4xx`/`5xx`, the CLI and MCP stack surface that failure. This doc does not promise `200` with empty demo data.
+
+## Identifiers (do not mix)
+
+| Kind                 | Shape          | Example                                | Used by                                                          |
+| -------------------- | -------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| Regional company id  | Decimal string | `1` (seed), `2` when you add a company | JWT `company_id`, `GET /api/v1/companies/`, `…/c/<id>/mcp` on ai |
+| Dashboard company id | UUID           | from `shellui projects list`           | SaaS dashboard JSON, `…/saas/api/v1/companies/<uuid>/` in CLI    |
+| Global agent id      | UUID           | from SaaS or identity admin            | Global agent token `agent_id`, provisioning revoke payload       |
+| Human `sub`          | string         | identity user id                       | Human JWT only                                                   |
+
+CLI split is implemented in [`packages/cli/src/commands/projects.js`](https://github.com/shellui/shellui/blob/develop/packages/cli/src/commands/projects.js): **`projects list|get`** use the **dashboard** prefix `saas/api/v1`. **`projects regions|endpoints`** use **`api/v1`** on the same SaaS origin ([`saas-paths.js`](https://github.com/shellui/shellui/blob/develop/packages/cli/src/http/saas-paths.js)).
+
+**Direct REST** (MCP `path` arguments, curl, integration tests) use the **canonical** SaaS API routes on the same host:
+
+- `GET|POST /api/v1/companies`, `GET|PATCH /api/v1/companies/{uuid}`, …
+- `GET /api/v1/regions/`
+- `GET /api/v1/companies/{uuid}/endpoints/`
+
+Confirm shapes on **`/api/schema/`** for your SaaS revision. The **`saas/api/v1`** prefix is the **dashboard mount** the CLI uses so the SPA and CLI share one list view without reinventing paths.
+
+## SaaS global MCP (OAuth, not the Streamable URL)
+
+**Important:** `https://<saas>/.well-known/...` and `https://<saas>/oauth/mcp/*` describe **OAuth**. They are **not** the Streamable HTTP MCP JSON-RPC URL.
+
+Per operator target on **develop**, the SaaS host exposes at minimum:
+
+| Surface                                       | Purpose                                                                                                                                                       |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /.well-known/oauth-protected-resource`   | `resource` metadata for global MCP (RFC 9728 style)                                                                                                           |
+| `GET /.well-known/oauth-authorization-server` | Authorization server metadata for the SaaS MCP realm                                                                                                          |
+| `POST /oauth/mcp/register`                    | Dynamic client registration                                                                                                                                   |
+| `POST /oauth/mcp/authorize`                   | Browser step with **PKCE S256**; human must present a valid **identity** bearer context where the product ties global authorization to the same human account |
+| `POST /oauth/mcp/token`                       | `authorization_code` and refresh for **global** agent tokens                                                                                                  |
+
+**Regional** MCP clients instead start from ai-service per-company metadata (`GET /.well-known/oauth-protected-resource/c/<company_id>/mcp`) and use identity’s `/.well-known/oauth-authorization-server` ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md), [ai handbook](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md)).
+
+**Bearer interchange is false:** a regional agent JWT with `aud={REGIONAL_STORAGE}/mcp` is **not** valid on SaaS `POST /mcp`. A human identity JWT is **not** an MCP agent JWT. Exchange explicitly per RFC 8693 where the handbook allows ([identity global agent exchange section](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+**Global MCP workloads:** account-level companies, regions, endpoints, projects, **not** bucket bytes or tarballs. Those stay on storage and hosting `POST /mcp` with storage or hosting `aud`.
+
+**Setup delegation:** product requirement: SaaS-issued setup tokens should carry a **company-specific** `setup_context_company_id` (or equivalent) so a global step cannot attach to the wrong tenant. **Field name and presence** are **not** finalized in a public file this agent can read (SaaS repo private to this token); track the operator patch (for example cloud agent `bc-6aca6696`) and **read OpenAPI** on your SaaS container before relying on it.
+
+## Regional MCP URL (ai-service gateway)
+
+Canonical per company:
+
+```http
+POST http://localhost:8006/c/2/mcp
 ```
 
-**Global control plane (SaaS):** account-level records (dashboard companies as UUIDs), projects, regions, endpoints, billing-shaped data. **AI-service does not read application file bytes or bucket objects through MCP**; it invokes downstream tools with tokens bound to allowed services. App data stays in regional storage and hosting.
+Replace `2` with your **regional** id (`shellui companies list`). Plain `POST http://localhost:8006/mcp` answers **`404`** `company_required` ([ai handbook](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md)).
 
-**Regional data plane:** tenant objects (files, apps, mail pipelines) scoped by **regional** `company_id`.
+Protected resource metadata:
 
-## SaaS HTTP surface (two prefixes on one host)
+```http
+GET http://localhost:8006/.well-known/oauth-protected-resource/c/2/mcp
+```
 
-The CLI treats `saas.url` or `SHELLUI_SAAS_URL` as the **origin** (default `http://localhost:8005` when unset). Dashboard-scoped JSON uses the **`saas/api/v1`** prefix; legacy or shared segments use **`api/v1`** on the **same host** (see `saasDashboardPath` / `saasApiV1Path` in `packages/cli/src/http/saas-paths.js`).
+`resource` must match the `aud` claim on the agent token. Wrong company in the URL → **401** even if the JWT is otherwise valid.
 
-| Purpose                  | Example (local)                                                |
-| ------------------------ | -------------------------------------------------------------- |
-| List dashboard companies | `GET http://localhost:8005/saas/api/v1/companies/`             |
-| One dashboard company    | `GET http://localhost:8005/saas/api/v1/companies/{uuid}/`      |
-| Regions catalog          | `GET http://localhost:8005/api/v1/regions/`                    |
-| Company endpoints        | `GET http://localhost:8005/api/v1/companies/{uuid}/endpoints/` |
+## OAuth registration and consent (regional, identity AS)
 
-`shellui projects` issues those calls with the **same Bearer session** as `shellui login` (`dashboardServiceFetch`). It does **not** send `company_id` query parameters on these routes.
+Abbreviated from [identity `docs/mcp-and-agents.md`](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md):
 
-**CORS:** `SAAS_CORS_ALLOWED_ORIGINS` in `dev/.env.local` must include the shell and dashboard origins (see [Local dev stack](/dev-stack#saas-api-cors)).
+1. Client reads ai-service protected resource metadata, then identity `/.well-known/oauth-authorization-server`.
+2. `POST /oauth/mcp/register` (unless disabled: `MCP_DYNAMIC_CLIENT_REGISTRATION=false` or `Company.mcp_allow_dynamic_registration=false`).
+3. Browser opens `GET /oauth/mcp/authorize` with **PKCE S256** and RFC 8707 `resource={AI_PUBLIC_URL}/c/<id>/mcp`.
+4. Signed-out users hit `/oauth/mcp/signin` (email link; **staff blocked**).
+5. After sign-in, identity checks **membership**, then shows consent (company name). **Approve** is manual.
+6. `POST /oauth/mcp/token` exchanges the code; access token **`aud`** is the per-company MCP URL; **`company_id`** is in claims.
 
-## Global MCP (SaaS) versus regional MCP (ai-service)
+Redirect rules, anti-phishing copy, `X-Frame-Options`, CSRF, and rate limits are **normative** in that file.
 
-- **Regional company MCP (implemented in this repo’s clients):** Streamable HTTP endpoint  
-  `{PUBLIC_AI_URL}/c/{regional_company_id}/mcp`  
-  Example: `http://localhost:8006/c/2/mcp`. Built by `buildCompanyMcpUrl` in `@shellui/core`.
-- **Global MCP (account- or dashboard-scoped tools on SaaS):** expected at  
-  `{PUBLIC_SAAS_URL}/mcp`  
-  with OAuth metadata at  
-  `{PUBLIC_SAAS_URL}/oauth/mcp`  
-  when saas-service exposes them ([saas-service#32](https://github.com/shellui/saas-service/pull/32)). **Do not assume** those routes return 200 until you verify your deployment’s `/api/schema/` or published handbook.
+## Global agent token exchange to regional (RFC 8693)
 
-**Connection preference:** use **OAuth** with the MCP client when the server advertises it. Personal agent **static tokens** from identity are a fallback for clients that cannot do OAuth; they are still **scoped and time-bounded**, not a master credential.
+Identity on a **region** accepts:
 
-## Identity MCP HTTP routes (implemented by `@shellui/core`)
+```http
+POST /oauth/mcp/token
+Content-Type: application/json
 
-All of these use `Authorization: Bearer <shell access token>` and, where noted, `company_id` as a **query** parameter for the **regional** tenant.
+{
+  "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+  "subject_token": "<global agent JWT>",
+  "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+  "company_id": "2",
+  "resource": "http://localhost:8002/mcp",
+  "access_mode": "read_only",
+  "read_level": "safe",
+  "allow_destructive": false,
+  "services": ["identity", "storage"]
+}
+```
 
-| Operation                 | Method and path                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------- |
-| MCP feature flag and URLs | `GET /api/v1/mcp/personal/status?company_id=`                                                   |
-| List personal agents      | `GET /api/v1/mcp/personal/agents?company_id=`                                                   |
-| Create personal agent     | `POST /api/v1/mcp/personal/agents/create?company_id=`                                           |
-| Revoke                    | `POST /api/v1/mcp/personal/agents/{id}/revoke?company_id=`                                      |
-| Activity                  | `GET /api/v1/mcp/personal/agents/{id}/activity?company_id=`                                     |
-| Pending approvals         | `GET /api/v1/mcp/approvals?company_id=`                                                         |
-| Decide approval           | `POST /api/v1/mcp/approvals/{id}/decide?company_id=` with JSON `{"decision":"approve"\|"deny"}` |
+Optional `access_mode`, `read_level`, `allow_destructive`, and `services` may **narrow** the global agent, **never broaden** ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). Wrong role or missing `GLOBAL_*` settings → **404** on that endpoint.
 
-Response shapes are parsed in `packages/core/src/features/mcp/personalAgentsApi.ts` and `mcpToolApprovalsApi.ts`.
+When SaaS revokes a global agent, it must call `POST /api/v1/provisioning/global-agents/revoke` in each region with the provisioning assertion so regional rows unlink.
 
-### Optional `saas` service on personal agents
+## Access levels and read levels
 
-When identity returns `global_identity: true`, `@shellui/core` keeps **`saas`** in the personal agent service list; otherwise it strips `saas` before `POST …/agents/create`. There is still **no** cross-tenant parameter you can set by hand: the server binds companies and grants.
+From [identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md):
 
-## Sessions and approvals (design targets versus UI today)
+| `mcp_access` | Behavior                                                                              |
+| ------------ | ------------------------------------------------------------------------------------- |
+| `read_only`  | read-only tools                                                                       |
+| `ask`        | writes enqueue approval                                                               |
+| `full`       | writes run unless tool is destructive and `allow_destructive_without_asking` is false |
 
-**Design targets** being finalized in identity and ai-service:
+| `mcp_read`  | Behavior                               |
+| ----------- | -------------------------------------- |
+| `safe`      | mask sensitive strings                 |
+| `sensitive` | richer fields; still no stored secrets |
 
-- **New-company setup session:** wall-clock **720 seconds (12 minutes)** for the **allowed session only**; renewals may issue a new session but **must not** extend the original absolute deadline (no "rolling forever" on the same grant).
-- **Non-destructive tool call on an existing connection:** about **60 seconds** for the **current pending approval** only.
-- **Destructive tools:** require a **fresh** human approval for each attempt (not optional, not reusable from an earlier Allow).
+OpenAPI markers on each service:
 
-Until [identity-service#135](https://github.com/shellui/identity-service/pull/135) and [ai-service#24](https://github.com/shellui/ai-service/pull/24) land, treat TTL fields in OpenAPI as authoritative; **do not** cite this page as proof the timers are enforced in production.
+```yaml
+x-mcp:
+  read_only: true|false
+  destructive: true|false
+  sensitive: true|false
+```
 
-### Approval loop (fail closed)
+Response fields may use `x-mcp-secret` (never returned) and `x-mcp-sensitive` (mask in safe mode) ([storage `docs/mcp.md`](https://github.com/shellui/storage-service/blob/develop/docs/mcp.md), [hosting `docs/mcp.md`](https://github.com/shellui/hosting-service/blob/develop/docs/mcp.md), [email `docs/mcp.md`](https://github.com/shellui/email-service/blob/develop/docs/mcp.md)).
 
-1. Tool call runs → identity creates a **pending approval** row (if policy requires it).
-2. Human polls or uses **Settings → MCP / AI agents → Pending approvals** (same data as `GET /api/v1/mcp/approvals`).
-3. Human calls `POST …/decide` with `approve` or `deny`.
-4. Server **consumes** the approval id; a second use is a hard error.
-5. Only after **approve** does the tool execute. **Deny**, **expiry**, or **missing approval** keeps the operation **denied**; there is **no** local-only fallback.
+## Approvals: internal pipeline (services → identity)
 
-**Global-plane writes** (SaaS MCP tools that change org-wide state) are expected to require **company owner** membership and the same atomic consume rule. Confirm `403` semantics on your branch.
+Write tools that need a human create rows through signed **service assertions** ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)):
 
-## Revocation (do not guess "wait out the TTL")
+| Step               | Route                                             | Notes                                                                |
+| ------------------ | ------------------------------------------------- | -------------------------------------------------------------------- |
+| Create             | `POST /api/v1/mcp/internal/mcp-approval-requests` | Assertion `mcp.approval.create`                                      |
+| State              | `POST /api/v1/mcp/internal/mcp-approval-state`    | `pending`, `approved`, `denied`, `expired`                           |
+| Consume            | `POST /api/v1/mcp/internal/mcp-approval-consume`  | **Single use**, `select_for_update`, body `{"approval_id":"<uuid>"}` |
+| Elicitation decide | `POST /api/v1/mcp/internal/mcp-approval-decide`   | `allow`, `deny`, `allow_session` (non-destructive session rules)     |
 
-Designed behavior (per in-flight identity work): personal tokens and company **grants** carry a **version**. Authorization checks compare the live version; **revocation bumps the version** so the next check **fails immediately**, independent of JWT `exp`. Agent revocation and company grant revocation are distinct concepts but both must invalidate outstanding tool calls.
+Pending rows **expire** (handbook: **10 minutes** for the standard internal pipeline). After approval, the **same** tool call must be retried; hosting verifies consumption ([hosting `docs/mcp.md`](https://github.com/shellui/hosting-service/blob/develop/docs/mcp.md)).
 
-**Do not** tell operators that a revoked token "might still work until expiry" while [#135](https://github.com/shellui/identity-service/pull/135) is open. After merge, verify with the published OpenAPI and a live test.
+### Gateway elicitation (ai-service)
 
-## Activity rows (API fields the shell understands)
+On `tools/call`, writes may return `_meta.shellui_approval` with **Allow**, **Deny**, **Allow for this session** (non-destructive only). Retry carries `params._meta.shellui_approval.decision` ∈ `allow` | `deny` | `session_allow` ([ai handbook](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md)). **`session_allow`** maps to the internal `allow_session` path. **Destructive** tools return **409** if you send `session_allow`.
 
-`@shellui/core` maps **snake_case** activity payloads into `McpAgentActivityRow` (`packages/core/src/features/mcp/personalAgentsApi.ts`):
+Session allow lasts **60 seconds** per **`Mcp-Session-Id`** connection (`MCP_APPROVAL_SESSION_TTL_SECONDS`, clamped **30–60** in identity). Identity exposes `mcp-approval-session-check` and `mcp-approval-session-revoke`.
 
-- `timestamp`, `tool`, `service`, `result` (required strings for a row to display)
-- `client_ip`
-- `company_id`, `company_name` (safe labels)
-- `resource_label` (sanitized description of the target; no secrets baked in by the API)
-- `actor`, `agent_name`
-- `access_kind` → `read` | `write` | `destructive` | `unknown` (aliases normalized in the parser)
-- `duration_ms`
-- `outcome` → `allowed` | `denied` | `failed` | `pending_approval` | `session_used` | `unknown`
-- `approval_request_id`
-- `error_message` (short service error text)
+**Setup-class approvals (first company, long window):** product policy targets an **absolute** deadline (commonly **12 minutes** / **720 seconds** of authority) with **no rolling extension** on the same grant. If remaining time on that setup grant drops **below 600 seconds**, the product may **reduce** the normal 60 second session allowance rather than widening scope. Destructive actions still need a **fresh** approval each time. **Exact** JSON for setup flows is **SaaS-specific**; read **`/api/schema/`** on SaaS (private source repo here).
 
-The Settings UI **additionally** runs `error_message` through `sanitizeMcpActivityErrorMessage`: URL query strings are stripped, messages that resemble leaked credentials become `[Error details redacted]`, and long text is truncated. That is **not** a promise that the API sends secrets; it is a **client-side guard**. Raw tool arguments and env blobs are **not** rendered.
+### Human member APIs (identity, today)
 
-When `access_kind` or `outcome` is missing, the UI may infer display labels from tool name and `result` string (`inferActivityAccessKind`, `parseActivityOutcome`). Prefer fixing the API to emit explicit enums.
+Company owners and the member who created the agent decide approvals:
 
-### Known tool labels (UI registry only)
+| Method | Path                                                                 |
+| ------ | -------------------------------------------------------------------- | -------- |
+| `GET`  | `/api/v1/mcp/approvals?company_id=`                                  |
+| `GET`  | `/api/v1/mcp/approvals/{id}`                                         |
+| `POST` | `/api/v1/mcp/approvals/{id}/decide` with `{"decision":"approve"      | "deny"}` |
+| `POST` | `/api/v1/mcp/approvals/{id}/approve` and `…/reject` (same semantics) |
 
-`mcpToolActivityRegistry.ts` lists friendly titles for a **small** set of tool names (`identity_list_users`, `hosting_deploy`, `storage_delete`, …). Anything outside the map stays **verbatim** until identity publishes a canonical tool catalog.
+This matches [`mcpToolApprovalsApi.ts`](https://github.com/shellui/shellui/blob/develop/packages/core/src/features/mcp/mcpToolApprovalsApi.ts) in the shell today.
 
-## Regional delegation (RFC 8693)
+Some products want a **`session_allow` boolean** on the **human** decide endpoint for parity with internal `allow_session`. That is **not** in the shell’s fetch helper today; track [shellui#182](https://github.com/shellui/shellui/issues/182) (or the identity change) and **OpenAPI** before you rely on extra fields.
 
-Embedded apps that use a **regional** identity server receive tokens **only** from that server after **token exchange** from the shell token. See [Regional identity servers (token exchange)](/features/authentication#regional-identity-servers-token-exchange). There is **no** single master JWT for every service.
+In-chat clients use identity **`POST /api/v1/mcp/internal/mcp-approval-decide`** with **`allow_session`** for the short 60 second non-destructive window. The [ai-service handbook](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md) notes dependency on identity **#134 or equivalent** for decide and session-check wiring in some releases; match the pair of images you deploy.
 
-## CLI versus global MCP writes (merged in `develop`)
+### Example (illustrative SaaS tool name)
 
-Human CLI commands use the **OAuth session** from `shellui login`, not `SHELLUI_DEPLOY_TOKEN`, not MCP agent tokens. Full command table: [CLI](/cli#shellui-projects-action-id-root).
-
-Short summary:
-
-| Command area                  | Calls                                                                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `shellui companies`           | identity `GET /api/v1/companies/`, `GET /api/v1/companies/{id}/`                                                                            |
-| `shellui projects`            | SaaS `GET …/saas/api/v1/companies/`, `…/saas/api/v1/companies/{uuid}/`, `GET …/api/v1/regions/`, `GET …/api/v1/companies/{uuid}/endpoints/` |
-| `shellui storage buckets`     | storage `GET /storage/v1/bucket`, `GET /storage/v1/bucket/{name}`                                                                           |
-| `shellui hosting apps`        | hosting `GET /hosting/v1/apps`, `GET /hosting/v1/apps/{slug}`                                                                               |
-| `shellui hosting deployments` | hosting deployment list and status routes (see [CLI](/cli))                                                                                 |
-
-`shellui projects create` exits `not_implemented`; provisioning belongs to the **dashboard UI** or **global MCP OAuth** once enabled.
-
-Configure `saas: { "url": "…" }` or `SHELLUI_SAAS_URL`; default base is `http://localhost:8005` when unset.
-
-## Feature coverage (REST and operators)
-
-Use each service’s **`/api/schema/`** and **`/api/docs/`** on the **localhost** port from compose. Below is a **sketch** of REST surfaces MCP tools wrap; it is not the MCP tool name list.
-
-### hosting-service (merged ops work)
-
-From the published handbooks [Hosting API](https://docs.shellui.com/hosting/api) and [Storage API](https://docs.shellui.com/storage/api):
-
-- App lifecycle: `GET/POST /hosting/v1/apps`, uploads, finalize, rollback, preview
-- Deploy tokens: `GET/POST /hosting/v1/deploy-tokens`, revoke
-- Domains, env, encrypted values, and operator logs as per your deployed OpenAPI (see [#77](https://github.com/shellui/hosting-service/pull/77))
-- Health: `GET /hosting/v1/health` (no token) versus metrics and stats (token-gated; see handbook tables)
-
-Runtime logs and DNS state at the **edge provider** are still **provider-dependent**; this repo only documents the hosting-service surface.
-
-### storage-service (connector + lifecycle)
-
-Handbook lists buckets, objects, grants, share links, WebDAV, metrics, and Actions admin routes ([Storage API](/storage/api)). Connector and external bucket checks landed in [#58](https://github.com/shellui/storage-service/pull/58); confirm fields on your schema.
-
-### email-service
-
-REST mail API (`/api/v1/send`, catalog, events) uses service keys and JWT rules from [email handbook](/email). **Do not assume** an MCP tool sends mail just because a policy "allows" email; verify the ai-service tool list and idempotency rules on `http://localhost:8006/api/schema/` when [#24](https://github.com/shellui/ai-service/pull/24) merges.
-
-## End-to-end local workflow (concrete)
-
-1. Pull **develop** on every sibling repo listed in [Local dev stack](/dev-stack#1-clone-the-repos-side-by-side).
-2. `cd shellui/dev && ./start.sh` (or `generate-env.sh` then `docker compose … up --build`).
-3. Sign **Terms** and complete **account** steps in the **global dashboard** (`http://localhost:5174`) until the UI shows a clean tenant (no pending legal gate).
-4. Sign in to the **shell** (`http://localhost:4000`), open **Settings → MCP / AI agents**, and **only then** create a personal or OAuth agent.
-5. Approve or deny pending tools in the same Settings panel; watch `expires_at` from the API.
-6. **Read-only check with CLI:**  
-   `shellui login`  
-   `shellui companies list`  
-   Expect the seeded regional id `1` unless you created more companies. For SaaS UUIDs: `shellui projects list` (needs `saas.url` or default `8005`).
-
-## MCP client examples
-
-**Regional (company 2 demo):**
+A **first company create** tool (name is **`tools/list` output**, not invented here) might return:
 
 ```json
 {
-  "mcpServers": {
-    "shellui-regional-demo": {
-      "url": "http://localhost:8006/c/2/mcp",
-      "headers": {
-        "Authorization": "Bearer your_personal_agent_token_here"
-      }
-    }
+  "meta": {
+    "pending_approval_id": "660e8400-e29b-41d4-a716-446655440000",
+    "expires_at": "2026-11-06T10:10:00Z"
   }
 }
 ```
 
-**Global (only after SaaS exposes OAuth for MCP):** configure the client against `http://localhost:8005/oauth/mcp` (discovery) and register a dynamic client; **do not** paste long-lived secrets into shared JSON.
+Human approves with **Bearer: human JWT** (Settings calls the same host the product configures):
 
-## Troubleshooting (accurate symptoms)
+```http
+POST http://localhost:8001/api/v1/mcp/approvals/660e8400-e29b-41d4-a716-446655440000/decide
+Authorization: Bearer <human access token>
+Content-Type: application/json
 
-| Symptom                        | Check                                                                                                                         |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `403` on SaaS from dashboard   | `SAAS_CORS_ALLOWED_ORIGINS` contains `http://localhost:5174` and the shell origin; you finished ToS; you use a **member** JWT |
-| `403` on MCP `create` as staff | Expected: staff must not receive agent tokens                                                                                 |
-| Pending tool never executes    | Approval denied, expired, or wrong `company_id` on `GET /api/v1/mcp/approvals`                                                |
-| CLI `projects list` fails      | Logged in? `saas.url` reachable? SaaS returns JSON for `/saas/api/v1/companies/` on your tag                                  |
+{"decision":"approve"}
+```
 
-Do **not** instruct anyone to "wait for access token expiry" after **revoke** once [#135](https://github.com/shellui/identity-service/pull/135) ships grant checks.
+Then the agent **retries the same** `tools/call`; the service consumes the approval server-side. **Deny** or **expiry** → **fail closed**; there is **no** local “assume allowed” mode.
 
-## Related pages
+Global approval plane is **owner-only** for high-risk operations; confirm `403` on non-owner JWT in OpenAPI tests.
 
-- [Authentication](/features/authentication) - token exchange
-- [Security](/features/security) - token storage
-- [CLI](/cli) - `shellui companies`, `shellui projects`, SaaS path prefixes
-- [Local dev stack](/dev-stack) - `./start.sh`, ports, `SAAS_CORS_ALLOWED_ORIGINS`
-- [Application settings](/features/application-settings) - Settings surfaces
+## Revocation (bounded immediacy)
+
+- Human routes: `POST /api/v1/mcp/agents/{id}/pause`, `…/revoke` ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+- Services poll `GET /api/v1/mcp/internal/mcp-revocations` with a signed assertion, **`cache_seconds`** in the signed payload, **30 second** consumer cache called out in hosting and email handbooks. Revocation applies on the **next successful poll**; design for **retry** after `403` once caches catch up.
+
+## Downstream token mint (ai → identity → storage or hosting)
+
+ai-service calls `POST /api/v1/mcp/internal/mcp-downstream-access-token` with a **delegation JWT** signed by ai (`AI_SERVICE_ISSUER`, JWKS on ai `/.well-known/jwks.json`). Identity returns `{ "access_token": "…" }` with `aud` exactly the downstream `/mcp` URL ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## `list_services` (identity `POST /mcp`)
+
+Tool **`list_services`** returns configured downstream MCP URLs (storage, hosting, email, SaaS, AI, identity) from live settings ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). Downstream minting uses **only** those configured origins.
+
+## OpenAPI tool names (authoritative discovery)
+
+**Authoritative names** come from `tools/list` on the live gateway or service. ai-service exports downstream tools as `<service>_<tool>` with **one underscore** ([ai handbook](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md)).
+
+**Examples** taken from hosting handbook text (verify with `tools/list` on your build):
+
+- `hosting_v1_apps_create`
+- `hosting_v1_apps_deployments_create`
+- `hosting_v1_apps_deployments_artifact_upload_url_create`
+- `hosting_v1_apps_deployments_artifact_upload_complete_create`
+- `hosting_v1_apps_deployments_finalize_create`
+
+Storage handbook lists areas (connectors, objects, grants); **exact** ids are in OpenAPI / `tools/list`.
+
+**Never** paste undocumented `storage_storage_v1…` names from memory. Run **`tools/list`**.
+
+## Hosting MCP (domains, env, logs)
+
+See [hosting `docs/mcp.md`](https://github.com/shellui/hosting-service/blob/develop/docs/mcp.md):
+
+- **Domains:** TXT instructions, `verified` / `serving` honest about platform state.
+- **Env:** values encrypted at rest; list returns `value_present`, not secret bytes.
+- **Runtime logs:** may return `source: none` with `unavailable_reason` for static sites.
+- **Request logs:** paginated when enabled (`HOSTING_REQUEST_LOG_ENABLED`).
+- **Deploy flow:** presign PUT → bytes off MCP → complete → finalize (MCP never carries tarball bytes).
+
+Revocation polling and approvals **fail closed** if identity assertions cannot be verified.
+
+## Storage MCP (connectors and objects)
+
+See [storage `docs/mcp.md`](https://github.com/shellui/storage-service/blob/develop/docs/mcp.md): connectors with configuration checks, objects, grants, share links (not anonymous redeem), Actions webhooks, quotas. **Metrics** routes are **not** MCP tools.
+
+## Email MCP (templates, rules, sends)
+
+See [email `docs/mcp.md`](https://github.com/shellui/email-service/blob/develop/docs/mcp.md): template CRUD, `send-test`, rules, Actions webhooks. **Required** `aud` `{EMAIL_PUBLIC_URL}/mcp` and `scope` includes `email`.
+
+## Shell Settings UI and activity (this repo)
+
+**Status:** `GET /api/v1/mcp/personal/status?company_id=` → `mcp_enabled`, `mcp_url`, optional `global_identity` ([`personalAgentsApi.ts`](https://github.com/shellui/shellui/blob/develop/packages/core/src/features/mcp/personalAgentsApi.ts)). A future identity change may add `global_mcp_url` and richer aggregates; until your identity revision includes those keys, **do not** assert them in integration tests.
+
+**Activity rows** accept structured fields (`access_kind`, `outcome`, `resource_label`, `company_name`, `approval_request_id`, `error_message`, …). Missing fields fall back to conservative display. **`error_message`** is passed through `sanitizeMcpActivityErrorMessage` (query strip, substring redaction) **today**; richer **approved metadata** may land with Settings work ([shellui#179](https://github.com/shellui/shellui/pull/179), [shellui#182](https://github.com/shellui/shellui/issues/182)).
+
+## Human CLI (merged on `develop`)
+
+Uses **`shellui login`** human OAuth session (PKCE loopback), **not** `SHELLUI_DEPLOY_TOKEN`.
+
+[`docs/cli.md`](https://github.com/shellui/shellui/blob/develop/docs/cli.md) is canonical. Summary:
+
+| Command                     | Target                       | Notes                                       |
+| --------------------------- | ---------------------------- | ------------------------------------------- | ------------------------------------------------- | ------------------------ | ------------------------------------------------ | -------------------------------- |
+| `shellui companies list     | get                          | use`                                        | identity `GET /api/v1/companies/`, `GET /…/{id}/` | **Regional** decimal ids |
+| `shellui projects list      | get                          | use                                         | regions                                           | endpoints`               | SaaS `…/saas/api/v1/companies/…` or `…/api/v1/…` | **UUID** for dashboard companies |
+| `shellui storage buckets …` | storage `/storage/v1/bucket` | **JWT** carries `company_id`; no query hack |
+| `shellui hosting apps …`    | hosting `/hosting/v1/apps`   | same                                        |
+| `shellui projects create`   | n/a                          | **not implemented** (`not_implemented`)     |
+
+`SHELLUI_DEPLOY_TOKEN` is **only** for **`shellui deploy`** preview flows ([CLI](/cli)). It is **not** an MCP bearer and **not** a substitute for `shellui login`.
+
+## Personal agents (optional `saas` scope)
+
+`POST /api/v1/mcp/personal/agents/create` includes `services` (`identity`, `storage`, `hosting`, `email`, optional `saas`; ai is added server-side). When `global_identity` is false, the shell **strips** `saas` before POST ([`personalAgentsApi.ts`](https://github.com/shellui/shellui/blob/develop/packages/core/src/features/mcp/personalAgentsApi.ts)).
+
+## Regional app sessions (shell, RFC 8693)
+
+Embedded apps using `provider: "upstream"` exchange the **human shell token** for a **regional** token ([Authentication](/features/authentication#regional-identity-servers-token-exchange)). That path is for **people-driven** sessions in iframes, parallel to but **distinct from** MCP agent exchanges.
+
+## Rebuild and smoke (local)
+
+1. Pull `develop` on **shellui** and every sibling in [Local dev stack](/dev-stack#1-clone-the-repos-side-by-side).
+2. `cd shellui/dev && ./start.sh` (runs `generate-env.sh` then `docker compose --env-file .env.local up --build`).
+3. Human login to the shell, finish **ToS** in the **global** dashboard if your stack gates on it.
+4. In a terminal with project config:  
+   `shellui login`  
+   `shellui companies list` → expect seed `1` unless you added tenants.  
+   `shellui projects list` → expect **UUID** rows when SaaS is wired.
+
+5. Open **`http://localhost:8005/api/docs/`** on SaaS and **`http://localhost:8006/api/docs/`** on ai with a browser to confirm OpenAPI matches the commits you built.
+
+## What you can build (scenarios)
+
+- **Operator agent (regional gateway):** read buckets and request logs, open an approval for `hosting_v1_apps_deployments_finalize_create`, wait for owner decision, then finalize. Use **safe** read level until you accept sensitive mail or PII exposure.
+- **Account agent (global SaaS MCP OAuth):** list regions and endpoints, enqueue **first company** provisioning, bind **setup_context_company_id** once SaaS exposes it in token claims, then exchange to regional agents for storage or hosting work.
+- **Email governance:** adjust templates and rules over MCP with `ask` mode so every write still hits identity approvals.
+
+## Troubleshooting (concrete)
+
+| Symptom                                   | Likely cause                                                                                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `invalid_grant` on token                  | Authorization code replay, wrong `redirect_uri`, expired code, or wrong `code_verifier`           |
+| `403` on regional MCP                     | Wrong `company_id` in URL vs token, membership missing, **staff** bearer, or **ToS** not accepted |
+| `401` with `resource_metadata` on ai      | Missing or wrong `aud`; use exact per-company URL                                                 |
+| `404` on `POST /oauth/mcp/token` exchange | Region missing `GLOBAL_*` trust for global agent exchange                                         |
+| `403` on SaaS dashboard fetch             | CORS list missing; or human session is not a **member** of the dashboard company                  |
+| Approval stuck pending                    | Row expired (~10 minutes default internal); destructive tool denied session shortcut              |
+| `409` on session allow                    | Destructive tool cannot use `session_allow`                                                       |
+| Poll starvation                           | Revocation cache (30s) plus Redis or network; **fail closed** while identity unreachable          |
+
+## Identity `POST /mcp` tools
+
+Identity’s own Streamable HTTP endpoint is **`POST {ISSUER}/mcp`**. It exposes **non-admin** tools such as **`list_services`** (URLs for storage, hosting, email, SaaS, AI, identity `/mcp`). **Pause**, **revoke**, **approve**, and **call-log admin** routes stay **human-only** (`allow_agent_token=false`) ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## Service `POST /mcp` endpoints (regional)
+
+| Service       | Streamable HTTP                         | Protected resource                                                          |
+| ------------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| storage       | `POST http://localhost:8002/mcp`        | `GET http://localhost:8002/.well-known/oauth-protected-resource`            |
+| hosting       | `POST http://localhost:8003/mcp`        | `GET http://localhost:8003/.well-known/oauth-protected-resource`            |
+| email         | `POST http://localhost:8004/mcp`        | `GET http://localhost:8004/.well-known/oauth-protected-resource`            |
+| ai gateway    | `POST http://localhost:8006/c/<id>/mcp` | `GET http://localhost:8006/.well-known/oauth-protected-resource/c/<id>/mcp` |
+| SaaS (global) | `POST http://localhost:8005/mcp`        | `GET http://localhost:8005/.well-known/oauth-protected-resource`            |
+
+**`aud` must match** the `resource` URL including `/mcp` (RFC 8707). email requires **`scope` includes `email`** and `aud = {EMAIL_PUBLIC_URL}/mcp` ([email handbook](https://github.com/shellui/email-service/blob/develop/docs/mcp.md)).
+
+## Agent access token claims (regional)
+
+From [identity `docs/mcp-and-agents.md`](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md):
+
+| Claim             | Meaning                                                                            |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| `aud`             | One downstream `/mcp` URL                                                          |
+| `sub`             | `agent:{uuid}`                                                                     |
+| `agent_id`        | Agent uuid                                                                         |
+| `company_id`      | Regional tenant                                                                    |
+| `scope`           | Space-separated service ids (`identity`, `storage`, `hosting`, `email`, `saas`, …) |
+| `mcp_access`      | `read_only`, `ask`, `full`                                                         |
+| `mcp_read`        | `safe` or `sensitive`                                                              |
+| `mcp_destructive` | When true, allows destructive tools without extra approval in `full` mode          |
+
+Refresh with `grant_type=refresh_token` at `POST /oauth/mcp/token` and the **same** `resource` parameter.
+
+## Global agent JWT (shape)
+
+When SaaS issues **global agent** access tokens (RS256 from the **global** issuer), required claims include `token_type: agent_access`, `agent_id` (global uuid), `email_verified: true`, `user_metadata.is_staff: false`, and service scopes ([identity handbook table](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). **Regional** exchange refuses staff the same way it refuses staff for user exchange.
+
+**Note:** the handbook file still contains one line that global mint on SaaS was **not implemented** at the time that sentence landed. Use **`/api/schema/`** on your SaaS process plus Git history to see whether mint is live in your deployment.
+
+## Personal agent HTTP (regional identity, shell integration)
+
+These are **human** flows inside Settings (Bearer human token, optional `saas` service when `global_identity` is true) ([`personalAgentsApi.ts`](https://github.com/shellui/shellui/blob/develop/packages/core/src/features/mcp/personalAgentsApi.ts)):
+
+| Action   | `GET` or `POST` path                                        |
+| -------- | ----------------------------------------------------------- |
+| Status   | `GET /api/v1/mcp/personal/status?company_id=`               |
+| List     | `GET /api/v1/mcp/personal/agents?company_id=`               |
+| Create   | `POST /api/v1/mcp/personal/agents/create?company_id=`       |
+| Revoke   | `POST /api/v1/mcp/personal/agents/{id}/revoke?company_id=`  |
+| Activity | `GET /api/v1/mcp/personal/agents/{id}/activity?company_id=` |
+
+**Staff** cannot call `/api/v1/mcp/*` member admin APIs ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## Approval fallback page
+
+If a client cannot show elicitation, identity exposes:
+
+```http
+GET /oauth/mcp/approval/{id}?token=…
+```
+
+The `token` parameter is **signed**; only **Approve** and **Deny** appear ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## Call logs
+
+Services forward redacted rows to `POST /api/v1/mcp/internal/mcp-call-logs`. Owners read with `GET /api/v1/mcp/call-logs` ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## Internal assertion callers (trusted issuers)
+
+Identity verifies RS256 assertions from downstream services ([identity handbook registry](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)):
+
+| Caller                        | Issuer env               |
+| ----------------------------- | ------------------------ |
+| ai                            | `AI_SERVICE_ISSUER`      |
+| storage                       | `STORAGE_SERVICE_ISSUER` |
+| hosting                       | `HOSTING_SERVICE_ISSUER` |
+| email                         | `EMAIL_SERVICE_ISSUER`   |
+| dashboard (SaaS provisioning) | `PROVISIONING_ISSUER`    |
+
+Wrong issuer, wrong key, or replayed `jti` → **401**. Service mismatch on approval → **403**.
+
+## shellui-django wiring (services)
+
+The identity handbook lists the shared package tasks: mount `POST /mcp`, export tools from OpenAPI `x-mcp`, protected-resource metadata, revocation polling, rate limits ([identity handbook tail](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## ai-service gateway details
+
+From [ai `docs/mcp.md`](https://github.com/shellui/ai-service/blob/develop/docs/mcp.md):
+
+- When `SAAS_SERVICE_URL` is set, protected resource metadata can include `shellui_mcp_authorize_query: {"saas_offered":"1"}` so clients add `saas_offered=1` on `GET /oauth/mcp/authorize` (optional SaaS scope at consent).
+- Plain `/mcp` and root protected-resource `404` with `company_required`.
+- **`AI_PUBLIC_URL`** sets the advertised origin for `aud` (set behind proxies).
+- Without ai signing keys, revocation polling and call logs **fail closed**.
+- Large audits: see `mcp-tool-schema-audit.md` in ai-service for per-tool `inputSchema` review counts.
+
+## `/api/v1/mcp/personal/status` (future fields)
+
+Product target after identity merges additional response keys: **`global_mcp_url`**, stricter **`aud`** binding per resource, aggregated **service display names**. Ship **only** after your identity revision documents those keys in **OpenAPI**; the shell parser today accepts unknown fields but does not render them.
+
+## OAuth errors (MCP clients)
+
+Typical failure strings (exact spelling depends on identity version):
+
+| Error                                 | Meaning                                                               |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `invalid_grant`                       | Code replay, PKCE mismatch, wrong `redirect_uri`, expired code        |
+| `invalid_scope`                       | Requested scopes or `resource` not allowed for that client or company |
+| `invalid_request`                     | Missing `resource`, malformed PKCE, bad `client_id`                   |
+| `access_denied`                       | User clicked **Deny** on consent                                      |
+| `server_error`                        | Identity internal fault; retry with new authorize                     |
+| HTTP `404` on authorize after sign-in | Unknown company id in `/c/<id>/mcp` resource                          |
+| HTTP `403` on member APIs             | Staff bearer, non-owner on owner-only action, or missing membership   |
+
+## Membership and `company_id` pitfalls
+
+- `shellui companies list` shows **only** companies your **human** token can see. A new company row in SaaS that is not linked to your regional membership produces **empty CLI lists** or **403** until provisioning finishes.
+- `shellui projects endpoints` needs a **dashboard UUID** (`shellui projects use <uuid>` or pass the uuid argument). Passing a **regional decimal** returns **404** from SaaS.
+
+## Human vs agent capabilities
+
+| Capability                               | Human JWT              | Agent JWT           |
+| ---------------------------------------- | ---------------------- | ------------------- |
+| Approve MCP rows in Settings             | yes (owner or creator) | **no**              |
+| `shellui login` CLI                      | yes                    | **no**              |
+| `tools/call` on hosting                  | no                     | yes, with approvals |
+| Pause or revoke agents in identity admin | yes (policy)           | **no**              |
+
+## Tenant selection rule
+
+Regional MCP picks the company **only** from the URL path (`/c/<company_id>/mcp`). There is **no** query override and no default company ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+
+## Progressive tool discovery
+
+1. Call `tools/list` on ai-service for the company.
+2. Call `tools/list` on an individual service if you bypass the gateway (advanced debugging).
+3. Read **`x-mcp`** flags before you automate a tool.
+4. Run **`GET /api/v1/actions/events`** (storage or hosting Actions) to see webhook catalog entries when you wire automation (handbooks: [Storage webhooks](https://docs.shellui.com/storage/actions), [Hosting webhooks](https://docs.shellui.com/hosting/actions)).
+
+## Observability differences
+
+- **MCP call logs:** identity-stored, argument-redacted ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+- **Shellui Actions deliveries:** per-service outbox with retries ([Storage webhooks](https://docs.shellui.com/storage/actions)).
+- **Metrics:** Prometheus endpoints on services are **not** MCP tools ([storage `docs/mcp.md`](https://github.com/shellui/storage-service/blob/develop/docs/mcp.md)).
+
+## Browser global OAuth vs MCP transport
+
+Global SaaS OAuth (`/oauth/mcp/*`) is **HTTPS-first** with **loopback** exceptions as documented for MCP redirects ([identity handbook](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)). A headless agent **must** implement the same discovery, registration, and PKCE flow a desktop MCP client uses. There is **no** hidden Shellui-owned **Approve** shortcut in this repository’s CLI.
+
+## Compose environment (excerpt, MCP and SaaS)
+
+From this repo’s [`dev/docker-compose.yml`](https://github.com/shellui/shellui/blob/develop/dev/docker-compose.yml) and [`dev/.env.local.example`](https://github.com/shellui/shellui/blob/develop/dev/.env.local.example):
+
+| Variable                                                                   | Role                                                                                                                                                    |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_SAAS_URL`                                                          | Browser origin for SaaS (`http://localhost:8005`), issuers, CORS                                                                                        |
+| `IDENTITY_DASHBOARD_WEBHOOK_URL`                                           | `${PUBLIC_SAAS_URL}/api/v1/webhooks/local` (identity → SaaS webhook URL)                                                                                |
+| `IDENTITY_DASHBOARD_WEBHOOK_INTERNAL_URL`                                  | `http://saas:8000/api/v1/webhooks/local` (in-network)                                                                                                   |
+| `PROVISIONING_ISSUER` on identity                                          | Matches `${PUBLIC_SAAS_URL}` so SaaS assertions identify as dashboard                                                                                   |
+| `PROVISIONING_SIGNING_KEY` / `PROVISIONING_PUBLIC_KEY`                     | RS256 for SaaS → identity trusted caller rows                                                                                                           |
+| `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`, `GLOBAL_ACCESS_TOKEN_AUDIENCE`         | Regional identity trusts shell issuer for **user** token exchange ([Authentication](/features/authentication#regional-identity-servers-token-exchange)) |
+| `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`                                       | Separate audience for **global agent** JWT verification (set on region per handbook)                                                                    |
+| `AI_SERVICE_ISSUER`, `AI_SERVICE_JWKS_URL`                                 | ai-service assertion verification on identity                                                                                                           |
+| `STORAGE_SERVICE_ISSUER`, `HOSTING_SERVICE_ISSUER`, `EMAIL_SERVICE_ISSUER` | Downstream MCP internal callers                                                                                                                         |
+| `SAAS_CORS_ALLOWED_ORIGINS`                                                | Comma-separated **browser** origins allowed to call SaaS JSON from the shell and dashboard                                                              |
+
+Internal URLs in compose (`http://saas:8000`, `http://identity:8000`) **do not** go through `SAAS_CORS_ALLOWED_ORIGINS`.
+
+## Example HTTP shapes (illustrative)
+
+**List dashboard companies with the human CLI session** (see `dashboardServiceFetch`):
+
+```http
+GET http://localhost:8005/saas/api/v1/companies/
+Authorization: Bearer <human access token from shellui login>
+```
+
+**Same data plane path without the dashboard prefix** (when a product or OpenAPI uses direct `api/v1`):
+
+```http
+GET http://localhost:8005/api/v1/companies
+Authorization: Bearer <human access token>
+```
+
+Compare status codes and bodies on both paths in **`/api/schema/`**; the shell CLI intentionally uses `saas/api/v1` for `projects list` only ([`projects.js`](https://github.com/shellui/shellui/blob/develop/packages/cli/src/commands/projects.js)).
+
+**Regional regions catalog:**
+
+```http
+GET http://localhost:8005/api/v1/regions/
+Authorization: Bearer <human access token>
+```
+
+**Endpoints for one dashboard UUID:**
+
+```http
+GET http://localhost:8005/api/v1/companies/550e8400-e29b-41d4-a716-446655440000/endpoints/
+Authorization: Bearer <human access token>
+```
+
+## Global MCP tool example (name unverified)
+
+SaaS **tool names** change with OpenAPI. A plausible **first company** tool (replace with `tools/list` output on your SaaS build) could look like:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "saas_api_v1_companies_create",
+    "arguments": {
+      "path": "/api/v1/companies",
+      "method": "POST",
+      "body": { "name": "Example", "region": "ch" }
+    }
+  },
+  "id": 1
+}
+```
+
+Expect `_meta` or response payload to carry **`pending_approval_id`** when write gating applies; complete the **human** decision on identity (`POST /api/v1/mcp/approvals/{id}/decide` today) or the **SaaS-documented** variant once OpenAPI shows extra fields. **Always** run `tools/list` on **`http://localhost:8005/mcp`** for authoritative names.
+
+## Grant version and status endpoint (pending contract)
+
+Identity change sets may add **`grant_version`** (or similarly named) checks on agent JWTs and expand `GET /api/v1/mcp/personal/status` with **`global_mcp_url`**, stricter **`aud`**, or aggregate labels. **This shell repository does not parse those fields yet** beyond optional extras in JSON. Track [identity-service#135](https://github.com/shellui/identity-service/pull/135) and **OpenAPI** before you assert behavior in automated tests.
+
+## Cross-links to raw handbooks on GitHub
+
+| Document                | URL                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| Identity MCP and agents | `https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md` |
+| AI gateway              | `https://github.com/shellui/ai-service/blob/develop/docs/mcp.md`                  |
+| Storage MCP             | `https://github.com/shellui/storage-service/blob/develop/docs/mcp.md`             |
+| Hosting MCP             | `https://github.com/shellui/hosting-service/blob/develop/docs/mcp.md`             |
+| Email MCP               | `https://github.com/shellui/email-service/blob/develop/docs/mcp.md`               |
+
+## Merge checklist (operators)
+
+1. Confirm **identity**, **ai**, **storage**, **hosting**, **email**, and **saas** images all reference the same **`shellui-django[mcp]`** minor line your release notes cite.
+2. Rotate **dev-only** `PROVISIONING_*` keys after any accidental leak from `dev/.env.local` (never commit that file).
+3. Run **`tools/list`** on **ai** and on **SaaS** after each upgrade; diff tool names when CI fails.
+4. Exercise **one** real `read_only` tool and **one** `ask` write per service in staging before broad agent access.
+5. File issues when OpenAPI **`x-mcp`** flags disagree with runtime behavior; the flag drives human expectations for approvals.
+
+## Related
+
+- [Authentication](/features/authentication) (human token exchange to apps)
+- [Security](/features/security) (human token storage)
+- [CLI](/cli) (human session commands)
+- [Local dev stack](/dev-stack) (compose, `./start.sh`, env)
+- [Application settings](/features/application-settings) (where MCP panels mount in the shell)
