@@ -14,7 +14,7 @@ fi
 
 run_generate_env() {
   if command -v uv >/dev/null 2>&1; then
-    uv run --no-project python "$@"
+    uv run --no-project --with cryptography python "$@"
   elif command -v python3 >/dev/null 2>&1; then
     python3 "$@"
   else

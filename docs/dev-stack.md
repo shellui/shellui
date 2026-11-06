@@ -97,6 +97,19 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 - **Dependencies changed.** Rebuild that service: `./start.sh -d <service>`.
 - **`generate-env.sh` fails.** Check that `uv` or `python3`, and `openssl`, are on `PATH`.
 
+## Global agent JWT trust (dev)
+
+`dev/generate_env.py` fills **`GLOBAL_AGENT_SIGNING_KEY`** and
+**`GLOBAL_AGENT_KEY_ID`**, builds **`GLOBAL_JWKS`** for **identity**, and
+re-syncs JWKS to the signing PEM on every run so the pair cannot drift
+(**`GLOBAL_AGENT_KEY_ID`** is the **`kid`** in **`GLOBAL_JWKS`**).
+**`dev/docker-compose.yml`** passes `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, and **`SHELLUI_INSTANCE_ROLE=region`**
+into **identity**, and **`GLOBAL_AGENT_SIGNING_KEY`**, **`GLOBAL_AGENT_KEY_ID`**,
+and **`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`** into **saas**, so regions verify
+global agent JWTs offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md)).
+**`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
+
 ## Redis
 
 One Redis instance. Each backend uses its own DB: identity `0`, storage `1`, hosting `2`, email `3`, saas `4`, ai `5`. Values live in `dev/.env.local.example` as `*_REDIS_URL`.
@@ -155,5 +168,9 @@ Identity seeds itself on every start (`IDENTITY_DEV_SEED=true` in the compose fi
 The seed never overwrites existing rows, so a changed admin password or company settings survive restarts. To start fresh, run `docker compose --env-file .env.local down -v`.
 
 GitHub is optional. Without credentials the stack starts normally and only the GitHub button fails. To enable it, create a GitHub OAuth app with homepage `http://localhost:4000` and the callback URL identity shows in its OAuth setup, then add the client ID and secret to company 1 in the admin app (http://localhost:5173) or the identity admin. Credentials are stored per company, not in `.env.local`.
+
+### SaaS API CORS
+
+`saas-service` reads `CORS_ALLOWED_ORIGINS` from compose. The generated `dev/.env.local` sets `SAAS_CORS_ALLOWED_ORIGINS` to the shell (`http://localhost:4000` and `http://127.0.0.1:4000`) and the global dashboard Vite app (`http://localhost:5174` and `http://127.0.0.1:5174`). If you change `PUBLIC_SHELL_URL` or serve the dashboard on another origin, append that origin to `SAAS_CORS_ALLOWED_ORIGINS` and run `docker compose --env-file .env.local up -d saas` (or `./start.sh`). Internal service calls use Docker network URLs (`http://saas:8000`); they do not rely on this list.
 
 Service-specific notes live in each repo: [identity](https://github.com/shellui/identity-service/blob/develop/docs/local-dev-stack.md), [storage](https://github.com/shellui/storage-service/blob/develop/docs/devstack.md), [hosting](https://github.com/shellui/hosting-service/blob/develop/docs/local-dev-stack.md), [email](https://github.com/shellui/email-service/blob/develop/docs/devstack.md), [saas](https://github.com/shellui/saas-service/blob/develop/docs/dev-stack.md), [ai](https://github.com/shellui/ai-service/blob/develop/docs/devstack.md) and [dashboard](https://github.com/shellui/dashboard/blob/develop/docs/devstack.md).

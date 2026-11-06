@@ -136,3 +136,4 @@ If you serve `dist/web/` from a CDN without Shellui middleware, replicate the sa
 
 - [Authentication](/features/authentication)
 - [Connect a backend](/backend)
+- [AI native platform](/features/ai-native)

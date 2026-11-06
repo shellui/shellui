@@ -136,6 +136,9 @@ Commands use the account named in the project's `shellui.config.json`. Outside a
 
 Shows whether CLI credentials exist, which **regional** tenant id the active JWT uses (`credential companyId`), and (without printing tokens) whether a live identity profile call succeeds. Use `--json` for machine-readable output.
 
+The CLI registers this as `shellui auth ...` so every word dispatches; unknown
+words after `auth` exit nonzero with a short error instead of no-op.
+
 - Credentials stay in the same store as `shellui login` (`getCredentialStorageInfo()` in `@shellui/cli` documents the keychain vs file layout).
 - When present, `cli-session.json` (v2) may list **regional** default `regionalCompanyId` (from `shellui companies use`) and **dashboard** default `dashboardCompanyUuid` (from `shellui projects use`). Those are separate identifiers; see below.
 
@@ -166,7 +169,7 @@ Company selection for **`storage buckets`**: `--company <id>` wins, then the CLI
 
 Calls the SaaS host with the same Bearer session as `shellui login`. Requires `saas.url` in config or `SHELLUI_SAAS_URL`. The CLI default when neither is set is `http://localhost:8005` (self-host smoke only). **No** `company_id` query is sent; dashboard companies are **UUIDs** in URL paths.
 
-When `saas.url` includes a path (for example `https://example.com/saas`), requests use that origin plus the paths below (for example `https://example.com/saas/api/v1/companies/`). The CLI does not add a second `saas/` segment after the base.
+When `saas.url` includes a path (for example `https://example.com/saas`), requests use that origin plus the paths below (for example `https://example.com/saas/api/v1/companies/`). The CLI does not add a second `saas/` segment after the base. Paths keep a **trailing slash** on list routes where Django expects it (for example `companies/`, `regions/`).
 
 | Action             | HTTP (relative to `{saas}` base)                                                            |
 | ------------------ | ------------------------------------------------------------------------------------------- |
@@ -176,6 +179,8 @@ When `saas.url` includes a path (for example `https://example.com/saas`), reques
 | `regions`          | `GET /api/v1/regions/`                                                                      |
 | `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |
 | `create`           | Not implemented (use dashboard or global MCP when policy allows)                            |
+
+The parser is registered as `shellui projects ...`; unknown actions exit nonzero.
 
 `shellui projects list --json` on a working stack returns JSON (shape depends on the SaaS API). Errors from services are redacted and never include access tokens.
 
@@ -188,7 +193,7 @@ Uses `storage.url` from config (or `shellui.storage.config.json` when split) and
 | `list`       | `GET /storage/v1/bucket`                                                |
 | `get [name]` | `GET /storage/v1/bucket/<name>` (defaults to the `company` bucket name) |
 
-Other actions are not exposed; bucket create remains an operator or dashboard concern (`bucket_create_disabled` on typical installs).
+Other actions are not exposed; bucket create remains an operator or dashboard concern (`bucket_create_disabled` on typical installs). Registered as `shellui storage ...`; only `storage buckets list|get` runs.
 
 ### shellui hosting apps \<action> [ref] [root]
 
@@ -198,6 +203,8 @@ Uses `hosting.url` and the logged-in JWT (**not** `SHELLUI_DEPLOY_TOKEN`; deploy
 | ------------ | --------------------------------------------------------------- |
 | `list`       | `GET /hosting/v1/apps`                                          |
 | `get <slug>` | `GET /hosting/v1/apps/<slug>` (slug is the public preview slug) |
+
+Registered as `shellui hosting ...`; `hosting apps` and `hosting deployments` are the supported branches.
 
 ### shellui hosting deployments list [root] / shellui hosting deployments status \<uuid> [root]
 
@@ -224,7 +231,7 @@ Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create de
 
 In CI, set `SHELLUI_DEPLOY_TOKEN` instead of running `shellui login`. See [CI with deploy tokens](#ci-with-deploy-tokens).
 
-**Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
+**Required:** `hosting.url` (for example `http://localhost:8003`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
 
 ### CI with deploy tokens
 
@@ -347,7 +354,7 @@ Shellui config can execute code: TypeScript configs run via `tsx` with the CLI's
 
 - Prefer **`shellui.config.json`** (or split JSON). Run `shellui config migrate` to move off TypeScript for CI-safe configs.
 - **`--config` / `SHELLUI_CONFIG`:** loading config from outside the project root prints a warning. World-writable config paths are rejected; symlink escapes outside the project root are rejected.
-- TypeScript load prints an additional warning. Treat config like source code — only from trusted repositories.
+- TypeScript load prints an additional warning. Treat config like source code, but only from trusted repositories.
 
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 

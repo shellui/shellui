@@ -154,6 +154,11 @@ const sidebars = {
             },
             {
               type: 'doc',
+              id: 'features/ai-native',
+              label: 'AI native platform',
+            },
+            {
+              type: 'doc',
               id: 'features/cookie-consent',
               label: 'Cookie Consent',
             },

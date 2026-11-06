@@ -291,4 +291,4 @@ Inside a Tauri webview, set `auth.desktopScheme` to the custom scheme registered
 
 ## Related pages
 
-- [Backend](/backend), [Navigation](/features/navigation), [SDK](/sdk), [Application settings](/features/application-settings)
+- [Backend](/backend), [Navigation](/features/navigation), [SDK](/sdk), [Application settings](/features/application-settings), [AI native platform](/features/ai-native)
