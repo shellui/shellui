@@ -210,6 +210,11 @@ const sidebars = {
       items: [
         {
           type: 'doc',
+          id: 'open-source-or-cloud',
+          label: 'Open Source or Cloud',
+        },
+        {
+          type: 'doc',
           id: 'development',
           label: 'Development',
         },

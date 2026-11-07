@@ -37,5 +37,6 @@
 
 ## Optional
 
+- [Open source or Cloud](https://docs.shellui.com/open-source-or-cloud): run the MIT source yourself, or join the invite-only hosted waitlist
 - [Development](https://docs.shellui.com/development): contributing to Shellui
 - [Publishing](https://docs.shellui.com/publishing): release process for the packages

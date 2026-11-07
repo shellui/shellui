@@ -57,6 +57,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 ## Contribute and operate
 
+- [Open source or Cloud](/open-source-or-cloud) - run the MIT source yourself, or join the hosted waitlist
 - [Development](/development) - build this monorepo
 - [Publishing](/publishing) - npm tags and version sync
 - [Sentry](/sentry) - production error reporting
