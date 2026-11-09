@@ -118,7 +118,7 @@ services:
       - '8001:8000'
     environment:
       <<: [*django-common, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,identity
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94
       SECRET_KEY: ${IDENTITY_SECRET_KEY}
       JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
@@ -177,7 +177,7 @@ services:
       - '8002:8000'
     environment:
       <<: [*django-common, *identity-jwt, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,storage
+      ALLOWED_HOSTS: localhost,127.0.0.1,storage,100.127.19.94
       SECRET_KEY: ${STORAGE_SECRET_KEY}
       REDIS_URL: ${STORAGE_REDIS_URL}
       POSTGRES_DATABASE_URL: ${STORAGE_POSTGRES_DATABASE_URL}
@@ -223,7 +223,7 @@ services:
       - '8003:8000'
     environment:
       <<: [*django-common, *identity-jwt, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local
+      ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local,100.127.19.94
       SECRET_KEY: ${HOSTING_SECRET_KEY}
       REDIS_URL: ${HOSTING_REDIS_URL}
       POSTGRES_DATABASE_URL: ${HOSTING_POSTGRES_DATABASE_URL}
@@ -260,7 +260,7 @@ services:
       - '8004:8000'
     environment:
       <<: [*django-common, *identity-jwt, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,email
+      ALLOWED_HOSTS: localhost,127.0.0.1,email,100.127.19.94
       SECRET_KEY: ${EMAIL_SECRET_KEY}
       REDIS_URL: ${EMAIL_REDIS_URL}
       POSTGRES_DATABASE_URL: ${EMAIL_POSTGRES_DATABASE_URL}
@@ -347,7 +347,7 @@ services:
       - '8005:8000'
     environment:
       <<: [*django-common, *identity-jwt, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,saas
+      ALLOWED_HOSTS: localhost,127.0.0.1,saas,100.127.19.94
       SECRET_KEY: ${SAAS_SECRET_KEY}
       REDIS_URL: ${SAAS_REDIS_URL}
       POSTGRES_DATABASE_URL: ${SAAS_POSTGRES_DATABASE_URL}
@@ -393,7 +393,7 @@ services:
       - '8006:8000'
     environment:
       <<: [*django-common, *identity-jwt, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,ai
+      ALLOWED_HOSTS: localhost,127.0.0.1,ai,100.127.19.94
       SECRET_KEY: ${AI_SECRET_KEY}
       REDIS_URL: ${AI_REDIS_URL}
       POSTGRES_DATABASE_URL: ${AI_POSTGRES_DATABASE_URL}
