@@ -99,6 +99,9 @@ services:
       PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
       FILES_URL: ${PUBLIC_FILES_URL}
       SHELLUI_DISABLE_CONFIG_WATCH: '1'
+      # Browser calls stay on PUBLIC_IDENTITY_URL (localhost:8001). This process
+      # cannot use that host, so BFF refresh uses identity on the Compose network.
+      SHELLUI_BFF_BACKEND_URL: http://identity:8000
     volumes:
       - ..:/app
       - shell-node-modules:/app/node_modules

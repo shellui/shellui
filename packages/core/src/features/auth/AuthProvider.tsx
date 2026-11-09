@@ -28,7 +28,8 @@ import {
   hasStoredAuthSession,
   inferAccessPendingErrorCode,
   isBffAuthEnabledFromConfig,
-  canRestoreStoredSession,
+  isUnauthorizedRefreshError,
+  planStoredSessionBoot,
   isSessionExpired,
   isTokenAutoRefreshDisabled,
   logoutBffAuthSession,
@@ -255,17 +256,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // A new tab has the shared profile but not the tab-scoped refresh token. Treat it as
-      // signed out instead of a signed-in session with no token. Keep storage: another tab
-      // may still own this session.
-      if (!canRestoreStoredSession(stored, bffAuthEnabled)) {
-        if (!cancelled) {
-          setSession(null);
-          setIsLoading(false);
-        }
-        return;
-      }
-
       const applyRestoredSession = async (source: AuthSession) => {
         try {
           const restored = await shareInFlight(restoreRefreshSlot, () =>
@@ -287,48 +277,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setSession(restored);
             setIsLoading(false);
           }
-        } catch {
-          if (!cancelled) {
+        } catch (err) {
+          // 401: the BFF cookie or refresh token cannot restore this profile.
+          // Clear it even if this mount was cancelled, so login is not stuck on it.
+          if (!cancelled || isUnauthorizedRefreshError(err)) {
             clearStoredAuthSession();
+          }
+          if (!cancelled) {
             setSession(null);
             setIsLoading(false);
           }
         }
       };
 
-      if (!stored.accessToken && (stored.refreshToken || bffAuthEnabled)) {
-        if (isTokenAutoRefreshDisabled()) {
-          if (!cancelled) {
-            setSession(stored);
-            setIsLoading(false);
-          }
-          return;
-        }
-        await applyRestoredSession(stored);
-        return;
-      }
+      const plan = planStoredSessionBoot(stored, bffAuthEnabled, {
+        autoRefreshDisabled: isTokenAutoRefreshDisabled(),
+      });
 
-      if (!isSessionExpired(stored)) {
+      // Profile with nothing to refresh (BFF off, no refresh token). Drop it so the
+      // next paint is a normal login, not a half-signed-in shell.
+      if (plan.action === 'clear') {
+        clearStoredAuthSession();
         if (!cancelled) {
-          setSession(stored);
+          setSession(null);
           setIsLoading(false);
         }
         return;
       }
 
-      // Keep the expired session so apps can exercise 401 / re-auth flows locally.
-      if (isTokenAutoRefreshDisabled()) {
-        logger.info(
-          'Skipped session restore refresh because Develop → Disable token auto-refresh is on',
-        );
+      if (plan.action === 'use') {
+        // Keep the expired session so apps can exercise 401 / re-auth flows locally.
+        if (isTokenAutoRefreshDisabled() && stored.accessToken && isSessionExpired(stored)) {
+          logger.info(
+            'Skipped session restore refresh because Develop → Disable token auto-refresh is on',
+          );
+        }
         if (!cancelled) {
-          setSession(stored);
+          setSession(plan.session);
           setIsLoading(false);
         }
         return;
       }
 
-      await applyRestoredSession(stored);
+      await applyRestoredSession(plan.session);
     };
 
     void initializeSession();

@@ -167,6 +167,8 @@ Identity seeds itself on every start (`IDENTITY_DEV_SEED=true` in the compose fi
 
 The seed never overwrites existing rows, so a changed admin password or company settings survive restarts. To start fresh, run `docker compose --env-file .env.local down -v`.
 
+Sign-in stays in the browser across tabs. The dev shell sets `security.bffAuth.enabled` in `dev/config/shellui.security.config.json`. The CLI dev server stores the refresh token in an HttpOnly `shellui_refresh` cookie on `/api/auth`, without the Secure flag on http://localhost. The browser still calls identity at http://localhost:8001. Inside the shell container, refresh uses `http://identity:8000` (`SHELLUI_BFF_BACKEND_URL`), the same identity on the Compose network. A saved profile that cannot be restored is cleared, and the login page comes back.
+
 GitHub is optional. Without credentials the stack starts normally and only the GitHub button fails. To enable it, create a GitHub OAuth app with homepage `http://localhost:4000` and the callback URL identity shows in its OAuth setup, then add the client ID and secret to company 1 in the admin app (http://localhost:5173) or the identity admin. Credentials are stored per company, not in `.env.local`.
 
 ### SaaS API CORS

@@ -60,7 +60,42 @@ function appendSetCookie(res, cookie) {
   res.setHeader('Set-Cookie', [existing, cookie]);
 }
 
-function buildRefreshCookie(name, refreshToken, { secure }) {
+/**
+ * Identity base URL the BFF calls for refresh.
+ * `SHELLUI_BFF_BACKEND_URL` overrides `backend.url` so the dev container can
+ * reach identity on the Compose network while the browser keeps localhost.
+ * @param {string | undefined} backendUrl
+ * @returns {string}
+ */
+export function resolveBffUpstreamUrl(backendUrl) {
+  const override =
+    typeof process.env.SHELLUI_BFF_BACKEND_URL === 'string'
+      ? process.env.SHELLUI_BFF_BACKEND_URL.trim()
+      : '';
+  const raw = override || backendUrl || '';
+  return raw.replace(/\/+$/, '');
+}
+
+/**
+ * Whether the dev-server refresh cookie should set Secure.
+ * http://localhost does not, including when NODE_ENV is production.
+ * `SHELLUI_BFF_SECURE_COOKIE=1` forces it on, `=0` forces it off.
+ * @param {import('http').IncomingMessage | { headers?: import('http').IncomingHttpHeaders, socket?: { encrypted?: boolean } }} req
+ * @returns {boolean}
+ */
+export function devBffCookieSecure(req) {
+  const flag = process.env.SHELLUI_BFF_SECURE_COOKIE;
+  if (flag === '1') return true;
+  if (flag === '0') return false;
+  const forwarded = req?.headers?.['x-forwarded-proto'];
+  const raw = Array.isArray(forwarded) ? forwarded[0] : forwarded;
+  const proto = typeof raw === 'string' ? raw.split(',')[0].trim().toLowerCase() : '';
+  if (proto === 'https') return true;
+  if (proto === 'http') return false;
+  return Boolean(req?.socket?.encrypted);
+}
+
+export function buildRefreshCookie(name, refreshToken, { secure }) {
   const maxAge = 60 * 60 * 24 * 30; // 30 days
   const flags = [
     `${name}=${encodeURIComponent(refreshToken)}`,
@@ -145,13 +180,13 @@ export function authBffPlugin(shelluiConfig) {
         return;
       }
 
-      const backendUrl = backend.url.replace(/\/+$/, '');
-      const isSecure =
-        process.env.NODE_ENV === 'production' ||
-        backendUrl.startsWith('https://') ||
-        process.env.SHELLUI_BFF_SECURE_COOKIE === '1';
+      const backendUrl = resolveBffUpstreamUrl(backend.url);
+      if (!backendUrl) {
+        return;
+      }
 
       server.middlewares.use('/api/auth', async (req, res, next) => {
+        const isSecure = devBffCookieSecure(req);
         if (!req.url?.startsWith('/')) {
           next();
           return;
@@ -281,9 +316,11 @@ export async function handleAuthBffRequest(req, res, shelluiConfig) {
   const pathname = url.pathname.slice('/api/auth'.length) || '/';
   const method = req.method ?? 'GET';
   const cookieName = shelluiConfig?.security?.bffAuth?.cookieName || DEFAULT_COOKIE_NAME;
-  const backendUrl = backend.url.replace(/\/+$/, '');
+  const publicBackendUrl = String(backend.url).replace(/\/+$/, '');
+  const backendUrl = resolveBffUpstreamUrl(backend.url);
+  if (!backendUrl) return false;
   const isSecure =
-    process.env.SHELLUI_BFF_SECURE_COOKIE === '1' || backendUrl.startsWith('https://');
+    process.env.SHELLUI_BFF_SECURE_COOKIE === '1' || publicBackendUrl.startsWith('https://');
 
   if (method === 'POST' && pathname === '/session') {
     const raw = await readRequestBody(req);

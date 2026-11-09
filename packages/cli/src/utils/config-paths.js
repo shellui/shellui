@@ -51,6 +51,7 @@ export const SECTION_KEYS = [
   'cookieConsent',
   'legalDocuments',
   'sentry',
+  'security',
   'dev',
 ];
 
