@@ -32,7 +32,8 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   assert.doesNotMatch(example, /REGION_LOCAL_/);
   assert.match(example, /^GLOBAL_AGENT_SIGNING_KEY=/m);
   assert.match(example, /^GLOBAL_AGENT_KEY_ID=/m);
-  assert.match(example, /^PUBLIC_IDENTITY_GLOBAL_URL=http:\/\/localhost:8007$/m);
+  assert.match(example, /^DEV_PUBLIC_HOST=/m);
+  assert.match(example, /^PUBLIC_IDENTITY_GLOBAL_URL=http:\/\/\$\{DEV_PUBLIC_HOST\}:8007$/m);
   assert.match(example, /^IDENTITY_GLOBAL_JWT_AUDIENCE=shellui_global$/m);
   assert.match(example, /^GLOBAL_AGENT_ISSUER_URL=\$\{PUBLIC_SAAS_URL\}$/m);
   assert.match(example, /^GLOBAL_AGENT_JWKS=/m);

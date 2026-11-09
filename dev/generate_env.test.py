@@ -98,11 +98,13 @@ def assert_global_issuer_key_matches(text: str, dev: Path) -> None:
         if (name := line.split("=", 1)[0]) in {"GLOBAL_CLIENT_ID", "IDENTITY_GLOBAL_OIDC_CLIENTS"}
     }
     clients_raw = lines["IDENTITY_GLOBAL_OIDC_CLIENTS"].split("=", 1)[1].strip()
-    assert clients_raw[0] == "'" and clients_raw[-1] == "'"
-    clients = json.loads(clients_raw[1:-1])
+    if len(clients_raw) >= 2 and clients_raw[0] == clients_raw[-1] and clients_raw[0] in {"'", '"'}:
+        clients_raw = clients_raw[1:-1]
+    clients = json.loads(clients_raw)
     client_id = lines["GLOBAL_CLIENT_ID"].split("=", 1)[1].strip()
     assert clients[0]["client_id"] == client_id
     assert "http://localhost:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
+    assert "http://${DEV_PUBLIC_HOST}:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
 
 
 def assert_no_duplicate_var_definitions(text: str) -> None:

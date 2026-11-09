@@ -53,10 +53,15 @@ def service_env(doc: dict[str, Any], service: str) -> dict[str, str]:
 
 def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> None:
     """Static checks on resolved compose env (issuer URL, internal hostname, JWT audiences)."""
-    pid = dotenv["PUBLIC_IDENTITY_URL"]
-    pglobal = dotenv["PUBLIC_IDENTITY_GLOBAL_URL"]
-    psaas = dotenv["PUBLIC_SAAS_URL"]
-    pai = dotenv["PUBLIC_AI_URL"]
+    host = dotenv.get("DEV_PUBLIC_HOST", "localhost")
+
+    def expand(value: str) -> str:
+        return value.replace("${DEV_PUBLIC_HOST}", host)
+
+    pid = expand(dotenv["PUBLIC_IDENTITY_URL"])
+    pglobal = expand(dotenv["PUBLIC_IDENTITY_GLOBAL_URL"])
+    psaas = expand(dotenv["PUBLIC_SAAS_URL"])
+    pai = expand(dotenv["PUBLIC_AI_URL"])
     ga_aud = dotenv["GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE"]
     global_aud = dotenv["IDENTITY_GLOBAL_JWT_AUDIENCE"]
     internal_identity = "http://identity:8000"
@@ -116,7 +121,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert saas.get("EMAIL_SERVICE_URL") == "http://email:8000"
 
     internal_jwks = f"{internal_identity}/.well-known/jwks.json"
-    public_email = dotenv["PUBLIC_EMAIL_URL"]
+    public_email = expand(dotenv["PUBLIC_EMAIL_URL"])
     for name in ("email", "email-worker"):
         env = service_env(doc, name)
         assert env.get("IDENTITY_SERVICE_URL") == internal_identity, name
@@ -127,7 +132,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
         assert "localhost:8001" not in joined, name
 
     # Identity list_services publishes the public email origin when the key is set.
-    assert ident.get("EMAIL_SERVICE_URL") == dotenv["PUBLIC_EMAIL_URL"]
+    assert ident.get("EMAIL_SERVICE_URL") == public_email
     assert ident.get("EMAIL_SERVICE_INTERNAL_URL") == "http://email:8000"
     assert ident.get("EMAIL_SERVICE_API_KEY"), "identity EMAIL_SERVICE_API_KEY"
 

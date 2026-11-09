@@ -186,19 +186,21 @@ def jwks_quoted_for_keys(pairs: list[tuple[str, str]]) -> str:
 
 
 def oidc_clients_env(client_id: str, client_secret: str) -> str:
-    """Single-quoted OIDC_CLIENTS JSON for the regional relying party."""
+    """OIDC_CLIENTS JSON. ${DEV_PUBLIC_HOST} is expanded by Compose, not here."""
+    redirects = []
+    for host in ("localhost", "${DEV_PUBLIC_HOST}"):
+        base = f"http://{host}:8001"
+        redirects.append(f"{base}/oauth/upstream-callback")
+        redirects.append(f"{base}/oauth/mcp/saas-return")
     doc = [
         {
             "client_id": client_id,
             "client_secret": client_secret,
-            "redirect_uris": [
-                "http://localhost:8001/oauth/upstream-callback",
-                "http://localhost:8001/oauth/mcp/saas-return",
-            ],
-            "backchannel_logout_uri": "http://localhost:8001/oauth/backchannel-logout",
+            "redirect_uris": redirects,
+            "backchannel_logout_uri": "http://${DEV_PUBLIC_HOST}:8001/oauth/backchannel-logout",
         }
     ]
-    return "'" + json.dumps(doc, separators=(",", ":")) + "'"
+    return json.dumps(doc, separators=(",", ":"))
 
 
 def quoted_pem(private_pem: str) -> str:

@@ -72,7 +72,7 @@ Never commit `dev/.env.local`.
 | Postgres        | `localhost:5432`      |
 | Redis           | `localhost:6379`      |
 
-Browser URLs and token issuers use `http://localhost:<port>`. Calls between containers use `http://<service>:8000`, for example `http://identity:8000/.well-known/jwks.json` and `http://identity-global:8000/.well-known/jwks.json`.
+Browser URLs and token issuers use `http://${DEV_PUBLIC_HOST}:<port>`. The example sets `DEV_PUBLIC_HOST` to a Tailscale address. Set it to `localhost` when the browser is on the same machine. The table lists the ports. identity-global is port 8007. In the steps below, use that host in place of `localhost` when it is not `localhost`. Calls between containers use `http://<service>:8000`, for example `http://identity:8000/.well-known/jwks.json` and `http://identity-global:8000/.well-known/jwks.json`.
 
 ## Which identity each app uses
 

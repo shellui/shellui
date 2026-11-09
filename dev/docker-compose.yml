@@ -99,8 +99,8 @@ services:
       PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
       FILES_URL: ${PUBLIC_FILES_URL}
       SHELLUI_DISABLE_CONFIG_WATCH: '1'
-      # Browser calls stay on PUBLIC_IDENTITY_URL (localhost:8001). This process
-      # cannot use that host, so BFF refresh uses identity on the Compose network.
+      # Browser calls stay on PUBLIC_IDENTITY_URL. This process cannot use that
+      # host from inside the network, so BFF refresh uses identity over Compose DNS.
       SHELLUI_BFF_BACKEND_URL: http://identity:8000
     volumes:
       - ..:/app
@@ -118,7 +118,7 @@ services:
       - '8001:8000'
     environment:
       <<: [*django-common, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${IDENTITY_SECRET_KEY}
       JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
@@ -131,6 +131,7 @@ services:
       EMAIL_SERVICE_INTERNAL_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
       IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
       STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
       STORAGE_SERVICE_INTERNAL_URL: http://storage:8000
       HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
@@ -187,7 +188,7 @@ services:
       - '8007:8000'
     environment:
       <<: [*django-common, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,identity-global,100.127.19.94
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${IDENTITY_GLOBAL_SECRET_KEY}
       SHELLUI_INSTANCE_ROLE: global
       JWT_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
@@ -204,6 +205,7 @@ services:
       EMAIL_SERVICE_API_KEY: ${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY}
       SAAS_SERVICE_URL: ${PUBLIC_SAAS_URL}
       IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
       EMAIL_HOST: mailpit
       EMAIL_PORT: '1025'
       EMAIL_USE_TLS: 'false'
@@ -328,7 +330,7 @@ services:
       EMAIL_USE_TLS: 'false'
       EMAIL_USE_SSL: 'false'
       EMAIL_SMTP_VERIFY_CERT: 'false'
-      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1
+      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
       # Both identity processes send auth mail. The name `identity` is the auth lane.
       EMAIL_DEV_SERVICE_KEYS: identity=${IDENTITY_EMAIL_SERVICE_API_KEY},identity=${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY},storage=${STORAGE_EMAIL_SERVICE_API_KEY},hosting=${HOSTING_EMAIL_SERVICE_API_KEY},saas=${SAAS_EMAIL_SERVICE_API_KEY},ai=${AI_EMAIL_SERVICE_API_KEY}
     volumes:
@@ -508,7 +510,7 @@ services:
       VITE_AI_SERVICE_URL: ${PUBLIC_AI_URL}
       VITE_FILES_URL: ${PUBLIC_FILES_URL}
       VITE_HMR_CLIENT_PORT: '5173'
-      VITE_HMR_HOST: localhost
+      VITE_HMR_HOST: ${DEV_PUBLIC_HOST:-localhost}
     volumes:
       - ../../admin:/app
       - admin-node-modules:/app/node_modules
