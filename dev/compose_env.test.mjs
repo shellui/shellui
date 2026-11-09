@@ -32,6 +32,12 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   assert.doesNotMatch(example, /REGION_LOCAL_/);
   assert.match(example, /^GLOBAL_AGENT_SIGNING_KEY=/m);
   assert.match(example, /^GLOBAL_AGENT_KEY_ID=/m);
+  assert.match(example, /^PUBLIC_IDENTITY_GLOBAL_URL=http:\/\/localhost:8007$/m);
+  assert.match(example, /^IDENTITY_GLOBAL_JWT_AUDIENCE=shellui_global$/m);
+  assert.match(example, /^SHELLUI_INSTANCE_ROLE=region$/m);
   assert.match(compose, /GLOBAL_AGENT_SIGNING_KEY:\s*\$\{GLOBAL_AGENT_SIGNING_KEY\}/);
   assert.match(compose, /GLOBAL_AGENT_KEY_ID:\s*\$\{GLOBAL_AGENT_KEY_ID\}/);
+  assert.match(compose, /SHELLUI_INSTANCE_ROLE:\s*global/);
+  assert.match(compose, /'8007:8000'/);
+  assert.match(compose, /IDENTITY_SERVICE_URL:\s*\$\{PUBLIC_IDENTITY_GLOBAL_URL\}/);
 });

@@ -22,13 +22,15 @@ docker compose -f dev/docker-compose.yml \
   --env-file <temp> config --format json
 ```
 
-It checks resolved `environment` on `identity`, `ai`, and `saas`:
-`JWT_ISSUER`, `GLOBAL_ISSUER_URL` (SaaS origin),
+It checks resolved `environment` on `identity`, `identity-global`,
+`ai`, and `saas`: `JWT_ISSUER`, `GLOBAL_ISSUER_URL`
+(identity-global, http://localhost:8007),
 `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, `AI_SERVICE_ISSUER`,
-`AI_SERVICE_JWKS_URL`, identity `IDENTITY_SERVICE_URL` and
+`AI_SERVICE_JWKS_URL`, regional `IDENTITY_SERVICE_URL` and
 `IDENTITY_JWKS_URL` (`http://identity:8000`), saas
-`IDENTITY_INTERNAL_URL`, and a `kid` inside `GLOBAL_JWKS`. That is
-compose JSON. It does not send HTTP to the containers.
+`IDENTITY_INTERNAL_URL` (`http://identity-global:8000`), and a
+`kid` inside `GLOBAL_JWKS`. That is compose JSON. It does not
+send HTTP to the containers.
 
 - `node scripts/verify-ai-native-doc.mjs`
 - `pnpm run docs:build`
@@ -65,8 +67,10 @@ exchange with fixtures. That is not this compose stack.
   with Django admin.
 - `GET /api/v1/mcp/approvals` and decide routes need a human company
   token, not an agent Bearer token.
-- `GET /oauth/authorize` on the SaaS origin is user OpenID (`scope`
-  `openid email profile`). It is not the agent token endpoint.
+- `GET /oauth/authorize` on identity-global
+  (http://localhost:8007) is user OpenID (`scope`
+  `openid email profile`) with `prompt=none`. It is not the agent
+  token endpoint.
 
 ## Install and start (Shellui `develop`)
 
@@ -83,14 +87,18 @@ Identity publishes `- '8001:8000'`.
 Hosting publishes `8003:8000`.
 
 Set `SHELLUI_INSTANCE_ROLE=region`, `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
-and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or regional token exchange
-returns 404.
+`GLOBAL_ACCESS_TOKEN_AUDIENCE`, and
+`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or regional token exchange
+returns 404. `GLOBAL_ISSUER_URL` is identity-global
+(http://localhost:8007), not the SaaS origin.
 
 `dev/generate_env.py` derives `GLOBAL_JWKS` and `GLOBAL_AGENT_KEY_ID`
-from the same `GLOBAL_AGENT_SIGNING_KEY` PEM on every run.
+from the identity-global PEM, also stored as
+`GLOBAL_AGENT_SIGNING_KEY`, on every run.
 `GLOBAL_AGENT_KEY_ID` is the `kid` in that JWKS.
-`dev/docker-compose.yml` passes the PEM, the key id, and the audience
-into `saas`. If you replace the PEM by hand, rerun `generate-env.sh`.
+`dev/docker-compose.yml` passes the PEM, the key id, the audience,
+and `GLOBAL_AGENT_ISSUER` into `saas`. If you replace the PEM by
+hand, rerun `generate-env.sh`.
 
 ## Human account and Terms before agent work
 

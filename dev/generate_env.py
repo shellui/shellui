@@ -4,11 +4,13 @@
 If the output already exists, only variables it does not define yet are appended,
 so existing secrets and database passwords are kept.
 
-Global agent material (SaaS signing key and identity GLOBAL_JWKS) is always derived
-from the same private PEM. On every run, GLOBAL_JWKS and GLOBAL_AGENT_KEY_ID
-are recomputed from GLOBAL_AGENT_SIGNING_KEY so a stale JWKS cannot drift from
-the PEM. GLOBAL_AGENT_KEY_ID is the JWKS **`kid`** SaaS uses when minting. Sensitive
-values are never printed.
+The global issuer key is identity-global's JWT private key. SaaS mints global
+agent tokens with that same PEM (GLOBAL_AGENT_SIGNING_KEY). On every run,
+GLOBAL_JWKS and GLOBAL_AGENT_KEY_ID are recomputed from that PEM so a stale
+JWKS cannot drift. When an older file has GLOBAL_AGENT_SIGNING_KEY and no
+identity-global key yet, the agent PEM is copied into the new variable.
+GLOBAL_AGENT_KEY_ID is the JWKS kid SaaS uses when minting. Sensitive values
+are never printed.
 """
 
 from __future__ import annotations
@@ -66,10 +68,18 @@ def pem_for_env(pem: str) -> str:
 def unescape_env_pem(raw: str) -> str | None:
     """Unquote a PEM stored on one line with \\n escapes. Returns None if not a PEM."""
     s = raw.strip()
-    if (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'")):
-        s = s[1:-1]
+    while (len(s) >= 2) and (
+        (s.startswith('"') and s.endswith('"')) or (s.startswith("'") and s.endswith("'"))
+    ):
+        s = s[1:-1].strip()
     s = s.replace("\\n", "\n")
+    start = s.find("-----BEGIN")
+    if start < 0:
+        return None
+    s = s[start:]
     if "BEGIN RSA PRIVATE KEY" in s or "BEGIN PRIVATE KEY" in s:
+        if not s.endswith("\n"):
+            s += "\n"
         return s
     return None
 
@@ -120,15 +130,19 @@ def public_pem_from_private(private_pem: str) -> str:
     )
 
 
+def extract_private_pem(env_body: str, key: str) -> str | None:
+    for line in env_body.splitlines():
+        if line.startswith(key + "="):
+            return unescape_env_pem(line.split("=", 1)[1].strip())
+    return None
+
+
 def extract_global_agent_private_pem(env_body: str) -> str | None:
     """Prefer GLOBAL_AGENT_SIGNING_KEY; accept legacy GLOBAL_AGENT_PRIVATE_KEY."""
     for key in ("GLOBAL_AGENT_SIGNING_KEY", "GLOBAL_AGENT_PRIVATE_KEY"):
-        for line in env_body.splitlines():
-            if line.startswith(key + "="):
-                raw = line.split("=", 1)[1].strip()
-                pem = unescape_env_pem(raw)
-                if pem:
-                    return pem
+        pem = extract_private_pem(env_body, key)
+        if pem:
+            return pem
     return None
 
 
@@ -158,12 +172,38 @@ def replace_env_lines(body: str, updates: dict[str, str]) -> str:
     return "\n".join(out_lines) + ("\n" if body.endswith("\n") or not body else "")
 
 
-def global_agent_updates_from_private(private_pem: str, audience_template: str) -> dict[str, str]:
-    public_pem = public_pem_from_private(private_pem)
+def jwks_quoted_for_keys(pairs: list[tuple[str, str]]) -> str:
+    """Single-quoted JWKS. ``pairs`` is ``(public_pem, kid)``, first key wins on kid."""
+    keys: list[dict] = []
+    seen: set[str] = set()
+    for public_pem, kid in pairs:
+        if kid in seen:
+            continue
+        seen.add(kid)
+        doc = json.loads(jwks_for_rsa_public_pem(public_pem, kid))
+        keys.append(doc["keys"][0])
+    return "'" + json.dumps({"keys": keys}, separators=(",", ":")) + "'"
+
+
+def oidc_clients_env(client_id: str, client_secret: str) -> str:
+    """Single-quoted OIDC_CLIENTS JSON for the regional relying party."""
+    doc = [
+        {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uris": [
+                "http://localhost:8001/oauth/upstream-callback",
+                "http://localhost:8001/oauth/mcp/saas-return",
+            ],
+            "backchannel_logout_uri": "http://localhost:8001/oauth/backchannel-logout",
+        }
+    ]
+    return "'" + json.dumps(doc, separators=(",", ":")) + "'"
+
+
+def global_agent_updates_from_private(private_pem: str, audience_template: str, jwks_quoted: str) -> dict[str, str]:
     kid = kid_from_private_pem(private_pem)
-    jwks_obj = jwks_for_rsa_public_pem(public_pem, kid)
-    jwks_quoted = "'" + jwks_obj + "'"
-    # audience may reference ${PUBLIC_SAAS_URL}; keep literal from template
+    # audience may reference another env var; keep the literal from the file or example
     return {
         "GLOBAL_AGENT_SIGNING_KEY": '"' + pem_for_env(private_pem) + '"',
         "GLOBAL_AGENT_KEY_ID": kid,
@@ -190,6 +230,9 @@ def apply_example(
     global_private_pem: str,
     global_kid: str,
     global_jwks_quoted: str,
+    *,
+    oidc_client_id: str,
+    oidc_client_secret: str,
 ) -> str:
     text = example_path.read_text(encoding="utf-8")
     pem_env = pem_for_env(global_private_pem)
@@ -197,6 +240,7 @@ def apply_example(
     replacements = {
         "__POSTGRES_PASSWORD__": secrets.token_urlsafe(24),
         "__IDENTITY_SECRET_KEY__": secret_key(),
+        "__IDENTITY_GLOBAL_SECRET_KEY__": secret_key(),
         "__STORAGE_SECRET_KEY__": secret_key(),
         "__HOSTING_SECRET_KEY__": secret_key(),
         "__EMAIL_SECRET_KEY__": secret_key(),
@@ -212,9 +256,12 @@ def apply_example(
         "__EMAIL_SERVICE_SIGNING_KEY__": "",  # filled below
         "__PROVISIONING_SIGNING_KEY__": "",  # filled below
         "__PROVISIONING_PUBLIC_KEY__": "",  # filled below
-        "__GLOBAL_AGENT_SIGNING_KEY__": '"' + pem_env + '"',
+        "__GLOBAL_AGENT_SIGNING_KEY__": pem_env,
         "__GLOBAL_AGENT_JWKS_JSON__": global_jwks_quoted,
         "__GLOBAL_AGENT_KEY_ID__": global_kid,
+        "__GLOBAL_OIDC_CLIENT_ID__": oidc_client_id,
+        "__GLOBAL_OIDC_CLIENT_SECRET__": oidc_client_secret,
+        "__IDENTITY_GLOBAL_OIDC_CLIENTS__": oidc_clients_env(oidc_client_id, oidc_client_secret),
         "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
         "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
         "__EMAIL_VARIABLES_KEY__": fernet_key(),
@@ -222,6 +269,10 @@ def apply_example(
     }
 
     jwt_private, jwt_public, jwt_kid = rsa_keypair()
+    global_public = public_pem_from_private(global_private_pem)
+    replacements["__IDENTITY_GLOBAL_JWT_PRIVATE_KEY__"] = pem_for_env(global_private_pem)
+    replacements["__IDENTITY_GLOBAL_JWT_PUBLIC_KEY__"] = pem_for_env(global_public)
+    replacements["__IDENTITY_GLOBAL_JWT_KEY_ID__"] = global_kid
     ai_private, _ai_public, ai_kid = rsa_keypair()
     storage_private, _storage_public, _ = rsa_keypair()
     hosting_private, _hosting_public, _ = rsa_keypair()
@@ -241,12 +292,38 @@ def apply_example(
 
     for marker, value in replacements.items():
         text = text.replace(marker, value)
-    text = re.sub(r"__ESK_[A-Z]+__", lambda _match: esk_key(), text)
+    text = re.sub(r"__ESK_[A-Z_]+__", lambda _match: esk_key(), text)
 
     if re.search(r"__[-A-Z0-9_]+__", text):
         print("Unresolved placeholders remain in output", file=sys.stderr)
         raise SystemExit(1)
     return text
+
+
+def _unquote_plain(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    s = raw.strip()
+    while len(s) >= 2 and s[0] == s[-1] and s[0] in {'"', "'"}:
+        s = s[1:-1].strip()
+    return s or None
+
+
+def _existing_oidc_client(env_body: str) -> tuple[str, str] | None:
+    raw = _unquote_plain(extract_value(env_body, "IDENTITY_GLOBAL_OIDC_CLIENTS"))
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, list) or not data or not isinstance(data[0], dict):
+        return None
+    client_id = str(data[0].get("client_id") or "").strip()
+    secret = str(data[0].get("client_secret") or "")
+    if client_id and secret:
+        return client_id, secret
+    return None
 
 
 def main() -> int:
@@ -265,27 +342,62 @@ def main() -> int:
     )
     audience_from_example = aud_match.group(1).strip() if aud_match else "shellui_global_agent_dev"
 
-    existing_pem: str | None = None
-    audience_from_file: str | None = None
-    if output_path.exists():
-        cur = output_path.read_text(encoding="utf-8")
-        existing_pem = extract_global_agent_private_pem(cur)
-        audience_from_file = extract_value(cur, "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE")
-
+    existing_body = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    audience_from_file = extract_value(existing_body, "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") if existing_body else None
     audience_template = audience_from_file if audience_from_file else audience_from_example
 
-    if existing_pem:
-        global_private = existing_pem
-        global_public = public_pem_from_private(global_private)
-        global_kid = kid_from_private_pem(global_private)
-        global_jwks_quoted = "'" + jwks_for_rsa_public_pem(global_public, global_kid) + "'"
+    issuer_pem = extract_private_pem(existing_body, "IDENTITY_GLOBAL_JWT_PRIVATE_KEY") if existing_body else None
+    agent_pem = extract_global_agent_private_pem(existing_body) if existing_body else None
+    if issuer_pem:
+        global_private = issuer_pem
+    elif agent_pem:
+        global_private = agent_pem
+        print(
+            "Using GLOBAL_AGENT_SIGNING_KEY as IDENTITY_GLOBAL_JWT_PRIVATE_KEY",
+            file=sys.stderr,
+        )
     else:
-        global_private, global_public, global_kid = rsa_keypair()
-        global_jwks_quoted = "'" + jwks_for_rsa_public_pem(global_public, global_kid) + "'"
+        global_private, _public, _kid = rsa_keypair()
 
-    text = apply_example(example_path, global_private, global_kid, global_jwks_quoted)
+    global_public = public_pem_from_private(global_private)
+    global_kid = kid_from_private_pem(global_private)
+    signing_pem = agent_pem or global_private
+    signing_public = public_pem_from_private(signing_pem)
+    signing_kid = kid_from_private_pem(signing_pem)
+    jwks_pairs = [(global_public, global_kid)]
+    if signing_kid != global_kid:
+        jwks_pairs.append((signing_public, signing_kid))
+        print(
+            "IDENTITY_GLOBAL_JWT_PRIVATE_KEY and GLOBAL_AGENT_SIGNING_KEY differ; "
+            "GLOBAL_JWKS lists both public keys. Agent tokens must use iss equal to "
+            "the identity-global issuer.",
+            file=sys.stderr,
+        )
+    global_jwks_quoted = jwks_quoted_for_keys(jwks_pairs)
 
-    ga_updates = global_agent_updates_from_private(global_private, audience_template)
+    parsed_client = _existing_oidc_client(existing_body) if existing_body else None
+    client_id = _unquote_plain(extract_value(existing_body, "GLOBAL_CLIENT_ID")) if existing_body else None
+    client_secret = _unquote_plain(extract_value(existing_body, "GLOBAL_CLIENT_SECRET")) if existing_body else None
+    if parsed_client:
+        client_id = client_id or parsed_client[0]
+        client_secret = client_secret or parsed_client[1]
+    if not client_id:
+        client_id = "region-dev-" + secrets.token_urlsafe(9)
+    if not client_secret:
+        client_secret = secrets.token_urlsafe(32)
+
+    text = apply_example(
+        example_path,
+        global_private,
+        global_kid,
+        global_jwks_quoted,
+        oidc_client_id=client_id,
+        oidc_client_secret=client_secret,
+    )
+
+    ga_updates = global_agent_updates_from_private(signing_pem, audience_template, global_jwks_quoted)
+    if existing_body and extract_value(existing_body, "IDENTITY_GLOBAL_JWT_KEY_ID"):
+        ga_updates["IDENTITY_GLOBAL_JWT_KEY_ID"] = global_kid
 
     if output_path.exists():
         current = output_path.read_text(encoding="utf-8")
