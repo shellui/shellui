@@ -106,6 +106,94 @@ Company id **1** is the seeded id (`SHELL_IDENTITY_COMPANY_ID`). The
 resource path below uses `/c/1/mcp`. If your membership is a different
 company, put that integer in the path.
 
+## Connect an agent from Settings
+
+Open **Settings**, then **MCP / AI agents**. Copy the company MCP URL
+on that page (`{ai-service}/c/{company_id}/mcp`, absolute) and the
+prompt next to it. The prompt tells the agent to add that URL as a
+remote MCP server and sign in with OAuth. It does not include an
+access token, a refresh token, a device code, or a user code.
+
+What you do:
+
+1. Paste the prompt into your agent.
+2. Open the link it shows.
+3. Check the code and choose **Allow**.
+
+A browser client opens the Identity consent page. A headless client or
+a command-line interface (CLI) uses device login. The agent calls
+`POST /oauth/mcp/device/code` with `client_id` and `resource` set to
+the company MCP URL. Identity returns a device code, a user code, and
+`verification_uri` (`{identity}/oauth/mcp/device`). The code expires
+in 600 seconds. The agent shows you the link and the code, then polls.
+
+Open the link, sign in with a non-staff account, confirm the code, and
+choose **Allow**. Staff cannot approve. Identity then returns an
+access token that lasts 15 minutes and a refresh token bound to that
+MCP URL. The connection expires within 90 days.
+
+The poll is `POST /oauth/token`. `POST /oauth/mcp/token` is the same
+handler. Send `grant_type` as the device-code grant:
+
+```text
+urn:ietf:params:oauth:grant-type:device_code
+```
+
+Also send `device_code`, `client_id`, and `resource` set to the company
+MCP URL. `authorization_pending` means keep waiting. `slow_down` means wait
+longer than the current interval (it starts at 5 seconds).
+`access_denied` and `expired_token` stop the wait.
+
+Return to the settings tab. The list reloads. A device-login row has
+`kind` `oauth`, plus the name, the created date, the expiry, and
+**Revoke**. Revoke is
+`POST /api/v1/mcp/personal/agents/{id}/revoke`.
+
+Clients that only accept a static secret use the collapsed control on
+this page. Shellui shows that secret once. It is not part of the
+prompt. Creation still sends `expires_at` inside the 90-day cap
+(`MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS`).
+
+ai-service must serve the protected-resource document for that URL:
+
+```text
+GET /.well-known/oauth-protected-resource/c/{company_id}/mcp
+```
+
+The document lists `resource`, `authorization_servers` (the identity
+issuer only, equal to the issuer in identity metadata),
+`scopes_supported` of `mcp`, and `bearer_methods_supported` of
+`header`. A 401 from the company MCP URL sends
+`WWW-Authenticate: Bearer` with `realm="mcp"`, `resource_metadata`
+set to that document, and `scope="mcp"`. Do not put
+`device_authorization_endpoint` on that document. Identity's
+authorization-server metadata lists that endpoint and the device-code
+grant.
+
+English prompt:
+
+```text
+Connect to this Shellui company over MCP.
+
+MCP URL: https://ai.example/c/1/mcp
+
+Add this URL as a remote MCP server and sign in with OAuth.
+If this client is headless or a CLI, use device login.
+Show the link and the code, then wait until I approve them.
+```
+
+French prompt:
+
+```text
+Connectez cette entreprise Shellui en MCP.
+
+URL MCP : https://ai.example/c/1/mcp
+
+Ajoutez cette URL comme serveur MCP distant et connectez-vous avec OAuth.
+Si le client est sans interface ou en ligne de commande, utilisez device login.
+Montrez le lien et le code, puis attendez que je les approuve.
+```
+
 ## Official MCP clients
 
 ai-service `./tools/mcp-e2e/run.sh` starts identity, ai-service, Postgres,
