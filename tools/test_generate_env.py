@@ -53,37 +53,75 @@ def service_env(doc: dict[str, Any], service: str) -> dict[str, str]:
 
 def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> None:
     """Static checks on resolved compose env (issuer URL, internal hostname, JWT audiences)."""
-    pid = dotenv["PUBLIC_IDENTITY_URL"]
-    psaas = dotenv["PUBLIC_SAAS_URL"]
-    pai = dotenv["PUBLIC_AI_URL"]
+    host = dotenv.get("DEV_PUBLIC_HOST", "localhost")
+
+    def expand(value: str) -> str:
+        return value.replace("${DEV_PUBLIC_HOST}", host)
+
+    pid = expand(dotenv["PUBLIC_IDENTITY_URL"])
+    pglobal = expand(dotenv["PUBLIC_IDENTITY_GLOBAL_URL"])
+    psaas = expand(dotenv["PUBLIC_SAAS_URL"])
+    pai = expand(dotenv["PUBLIC_AI_URL"])
     ga_aud = dotenv["GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE"]
+    global_aud = dotenv["IDENTITY_GLOBAL_JWT_AUDIENCE"]
     internal_identity = "http://identity:8000"
+    internal_global = "http://identity-global:8000"
 
     ident = service_env(doc, "identity")
+    global_ident = service_env(doc, "identity-global")
     ai = service_env(doc, "ai")
     saas = service_env(doc, "saas")
+    dashboard = service_env(doc, "dashboard")
+    shell = service_env(doc, "shell")
 
+    assert ident.get("SHELLUI_INSTANCE_ROLE") == "region"
     assert ident.get("JWT_ISSUER") == pid, "identity JWT_ISSUER must equal PUBLIC_IDENTITY_URL"
-    assert ident.get("GLOBAL_ISSUER_URL") == psaas, "identity GLOBAL_ISSUER_URL must equal PUBLIC_SAAS_URL"
+    assert ident.get("GLOBAL_ISSUER_URL") == pglobal, "identity GLOBAL_ISSUER_URL must equal PUBLIC_IDENTITY_GLOBAL_URL"
+    assert ident.get("GLOBAL_ISSUER_INTERNAL_URL") == internal_global
+    assert ident.get("GLOBAL_ACCESS_TOKEN_AUDIENCE") == global_aud
+    assert ident.get("GLOBAL_AGENT_ISSUER_URL") == psaas
     assert ident.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    assert ident.get("GLOBAL_CLIENT_ID"), "regional identity needs GLOBAL_CLIENT_ID"
+    assert ident.get("GLOBAL_CLIENT_SECRET"), "regional identity needs GLOBAL_CLIENT_SECRET"
     assert ident.get("AI_SERVICE_ISSUER") == pai, "identity AI_SERVICE_ISSUER must equal PUBLIC_AI_URL"
     assert ident.get("AI_SERVICE_JWKS_URL") == "http://ai:8000/.well-known/jwks.json"
     gjwk = ident.get("GLOBAL_JWKS", "")
+    agent_jwks = ident.get("GLOBAL_AGENT_JWKS", "")
     assert gjwk, "identity GLOBAL_JWKS must be set after generate_env"
     assert '"kid"' in gjwk or "'kid'" in gjwk, "GLOBAL_JWKS should contain kid"
+    assert agent_jwks and agent_jwks != gjwk, "agent JWKS must be set and differ from the user JWKS"
+    assert ident.get("JWT_KEY_ID") != global_ident.get("JWT_KEY_ID"), "regional and global signing kids must differ"
+
+    assert global_ident.get("SHELLUI_INSTANCE_ROLE") == "global"
+    assert global_ident.get("JWT_ISSUER") == pglobal
+    assert global_ident.get("JWT_AUDIENCE") == global_aud
+    assert global_ident.get("JWT_KEY_ID"), "identity-global JWT_KEY_ID"
+    assert global_ident.get("SECRET_KEY") != ident.get("SECRET_KEY")
+    assert "identity_global" in global_ident.get("POSTGRES_DATABASE_URL", "")
+    assert global_ident.get("REDIS_URL", "").endswith("/6")
+    assert global_ident.get("OIDC_CLIENTS"), "identity-global OIDC_CLIENTS"
+    assert ident.get("GLOBAL_CLIENT_ID") in global_ident.get("OIDC_CLIENTS", "")
 
     assert ai.get("IDENTITY_SERVICE_URL") == internal_identity
     assert ai.get("IDENTITY_JWKS_URL") == f"{internal_identity}/.well-known/jwks.json"
     assert ai.get("IDENTITY_ISSUER") == pid
     assert ai.get("AI_SERVICE_ISSUER") == pai
 
-    assert saas.get("IDENTITY_INTERNAL_URL") == internal_identity
+    assert saas.get("IDENTITY_INTERNAL_URL") == internal_global
+    assert saas.get("IDENTITY_SERVICE_URL") == internal_global
+    assert saas.get("IDENTITY_ISSUER") == pglobal
+    assert saas.get("IDENTITY_AUDIENCE") == global_aud
+    assert saas.get("GLOBAL_ISSUER_URL") == psaas
+    assert "GLOBAL_AGENT_ISSUER" not in saas
     assert saas.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    assert saas.get("GLOBAL_AGENT_KEY_ID") != global_ident.get("JWT_KEY_ID")
+    assert shell.get("PUBLIC_IDENTITY_URL") == pid
+    assert dashboard.get("IDENTITY_SERVICE_URL") == pglobal
     # In-network send URL. Identity discovery uses the public origin below.
     assert saas.get("EMAIL_SERVICE_URL") == "http://email:8000"
 
     internal_jwks = f"{internal_identity}/.well-known/jwks.json"
-    public_email = dotenv["PUBLIC_EMAIL_URL"]
+    public_email = expand(dotenv["PUBLIC_EMAIL_URL"])
     for name in ("email", "email-worker"):
         env = service_env(doc, name)
         assert env.get("IDENTITY_SERVICE_URL") == internal_identity, name
@@ -94,7 +132,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
         assert "localhost:8001" not in joined, name
 
     # Identity list_services publishes the public email origin when the key is set.
-    assert ident.get("EMAIL_SERVICE_URL") == dotenv["PUBLIC_EMAIL_URL"]
+    assert ident.get("EMAIL_SERVICE_URL") == public_email
     assert ident.get("EMAIL_SERVICE_INTERNAL_URL") == "http://email:8000"
     assert ident.get("EMAIL_SERVICE_API_KEY"), "identity EMAIL_SERVICE_API_KEY"
 
@@ -164,7 +202,7 @@ def main() -> int:
             print(f"compose env assertion failed: {exc}", file=sys.stderr)
             return 1
 
-        print("docker compose config: ok (identity issuer, internal URLs, global audience)")
+        print("docker compose config: ok (two identities, global issuer, internal URLs)")
     finally:
         out.unlink(missing_ok=True)
     return 0
