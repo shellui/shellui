@@ -6,7 +6,7 @@ Everything for the local Docker stack lives in this directory.
 ./start.sh
 ```
 
-This creates `.env.local` on first run (later runs append any new variables), then starts the full stack. Extra arguments go to Docker Compose, for example `./start.sh -d`.
+This creates `.env.local` on first run (later runs append any new variables), then starts the full stack, including regional identity and identity-global. Extra arguments go to Docker Compose, for example `./start.sh -d`.
 
 Setup, URLs, common commands and troubleshooting: [docs/dev-stack.md](../docs/dev-stack.md).
 

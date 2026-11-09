@@ -118,7 +118,7 @@ services:
       - '8001:8000'
     environment:
       <<: [*django-common, *django-dev-env]
-      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${IDENTITY_SECRET_KEY}
       JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
       JWT_AUDIENCE: ${JWT_AUDIENCE}
@@ -148,9 +148,17 @@ services:
       PROVISIONING_PUBLIC_KEY: ${PROVISIONING_PUBLIC_KEY}
       PROVISIONING_KEY_ID: dashboard-1
       SHELLUI_INSTANCE_ROLE: ${SHELLUI_INSTANCE_ROLE:-region}
-      GLOBAL_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      # User tokens: identity-global. Agent tokens: saas public URL and its own key.
+      GLOBAL_ISSUER_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      GLOBAL_ISSUER_INTERNAL_URL: http://identity-global:8000
       GLOBAL_JWKS: ${GLOBAL_JWKS}
+      GLOBAL_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_ACCESS_TOKEN_AUDIENCE}
+      GLOBAL_AGENT_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      GLOBAL_AGENT_JWKS: ${GLOBAL_AGENT_JWKS}
       GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
+      GLOBAL_CLIENT_ID: ${GLOBAL_CLIENT_ID}
+      GLOBAL_CLIENT_SECRET: ${GLOBAL_CLIENT_SECRET}
+      OIDC_CORS_ALLOWED_ORIGINS: ${OIDC_CORS_ALLOWED_ORIGINS}
       DASHBOARD_WEBHOOK_URL: ${IDENTITY_DASHBOARD_WEBHOOK_URL}
       DASHBOARD_WEBHOOK_INTERNAL_URL: ${IDENTITY_DASHBOARD_WEBHOOK_INTERNAL_URL}
       DASHBOARD_WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
@@ -160,6 +168,50 @@ services:
     volumes:
       - ../../identity-service:/app
       - identity-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Global OpenID provider. Distinct database, Redis index, signing key, and audience.
+  identity-global:
+    <<: *dev-container
+    build:
+      context: ../../identity-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
+    ports:
+      - '8007:8000'
+    environment:
+      <<: [*django-common, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
+      SECRET_KEY: ${IDENTITY_GLOBAL_SECRET_KEY}
+      SHELLUI_INSTANCE_ROLE: global
+      JWT_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      JWT_AUDIENCE: ${IDENTITY_GLOBAL_JWT_AUDIENCE}
+      JWT_PRIVATE_KEY: ${IDENTITY_GLOBAL_JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${IDENTITY_GLOBAL_JWT_PUBLIC_KEY}
+      JWT_KEY_ID: ${IDENTITY_GLOBAL_JWT_KEY_ID}
+      REDIS_URL: ${IDENTITY_GLOBAL_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${IDENTITY_GLOBAL_POSTGRES_DATABASE_URL}
+      OIDC_CLIENTS: ${IDENTITY_GLOBAL_OIDC_CLIENTS}
+      OIDC_CORS_ALLOWED_ORIGINS: ${OIDC_CORS_ALLOWED_ORIGINS}
+      EMAIL_SERVICE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_SERVICE_INTERNAL_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY}
+      SAAS_SERVICE_URL: ${PUBLIC_SAAS_URL}
+      IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+    volumes:
+      - ../../identity-service:/app
+      - identity-global-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
       postgres:
@@ -279,7 +331,8 @@ services:
       EMAIL_USE_SSL: 'false'
       EMAIL_SMTP_VERIFY_CERT: 'false'
       EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
-      EMAIL_DEV_SERVICE_KEYS: identity=${IDENTITY_EMAIL_SERVICE_API_KEY},storage=${STORAGE_EMAIL_SERVICE_API_KEY},hosting=${HOSTING_EMAIL_SERVICE_API_KEY},saas=${SAAS_EMAIL_SERVICE_API_KEY},ai=${AI_EMAIL_SERVICE_API_KEY}
+      # Both identity processes send auth mail. The name `identity` is the auth lane.
+      EMAIL_DEV_SERVICE_KEYS: identity=${IDENTITY_EMAIL_SERVICE_API_KEY},identity=${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY},storage=${STORAGE_EMAIL_SERVICE_API_KEY},hosting=${HOSTING_EMAIL_SERVICE_API_KEY},saas=${SAAS_EMAIL_SERVICE_API_KEY},ai=${AI_EMAIL_SERVICE_API_KEY}
     volumes:
       - ../../email-service:/app
       - email-data:/app/data
@@ -353,7 +406,14 @@ services:
       REDIS_URL: ${SAAS_REDIS_URL}
       POSTGRES_DATABASE_URL: ${SAAS_POSTGRES_DATABASE_URL}
       DASHBOARD_PUBLIC_URL: ${PUBLIC_SAAS_URL}
-      IDENTITY_INTERNAL_URL: http://identity:8000
+      # Global consumers verify and call identity-global, not the regional issuer.
+      IDENTITY_SERVICE_URL: http://identity-global:8000
+      IDENTITY_JWKS_URL: http://identity-global:8000/.well-known/jwks.json
+      IDENTITY_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      IDENTITY_AUDIENCE: ${IDENTITY_GLOBAL_JWT_AUDIENCE}
+      IDENTITY_INTERNAL_URL: http://identity-global:8000
+      # saas OAuth server for the global MCP. iss on agent tokens is this origin.
+      GLOBAL_ISSUER_URL: ${PUBLIC_SAAS_URL}
       MCP_FORWARD_GLOBAL_APPROVALS_TO_IDENTITY: 'true'
       WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
       # Browser clients: dashboard dev server, shell dev server, and loopback aliases for OAuth redirects.
@@ -380,6 +440,8 @@ services:
       redis:
         condition: service_healthy
       identity:
+        condition: service_started
+      identity-global:
         condition: service_started
 
   ai:
@@ -471,7 +533,7 @@ services:
       CHOKIDAR_USEPOLLING: 'false'
       VITE_USE_POLLING: 'false'
       DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
-      IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_URL}
+      IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
       IDENTITY_COMPANY_ID: ${DASHBOARD_IDENTITY_COMPANY_ID}
       DASHBOARD_APP_URL: ${PUBLIC_DASHBOARD_URL}
       ADMIN_APP_ORIGIN: ${PUBLIC_ADMIN_URL}
@@ -536,6 +598,7 @@ services:
 volumes:
   postgres-data:
   identity-data:
+  identity-global-data:
   storage-data:
   hosting-data:
   email-data:

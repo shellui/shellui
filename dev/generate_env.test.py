@@ -32,44 +32,79 @@ def run_generator(example: Path, out: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def assert_jwks_parses(text: str) -> dict:
+def assert_jwks_var(text: str, name: str) -> dict:
+    prefix = name + "="
     for line in text.splitlines():
-        if line.startswith("GLOBAL_JWKS="):
+        if line.startswith(prefix):
             raw = line.split("=", 1)[1].strip()
-            assert raw[0] == "'" and raw[-1] == "'", "GLOBAL_JWKS must be single-quoted JSON"
+            assert raw[0] == "'" and raw[-1] == "'", f"{name} must be single-quoted JSON"
             assert "BEGIN" not in raw
             doc = json.loads(raw[1:-1])
             keys = doc.get("keys")
-            assert isinstance(keys, list) and keys, "GLOBAL_JWKS must list keys"
-            assert "n" in keys[0] and "e" in keys[0], "GLOBAL_JWKS must be a public JWKS"
+            assert isinstance(keys, list) and len(keys) == 1, f"{name} must list one key"
+            assert "n" in keys[0] and "e" in keys[0], f"{name} must be a public JWKS"
             return doc
-    raise AssertionError("GLOBAL_JWKS= missing from generated env")
+    raise AssertionError(f"{name}= missing from generated env")
+
+
+def assert_jwks_parses(text: str) -> dict:
+    return assert_jwks_var(text, "GLOBAL_JWKS")
 
 
 def jwks_matches_signing_pem(text: str, dev: Path) -> None:
-    """GLOBAL_JWKS must equal generate_env.jwks_for_rsa_public_pem from signing PEM."""
+    """Each pinned JWKS matches its own private key, and the two keys differ."""
     mod = load_generate_env_module(dev)
-    pem_line = None
-    for line in text.splitlines():
-        if line.startswith("GLOBAL_AGENT_SIGNING_KEY="):
-            pem_line = line
-            break
-    assert pem_line, "GLOBAL_AGENT_SIGNING_KEY= missing"
-    raw = pem_line.split("=", 1)[1].strip()
-    assert raw[0] == raw[-1] == '"', "GLOBAL_AGENT_SIGNING_KEY must be double-quoted PEM"
-    pem = raw[1:-1].replace("\\n", "\n")
-    doc = assert_jwks_parses(text)
-    kid = mod.kid_from_private_pem(pem)
-    kid_line = None
-    for line in text.splitlines():
-        if line.startswith("GLOBAL_AGENT_KEY_ID="):
-            kid_line = line.split("=", 1)[1].strip()
-            break
-    assert kid_line == kid, "GLOBAL_AGENT_KEY_ID must match JWKS kid and derived PEM kid"
-    assert doc["keys"][0]["kid"] == kid, "GLOBAL_JWKS kid must match GLOBAL_AGENT_KEY_ID"
-    pub = mod.public_pem_from_private(pem)
-    expect = json.loads(mod.jwks_for_rsa_public_pem(pub, kid))
-    assert doc == expect, "GLOBAL_JWKS must match signing key public material"
+
+    def pem_of(name: str) -> str:
+        line = next(item for item in text.splitlines() if item.startswith(name + "="))
+        raw = line.split("=", 1)[1].strip()
+        assert raw[0] == raw[-1] == '"', f"{name} must be double-quoted PEM"
+        return raw[1:-1].replace("\\n", "\n")
+
+    def kid_of(name: str) -> str:
+        return next(item for item in text.splitlines() if item.startswith(name + "=")).split("=", 1)[1].strip()
+
+    agent_pem = pem_of("GLOBAL_AGENT_SIGNING_KEY")
+    issuer_pem = pem_of("IDENTITY_GLOBAL_JWT_PRIVATE_KEY")
+    assert agent_pem.strip() != issuer_pem.strip(), "agent and identity-global keys must differ"
+    agent_kid = mod.kid_from_private_pem(agent_pem)
+    issuer_kid = mod.kid_from_private_pem(issuer_pem)
+    assert kid_of("GLOBAL_AGENT_KEY_ID") == agent_kid
+    assert kid_of("IDENTITY_GLOBAL_JWT_KEY_ID") == issuer_kid
+    agent_doc = assert_jwks_var(text, "GLOBAL_AGENT_JWKS")
+    issuer_doc = assert_jwks_var(text, "GLOBAL_JWKS")
+    assert agent_doc["keys"][0]["kid"] == agent_kid
+    assert issuer_doc["keys"][0]["kid"] == issuer_kid
+    assert agent_kid != issuer_kid
+    agent_pub = mod.public_pem_from_private(agent_pem)
+    issuer_pub = mod.public_pem_from_private(issuer_pem)
+    assert agent_doc == json.loads(mod.jwks_for_rsa_public_pem(agent_pub, agent_kid))
+    assert issuer_doc == json.loads(mod.jwks_for_rsa_public_pem(issuer_pub, issuer_kid))
+
+
+def pem_from_env_line(line: str) -> str:
+    raw = line.split("=", 1)[1].strip()
+    while len(raw) >= 2 and raw[0] == raw[-1] and raw[0] in {'"', "'"}:
+        raw = raw[1:-1]
+    return raw.replace("\\n", "\n")
+
+
+def assert_global_issuer_key_matches(text: str, dev: Path) -> None:
+    """User JWKS and agent JWKS are different keys, and the OIDC client matches."""
+    jwks_matches_signing_pem(text, dev)
+    lines = {
+        name: line
+        for line in text.splitlines()
+        if (name := line.split("=", 1)[0]) in {"GLOBAL_CLIENT_ID", "IDENTITY_GLOBAL_OIDC_CLIENTS"}
+    }
+    clients_raw = lines["IDENTITY_GLOBAL_OIDC_CLIENTS"].split("=", 1)[1].strip()
+    if len(clients_raw) >= 2 and clients_raw[0] == clients_raw[-1] and clients_raw[0] in {"'", '"'}:
+        clients_raw = clients_raw[1:-1]
+    clients = json.loads(clients_raw)
+    client_id = lines["GLOBAL_CLIENT_ID"].split("=", 1)[1].strip()
+    assert clients[0]["client_id"] == client_id
+    assert "http://localhost:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
+    assert "http://${DEV_PUBLIC_HOST}:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
 
 
 def assert_no_duplicate_var_definitions(text: str) -> None:
@@ -92,7 +127,9 @@ def global_signing_lines(text: str) -> dict[str, str]:
     wanted = (
         "GLOBAL_AGENT_SIGNING_KEY",
         "GLOBAL_AGENT_KEY_ID",
+        "GLOBAL_AGENT_JWKS",
         "GLOBAL_JWKS",
+        "IDENTITY_GLOBAL_JWT_PRIVATE_KEY",
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE",
     )
     out: dict[str, str] = {}
@@ -131,6 +168,38 @@ def test_retention_preserves_secrets() -> None:
         ), "legacy GLOBAL_AGENT_PRIVATE_KEY must be removed after regen"
 
 
+def test_fresh_file_round_trip_and_adoption() -> None:
+    """A missing output file must be readable on the next run, and an old agent key is reused."""
+    dev = Path(__file__).resolve().parent
+    example = dev / ".env.local.example"
+    with tempfile.TemporaryDirectory() as tmp:
+        tdir = Path(tmp)
+        fresh = tdir / "fresh.env"
+        assert not fresh.exists()
+        run_generator(example, fresh)
+        first = fresh.read_text(encoding="utf-8")
+        assert_global_issuer_key_matches(first, dev)
+        jwks_matches_signing_pem(first, dev)
+        run_generator(example, fresh)
+        second = fresh.read_text(encoding="utf-8")
+        assert global_signing_lines(first) == global_signing_lines(second)
+        assert_global_issuer_key_matches(second, dev)
+
+        adopted = tdir / "adopted.env"
+        agent_line = next(line for line in first.splitlines() if line.startswith("GLOBAL_AGENT_SIGNING_KEY="))
+        adopted.write_text("POSTGRES_PASSWORD=keep-me\n" + agent_line + "\n", encoding="utf-8")
+        run_generator(example, adopted)
+        body = adopted.read_text(encoding="utf-8")
+        assert "POSTGRES_PASSWORD=keep-me" in body
+        assert body.count("POSTGRES_PASSWORD=") == 1
+        kept = next(line for line in body.splitlines() if line.startswith("GLOBAL_AGENT_SIGNING_KEY="))
+        assert kept == agent_line
+        issuer = next(line for line in body.splitlines() if line.startswith("IDENTITY_GLOBAL_JWT_PRIVATE_KEY="))
+        assert pem_from_env_line(issuer).strip() != pem_from_env_line(agent_line).strip()
+        jwks_matches_signing_pem(body, dev)
+        assert_no_duplicate_var_definitions(body)
+
+
 def main() -> int:
     dev = Path(__file__).resolve().parent
     example = dev / ".env.local.example"
@@ -142,9 +211,11 @@ def main() -> int:
         text = out.read_text(encoding="utf-8")
         assert_jwks_parses(text)
         jwks_matches_signing_pem(text, dev)
+        assert_global_issuer_key_matches(text, dev)
         assert_no_duplicate_var_definitions(text)
         assert not re.search(r"^GLOBAL_AGENT_PRIVATE_KEY=", text, re.MULTILINE)
         test_retention_preserves_secrets()
+        test_fresh_file_round_trip_and_adoption()
         return 0
     finally:
         out.unlink(missing_ok=True)
