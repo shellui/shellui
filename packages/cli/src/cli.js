@@ -74,13 +74,13 @@ cli
   .action((action, root, options) => configCommand(action, root, options));
 
 cli
-  .command('login [root]', 'Sign in to shellui (browser OAuth; stores CLI credentials)')
+  .command('login [root]', 'Sign in with device authorization and store CLI credentials')
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--provider <name>', 'OAuth provider (default: first from identity settings)')
+  .option('--no-browser', 'Print the link and code without opening a browser')
   .action((root, options) =>
     loginCommand(root, {
       config: options.config,
-      provider: options.provider,
+      noBrowser: options.noBrowser === true,
     }),
   );
 

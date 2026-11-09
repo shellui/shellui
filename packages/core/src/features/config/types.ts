@@ -298,8 +298,8 @@ export interface BackendConfig {
   /** Admin content URL loaded in the admin route view (e.g. "https://example.com/admin"). */
   adminUrl?: string;
   /**
-   * Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live.
-   * Used by `shellui login`. Not the iframe admin app (`adminUrl`).
+   * Public origin (or full URL) of this shell, where `/login` and OAuth `/login/callback` live.
+   * The shell allowlists this origin. It is not the iframe admin app (`adminUrl`).
    * Example: `https://app.example.com` or `http://127.0.0.1:4000`.
    */
   loginUrl?: string;

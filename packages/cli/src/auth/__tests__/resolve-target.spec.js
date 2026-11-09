@@ -8,7 +8,6 @@ import {
   resolveAuthTarget,
   validateAuthTarget,
 } from '../resolve-target.js';
-import { buildAuthorizeUrl, fetchOAuthProviders } from '../login-flow.js';
 import { MAIN_CONFIG_FILE, findProjectConfigDir } from '../../utils/config-paths.js';
 
 describe('resolveAuthTarget', () => {
@@ -90,52 +89,5 @@ describe('resolveAuthTarget', () => {
       configDir: '/tmp/project',
     });
     expect(err).toMatch(/shellui/);
-  });
-});
-
-describe('buildAuthorizeUrl', () => {
-  test('points at identity authorize with redirect_to', () => {
-    const url = buildAuthorizeUrl({
-      backendUrl: 'http://localhost:8000/',
-      companyId: '3',
-      provider: 'github',
-      redirectTo: 'http://127.0.0.1:9999/callback',
-    });
-    const parsed = new URL(url);
-    expect(parsed.origin + parsed.pathname).toBe('http://localhost:8000/api/v1/authorize');
-    expect(parsed.searchParams.get('provider')).toBe('github');
-    expect(parsed.searchParams.get('company_id')).toBe('3');
-    expect(parsed.searchParams.get('redirect_to')).toBe('http://127.0.0.1:9999/callback');
-  });
-
-  test('omits provider when not specified so identity shows method picker', () => {
-    const url = buildAuthorizeUrl({
-      backendUrl: 'http://localhost:8000',
-      companyId: '3',
-      redirectTo: 'http://127.0.0.1:9999/callback',
-    });
-    const parsed = new URL(url);
-    expect(parsed.searchParams.has('provider')).toBe(false);
-    expect(parsed.searchParams.get('company_id')).toBe('3');
-  });
-});
-
-describe('fetchOAuthProviders', () => {
-  test('reads oauthProviders from settings payload', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () =>
-      /** @type {Response} */ ({
-        ok: true,
-        json: async () => ({
-          oauthProviders: ['github', 'google'],
-          external: { github: true, google: true },
-        }),
-      });
-    try {
-      const providers = await fetchOAuthProviders('http://localhost:8000', '1');
-      expect(providers).toEqual(['github', 'google']);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
   });
 });

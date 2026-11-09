@@ -104,25 +104,27 @@ Build a production static site to `dist/web/`. Same isolated toolchain as `start
 
 ### shellui login [root]
 
-Sign in against identity-service and store CLI credentials (mode `0600`) for later commands such as `deploy`.
+Sign in against identity-service and store CLI credentials for later commands such as `deploy`.
 
 ```bash
 shellui login
 shellui login --config ./config
-shellui login --provider github
+shellui login --no-browser
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>&code_challenge=…&code_challenge_method=S256`. The PKCE verifier stays in the CLI process memory. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+`shellui login` uses OAuth device authorization ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)). The command walks from `[root]` (or the current directory) up to `.git` looking for config. It posts `client_id` `shellui-cli` and `company_id` to `POST {backend.url}/oauth/cli/device/code`.
 
-After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page posts the code to the CLI (`/code`, nonce-bound). The CLI redeems it at `POST /api/v1/oauth/session` with `code_verifier` and the loopback `Origin`, which matches `redirect_to` as identity 0.9.0 requires. Identity 0.9.0 ignores fragment delivery (`#access_token=…`).
+Identity returns a user code (`XXXX-XXXX`), `verification_uri`, `verification_uri_complete`, `expires_in` (600 seconds), and `interval` (5 seconds unless the response sets another value). The CLI prints the user code and the complete link. The device code stays in the process and is not printed. When a display is available it opens `verification_uri_complete` in your browser.
 
-**Loopback threat model (Track F / L-11, L-12):**
+`--no-browser` skips that launch. An SSH session (`SSH_CONNECTION`, `SSH_CLIENT`, or `SSH_TTY`) skips it too, as does Linux or BSD with neither `DISPLAY` nor `WAYLAND_DISPLAY`. Open the link, check that the code matches the terminal, and choose Allow or Deny.
 
-- The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
-- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce. Verify they match your terminal before completing sign-in.
-- Auth codes and URL fragments are cleared with `history.replaceState` after capture.
+The CLI then polls `POST {backend.url}/oauth/token` with `grant_type` `urn:ietf:params:oauth:grant-type:device_code`, the device code, and the same `client_id`. It waits `interval` seconds between polls. `authorization_pending` keeps the wait. `slow_down` adds 5 seconds to the interval.
 
-Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
+`access_denied` stops and reports that sign-in was denied. `expired_token` stops and tells you to run `shellui login` again. Ctrl+C cancels the wait and stores nothing.
+
+A successful poll returns `access_token`, `refresh_token`, `token_type`, and `expires_in`. Those are the same application session tokens as `POST /api/v1/oauth/session` for that company. Refresh stays on `POST /api/v1/token`. Logout stays on `POST /api/v1/logout`. `shellui whoami` and `shellui auth status` keep using this session.
+
+Required config: `backend.type` set to `shellui`, `backend.companyId`, and `backend.url` (default `https://id.shellui.com`). A running shell is not required. `backend.loginUrl` is the shell origin for `/login`. Device login reads `backend.url` only. The verification page is on identity-service and lists that company's login methods.
 
 **Credentials:** stored per account, keyed by `backend.url` plus `backend.companyId`. Each account gets its own OS keychain entry (service `shellui`, account `cli-credentials:<backend.url>#<companyId>`) through the optional `@napi-rs/keyring` package. If the keychain is not available, the CLI warns once and writes tokens to `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`, Windows `%APPDATA%\shellui\credentials.json`) with mode `0600` (directory `0700`), under the same keys. The file fallback limits exposure to your user account but does **not** protect against root, malware or backups. `accounts.json` in the same folder lists account keys and the current one, never tokens. A login stored by an older CLI version moves to the per-account layout on first use. Tokens are never printed.
 
@@ -151,7 +153,7 @@ The CLI distinguishes two company identifiers:
 | **Regional** (identity tenant)       | Decimal digits, same as JWT `company_id` | `backend.companyId`, `shellui companies use`, optional `storage buckets --company` | Identity-backed flows; credential account; resolving regional scope for commands that require it |
 | **Dashboard / global** (SaaS record) | UUID                                     | `shellui projects list`, then `shellui projects use <uuid>`                        | SaaS paths under `saas.url` that take a company UUID in the path (`endpoints`, company detail)   |
 
-Do not pass a regional decimal id where the SaaS API expects a dashboard UUID (and the reverse). Human CLI commands use the same Bearer session as `shellui login` (OAuth loopback to identity). **Global MCP** agents use a separate OAuth client and tool approval path for writes; the CLI does not substitute for that. `projects create` is **not implemented** from the CLI (exit `not_implemented`); create companies in the dashboard or through approved automation when your policy allows.
+Do not pass a regional decimal id where the SaaS API expects a dashboard UUID (and the reverse). Human CLI commands use the same Bearer session as `shellui login` (device authorization against identity). **Global MCP** agents use a separate OAuth client and tool approval path for writes; the CLI does not substitute for that. `projects create` is **not implemented** from the CLI (exit `not_implemented`); create companies in the dashboard or through approved automation when your policy allows.
 
 ### shellui companies \<action> [id] [root]
 

@@ -33,6 +33,7 @@ shellui config migrate
 shellui config split
 shellui config unsplit
 shellui login
+shellui login --no-browser
 shellui logout
 shellui whoami
 shellui deploy
@@ -51,7 +52,7 @@ shellui start --config ./config
 
 ### AI-native commands (auth session, not deploy tokens)
 
-These require `shellui login` (human OAuth loopback to identity). They send `Authorization: Bearer <access token>`. They do **not** use `SHELLUI_DEPLOY_TOKEN`; that env var applies only to `shellui deploy`.
+These require `shellui login` (device authorization against identity). The command prints a link and a one-time code, opens the verification page when a display is available, and polls until you approve. `--no-browser` skips opening a browser. The commands send `Authorization: Bearer <access token>`. They do **not** use `SHELLUI_DEPLOY_TOKEN`; that env var applies only to `shellui deploy`.
 
 - **`shellui companies`** - Identity `GET /api/v1/companies/`. Ids are **regional** decimal tenant ids. `companies use <id>` stores that default in `cli-session.json` (v2 field `regionalCompanyId`).
 - **`shellui projects`** - SaaS on `saas.url` or `SHELLUI_SAAS_URL` (dev fallback in the CLI: `http://localhost:8005`; self-host smoke stacks often use the same host). Companies here are **dashboard UUIDs**, not regional decimals: `GET {saas}/api/v1/companies/`, `GET {saas}/api/v1/companies/<uuid>/`, `GET {saas}/api/v1/regions/`, `GET {saas}/api/v1/companies/<uuid>/endpoints/`. No `company_id` query. If `saas.url` includes a path prefix (for example `https://host/saas`), these segments append after it (`https://host/saas/api/v1/...`). There is no second `saas/` path segment. `projects use <uuid>` saves `dashboardCompanyUuid` for `endpoints` when you omit the argument. **`projects create` is not implemented** (exit with guidance to use the dashboard or global MCP OAuth where policy allows).
