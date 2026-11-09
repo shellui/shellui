@@ -428,10 +428,12 @@
       "nameHelper": "Affiché dans cette liste.",
       "accessHelperGlobal": "Ce jeton peut appeler chaque service régional de cette entreprise, et saas.",
       "accessHelperRegional": "Ce jeton peut appeler chaque service régional de cette entreprise. Saas n'est pas inclus ; connectez-vous depuis le tableau de bord global si vous avez besoin de saas.",
+      "expiryHelper": "Cette connexion expire dans {{days}} jours.",
       "submit": "Créer la connexion",
       "submitting": "Création…",
       "cancel": "Annuler",
       "errorGeneric": "Impossible de créer la connexion.",
+      "errorExpiryTooLong": "Identity refuse cette expiration. Elle dépasse la durée de vie maximale de cette connexion.",
       "errorMissingMcpUrl": "L'URL MCP n'est pas configurée. Définissez aiService.url dans votre configuration Shellui."
     }
   },

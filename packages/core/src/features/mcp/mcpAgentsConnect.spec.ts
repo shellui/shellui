@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
   agentIncludesSaasScope,
   buildAgentPrompt,
   buildCompanyMcpUrl,
+  defaultPersonalAgentExpiresAt,
   formatDefaultAgentName,
   getDefaultPersonalAgentServices,
   isActiveMcpConnection,
@@ -70,6 +72,17 @@ describe('buildAgentPrompt', () => {
     expect(prompt).toContain('MCP URL: https://ai.test/c/1/mcp');
     expect(prompt).toContain('Access token: secret-token');
     expect(prompt).toContain('Connect to this Shellui company over MCP.');
+  });
+});
+
+describe('defaultPersonalAgentExpiresAt', () => {
+  it('stays inside Identity default maximum of 90 days', () => {
+    const fromMs = Date.parse('2026-11-09T17:05:00.000Z');
+    const expiresMs = Date.parse(defaultPersonalAgentExpiresAt(fromMs));
+    const maxMs = fromMs + MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS * 86_400_000;
+    expect(expiresMs).toBeLessThan(maxMs);
+    expect(maxMs - expiresMs).toBe(60_000);
+    expect(expiresMs - fromMs).toBeLessThan(365 * 86_400_000);
   });
 });
 

@@ -8,6 +8,7 @@ import {
   agentIncludesSaasScope,
   buildAgentPrompt,
   buildCompanyMcpUrl,
+  MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
   defaultPersonalAgentExpiresAt,
   formatAgentExpiry,
   formatConnectionDate,
@@ -225,7 +226,10 @@ export const McpAgents = () => {
       setName('');
       await loadAgents();
     } catch (err) {
-      const message = err instanceof Error ? err.message : t('mcpAgents.create.errorGeneric');
+      const raw = err instanceof Error ? err.message : '';
+      const message = raw.includes('exceeds the maximum allowed lifetime')
+        ? t('mcpAgents.create.errorExpiryTooLong')
+        : raw || t('mcpAgents.create.errorGeneric');
       setCreateError(message);
     } finally {
       setCreating(false);
@@ -412,6 +416,9 @@ export const McpAgents = () => {
               {includeSaas
                 ? t('mcpAgents.create.accessHelperGlobal')
                 : t('mcpAgents.create.accessHelperRegional')}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {t('mcpAgents.create.expiryHelper', { days: MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS })}
             </p>
             {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
             <div className="flex flex-wrap gap-2">

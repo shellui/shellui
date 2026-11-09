@@ -81,7 +81,23 @@ export function agentIncludesSaasScope(agent: McpAgentSummary): boolean {
   return agent.servicesAllowed.some((service) => service.toLowerCase() === 'saas');
 }
 
-/** Default personal-agent expiry when the UI does not expose a picker (one year). */
+/**
+ * Identity `MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS` default (clamped to 1..366 days).
+ * `POST /api/v1/mcp/personal/agents/create` rejects a later `expires_at`.
+ * Personal status does not return the live setting, so the client uses this default.
+ */
+export const MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS = 90;
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Stay strictly inside Identity's `expires_at > now + max` check when the browser
+ * clock is a little ahead of the server.
+ */
+const PERSONAL_AGENT_EXPIRY_SKEW_MS = 60_000;
+
+/** Default personal-agent expiry when the UI does not expose a picker. */
 export function defaultPersonalAgentExpiresAt(fromMs = Date.now()): string {
-  return new Date(fromMs + 365 * 86400000).toISOString();
+  const lifetimeMs = MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS * DAY_MS - PERSONAL_AGENT_EXPIRY_SKEW_MS;
+  return new Date(fromMs + lifetimeMs).toISOString();
 }

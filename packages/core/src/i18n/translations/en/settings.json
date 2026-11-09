@@ -428,10 +428,12 @@
       "nameHelper": "Shown in this list.",
       "accessHelperGlobal": "This token can call every regional service for this company, and saas.",
       "accessHelperRegional": "This token can call every regional service for this company. Saas is not included; connect from the global dashboard when you need saas.",
+      "expiryHelper": "This connection expires in {{days}} days.",
       "submit": "Create connection",
       "submitting": "Creating…",
       "cancel": "Cancel",
       "errorGeneric": "Could not create the connection.",
+      "errorExpiryTooLong": "Identity rejected this expiry. It is longer than the maximum lifetime for this connection.",
       "errorMissingMcpUrl": "MCP URL is not configured. Set aiService.url in your Shellui config."
     }
   },
