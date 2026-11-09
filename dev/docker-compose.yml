@@ -99,8 +99,8 @@ services:
       PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
       FILES_URL: ${PUBLIC_FILES_URL}
       SHELLUI_DISABLE_CONFIG_WATCH: '1'
-      # Browser calls stay on PUBLIC_IDENTITY_URL (localhost:8001). This process
-      # cannot use that host, so BFF refresh uses identity on the Compose network.
+      # Browser calls stay on PUBLIC_IDENTITY_URL. This process cannot use that
+      # host from inside the network, so BFF refresh uses identity over Compose DNS.
       SHELLUI_BFF_BACKEND_URL: http://identity:8000
     volumes:
       - ..:/app
@@ -131,6 +131,7 @@ services:
       EMAIL_SERVICE_INTERNAL_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
       IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
       STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
       STORAGE_SERVICE_INTERNAL_URL: http://storage:8000
       HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
@@ -277,7 +278,7 @@ services:
       EMAIL_USE_TLS: 'false'
       EMAIL_USE_SSL: 'false'
       EMAIL_SMTP_VERIFY_CERT: 'false'
-      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1
+      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
       EMAIL_DEV_SERVICE_KEYS: identity=${IDENTITY_EMAIL_SERVICE_API_KEY},storage=${STORAGE_EMAIL_SERVICE_API_KEY},hosting=${HOSTING_EMAIL_SERVICE_API_KEY},saas=${SAAS_EMAIL_SERVICE_API_KEY},ai=${AI_EMAIL_SERVICE_API_KEY}
     volumes:
       - ../../email-service:/app
@@ -447,7 +448,7 @@ services:
       VITE_AI_SERVICE_URL: ${PUBLIC_AI_URL}
       VITE_FILES_URL: ${PUBLIC_FILES_URL}
       VITE_HMR_CLIENT_PORT: '5173'
-      VITE_HMR_HOST: localhost
+      VITE_HMR_HOST: ${DEV_PUBLIC_HOST:-localhost}
     volumes:
       - ../../admin:/app
       - admin-node-modules:/app/node_modules
