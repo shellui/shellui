@@ -80,9 +80,11 @@ registerRoute(
   }),
 );
 
-// Cache API responses with NetworkFirst (fallback to cache if offline)
+// Cache API responses with NetworkFirst (fallback to cache if offline).
+// Never intercept /api/auth — BFF Set-Cookie (HttpOnly refresh) must reach the
+// browser cookie jar; SW-handled responses can drop it and log users out on reload.
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
+  ({ url }) => url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth'),
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [

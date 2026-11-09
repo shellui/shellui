@@ -322,6 +322,8 @@ services:
       EMAIL_SERVICE_SIGNING_KEY: ${EMAIL_SERVICE_SIGNING_KEY}
       EMAIL_SERVICE_ISSUER: ${PUBLIC_EMAIL_URL}
       EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER}
+      # Must match the API service: workers validate magic_link_url hosts at deliver time.
+      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
       SCHEDULER_ENABLED: 'true'
       EMAIL_WORKERS_ENABLED: 'true'
     volumes:
