@@ -4,13 +4,13 @@
 If the output already exists, only variables it does not define yet are appended,
 so existing secrets and database passwords are kept.
 
-The global issuer key is identity-global's JWT private key. SaaS mints global
-agent tokens with that same PEM (GLOBAL_AGENT_SIGNING_KEY). On every run,
-GLOBAL_JWKS and GLOBAL_AGENT_KEY_ID are recomputed from that PEM so a stale
-JWKS cannot drift. When an older file has GLOBAL_AGENT_SIGNING_KEY and no
-identity-global key yet, the agent PEM is copied into the new variable.
-GLOBAL_AGENT_KEY_ID is the JWKS kid SaaS uses when minting. Sensitive values
-are never printed.
+Two issuers, two keys. identity-global's JWT private key is the user issuer.
+GLOBAL_JWKS is that public key. SaaS mints global agent tokens with a
+different PEM (GLOBAL_AGENT_SIGNING_KEY). GLOBAL_AGENT_JWKS and
+GLOBAL_AGENT_KEY_ID are recomputed from that PEM on every run.
+GLOBAL_AGENT_KEY_ID is the kid SaaS puts on agent tokens. An existing file
+keeps both private keys. If they are the same PEM, identity-global is given
+a new key and the SaaS key is left as it is. Sensitive values are never printed.
 """
 
 from __future__ import annotations
@@ -201,13 +201,30 @@ def oidc_clients_env(client_id: str, client_secret: str) -> str:
     return "'" + json.dumps(doc, separators=(",", ":")) + "'"
 
 
-def global_agent_updates_from_private(private_pem: str, audience_template: str, jwks_quoted: str) -> dict[str, str]:
-    kid = kid_from_private_pem(private_pem)
-    # audience may reference another env var; keep the literal from the file or example
+def quoted_pem(private_pem: str) -> str:
+    return '"' + pem_for_env(private_pem) + '"'
+
+
+def trust_material_updates(
+    *,
+    issuer_private_pem: str,
+    issuer_kid: str,
+    issuer_jwks_quoted: str,
+    agent_private_pem: str,
+    agent_kid: str,
+    agent_jwks_quoted: str,
+    audience_template: str,
+) -> dict[str, str]:
+    """Lines rewritten every run so each JWKS matches its private key."""
+    issuer_public = public_pem_from_private(issuer_private_pem)
     return {
-        "GLOBAL_AGENT_SIGNING_KEY": '"' + pem_for_env(private_pem) + '"',
-        "GLOBAL_AGENT_KEY_ID": kid,
-        "GLOBAL_JWKS": jwks_quoted,
+        "IDENTITY_GLOBAL_JWT_PRIVATE_KEY": quoted_pem(issuer_private_pem),
+        "IDENTITY_GLOBAL_JWT_PUBLIC_KEY": quoted_pem(issuer_public),
+        "IDENTITY_GLOBAL_JWT_KEY_ID": issuer_kid,
+        "GLOBAL_JWKS": issuer_jwks_quoted,
+        "GLOBAL_AGENT_SIGNING_KEY": quoted_pem(agent_private_pem),
+        "GLOBAL_AGENT_KEY_ID": agent_kid,
+        "GLOBAL_AGENT_JWKS": agent_jwks_quoted,
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE": audience_template,
     }
 
@@ -227,15 +244,18 @@ def defined(text: str) -> set[str]:
 
 def apply_example(
     example_path: Path,
-    global_private_pem: str,
-    global_kid: str,
-    global_jwks_quoted: str,
     *,
+    issuer_private_pem: str,
+    issuer_kid: str,
+    issuer_jwks_quoted: str,
+    agent_private_pem: str,
+    agent_kid: str,
+    agent_jwks_quoted: str,
     oidc_client_id: str,
     oidc_client_secret: str,
 ) -> str:
     text = example_path.read_text(encoding="utf-8")
-    pem_env = pem_for_env(global_private_pem)
+    issuer_public = public_pem_from_private(issuer_private_pem)
 
     replacements = {
         "__POSTGRES_PASSWORD__": secrets.token_urlsafe(24),
@@ -256,9 +276,10 @@ def apply_example(
         "__EMAIL_SERVICE_SIGNING_KEY__": "",  # filled below
         "__PROVISIONING_SIGNING_KEY__": "",  # filled below
         "__PROVISIONING_PUBLIC_KEY__": "",  # filled below
-        "__GLOBAL_AGENT_SIGNING_KEY__": pem_env,
-        "__GLOBAL_AGENT_JWKS_JSON__": global_jwks_quoted,
-        "__GLOBAL_AGENT_KEY_ID__": global_kid,
+        "__GLOBAL_AGENT_SIGNING_KEY__": pem_for_env(agent_private_pem),
+        "__GLOBAL_AGENT_JWKS_JSON__": agent_jwks_quoted,
+        "__GLOBAL_AGENT_KEY_ID__": agent_kid,
+        "__GLOBAL_JWKS_JSON__": issuer_jwks_quoted,
         "__GLOBAL_OIDC_CLIENT_ID__": oidc_client_id,
         "__GLOBAL_OIDC_CLIENT_SECRET__": oidc_client_secret,
         "__IDENTITY_GLOBAL_OIDC_CLIENTS__": oidc_clients_env(oidc_client_id, oidc_client_secret),
@@ -269,10 +290,9 @@ def apply_example(
     }
 
     jwt_private, jwt_public, jwt_kid = rsa_keypair()
-    global_public = public_pem_from_private(global_private_pem)
-    replacements["__IDENTITY_GLOBAL_JWT_PRIVATE_KEY__"] = pem_for_env(global_private_pem)
-    replacements["__IDENTITY_GLOBAL_JWT_PUBLIC_KEY__"] = pem_for_env(global_public)
-    replacements["__IDENTITY_GLOBAL_JWT_KEY_ID__"] = global_kid
+    replacements["__IDENTITY_GLOBAL_JWT_PRIVATE_KEY__"] = pem_for_env(issuer_private_pem)
+    replacements["__IDENTITY_GLOBAL_JWT_PUBLIC_KEY__"] = pem_for_env(issuer_public)
+    replacements["__IDENTITY_GLOBAL_JWT_KEY_ID__"] = issuer_kid
     ai_private, _ai_public, ai_kid = rsa_keypair()
     storage_private, _storage_public, _ = rsa_keypair()
     hosting_private, _hosting_public, _ = rsa_keypair()
@@ -348,32 +368,26 @@ def main() -> int:
 
     issuer_pem = extract_private_pem(existing_body, "IDENTITY_GLOBAL_JWT_PRIVATE_KEY") if existing_body else None
     agent_pem = extract_global_agent_private_pem(existing_body) if existing_body else None
-    if issuer_pem:
-        global_private = issuer_pem
-    elif agent_pem:
-        global_private = agent_pem
+    if issuer_pem and agent_pem and issuer_pem.strip() == agent_pem.strip():
         print(
-            "Using GLOBAL_AGENT_SIGNING_KEY as IDENTITY_GLOBAL_JWT_PRIVATE_KEY",
+            "IDENTITY_GLOBAL_JWT_PRIVATE_KEY matched GLOBAL_AGENT_SIGNING_KEY; "
+            "generated a new identity-global key. The SaaS agent key is unchanged.",
             file=sys.stderr,
         )
-    else:
-        global_private, _public, _kid = rsa_keypair()
+        issuer_pem = None
+    if not issuer_pem:
+        issuer_pem, _public, _kid = rsa_keypair()
+    if not agent_pem:
+        agent_pem, _public, _kid = rsa_keypair()
+    if issuer_pem.strip() == agent_pem.strip():
+        issuer_pem, _public, _kid = rsa_keypair()
 
-    global_public = public_pem_from_private(global_private)
-    global_kid = kid_from_private_pem(global_private)
-    signing_pem = agent_pem or global_private
-    signing_public = public_pem_from_private(signing_pem)
-    signing_kid = kid_from_private_pem(signing_pem)
-    jwks_pairs = [(global_public, global_kid)]
-    if signing_kid != global_kid:
-        jwks_pairs.append((signing_public, signing_kid))
-        print(
-            "IDENTITY_GLOBAL_JWT_PRIVATE_KEY and GLOBAL_AGENT_SIGNING_KEY differ; "
-            "GLOBAL_JWKS lists both public keys. Agent tokens must use iss equal to "
-            "the identity-global issuer.",
-            file=sys.stderr,
-        )
-    global_jwks_quoted = jwks_quoted_for_keys(jwks_pairs)
+    issuer_public = public_pem_from_private(issuer_pem)
+    issuer_kid = kid_from_private_pem(issuer_pem)
+    agent_public = public_pem_from_private(agent_pem)
+    agent_kid = kid_from_private_pem(agent_pem)
+    issuer_jwks_quoted = jwks_quoted_for_keys([(issuer_public, issuer_kid)])
+    agent_jwks_quoted = jwks_quoted_for_keys([(agent_public, agent_kid)])
 
     parsed_client = _existing_oidc_client(existing_body) if existing_body else None
     client_id = _unquote_plain(extract_value(existing_body, "GLOBAL_CLIENT_ID")) if existing_body else None
@@ -388,16 +402,25 @@ def main() -> int:
 
     text = apply_example(
         example_path,
-        global_private,
-        global_kid,
-        global_jwks_quoted,
+        issuer_private_pem=issuer_pem,
+        issuer_kid=issuer_kid,
+        issuer_jwks_quoted=issuer_jwks_quoted,
+        agent_private_pem=agent_pem,
+        agent_kid=agent_kid,
+        agent_jwks_quoted=agent_jwks_quoted,
         oidc_client_id=client_id,
         oidc_client_secret=client_secret,
     )
 
-    ga_updates = global_agent_updates_from_private(signing_pem, audience_template, global_jwks_quoted)
-    if existing_body and extract_value(existing_body, "IDENTITY_GLOBAL_JWT_KEY_ID"):
-        ga_updates["IDENTITY_GLOBAL_JWT_KEY_ID"] = global_kid
+    ga_updates = trust_material_updates(
+        issuer_private_pem=issuer_pem,
+        issuer_kid=issuer_kid,
+        issuer_jwks_quoted=issuer_jwks_quoted,
+        agent_private_pem=agent_pem,
+        agent_kid=agent_kid,
+        agent_jwks_quoted=agent_jwks_quoted,
+        audience_template=audience_template,
+    )
 
     if output_path.exists():
         current = output_path.read_text(encoding="utf-8")

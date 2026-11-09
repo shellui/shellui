@@ -23,8 +23,9 @@ docker compose -f dev/docker-compose.yml \
 ```
 
 It checks resolved `environment` on `identity`, `identity-global`,
-`ai`, and `saas`: `JWT_ISSUER`, `GLOBAL_ISSUER_URL`
-(identity-global, http://localhost:8007),
+`ai`, and `saas`: `JWT_ISSUER`, regional `GLOBAL_ISSUER_URL`
+(identity-global, http://localhost:8007), saas `GLOBAL_ISSUER_URL`
+(http://localhost:8005), `GLOBAL_AGENT_ISSUER_URL`,
 `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, `AI_SERVICE_ISSUER`,
 `AI_SERVICE_JWKS_URL`, regional `IDENTITY_SERVICE_URL` and
 `IDENTITY_JWKS_URL` (`http://identity:8000`), saas
@@ -87,18 +88,19 @@ Identity publishes `- '8001:8000'`.
 Hosting publishes `8003:8000`.
 
 Set `SHELLUI_INSTANCE_ROLE=region`, `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
-`GLOBAL_ACCESS_TOKEN_AUDIENCE`, and
-`GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or regional token exchange
-returns 404. `GLOBAL_ISSUER_URL` is identity-global
-(http://localhost:8007), not the SaaS origin.
+`GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ISSUER_URL`,
+`GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or
+regional agent exchange returns 404. User exchange uses
+identity-global (http://localhost:8007). Agent exchange uses the
+SaaS origin (http://localhost:8005).
 
-`dev/generate_env.py` derives `GLOBAL_JWKS` and `GLOBAL_AGENT_KEY_ID`
-from the identity-global PEM, also stored as
-`GLOBAL_AGENT_SIGNING_KEY`, on every run.
-`GLOBAL_AGENT_KEY_ID` is the `kid` in that JWKS.
-`dev/docker-compose.yml` passes the PEM, the key id, the audience,
-and `GLOBAL_AGENT_ISSUER` into `saas`. If you replace the PEM by
-hand, rerun `generate-env.sh`.
+`dev/generate_env.py` builds `GLOBAL_JWKS` from the identity-global
+PEM and `GLOBAL_AGENT_JWKS` from a separate
+`GLOBAL_AGENT_SIGNING_KEY`. `GLOBAL_AGENT_KEY_ID` is the `kid` in
+the agent JWKS. `dev/docker-compose.yml` passes that PEM, the key
+id, and the audience into `saas`, and sets saas `GLOBAL_ISSUER_URL`
+to http://localhost:8005. If you replace a PEM by hand, rerun
+`generate-env.sh`.
 
 ## Human account and Terms before agent work
 

@@ -147,11 +147,13 @@ services:
       PROVISIONING_PUBLIC_KEY: ${PROVISIONING_PUBLIC_KEY}
       PROVISIONING_KEY_ID: dashboard-1
       SHELLUI_INSTANCE_ROLE: ${SHELLUI_INSTANCE_ROLE:-region}
-      # User and agent exchange both verify iss + signature against identity-global.
+      # User tokens: identity-global. Agent tokens: saas public URL and its own key.
       GLOBAL_ISSUER_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
       GLOBAL_ISSUER_INTERNAL_URL: http://identity-global:8000
       GLOBAL_JWKS: ${GLOBAL_JWKS}
       GLOBAL_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_ACCESS_TOKEN_AUDIENCE}
+      GLOBAL_AGENT_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      GLOBAL_AGENT_JWKS: ${GLOBAL_AGENT_JWKS}
       GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
       GLOBAL_CLIENT_ID: ${GLOBAL_CLIENT_ID}
       GLOBAL_CLIENT_SECRET: ${GLOBAL_CLIENT_SECRET}
@@ -408,9 +410,8 @@ services:
       IDENTITY_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
       IDENTITY_AUDIENCE: ${IDENTITY_GLOBAL_JWT_AUDIENCE}
       IDENTITY_INTERNAL_URL: http://identity-global:8000
-      # Agent JWTs must use this iss. The signing PEM is identity-global's JWT key.
-      GLOBAL_ISSUER_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
-      GLOBAL_AGENT_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      # saas OAuth server for the global MCP. iss on agent tokens is this origin.
+      GLOBAL_ISSUER_URL: ${PUBLIC_SAAS_URL}
       MCP_FORWARD_GLOBAL_APPROVALS_TO_IDENTITY: 'true'
       WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
       # Browser clients: dashboard dev server, shell dev server, and loopback aliases for OAuth redirects.

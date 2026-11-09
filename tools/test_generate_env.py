@@ -55,6 +55,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     """Static checks on resolved compose env (issuer URL, internal hostname, JWT audiences)."""
     pid = dotenv["PUBLIC_IDENTITY_URL"]
     pglobal = dotenv["PUBLIC_IDENTITY_GLOBAL_URL"]
+    psaas = dotenv["PUBLIC_SAAS_URL"]
     pai = dotenv["PUBLIC_AI_URL"]
     ga_aud = dotenv["GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE"]
     global_aud = dotenv["IDENTITY_GLOBAL_JWT_AUDIENCE"]
@@ -73,14 +74,17 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ident.get("GLOBAL_ISSUER_URL") == pglobal, "identity GLOBAL_ISSUER_URL must equal PUBLIC_IDENTITY_GLOBAL_URL"
     assert ident.get("GLOBAL_ISSUER_INTERNAL_URL") == internal_global
     assert ident.get("GLOBAL_ACCESS_TOKEN_AUDIENCE") == global_aud
+    assert ident.get("GLOBAL_AGENT_ISSUER_URL") == psaas
     assert ident.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
     assert ident.get("GLOBAL_CLIENT_ID"), "regional identity needs GLOBAL_CLIENT_ID"
     assert ident.get("GLOBAL_CLIENT_SECRET"), "regional identity needs GLOBAL_CLIENT_SECRET"
     assert ident.get("AI_SERVICE_ISSUER") == pai, "identity AI_SERVICE_ISSUER must equal PUBLIC_AI_URL"
     assert ident.get("AI_SERVICE_JWKS_URL") == "http://ai:8000/.well-known/jwks.json"
     gjwk = ident.get("GLOBAL_JWKS", "")
+    agent_jwks = ident.get("GLOBAL_AGENT_JWKS", "")
     assert gjwk, "identity GLOBAL_JWKS must be set after generate_env"
     assert '"kid"' in gjwk or "'kid'" in gjwk, "GLOBAL_JWKS should contain kid"
+    assert agent_jwks and agent_jwks != gjwk, "agent JWKS must be set and differ from the user JWKS"
     assert ident.get("JWT_KEY_ID") != global_ident.get("JWT_KEY_ID"), "regional and global signing kids must differ"
 
     assert global_ident.get("SHELLUI_INSTANCE_ROLE") == "global"
@@ -102,9 +106,10 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert saas.get("IDENTITY_SERVICE_URL") == internal_global
     assert saas.get("IDENTITY_ISSUER") == pglobal
     assert saas.get("IDENTITY_AUDIENCE") == global_aud
-    assert saas.get("GLOBAL_ISSUER_URL") == pglobal
-    assert saas.get("GLOBAL_AGENT_ISSUER") == pglobal
+    assert saas.get("GLOBAL_ISSUER_URL") == psaas
+    assert "GLOBAL_AGENT_ISSUER" not in saas
     assert saas.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    assert saas.get("GLOBAL_AGENT_KEY_ID") != global_ident.get("JWT_KEY_ID")
     assert shell.get("PUBLIC_IDENTITY_URL") == pid
     assert dashboard.get("IDENTITY_SERVICE_URL") == pglobal
     # In-network send URL. Identity discovery uses the public origin below.

@@ -87,16 +87,22 @@ The stack always starts two identity-service processes. They do not share a data
 
 `REGION_CH_IDENTITY_ORIGIN` stays http://localhost:8001. The dashboard uses that value for the `ch` region row. Sign-in for the dashboard itself uses identity-global.
 
-Regional identity pins identity-global as the upstream issuer:
+Regional identity trusts two issuers. It does not fetch either JWKS over the network.
 
-- `GLOBAL_ISSUER_URL` is http://localhost:8007. Token `iss` must match that origin.
+User tokens come from identity-global:
+
+- `GLOBAL_ISSUER_URL` is http://localhost:8007. The user token `iss` must match that origin.
 - `GLOBAL_ISSUER_INTERNAL_URL` is `http://identity-global:8000`, for code exchange inside Compose.
-- `GLOBAL_JWKS` is identity-global's public key. Identity does not fetch the JWKS over the network.
+- `GLOBAL_JWKS` is identity-global's public key.
 - `GLOBAL_ACCESS_TOKEN_AUDIENCE` is `shellui_global`, the same value as identity-global `JWT_AUDIENCE`.
-- `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` is `shellui_global_agent_dev`. That audience is only for global agent tokens.
 - `GLOBAL_CLIENT_ID` and `GLOBAL_CLIENT_SECRET` match `IDENTITY_GLOBAL_OIDC_CLIENTS` on identity-global.
 
-SaaS still mints global agent JWTs. `GLOBAL_AGENT_SIGNING_KEY` is the identity-global private key, and `GLOBAL_AGENT_KEY_ID` is that key's `kid`, so the signature verifies against `GLOBAL_JWKS`. Compose also sets `GLOBAL_AGENT_ISSUER` and `GLOBAL_ISSUER_URL` on saas to http://localhost:8007. The agent token `iss` has to be that origin. A token minted with `iss` set to http://localhost:8005 does not pass regional exchange.
+Agent tokens come from saas. saas keeps its own OAuth server for the global MCP. Its process `GLOBAL_ISSUER_URL` is http://localhost:8005, and that is the agent token `iss`.
+
+- `GLOBAL_AGENT_ISSUER_URL` on regional identity is http://localhost:8005.
+- `GLOBAL_AGENT_JWKS` is the public key of `GLOBAL_AGENT_SIGNING_KEY`. That PEM is not identity-global's JWT key.
+- `GLOBAL_AGENT_KEY_ID` is the `kid` in `GLOBAL_AGENT_JWKS`.
+- `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` is `shellui_global_agent_dev`. saas and regional identity both read that name.
 
 ## Try the global to regional exchange
 
@@ -104,7 +110,7 @@ Use a non-staff account. `admin` / `admin` is staff on both databases. Regional 
 
 1. Open the dashboard at http://localhost:5174. Sign-in goes to identity-global at http://localhost:8007, company 1. Request a magic link for `dev@localhost` and open it from Mailpit at http://localhost:8025. The shell at http://localhost:4000 still signs in at http://localhost:8001.
 2. In the dashboard, create or connect a company. SaaS calls the regional provisioning API on http://localhost:8001. The regional database already has company 1 (Shellui Dev, public access) from `seed_dev`, which is enough for a local exchange target.
-3. Global MCP is `POST http://localhost:8005/mcp`. After global MCP consent, exchange that global agent access token for a company MCP token. `SUBJECT_TOKEN` is the global agent JWT (`iss` http://localhost:8007, `aud` `shellui_global_agent_dev`).
+3. Global MCP is `POST http://localhost:8005/mcp`. After global MCP consent, exchange that global agent access token for a company MCP token. `SUBJECT_TOKEN` is the saas agent JWT (`iss` http://localhost:8005, `aud` `shellui_global_agent_dev`).
 
 ```bash
 G=urn:ietf:params:oauth:grant-type:token-exchange
@@ -157,13 +163,13 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 
 ## Global issuer keys (dev)
 
-`dev/generate_env.py` fills identity-global's JWT key and copies that PEM to **`GLOBAL_AGENT_SIGNING_KEY`**. **`GLOBAL_AGENT_KEY_ID`** is the **`kid`**. On every run the script rebuilds **`GLOBAL_JWKS`** from that public key so the pair cannot drift. An existing `.env.local` that already has `GLOBAL_AGENT_SIGNING_KEY` and no `IDENTITY_GLOBAL_JWT_PRIVATE_KEY` reuses the agent PEM for identity-global. The script appends missing names and does not replace `POSTGRES_PASSWORD` or other secrets already set.
+`dev/generate_env.py` fills two RSA keys. identity-global's JWT key feeds **`GLOBAL_JWKS`**. **`GLOBAL_AGENT_SIGNING_KEY`** feeds **`GLOBAL_AGENT_JWKS`** and **`GLOBAL_AGENT_KEY_ID`**. On every run the script rebuilds both JWKS from those PEMs. An existing file keeps each private key. If the two PEMs are the same, the script generates a new identity-global key and leaves the SaaS key in place. It appends missing names and does not replace `POSTGRES_PASSWORD`.
 
-`dev/docker-compose.yml` passes `GLOBAL_ISSUER_URL` (http://localhost:8007), `GLOBAL_JWKS`, `GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, and **`SHELLUI_INSTANCE_ROLE=region`** into **identity**. It passes the same PEM, key id, audience, and issuer into **saas**. Regions verify global user tokens and global agent JWTs offline (see [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md) and [Instance roles](https://github.com/shellui/identity-service/blob/develop/docs/instance-roles.md)). **`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
+`dev/docker-compose.yml` passes `GLOBAL_ISSUER_URL` (http://localhost:8007), `GLOBAL_JWKS`, `GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ISSUER_URL` (http://localhost:8005), `GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **identity**. saas receives `GLOBAL_ISSUER_URL` http://localhost:8005, plus `GLOBAL_AGENT_SIGNING_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`. See [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md). **`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
 
 ## Migrate an existing local stack
 
-From `shellui/dev`, refresh the env file. New names are appended. Existing values stay, except `GLOBAL_JWKS` and `GLOBAL_AGENT_KEY_ID`, which this script already rewrote on every run so they match the signing PEM.
+From `shellui/dev`, refresh the env file. New names are appended. Private keys that are already set stay, except when identity-global's key is the same PEM as `GLOBAL_AGENT_SIGNING_KEY`: then identity-global gets a new key. `GLOBAL_JWKS`, `GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_KEY_ID` are rewritten so they match those PEMs.
 
 ```bash
 ./generate-env.sh
