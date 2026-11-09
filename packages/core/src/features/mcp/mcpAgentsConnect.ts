@@ -24,6 +24,103 @@ export function buildCompanyMcpUrl(
   return fallback || null;
 }
 
+export function isAbsoluteHttpUrl(value: string | null | undefined): boolean {
+  if (!value?.trim()) return false;
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Locales for the copy-paste "Connect an agent" prompt.
+ * Admin apps must show these strings unchanged. The prompt names the company
+ * MCP URL and OAuth (device login for a headless client or a CLI). It must
+ * never include an access token, refresh token, device code, or user code.
+ */
+export const AGENT_CONNECT_PROMPT_LOCALES = ['en', 'fr'] as const;
+
+export type AgentConnectPromptLocale = (typeof AGENT_CONNECT_PROMPT_LOCALES)[number];
+
+export function resolveAgentConnectPromptLocale(
+  language: string | null | undefined,
+): AgentConnectPromptLocale {
+  const base = language?.toLowerCase().split('-')[0];
+  return base === 'fr' ? 'fr' : 'en';
+}
+
+/** Exact steps shown under the prompt. Keep in sync with settings.json. */
+export const AGENT_CONNECT_STEPS: Record<
+  AgentConnectPromptLocale,
+  readonly [string, string, string]
+> = {
+  en: [
+    'Paste the prompt into your agent.',
+    'Open the link it shows.',
+    'Check the code and choose Allow.',
+  ],
+  fr: [
+    "Collez l'invite dans votre agent.",
+    "Ouvrez le lien qu'il affiche.",
+    'Vérifiez le code, puis choisissez Autoriser.',
+  ],
+};
+
+function englishAgentPrompt(mcpUrl: string): string {
+  return [
+    'Connect to this Shellui company over MCP.',
+    '',
+    `MCP URL: ${mcpUrl}`,
+    '',
+    'Add this URL as a remote MCP server and sign in with OAuth.',
+    'If this client is headless or a CLI, use device login.',
+    'Show the link and the code, then wait until I approve them.',
+  ].join('\n');
+}
+
+function frenchAgentPrompt(mcpUrl: string): string {
+  return [
+    'Connectez cette entreprise Shellui en MCP.',
+    '',
+    `URL MCP : ${mcpUrl}`,
+    '',
+    'Ajoutez cette URL comme serveur MCP distant et connectez-vous avec OAuth.',
+    'Si le client est sans interface ou en ligne de commande, utilisez device login.',
+    'Montrez le lien et le code, puis attendez que je les approuve.',
+  ].join('\n');
+}
+
+/**
+ * Copy-paste prompt for an agent. `locale` selects English or French.
+ * Any other value falls back to English and is not interpolated.
+ */
+export function buildAgentPrompt(mcpUrl: string, locale: AgentConnectPromptLocale = 'en'): string {
+  const url = mcpUrl.trim();
+  if (!isAbsoluteHttpUrl(url)) {
+    throw new Error('Company MCP URL must be an absolute http(s) URL.');
+  }
+  return locale === 'fr' ? frenchAgentPrompt(url) : englishAgentPrompt(url);
+}
+
+const CREDENTIAL_MARKERS = [
+  'token',
+  'bearer',
+  'secret',
+  'password',
+  'device_code',
+  'user_code',
+  'authorization',
+  'eyj',
+];
+
+/** True when copy-paste text contains credential-shaped words. */
+export function agentPromptContainsCredentialMaterial(prompt: string): boolean {
+  const haystack = prompt.toLowerCase();
+  return CREDENTIAL_MARKERS.some((marker) => haystack.includes(marker));
+}
+
 export function isGlobalIdentitySession(status: McpPersonalStatus | null): boolean {
   return status?.globalIdentity === true;
 }
@@ -34,17 +131,6 @@ export function getDefaultPersonalAgentServices(includeSaas: boolean): McpPerson
     services.push('saas');
   }
   return services;
-}
-
-export function buildAgentPrompt(mcpUrl: string, accessToken: string): string {
-  return [
-    'Connect to this Shellui company over MCP.',
-    '',
-    `MCP URL: ${mcpUrl}`,
-    `Access token: ${accessToken}`,
-    '',
-    "Use the URL as the MCP server endpoint and send the token as the bearer credential. Prefer the company's configured OAuth flow when the client supports it; use this token when the client needs a static secret.",
-  ].join('\n');
 }
 
 export function formatDefaultAgentName(locale: string, at: Date = new Date()): string {

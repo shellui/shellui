@@ -1,14 +1,20 @@
 import { describe, expect, it } from 'vitest';
+import en from '../../i18n/translations/en/settings.json';
+import fr from '../../i18n/translations/fr/settings.json';
 import {
+  AGENT_CONNECT_STEPS,
   MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
   agentIncludesSaasScope,
+  agentPromptContainsCredentialMaterial,
   buildAgentPrompt,
   buildCompanyMcpUrl,
   defaultPersonalAgentExpiresAt,
   formatDefaultAgentName,
   getDefaultPersonalAgentServices,
+  isAbsoluteHttpUrl,
   isActiveMcpConnection,
   isGlobalIdentitySession,
+  resolveAgentConnectPromptLocale,
 } from './mcpAgentsConnect';
 import type { McpAgentSummary } from './personalAgentsApi';
 
@@ -66,12 +72,88 @@ describe('getDefaultPersonalAgentServices', () => {
   });
 });
 
+describe('isAbsoluteHttpUrl', () => {
+  it('accepts http and https and rejects relative paths', () => {
+    expect(isAbsoluteHttpUrl('https://ai.test/c/1/mcp')).toBe(true);
+    expect(isAbsoluteHttpUrl('http://localhost:8006/c/1/mcp')).toBe(true);
+    expect(isAbsoluteHttpUrl('/c/1/mcp')).toBe(false);
+    expect(isAbsoluteHttpUrl('')).toBe(false);
+  });
+});
+
+describe('resolveAgentConnectPromptLocale', () => {
+  it('selects French only for fr language tags', () => {
+    expect(resolveAgentConnectPromptLocale('fr')).toBe('fr');
+    expect(resolveAgentConnectPromptLocale('fr-CA')).toBe('fr');
+    expect(resolveAgentConnectPromptLocale('en-US')).toBe('en');
+    expect(resolveAgentConnectPromptLocale(null)).toBe('en');
+  });
+});
+
 describe('buildAgentPrompt', () => {
-  it('embeds url and token in the approved template', () => {
-    const prompt = buildAgentPrompt('https://ai.test/c/1/mcp', 'secret-token');
-    expect(prompt).toContain('MCP URL: https://ai.test/c/1/mcp');
-    expect(prompt).toContain('Access token: secret-token');
-    expect(prompt).toContain('Connect to this Shellui company over MCP.');
+  const mcpUrl = 'https://ai.test/c/1/mcp';
+  const english = [
+    'Connect to this Shellui company over MCP.',
+    '',
+    `MCP URL: ${mcpUrl}`,
+    '',
+    'Add this URL as a remote MCP server and sign in with OAuth.',
+    'If this client is headless or a CLI, use device login.',
+    'Show the link and the code, then wait until I approve them.',
+  ].join('\n');
+  const french = [
+    'Connectez cette entreprise Shellui en MCP.',
+    '',
+    `URL MCP : ${mcpUrl}`,
+    '',
+    'Ajoutez cette URL comme serveur MCP distant et connectez-vous avec OAuth.',
+    'Si le client est sans interface ou en ligne de commande, utilisez device login.',
+    'Montrez le lien et le code, puis attendez que je les approuve.',
+  ].join('\n');
+
+  it('uses the English OAuth prompt and the company MCP URL', () => {
+    expect(buildAgentPrompt(mcpUrl)).toBe(english);
+    expect(buildAgentPrompt(mcpUrl, 'en')).toBe(english);
+    expect(buildAgentPrompt(`  ${mcpUrl}  `, 'en')).toBe(english);
+  });
+
+  it('uses the French OAuth prompt for fr', () => {
+    expect(buildAgentPrompt(mcpUrl, 'fr')).toBe(french);
+  });
+
+  it('does not interpolate a token passed in place of the locale', () => {
+    const leaked = 'shh-static-secret-value';
+    const prompt = buildAgentPrompt(mcpUrl, leaked as 'en');
+    expect(prompt).toBe(english);
+    expect(prompt).not.toContain(leaked);
+    expect(agentPromptContainsCredentialMaterial(prompt.replace(mcpUrl, ''))).toBe(false);
+    expect(agentPromptContainsCredentialMaterial(french.replace(mcpUrl, ''))).toBe(false);
+  });
+
+  it('rejects a URL that is not absolute http(s)', () => {
+    expect(() => buildAgentPrompt('/c/1/mcp')).toThrow(/absolute http/);
+  });
+
+  it('matches the settings steps the page renders', () => {
+    expect(Object.values(en.mcpAgents.connect.steps)).toEqual([...AGENT_CONNECT_STEPS.en]);
+    expect(Object.values(fr.mcpAgents.connect.steps)).toEqual([...AGENT_CONNECT_STEPS.fr]);
+  });
+});
+
+function translationKeyPaths(value: unknown, prefix = ''): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return [prefix];
+  }
+  return Object.entries(value).flatMap(([key, child]) =>
+    translationKeyPaths(child, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
+describe('mcpAgents translations', () => {
+  it('keeps English and French keys aligned', () => {
+    expect(translationKeyPaths(en.mcpAgents).sort()).toEqual(
+      translationKeyPaths(fr.mcpAgents).sort(),
+    );
   });
 });
 

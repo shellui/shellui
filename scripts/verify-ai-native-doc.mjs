@@ -61,6 +61,12 @@ const required = [
   'waiting_approval',
   'grant_version',
   'company_binding_version',
+  'Connect an agent from Settings',
+  '/oauth/mcp/device/code',
+  'urn:ietf:params:oauth:grant-type:device_code',
+  'device_authorization_endpoint',
+  'MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS',
+  'kind` `oauth',
 ];
 
 const problems = [];

@@ -276,7 +276,7 @@
     "footnote": "Les gros modèles prennent de l'espace disque et peuvent chauffer le GPU au premier chargement. Traitez les invites des applications comme du contenu non fiable."
   },
   "mcpAgents": {
-    "description": "Connectez un agent IA à cette entreprise via MCP. Chaque connexion reçoit son propre jeton. Révoquez une connexion lorsque vous n'utilisez plus cet agent.",
+    "description": "Connectez un agent IA à cette entreprise via MCP. L'agent se connecte avec OAuth. Révoquez une connexion lorsque vous n'utilisez plus cet agent.",
     "global": {
       "title": "Se connecter à Shellui (MCP global)",
       "intro": "Vous pouvez utiliser deux points d'entrée MCP : un sur le tableau de bord Shellui pour votre compte (projets, entreprises, régions et forfaits) et un depuis cette page pour cette entreprise (services régionaux et API d'application). Les URL et les jetons diffèrent.",
@@ -307,24 +307,44 @@
     "connections": {
       "title": "Connexions actives",
       "empty": "Aucune connexion active.",
-      "connect": "Connecter un agent",
       "connectedMeta": "{{name}} · Connecté le {{date}}",
       "connectedMetaWithExpiry": "{{name}} · Connecté le {{date}} · Expire le {{expiry}}",
       "revokedMeta": "{{name}} · Révoqué le {{date}}",
       "scopeRegional": "Tous les services régionaux",
       "scopeRegionalSaas": "Tous les services régionaux + saas",
+      "kindOauth": "Connecté avec OAuth",
+      "kindPersonal": "Secret statique",
+      "services": "Services : {{services}}",
       "showRevoked": "Afficher les révoquées",
       "hideRevoked": "Masquer les révoquées",
       "loading": "Chargement des connexions…",
       "error": "Impossible de charger les connexions.",
       "retry": "Réessayer"
     },
-    "success": {
-      "title": "Connexion créée",
-      "warning": "Copiez l'invite maintenant. Shellui n'affiche le jeton qu'une seule fois.",
-      "promptLabel": "Invite agent",
+    "connect": {
+      "title": "Connecter un agent",
+      "intro": "Votre agent ajoute cette URL comme serveur MCP distant et se connecte avec OAuth.",
+      "urlLabel": "URL MCP de l'entreprise",
+      "copyUrl": "Copier l'URL",
+      "promptLabel": "Invite",
       "copyPrompt": "Copier l'invite",
-      "copyTokenOnly": "Copier le jeton seulement"
+      "stepsLead": "Ce que vous faites :",
+      "steps": {
+        "paste": "Collez l'invite dans votre agent.",
+        "openLink": "Ouvrez le lien qu'il affiche.",
+        "allow": "Vérifiez le code, puis choisissez Autoriser."
+      }
+    },
+    "staticSecret": {
+      "summary": "Clients qui n'acceptent qu'un secret statique",
+      "helper": "Utilisez ceci quand le client accepte un secret statique et ne peut pas se connecter avec OAuth.",
+      "once": "Shellui affiche le secret une seule fois. L'invite ci-dessus ne le contient pas."
+    },
+    "success": {
+      "title": "Secret statique créé",
+      "warning": "Copiez ce secret maintenant. Shellui ne l'affiche qu'une seule fois. L'invite ci-dessus ne le contient pas.",
+      "copySecret": "Copier le secret",
+      "hide": "Masquer le secret"
     },
     "revoke": {
       "action": "Révoquer",
@@ -422,14 +442,14 @@
       }
     },
     "create": {
-      "title": "Connecter un agent",
+      "title": "Créer un secret statique",
       "nameLabel": "Nom",
       "namePlaceholder": "ChatGPT sur mon ordinateur portable",
       "nameHelper": "Affiché dans cette liste.",
       "accessHelperGlobal": "Ce jeton peut appeler chaque service régional de cette entreprise, et saas.",
       "accessHelperRegional": "Ce jeton peut appeler chaque service régional de cette entreprise. Saas n'est pas inclus ; connectez-vous depuis le tableau de bord global si vous avez besoin de saas.",
       "expiryHelper": "Cette connexion expire dans {{days}} jours.",
-      "submit": "Créer la connexion",
+      "submit": "Créer le secret",
       "submitting": "Création…",
       "cancel": "Annuler",
       "errorGeneric": "Impossible de créer la connexion.",

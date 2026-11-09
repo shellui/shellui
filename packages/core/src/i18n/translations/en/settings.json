@@ -276,7 +276,7 @@
     "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
   },
   "mcpAgents": {
-    "description": "Connect an AI agent to this company over MCP. Each connection gets its own token. Revoke a connection when you no longer use that agent.",
+    "description": "Connect an AI agent to this company over MCP. The agent signs in with OAuth. Revoke a connection when you stop using that agent.",
     "global": {
       "title": "Connect to Shellui (global MCP)",
       "intro": "You can use two MCP entry points: one on the Shellui dashboard for your account (projects, companies, regions, and plans) and one from this page for this company (regional services and app APIs). They use different URLs and tokens.",
@@ -307,24 +307,44 @@
     "connections": {
       "title": "Active connections",
       "empty": "No active connections.",
-      "connect": "Connect an agent",
       "connectedMeta": "{{name}} · Connected {{date}}",
       "connectedMetaWithExpiry": "{{name}} · Connected {{date}} · Expires {{expiry}}",
       "revokedMeta": "{{name}} · Revoked {{date}}",
       "scopeRegional": "All regional services",
       "scopeRegionalSaas": "All regional services + saas",
+      "kindOauth": "Signed in with OAuth",
+      "kindPersonal": "Static secret",
+      "services": "Services: {{services}}",
       "showRevoked": "Show revoked",
       "hideRevoked": "Hide revoked",
       "loading": "Loading connections…",
       "error": "Unable to load connections.",
       "retry": "Try again"
     },
-    "success": {
-      "title": "Connection created",
-      "warning": "Copy the prompt now. Shellui shows the token only once.",
-      "promptLabel": "Agent prompt",
+    "connect": {
+      "title": "Connect an agent",
+      "intro": "Your agent adds this URL as a remote MCP server and signs in with OAuth.",
+      "urlLabel": "Company MCP URL",
+      "copyUrl": "Copy URL",
+      "promptLabel": "Prompt",
       "copyPrompt": "Copy prompt",
-      "copyTokenOnly": "Copy token only"
+      "stepsLead": "What you do:",
+      "steps": {
+        "paste": "Paste the prompt into your agent.",
+        "openLink": "Open the link it shows.",
+        "allow": "Check the code and choose Allow."
+      }
+    },
+    "staticSecret": {
+      "summary": "Clients that only accept a static secret",
+      "helper": "Use this when the client accepts a static secret and cannot sign in with OAuth.",
+      "once": "Shellui shows the secret once. The prompt above does not include it."
+    },
+    "success": {
+      "title": "Static secret created",
+      "warning": "Copy this secret now. Shellui shows it only once. The prompt above does not include it.",
+      "copySecret": "Copy secret",
+      "hide": "Hide secret"
     },
     "revoke": {
       "action": "Revoke",
@@ -422,14 +442,14 @@
       }
     },
     "create": {
-      "title": "Connect an agent",
+      "title": "Create a static secret",
       "nameLabel": "Name",
       "namePlaceholder": "ChatGPT on my laptop",
       "nameHelper": "Shown in this list.",
       "accessHelperGlobal": "This token can call every regional service for this company, and saas.",
       "accessHelperRegional": "This token can call every regional service for this company. Saas is not included; connect from the global dashboard when you need saas.",
       "expiryHelper": "This connection expires in {{days}} days.",
-      "submit": "Create connection",
+      "submit": "Create secret",
       "submitting": "Creating…",
       "cancel": "Cancel",
       "errorGeneric": "Could not create the connection.",

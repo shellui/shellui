@@ -14,8 +14,10 @@ import {
   formatConnectionDate,
   formatDefaultAgentName,
   getDefaultPersonalAgentServices,
+  isAbsoluteHttpUrl,
   isActiveMcpConnection,
   isGlobalIdentitySession,
+  resolveAgentConnectPromptLocale,
 } from '../../mcp/mcpAgentsConnect';
 import {
   createMcpPersonalAgent,
@@ -34,10 +36,8 @@ import { useMcpPendingToolApprovals } from '../hooks/useMcpPendingToolApprovals'
 import { McpAgentActivitySection } from './McpAgentActivitySection';
 import { McpPendingApprovals } from './McpPendingApprovals';
 
-type IssuedConnection = {
+type IssuedSecret = {
   accessToken: string;
-  mcpUrl: string;
-  prompt: string;
 };
 
 export const McpAgents = () => {
@@ -80,17 +80,28 @@ export const McpAgents = () => {
     () => buildCompanyMcpUrl(aiServiceUrl, companyId, status?.mcpUrl),
     [aiServiceUrl, companyId, status?.mcpUrl],
   );
+  const absoluteMcpUrl = useMemo(
+    () => (companyMcpUrl && isAbsoluteHttpUrl(companyMcpUrl) ? companyMcpUrl : null),
+    [companyMcpUrl],
+  );
+  const connectPrompt = useMemo(
+    () =>
+      absoluteMcpUrl
+        ? buildAgentPrompt(absoluteMcpUrl, resolveAgentConnectPromptLocale(locale))
+        : null,
+    [absoluteMcpUrl, locale],
+  );
 
   const [agents, setAgents] = useState<McpAgentSummary[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [agentsError, setAgentsError] = useState(false);
   const [showRevoked, setShowRevoked] = useState(false);
 
-  const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [issuedConnection, setIssuedConnection] = useState<IssuedConnection | null>(null);
+  const [issuedSecret, setIssuedSecret] = useState<IssuedSecret | null>(null);
+  const staticDetailsRef = useRef<HTMLDetailsElement>(null);
 
   const copyValue = useCallback(
     async (label: string, value: string) => {
@@ -120,26 +131,49 @@ export const McpAgents = () => {
     [t],
   );
 
-  const loadAgents = useCallback(async () => {
-    if (!backendUrl || !accessToken || !status?.mcpEnabled) {
-      setAgents([]);
-      return;
-    }
-    setAgentsLoading(true);
-    setAgentsError(false);
-    try {
-      const list = await fetchMcpPersonalAgents(backendUrl, accessToken, companyId);
-      setAgents(list);
-    } catch {
-      setAgents([]);
-      setAgentsError(true);
-    } finally {
-      setAgentsLoading(false);
-    }
-  }, [accessToken, backendUrl, companyId, status?.mcpEnabled]);
+  const loadAgents = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!backendUrl || !accessToken || !status?.mcpEnabled) {
+        setAgents([]);
+        return;
+      }
+      if (!options?.silent) {
+        setAgentsLoading(true);
+        setAgentsError(false);
+      }
+      try {
+        const list = await fetchMcpPersonalAgents(backendUrl, accessToken, companyId);
+        setAgents(list);
+        setAgentsError(false);
+      } catch {
+        if (!options?.silent) {
+          setAgents([]);
+          setAgentsError(true);
+        }
+      } finally {
+        if (!options?.silent) {
+          setAgentsLoading(false);
+        }
+      }
+    },
+    [accessToken, backendUrl, companyId, status?.mcpEnabled],
+  );
 
   useEffect(() => {
     void loadAgents();
+  }, [loadAgents]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'hidden') return;
+      void loadAgents({ silent: true });
+    };
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    window.addEventListener('focus', refreshIfVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      window.removeEventListener('focus', refreshIfVisible);
+    };
   }, [loadAgents]);
 
   const activeAgents = useMemo(
@@ -154,6 +188,14 @@ export const McpAgents = () => {
       agentIncludesSaasScope(agent)
         ? t('mcpAgents.connections.scopeRegionalSaas')
         : t('mcpAgents.connections.scopeRegional'),
+    [t],
+  );
+
+  const kindLabel = useCallback(
+    (agent: McpAgentSummary) =>
+      agent.kind === 'oauth'
+        ? t('mcpAgents.connections.kindOauth')
+        : t('mcpAgents.connections.kindPersonal'),
     [t],
   );
 
@@ -193,8 +235,7 @@ export const McpAgents = () => {
     if (!backendUrl || !accessToken) return;
     const trimmedName = name.trim();
     const resolvedName = trimmedName || formatDefaultAgentName(locale);
-    const mcpUrl = companyMcpUrl;
-    if (!mcpUrl) {
+    if (!absoluteMcpUrl) {
       setCreateError(t('mcpAgents.create.errorMissingMcpUrl'));
       return;
     }
@@ -215,14 +256,10 @@ export const McpAgents = () => {
         },
         { allowSaas: includeSaas },
       );
-      const promptMcpUrl = buildCompanyMcpUrl(aiServiceUrl, companyId, result.resource) ?? mcpUrl;
-      const prompt = buildAgentPrompt(promptMcpUrl, result.accessToken);
-      setIssuedConnection({
-        accessToken: result.accessToken,
-        mcpUrl: promptMcpUrl,
-        prompt,
-      });
-      setCreateOpen(false);
+      setIssuedSecret({ accessToken: result.accessToken });
+      if (staticDetailsRef.current) {
+        staticDetailsRef.current.open = true;
+      }
       setName('');
       await loadAgents();
     } catch (err) {
@@ -235,11 +272,10 @@ export const McpAgents = () => {
       setCreating(false);
     }
   }, [
+    absoluteMcpUrl,
     accessToken,
-    aiServiceUrl,
     backendUrl,
     companyId,
-    companyMcpUrl,
     includeSaas,
     loadAgents,
     locale,
@@ -314,47 +350,173 @@ export const McpAgents = () => {
         )}
       </section>
 
-      {issuedConnection ? (
-        <section className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-4">
-          <div className="space-y-1">
-            <h2
-              className="text-sm font-medium leading-none text-amber-900 dark:text-amber-100"
-              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-            >
-              {t('mcpAgents.success.title')}
-            </h2>
-            <p className="text-sm text-muted-foreground">{t('mcpAgents.success.warning')}</p>
-          </div>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">{t('mcpAgents.success.promptLabel')}</p>
-            <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border bg-muted px-3 py-2 text-xs">
-              {issuedConnection.prompt}
-            </pre>
-            <div className="flex flex-wrap gap-2">
+      <section className="rounded-lg border bg-card p-4 space-y-4">
+        <h2
+          className="text-sm font-medium leading-none"
+          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+        >
+          {t('mcpAgents.connect.title')}
+        </h2>
+        {connectPrompt && absoluteMcpUrl ? (
+          <>
+            <p className="text-sm text-muted-foreground">{t('mcpAgents.connect.intro')}</p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t('mcpAgents.connect.urlLabel')}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <code
+                  className="min-w-0 break-all font-mono text-xs"
+                  translate="no"
+                >
+                  {absoluteMcpUrl}
+                </code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void copyValue(t('mcpAgents.connect.copyUrl'), absoluteMcpUrl)}
+                >
+                  {t('mcpAgents.connect.copyUrl')}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t('mcpAgents.connect.promptLabel')}</p>
+              <pre
+                className="max-h-64 overflow-auto whitespace-pre-wrap rounded-md border bg-muted px-3 py-2 text-xs"
+                translate="no"
+                children={connectPrompt}
+              />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  void copyValue(t('mcpAgents.success.copyPrompt'), issuedConnection.prompt)
-                }
+                onClick={() => void copyValue(t('mcpAgents.connect.copyPrompt'), connectPrompt)}
               >
-                {t('mcpAgents.success.copyPrompt')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  void copyValue(t('mcpAgents.success.copyTokenOnly'), issuedConnection.accessToken)
-                }
-              >
-                {t('mcpAgents.success.copyTokenOnly')}
+                {t('mcpAgents.connect.copyPrompt')}
               </Button>
             </div>
-          </div>
-        </section>
-      ) : null}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">{t('mcpAgents.connect.stepsLead')}</p>
+              <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+                <li>{t('mcpAgents.connect.steps.paste')}</li>
+                <li>{t('mcpAgents.connect.steps.openLink')}</li>
+                <li>{t('mcpAgents.connect.steps.allow')}</li>
+              </ol>
+            </div>
+            <details
+              ref={staticDetailsRef}
+              className="rounded-md border bg-background"
+            >
+              <summary className="cursor-pointer px-3 py-2 text-sm font-medium">
+                {t('mcpAgents.staticSecret.summary')}
+              </summary>
+              <div className="space-y-4 px-3 pb-3">
+                <p className="text-sm text-muted-foreground">
+                  {t('mcpAgents.staticSecret.helper')}
+                </p>
+                <p className="text-sm text-muted-foreground">{t('mcpAgents.staticSecret.once')}</p>
+                {issuedSecret ? (
+                  <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                    <p className="text-sm font-medium">{t('mcpAgents.success.title')}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t('mcpAgents.success.warning')}
+                    </p>
+                    <pre
+                      className="overflow-auto whitespace-pre-wrap rounded-md border bg-muted px-3 py-2 text-xs"
+                      translate="no"
+                      children={issuedSecret.accessToken}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          void copyValue(
+                            t('mcpAgents.success.copySecret'),
+                            issuedSecret.accessToken,
+                          )
+                        }
+                      >
+                        {t('mcpAgents.success.copySecret')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIssuedSecret(null)}
+                      >
+                        {t('mcpAgents.success.hide')}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+                <h3
+                  className="text-sm font-medium leading-none"
+                  style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+                >
+                  {t('mcpAgents.create.title')}
+                </h3>
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium"
+                    htmlFor="mcp-agent-name"
+                  >
+                    {t('mcpAgents.create.nameLabel')}
+                  </label>
+                  <Input
+                    id="mcp-agent-name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder={t('mcpAgents.create.namePlaceholder')}
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    {t('mcpAgents.create.nameHelper')}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {includeSaas
+                    ? t('mcpAgents.create.accessHelperGlobal')
+                    : t('mcpAgents.create.accessHelperRegional')}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {t('mcpAgents.create.expiryHelper', {
+                    days: MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
+                  })}
+                </p>
+                {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    disabled={creating}
+                    onClick={() => void handleCreate()}
+                  >
+                    {creating ? t('mcpAgents.create.submitting') : t('mcpAgents.create.submit')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={creating}
+                    onClick={() => {
+                      setCreateError(null);
+                      setName('');
+                      if (staticDetailsRef.current) {
+                        staticDetailsRef.current.open = false;
+                      }
+                    }}
+                  >
+                    {t('mcpAgents.create.cancel')}
+                  </Button>
+                </div>
+              </div>
+            </details>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {t('mcpAgents.create.errorMissingMcpUrl')}
+          </p>
+        )}
+      </section>
 
       <McpPendingApprovals
         ref={pendingSectionRef}
@@ -369,81 +531,12 @@ export const McpAgents = () => {
       />
 
       <section className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2
-            className="text-sm font-medium leading-none"
-            style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-          >
-            {t('mcpAgents.connections.title')}
-          </h2>
-          <Button
-            type="button"
-            size="sm"
-            disabled={createOpen}
-            onClick={() => {
-              setCreateError(null);
-              setCreateOpen(true);
-            }}
-          >
-            {t('mcpAgents.connections.connect')}
-          </Button>
-        </div>
-
-        {createOpen && !issuedConnection ? (
-          <section className="rounded-lg border bg-card p-4 space-y-4">
-            <h3
-              className="text-sm font-medium leading-none"
-              style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
-            >
-              {t('mcpAgents.create.title')}
-            </h3>
-            <div className="space-y-2">
-              <label
-                className="text-sm font-medium"
-                htmlFor="mcp-agent-name"
-              >
-                {t('mcpAgents.create.nameLabel')}
-              </label>
-              <Input
-                id="mcp-agent-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t('mcpAgents.create.namePlaceholder')}
-              />
-              <p className="text-sm text-muted-foreground">{t('mcpAgents.create.nameHelper')}</p>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {includeSaas
-                ? t('mcpAgents.create.accessHelperGlobal')
-                : t('mcpAgents.create.accessHelperRegional')}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {t('mcpAgents.create.expiryHelper', { days: MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS })}
-            </p>
-            {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                disabled={creating}
-                onClick={() => void handleCreate()}
-              >
-                {creating ? t('mcpAgents.create.submitting') : t('mcpAgents.create.submit')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={creating}
-                onClick={() => {
-                  setCreateOpen(false);
-                  setCreateError(null);
-                  setName('');
-                }}
-              >
-                {t('mcpAgents.create.cancel')}
-              </Button>
-            </div>
-          </section>
-        ) : null}
+        <h2
+          className="text-sm font-medium leading-none"
+          style={{ fontFamily: 'var(--heading-font-family, inherit)' }}
+        >
+          {t('mcpAgents.connections.title')}
+        </h2>
 
         {agentsLoading ? (
           <p className="text-sm text-muted-foreground">{t('mcpAgents.connections.loading')}</p>
@@ -485,7 +578,16 @@ export const McpAgents = () => {
                               date: connectedDate,
                             })}
                       </p>
-                      <p className="text-sm text-muted-foreground">{scopeLabel(agent)}</p>
+                      <p className="text-sm text-muted-foreground">{kindLabel(agent)}</p>
+                      {agent.kind === 'oauth' && agent.servicesAllowed.length > 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          {t('mcpAgents.connections.services', {
+                            services: agent.servicesAllowed.join(', '),
+                          })}
+                        </p>
+                      ) : agent.kind === 'personal' ? (
+                        <p className="text-sm text-muted-foreground">{scopeLabel(agent)}</p>
+                      ) : null}
                     </div>
                     <Button
                       type="button"
@@ -538,6 +640,7 @@ export const McpAgents = () => {
                         date: formatConnectionDate(agent.revokedAt ?? agent.createdAt, locale),
                       })}
                     </p>
+                    <p className="text-sm text-muted-foreground">{kindLabel(agent)}</p>
                   </li>
                 ))}
               </ul>
