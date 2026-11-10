@@ -20,8 +20,8 @@ Optional tuning in `.env.local`: `DEV_FILE_WATCH_POLLING=true` if Vite misses fi
 | `docker-compose.yml`         | Full stack                                                                      |
 | `.env.local.example`         | Committed env template                                                          |
 | `.env.local`                 | Generated secrets (gitignored)                                                  |
-| `start.sh`                   | Generate or update `.env.local`, then compose up                                |
+| `start.sh`                   | Generate or update `.env.local`, create missing databases, then compose up      |
 | `generate-env.sh`            | Creates or updates `.env.local` from the example, including dev-only RS256 keys |
 | `generate_env.py`            | Secret generator (stdlib and OpenSSL)                                           |
 | `config/`                    | Shell dev config (split files) for `shell`                                      |
-| `postgres/init-databases.sh` | One Postgres database per backend                                               |
+| `postgres/init-databases.sh` | Creates each missing backend database on every start                            |
