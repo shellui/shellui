@@ -64,4 +64,4 @@ Root scripts:
 | `pnpm run version:sync`                       | Copy the root version to every package                       |
 | `pnpm run clean`                              | Remove every `node_modules`                                  |
 
-The docs site also renders the service docs from `identity-service`, `storage-service`, `hosting-service`, and `email-service`. See [Docs site](/docs-site) for how they are fetched and how to edit them with live reload.
+The docs site also renders the service docs from `identity-service`, `storage-service`, `hosting-service`, `email-service`, and `ai-service`. See [Docs site](/docs-site) for how they are fetched and how to edit them with live reload.

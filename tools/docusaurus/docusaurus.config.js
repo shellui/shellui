@@ -11,7 +11,7 @@ const remarkServiceLinks = require('./plugins/remark-service-links');
 const {assignGeneratedImage} = require('./og/front-matter');
 
 /**
- * Service docs (identity, storage, hosting, email) live in their own repos.
+ * Service docs (identity, storage, hosting, email, ai) live in their own repos.
  * `scripts/fetch-service-docs.js` resolves them and writes a manifest. When the
  * manifest is missing, for example after a fresh clone, run the fetch here so
  * `docusaurus start` and `docusaurus build` work on their own.

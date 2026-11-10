@@ -12,6 +12,9 @@
  * See `../services.js` for every environment variable.
  *
  * Usage: node scripts/fetch-service-docs.js [--source=auto|local|remote]
+ *
+ * A service with `optional: true` is skipped when the pinned ref has no
+ * `docs/` folder. Other fetch failures still fail the build.
  */
 
 const fs = require('fs');
@@ -268,8 +271,12 @@ function main() {
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      failures.push(`${service.id}: ${message}`);
       fs.rmSync(path.join(SERVICES_DIR, service.id), {recursive: true, force: true});
+      if (service.optional && message.includes(`has no ${service.docsDir}/ folder`)) {
+        log(`${service.id}: skipped (${message})`);
+        continue;
+      }
+      failures.push(`${service.id}: ${message}`);
     }
   }
 
