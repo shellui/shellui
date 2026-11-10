@@ -2,14 +2,10 @@
 // @ts-check
 const fs = require('fs');
 const path = require('path');
-const {DEFAULT_TITLE, readSiteDescription} = require('../og/copy');
-const {renderOgCard} = require('../og/card');
+const {renderDefaultCard} = require('../og/card');
 
 async function main() {
-  const png = await renderOgCard({
-    title: DEFAULT_TITLE,
-    description: readSiteDescription(),
-  });
+  const png = await renderDefaultCard();
   const dest = path.join(__dirname, '../static/img/og/default.png');
   fs.mkdirSync(path.dirname(dest), {recursive: true});
   fs.writeFileSync(dest, png);

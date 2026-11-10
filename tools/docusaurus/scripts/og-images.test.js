@@ -26,9 +26,12 @@ test('template copy has no dashes', () => {
 
 test('default card description is the docs home description', () => {
   const description = readSiteDescription();
-  const source = fs.readFileSync(INDEX_DOC, 'utf8');
-  assert.match(source, new RegExp(description.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(description, /microfrontend shell/);
+  assert.equal(
+    description,
+    'Developer map for Shellui, a microfrontend shell with shared navigation, authentication, administration, and storage.',
+  );
+  assert.match(fs.readFileSync(INDEX_DOC, 'utf8'), /Developer map for Shellui, a microfrontend shell/);
+  assert.equal(/\s-\s/.test(description), false);
 });
 
 test('permalinks follow the docs routes', () => {

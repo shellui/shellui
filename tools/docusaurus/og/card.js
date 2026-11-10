@@ -146,10 +146,15 @@ function h(type, props, ...children) {
 }
 
 /**
- * @param {{eyebrow?: string | null, title: string, description?: string | null}} input
+ * @param {{
+ *   eyebrow?: string | null,
+ *   title: string,
+ *   description?: string | null,
+ *   brand?: string,
+ * }} input
  * @returns {Promise<Buffer>}
  */
-async function renderOgCard({eyebrow, title, description}) {
+async function renderOgCard({eyebrow, title, description, brand = 'Shellui docs'}) {
   const satoriModule = await import('satori');
   const satori = satoriModule.default;
   const {header, watermark} = loadMarks();
@@ -232,7 +237,7 @@ async function renderOgCard({eyebrow, title, description}) {
               lineHeight: '22px',
             },
           },
-          'shellui.com',
+          brand,
         ),
       ),
       h(
@@ -395,6 +400,7 @@ function renderDefaultCard() {
   return renderOgCard({
     title: DEFAULT_TITLE,
     description: readSiteDescription(),
+    brand: 'shellui.com',
   });
 }
 

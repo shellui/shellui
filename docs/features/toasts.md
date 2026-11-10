@@ -1,7 +1,7 @@
 ---
 title: Show a toast
 sidebar_label: Toasts
-description: 'Call shellui.toast from an iframe so the host shows a toast - types, duration, position, and actions.'
+description: 'Call shellui.toast from an iframe so the host shows a toast: types, duration, position, and actions.'
 ---
 
 Toasts are host chrome. Call `shellui.toast` after `init` so the shell renders them. Do not mount a second live region in the iframe.

@@ -29,6 +29,7 @@ function ogImagesPlugin() {
             eyebrow: card.eyebrow,
             title: card.title,
             description: card.description,
+            brand: 'Shellui docs',
           }),
       }));
       jobs.push({
