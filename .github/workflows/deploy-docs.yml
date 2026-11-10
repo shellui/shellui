@@ -1,7 +1,7 @@
 name: Deploy Docs to GitHub Pages
 
 # The site at docs.shellui.com includes the docs of every Shellui service
-# (identity, storage, hosting, email). They are fetched from each service repo
+# (identity, storage, hosting, email, ai). They are fetched from each service repo
 # at build time by tools/docusaurus/scripts/fetch-service-docs.js.
 #
 # The build job has contents: read and does not keep checkout credentials.
@@ -65,6 +65,7 @@ jobs:
       STORAGE_DOCS_REF: ${{ vars.STORAGE_DOCS_REF || 'main' }}
       HOSTING_DOCS_REF: ${{ vars.HOSTING_DOCS_REF || 'main' }}
       EMAIL_DOCS_REF: ${{ vars.EMAIL_DOCS_REF || 'main' }}
+      AI_DOCS_REF: ${{ vars.AI_DOCS_REF || 'main' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

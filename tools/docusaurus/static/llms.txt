@@ -27,6 +27,8 @@
 - [Internationalization](https://docs.shellui.com/features/internationalization)
 - [Layouts](https://docs.shellui.com/features/layouts)
 - [Security](https://docs.shellui.com/features/security)
+- [AI native platform](https://docs.shellui.com/features/ai-native): local MCP, OAuth, approvals, and tool discovery
+- [AI native MCP](https://docs.shellui.com/features/ai-native-mcp): pointer to the AI native platform guide
 
 ## Services
 
@@ -34,6 +36,7 @@
 - [Storage service](https://docs.shellui.com/storage/): file uploads and access
 - [Email service](https://docs.shellui.com/email/): templates, providers, newsletters, rules
 - [Hosting service](https://docs.shellui.com/hosting/): deploy and serve Shellui apps
+- [AI service MCP](https://docs.shellui.com/ai/mcp): discovery list, search, describe, and tool calls
 
 ## Optional
 

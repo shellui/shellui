@@ -2,7 +2,7 @@
 
 This directory contains the Docusaurus site published at https://docs.shellui.com.
 It renders the Shellui docs from `../../docs/` and the docs of each Shellui service
-(identity, storage, hosting, email), fetched at build time.
+(identity, storage, hosting, email, and AI), fetched at build time.
 
 Full guide: [docs/docs-site.md](../../docs/docs-site.md).
 
@@ -34,7 +34,7 @@ pnpm docs:serve   # serve the build
 `DOCS_SOURCE=auto` (default) uses sibling checkouts such as `../identity-service/docs`
 in place, so edits there live reload. Services without a sibling checkout are cloned
 from GitHub (shallow, sparse, docs only). Use `DOCS_SOURCE=remote` to match CI, and
-`IDENTITY_DOCS_REF=<branch|tag|sha>` (or `STORAGE_`, `HOSTING_`, `EMAIL_`) to pick a ref.
+`IDENTITY_DOCS_REF=<branch|tag|sha>` (or `STORAGE_`, `HOSTING_`, `EMAIL_`, `AI_`) to pick a ref.
 
 ## Deployment
 

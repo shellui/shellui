@@ -10,6 +10,12 @@ regional MCP with curl and a browser. Identity owns OAuth. The ai gateway owns
 [AI native MCP](./ai-native-mcp) for short connector URL pointers.
 Links use the `develop` branch.
 
+:::info[Beta]
+
+MCP is in Beta. Tool names and behavior may still change.
+
+:::
+
 ## What this repo validates vs what you run locally
 
 **What this repo validates:**
@@ -349,6 +355,8 @@ PY
 
 ### Gateway `tools/list`
 
+This call returns the discovery list in [Finding tools](#finding-tools).
+
 ```bash
 TOK=$(cat /tmp/shellui-mcp-access)
 curl -sS -X POST "http://localhost:8006/c/1/mcp" \
@@ -362,6 +370,46 @@ list takes path parameter `bucket_id` on
 `storage/v1/object/list/<bucket_id>` and a body from
 `ObjectListRequestSerializer`. The gateway name is
 `storage_create_object_list`.
+
+### Finding tools
+
+`tools/list` returns a short discovery list unless you ask for the
+full catalog. A direct `tools/call` still runs any of the 224 tools.
+The [ai-service MCP gateway][ai-mcp] handbook is the reference for names
+and parameters.
+
+The default list is:
+
+- `ai_list_services`
+- `ai_search_tools`
+- `ai_describe_tool`
+- `ai_call_tool`
+- `identity_list_users`, `storage_list_bucket`, `hosting_list_apps`,
+  and `email_list_messages` when the service is connected
+
+List services, search, describe the match, then call it.
+`ai_call_tool` uses the same approvals as a direct `tools/call`.
+Search for invite tools with `ai_search_tools`:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "ai_search_tools",
+    "arguments": {
+      "query": "invite a user",
+      "limit": 3
+    }
+  }
+}
+```
+
+`POST http://localhost:8006/c/1/mcp?tools=all` returns the full list.
+`tools/list` with params `{"tools":"all"}` does the same.
+The default `MCP_TOOLS_LIST_MODE` is `discovery`.
+Set it to `all` when the full list should be the default.
 
 ## Downstream mint
 
