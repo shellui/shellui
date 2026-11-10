@@ -1,7 +1,7 @@
 ---
 title: Choose a layout
 sidebar_label: Layouts
-description: 'Set layout in shellui.config.json - sidebar, inset, fullscreen, app bar, floating, or experimental windows.'
+description: 'Set layout in shellui.config.json: sidebar, inset, fullscreen, app bar, floating, or experimental windows.'
 ---
 
 `layout` is a shell concern (`shellui.config.json`). App UI must work in sidebar, top-bar, and window modes. Default is `sidebar`. Override at runtime from **Settings → Develop → Layout** when developer features are enabled (stored in user settings, wins over config).

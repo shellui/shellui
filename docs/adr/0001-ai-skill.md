@@ -1,7 +1,7 @@
 ---
 id: ai-skill
 slug: /adr/ai-skill
-title: ADR 0001 - Official shellui skill
+title: 'ADR 0001: Official Shellui skill'
 sidebar_label: ADR 0001
 description: 'Decision record for hosting the official Agent Skill in shellui/skills, versioning, and token budget.'
 ---

@@ -8,6 +8,7 @@ const lightCodeTheme = require('prism-react-renderer').themes.github;
 const darkCodeTheme = require('prism-react-renderer').themes.vsDark;
 const {MANIFEST_PATH} = require('./services');
 const remarkServiceLinks = require('./plugins/remark-service-links');
+const {assignGeneratedImage} = require('./og/front-matter');
 
 /**
  * Service docs (identity, storage, hosting, email) live in their own repos.
@@ -151,6 +152,11 @@ const config = {
   // Two docs instances must never claim the same URL.
   onDuplicateRoutes: 'throw',
   markdown: {
+    parseFrontMatter: async (params) => {
+      const result = await params.defaultParseFrontMatter(params);
+      assignGeneratedImage(result.frontMatter, params.filePath);
+      return result;
+    },
     hooks: {
       onBrokenMarkdownLinks: 'warn',
     },
@@ -189,13 +195,12 @@ const config = {
     ],
   ],
 
-  plugins: [...servicePlugins],
+  plugins: [...servicePlugins, require.resolve('./og/plugin.js')],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'img/og/default.png',
       colorMode: {
         defaultMode: 'light',
         disableSwitch: false,

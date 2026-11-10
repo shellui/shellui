@@ -1,7 +1,7 @@
 ---
 title: Show a dialog
 sidebar_label: Dialogs
-description: 'Call shellui.dialog for host alert and confirm dialogs - modes, labels, size, and callbacks.'
+description: 'Call shellui.dialog for host alert and confirm dialogs: modes, labels, size, and callbacks.'
 ---
 
 Alert dialogs are host chrome. Call `shellui.dialog` after `init`. On every viewport the dialog is geometrically centered with edge spacing and safe-area insets. Height hugs content.
