@@ -56,6 +56,25 @@ services:
       start_interval: 5s
       retries: 10
 
+  # One-shot. Creates any missing database after Postgres is healthy.
+  # start.sh removes this container first so Compose runs it on every start.
+  postgres-init:
+    <<: *dev-container
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGHOST: postgres
+      PGPORT: '5432'
+    volumes:
+      - ./postgres/init-databases.sh:/init-databases.sh:ro
+    entrypoint: ['/bin/bash']
+    command: ['/init-databases.sh']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   redis:
     <<: *dev-container
     image: redis:8-alpine
@@ -170,6 +189,8 @@ services:
       - identity-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -214,6 +235,8 @@ services:
       - identity-global-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -257,6 +280,8 @@ services:
       start_period: 90s
       start_interval: 5s
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -294,6 +319,8 @@ services:
       - hosting-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -338,6 +365,8 @@ services:
       - email-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -384,6 +413,8 @@ services:
       - email-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -437,6 +468,8 @@ services:
       - saas-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -482,6 +515,8 @@ services:
       - ai-data:/app/data
       - ./container:/opt/shellui/dev/container:ro
     depends_on:
+      postgres-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:

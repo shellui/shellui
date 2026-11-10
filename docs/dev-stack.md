@@ -49,6 +49,8 @@ cd shellui/dev
 
 On first run, `start.sh` creates `dev/.env.local` with fresh secrets. Later runs keep it and only append variables added to the example since (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, `email-worker` included. Extra arguments go to Compose, for example `./start.sh -d`.
 
+On every `./start.sh`, the stack creates any missing Postgres database after Postgres is healthy and before the backends that use Postgres start. The databases are `identity`, `identity_global`, `storage`, `hosting`, `email`, `saas`, and `ai`. The next `./start.sh` creates `identity_global` when the volume predates that database.
+
 Never commit `dev/.env.local`.
 
 ## 3. Open
@@ -154,7 +156,6 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 - **A build fails on a sibling repo.** Pull `develop` in that repo. Every image needs a `dev` target in its Dockerfile.
 - **Port already in use.** Stop the local process on that port, or the other stack using it.
 - **Postgres auth fails after new secrets.** You removed `.env.local` but kept old volumes. Run `docker compose --env-file .env.local down -v`, then `./start.sh`.
-- **`identity-global` cannot connect to Postgres.** The data volume was created before `identity_global` existed. Init runs only on an empty volume. Create the database, then start the service (commands below).
 - **No hot reload on macOS.** Set `DEV_FILE_WATCH_POLLING=true` in `dev/.env.local`, then restart the front-end service. Docker Desktop virtiofs usually works with inotify when polling is off.
 - **High idle CPU.** Defaults favor inotify and slower Django or worker polls. Raise `DEV_FILE_WATCH_POLLING`, lower `DJANGO_STATRELOAD_SLEEP`, or lower `EMAIL_LANE_WORKER_POLL_SECONDS` only if you need snappier reloads.
 - **Compose stop shows `Error while Killing`.** Update Docker Compose (Desktop includes it). The dev stack does not set a restart policy so `docker compose down` and Ctrl-C on `./start.sh` can stop containers without racing the engine. Services use `init: true` so SIGTERM reaches runserver, Vite, and the email worker children.
@@ -175,15 +176,7 @@ From `shellui/dev`, refresh the env file. New names are appended. Private keys t
 ./generate-env.sh
 ```
 
-Postgres init runs only when the data volume is empty. If `identity-global` logs that database `identity_global` does not exist, create it and start that service:
-
-```bash
-docker compose --env-file .env.local exec postgres \
-  sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE identity_global;"'
-./start.sh -d identity-global
-```
-
-`CREATE DATABASE` fails when the database is already there. Leave the volume in place and rerun the start command. To drop every database and secret, remove `.env.local` and run `docker compose --env-file .env.local down -v`, then `./start.sh`.
+Running `./start.sh` creates any missing Postgres database, including when the data volume predates `identity_global`. Leave that volume in place. To drop every database and secret, remove `.env.local` and run `docker compose --env-file .env.local down -v`, then `./start.sh`.
 
 ## Redis
 
