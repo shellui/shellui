@@ -57,6 +57,7 @@ import {
 import { normalizeDesktopScheme } from './utils/desktopAuthCallback';
 import type { DeleteAccountResultStatus, UpdateProfileResult } from './shellAccountRequests';
 import { accessTokenRefreshDue } from './utils/accessTokenRefreshDue';
+import { finishShellSignOut, resolveLogoutReturnTo } from './utils/identityBrowserLogout';
 import { registerFrameSessionRefresher } from './utils/frameSessionRefresher';
 
 const logger = getLogger('shellcore');
@@ -207,6 +208,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logger.error('Token refresh failed', { err });
         const message = err instanceof Error ? err.message : '';
         if (/\b401\b/.test(message)) {
+          // Refresh failed in this tab (including after another tab cleared the
+          // shared BFF cookie). Drop the local session only. The identity
+          // browser logout navigation belongs to the tab that called logout().
           clearStoredAuthSession();
           sessionRef.current = null;
           setSession(null);
@@ -692,29 +696,70 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [backend, session]);
 
-  const logout = useCallback(async () => {
-    try {
-      if (bffAuthEnabled) {
-        await logoutBffAuthSession(session?.accessToken);
+  const logout = useCallback(
+    async (options?: { returnTo?: string }) => {
+      const topLevel = typeof window !== 'undefined' && window.parent === window;
+      // The desktop webview does not hold the identity cookie (sign-in opens
+      // the system browser). Navigating it would leave the app.
+      const initiatedHere = topLevel && !isLiveTauriRuntime();
+      const current = sessionRef.current;
+
+      const navigated = await finishShellSignOut({
+        revoke: async () => {
+          try {
+            if (bffAuthEnabled) {
+              await logoutBffAuthSession(current?.accessToken);
+            }
+            await backend.logout(current);
+          } catch {
+            // Even if API sign-out fails, still clear the local session.
+          }
+          try {
+            await endAppBackendSessions();
+          } catch {
+            // App-server sign-out is best effort. The shell session still clears.
+          }
+        },
+        clearLocal: () => {
+          clearStoredAuthSession();
+          clearMcpPersonalStatusCache();
+          sessionRef.current = null;
+          setSession(null);
+          setAuthEvent(null);
+          setError(null);
+          setErrorCode(null);
+        },
+        readBrowserLogoutUrl: async () => {
+          const resolve = backend.resolveIdentityBrowserLogoutUrl;
+          if (!resolve || typeof window === 'undefined') return null;
+          const returnTo = resolveLogoutReturnTo({
+            origin: window.location.origin,
+            pathname: window.location.pathname,
+            search: window.location.search,
+            navigation: config.navigation,
+            returnTo: options?.returnTo,
+          });
+          if (!returnTo) return null;
+          return resolve(returnTo);
+        },
+        navigate: (url) => {
+          window.location.replace(url);
+        },
+        initiatedHere,
+      });
+
+      if (!navigated && options?.returnTo && topLevel && typeof window !== 'undefined') {
+        const local = resolveLogoutReturnTo({
+          origin: window.location.origin,
+          pathname: window.location.pathname,
+          search: window.location.search,
+          returnTo: options.returnTo,
+        });
+        if (local) window.location.assign(local);
       }
-      await backend.logout(session);
-    } catch {
-      // Even if API sign-out fails, still clear local session.
-    }
-
-    try {
-      await endAppBackendSessions();
-    } catch {
-      // App-server sign-out is best effort. The shell session still clears.
-    }
-
-    clearStoredAuthSession();
-    clearMcpPersonalStatusCache();
-    setSession(null);
-    setAuthEvent(null);
-    setError(null);
-    setErrorCode(null);
-  }, [backend, bffAuthEnabled, session]);
+    },
+    [backend, bffAuthEnabled, config.navigation],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) return;
@@ -943,10 +988,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   okLabel: t('userAccount.deleteAccount.reauthAction'),
                   cancelLabel: t('userAccount.deleteAccount.cancel'),
                   onOk: () => {
-                    void logout().then(() => {
-                      window.location.assign(
-                        buildAuthUrlWithNext(urls.login, `${urls.settings}/user`),
-                      );
+                    void logout({
+                      returnTo: buildAuthUrlWithNext(urls.login, `${urls.settings}/user`),
                     });
                   },
                 });

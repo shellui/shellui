@@ -41,6 +41,11 @@ export interface AuthSettings {
     provider: string;
     label: string;
   }>;
+  /**
+   * Identity browser logout URL from `GET /api/v1/settings` (`logout_url`).
+   * Null on older identity services that do not send it.
+   */
+  logoutUrl?: string | null;
 }
 
 export type UserPreferences = {
