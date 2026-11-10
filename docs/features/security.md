@@ -60,6 +60,8 @@ Enable when the shell is served from an origin that can host `/api/auth/*` (CLI 
 
 The CLI wires these in `shellui start` and `pnpm run serve:dist`.
 
+After the cookie is cleared, a browser tab that started sign-out also opens identity `logout_url` when `GET /api/v1/settings` includes it (`company_id` and `return_to`). That clears the identity browser session. Other tabs do not follow that navigation. See [Authentication](/features/authentication).
+
 ### Production follow-ups (not in this repo)
 
 - **Identity-service cookie endpoints** — today the BFF proxies existing `/api/v1/token` refresh. A native cookie session API on identity would remove the one-time JS hand-off on login.

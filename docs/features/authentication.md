@@ -154,7 +154,11 @@ With identity-service **0.5.0+**, the default OAuth delivery is a one-time `shel
 
 Browser sign-in, both social sign-in and magic link, sends PKCE S256. The start request includes `code_challenge` and `code_challenge_method=S256`, and `POST /api/v1/oauth/session` includes `code_verifier`. The verifier is stored in `localStorage` (`shellui.auth.web.pkce`) so a magic link opened in another tab of the same browser can finish.
 
-Logout sends the refresh token in the request body when available so identity can revoke the server-side session.
+Logout posts the refresh token when the shell still has one, so identity can revoke that app session (`POST /api/v1/logout` with `Authorization: Bearer`). That request does not send cookies. The shell then deletes the local tokens, including the refresh token in `sessionStorage`.
+
+When `GET /api/v1/settings` includes `logout_url`, the tab that signed out navigates to `logout_url?company_id=<id>&return_to=<url>`. `return_to` is on the shell origin, the same origin registered for `redirect_to` on `/api/v1/authorize`. Identity checks that allowlist and redirects the browser back. Tokens are already gone, so the page that loads is signed out and the shell does not open `logout_url` again. A `requiresAuth` route uses `/` as `return_to`, so you are not sent straight back to login. `/login/callback` is not used as `return_to`, so a leftover `shellui_auth_code` is not exchanged again.
+
+An identity service that omits `logout_url` keeps the previous sign-out: tokens are revoked and cleared, and the page stays where it is. Other open tabs are not sent to `logout_url`. With BFF auth they still sign out locally when the shared refresh cookie is gone and a later refresh returns 401. The desktop app revokes tokens and stays in its window.
 
 Register the identity callback URL on GitHub/Google/Microsoft (not each shell URL). Add every browser shell **origin** to the company OAuth redirect allowlist so `redirect_to` is accepted.
 
