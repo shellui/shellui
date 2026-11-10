@@ -1,11 +1,11 @@
 import pc from 'picocolors';
 import { writeCredentials } from '../auth/credentials.js';
-import { runLoginFlow } from '../auth/login-flow.js';
+import { LoginCancelledError, runLoginFlow } from '../auth/login-flow.js';
 import { resolveAuthTarget, validateAuthTarget } from '../auth/resolve-target.js';
 
 /**
  * @param {string} [root]
- * @param {{ config?: string, provider?: string }} options
+ * @param {{ config?: string, noBrowser?: boolean }} options
  */
 export async function loginCommand(root = '.', options = {}) {
   const target = resolveAuthTarget({
@@ -25,17 +25,35 @@ export async function loginCommand(root = '.', options = {}) {
     ),
   );
 
+  const controller = new AbortController();
+  const onSigint = () => {
+    if (controller.signal.aborted) {
+      process.exit(130);
+    }
+    controller.abort();
+  };
+  process.on('SIGINT', onSigint);
+
+  /** @type {Awaited<ReturnType<typeof runLoginFlow>> | undefined} */
   let tokens;
   try {
     tokens = await runLoginFlow({
       backendUrl: target.backendUrl,
       companyId: /** @type {string} */ (target.companyId),
-      provider: options.provider,
+      noBrowser: options.noBrowser === true,
+      signal: controller.signal,
     });
   } catch (err) {
+    if (err instanceof LoginCancelledError) {
+      console.error(pc.yellow(err.message));
+      process.exitCode = 130;
+      return;
+    }
     console.error(pc.red(err instanceof Error ? err.message : String(err)));
     process.exitCode = 1;
     return;
+  } finally {
+    process.off('SIGINT', onSigint);
   }
 
   writeCredentials({

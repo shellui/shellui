@@ -10,6 +10,7 @@ Each command is a separate file that exports a command function:
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.json` boilerplate
 - `config.js` - `config migrate` / `config split` / `config unsplit`
+- `login.js` - `shellui login` (OAuth device authorization against identity-service; `--no-browser` skips opening the verification page)
 - `auth-status.js` - `auth status` (session summary, no token output)
 - `companies.js` - `companies list|get|use` (identity `GET /api/v1/companies/`; `use` stores a **regional** decimal tenant id in `cli-session.json`)
 - `projects.js` - `projects list|get|use|regions|endpoints` (SaaS dashboard on `saas.url`; global company **UUIDs** in paths; `create` is not implemented). See `../http/dashboard-http.js` and `../http/saas-paths.js`
@@ -50,6 +51,7 @@ export { newCommandCommand } from './new-command.js';
 - **init** - Creates a `shellui.config.json` boilerplate
 - **config migrate** - Evaluates TypeScript config and writes JSON
 - **config split** / **config unsplit** - Split or merge JSON configuration files
+- **login** - Device authorization against identity-service (`--no-browser` prints the link and code only). Tokens stay in the OS keychain, or a mode `0600` file when the keychain is unavailable
 - **auth status** - Login and credential summary (no tokens)
 - **companies** - List or fetch regional organizations; `use` stores a default **decimal** tenant id for identity-backed flows
 - **projects** - SaaS dashboard companies and `api/v1` regions or endpoints (human `shellui login` session; no `company_id` query). **create** exits with `not_implemented` (use the dashboard or global MCP OAuth where policy allows)

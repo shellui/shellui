@@ -471,7 +471,7 @@ is the base for `GET /api/v1/companies/`.
 
 ## Shellui CLI routes (human session)
 
-After `shellui login` (the token is not printed):
+After `shellui login` (device authorization; the token is not printed):
 
 - `shellui projects list`: `GET {saas.url}/api/v1/companies/`
 - `shellui projects get <uuid>`:
