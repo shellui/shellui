@@ -29,6 +29,7 @@ const KNOWN_RESULT_OUTCOMES: Record<string, McpActivityOutcomeKind> = {
   pending: 'pending_approval',
   pending_approval: 'pending_approval',
   awaiting_approval: 'pending_approval',
+  waiting_approval: 'pending_approval',
   session: 'session_used',
   session_used: 'session_used',
   unknown: 'unknown',
@@ -132,6 +133,52 @@ export function buildActivityPrimarySummary(
   }
   if (company) parts.push(`(${company})`);
   return parts.join(' ');
+}
+
+const APPROVAL_OUTCOME_LABEL_KEYS: Record<string, string> = {
+  pending: 'mcpAgents.activity.detail.approvalOutcomeValue.pending',
+  denied: 'mcpAgents.activity.detail.approvalOutcomeValue.denied',
+  accepted: 'mcpAgents.activity.detail.approvalOutcomeValue.accepted',
+  session_used: 'mcpAgents.activity.detail.approvalOutcomeValue.sessionUsed',
+  expired: 'mcpAgents.activity.detail.approvalOutcomeValue.expired',
+  failed: 'mcpAgents.activity.detail.approvalOutcomeValue.failed',
+};
+
+const SAFE_TOKEN = /^[a-z0-9_]{1,32}$/;
+const SAFE_WRAPPER_TOOL = /^[A-Za-z0-9_.-]{1,64}$/;
+
+/** Translated label key for a known approval outcome. Unknown tokens return null. */
+export function activityApprovalOutcomeLabelKey(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  const token = normalizeResultKey(value);
+  if (!SAFE_TOKEN.test(token)) return null;
+  return APPROVAL_OUTCOME_LABEL_KEYS[token] ?? null;
+}
+
+/** Safe raw token when the outcome has no translated label. */
+export function activityApprovalOutcomeFallback(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  const token = normalizeResultKey(value);
+  if (!SAFE_TOKEN.test(token) || APPROVAL_OUTCOME_LABEL_KEYS[token]) return null;
+  return token;
+}
+
+/** Wrapper name safe to show after "via". */
+export function activityWrapperToolForDisplay(value: string | null | undefined): string | null {
+  const text = value?.trim() ?? '';
+  if (!SAFE_WRAPPER_TOOL.test(text)) return null;
+  return text;
+}
+
+/** Single-line redacted error text. Control characters are stripped. */
+export function activityErrorMessageForDisplay(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/[\u0000-\u001F\u007F]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return null;
+  return text.slice(0, 500);
 }
 
 export function isRecognizedActivityResultToken(raw: string | null | undefined): boolean {

@@ -109,8 +109,17 @@ export type McpAgentActivityRow = {
   outcome: McpActivityOutcomeKind | null;
   /** Linked pending approval id when provided (matches approvals list). */
   approvalRequestId: string | null;
-  /** Allowlisted machine error from identity; UI maps to translated labels only. */
+  /** Allowlisted machine error from identity or ai-service; UI maps to translated labels only. */
   errorCode: McpActivityErrorCode | null;
+  /**
+   * Redacted failure text from an ai-service call log.
+   * Identity activity parsing leaves this unset.
+   */
+  errorMessage?: string | null;
+  /** Set when the gateway ran the tool through a wrapper such as `ai_call_tool`. */
+  wrapperTool?: string | null;
+  /** Stored approval result, such as `accepted`, `denied`, or `session_used`. */
+  approvalOutcome?: string | null;
 };
 
 export type CreatePersonalAgentInput = {
@@ -269,7 +278,12 @@ export const parseStrictMcpActivityOutcome = (value: unknown): McpActivityOutcom
     return 'allowed';
   if (n === 'denied' || n === 'forbidden') return 'denied';
   if (n === 'failed' || n === 'error') return 'failed';
-  if (n === 'pending' || n === 'pending_approval' || n === 'awaiting_approval')
+  if (
+    n === 'pending' ||
+    n === 'pending_approval' ||
+    n === 'awaiting_approval' ||
+    n === 'waiting_approval'
+  )
     return 'pending_approval';
   if (n === 'session_used' || n === 'session') return 'session_used';
   if (n === 'unknown') return 'unknown';
@@ -517,3 +531,167 @@ export const fetchMcpPersonalAgentActivity = (
     { method: 'GET' },
     (payload) => parseMcpAgentActivity(payload)?.activity ?? null,
   );
+
+/** Default page size for `GET /ai/v1/mcp/personal/agents/{id}/call-logs`. */
+export const MCP_PERSONAL_CALL_LOG_PAGE_SIZE = 50;
+
+const MCP_PERSONAL_CALL_LOG_MAX_PAGE_SIZE = 200;
+
+export type McpPersonalCallLogPage = {
+  count: number;
+  limit: number;
+  offset: number;
+  callLogs: McpAgentActivityRow[];
+};
+
+export type FetchMcpPersonalCallLogsOptions = {
+  limit?: number;
+  offset?: number;
+};
+
+const clampPageLimit = (value: number | undefined): number => {
+  const raw = value ?? MCP_PERSONAL_CALL_LOG_PAGE_SIZE;
+  if (!Number.isFinite(raw)) return MCP_PERSONAL_CALL_LOG_PAGE_SIZE;
+  return Math.min(MCP_PERSONAL_CALL_LOG_MAX_PAGE_SIZE, Math.max(1, Math.floor(raw)));
+};
+
+const clampPageOffset = (value: number | undefined): number => {
+  if (value === undefined || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.floor(value));
+};
+
+const asCompanyId = (value: unknown): string | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return String(Math.trunc(value));
+  return asString(value);
+};
+
+/** Map one ai-service call log onto the activity row the settings list already renders. */
+export const parseMcpCallLogActivityRow = (value: unknown): McpAgentActivityRow | null => {
+  if (!value || typeof value !== 'object') return null;
+  const item = value as Record<string, unknown>;
+  const timestamp = asString(item.created_at);
+  const tool = asString(item.tool_name);
+  if (!timestamp || !tool) return null;
+  const outcome =
+    parseStrictMcpActivityOutcome(item.outcome) ?? parseStrictMcpActivityOutcome(item.status);
+  const result = asString(item.outcome) ?? asString(item.status) ?? '';
+  const durationRaw = asNumber(item.duration_ms);
+  const durationMs =
+    durationRaw !== null && durationRaw >= 0 && Number.isFinite(durationRaw) ? durationRaw : null;
+  const errorMessage = asString(item.error_message);
+  const wrapperTool = asString(item.wrapper_tool);
+  const approvalOutcome = asString(item.approval_outcome);
+  return {
+    timestamp,
+    tool,
+    service: asString(item.service) ?? '',
+    result,
+    clientIp: null,
+    companyId: asCompanyId(item.company_id),
+    companyLabel: null,
+    resourceLabel: asString(item.resource_label),
+    operationTitle: asString(item.operation_title),
+    actorLabel: asString(item.user_email),
+    agentName: asString(item.agent_name),
+    accessKind: parseAccessKind(item.access_kind),
+    durationMs,
+    outcome,
+    approvalRequestId: asString(item.approval_id),
+    errorCode: parseStrictMcpActivityErrorCode(item.error_code),
+    ...(errorMessage ? { errorMessage } : {}),
+    ...(wrapperTool ? { wrapperTool } : {}),
+    ...(approvalOutcome ? { approvalOutcome } : {}),
+  };
+};
+
+export const parseMcpPersonalCallLogPage = (payload: unknown): McpPersonalCallLogPage | null => {
+  if (!payload || typeof payload !== 'object') return null;
+  const record = payload as Record<string, unknown>;
+  const { count, limit, offset } = record;
+  if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) return null;
+  if (typeof limit !== 'number' || !Number.isFinite(limit) || limit < 1 || limit > 200) return null;
+  if (typeof offset !== 'number' || !Number.isFinite(offset) || offset < 0) return null;
+  if (!Array.isArray(record.call_logs)) return null;
+  const callLogs = record.call_logs
+    .map((row) => parseMcpCallLogActivityRow(row))
+    .filter((row): row is McpAgentActivityRow => row !== null);
+  return { count, limit, offset, callLogs };
+};
+
+export const mcpCallLogPageHasMore = (
+  page: Pick<McpPersonalCallLogPage, 'count' | 'limit' | 'offset'>,
+): boolean => page.offset + page.limit < page.count;
+
+/** ai-service did not return a call-log page. A 404 is an empty page, not this error. */
+export class McpCallLogUnavailableError extends Error {
+  readonly status: number | null;
+
+  constructor(message: string, status: number | null) {
+    super(message);
+    this.name = 'McpCallLogUnavailableError';
+    this.status = status;
+  }
+}
+
+const emptyCallLogPage = (limit: number, offset: number): McpPersonalCallLogPage => ({
+  count: 0,
+  limit,
+  offset,
+  callLogs: [],
+});
+
+/**
+ * Tool calls for one personal or OAuth agent.
+ * `GET {ai-service}/ai/v1/mcp/personal/agents/{agent_id}/call-logs`.
+ * The app JWT carries the user and company. A 404 means this caller has no rows.
+ */
+export const fetchMcpPersonalAgentCallLogs = async (
+  aiServiceUrl: string,
+  accessToken: string,
+  agentId: string,
+  options: FetchMcpPersonalCallLogsOptions = {},
+): Promise<McpPersonalCallLogPage> => {
+  const limit = clampPageLimit(options.limit);
+  const offset = clampPageOffset(options.offset);
+  const agent = agentId.trim();
+  if (!agent) {
+    throw new McpCallLogUnavailableError('Missing agent id.', null);
+  }
+
+  let url: URL;
+  try {
+    const base = aiServiceUrl.trim().replace(/\/+$/, '');
+    url = new URL(`${base}/ai/v1/mcp/personal/agents/${encodeURIComponent(agent)}/call-logs`);
+  } catch {
+    throw new McpCallLogUnavailableError('ai-service URL is not usable.', null);
+  }
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('offset', String(offset));
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  } catch {
+    throw new McpCallLogUnavailableError('ai-service unreachable', null);
+  }
+
+  if (response.status === 404) {
+    return emptyCallLogPage(limit, offset);
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new McpCallLogUnavailableError(`HTTP ${response.status}`, response.status);
+  }
+  const parsed = parseMcpPersonalCallLogPage(payload);
+  if (!parsed) {
+    throw new McpCallLogUnavailableError('Unexpected response from ai-service.', response.status);
+  }
+  return parsed;
+};
