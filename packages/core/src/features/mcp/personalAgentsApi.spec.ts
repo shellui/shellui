@@ -2,14 +2,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ShellUIConfig } from '../config/types';
 import {
   createMcpPersonalAgent,
+  fetchMcpPersonalAgentCallLogs,
   fetchMcpPersonalAgents,
   fetchMcpPersonalStatus,
   getMcpPersonalCompanyId,
   getShellIdentityBackendUrl,
+  McpCallLogUnavailableError,
   parseCreatePersonalAgentResult,
   parseMcpAgentList,
   parseMcpAgentActivity,
   parseMcpAgentSummary,
+  parseMcpCallLogActivityRow,
   parseMcpPersonalStatus,
   parseStrictMcpActivityErrorCode,
   parseStrictMcpActivityOutcome,
@@ -151,6 +154,7 @@ describe('parseStrictMcpActivityOutcome', () => {
   it('maps only exact normalized tokens', () => {
     expect(parseStrictMcpActivityOutcome('allowed')).toBe('allowed');
     expect(parseStrictMcpActivityOutcome('Denied')).toBe('denied');
+    expect(parseStrictMcpActivityOutcome('waiting_approval')).toBe('pending_approval');
     expect(parseStrictMcpActivityOutcome('not-a-known-outcome')).toBeNull();
   });
 });
@@ -500,5 +504,158 @@ describe('mcp personal fetch helpers', () => {
     expect(revoked.revokedAt).toBeTruthy();
     const [url] = fetchMock.mock.calls[0] as [string];
     expect(url).toContain('/api/v1/mcp/personal/agents/a1/revoke');
+  });
+});
+
+const callLogRow = {
+  id: 'log-1',
+  company_id: 42,
+  agent_id: 'agent-1',
+  agent_name: 'Laptop',
+  client_id: 'client-1',
+  client_name: 'Cursor',
+  token_kind: 'oauth',
+  user_id: 7,
+  user_email: 'dev@example.com',
+  service: 'storage',
+  tool_name: 'storage_list_bucket',
+  wrapper_tool: 'ai_call_tool',
+  operation_title: 'List bucket',
+  access_kind: 'read',
+  outcome: 'failed',
+  resource_label: 'Reports',
+  arguments: { bucket: 'reports' },
+  status: 'error',
+  status_code: 502,
+  error_code: 'downstream_error',
+  error_message: 'Upstream timed out',
+  duration_ms: 18,
+  approval_id: 'ap-9',
+  approval_channel: 'form',
+  approval_outcome: 'accepted',
+  created_at: '2026-06-02T00:00:00Z',
+};
+
+describe('parseMcpCallLogActivityRow', () => {
+  it('maps ai-service fields onto the activity row', () => {
+    expect(parseMcpCallLogActivityRow(callLogRow)).toMatchObject({
+      timestamp: '2026-06-02T00:00:00Z',
+      tool: 'storage_list_bucket',
+      service: 'storage',
+      companyId: '42',
+      companyLabel: null,
+      clientIp: null,
+      actorLabel: 'dev@example.com',
+      agentName: 'Laptop',
+      approvalRequestId: 'ap-9',
+      errorCode: 'downstream_error',
+      errorMessage: 'Upstream timed out',
+      wrapperTool: 'ai_call_tool',
+      approvalOutcome: 'accepted',
+      outcome: 'failed',
+      durationMs: 18,
+    });
+  });
+
+  it('treats an empty error_code as absent and maps waiting_approval', () => {
+    const row = parseMcpCallLogActivityRow({
+      ...callLogRow,
+      outcome: 'waiting_approval',
+      status: 'waiting_approval',
+      error_code: '',
+      error_message: '',
+      approval_id: '',
+      wrapper_tool: '',
+      approval_outcome: '',
+    });
+    expect(row).toMatchObject({
+      outcome: 'pending_approval',
+      errorCode: null,
+      approvalRequestId: null,
+    });
+    expect(row).not.toHaveProperty('errorMessage');
+    expect(row).not.toHaveProperty('wrapperTool');
+    expect(row).not.toHaveProperty('approvalOutcome');
+    expect(row?.companyLabel).toBeNull();
+    expect(row?.clientIp).toBeNull();
+  });
+});
+
+describe('fetchMcpPersonalAgentCallLogs', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('treats 404 as an empty page', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Not found.' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchMcpPersonalAgentCallLogs('https://ai.example/', 'tok', 'agent 1', { offset: 0 }),
+    ).resolves.toEqual({
+      count: 0,
+      limit: 50,
+      offset: 0,
+      callLogs: [],
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      'https://ai.example/ai/v1/mcp/personal/agents/agent%201/call-logs?limit=50&offset=0',
+    );
+    expect(url).not.toContain('company_id');
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer tok' });
+  });
+
+  it('requests the next page with offset', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          count: 60,
+          limit: 50,
+          offset: 0,
+          call_logs: [callLogRow],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          count: 60,
+          limit: 50,
+          offset: 50,
+          call_logs: [{ ...callLogRow, id: 'log-2', tool_name: 'storage_get' }],
+        }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const first = await fetchMcpPersonalAgentCallLogs('http://localhost:8006', 'tok', 'agent-1');
+    expect(first.callLogs).toHaveLength(1);
+    expect(first.count).toBe(60);
+
+    const second = await fetchMcpPersonalAgentCallLogs('http://localhost:8006', 'tok', 'agent-1', {
+      offset: first.offset + first.limit,
+    });
+    expect(second.callLogs[0]?.tool).toBe('storage_get');
+    const [firstUrl] = fetchMock.mock.calls[0] as [string];
+    const [secondUrl] = fetchMock.mock.calls[1] as [string];
+    expect(firstUrl).toContain('offset=0');
+    expect(secondUrl).toContain('offset=50');
+    expect(secondUrl).toContain('/ai/v1/mcp/personal/agents/agent-1/call-logs');
+  });
+
+  it('throws when ai-service is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+    await expect(
+      fetchMcpPersonalAgentCallLogs('http://localhost:8006', 'tok', 'agent-1'),
+    ).rejects.toBeInstanceOf(McpCallLogUnavailableError);
   });
 });

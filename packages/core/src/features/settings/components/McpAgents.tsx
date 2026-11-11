@@ -601,6 +601,7 @@ export const McpAgents = () => {
                   </div>
                   <McpAgentActivitySection
                     backendUrl={backendUrl ?? ''}
+                    aiServiceUrl={aiServiceUrl}
                     accessToken={accessToken ?? ''}
                     companyId={companyId}
                     enabled={Boolean(backendUrl && accessToken && status?.mcpEnabled)}

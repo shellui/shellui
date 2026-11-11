@@ -52,7 +52,12 @@ checks. Those assertions also cover internal identity URLs and
 steps below, `tools/list` on `http://localhost:8006/c/1/mcp`, human
 `GET /api/v1/mcp/approvals`, and
 `POST /api/v1/mcp/approvals/{id}/decide`. Activity is rendered by
-`McpAgentActivitySection.tsx`. SaaS MCP is `POST http://localhost:8005/mcp`.
+`McpAgentActivitySection.tsx`. That list loads tool calls from
+ai-service `GET /ai/v1/mcp/personal/agents/{agent_id}/call-logs`.
+Identity `GET /api/v1/mcp/personal/agents/{id}/activity` still
+returns OAuth consent (`oauth.authorize.approved` and
+`oauth.device.approved`). A 404 means you have no call logs for
+that agent. MCP is in Beta. SaaS MCP is `POST http://localhost:8005/mcp`.
 Mint, exchange, gateway approval, and a downstream call are separate manual
 steps. This repo's pytest does not run that chain. Identity pytest covers
 exchange with fixtures. That is not this compose stack.
