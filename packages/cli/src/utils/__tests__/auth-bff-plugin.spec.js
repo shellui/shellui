@@ -1,12 +1,14 @@
 import http from 'http';
 import { afterEach, describe, expect, test } from 'vitest';
 import {
+  assertShellPost,
   buildRefreshCookie,
   devBffCookieSecure,
   dispatchAuthBff,
   isBffHostEnabled,
   originOfRedirectTo,
   publicSessionPayload,
+  refreshCookieMaxAge,
   resolveBffUpstreamUrl,
   resolveShellOrigin,
 } from '../auth-bff-plugin.js';
@@ -133,6 +135,16 @@ async function withIdentity(onRequest) {
   };
 }
 
+function shellPostHeaders(extra = {}) {
+  return {
+    host: 'shell.example',
+    origin: 'https://shell.example',
+    'content-type': 'application/json',
+    'x-forwarded-proto': 'https',
+    ...extra,
+  };
+}
+
 function shellConfig(url, security = {}) {
   return {
     backend: { type: 'shellui', url },
@@ -182,11 +194,12 @@ describe('originOfRedirectTo', () => {
 });
 
 describe('resolveShellOrigin', () => {
-  test('uses the browser Origin and not the identity host', () => {
+  test('uses the forwarded host, not the request Origin', () => {
     expect(
       resolveShellOrigin({
-        origin: 'https://shell.example',
-        host: 'identity.internal:8000',
+        origin: 'https://evil.example',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'shell.example',
       }),
     ).toBe('https://shell.example');
   });
@@ -198,6 +211,12 @@ describe('resolveShellOrigin', () => {
         'x-forwarded-host': 'shell.example',
       }),
     ).toBe('https://shell.example');
+  });
+
+  test('uses https when the socket is TLS and no forwarded proto is set', () => {
+    expect(resolveShellOrigin({ host: 'shell.example' }, { secure: true })).toBe(
+      'https://shell.example',
+    );
   });
 });
 
@@ -230,10 +249,9 @@ describe('dispatchAuthBff code exchange', () => {
       const result = await dispatchAuthBff({
         method: 'POST',
         pathname: '/session',
-        headers: {
-          origin: 'https://other.example',
+        headers: shellPostHeaders({
           cookie: 'shellui_refresh=browser-cookie',
-        },
+        }),
         body: {
           auth_code: 'code-1',
           redirect_to: 'https://shell.example/login/callback',
@@ -259,6 +277,7 @@ describe('dispatchAuthBff code exchange', () => {
       expect(setCookie).toContain('SameSite=Lax');
       expect(setCookie).toContain('Path=/api/auth');
       expect(setCookie).toContain('Secure');
+      expect(setCookie).toContain('Max-Age=604800');
       expect(setCookie).toContain(encodeURIComponent('refresh-secret'));
       expect(result.body).not.toContain('refresh-secret');
       expect(result.body).not.toContain('should-not-forward');
@@ -282,7 +301,7 @@ describe('dispatchAuthBff code exchange', () => {
       const result = await dispatchAuthBff({
         method: 'POST',
         pathname: '/session',
-        headers: {},
+        headers: shellPostHeaders(),
         body: {
           auth_code: 'code-1',
           redirect_to: 'https://shell.example/login/callback',
@@ -309,7 +328,7 @@ describe('dispatchAuthBff code exchange', () => {
       const result = await dispatchAuthBff({
         method: 'POST',
         pathname: '/session',
-        headers: {},
+        headers: shellPostHeaders(),
         body: {
           auth_code: 'code-1',
           redirect_to: 'https://shell.example/login/callback',
@@ -333,7 +352,7 @@ describe('dispatchAuthBff code exchange', () => {
     const result = await dispatchAuthBff({
       method: 'POST',
       pathname: '/session',
-      headers: { origin: 'https://shell.example' },
+      headers: shellPostHeaders(),
       body: { refresh_token: 'from-the-page', access_token: 'access' },
       shelluiConfig: shellConfig('http://127.0.0.1:9'),
       secure: true,
@@ -382,10 +401,9 @@ describe('dispatchAuthBff refresh and logout', () => {
       const result = await dispatchAuthBff({
         method: 'POST',
         pathname: '/refresh',
-        headers: {
-          origin: 'https://shell.example',
+        headers: shellPostHeaders({
           cookie: 'shellui_refresh=old-refresh',
-        },
+        }),
         body: {},
         shelluiConfig: shellConfig(identity.url),
         secure: true,
@@ -408,7 +426,7 @@ describe('dispatchAuthBff refresh and logout', () => {
     const result = await dispatchAuthBff({
       method: 'POST',
       pathname: '/refresh',
-      headers: { origin: 'https://shell.example' },
+      headers: shellPostHeaders(),
       body: {},
       shelluiConfig: shellConfig('http://127.0.0.1:9'),
       secure: true,
@@ -424,11 +442,10 @@ describe('dispatchAuthBff refresh and logout', () => {
       const result = await dispatchAuthBff({
         method: 'POST',
         pathname: '/logout',
-        headers: {
-          origin: 'https://shell.example',
+        headers: shellPostHeaders({
           authorization: 'Bearer access-1',
           cookie: 'shellui_refresh=refresh-secret',
-        },
+        }),
         body: { refresh_token: 'from-the-page' },
         shelluiConfig: shellConfig(identity.url),
         secure: true,
@@ -446,5 +463,114 @@ describe('dispatchAuthBff refresh and logout', () => {
     } finally {
       await identity.close();
     }
+  });
+
+  test('clears the cookie when identity rejects the refresh token', async () => {
+    delete process.env.SHELLUI_BFF_BACKEND_URL;
+    for (const status of [400, 401]) {
+      const identity = await withIdentity(() => ({
+        status,
+        body: { error: 'Invalid refresh token.' },
+      }));
+      try {
+        const result = await dispatchAuthBff({
+          method: 'POST',
+          pathname: '/refresh',
+          headers: shellPostHeaders({ cookie: 'shellui_refresh=revoked-refresh' }),
+          body: {},
+          shelluiConfig: shellConfig(identity.url),
+          secure: true,
+        });
+        expect(result.status).toBe(status);
+        expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+        expect(result.headers['Set-Cookie']).not.toContain('revoked-refresh');
+      } finally {
+        await identity.close();
+      }
+    }
+  });
+});
+
+function refreshJwt(claims) {
+  const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
+  return `eyJhbGciOiJub25lIn0.${payload}.sig`;
+}
+
+describe('refresh cookie lifetime', () => {
+  test('uses the refresh JWT exp, a staff cap, or 7 days', () => {
+    const now = 1_700_000_000;
+    const threeDays = refreshJwt({ exp: now + 60 * 60 * 24 * 3 });
+    expect(refreshCookieMaxAge(threeDays, {}, now)).toBe(60 * 60 * 24 * 3);
+    const staff = refreshJwt({
+      exp: now + 60 * 60 * 24 * 7,
+      cli_staff_session_exp: now + 60 * 60 * 12,
+    });
+    expect(refreshCookieMaxAge(staff, {}, now)).toBe(60 * 60 * 12);
+    expect(refreshCookieMaxAge('opaque-token', { refresh_expires_in: 3600 }, now)).toBe(3600);
+    expect(refreshCookieMaxAge('opaque-token', {}, now)).toBe(60 * 60 * 24 * 7);
+  });
+});
+
+describe('auth POST same-origin JSON', () => {
+  test('rejects a cross-site Origin before calling identity', async () => {
+    const result = await dispatchAuthBff({
+      method: 'POST',
+      pathname: '/session',
+      headers: shellPostHeaders({ origin: 'https://evil.example' }),
+      body: {
+        auth_code: 'attacker-code',
+        redirect_to: 'https://shell.example/login/callback',
+        code_verifier: 'attacker-verifier',
+      },
+      shelluiConfig: shellConfig('http://127.0.0.1:9'),
+      secure: true,
+    });
+    expect(result.status).toBe(403);
+    expect(result.headers['Set-Cookie']).toBeUndefined();
+    expect(
+      assertShellPost(shellPostHeaders({ origin: 'https://evil.example' }), { secure: true }).ok,
+    ).toBe(false);
+  });
+
+  test('rejects a text/plain body', async () => {
+    const result = await dispatchAuthBff({
+      method: 'POST',
+      pathname: '/session',
+      headers: shellPostHeaders({ 'content-type': 'text/plain' }),
+      body: {
+        auth_code: 'attacker-code',
+        redirect_to: 'https://shell.example/login/callback',
+        code_verifier: 'attacker-verifier',
+      },
+      shelluiConfig: shellConfig('http://127.0.0.1:9'),
+      secure: true,
+    });
+    expect(result.status).toBe(415);
+    expect(result.headers['Set-Cookie']).toBeUndefined();
+  });
+
+  test('rejects redirect_to on another origin', async () => {
+    const result = await dispatchAuthBff({
+      method: 'POST',
+      pathname: '/session',
+      headers: shellPostHeaders(),
+      body: {
+        auth_code: 'code-1',
+        redirect_to: 'https://evil.example/login/callback',
+        code_verifier: 'verifier-1',
+      },
+      shelluiConfig: shellConfig('http://127.0.0.1:9'),
+      secure: true,
+    });
+    expect(result.status).toBe(403);
+    expect(JSON.parse(result.body).error).toBe('redirect_to origin must match the shell');
+    expect(result.headers['Set-Cookie']).toBeUndefined();
+  });
+
+  test('accepts a same-origin request that omits Origin when Sec-Fetch-Site is same-origin', async () => {
+    const headers = shellPostHeaders();
+    delete headers.origin;
+    headers['sec-fetch-site'] = 'same-origin';
+    expect(assertShellPost(headers, { secure: true }).ok).toBe(true);
   });
 });

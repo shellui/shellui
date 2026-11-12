@@ -82,7 +82,9 @@ Logout from the page is `POST /api/auth/logout` with the access token as `Author
 
 After the cookie is cleared, the tab that signed out still opens identity `logout_url` when `GET /api/v1/settings` includes it (`company_id` and `return_to`). That clears the identity browser session. Other tabs do not follow that navigation. See [Authentication](/features/authentication).
 
-Cookie flags: `HttpOnly`, `SameSite=Lax`, `Path=/api/auth`, `Max-Age` 30 days, and `Secure` when the shell request is HTTPS (`X-Forwarded-Proto: https` or a TLS socket). `SHELLUI_BFF_SECURE_COOKIE=1` forces `Secure` on. `=0` forces it off. `http://localhost` omits `Secure` so the cookie is stored.
+Cookie flags: `HttpOnly`, `SameSite=Lax`, `Path=/api/auth`, and `Secure` when the shell request is HTTPS (`X-Forwarded-Proto: https` or a TLS socket). `Max-Age` is the refresh token expiry identity returns (the refresh JWT `exp`, or `refresh_expires_in` / `refresh_expires_at` when present). When that expiry is missing, `Max-Age` is 7 days. `SHELLUI_BFF_SECURE_COOKIE=1` forces `Secure` on. `=0` forces it off. `http://localhost` omits `Secure` so the cookie is stored.
+
+Every `POST` requires `Content-Type: application/json` and a same-origin request. `Origin` must be this host (`Host` or `X-Forwarded-Host`, plus the forwarded or TLS scheme). When `Origin` is absent, `Sec-Fetch-Site: same-origin` is accepted. Anything else is 403 and does not set a cookie. `redirect_to` on `POST /api/auth/session` must use that same origin. `OPTIONS` is a bare 204 with no CORS headers.
 
 `security.bffAuth.cookieName` changes the cookie name (default `shellui_refresh`). Only the host reads it.
 

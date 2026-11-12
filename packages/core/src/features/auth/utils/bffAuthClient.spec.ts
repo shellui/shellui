@@ -138,6 +138,7 @@ describe('host cookie session', () => {
     expect(init.method).toBe('POST');
     expect(init.credentials).toBe('include');
     expect(init.body).toBeUndefined();
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
     expect(next?.refreshToken).toBe('');
     expect(next?.accessToken).toContain('eyJ');
     expect(JSON.stringify(next)).not.toContain('rotated-refresh');
@@ -153,6 +154,7 @@ describe('host cookie session', () => {
     expect(init.credentials).toBe('include');
     expect(init.body).toBeUndefined();
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer access-1');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json');
     expect(JSON.stringify(init.headers)).not.toContain('refresh');
   });
 

@@ -200,7 +200,10 @@ export const refreshBffAuthSession = async (
   const response = await fetch(BFF_REFRESH_PATH, {
     method: 'POST',
     credentials: 'include',
-    headers: { Accept: 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
   });
   const payload = responseIsJson(response) ? await readJson(response) : null;
   if (!response.ok) {
@@ -217,6 +220,7 @@ export const logoutBffAuthSession = async (accessToken: string | null | undefine
     credentials: 'include',
     headers: {
       Accept: 'application/json',
+      'Content-Type': 'application/json',
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
   }).catch(() => {

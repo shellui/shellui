@@ -22,6 +22,8 @@ import { resolveShellCspHeaders } from './csp.js';
 
 const DEFAULT_COOKIE_NAME = 'shellui_refresh';
 const COOKIE_PATH = '/api/auth';
+/** Identity refresh tokens last 7 days. Staff sessions are shorter and carry `exp`. */
+const DEFAULT_REFRESH_COOKIE_SECONDS = 60 * 60 * 24 * 7;
 
 /**
  * @param {import('http').IncomingMessage} req
@@ -117,14 +119,15 @@ export function isBffHostEnabled(shelluiConfig) {
   return typeof url === 'string' && url.trim().length > 0;
 }
 
-export function buildRefreshCookie(name, refreshToken, { secure }) {
-  const maxAge = 60 * 60 * 24 * 30; // 30 days
+export function buildRefreshCookie(name, refreshToken, { secure, maxAge } = {}) {
+  const age =
+    Number.isFinite(maxAge) && maxAge > 0 ? Math.floor(maxAge) : DEFAULT_REFRESH_COOKIE_SECONDS;
   const flags = [
     `${name}=${encodeURIComponent(refreshToken)}`,
     'HttpOnly',
     'SameSite=Lax',
     `Path=${COOKIE_PATH}`,
-    `Max-Age=${maxAge}`,
+    `Max-Age=${age}`,
   ];
   if (secure) {
     flags.push('Secure');
@@ -173,31 +176,107 @@ export function originOfRedirectTo(redirectTo) {
 }
 
 /**
- * Public origin from the browser request. The session exchange does not use
- * this. Identity wants the origin of `redirect_to`.
+ * This host's public origin, from `X-Forwarded-Host` / `Host` and the
+ * forwarded or TLS scheme. The request `Origin` is not used: a cross-site
+ * POST would otherwise look like the shell.
  * @param {import('http').IncomingHttpHeaders | Record<string, string | string[] | undefined>} headers
+ * @param {{ secure?: boolean }} [options]
  * @returns {string | null}
  */
-export function resolveShellOrigin(headers) {
-  const originHeader = headerValue(headers, 'origin');
-  if (originHeader) {
-    try {
-      const url = new URL(originHeader);
-      if (url.protocol === 'https:' || url.protocol === 'http:') return url.origin;
-    } catch {
-      // Fall through to Host.
-    }
-  }
+export function resolveShellOrigin(headers, { secure } = {}) {
   const host = headerValue(headers, 'x-forwarded-host') || headerValue(headers, 'host');
   if (!host) return null;
   const forwarded = headerValue(headers, 'x-forwarded-proto').split(',')[0].trim().toLowerCase();
-  const scheme = forwarded === 'https' || forwarded === 'http' ? forwarded : 'http';
+  const scheme =
+    forwarded === 'https' || forwarded === 'http' ? forwarded : secure ? 'https' : 'http';
   const hostOnly = host.split(',')[0].trim();
   try {
     return new URL(`${scheme}://${hostOnly}`).origin;
   } catch {
     return null;
   }
+}
+
+function jsonContentType(headers) {
+  const media = headerValue(headers, 'content-type').toLowerCase().split(';')[0].trim();
+  return media === 'application/json';
+}
+
+/**
+ * POST /api/auth/* must be same-origin JSON. A cross-site form cannot set
+ * `Content-Type: application/json`, and its `Origin` is not this host.
+ * When `Origin` is missing, `Sec-Fetch-Site: same-origin` is the only fallback.
+ * @param {import('http').IncomingHttpHeaders | Record<string, string | string[] | undefined>} headers
+ * @param {{ secure?: boolean }} [options]
+ * @returns {{ ok: true, hostOrigin: string } | { ok: false, status: number, error: string }}
+ */
+export function assertShellPost(headers, { secure } = {}) {
+  if (!jsonContentType(headers)) {
+    return { ok: false, status: 415, error: 'Content-Type must be application/json' };
+  }
+  const hostOrigin = resolveShellOrigin(headers, { secure });
+  const originHeader = headerValue(headers, 'origin');
+  if (originHeader) {
+    let presented = null;
+    try {
+      const url = new URL(originHeader);
+      if (url.protocol === 'https:' || url.protocol === 'http:') presented = url.origin;
+    } catch {
+      presented = null;
+    }
+    if (!hostOrigin || presented !== hostOrigin) {
+      return { ok: false, status: 403, error: 'cross-site request' };
+    }
+    return { ok: true, hostOrigin };
+  }
+  if (headerValue(headers, 'sec-fetch-site').toLowerCase() === 'same-origin' && hostOrigin) {
+    return { ok: true, hostOrigin };
+  }
+  return { ok: false, status: 403, error: 'cross-site request' };
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const part = String(token).split('.')[1];
+    if (!part) return null;
+    const json = JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
+    return json && typeof json === 'object' ? json : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cookie lifetime for a refresh token. Prefer an explicit refresh expiry on
+ * the identity payload, then the refresh JWT `exp` (staff sessions are 12h),
+ * otherwise 7 days. Access-token `expires_in` is not the refresh lifetime.
+ * @param {string} refreshToken
+ * @param {Record<string, unknown> | null | undefined} payload
+ * @param {number} [nowSeconds]
+ * @returns {number}
+ */
+export function refreshCookieMaxAge(
+  refreshToken,
+  payload,
+  nowSeconds = Math.floor(Date.now() / 1000),
+) {
+  const claims = decodeJwtPayload(refreshToken);
+  const unix = [];
+  const refreshExpiresAt = Number(payload?.refresh_expires_at);
+  if (Number.isFinite(refreshExpiresAt) && refreshExpiresAt > 0) unix.push(refreshExpiresAt);
+  if (claims) {
+    for (const key of ['exp', 'cli_staff_session_exp']) {
+      const value = Number(claims[key]);
+      if (Number.isFinite(value) && value > 0) unix.push(value);
+    }
+  }
+  const remaining = unix.filter((value) => value > nowSeconds).map((value) => value - nowSeconds);
+  const refreshExpiresIn = Number(payload?.refresh_expires_in);
+  if (Number.isFinite(refreshExpiresIn) && refreshExpiresIn > 0) {
+    remaining.push(refreshExpiresIn);
+  }
+  if (!remaining.length) return DEFAULT_REFRESH_COOKIE_SECONDS;
+  return Math.max(1, Math.floor(Math.min(...remaining)));
 }
 
 /**
@@ -381,6 +460,12 @@ export async function dispatchAuthBff({
   const backendUrl = resolveBffUpstreamUrl(backend.url);
   if (!backendUrl) return { handled: false };
 
+  const postRoute = method === 'POST' && ['/session', '/refresh', '/logout'].includes(pathname);
+  const postGate = postRoute ? assertShellPost(headers, { secure }) : null;
+  if (postGate && !postGate.ok) {
+    return jsonResult(postGate.status, { error: postGate.error });
+  }
+
   if (method === 'GET' && pathname === '/session') {
     return jsonResult(200, { ready: true });
   }
@@ -402,6 +487,9 @@ export async function dispatchAuthBff({
     const redirectOrigin = originOfRedirectTo(redirectTo);
     if (redirectOrigin.invalid) {
       return jsonResult(400, { error: 'redirect_to must be an absolute URL' });
+    }
+    if (!redirectOrigin.origin || redirectOrigin.origin !== postGate.hostOrigin) {
+      return jsonResult(403, { error: 'redirect_to origin must match the shell' });
     }
     const codeVerifier = typeof body.code_verifier === 'string' ? body.code_verifier : '';
     let result;
@@ -435,7 +523,10 @@ export async function dispatchAuthBff({
       return jsonResult(502, { error: 'Identity did not return an access token.' });
     }
     return jsonResult(200, pub, {
-      'Set-Cookie': buildRefreshCookie(cookieName, refreshToken, { secure }),
+      'Set-Cookie': buildRefreshCookie(cookieName, refreshToken, {
+        secure,
+        maxAge: refreshCookieMaxAge(refreshToken, result.payload),
+      }),
     });
   }
 
@@ -471,7 +562,13 @@ export async function dispatchAuthBff({
     } catch {
       return jsonResult(502, { error: 'identity unavailable' });
     }
-    if (!result.ok) return identityFailure(result);
+    if (!result.ok) {
+      const failure = identityFailure(result);
+      if (result.status === 400 || result.status === 401) {
+        failure.headers['Set-Cookie'] = clearRefreshCookie(cookieName, { secure });
+      }
+      return failure;
+    }
     const nextRefresh =
       typeof result.payload?.refresh_token === 'string' && result.payload.refresh_token
         ? result.payload.refresh_token
@@ -481,7 +578,10 @@ export async function dispatchAuthBff({
       return jsonResult(502, { error: 'Identity did not return an access token.' });
     }
     return jsonResult(200, pub, {
-      'Set-Cookie': buildRefreshCookie(cookieName, nextRefresh, { secure }),
+      'Set-Cookie': buildRefreshCookie(cookieName, nextRefresh, {
+        secure,
+        maxAge: refreshCookieMaxAge(nextRefresh, result.payload),
+      }),
     });
   }
 
@@ -545,6 +645,7 @@ export function authBffPlugin(shelluiConfig) {
         const method = req.method ?? 'GET';
 
         if (method === 'OPTIONS' && ['/session', '/refresh', '/logout'].includes(pathname)) {
+          // Bare 204. No Access-Control-Allow-Origin and no other CORS grant.
           res.statusCode = 204;
           res.end();
           return;
@@ -610,7 +711,8 @@ export async function handleAuthBffRequest(req, res, shelluiConfig) {
   const csp = cspHeadersForConfig(shelluiConfig);
 
   if (method === 'OPTIONS' && ['/session', '/refresh', '/logout'].includes(pathname)) {
-    res.writeHead(204, csp);
+    // Bare 204. Do not attach CORS headers that would let another site call these routes.
+    res.writeHead(204);
     res.end();
     return true;
   }
