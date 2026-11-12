@@ -20,23 +20,25 @@ import { clearMcpPersonalStatusCache } from '../settings/utils/mcpPersonalStatus
 import {
   AuthRequestError,
   clearStoredAuthSession,
-  establishBffAuthSession,
+  exchangeShellSessionCode,
   getAccessTokenFromSdkSettings,
   getAuthRequestErrorCode,
   getUserFromSdkSettings,
+  hasPendingCliCallback,
   hashHasOAuthTokens,
   hasStoredAuthSession,
   inferAccessPendingErrorCode,
-  isBffAuthEnabledFromConfig,
+  isBffAuthExplicitlyDisabled,
   isUnauthorizedRefreshError,
   planStoredSessionBoot,
   isSessionExpired,
   isTokenAutoRefreshDisabled,
   logoutBffAuthSession,
-  persistAuthProfile,
   persistAuthSession,
   readStoredAuthSession,
   refreshBffAuthSession,
+  rememberHostCookieSession,
+  resolveBffAuthRoutes,
   shareInFlight,
   toAuthSessionFromSettingsUser,
   type InFlightSlot,
@@ -94,75 +96,67 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { config } = useConfig();
   const { i18n } = useTranslation();
   const tauriRuntime = useIsTauriRuntime();
-  const bffAuthEnabled = isBffAuthEnabledFromConfig(config.security);
+  const bffExplicitlyDisabled = isBffAuthExplicitlyDisabled(config.security);
+  const shelluiBackend = config.backend?.type === 'shellui';
+  /** Host routes answered the probe. The refresh token is not in page storage. */
+  const [hostCookieActive, setHostCookieActive] = useState(false);
+  /**
+   * Cookie refresh returned 401 while this tab still holds a refresh token from
+   * a path that does not use the host (URL fragment, legacy provider code).
+   * Later refreshes skip the host so they do not repeat that 401.
+   */
+  const cookieRefreshSkippedRef = useRef(false);
   const backend = useMemo(
     () => createAuthBackend(config.backend),
     [config.backend?.publishableKey, config.backend?.type, config.backend?.url],
   );
 
+  const refreshUsesHostCookie = useCallback(async () => {
+    const ready = await resolveBffAuthRoutes({
+      backendType: shelluiBackend ? 'shellui' : config.backend?.type,
+      explicitlyDisabled: bffExplicitlyDisabled,
+    });
+    setHostCookieActive(ready);
+    return ready;
+  }, [bffExplicitlyDisabled, config.backend?.type, shelluiBackend]);
+
   const commitAuthSession = useCallback(
-    async (nextSession: AuthSession, nowSeconds: number): Promise<AuthSession> => {
-      if (bffAuthEnabled) {
-        const bffSession = await establishBffAuthSession(nextSession, nowSeconds);
-        if (bffSession) {
-          // Keep refresh in sessionStorage until a cookie-based refresh proves the
-          // HttpOnly cookie stuck (SW / private-IP quirks can drop Set-Cookie).
-          persistAuthSession(
-            { ...bffSession, refreshToken: nextSession.refreshToken },
-            { storeRefreshToken: true },
-          );
-          return { ...bffSession, refreshToken: '' };
-        }
+    async (
+      nextSession: AuthSession,
+      options?: { hideRefreshToken?: boolean },
+    ): Promise<AuthSession> => {
+      if (options?.hideRefreshToken) {
+        return rememberHostCookieSession(nextSession);
       }
       persistAuthSession(nextSession);
       return nextSession;
     },
-    [bffAuthEnabled],
+    [],
   );
 
   const refreshAuthSession = useCallback(
     async (current: AuthSession, nowSeconds: number): Promise<AuthSession | null> => {
-      if (!bffAuthEnabled) {
+      const useHost = (await refreshUsesHostCookie()) && !cookieRefreshSkippedRef.current;
+      if (!useHost) {
         return backend.refreshAuthSession(current, nowSeconds);
       }
       try {
         const viaCookie = await refreshBffAuthSession(current, nowSeconds);
-        if (viaCookie) {
-          // Cookie path works — drop the sessionStorage refresh backup.
-          persistAuthSession(viaCookie, { storeRefreshToken: false });
-          return viaCookie;
-        }
-        return null;
+        if (!viaCookie) return null;
+        return rememberHostCookieSession(viaCookie);
       } catch (err) {
-        const storedRefresh = current.refreshToken || readStoredAuthSession()?.refreshToken || '';
-        if (!isUnauthorizedRefreshError(err) || !storedRefresh) {
+        // The page already holds a refresh token from a path the host does not
+        // exchange (fragment or legacy provider code). Refresh that token
+        // directly. Do not post it to the host.
+        const pageRefresh = current.refreshToken || readStoredAuthSession()?.refreshToken || '';
+        if (!isUnauthorizedRefreshError(err) || !pageRefresh) {
           throw err;
         }
-        // Cookie missing/rejected: recover with the tab-scoped refresh backup, then re-seat BFF.
-        const recovered = await backend.refreshAuthSession(
-          { ...current, refreshToken: storedRefresh },
-          nowSeconds,
-        );
-        if (!recovered?.refreshToken) {
-          throw err;
-        }
-        try {
-          const reseated = await establishBffAuthSession(recovered, nowSeconds);
-          if (reseated) {
-            persistAuthSession(
-              { ...reseated, refreshToken: recovered.refreshToken },
-              { storeRefreshToken: true },
-            );
-            return { ...reseated, refreshToken: '' };
-          }
-        } catch {
-          // Fall through to non-BFF session with refresh in storage.
-        }
-        persistAuthSession(recovered);
-        return recovered;
+        cookieRefreshSkippedRef.current = true;
+        return backend.refreshAuthSession({ ...current, refreshToken: pageRefresh }, nowSeconds);
       }
     },
-    [backend, bffAuthEnabled],
+    [backend, refreshUsesHostCookie],
   );
 
   /**
@@ -173,7 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const ensureFreshAccessToken = useCallback(async (): Promise<string | null> => {
     const current = sessionRef.current;
     if (!current?.accessToken) return null;
-    if (!bffAuthEnabled && !current.refreshToken) return current.accessToken;
+    if (!hostCookieActive && !current.refreshToken) return current.accessToken;
 
     const now = Math.floor(Date.now() / 1000);
     if (!accessTokenRefreshDue(current.expiresAt, now)) return current.accessToken;
@@ -196,10 +190,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const next = await refreshAuthSession(current, now);
         if (!next) return sessionRef.current?.accessToken ?? null;
-        if (bffAuthEnabled) {
-          persistAuthProfile(next);
-        } else {
+        if (next.refreshToken) {
           persistAuthSession(next);
+        } else {
+          rememberHostCookieSession(next);
         }
         sessionRef.current = next;
         setSession(next);
@@ -224,7 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     refreshInFlightRef.current = flight.current;
     return flight.current;
-  }, [bffAuthEnabled, refreshAuthSession]);
+  }, [hostCookieActive, refreshAuthSession]);
 
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(hasInitialSessionToResolve);
@@ -267,10 +261,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (sessionFromHash) {
         if (!cancelled) {
           try {
-            const committed = await commitAuthSession(sessionFromHash, now);
+            const committed = await commitAuthSession(sessionFromHash);
             setSession(committed);
           } catch {
-            // BFF handoff failed — keep refresh so a reload can still restore.
+            // Keep the refresh token so a reload can still restore this fragment session.
             persistAuthSession(sessionFromHash, { storeRefreshToken: true });
             setSession(sessionFromHash);
           }
@@ -322,11 +316,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return;
           }
           // Persist even when cancelled so a rotated refresh token is not lost mid-remount.
-          // BFF refreshAuthSession already owns refresh-token storage (cookie + backup).
-          if (bffAuthEnabled) {
-            persistAuthProfile(restored);
-          } else {
+          if (restored.refreshToken) {
             persistAuthSession(restored);
+          } else {
+            rememberHostCookieSession(restored);
           }
           if (!cancelled) {
             setSession(restored);
@@ -345,12 +338,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       };
 
-      const plan = planStoredSessionBoot(stored, bffAuthEnabled, {
+      const useHost = await refreshUsesHostCookie();
+      if (cancelled) return;
+
+      const plan = planStoredSessionBoot(stored, useHost, {
         autoRefreshDisabled: isTokenAutoRefreshDisabled(),
       });
 
-      // Profile with nothing to refresh (BFF off, no refresh token). Drop it so the
-      // next paint is a normal login, not a half-signed-in shell.
+      // Profile with nothing to refresh (host routes absent, no refresh token).
+      // Drop it so the next paint is a normal login.
       if (plan.action === 'clear') {
         clearStoredAuthSession();
         if (!cancelled) {
@@ -381,7 +377,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       cancelled = true;
     };
-  }, [backend, bffAuthEnabled, commitAuthSession, refreshAuthSession]);
+  }, [backend, commitAuthSession, refreshAuthSession, refreshUsesHostCookie]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent !== window) return;
@@ -392,7 +388,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window === 'undefined' || window.parent !== window || isLoading) {
       return;
     }
-    if (!session || (!bffAuthEnabled && !session.refreshToken)) {
+    if (!session || (!hostCookieActive && !session.refreshToken)) {
       return;
     }
 
@@ -409,7 +405,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.clearInterval(intervalId);
       stopResume();
     };
-  }, [bffAuthEnabled, ensureFreshAccessToken, isLoading, session, session?.expiresAt]);
+  }, [hostCookieActive, ensureFreshAccessToken, isLoading, session, session?.expiresAt]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.parent === window) {
@@ -480,15 +476,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const persistOAuthSession = useCallback(
-    async (nextSession: AuthSession) => {
-      const now = Math.floor(Date.now() / 1000);
+    async (nextSession: AuthSession, options?: { hideRefreshToken?: boolean }) => {
       try {
-        const committed = await commitAuthSession(nextSession, now);
+        const committed = await commitAuthSession(nextSession, options);
         setSession(committed);
       } catch {
-        // Always keep refresh when BFF establish fails so reload can recover.
-        persistAuthSession(nextSession, { storeRefreshToken: true });
-        setSession(nextSession);
+        if (options?.hideRefreshToken) {
+          setSession(rememberHostCookieSession(nextSession));
+        } else {
+          persistAuthSession(nextSession, { storeRefreshToken: true });
+          setSession(nextSession);
+        }
       }
       setAuthEvent('oauth_callback');
     },
@@ -520,11 +518,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setError(null);
         setErrorCode(null);
         const now = Math.floor(Date.now() / 1000);
-        const nextSession = await backend.exchangeOAuthSessionCode({
+        // `shellui login` still needs the refresh token so it can hand it to the CLI.
+        const cliCallbackPending = hasPendingCliCallback();
+        const useBff = !cliCallbackPending && (await refreshUsesHostCookie());
+        const nextSession = await exchangeShellSessionCode({
+          useBff,
           authCode,
           redirectTo,
           codeVerifier,
           nowSeconds: now,
+          exchangeDirect: () =>
+            backend.exchangeOAuthSessionCode({
+              authCode,
+              redirectTo,
+              codeVerifier,
+              nowSeconds: now,
+            }),
         });
         if (!nextSession) {
           const message = 'Unable to complete OAuth login.';
@@ -532,13 +541,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setErrorCode(null);
           return { ok: false, error: message, errorCode: null };
         }
-        await persistOAuthSession(nextSession);
+        const cookieHoldsRefresh = useBff && !nextSession.refreshToken;
+        if (cookieHoldsRefresh) {
+          cookieRefreshSkippedRef.current = false;
+        } else if (useBff) {
+          setHostCookieActive(false);
+        }
+        await persistOAuthSession(nextSession, { hideRefreshToken: cookieHoldsRefresh });
         return { ok: true };
       } catch (err) {
         return mapOAuthCallbackError(err);
       }
     },
-    [backend, mapOAuthCallbackError, persistOAuthSession],
+    [backend, mapOAuthCallbackError, persistOAuthSession, refreshUsesHostCookie],
   );
 
   const completeOAuthCallback = useCallback(
@@ -589,8 +604,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setErrorCode(null);
         return false;
       }
-      const now = Math.floor(Date.now() / 1000);
-      const committed = await commitAuthSession(nextSession, now);
+      const committed = await commitAuthSession(nextSession);
       setSession(committed);
       return true;
     } catch (err) {
@@ -672,10 +686,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Keep stored snapshot aligned with what we synced (JWT claims can lag the PUT).
           nextSession = { ...nextSession, userPreferences: preferences };
           if (typeof window !== 'undefined' && window.parent === window) {
-            if (bffAuthEnabled) {
-              persistAuthProfile(nextSession);
-            } else {
+            if (nextSession.refreshToken) {
               persistAuthSession(nextSession);
+            } else {
+              rememberHostCookieSession(nextSession);
             }
           }
           setSession(nextSession);
@@ -684,7 +698,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logger.error('Failed to sync user preferences to auth provider metadata', { err });
       }
     },
-    [backend, bffAuthEnabled, refreshAuthSession],
+    [backend, refreshAuthSession],
   );
 
   const loadUserPreferences = useCallback(async () => {
@@ -707,10 +721,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const navigated = await finishShellSignOut({
         revoke: async () => {
           try {
-            if (bffAuthEnabled) {
+            const useHost = await refreshUsesHostCookie();
+            if (useHost) {
               await logoutBffAuthSession(current?.accessToken);
             }
-            await backend.logout(current);
+            // A fragment or legacy session still has the refresh token in the page.
+            // The host never receives that token. Revoke it directly.
+            if (!useHost || current?.refreshToken) {
+              await backend.logout(current);
+            }
           } catch {
             // Even if API sign-out fails, still clear the local session.
           }
@@ -758,7 +777,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (local) window.location.assign(local);
       }
     },
-    [backend, bffAuthEnabled, config.navigation],
+    [backend, config.navigation, refreshUsesHostCookie],
   );
 
   useEffect(() => {
@@ -828,16 +847,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const current = sessionRef.current;
       if (current) {
         const next = { ...current, userName: saved.name };
-        if (bffAuthEnabled) {
-          persistAuthProfile(next);
-        } else {
+        if (next.refreshToken) {
           persistAuthSession(next);
+        } else {
+          rememberHostCookieSession(next);
         }
         setSession(next);
       }
       return saved;
     },
-    [backend, bffAuthEnabled, session],
+    [backend, session],
   );
 
   useEffect(() => {

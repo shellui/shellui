@@ -18,6 +18,16 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🔒 Security
+
+- **Shell-host refresh cookie:** `shellui start` and `serve:dist` serve `/api/auth/*` unless `security.bffAuth.enabled` is false. The page posts the one-time `shellui_auth_code` and PKCE verifier to the host. The host exchanges them with identity, sends the shell `Origin`, sets the HttpOnly `shellui_refresh` cookie, and returns the access token, expiry, and user. The refresh token does not reach page JavaScript. A static host without those routes keeps today's sessionStorage refresh token. The page probes `GET /api/auth/session` once.
+
+### 📚 Documentation
+
+- **Security and authentication:** host refresh cookie, first-party cookie on the shell origin, the proxy contract, and the paths that still receive a refresh token in the page (fragment delivery, legacy provider code, CLI loopback, Supabase, and per-app sessions).
+
 ## [0.7.0] - 2026-10-31
 
 Shellui 0.7.0 brings multi-region federation: each embedded app can use its own identity server and services, with regional sessions and a new SDK app frame. It also redesigns every layout for phones and accessibility, adds token-based CI previews to the CLI and hardens sign-in with PKCE.
