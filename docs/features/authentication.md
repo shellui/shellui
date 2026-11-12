@@ -6,7 +6,7 @@ description: 'Set backend.login, use /login and /login/callback, guard routes wi
 
 Configure sign-in on the shell: `backend` in `shellui.config.json`, built-in routes at `/login` and `/login/callback`, and navigation guards. The shell stores the session, refreshes tokens, and shares the signed-in user with trusted iframe apps. Choose a provider on [Connect a backend](/backend) first.
 
-For token storage hardening, optional HttpOnly refresh (BFF), and shell CSP, see [Security hardening](/features/security).
+For token storage, the shell-host HttpOnly refresh cookie, and shell CSP, see [Security hardening](/features/security).
 
 ## Enable authentication
 
@@ -148,13 +148,15 @@ function Example() {
 
 `isLoading` is `true` only during the first session restore after a page load. Background token refreshes leave it `false`, so it is safe to drive loading placeholders.
 
-Sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open and persists rotated refresh tokens from `POST /api/v1/token`.
+When the shell host serves `/api/auth` (`shellui start`, `serve:dist`, or your proxy), OAuth and magic-link sign-in post the one-time `shellui_auth_code` and PKCE verifier to that host. Identity is called from the host, which keeps the refresh token in an HttpOnly cookie on the shell origin. The page receives the access token, expiry, and user. The access token stays in memory. The shell refreshes it 90 seconds before expiry. A new tab restores from the `localStorage` profile and `POST /api/auth/refresh`. See [Security hardening](/features/security) for the route contract, the explicit off switch, and what to do on a static host.
 
-With identity-service **0.5.0+**, the default OAuth delivery is a one-time `shellui_auth_code` query param on `/login/callback`. The shell exchanges it via `POST /api/v1/oauth/session` and stores the returned JSON tokens. Legacy fragment delivery (`#access_token=…&refresh_token=…`) still works when identity is configured with `OAUTH_TOKEN_DELIVERY=fragment` or `token_delivery=fragment` on authorize. Older shells that receive provider `?code=` on the frontend continue to use `POST /api/v1/oauth/exchange`.
+Without those routes, sessions persist in browser storage. The shell refreshes access tokens before expiry while the tab is open and persists rotated refresh tokens from `POST /api/v1/token`.
 
-Browser sign-in, both social sign-in and magic link, sends PKCE S256. The start request includes `code_challenge` and `code_challenge_method=S256`, and `POST /api/v1/oauth/session` includes `code_verifier`. The verifier is stored in `localStorage` (`shellui.auth.web.pkce`) so a magic link opened in another tab of the same browser can finish.
+With identity-service **0.5.0+**, the default OAuth delivery is a one-time `shellui_auth_code` query param on `/login/callback`. With the host routes up, the shell posts that code to `POST /api/auth/session`. Otherwise it exchanges the code at `POST /api/v1/oauth/session` and stores the returned JSON tokens. Legacy fragment delivery (`#access_token=…&refresh_token=…`) still works when identity is configured with `OAUTH_TOKEN_DELIVERY=fragment` or `token_delivery=fragment` on authorize. That fragment puts the refresh token in the page. Older shells that receive provider `?code=` on the frontend continue to use `POST /api/v1/oauth/exchange`, which also returns tokens to the page.
 
-Logout posts the refresh token when the shell still has one, so identity can revoke that app session (`POST /api/v1/logout` with `Authorization: Bearer`). That request does not send cookies. The shell then deletes the local tokens, including the refresh token in `sessionStorage`.
+Browser sign-in, both social sign-in and magic link, sends PKCE S256. The start request includes `code_challenge` and `code_challenge_method=S256`, and the session exchange includes `code_verifier`. The verifier is stored in `localStorage` (`shellui.auth.web.pkce`) so a magic link opened in another tab of the same browser can finish. The verifier is not the refresh token.
+
+With the host cookie, logout is `POST /api/auth/logout`. The host revokes the session and clears the cookie. The page does not send a refresh token. Without the host routes, logout posts the refresh token when the shell still has one (`POST /api/v1/logout` with `Authorization: Bearer`) and does not send cookies. The shell then deletes the local tokens, including the refresh token in `sessionStorage`.
 
 When `GET /api/v1/settings` includes `logout_url`, the tab that signed out navigates to `logout_url?company_id=<id>&return_to=<url>`. `return_to` is on the shell origin, the same origin registered for `redirect_to` on `/api/v1/authorize`. Identity checks that allowlist and redirects the browser back. Tokens are already gone, so the page that loads is signed out and the shell does not open `logout_url` again. A `requiresAuth` route uses `/` as `return_to`, so you are not sent straight back to login. `/login/callback` is not used as `return_to`, so a leftover `shellui_auth_code` is not exchanged again.
 

@@ -192,9 +192,13 @@ export interface BackendLoginConfig {
 /** Same-origin BFF auth for HttpOnly refresh cookies (see docs/features/security.md). */
 export interface BffAuthConfig {
   /**
-   * When true, refresh tokens are stored in an HttpOnly cookie via `/api/auth/*`
-   * served by the shell host (CLI dev server or your production reverse proxy).
-   * Default: false (refresh stays in sessionStorage until you enable BFF).
+   * Shell-host refresh cookie (`shellui_refresh` on `/api/auth`).
+   * `false` turns the routes off. The page then calls identity itself and
+   * stores the refresh token in sessionStorage.
+   * `true`, or leaving this out, mounts `/api/auth/*` on `shellui start` and
+   * `serve:dist`. The page uses them only after `GET /api/auth/session`
+   * returns `{ "ready": true }`. A static host without those routes keeps
+   * the sessionStorage refresh token.
    */
   enabled?: boolean;
   /** HttpOnly cookie name. Default: `shellui_refresh`. */

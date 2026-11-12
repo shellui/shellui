@@ -46,11 +46,9 @@ When the iframe document is same-origin to its configured URL, scripts can remov
 
 ### Residual risk: same-origin production
 
-Production companions load from `/app/` on the shell origin. Framing stays first-party, but the sandbox gives no isolation between shell and companion: the companion runs with the shell's origin. A script in that frame can read the shell's `sessionStorage`, including the refresh token at `shellui.auth.refresh`.
+Production companions load from `/app/` on the shell origin. Framing stays first-party, but the sandbox gives no isolation between shell and companion: the companion runs with the shell's origin. A script in that frame can read the shell's `sessionStorage`. Without the host routes, that includes the refresh token at `shellui.auth.refresh`. When the shell host keeps the refresh token in the HttpOnly `shellui_refresh` cookie, that key is empty, but a same-origin request to `/api/auth` still sends the cookie.
 
-Shellui leaves that storage in place for now. A refresh token kept only in memory would sign you out on reload. An HttpOnly cookie on the shell origin would still be included when the iframe calls shell routes.
-
-To reduce this risk, serve companions on a different origin, including the desktop webview. Keep the refresh token in an HttpOnly cookie on the shell host, or in shell memory plus that cookie. The companion origin must not be able to call the routes that use the cookie.
+Serve companions on a different origin, including the desktop webview, so they cannot call the shell routes that use the cookie.
 
 ### Future work
 
