@@ -1,0 +1,4 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "legalDocuments": {}
+}

@@ -26,6 +26,7 @@ export {
 export {
   CLI_CALLBACK_PARAM,
   captureCliCallbackFromSearch,
+  hasPendingCliCallback,
   isLoopbackCliCallbackUrl,
   redirectCliCallbackError,
   redirectToCliCallback,
@@ -39,11 +40,23 @@ export {
 } from './authSessionPersistence';
 export type { PersistedAuthProfile } from './authSessionPersistence';
 export {
-  establishBffAuthSession,
+  BffRouteMissingError,
+  exchangeAuthCodeViaBff,
+  exchangeShellSessionCode,
+  isBffRouteMissingError,
   logoutBffAuthSession,
+  markBffRoutesUnavailable,
+  probeBffAuthRoutes,
+  rememberHostCookieSession,
   refreshBffAuthSession,
+  resetBffRouteProbeForTests,
+  resolveBffAuthRoutes,
 } from './bffAuthClient';
-export { isBffAuthEnabledFromConfig, useIsBffAuthEnabled } from './isBffAuthEnabled';
+export {
+  isBffAuthEnabledFromConfig,
+  isBffAuthExplicitlyDisabled,
+  useIsBffAuthEnabled,
+} from './isBffAuthEnabled';
 export { decodeJwtPayload } from './decodeJwtPayload';
 export { formatProviderLabel } from './formatProviderLabel';
 export { getAccessTokenFromSdkSettings, getUserFromSdkSettings } from './getUserFromSdkSettings';
@@ -52,7 +65,12 @@ export { getPreferredBackendProvider } from './getPreferredBackendProvider';
 export { getProviderVisual } from './getProviderVisual';
 export { isLoginMethod } from './isLoginMethod';
 export { resolveLoginSettings } from './resolveLoginSettings';
-export { canRestoreStoredSession } from './canRestoreStoredSession';
+export {
+  canRestoreStoredSession,
+  isUnauthorizedRefreshError,
+  planStoredSessionBoot,
+} from './canRestoreStoredSession';
+export type { StoredSessionBootPlan } from './canRestoreStoredSession';
 export { isSessionExpired } from './isSessionExpired';
 export { isTokenAutoRefreshDisabled } from './isTokenAutoRefreshDisabled';
 export { normalizeAuthSettings } from './normalizeAuthSettings';

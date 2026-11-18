@@ -17,8 +17,10 @@
  *   Defaults to every service below.
  * - `DOCS_ALLOW_MISSING=1`: skip a service that cannot be fetched instead of failing.
  * - `DOCS_GITHUB_TOKEN`: token used for remote clones, only needed for private repos.
- * - `<ID>_DOCS_REF`: branch, tag or commit to fetch, for example `IDENTITY_DOCS_REF`.
- *   Defaults to `main`.
+ * - `<ID>_DOCS_REF`: branch, tag or commit to fetch, for example `IDENTITY_DOCS_REF`
+ *   or `AI_DOCS_REF`. Defaults to `main`.
+ *   A service with `optional: true` is skipped when that ref has no `docs/`
+ *   folder, so the site still builds.
  * - `<ID>_DOCS_REPO`: `owner/name` on GitHub, for example to build from a fork.
  * - `<ID>_DOCS_PATH`: path to a local `docs/` folder. Forces local mode for that service.
  * - `<ID>_DOCS_SOURCE`: `auto`, `local` or `remote` for one service only.
@@ -51,6 +53,7 @@ const SIDEBAR_FILES = [
  * @property {string} legacyHost Host the service docs used to publish to.
  * @property {string} docsDir Docs folder inside the service repo.
  * @property {string[]} sidebarFiles Sidebar files inside the service repo, first match wins.
+ * @property {boolean} [optional] Skip when the pinned ref has no docs folder.
  */
 
 /** @type {ServiceDefinition[]} */
@@ -90,6 +93,17 @@ const SERVICES = [
     legacyHost: 'email.docs.shellui.com',
     docsDir: 'docs',
     sidebarFiles: SIDEBAR_FILES,
+  },
+  {
+    id: 'ai',
+    label: 'AI',
+    repo: 'shellui/ai-service',
+    routeBasePath: 'ai',
+    legacyHost: 'ai.docs.shellui.com',
+    docsDir: 'docs',
+    sidebarFiles: SIDEBAR_FILES,
+    // Skip a ref that has no docs folder. ai-service `main` does not ship one.
+    optional: true,
   },
 ];
 

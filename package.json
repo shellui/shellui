@@ -1,6 +1,6 @@
 {
   "name": "shellui",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Shellui repository - CLI, Core, and SDK packages",
   "packageManager": "pnpm@9.15.0",
   "bin": {
@@ -33,7 +33,7 @@
     "prepare": "husky",
     "version:sync": "node scripts/sync-package-versions.js",
     "changelog:check": "node scripts/check-changelog.js",
-    "test:scripts": "node --test scripts/check-changelog.test.js"
+    "test:scripts": "node --test scripts/check-changelog.test.js dev/container/django-runserver.test.mjs dev/container/local-vite-shellui.test.mjs dev/compose_env.test.mjs && python3 dev/generate_env.test.py && python3 tools/test_generate_env.py && python3 tools/test_generated_cli_docs.py && node scripts/verify-ai-native-doc.mjs"
   },
   "lint-staged": {
     "*": "pnpm exec prettier --write --ignore-unknown"

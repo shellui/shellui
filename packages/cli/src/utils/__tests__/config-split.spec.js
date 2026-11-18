@@ -22,6 +22,20 @@ describe('split and unsplit config', () => {
     fs.rmSync(testDir, { recursive: true, force: true });
   });
 
+  test('split writes a security section', () => {
+    const config = {
+      title: 'App',
+      security: { bffAuth: { enabled: true } },
+    };
+    fs.writeFileSync(MAIN_CONFIG_FILE, JSON.stringify(config));
+
+    const { written } = splitConfig(testDir);
+
+    expect(written.some((p) => p.endsWith(splitConfigFileName('security')))).toBe(true);
+    const security = JSON.parse(fs.readFileSync(splitConfigFileName('security'), 'utf8'));
+    expect(security.security).toEqual({ bffAuth: { enabled: true } });
+  });
+
   test('split creates section files and removes main', () => {
     const config = {
       title: 'App',

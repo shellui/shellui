@@ -1,249 +1,474 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import crypto from 'crypto';
-import http from 'http';
 import {
-  LOGIN_NONCE_HEADER,
-  buildAuthorizeUrl,
-  buildCallbackPageHtml,
-  buildWaitingPageHtml,
-  exchangeSessionCode,
-  generateLoginNonce,
-  generatePkcePair,
-  validateCaptureNonce,
+  DEVICE_GRANT_TYPE,
+  LOGIN_DENIED_MESSAGE,
+  LOGIN_EXPIRED_MESSAGE,
+  LoginCancelledError,
+  SHELLUI_CLI_CLIENT_ID,
+  WAITING_MESSAGE,
+  browserLaunchDecision,
+  interruptibleSleep,
+  parseDeviceCodeResponse,
+  runLoginFlow,
+  toLoginResult,
 } from '../login-flow.js';
 
-function listen(server) {
-  return new Promise((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      resolve(typeof address === 'object' && address ? address.port : 0);
-    });
+const BACKEND = 'https://id.shellui.com/';
+const USER_CODE = 'ABCD-EFGH';
+const DEVICE_CODE = 'device-secret-value';
+const COMPLETE = `https://id.shellui.com/oauth/cli/device?user_code=${USER_CODE}`;
+
+function stripAnsi(value) {
+  return value.replace(/\u001b\[[0-9;]*m/g, '');
+}
+
+function devicePayload(overrides = {}) {
+  return {
+    device_code: DEVICE_CODE,
+    user_code: USER_CODE,
+    verification_uri: 'https://id.shellui.com/oauth/cli/device',
+    verification_uri_complete: COMPLETE,
+    expires_in: 600,
+    interval: 5,
+    ...overrides,
+  };
+}
+
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
-function closeServer(server) {
-  return new Promise((resolve) => server.close(() => resolve()));
+/**
+ * @param {{
+ *   tokenResponses?: Array<Response | Error>,
+ *   deviceResponse?: Response | Error,
+ *   interval?: number,
+ *   expiresIn?: number,
+ * }} [opts]
+ */
+function scriptedFetch(opts = {}) {
+  const tokenResponses = [...(opts.tokenResponses ?? [jsonResponse(tokenSuccess())])];
+  /** @type {string[]} */
+  const events = [];
+  /** @type {Array<{ url: string, init: RequestInit }>} */
+  const calls = [];
+  const fetchImpl = vi.fn(async (url, init) => {
+    const href = String(url);
+    calls.push({ url: href, init: /** @type {RequestInit} */ (init) });
+    events.push(`fetch ${href}`);
+    if (init?.signal?.aborted) {
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    }
+    if (href.endsWith('/oauth/cli/device/code')) {
+      if (opts.deviceResponse instanceof Error) throw opts.deviceResponse;
+      return (
+        opts.deviceResponse ??
+        jsonResponse(devicePayload({ interval: opts.interval, expires_in: opts.expiresIn }))
+      );
+    }
+    const next = tokenResponses.shift();
+    if (!next) throw new Error('unexpected token poll');
+    if (next instanceof Error) throw next;
+    return next;
+  });
+  return { fetchImpl, events, calls };
 }
 
-describe('login-flow nonce helpers', () => {
-  test('generateLoginNonce returns 64-char hex', () => {
-    const nonce = generateLoginNonce();
-    expect(nonce).toMatch(/^[0-9a-f]{64}$/);
-    expect(generateLoginNonce()).not.toBe(nonce);
+function tokenSuccess(overrides = {}) {
+  return {
+    access_token: 'access-token',
+    refresh_token: 'refresh-token',
+    token_type: 'bearer',
+    expires_in: 900,
+    ...overrides,
+  };
+}
+
+function oauthError(error, status = 400) {
+  return jsonResponse({ error }, status);
+}
+
+/**
+ * @param {Parameters<typeof runLoginFlow>[0]} [overrides]
+ */
+async function runFlow(overrides = {}) {
+  /** @type {string[]} */
+  const lines = [];
+  /** @type {number[]} */
+  const sleeps = [];
+  let nowMs = 1_700_000_000_000;
+  const opened = [];
+  const script = overrides.fetchImpl
+    ? null
+    : scriptedFetch({
+        tokenResponses: [jsonResponse(tokenSuccess())],
+      });
+  const result = await runLoginFlow({
+    backendUrl: BACKEND,
+    companyId: '9',
+    noBrowser: true,
+    env: {},
+    platform: 'linux',
+    isTTY: false,
+    fetchImpl: script?.fetchImpl,
+    log: (line) => lines.push(line),
+    now: () => nowMs,
+    sleep: async (ms) => {
+      sleeps.push(ms);
+      nowMs += ms;
+    },
+    openBrowser: async (url) => {
+      opened.push(url);
+    },
+    ...overrides,
+    ...(overrides.now
+      ? {}
+      : {
+          now: () => nowMs,
+        }),
+  });
+  return {
+    result,
+    lines,
+    text: stripAnsi(lines.join('\n')),
+    sleeps,
+    opened,
+    events: script?.events ?? [],
+    calls: script?.calls ?? [],
+    nowMs: () => nowMs,
+  };
+}
+
+describe('parseDeviceCodeResponse', () => {
+  test('reads the contract fields and builds a link when the complete URI is absent', () => {
+    const parsed = parseDeviceCodeResponse(
+      devicePayload({ verification_uri_complete: undefined, interval: '2', expires_in: '30' }),
+    );
+    expect(parsed).toMatchObject({
+      deviceCode: DEVICE_CODE,
+      userCode: USER_CODE,
+      verificationUriComplete: COMPLETE,
+      intervalSec: 2,
+      expiresInSec: 30,
+    });
   });
 
-  test('validateCaptureNonce requires exact match', () => {
-    const nonce = generateLoginNonce();
-    expect(validateCaptureNonce({ nonce }, nonce)).toBe(true);
-    expect(validateCaptureNonce({ nonce: 'wrong' }, nonce)).toBe(false);
-    expect(validateCaptureNonce({}, nonce)).toBe(false);
+  test('defaults a missing interval to 5 seconds and a missing lifetime to 600 seconds', () => {
+    const parsed = parseDeviceCodeResponse(
+      devicePayload({ interval: undefined, expires_in: undefined }),
+    );
+    expect(parsed?.intervalSec).toBe(5);
+    expect(parsed?.expiresInSec).toBe(600);
   });
 
-  test('buildAuthorizeUrl includes state when provided', () => {
-    const url = buildAuthorizeUrl({
-      backendUrl: 'https://id.shellui.com',
-      companyId: '1',
-      redirectTo: 'http://127.0.0.1:9/callback',
-      state: 'abc123',
-    });
-    expect(url).toContain('state=abc123');
-  });
-
-  test('waiting and callback pages embed port and nonce', () => {
-    const nonce = 'deadbeef';
-    const waiting = buildWaitingPageHtml({
-      port: 4242,
-      nonce,
-      backendUrl: 'https://id.shellui.com',
-    });
-    expect(waiting).toContain('4242');
-    expect(waiting).toContain(nonce);
-    expect(waiting).toContain('/api/v1/authorize');
-
-    const callback = buildCallbackPageHtml({
-      nonce,
-      backendUrl: 'https://id.shellui.com',
-    });
-    expect(callback).toContain(nonce);
-    expect(callback).toContain(LOGIN_NONCE_HEADER);
-    expect(callback).toContain('/capture');
-    expect(callback).toContain('shellui_auth_code');
-    expect(callback).toContain("'/code'");
-    // The browser no longer redeems the code; the CLI does, with the verifier.
-    expect(callback).not.toContain('/api/v1/oauth/session');
-    expect(callback).not.toContain('code_verifier');
+  test('rejects a payload without a device code or user code', () => {
+    expect(parseDeviceCodeResponse({ user_code: USER_CODE })).toBeNull();
+    expect(parseDeviceCodeResponse(null)).toBeNull();
   });
 });
 
-describe('login-flow PKCE', () => {
+describe('toLoginResult', () => {
+  test('converts expires_in to a unix expiresAt and prefers it over expires_at', () => {
+    const result = toLoginResult(
+      {
+        access_token: 'a',
+        refresh_token: 'r',
+        token_type: 'bearer',
+        expires_in: 900,
+        expires_at: 5,
+      },
+      1_700_000_000_000,
+    );
+    expect(result).toEqual({
+      accessToken: 'a',
+      refreshToken: 'r',
+      expiresAt: 1_700_000_000 + 900,
+      tokenType: 'bearer',
+    });
+  });
+
+  test('falls back to absolute expires_at when expires_in is absent', () => {
+    const result = toLoginResult(
+      { access_token: 'a', refresh_token: 'r', expires_at: '1700000900' },
+      1_700_000_000_000,
+    );
+    expect(result.expiresAt).toBe(1_700_000_900);
+    expect(result.tokenType).toBe('bearer');
+  });
+});
+
+describe('browserLaunchDecision', () => {
+  test('skips for --no-browser, SSH, and a headless session', () => {
+    expect(
+      browserLaunchDecision({ noBrowser: true, env: { DISPLAY: ':0' }, platform: 'linux' }),
+    ).toMatchObject({
+      open: false,
+    });
+    expect(
+      browserLaunchDecision({ env: { SSH_CONNECTION: '1', DISPLAY: ':0' }, platform: 'darwin' })
+        .open,
+    ).toBe(false);
+    expect(browserLaunchDecision({ env: { SSH_CLIENT: '1' }, platform: 'linux' }).message).toMatch(
+      /SSH/,
+    );
+    expect(browserLaunchDecision({ env: { SSH_TTY: '/dev/pts/0' }, platform: 'linux' }).open).toBe(
+      false,
+    );
+    expect(browserLaunchDecision({ env: {}, platform: 'linux' }).message).toMatch(/No display/);
+    expect(browserLaunchDecision({ env: {}, platform: 'freebsd' }).open).toBe(false);
+  });
+
+  test('opens on a display, on Wayland, and on macOS or Windows without DISPLAY', () => {
+    expect(browserLaunchDecision({ env: { DISPLAY: ':0' }, platform: 'linux' }).open).toBe(true);
+    expect(
+      browserLaunchDecision({ env: { WAYLAND_DISPLAY: 'wayland-0' }, platform: 'linux' }).open,
+    ).toBe(true);
+    expect(browserLaunchDecision({ env: {}, platform: 'darwin' }).open).toBe(true);
+    expect(browserLaunchDecision({ env: {}, platform: 'win32' }).open).toBe(true);
+  });
+});
+
+describe('interruptibleSleep', () => {
+  test('rejects immediately when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(interruptibleSleep(60_000, controller.signal)).rejects.toBeInstanceOf(
+      LoginCancelledError,
+    );
+  });
+
+  test('rejects in-flight sleep on abort', async () => {
+    const controller = new AbortController();
+    const pending = interruptibleSleep(60_000, controller.signal);
+    controller.abort();
+    await expect(pending).rejects.toBeInstanceOf(LoginCancelledError);
+  });
+});
+
+describe('runLoginFlow', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
-  test('generatePkcePair returns an S256 pair', () => {
-    const { verifier, challenge } = generatePkcePair();
-    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    const expected = crypto
-      .createHash('sha256')
-      .update(verifier)
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/g, '');
-    expect(challenge).toBe(expected);
-    expect(generatePkcePair().verifier).not.toBe(verifier);
-  });
-
-  test('buildAuthorizeUrl sends the challenge, never the verifier', () => {
-    const { verifier, challenge } = generatePkcePair();
-    const url = new URL(
-      buildAuthorizeUrl({
-        backendUrl: 'https://id.shellui.com',
-        companyId: '1',
-        redirectTo: 'http://127.0.0.1:9/callback',
-        codeChallenge: challenge,
-      }),
-    );
-    expect(url.searchParams.get('code_challenge')).toBe(challenge);
-    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
-    expect(url.toString()).not.toContain(verifier);
-  });
-
-  test('exchangeSessionCode posts the verifier with the loopback Origin', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ access_token: 'a', refresh_token: 'r', expires_at: 5 }), {
-        status: 200,
-      }),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-    const tokens = await exchangeSessionCode({
-      backendUrl: 'https://id.shellui.com/',
-      authCode: 'code-1',
-      redirectTo: 'http://127.0.0.1:4242/callback',
-      codeVerifier: 'v'.repeat(43),
+  test('requests a device code, prints the link and code, and stores session tokens', async () => {
+    const script = scriptedFetch();
+    const flow = await runFlow({
+      fetchImpl: script.fetchImpl,
+      noBrowser: false,
+      env: { DISPLAY: ':0' },
+      platform: 'linux',
     });
-    expect(tokens.access_token).toBe('a');
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://id.shellui.com/api/v1/oauth/session');
-    expect(init.headers.Origin).toBe('http://127.0.0.1:4242');
-    expect(JSON.parse(init.body)).toEqual({
-      auth_code: 'code-1',
-      redirect_to: 'http://127.0.0.1:4242/callback',
-      code_verifier: 'v'.repeat(43),
+
+    expect(flow.result).toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: 1_700_000_000 + 5 + 900,
+      tokenType: 'bearer',
     });
+    expect(flow.text).toContain('Sign in to Shellui');
+    expect(flow.text).toContain(`Code  ${USER_CODE}`);
+    expect(flow.text).toContain(`Link  ${COMPLETE}`);
+    expect(flow.text).toContain('Opened the verification page in your browser.');
+    expect(flow.text).toContain(WAITING_MESSAGE);
+    expect(flow.text).not.toContain(DEVICE_CODE);
+    expect(flow.opened).toEqual([COMPLETE]);
+    expect(flow.sleeps).toEqual([5000]);
+
+    const deviceCall = script.calls[0];
+    expect(deviceCall.url).toBe('https://id.shellui.com/oauth/cli/device/code');
+    expect(deviceCall.init.method).toBe('POST');
+    expect(deviceCall.init.headers).toMatchObject({ 'Content-Type': 'application/json' });
+    expect(JSON.parse(String(deviceCall.init.body))).toEqual({
+      client_id: SHELLUI_CLI_CLIENT_ID,
+      company_id: '9',
+    });
+
+    const tokenCall = script.calls[1];
+    expect(tokenCall.url).toBe('https://id.shellui.com/oauth/token');
+    expect(tokenCall.init.headers).toMatchObject({
+      'Content-Type': 'application/x-www-form-urlencoded',
+    });
+    const body = new URLSearchParams(String(tokenCall.init.body));
+    expect(body.get('grant_type')).toBe(DEVICE_GRANT_TYPE);
+    expect(body.get('device_code')).toBe(DEVICE_CODE);
+    expect(body.get('client_id')).toBe(SHELLUI_CLI_CLIENT_ID);
+    expect(script.events.map((event) => event.split(' ')[0])).toEqual(['fetch', 'fetch']);
   });
 
-  test('exchangeSessionCode surfaces the PKCE error code', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ error: 'PKCE failed.', error_code: 'pkce_verification_failed' }),
-          {
-            status: 400,
-          },
-        ),
-      ),
+  test('waits the server interval, then adds 5 seconds on slow_down', async () => {
+    const script = scriptedFetch({
+      interval: 2,
+      tokenResponses: [
+        oauthError('authorization_pending'),
+        oauthError('slow_down'),
+        jsonResponse(tokenSuccess()),
+      ],
+    });
+    const flow = await runFlow({ fetchImpl: script.fetchImpl });
+    expect(flow.sleeps).toEqual([2000, 2000, 7000]);
+    expect(flow.result.accessToken).toBe('access-token');
+    expect(script.calls.filter((call) => call.url.endsWith('/oauth/token'))).toHaveLength(3);
+  });
+
+  test('does not open a browser for --no-browser', async () => {
+    const flow = await runFlow({
+      noBrowser: true,
+      env: { DISPLAY: ':0' },
+      platform: 'linux',
+    });
+    expect(flow.opened).toEqual([]);
+    expect(flow.text).toContain('Browser launch skipped (--no-browser).');
+  });
+
+  test('skips the browser over SSH even when a display is set', async () => {
+    const flow = await runFlow({
+      noBrowser: false,
+      env: { SSH_CONNECTION: '10.0.0.1 22', DISPLAY: ':0' },
+      platform: 'darwin',
+    });
+    expect(flow.opened).toEqual([]);
+    expect(flow.text).toContain('SSH session detected. Open the link in a browser.');
+  });
+
+  test('opens verification_uri_complete on macOS without DISPLAY', async () => {
+    const flow = await runFlow({
+      noBrowser: false,
+      env: {},
+      platform: 'darwin',
+    });
+    expect(flow.opened).toEqual([COMPLETE]);
+  });
+
+  test('keeps polling when the browser fails to open', async () => {
+    const flow = await runFlow({
+      noBrowser: false,
+      env: { DISPLAY: ':0' },
+      platform: 'linux',
+      openBrowser: async () => {
+        throw new Error('xdg-open missing');
+      },
+    });
+    expect(flow.text).toContain('Could not open a browser. Open the link above.');
+    expect(flow.result.refreshToken).toBe('refresh-token');
+  });
+
+  test('reports access_denied and expired_token without storing a session', async () => {
+    const denied = scriptedFetch({ tokenResponses: [oauthError('access_denied')] });
+    await expect(runFlow({ fetchImpl: denied.fetchImpl })).rejects.toThrow(LOGIN_DENIED_MESSAGE);
+
+    const expired = scriptedFetch({ tokenResponses: [oauthError('expired_token')] });
+    await expect(runFlow({ fetchImpl: expired.fetchImpl })).rejects.toThrow(LOGIN_EXPIRED_MESSAGE);
+  });
+
+  test('stops when the device code lifetime elapses while still pending', async () => {
+    const script = scriptedFetch({
+      expiresIn: 10,
+      interval: 5,
+      tokenResponses: [oauthError('authorization_pending'), oauthError('authorization_pending')],
+    });
+    await expect(runFlow({ fetchImpl: script.fetchImpl })).rejects.toThrow(LOGIN_EXPIRED_MESSAGE);
+    expect(script.calls.filter((call) => call.url.endsWith('/oauth/token'))).toHaveLength(1);
+  });
+
+  test('surfaces an unknown token error and a failed device-code request', async () => {
+    const unknown = scriptedFetch({
+      tokenResponses: [
+        jsonResponse({ error: 'invalid_client', error_description: 'Unknown client.' }, 401),
+      ],
+    });
+    await expect(runFlow({ fetchImpl: unknown.fetchImpl })).rejects.toThrow(
+      'Sign-in failed (Unknown client.).',
     );
+
+    const failed = scriptedFetch({
+      deviceResponse: jsonResponse({ error: 'invalid_request' }, 400),
+    });
+    await expect(runFlow({ fetchImpl: failed.fetchImpl })).rejects.toThrow(
+      'Could not start sign-in (HTTP 400): invalid_request',
+    );
+    expect(failed.calls.some((call) => call.url.endsWith('/oauth/token'))).toBe(false);
+  });
+
+  test('retries a few transport failures, then stops', async () => {
+    const network = new Error('socket hang up');
+    const script = scriptedFetch({
+      tokenResponses: [network, network, jsonResponse(tokenSuccess())],
+    });
+    const flow = await runFlow({ fetchImpl: script.fetchImpl });
+    expect(flow.result.accessToken).toBe('access-token');
+
+    const failing = scriptedFetch({
+      tokenResponses: Array.from({ length: 5 }, () => new Error('down')),
+    });
+    await expect(runFlow({ fetchImpl: failing.fetchImpl })).rejects.toThrow(
+      /Could not reach the identity server to finish sign-in/,
+    );
+  });
+
+  test('cancels when sleep is aborted and does not poll the token endpoint', async () => {
+    const script = scriptedFetch();
+    const controller = new AbortController();
     await expect(
-      exchangeSessionCode({
-        backendUrl: 'https://id.shellui.com',
-        authCode: 'c',
-        redirectTo: 'http://127.0.0.1:1/callback',
-        codeVerifier: 'v'.repeat(43),
-      }),
-    ).rejects.toThrow('PKCE failed. (pkce_verification_failed)');
-  });
-});
-
-describe('login-flow /capture binding', () => {
-  test('rejects POST /capture without nonce', async () => {
-    const loginNonce = generateLoginNonce();
-    const server = http.createServer((req, res) => {
-      if (req.method !== 'POST' || req.url !== '/capture') {
-        res.writeHead(404);
-        res.end();
-        return;
-      }
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk;
-      });
-      req.on('end', () => {
-        const payload = JSON.parse(body || '{}');
-        if (!validateCaptureNonce(payload, loginNonce)) {
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: false }));
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      });
-    });
-
-    const port = await listen(server);
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          access_token: 'a',
-          refresh_token: 'r',
-        }),
-      });
-      expect(res.status).toBe(403);
-    } finally {
-      await closeServer(server);
-    }
-  });
-
-  test('accepts POST /capture with matching nonce', async () => {
-    const loginNonce = generateLoginNonce();
-    const server = http.createServer((req, res) => {
-      if (req.method !== 'POST' || req.url !== '/capture') {
-        res.writeHead(404);
-        res.end();
-        return;
-      }
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk;
-      });
-      req.on('end', () => {
-        const payload = JSON.parse(body || '{}');
-        const header = req.headers[LOGIN_NONCE_HEADER.toLowerCase()];
-        const ok =
-          header === loginNonce &&
-          validateCaptureNonce(payload, loginNonce) &&
-          payload.access_token &&
-          payload.refresh_token;
-        if (!ok) {
-          res.writeHead(403);
-          res.end();
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ ok: true }));
-      });
-    });
-
-    const port = await listen(server);
-    try {
-      const res = await fetch(`http://127.0.0.1:${port}/capture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          [LOGIN_NONCE_HEADER]: loginNonce,
+      runFlow({
+        fetchImpl: script.fetchImpl,
+        signal: controller.signal,
+        sleep: async () => {
+          controller.abort();
+          throw new LoginCancelledError();
         },
-        body: JSON.stringify({
-          nonce: loginNonce,
-          access_token: 'access',
-          refresh_token: 'refresh',
-        }),
-      });
-      expect(res.status).toBe(200);
-    } finally {
-      await closeServer(server);
-    }
+      }),
+    ).rejects.toBeInstanceOf(LoginCancelledError);
+    expect(script.calls.some((call) => call.url.endsWith('/oauth/token'))).toBe(false);
+  });
+
+  test('turns an aborted token poll into LoginCancelledError', async () => {
+    const controller = new AbortController();
+    const fetchImpl = vi.fn(async (url, init) => {
+      if (String(url).endsWith('/oauth/cli/device/code')) return jsonResponse(devicePayload());
+      init?.signal?.addEventListener('abort', () => {});
+      controller.abort();
+      const err = new Error('The operation was aborted');
+      err.name = 'AbortError';
+      throw err;
+    });
+    await expect(
+      runFlow({
+        fetchImpl,
+        signal: controller.signal,
+        sleep: async () => {},
+      }),
+    ).rejects.toBeInstanceOf(LoginCancelledError);
+  });
+
+  test('draws a spinner on a TTY and clears it when login finishes', async () => {
+    /** @type {string[]} */
+    const writes = [];
+    await runFlow({
+      isTTY: true,
+      write: (text) => writes.push(text),
+    });
+    expect(stripAnsi(writes[0])).toContain(WAITING_MESSAGE);
+    expect(writes.at(-1)).toBe('\r\x1b[2K');
+  });
+
+  test('uses verification_uri_complete from the server exactly', async () => {
+    const complete = 'https://id.shellui.com/oauth/cli/device?user_code=ABCD-EFGH&from=cli';
+    const script = scriptedFetch({
+      deviceResponse: jsonResponse(devicePayload({ verification_uri_complete: complete })),
+    });
+    const flow = await runFlow({
+      fetchImpl: script.fetchImpl,
+      noBrowser: false,
+      env: { DISPLAY: ':0' },
+      platform: 'linux',
+    });
+    expect(flow.opened).toEqual([complete]);
+    expect(flow.text).toContain(complete);
   });
 });

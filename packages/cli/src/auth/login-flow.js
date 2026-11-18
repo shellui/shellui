@@ -1,372 +1,457 @@
-import crypto from 'crypto';
-import http from 'http';
 import { spawn } from 'child_process';
 import pc from 'picocolors';
 
-const LOGIN_TIMEOUT_MS = 3 * 60 * 1000;
+/** OAuth client id for this CLI. Not interchangeable with the MCP device client. */
+export const SHELLUI_CLI_CLIENT_ID = 'shellui-cli';
 
-export const LOGIN_NONCE_HEADER = 'X-Shellui-Login-Nonce';
+/** RFC 8628 device-code grant. */
+export const DEVICE_GRANT_TYPE = 'urn:ietf:params:oauth:grant-type:device_code';
+
+const DEVICE_CODE_PATH = '/oauth/cli/device/code';
+const TOKEN_PATH = '/oauth/token';
+const DEFAULT_INTERVAL_SEC = 5;
+const SLOW_DOWN_STEP_SEC = 5;
+const DEFAULT_EXPIRES_SEC = 600;
+const MAX_TRANSIENT_FAILURES = 5;
+
+export const WAITING_MESSAGE = 'Waiting for approval…';
+
+export const LOGIN_DENIED_MESSAGE = 'Sign-in was denied.';
+export const LOGIN_EXPIRED_MESSAGE = 'The sign-in code expired. Run shellui login again.';
+
+export class LoginCancelledError extends Error {
+  constructor() {
+    super('Login cancelled.');
+    this.name = 'LoginCancelledError';
+  }
+}
 
 /**
+ * @param {unknown} value
  * @returns {string}
  */
-export function generateLoginNonce() {
-  return crypto.randomBytes(32).toString('hex');
+function asString(value) {
+  return typeof value === 'string' ? value.trim() : '';
 }
 
 /**
- * @param {Buffer} buf
+ * @param {unknown} value
+ * @returns {number | null}
  */
-function base64Url(buf) {
-  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-/**
- * S256 PKCE pair (RFC 7636). The verifier stays in this process's memory.
- * @returns {{ verifier: string, challenge: string }}
- */
-export function generatePkcePair() {
-  const verifier = base64Url(crypto.randomBytes(32));
-  const challenge = base64Url(crypto.createHash('sha256').update(verifier).digest());
-  return { verifier, challenge };
-}
-
-/**
- * Exchange a session code from Node so the verifier never reaches the browser.
- * identity-service requires `Origin` to match `redirect_to` for an http(s)
- * redirect. Node's fetch sends no Origin, so the CLI sends the loopback origin
- * it owns, which is the origin of `redirect_to`.
- * @param {{ backendUrl: string, authCode: string, redirectTo: string, codeVerifier: string }} opts
- */
-export async function exchangeSessionCode(opts) {
-  const res = await fetch(`${opts.backendUrl.replace(/\/$/, '')}/api/v1/oauth/session`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      Origin: new URL(opts.redirectTo).origin,
-    },
-    body: JSON.stringify({
-      auth_code: opts.authCode,
-      redirect_to: opts.redirectTo,
-      code_verifier: opts.codeVerifier,
-    }),
-  });
-  const payload = await res.json().catch(() => null);
-  if (!res.ok) {
-    const err = payload && (payload.error || payload.detail);
-    const code =
-      payload && typeof payload.error_code === 'string' ? ` (${payload.error_code})` : '';
-    throw new Error(
-      `${err ? String(err) : `Session exchange failed (HTTP ${res.status}).`}${code}`,
-    );
+function asNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
   }
-  if (
-    !payload ||
-    typeof payload.access_token !== 'string' ||
-    typeof payload.refresh_token !== 'string'
-  ) {
-    throw new Error('Session exchange did not return access and refresh tokens.');
-  }
-  return payload;
-}
-
-/**
- * @param {unknown} payload
- * @param {string} expectedNonce
- */
-export function validateCaptureNonce(payload, expectedNonce) {
-  if (!payload || typeof payload !== 'object') return false;
-  const nonce = /** @type {Record<string, unknown>} */ (payload).nonce;
-  return typeof nonce === 'string' && nonce.length > 0 && nonce === expectedNonce;
-}
-
-/**
- * @param {string} url
- */
-export function openBrowser(url) {
-  const platform = process.platform;
-  if (platform === 'darwin') {
-    spawn('open', [url], { stdio: 'ignore', detached: true }).unref();
-    return;
-  }
-  if (platform === 'win32') {
-    spawn('cmd', ['/c', 'start', '', url], { stdio: 'ignore', detached: true }).unref();
-    return;
-  }
-  spawn('xdg-open', [url], { stdio: 'ignore', detached: true }).unref();
-}
-
-/**
- * @param {{ port: number, nonce: string, backendUrl: string }} ctx
- */
-export function buildWaitingPageHtml({ port, nonce, backendUrl }) {
-  const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shellui login</title>
-  <style>
-    :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-      background: #0f1419; color: #e7ecf3; }
-    main { width: min(28rem, calc(100% - 2rem)); padding: 2rem;
-      border: 1px solid #2a3441; border-radius: 12px; background: #151b23; }
-    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; font-weight: 600; }
-    p { margin: 0 0 0.75rem; color: #9aa7b8; font-size: 0.95rem; line-height: 1.45; }
-    code { font-size: 0.85rem; color: #c5d0de; word-break: break-all; }
-    .warn { color: #f0b429; margin-top: 1rem; font-size: 0.9rem; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>shellui CLI sign-in</h1>
-    <p>Waiting for sign-in in your browser…</p>
-    <p>Session port: <code>${port}</code></p>
-    <p>Session nonce: <code>${nonce}</code></p>
-    <p class="warn">Only continue if you ran <code>shellui login</code> in your terminal and the authorize URL starts with <code>${authorizePrefix}</code>.</p>
-  </main>
-</body>
-</html>`;
-}
-
-/**
- * @param {{ nonce: string, backendUrl: string }} ctx
- */
-export function buildCallbackPageHtml({ nonce, backendUrl }) {
-  void backendUrl;
-  const nonceJson = JSON.stringify(nonce);
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>shellui login</title>
-  <style>
-    :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-      background: #0f1419; color: #e7ecf3; }
-    main { width: min(28rem, calc(100% - 2rem)); padding: 2rem;
-      border: 1px solid #2a3441; border-radius: 12px; background: #151b23; }
-    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; font-weight: 600; }
-    p { margin: 0 0 0.75rem; color: #9aa7b8; font-size: 0.95rem; line-height: 1.45; }
-    code { font-size: 0.85rem; color: #c5d0de; word-break: break-all; }
-    .warn { color: #f0b429; margin-top: 1rem; font-size: 0.9rem; }
-  </style>
-</head>
-<body>
-  <main>
-    <h1 id="title">Completing sign-in…</h1>
-    <p id="msg">Please wait.</p>
-    <p class="warn">Session nonce: <code>${nonce}</code> — verify it matches your terminal before closing this window.</p>
-  </main>
-  <script>
-    (async function () {
-      var loginNonce = ${nonceJson};
-      var title = document.getElementById('title');
-      var msg = document.getElementById('msg');
-      var params = new URLSearchParams(window.location.search);
-      var err = params.get('shellui_oauth_error');
-      var errCode = params.get('shellui_oauth_error_code');
-      if (err) {
-        title.textContent = 'Sign-in failed';
-        msg.textContent = err + (errCode ? ' (' + errCode + ')' : '');
-        try {
-          await fetch('/error', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              '${LOGIN_NONCE_HEADER}': loginNonce,
-            },
-            body: JSON.stringify({ nonce: loginNonce, error: err, errorCode: errCode || null }),
-          });
-        } catch (e) {}
-        return;
-      }
-      var authCode = params.get('shellui_auth_code');
-      var access_token;
-      var refresh_token;
-      var expires_at;
-      var token_type = 'bearer';
-      if (authCode) {
-        try {
-          // The CLI holds the PKCE verifier and redeems the code itself.
-          var codeRes = await fetch('/code', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              '${LOGIN_NONCE_HEADER}': loginNonce,
-            },
-            body: JSON.stringify({ nonce: loginNonce, auth_code: authCode }),
-          });
-          var codePayload = await codeRes.json().catch(function () { return null; });
-          if (!codeRes.ok || !codePayload || !codePayload.ok) {
-            throw new Error((codePayload && codePayload.error) || 'Session exchange failed.');
-          }
-          title.textContent = 'Signed in';
-          msg.textContent = 'The shellui CLI on this machine is signed in. You can close this window.';
-          history.replaceState(null, '', window.location.pathname);
-        } catch (exchangeErr) {
-          title.textContent = 'Sign-in failed';
-          msg.textContent =
-            (exchangeErr && exchangeErr.message) ||
-            'Could not exchange auth code. Close this window and try again.';
-        }
-        return;
-      } else {
-        var hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        access_token = hash.get('access_token');
-        refresh_token = hash.get('refresh_token');
-        expires_at = hash.get('expires_at');
-        token_type = hash.get('token_type') || 'bearer';
-      }
-      if (!access_token || !refresh_token) {
-        title.textContent = 'Sign-in failed';
-        msg.textContent = 'Missing tokens in callback. Close this window and try again.';
-        try {
-          await fetch('/error', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              '${LOGIN_NONCE_HEADER}': loginNonce,
-            },
-            body: JSON.stringify({ nonce: loginNonce, error: 'Missing tokens in callback.' }),
-          });
-        } catch (e) {}
-        return;
-      }
-      try {
-        var res = await fetch('/capture', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            '${LOGIN_NONCE_HEADER}': loginNonce,
-          },
-          body: JSON.stringify({
-            nonce: loginNonce,
-            access_token: access_token,
-            refresh_token: refresh_token,
-            expires_at: expires_at,
-            token_type: token_type,
-          }),
-        });
-        if (!res.ok) throw new Error('CLI rejected tokens');
-        title.textContent = 'Signed in';
-        msg.textContent = 'Credentials were sent to the shellui CLI on this machine. You can close this window.';
-        history.replaceState(null, '', window.location.pathname);
-      } catch (e) {
-        title.textContent = 'Sign-in failed';
-        msg.textContent = 'Could not send tokens to the CLI. Close this window and try again.';
-      }
-    })();
-  </script>
-</body>
-</html>`;
-}
-
-/**
- * @param {import('http').IncomingMessage} req
- * @param {string} expectedNonce
- */
-export function extractLoginNonce(req, expectedNonce) {
-  const header = req.headers[LOGIN_NONCE_HEADER.toLowerCase()];
-  if (typeof header === 'string' && header === expectedNonce) return header;
   return null;
 }
 
 /**
- * @param {string} backendUrl
- * @param {string} companyId
- * @returns {Promise<string[]>}
+ * @param {unknown} value
+ * @returns {number}
  */
-export async function fetchOAuthProviders(backendUrl, companyId) {
-  const url = new URL('/api/v1/settings', backendUrl.replace(/\/$/, ''));
-  url.searchParams.set('company_id', companyId);
-  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
-  if (!res.ok) {
-    throw new Error(`Could not load auth settings (${res.status}).`);
-  }
-  const body = await res.json().catch(() => null);
-  /** @type {string[]} */
-  const providers = [];
-  if (body && typeof body === 'object') {
-    const obj = /** @type {Record<string, unknown>} */ (body);
-    const list = obj.oauthProviders;
-    if (Array.isArray(list)) {
-      for (const p of list) {
-        if (typeof p === 'string' && p.trim()) providers.push(p.trim().toLowerCase());
-      }
-    }
-    const external = obj.external;
-    if (external && typeof external === 'object' && !Array.isArray(external)) {
-      for (const [key, enabled] of Object.entries(
-        /** @type {Record<string, unknown>} */ (external),
-      )) {
-        if (enabled && typeof key === 'string' && key.trim()) {
-          providers.push(key.trim().toLowerCase());
-        }
-      }
-    }
-  }
-  return [...new Set(providers)];
+function intervalSeconds(value) {
+  const parsed = asNumber(value);
+  if (parsed == null || parsed < 1) return DEFAULT_INTERVAL_SEC;
+  return parsed;
 }
 
 /**
- * @param {{
- *   backendUrl: string,
- *   companyId: string,
- *   provider?: string,
- *   redirectTo: string,
- *   state?: string,
- *   codeChallenge?: string,
- * }} opts
+ * @param {unknown} value
+ * @returns {number}
  */
-export function buildAuthorizeUrl(opts) {
-  const url = new URL('/api/v1/authorize', opts.backendUrl.replace(/\/$/, ''));
-  const provider = typeof opts.provider === 'string' ? opts.provider.trim().toLowerCase() : '';
-  if (provider) {
-    url.searchParams.set('provider', provider);
-  }
-  url.searchParams.set('company_id', opts.companyId);
-  url.searchParams.set('redirect_to', opts.redirectTo);
-  if (typeof opts.state === 'string' && opts.state) {
-    url.searchParams.set('state', opts.state);
-  }
-  if (typeof opts.codeChallenge === 'string' && opts.codeChallenge) {
-    url.searchParams.set('code_challenge', opts.codeChallenge);
-    url.searchParams.set('code_challenge_method', 'S256');
-  }
-  return url.toString();
+function expiresSeconds(value) {
+  if (value == null || value === '') return DEFAULT_EXPIRES_SEC;
+  const parsed = asNumber(value);
+  if (parsed == null || parsed < 0) return DEFAULT_EXPIRES_SEC;
+  return parsed;
 }
 
 /**
- * @param {Record<string, unknown>} payload
+ * @param {string} verificationUri
+ * @param {string} userCode
+ * @returns {string}
  */
-export function toLoginResult(payload) {
-  const expiresAtRaw = payload.expires_at;
-  const expiresAt =
-    typeof expiresAtRaw === 'number'
-      ? expiresAtRaw
-      : typeof expiresAtRaw === 'string' && expiresAtRaw
-        ? Number(expiresAtRaw)
-        : null;
+function verificationUriWithCode(verificationUri, userCode) {
+  try {
+    const url = new URL(verificationUri);
+    if (!url.searchParams.get('user_code')) {
+      url.searchParams.set('user_code', userCode);
+    }
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * @param {unknown} payload
+ * @returns {{
+ *   deviceCode: string,
+ *   userCode: string,
+ *   verificationUri: string,
+ *   verificationUriComplete: string,
+ *   intervalSec: number,
+ *   expiresInSec: number,
+ * } | null}
+ */
+export function parseDeviceCodeResponse(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+  const body = /** @type {Record<string, unknown>} */ (payload);
+  const deviceCode = asString(body.device_code);
+  const userCode = asString(body.user_code);
+  const verificationUri = asString(body.verification_uri);
+  const verificationUriComplete =
+    asString(body.verification_uri_complete) || verificationUriWithCode(verificationUri, userCode);
+  if (!deviceCode || !userCode || !verificationUriComplete) return null;
   return {
-    accessToken: /** @type {string} */ (payload.access_token),
-    refreshToken: /** @type {string} */ (payload.refresh_token),
-    expiresAt: Number.isFinite(expiresAt) ? /** @type {number} */ (expiresAt) : null,
-    tokenType:
-      typeof payload.token_type === 'string' && payload.token_type ? payload.token_type : 'bearer',
+    deviceCode,
+    userCode,
+    verificationUri: verificationUri || verificationUriComplete,
+    verificationUriComplete,
+    intervalSec: intervalSeconds(body.interval),
+    expiresInSec: expiresSeconds(body.expires_in),
   };
 }
 
 /**
- * Browser OAuth via identity authorize → loopback session-code or fragment bounce.
+ * Map a token response onto the credential fields the rest of the CLI stores.
+ * Device login returns `expires_in` (seconds). `expiresAt` is the unix expiry
+ * `isAccessTokenExpired` already compares against.
+ * @param {Record<string, unknown>} payload
+ * @param {number} [nowMs]
+ */
+export function toLoginResult(payload, nowMs = Date.now()) {
+  const expiresIn = asNumber(payload.expires_in);
+  let expiresAt = null;
+  if (expiresIn != null && expiresIn >= 0) {
+    expiresAt = Math.floor(nowMs / 1000) + Math.floor(expiresIn);
+  } else {
+    const absolute = asNumber(payload.expires_at);
+    expiresAt = absolute != null ? Math.floor(absolute) : null;
+  }
+  return {
+    accessToken: /** @type {string} */ (payload.access_token),
+    refreshToken: /** @type {string} */ (payload.refresh_token),
+    expiresAt,
+    tokenType: asString(payload.token_type) || 'bearer',
+  };
+}
+
+/**
+ * @param {AbortSignal | undefined} signal
+ */
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw new LoginCancelledError();
+}
+
+/**
+ * @param {unknown} err
+ * @param {AbortSignal | undefined} signal
+ */
+function rethrowIfAborted(err, signal) {
+  if (err instanceof LoginCancelledError) throw err;
+  if (signal?.aborted || (err instanceof Error && err.name === 'AbortError')) {
+    throw new LoginCancelledError();
+  }
+}
+
+/**
+ * Wait `ms`, and reject as soon as `signal` aborts (Ctrl+C).
+ * @param {number} ms
+ * @param {AbortSignal | undefined} [signal]
+ */
+export function interruptibleSleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new LoginCancelledError());
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new LoginCancelledError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * @param {string} url
+ * @returns {Promise<void>}
+ */
+export function openBrowser(url) {
+  const platform = process.platform;
+  /** @type {import('child_process').ChildProcess} */
+  let child;
+  if (platform === 'darwin') {
+    child = spawn('open', [url], { stdio: 'ignore', detached: true });
+  } else if (platform === 'win32') {
+    child = spawn('cmd', ['/c', 'start', '', url], { stdio: 'ignore', detached: true });
+  } else {
+    child = spawn('xdg-open', [url], { stdio: 'ignore', detached: true });
+  }
+  child.unref();
+  return new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('spawn', () => resolve());
+  });
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} env
+ */
+function hasSshSession(env) {
+  return ['SSH_CONNECTION', 'SSH_CLIENT', 'SSH_TTY'].some((key) => {
+    const value = env[key];
+    return typeof value === 'string' && value.trim() !== '';
+  });
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} env
+ */
+function hasGraphicalDisplay(env) {
+  const display = typeof env.DISPLAY === 'string' ? env.DISPLAY.trim() : '';
+  const wayland = typeof env.WAYLAND_DISPLAY === 'string' ? env.WAYLAND_DISPLAY.trim() : '';
+  return Boolean(display || wayland);
+}
+
+/**
+ * Open the verification page when a display is available.
+ * `--no-browser`, an SSH session, or a headless Linux/BSD session skip it.
+ * macOS and Windows do not need `DISPLAY`.
+ * @param {{
+ *   noBrowser?: boolean,
+ *   env?: NodeJS.ProcessEnv,
+ *   platform?: NodeJS.Platform,
+ * }} [opts]
+ * @returns {{ open: boolean, message: string }}
+ */
+export function browserLaunchDecision(opts = {}) {
+  if (opts.noBrowser) {
+    return { open: false, message: 'Browser launch skipped (--no-browser).' };
+  }
+  const env = opts.env ?? process.env;
+  if (hasSshSession(env)) {
+    return { open: false, message: 'SSH session detected. Open the link in a browser.' };
+  }
+  const platform = opts.platform ?? process.platform;
+  if (platform !== 'darwin' && platform !== 'win32' && !hasGraphicalDisplay(env)) {
+    return { open: false, message: 'No display detected. Open the link in a browser.' };
+  }
+  return { open: true, message: '' };
+}
+
+/**
+ * @param {{
+ *   message: string,
+ *   isTTY: boolean,
+ *   write: (text: string) => void,
+ *   log: (line: string) => void,
+ * }} opts
+ */
+export function startWaitingLine(opts) {
+  if (!opts.isTTY) {
+    opts.log(pc.dim(opts.message));
+    return { stop() {} };
+  }
+  const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let frame = 0;
+  let stopped = false;
+  const render = () => {
+    opts.write(`\r${pc.cyan(frames[frame])} ${opts.message}`);
+  };
+  render();
+  const timer = setInterval(() => {
+    frame = (frame + 1) % frames.length;
+    render();
+  }, 80);
+  if (typeof timer.unref === 'function') timer.unref();
+  return {
+    stop() {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+      opts.write('\r\x1b[2K');
+    },
+  };
+}
+
+/**
+ * @param {Response} res
+ */
+async function readBody(res) {
+  const text = await res.text().catch(() => '');
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return null;
+    }
+  }
+  if (trimmed.includes('=')) {
+    /** @type {Record<string, string>} */
+    const parsed = {};
+    for (const [key, value] of new URLSearchParams(trimmed)) parsed[key] = value;
+    return parsed;
+  }
+  return null;
+}
+
+/**
+ * @param {number} status
+ * @param {unknown} payload
+ */
+function deviceStartError(status, payload) {
+  const body =
+    payload && typeof payload === 'object' ? /** @type {Record<string, unknown>} */ (payload) : {};
+  const extra = asString(body.error_description) || asString(body.detail) || asString(body.error);
+  if (extra) return `Could not start sign-in (HTTP ${status}): ${extra}`;
+  return `Could not start sign-in (HTTP ${status}).`;
+}
+
+/**
+ * @param {string} backendUrl
+ */
+function endpoint(backendUrl, path) {
+  return `${backendUrl.replace(/\/$/, '')}${path}`;
+}
+
+/**
  * @param {{
  *   backendUrl: string,
  *   companyId: string,
- *   provider?: string,
+ *   fetchImpl: typeof fetch,
+ *   signal?: AbortSignal,
+ * }} opts
+ */
+async function requestDeviceCode(opts) {
+  const url = endpoint(opts.backendUrl, DEVICE_CODE_PATH);
+  /** @type {Response} */
+  let res;
+  try {
+    res = await opts.fetchImpl(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: SHELLUI_CLI_CLIENT_ID,
+        company_id: String(opts.companyId),
+      }),
+      signal: opts.signal,
+    });
+  } catch (err) {
+    rethrowIfAborted(err, opts.signal);
+    throw new Error('Could not reach the identity server to start sign-in.');
+  }
+  const payload = await readBody(res);
+  if (!res.ok) throw new Error(deviceStartError(res.status, payload));
+  const device = parseDeviceCodeResponse(payload);
+  if (!device) throw new Error('Sign-in did not return a device code and user code.');
+  return device;
+}
+
+/**
+ * @param {unknown} payload
+ * @param {number} status
+ * @param {boolean} ok
+ * @param {number} nowMs
+ * @returns {{ kind: 'pending' | 'slow_down' | 'denied' | 'expired' | 'success' | 'transient' | 'fatal', tokens?: ReturnType<typeof toLoginResult>, message?: string }}
+ */
+function classifyTokenResponse(payload, status, ok, nowMs) {
+  const body =
+    payload && typeof payload === 'object' ? /** @type {Record<string, unknown>} */ (payload) : {};
+  const error = asString(body.error);
+  if (error === 'authorization_pending') return { kind: 'pending' };
+  if (error === 'slow_down') return { kind: 'slow_down' };
+  if (error === 'access_denied') return { kind: 'denied' };
+  if (error === 'expired_token') return { kind: 'expired' };
+  if (
+    ok &&
+    typeof body.access_token === 'string' &&
+    body.access_token &&
+    typeof body.refresh_token === 'string' &&
+    body.refresh_token
+  ) {
+    return { kind: 'success', tokens: toLoginResult(body, nowMs) };
+  }
+  if (status >= 500 || status === 429) return { kind: 'transient' };
+  const description = asString(body.error_description) || asString(body.detail);
+  const detail = description || error || `HTTP ${status}`;
+  return { kind: 'fatal', message: `Sign-in failed (${detail}).` };
+}
+
+/**
+ * @param {{
+ *   backendUrl: string,
+ *   deviceCode: string,
+ *   fetchImpl: typeof fetch,
+ *   signal?: AbortSignal,
+ *   now: () => number,
+ * }} opts
+ */
+async function pollDeviceToken(opts) {
+  throwIfAborted(opts.signal);
+  try {
+    const res = await opts.fetchImpl(endpoint(opts.backendUrl, TOKEN_PATH), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: DEVICE_GRANT_TYPE,
+        device_code: opts.deviceCode,
+        client_id: SHELLUI_CLI_CLIENT_ID,
+      }).toString(),
+      signal: opts.signal,
+    });
+    const payload = await readBody(res);
+    return classifyTokenResponse(payload, res.status, res.ok, opts.now());
+  } catch (err) {
+    rethrowIfAborted(err, opts.signal);
+    return { kind: /** @type {'transient'} */ ('transient') };
+  }
+}
+
+/**
+ * @param {(line: string) => void} log
+ * @param {{ userCode: string, verificationUriComplete: string }} device
+ */
+function printLoginInstructions(log, device) {
+  log(pc.cyan('Sign in to Shellui'));
+  log('');
+  log(`  ${pc.bold('Code')}  ${pc.bold(device.userCode)}`);
+  log(`  ${pc.bold('Link')}  ${device.verificationUriComplete}`);
+  log('');
+}
+
+/**
+ * Device authorization (RFC 8628) against identity-service.
+ * Stores nothing; the login command writes the returned tokens.
+ * @param {{
+ *   backendUrl: string,
+ *   companyId: string,
+ *   noBrowser?: boolean,
+ *   signal?: AbortSignal,
+ *   fetchImpl?: typeof fetch,
+ *   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>,
+ *   now?: () => number,
+ *   openBrowser?: (url: string) => void | Promise<void>,
+ *   log?: (line: string) => void,
+ *   env?: NodeJS.ProcessEnv,
+ *   platform?: NodeJS.Platform,
+ *   isTTY?: boolean,
+ *   write?: (text: string) => void,
  * }} opts
  * @returns {Promise<{
  *   accessToken: string,
@@ -376,190 +461,85 @@ export function toLoginResult(payload) {
  * }>}
  */
 export async function runLoginFlow(opts) {
-  const { backendUrl, companyId } = opts;
-  const provider = typeof opts.provider === 'string' ? opts.provider.trim().toLowerCase() : '';
-  const loginNonce = generateLoginNonce();
-  const pkce = generatePkcePair();
-  /** @type {string} */
-  let callbackUrl = '';
+  const fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+  const sleep = opts.sleep ?? interruptibleSleep;
+  const now = opts.now ?? Date.now;
+  const log = opts.log ?? ((line) => console.log(line));
+  const openBrowserImpl = opts.openBrowser ?? openBrowser;
+  const isTTY = opts.isTTY ?? Boolean(process.stderr.isTTY);
+  const write = opts.write ?? ((text) => process.stderr.write(text));
+  const signal = opts.signal;
 
-  return new Promise((resolve, reject) => {
-    /** @type {import('http').Server | null} */
-    let server = null;
-    /** @type {ReturnType<typeof setTimeout> | null} */
-    let timer = null;
-    let settled = false;
-
-    const finish = (err, result) => {
-      if (settled) return;
-      settled = true;
-      if (timer) clearTimeout(timer);
-      if (server) {
-        server.close();
-        server = null;
-      }
-      if (err) reject(err);
-      else resolve(result);
-    };
-
-    const rejectNonce = (res) => {
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: false, error: 'invalid_nonce' }));
-      finish(new Error('Login callback rejected: invalid or missing session nonce.'));
-    };
-
-    server = http.createServer((req, res) => {
-      const url = new URL(req.url || '/', 'http://127.0.0.1');
-
-      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/login')) {
-        const address = server?.address();
-        const port = address && typeof address !== 'string' ? address.port : 0;
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(buildWaitingPageHtml({ port, nonce: loginNonce, backendUrl }));
-        return;
-      }
-
-      if (req.method === 'GET' && url.pathname === '/callback') {
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(buildCallbackPageHtml({ nonce: loginNonce, backendUrl }));
-        return;
-      }
-
-      if (
-        req.method === 'POST' &&
-        (url.pathname === '/capture' || url.pathname === '/error' || url.pathname === '/code')
-      ) {
-        let body = '';
-        req.on('data', (chunk) => {
-          body += chunk;
-          if (body.length > 1_000_000) req.destroy();
-        });
-        req.on('end', () => {
-          let payload;
-          try {
-            payload = JSON.parse(body || '{}');
-          } catch {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: false }));
-            finish(new Error('Invalid callback payload from browser.'));
-            return;
-          }
-
-          const headerNonce = extractLoginNonce(req, loginNonce);
-          const bodyNonceOk = validateCaptureNonce(payload, loginNonce);
-          if (!headerNonce && !bodyNonceOk) {
-            rejectNonce(res);
-            return;
-          }
-          if (headerNonce && !bodyNonceOk) {
-            rejectNonce(res);
-            return;
-          }
-
-          if (url.pathname === '/error') {
-            const message =
-              (typeof payload.error === 'string' && payload.error) || 'OAuth sign-in failed.';
-            const code =
-              typeof payload.errorCode === 'string' && payload.errorCode
-                ? ` (${payload.errorCode})`
-                : '';
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true }));
-            finish(new Error(`${message}${code}`));
-            return;
-          }
-          if (url.pathname === '/code') {
-            if (typeof payload.auth_code !== 'string' || !payload.auth_code) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ ok: false, error: 'Missing auth code.' }));
-              finish(new Error('Callback did not include an auth code.'));
-              return;
-            }
-            exchangeSessionCode({
-              backendUrl,
-              authCode: payload.auth_code,
-              redirectTo: callbackUrl,
-              codeVerifier: pkce.verifier,
-            }).then(
-              (tokens) => {
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ ok: true }));
-                finish(null, toLoginResult(tokens));
-              },
-              (exchangeErr) => {
-                const message =
-                  exchangeErr instanceof Error ? exchangeErr.message : 'Session exchange failed.';
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ ok: false, error: message }));
-                finish(new Error(message));
-              },
-            );
-            return;
-          }
-          if (
-            typeof payload.access_token !== 'string' ||
-            !payload.access_token ||
-            typeof payload.refresh_token !== 'string' ||
-            !payload.refresh_token
-          ) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: false }));
-            finish(new Error('Callback did not include access and refresh tokens.'));
-            return;
-          }
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ ok: true }));
-          finish(null, toLoginResult(payload));
-        });
-        return;
-      }
-
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('Not found');
-    });
-
-    server.on('error', (err) => {
-      finish(err instanceof Error ? err : new Error(String(err)));
-    });
-
-    server.listen(0, '127.0.0.1', () => {
-      const address = server?.address();
-      if (!address || typeof address === 'string') {
-        finish(new Error('Failed to bind loopback login server.'));
-        return;
-      }
-      callbackUrl = `http://127.0.0.1:${address.port}/callback`;
-      const authorizeUrl = buildAuthorizeUrl({
-        backendUrl,
-        companyId,
-        ...(provider ? { provider } : {}),
-        redirectTo: callbackUrl,
-        state: loginNonce,
-        codeChallenge: pkce.challenge,
-      });
-      const authorizePrefix = `${backendUrl.replace(/\/$/, '')}/api/v1/authorize`;
-
-      console.log(pc.cyan('Sign in via your browser (loopback only):'));
-      console.log(pc.dim(`  Loopback port: ${address.port}`));
-      console.log(pc.dim(`  Session nonce: ${loginNonce}`));
-      console.log(pc.dim(`  Authorize URLs must start with: ${authorizePrefix}`));
-      console.log('');
-      console.log(pc.bold(authorizeUrl));
-      console.log('');
-      console.log(
-        pc.yellow(
-          'Only sign in if you started `shellui login` in this terminal. Ignore authorize links from other sources.',
-        ),
-      );
-      console.log(pc.dim('Waiting for authentication…'));
-      try {
-        openBrowser(authorizeUrl);
-      } catch {
-        // User can open the URL manually
-      }
-      timer = setTimeout(() => {
-        finish(new Error('Login timed out. Run shellui login again.'));
-      }, LOGIN_TIMEOUT_MS);
-    });
+  const device = await requestDeviceCode({
+    backendUrl: opts.backendUrl,
+    companyId: opts.companyId,
+    fetchImpl,
+    signal,
   });
+
+  printLoginInstructions(log, device);
+
+  const launch = browserLaunchDecision({
+    noBrowser: opts.noBrowser === true,
+    env: opts.env,
+    platform: opts.platform,
+  });
+  if (launch.open) {
+    try {
+      await openBrowserImpl(device.verificationUriComplete);
+      log(pc.dim('Opened the verification page in your browser.'));
+    } catch {
+      log(pc.yellow('Could not open a browser. Open the link above.'));
+    }
+  } else {
+    log(pc.dim(launch.message));
+  }
+
+  const waiting = startWaitingLine({ message: WAITING_MESSAGE, isTTY, write, log });
+  try {
+    let intervalSec = device.intervalSec;
+    const deadline = now() + device.expiresInSec * 1000;
+    let transientFailures = 0;
+
+    while (true) {
+      throwIfAborted(signal);
+      if (now() >= deadline) throw new Error(LOGIN_EXPIRED_MESSAGE);
+      await sleep(intervalSec * 1000, signal);
+      throwIfAborted(signal);
+      if (now() >= deadline) throw new Error(LOGIN_EXPIRED_MESSAGE);
+
+      const result = await pollDeviceToken({
+        backendUrl: opts.backendUrl,
+        deviceCode: device.deviceCode,
+        fetchImpl,
+        signal,
+        now,
+      });
+
+      if (result.kind === 'pending') {
+        transientFailures = 0;
+        continue;
+      }
+      if (result.kind === 'slow_down') {
+        transientFailures = 0;
+        intervalSec += SLOW_DOWN_STEP_SEC;
+        continue;
+      }
+      if (result.kind === 'denied') throw new Error(LOGIN_DENIED_MESSAGE);
+      if (result.kind === 'expired') throw new Error(LOGIN_EXPIRED_MESSAGE);
+      if (result.kind === 'success' && result.tokens) return result.tokens;
+      if (result.kind === 'transient') {
+        transientFailures += 1;
+        if (transientFailures >= MAX_TRANSIENT_FAILURES) {
+          throw new Error(
+            'Could not reach the identity server to finish sign-in. Run shellui login again.',
+          );
+        }
+        continue;
+      }
+      throw new Error(result.message || 'Sign-in failed.');
+    }
+  } finally {
+    waiting.stop();
+  }
 }

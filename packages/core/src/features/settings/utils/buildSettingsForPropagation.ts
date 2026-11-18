@@ -1,11 +1,18 @@
 import type {
   Settings,
+  SettingsAiService,
   SettingsEmail,
   SettingsHosting,
   SettingsNavigationItem,
   SettingsStorage,
 } from '@shellui/sdk';
-import type { EmailConfig, HostingConfig, ShellUIConfig, StorageConfig } from '../../config/types';
+import type {
+  AiServiceConfig,
+  EmailConfig,
+  HostingConfig,
+  ShellUIConfig,
+  StorageConfig,
+} from '../../config/types';
 import { flattenNavigationItems } from './flattenNavigationItems';
 import { getAvailableThemesForSettings } from './getAvailableThemesForSettings';
 import { getResolvedAppearanceForSettings } from './getResolvedAppearanceForSettings';
@@ -46,6 +53,24 @@ const propagateHosting = (hosting: HostingConfig | null | undefined): SettingsHo
   };
 };
 
+/** Normalized AI service base URL from config, or null when unset or blank. */
+export function getNormalizedAiServiceUrl(
+  aiService: AiServiceConfig | null | undefined,
+): string | null {
+  return aiService?.url?.trim().replace(/\/+$/, '') || null;
+}
+
+const propagateAiService = (
+  aiService: AiServiceConfig | null | undefined,
+): SettingsAiService | null => {
+  const url = getNormalizedAiServiceUrl(aiService);
+  if (!url) return null;
+  return {
+    url,
+    ...(aiService?.showInAdmin === false ? { showInAdmin: false } : {}),
+  };
+};
+
 /**
  * Build settings for propagation to iframes: inject navigation, full theme object,
  * and list of available themes so apps can render theme pickers.
@@ -73,6 +98,8 @@ export const buildSettingsForPropagation = (
     email?: EmailConfig | null;
     /** Hosting for this frame. When the key is set, it replaces the shell `hosting`. */
     hosting?: HostingConfig | null;
+    /** AI service for this frame. When the key is set, it replaces the shell `aiService`. */
+    aiService?: AiServiceConfig | null;
     /** When false, omit layoutChrome (modal / drawer frames). Default true. */
     includeLayoutChrome?: boolean;
     /** Merge this frame's action-bar insets into layoutChrome. */
@@ -146,12 +173,14 @@ export const buildSettingsForPropagation = (
   const storageSource = options && 'storage' in options ? options.storage : config?.storage;
   const hostingSource = options && 'hosting' in options ? options.hosting : config?.hosting;
   const emailSource = options && 'email' in options ? options.email : config?.email;
+  const aiServiceSource = options && 'aiService' in options ? options.aiService : config?.aiService;
 
   result = {
     ...result,
     storage: propagateStorage(storageSource),
     hosting: propagateHosting(hostingSource),
     email: propagateEmail(emailSource),
+    aiService: propagateAiService(aiServiceSource),
   };
 
   const shellAuthBackendBaseUrl =

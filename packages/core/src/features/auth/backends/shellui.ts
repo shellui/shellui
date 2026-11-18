@@ -10,7 +10,8 @@ import {
 import { AuthRequestError } from '../utils/authRequestError';
 import { clearWebPkce, prepareWebPkce } from '../utils/webPkce';
 import { getShellUILoginCompanyId } from '../utils/clientLoginContext';
-import type { AuthSession, UserPreferences } from '../types';
+import { buildIdentityBrowserLogoutUrl } from '../utils/identityBrowserLogout';
+import type { AuthSession, AuthSettings, UserPreferences } from '../types';
 import type { AuthBackend } from './types';
 
 const USER_PREFERENCES_ENDPOINT = '/api/v1/preferences';
@@ -18,6 +19,13 @@ const OAUTH_EXCHANGE_ENDPOINT = '/api/v1/oauth/exchange';
 const OAUTH_SESSION_ENDPOINT = '/api/v1/oauth/session';
 const MAGIC_LINK_REQUEST_ENDPOINT = '/api/v1/magic-link/request';
 const USER_ENDPOINT = '/api/v1/user';
+
+const EMPTY_AUTH_SETTINGS: AuthSettings = {
+  methods: [],
+  oauthProviders: [],
+  oauthClients: [],
+  logoutUrl: null,
+};
 
 const parseAuthErrorPayload = (
   payload: Record<string, unknown> | null,
@@ -39,6 +47,24 @@ export const createShellUIAuthBackend = ({
   backendUrl: string | null;
   companyId?: string | number;
 }): AuthBackend => {
+  const loadAuthSettings = async (): Promise<AuthSettings> => {
+    if (!backendUrl) return EMPTY_AUTH_SETTINGS;
+    const endpoint = new URL(`${backendUrl}/api/v1/settings`);
+    const selectedCompanyId = getShellUILoginCompanyId(companyId);
+    if (selectedCompanyId) {
+      endpoint.searchParams.set('company_id', selectedCompanyId);
+    }
+    const response = await fetch(endpoint.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = (await response.json()) as unknown;
+    return normalizeAuthSettings(payload);
+  };
+
   const refreshWithStoredToken = async (
     storedSession: AuthSession,
     nowSeconds: number,
@@ -206,6 +232,25 @@ export const createShellUIAuthBackend = ({
         }),
       });
     },
+    resolveIdentityBrowserLogoutUrl: async (returnTo) => {
+      if (!backendUrl) return null;
+      const selectedCompanyId = getShellUILoginCompanyId(companyId);
+      if (!selectedCompanyId) return null;
+      let settings: AuthSettings;
+      try {
+        settings = await loadAuthSettings();
+      } catch {
+        return null;
+      }
+      const logoutUrl = settings.logoutUrl;
+      if (!logoutUrl) return null;
+      try {
+        if (new URL(logoutUrl).origin !== new URL(backendUrl).origin) return null;
+      } catch {
+        return null;
+      }
+      return buildIdentityBrowserLogoutUrl(logoutUrl, selectedCompanyId, returnTo);
+    },
     supportsAccountDeletion: true,
     deleteAccount: async (session) => {
       if (!backendUrl) {
@@ -273,25 +318,7 @@ export const createShellUIAuthBackend = ({
       const savedName = typeof metadata?.name === 'string' ? metadata.name : name;
       return { name: savedName };
     },
-    getAuthSettings: async () => {
-      if (!backendUrl) {
-        return { methods: [], oauthProviders: [], oauthClients: [] };
-      }
-      const endpoint = new URL(`${backendUrl}/api/v1/settings`);
-      const selectedCompanyId = getShellUILoginCompanyId(companyId);
-      if (selectedCompanyId) {
-        endpoint.searchParams.set('company_id', selectedCompanyId);
-      }
-      const response = await fetch(endpoint.toString(), {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const payload = (await response.json()) as unknown;
-      return normalizeAuthSettings(payload);
-    },
+    getAuthSettings: () => loadAuthSettings(),
     sendMagicLink: async (email, redirectPath, options) => {
       if (!backendUrl) {
         throw new Error('Missing Shellui backend URL.');

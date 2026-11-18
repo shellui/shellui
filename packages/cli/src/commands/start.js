@@ -177,6 +177,11 @@ async function shutdown(code = 0) {
 function watchConfig(root, cwd, host = false) {
   closeConfigWatchers();
 
+  if (process.env.SHELLUI_DISABLE_CONFIG_WATCH === '1') {
+    console.log(pc.yellow('Config file watching disabled (SHELLUI_DISABLE_CONFIG_WATCH=1).'));
+    return;
+  }
+
   const paths = getWatchableConfigPaths(root, { config: activeConfigPath });
   if (!paths.length) {
     console.log(pc.yellow('No config files found, config watching disabled.'));

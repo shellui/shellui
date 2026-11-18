@@ -1,7 +1,7 @@
 ---
 title: Build the docs site
 sidebar_label: Docs site
-description: 'How docs.shellui.com pulls in the identity, storage, hosting, and email service docs at build time, and how to build it locally.'
+description: 'How docs.shellui.com pulls in the identity, storage, hosting, email, and AI service docs at build time, and how to build it locally.'
 ---
 
 The site at [docs.shellui.com](https://docs.shellui.com) is the Docusaurus site in `tools/docusaurus`. It renders the Shellui docs from `docs/` and the docs of each Shellui service, fetched at build time from the service repositories.
@@ -12,6 +12,11 @@ The site at [docs.shellui.com](https://docs.shellui.com) is the Docusaurus site 
 | Storage  | [shellui/storage-service](https://github.com/shellui/storage-service)   | [docs.shellui.com/storage](https://docs.shellui.com/storage)                 |
 | Hosting  | [shellui/hosting-service](https://github.com/shellui/hosting-service)   | [docs.shellui.com/hosting/actions](https://docs.shellui.com/hosting/actions) |
 | Email    | [shellui/email-service](https://github.com/shellui/email-service)       | [docs.shellui.com/email](https://docs.shellui.com/email)                     |
+| AI       | [shellui/ai-service](https://github.com/shellui/ai-service)             | [docs.shellui.com/ai](https://docs.shellui.com/ai)                           |
+
+ai-service uses the same fetch. Its sidebar file is `docs/sidebars.js` (sidebar id `aiSidebar`). That sidebar lists the gateway handbook (`/ai/mcp`), device login, and configuration.
+
+`AI_DOCS_REF` defaults to `main`. When that ref has no `docs/` folder, the fetch skips ai-service and the build continues. The build fails when identity, storage, hosting, or email has no docs folder.
 
 Each service shows up under **Services** in the navbar, with its own sidebar. The **Shellui** navbar item links to the main docs. The navbar shows which docs you are reading: **Shellui** is highlighted on main docs pages, and on a service page the dropdown takes that service's name, for example **Identity**, and highlights it. Page paths match the old per-service sites, so `identity.docs.shellui.com/scim` becomes `docs.shellui.com/identity/scim`.
 
@@ -42,7 +47,8 @@ workspace/
 ├── identity-service/
 ├── storage-service/
 ├── hosting-service/
-└── email-service/
+├── email-service/
+└── ai-service/
 ```
 
 With the default `DOCS_SOURCE=auto`, `docs:fetch` uses `../<service>/docs` in place when it exists, so `pnpm docs:start` reloads as you edit files in the service checkout. Services that are not cloned next to this repository are fetched from GitHub.
@@ -57,7 +63,7 @@ DOCS_SOURCE=remote pnpm docs:build
 
 ## Configuration
 
-`docs:fetch` reads these environment variables. `<ID>` is `IDENTITY`, `STORAGE`, `HOSTING`, or `EMAIL`.
+`docs:fetch` reads these environment variables. `<ID>` is `IDENTITY`, `STORAGE`, `HOSTING`, `EMAIL`, or `AI`.
 
 | Variable             | Default                | Effect                                                                                          |
 | -------------------- | ---------------------- | ----------------------------------------------------------------------------------------------- |
@@ -128,7 +134,7 @@ The deploy job runs for `main` and `master`, and not for a pull request. It publ
 
 Set the GitHub Pages source to GitHub Actions before the first deploy from this workflow. The site artifact includes `CNAME`, so the custom domain stays `docs.shellui.com`.
 
-Set the repository variables `IDENTITY_DOCS_REF`, `STORAGE_DOCS_REF`, `HOSTING_DOCS_REF`, or `EMAIL_DOCS_REF` to publish a tag instead of `main`.
+Set the repository variables `IDENTITY_DOCS_REF`, `STORAGE_DOCS_REF`, `HOSTING_DOCS_REF`, `EMAIL_DOCS_REF`, or `AI_DOCS_REF` to publish a tag instead of `main`.
 
 ## Service repository setup
 

@@ -25,6 +25,7 @@ describe('normalizeAuthSettings', () => {
       methods: [],
       oauthProviders: [],
       oauthClients: [],
+      logoutUrl: null,
     });
 
     const result = normalizeAuthSettings([{ loginMethod: 'both', oauth_provider: 'GitLab' }]);
@@ -56,5 +57,13 @@ describe('normalizeAuthSettings', () => {
       { id: 14, provider: 'google', label: 'Staging' },
     ]);
     expect(result.oauthProviders).toEqual(expect.arrayContaining(['github', 'google']));
+  });
+
+  it('reads logout_url and ignores a value that is not an http(s) URL', () => {
+    expect(
+      normalizeAuthSettings({ logout_url: 'https://auth.example.com/oauth/logout' }).logoutUrl,
+    ).toBe('https://auth.example.com/oauth/logout');
+    expect(normalizeAuthSettings({ logout_url: 'javascript:alert(1)' }).logoutUrl).toBeNull();
+    expect(normalizeAuthSettings({ methods: ['oauth'] }).logoutUrl).toBeNull();
   });
 });

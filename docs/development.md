@@ -6,6 +6,8 @@ description: 'Install pnpm, build @shellui/cli, @shellui/core, and @shellui/sdk,
 
 This repository is the CLI, core, and SDK workspace. Use it when you change Shellui itself. App authors should follow [Create a project](/quickstart) with the published CLI.
 
+To run the full Shellui stack (shell, identity, storage, admin, and siblings), see [Local dev stack](/dev-stack).
+
 ```text
 .
 ├── packages/
@@ -62,4 +64,4 @@ Root scripts:
 | `pnpm run version:sync`                       | Copy the root version to every package                       |
 | `pnpm run clean`                              | Remove every `node_modules`                                  |
 
-The docs site also renders the service docs from `identity-service`, `storage-service`, `hosting-service`, and `email-service`. See [Docs site](/docs-site) for how they are fetched and how to edit them with live reload.
+The docs site also renders the service docs from `identity-service`, `storage-service`, `hosting-service`, `email-service`, and `ai-service`. See [Docs site](/docs-site) for how they are fetched and how to edit them with live reload.

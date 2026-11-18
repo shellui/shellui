@@ -154,6 +154,11 @@ const sidebars = {
             },
             {
               type: 'doc',
+              id: 'features/ai-native',
+              label: 'AI native platform',
+            },
+            {
+              type: 'doc',
               id: 'features/cookie-consent',
               label: 'Cookie Consent',
             },
@@ -205,8 +210,18 @@ const sidebars = {
       items: [
         {
           type: 'doc',
+          id: 'open-source-or-cloud',
+          label: 'Open Source or Cloud',
+        },
+        {
+          type: 'doc',
           id: 'development',
           label: 'Development',
+        },
+        {
+          type: 'doc',
+          id: 'dev-stack',
+          label: 'Local dev stack',
         },
         {
           type: 'doc',

@@ -35,6 +35,11 @@ export interface AuthBackend {
   ) => void | Promise<void>;
   startWeb3Ethereum: () => Promise<AuthSession | null>;
   logout: (session: AuthSession | null) => Promise<void>;
+  /**
+   * Absolute identity browser logout URL for `returnTo`, or null when this
+   * backend has no `logout_url`. Does not navigate and does not revoke tokens.
+   */
+  resolveIdentityBrowserLogoutUrl?: (returnTo: string) => Promise<string | null>;
   /** Whether {@link deleteAccount} is implemented for this backend. */
   supportsAccountDeletion: boolean;
   /** Permanently delete the signed-in user for the session's company. */

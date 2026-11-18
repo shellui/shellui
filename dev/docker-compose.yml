@@ -1,0 +1,648 @@
+# Shellui local dev stack. From dev/:
+#   ./generate-env.sh && docker compose --env-file .env.local up --build
+name: shellui-dev
+
+x-django-common: &django-common
+  DEBUG: 'true'
+  CSRF_TRUSTED_ORIGINS: ${DEV_CSRF_TRUSTED_ORIGINS}
+  CORS_ALLOW_ALL_ORIGINS: 'true'
+  SCHEDULER_ENABLED: 'false'
+  POSTGRES_SSL_REQUIRE: 'false'
+  SECURE_SSL_REDIRECT: 'false'
+  SESSION_COOKIE_SECURE: 'false'
+  CSRF_COOKIE_SECURE: 'false'
+
+x-identity-jwt: &identity-jwt
+  IDENTITY_SERVICE_URL: http://identity:8000
+  IDENTITY_JWKS_URL: http://identity:8000/.well-known/jwks.json
+  IDENTITY_ISSUER: ${PUBLIC_IDENTITY_URL}
+  IDENTITY_AUDIENCE: ${JWT_AUDIENCE}
+
+x-frontend-shellui-local: &frontend-shellui-local
+  environment:
+    SHELLUI_ROOT: /opt/shellui
+  volumes:
+    - ..:/opt/shellui:ro
+
+x-frontend-file-watch: &frontend-file-watch
+  CHOKIDAR_USEPOLLING: ${DEV_FILE_WATCH_POLLING:-false}
+  VITE_USE_POLLING: ${DEV_FILE_WATCH_POLLING:-false}
+
+x-django-dev-env: &django-dev-env
+  DJANGO_STATRELOAD_SLEEP: ${DJANGO_STATRELOAD_SLEEP:-3}
+
+# init forwards SIGTERM to PID 1 children; omit restart so compose stop does not race the engine.
+x-dev-container: &dev-container
+  init: true
+
+services:
+  postgres:
+    <<: *dev-container
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres/init-databases.sh:/docker-entrypoint-initdb.d/01-init-databases.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      start_interval: 5s
+      retries: 10
+
+  # One-shot. Creates any missing database after Postgres is healthy.
+  # start.sh removes this container first so Compose runs it on every start.
+  postgres-init:
+    <<: *dev-container
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGHOST: postgres
+      PGPORT: '5432'
+    volumes:
+      - ./postgres/init-databases.sh:/init-databases.sh:ro
+    entrypoint: ['/bin/bash']
+    command: ['/init-databases.sh']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    <<: *dev-container
+    image: redis:8-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 3s
+      start_period: 60s
+      start_interval: 5s
+      retries: 10
+
+  mailpit:
+    <<: *dev-container
+    image: axllent/mailpit:latest
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
+  shell:
+    <<: *dev-container
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/app/dev/container/shell-dev-entrypoint.sh']
+    ports:
+      - '4000:4000'
+    environment:
+      SHELLUI_HOST: '1'
+      PUBLIC_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
+      PUBLIC_ADMIN_URL: ${PUBLIC_ADMIN_URL}
+      PUBLIC_FILES_URL: ${PUBLIC_FILES_URL}
+      PUBLIC_DASHBOARD_URL: ${PUBLIC_DASHBOARD_URL}
+      PUBLIC_EMAIL_URL: ${PUBLIC_EMAIL_URL}
+      PUBLIC_STORAGE_URL: ${PUBLIC_STORAGE_URL}
+      PUBLIC_HOSTING_URL: ${PUBLIC_HOSTING_URL}
+      PUBLIC_AI_URL: ${PUBLIC_AI_URL}
+      SHELL_IDENTITY_COMPANY_ID: ${SHELL_IDENTITY_COMPANY_ID}
+      PLAYGROUND_APP_URL: ${PUBLIC_PLAYGROUND_URL:-http://localhost:5176}
+      FILES_URL: ${PUBLIC_FILES_URL}
+      SHELLUI_DISABLE_CONFIG_WATCH: '1'
+      # Browser calls stay on PUBLIC_IDENTITY_URL. This process cannot use that
+      # host from inside the network, so BFF refresh uses identity over Compose DNS.
+      SHELLUI_BFF_BACKEND_URL: http://identity:8000
+    volumes:
+      - ..:/app
+      - shell-node-modules:/app/node_modules
+
+  identity:
+    <<: *dev-container
+    build:
+      context: ../../identity-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
+    ports:
+      - '8001:8000'
+    environment:
+      <<: [*django-common, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
+      SECRET_KEY: ${IDENTITY_SECRET_KEY}
+      JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
+      JWT_AUDIENCE: ${JWT_AUDIENCE}
+      JWT_PRIVATE_KEY: ${IDENTITY_JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${IDENTITY_JWT_PUBLIC_KEY}
+      JWT_KEY_ID: ${IDENTITY_JWT_KEY_ID}
+      REDIS_URL: ${IDENTITY_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${IDENTITY_POSTGRES_DATABASE_URL}
+      EMAIL_SERVICE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_SERVICE_INTERNAL_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${IDENTITY_EMAIL_SERVICE_API_KEY}
+      IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
+      STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
+      STORAGE_SERVICE_INTERNAL_URL: http://storage:8000
+      HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
+      HOSTING_SERVICE_INTERNAL_URL: http://hosting:8000
+      SAAS_SERVICE_URL: ${PUBLIC_SAAS_URL}
+      AI_SERVICE_URL: ${PUBLIC_AI_URL}
+      AI_SERVICE_ISSUER: ${PUBLIC_AI_URL}
+      AI_SERVICE_JWKS_URL: http://ai:8000/.well-known/jwks.json
+      # Trusted internal MCP callers (JWKS defaults to {INTERNAL_URL}/.well-known/jwks.json).
+      STORAGE_SERVICE_ISSUER: ${PUBLIC_STORAGE_URL}
+      HOSTING_SERVICE_ISSUER: ${PUBLIC_HOSTING_URL}
+      EMAIL_SERVICE_ISSUER: ${PUBLIC_EMAIL_URL}
+      PROVISIONING_ISSUER: ${PUBLIC_SAAS_URL}
+      PROVISIONING_PUBLIC_KEY: ${PROVISIONING_PUBLIC_KEY}
+      PROVISIONING_KEY_ID: dashboard-1
+      SHELLUI_INSTANCE_ROLE: ${SHELLUI_INSTANCE_ROLE:-region}
+      # User tokens: identity-global. Agent tokens: saas public URL and its own key.
+      GLOBAL_ISSUER_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      GLOBAL_ISSUER_INTERNAL_URL: http://identity-global:8000
+      GLOBAL_JWKS: ${GLOBAL_JWKS}
+      GLOBAL_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_ACCESS_TOKEN_AUDIENCE}
+      GLOBAL_AGENT_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      GLOBAL_AGENT_JWKS: ${GLOBAL_AGENT_JWKS}
+      GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
+      GLOBAL_CLIENT_ID: ${GLOBAL_CLIENT_ID}
+      GLOBAL_CLIENT_SECRET: ${GLOBAL_CLIENT_SECRET}
+      OIDC_CORS_ALLOWED_ORIGINS: ${OIDC_CORS_ALLOWED_ORIGINS}
+      DASHBOARD_WEBHOOK_URL: ${IDENTITY_DASHBOARD_WEBHOOK_URL}
+      DASHBOARD_WEBHOOK_INTERNAL_URL: ${IDENTITY_DASHBOARD_WEBHOOK_INTERNAL_URL}
+      DASHBOARD_WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+    volumes:
+      - ../../identity-service:/app
+      - identity-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Global OpenID provider. Distinct database, Redis index, signing key, and audience.
+  identity-global:
+    <<: *dev-container
+    build:
+      context: ../../identity-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
+    ports:
+      - '8007:8000'
+    environment:
+      <<: [*django-common, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,identity-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
+      SECRET_KEY: ${IDENTITY_GLOBAL_SECRET_KEY}
+      SHELLUI_INSTANCE_ROLE: global
+      JWT_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      JWT_AUDIENCE: ${IDENTITY_GLOBAL_JWT_AUDIENCE}
+      JWT_PRIVATE_KEY: ${IDENTITY_GLOBAL_JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${IDENTITY_GLOBAL_JWT_PUBLIC_KEY}
+      JWT_KEY_ID: ${IDENTITY_GLOBAL_JWT_KEY_ID}
+      REDIS_URL: ${IDENTITY_GLOBAL_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${IDENTITY_GLOBAL_POSTGRES_DATABASE_URL}
+      OIDC_CLIENTS: ${IDENTITY_GLOBAL_OIDC_CLIENTS}
+      OIDC_CORS_ALLOWED_ORIGINS: ${OIDC_CORS_ALLOWED_ORIGINS}
+      EMAIL_SERVICE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_SERVICE_INTERNAL_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY}
+      SAAS_SERVICE_URL: ${PUBLIC_SAAS_URL}
+      IDENTITY_DEV_SEED: 'true'
+      IDENTITY_DEV_PUBLIC_HOST: ${DEV_PUBLIC_HOST:-}
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+    volumes:
+      - ../../identity-service:/app
+      - identity-global-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  storage:
+    <<: *dev-container
+    build:
+      context: ../../storage-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-dev.sh']
+    ports:
+      - '8002:8000'
+    environment:
+      <<: [*django-common, *identity-jwt, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,storage,100.127.19.94
+      SECRET_KEY: ${STORAGE_SECRET_KEY}
+      REDIS_URL: ${STORAGE_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${STORAGE_POSTGRES_DATABASE_URL}
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${STORAGE_EMAIL_SERVICE_API_KEY}
+      STORAGE_SERVICE_SIGNING_KEY: ${STORAGE_SERVICE_SIGNING_KEY}
+      STORAGE_SERVICE_ISSUER: ${PUBLIC_STORAGE_URL}
+      STORAGE_PUBLIC_URL: ${PUBLIC_STORAGE_URL}
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
+      STORAGE_BACKEND: filesystem
+    volumes:
+      - ../../storage-service:/app
+      - storage-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'python -c "import urllib.request; urllib.request.urlopen(''http://127.0.0.1:8000/storage/v1/health'')"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+      start_interval: 5s
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  hosting:
+    <<: *dev-container
+    build:
+      context: ../../hosting-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-entrypoint.sh']
+    command: ['dev']
+    ports:
+      - '8003:8000'
+    environment:
+      <<: [*django-common, *identity-jwt, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local,100.127.19.94
+      SECRET_KEY: ${HOSTING_SECRET_KEY}
+      REDIS_URL: ${HOSTING_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${HOSTING_POSTGRES_DATABASE_URL}
+      HOSTING_DEBUG_OPEN: 'true'
+      HOSTING_APP_DOMAIN: shellui.local
+      HOSTING_APP_SCHEME: http
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${HOSTING_EMAIL_SERVICE_API_KEY}
+      HOSTING_SERVICE_SIGNING_KEY: ${HOSTING_SERVICE_SIGNING_KEY}
+      HOSTING_SERVICE_ISSUER: ${PUBLIC_HOSTING_URL}
+      HOSTING_PUBLIC_URL: ${PUBLIC_HOSTING_URL}
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
+    volumes:
+      - ../../hosting-service:/app
+      - hosting-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  email:
+    <<: *dev-container
+    build:
+      context: ../../email-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint:
+      ['/opt/shellui/dev/container/django-dev-path.sh', '/usr/local/bin/docker-dev-entrypoint.sh']
+    ports:
+      - '8004:8000'
+    environment:
+      <<: [*django-common, *identity-jwt, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,email,100.127.19.94
+      SECRET_KEY: ${EMAIL_SECRET_KEY}
+      REDIS_URL: ${EMAIL_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${EMAIL_POSTGRES_DATABASE_URL}
+      PUBLIC_BASE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_CREDENTIALS_KEY: ${EMAIL_CREDENTIALS_KEY}
+      EMAIL_VARIABLES_KEY: ${EMAIL_VARIABLES_KEY}
+      EMAIL_SERVICE_SIGNING_KEY: ${EMAIL_SERVICE_SIGNING_KEY}
+      EMAIL_SERVICE_ISSUER: ${PUBLIC_EMAIL_URL}
+      EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER}
+      EMAIL_FALLBACK_PROVIDER: smtp
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+      EMAIL_USE_SSL: 'false'
+      EMAIL_SMTP_VERIFY_CERT: 'false'
+      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
+      # Both identity processes send auth mail. The name `identity` is the auth lane.
+      EMAIL_DEV_SERVICE_KEYS: identity=${IDENTITY_EMAIL_SERVICE_API_KEY},identity=${IDENTITY_GLOBAL_EMAIL_SERVICE_API_KEY},storage=${STORAGE_EMAIL_SERVICE_API_KEY},hosting=${HOSTING_EMAIL_SERVICE_API_KEY},saas=${SAAS_EMAIL_SERVICE_API_KEY},ai=${AI_EMAIL_SERVICE_API_KEY}
+    volumes:
+      - ../../email-service:/app
+      - email-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      identity:
+        condition: service_started
+
+  email-worker:
+    <<: *dev-container
+    stop_grace_period: 30s
+    build:
+      context: ../../email-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/email-worker-dev-entrypoint.sh']
+    environment:
+      <<: *identity-jwt
+      EMAIL_LANE_WORKER_POLL_SECONDS: ${EMAIL_LANE_WORKER_POLL_SECONDS:-5}
+      DEBUG: 'true'
+      SECRET_KEY: ${EMAIL_SECRET_KEY}
+      REDIS_URL: ${EMAIL_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${EMAIL_POSTGRES_DATABASE_URL}
+      POSTGRES_SSL_REQUIRE: 'false'
+      PUBLIC_BASE_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
+      EMAIL_FALLBACK_PROVIDER: smtp
+      EMAIL_HOST: mailpit
+      EMAIL_PORT: '1025'
+      EMAIL_USE_TLS: 'false'
+      EMAIL_SMTP_VERIFY_CERT: 'false'
+      EMAIL_CREDENTIALS_KEY: ${EMAIL_CREDENTIALS_KEY}
+      EMAIL_VARIABLES_KEY: ${EMAIL_VARIABLES_KEY}
+      EMAIL_SERVICE_SIGNING_KEY: ${EMAIL_SERVICE_SIGNING_KEY}
+      EMAIL_SERVICE_ISSUER: ${PUBLIC_EMAIL_URL}
+      EMAIL_HASH_PEPPER: ${EMAIL_HASH_PEPPER}
+      # Must match the API service: workers validate magic_link_url hosts at deliver time.
+      EMAIL_AUTH_LINK_HOSTS: localhost,127.0.0.1,${DEV_PUBLIC_HOST:-localhost}
+      SCHEDULER_ENABLED: 'true'
+      EMAIL_WORKERS_ENABLED: 'true'
+    volumes:
+      - ../../email-service:/app
+      - email-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      email:
+        condition: service_started
+
+  saas:
+    <<: *dev-container
+    build:
+      context: ../../saas-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/app/tools/docker-entrypoint.sh']
+    command: ['dev']
+    ports:
+      - '8005:8000'
+    environment:
+      <<: [*django-common, *identity-jwt, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,saas,100.127.19.94
+      SECRET_KEY: ${SAAS_SECRET_KEY}
+      REDIS_URL: ${SAAS_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${SAAS_POSTGRES_DATABASE_URL}
+      DASHBOARD_PUBLIC_URL: ${PUBLIC_SAAS_URL}
+      # Global consumers verify and call identity-global, not the regional issuer.
+      IDENTITY_SERVICE_URL: http://identity-global:8000
+      IDENTITY_JWKS_URL: http://identity-global:8000/.well-known/jwks.json
+      IDENTITY_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      IDENTITY_AUDIENCE: ${IDENTITY_GLOBAL_JWT_AUDIENCE}
+      IDENTITY_INTERNAL_URL: http://identity-global:8000
+      # saas OAuth server for the global MCP. iss on agent tokens is this origin.
+      GLOBAL_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      MCP_FORWARD_GLOBAL_APPROVALS_TO_IDENTITY: 'true'
+      WEBHOOK_SECRET: ${IDENTITY_DASHBOARD_WEBHOOK_SECRET}
+      # Browser clients: dashboard dev server, shell dev server, and loopback aliases for OAuth redirects.
+      CORS_ALLOWED_ORIGINS: ${SAAS_CORS_ALLOWED_ORIGINS}
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${SAAS_EMAIL_SERVICE_API_KEY}
+      PROVISIONING_SIGNING_KEY: ${PROVISIONING_SIGNING_KEY}
+      PROVISIONING_KEY_ID: dashboard-1
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
+      # Global agent JWT minting (must match identity GLOBAL_* trust in this compose file).
+      GLOBAL_AGENT_SIGNING_KEY: ${GLOBAL_AGENT_SIGNING_KEY}
+      GLOBAL_AGENT_KEY_ID: ${GLOBAL_AGENT_KEY_ID}
+      GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
+      AI_SERVICE_URL: ${PUBLIC_AI_URL}
+      STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
+      HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
+    volumes:
+      - ../../saas-service:/app
+      - saas-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+      identity-global:
+        condition: service_started
+
+  ai:
+    <<: *dev-container
+    build:
+      context: ../../ai-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/docker-entrypoint.sh']
+    command: ['dev']
+    ports:
+      - '8006:8000'
+    environment:
+      <<: [*django-common, *identity-jwt, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,ai,100.127.19.94
+      SECRET_KEY: ${AI_SECRET_KEY}
+      REDIS_URL: ${AI_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${AI_POSTGRES_DATABASE_URL}
+      AI_SERVICE_SIGNING_KEY: ${AI_SERVICE_SIGNING_KEY}
+      AI_SERVICE_SIGNING_KID: ${AI_SERVICE_SIGNING_KID}
+      AI_SERVICE_ISSUER: ${PUBLIC_AI_URL}
+      AI_PUBLIC_URL: ${PUBLIC_AI_URL}
+      STORAGE_SERVICE_URL: http://storage:8000
+      HOSTING_SERVICE_URL: http://hosting:8000
+      EMAIL_SERVICE_URL: http://email:8000
+      EMAIL_SERVICE_API_KEY: ${AI_EMAIL_SERVICE_API_KEY}
+      EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
+      SAAS_SERVICE_URL: http://saas:8000
+      # Public resources identity binds downstream MCP tokens to (calls still use the internal URLs above).
+      STORAGE_SERVICE_PUBLIC_URL: ${PUBLIC_STORAGE_URL}
+      HOSTING_SERVICE_PUBLIC_URL: ${PUBLIC_HOSTING_URL}
+      EMAIL_SERVICE_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
+      SAAS_SERVICE_PUBLIC_URL: ${PUBLIC_SAAS_URL}
+    volumes:
+      - ../../ai-service:/app
+      - ai-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+
+  admin:
+    <<: [*dev-container, *frontend-shellui-local]
+    build:
+      context: ../../admin
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5173']
+    ports:
+      - '5173:5173'
+    environment:
+      <<: *frontend-file-watch
+      SHELLUI_ROOT: /opt/shellui
+      CHOKIDAR_USEPOLLING: 'false'
+      VITE_USE_POLLING: 'false'
+      VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
+      VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
+      VITE_HOSTING_URL: ${PUBLIC_HOSTING_URL}
+      VITE_EMAIL_URL: ${PUBLIC_EMAIL_URL}
+      VITE_AI_SERVICE_URL: ${PUBLIC_AI_URL}
+      VITE_FILES_URL: ${PUBLIC_FILES_URL}
+      VITE_HMR_CLIENT_PORT: '5173'
+      VITE_HMR_HOST: ${DEV_PUBLIC_HOST:-localhost}
+    volumes:
+      - ../../admin:/app
+      - admin-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
+
+  dashboard:
+    <<: [*dev-container, *frontend-shellui-local]
+    build:
+      context: ../../dashboard
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5174']
+    ports:
+      - '5174:5174'
+    environment:
+      <<: *frontend-file-watch
+      SHELLUI_ROOT: /opt/shellui
+      CHOKIDAR_USEPOLLING: 'false'
+      VITE_USE_POLLING: 'false'
+      DASHBOARD_API_URL: ${PUBLIC_SAAS_URL}
+      IDENTITY_SERVICE_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      IDENTITY_COMPANY_ID: ${DASHBOARD_IDENTITY_COMPANY_ID}
+      DASHBOARD_APP_URL: ${PUBLIC_DASHBOARD_URL}
+      ADMIN_APP_ORIGIN: ${PUBLIC_ADMIN_URL}
+      EMAIL_SERVICE_URL: ${PUBLIC_EMAIL_URL}
+      REGION_CH_IDENTITY_ORIGIN: ${REGION_CH_IDENTITY_ORIGIN}
+      REGION_CH_STORAGE_ORIGIN: ${REGION_CH_STORAGE_ORIGIN}
+      REGION_CH_HOSTING_ORIGIN: ${REGION_CH_HOSTING_ORIGIN}
+      REGION_CH_EMAIL_ORIGIN: ${REGION_CH_EMAIL_ORIGIN}
+      REGION_CH_SAAS_ORIGIN: ${REGION_CH_SAAS_ORIGIN}
+      REGION_CH_AI_ORIGIN: ${REGION_CH_AI_ORIGIN}
+    volumes:
+      - ../../dashboard:/app
+      - dashboard-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
+
+  files:
+    <<: [*dev-container, *frontend-shellui-local]
+    build:
+      context: ../../files
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5175']
+    ports:
+      - '5175:5175'
+    environment:
+      <<: *frontend-file-watch
+      SHELLUI_ROOT: /opt/shellui
+      CHOKIDAR_USEPOLLING: 'false'
+      VITE_USE_POLLING: 'false'
+      VITE_STORAGE_URL: ${PUBLIC_STORAGE_URL}
+      VITE_IDENTITY_URL: ${PUBLIC_IDENTITY_URL}
+      VITE_DEV_ORIGIN: ${PUBLIC_FILES_URL}
+      VITE_DEV_PORT: '5175'
+    volumes:
+      - ../../files:/app
+      - files-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
+
+  # Playground companion (sibling repo ../../playground). Vite dev server with hot reload.
+  playground:
+    <<: [*dev-container, *frontend-shellui-local]
+    image: node:22-bookworm-slim
+    working_dir: /app
+    entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
+    command:
+      ['node', '/opt/shellui/dev/container/run-vite-dev.mjs', '--host', '0.0.0.0', '--port', '5176']
+    ports:
+      - '5176:5176'
+    environment:
+      <<: *frontend-file-watch
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      SHELLUI_ROOT: /opt/shellui
+      CHOKIDAR_USEPOLLING: 'false'
+      PLAYGROUND_DEV_PORT: '5176'
+    volumes:
+      - ../../playground:/app
+      - playground-node-modules:/app/node_modules
+      - ..:/opt/shellui:ro
+
+volumes:
+  postgres-data:
+  identity-data:
+  identity-global-data:
+  storage-data:
+  hosting-data:
+  email-data:
+  saas-data:
+  ai-data:
+  shell-node-modules:
+  admin-node-modules:
+  dashboard-node-modules:
+  files-node-modules:
+  playground-node-modules:

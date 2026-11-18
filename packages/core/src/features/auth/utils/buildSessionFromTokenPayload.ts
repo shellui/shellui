@@ -21,4 +21,6 @@ export const tokenPayloadToUrlParams = (
 export const buildSessionFromTokenPayload = (
   payload: Record<string, unknown> | null | undefined,
   nowSeconds: number,
-): AuthSession | null => buildSessionFromParams(tokenPayloadToUrlParams(payload), nowSeconds);
+  options?: { refreshTokenRequired?: boolean },
+): AuthSession | null =>
+  buildSessionFromParams(tokenPayloadToUrlParams(payload), nowSeconds, options);

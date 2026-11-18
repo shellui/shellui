@@ -5,10 +5,13 @@ import { decodeJwtPayload, normalizeJwtUserGroups } from './decodeJwtPayload';
 export const buildSessionFromParams = (
   params: URLSearchParams,
   nowSeconds: number,
+  options?: { refreshTokenRequired?: boolean },
 ): AuthSession | null => {
   const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-  if (!accessToken || !refreshToken) return null;
+  const refreshToken = params.get('refresh_token') ?? '';
+  const refreshRequired = options?.refreshTokenRequired !== false;
+  if (!accessToken) return null;
+  if (refreshRequired && !refreshToken) return null;
 
   const expiresAtFromParam = Number(params.get('expires_at'));
   const expiresInFromParam = Number(params.get('expires_in'));

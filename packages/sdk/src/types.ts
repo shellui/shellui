@@ -130,6 +130,17 @@ export interface SettingsEmail {
   showInAdmin?: boolean;
 }
 
+/**
+ * AI-service connection from host `aiService` in shellui.config.json.
+ * Used by iframe apps that need the ai-service API base URL.
+ */
+export interface SettingsAiService {
+  /** Base URL of ai-service (no trailing slash). */
+  url: string;
+  /** When false, admin panel hides AI navigation. */
+  showInAdmin?: boolean;
+}
+
 /** Single mode color set (light or dark). All values provided so apps can style without knowing theme. */
 export interface ThemeColorsMode {
   background: string;
@@ -375,6 +386,14 @@ export interface Settings {
    * differs and the item does not set `email`.
    */
   email?: SettingsEmail | null;
+  /**
+   * AI-service connection (from host `aiService` in shellui.config.json).
+   * Omitted or null when `aiService` is not set.
+   * Null when `aiService.url` is not set. There is no built-in default.
+   * An app `aiService` replaces this. It is `null` when that app's identity server
+   * differs and the item does not set `aiService`.
+   */
+  aiService?: SettingsAiService | null;
   /** Authenticated user snapshot injected by shell for sub-apps. */
   user?: SettingsUser | null;
   /**

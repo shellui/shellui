@@ -14,6 +14,8 @@ import type { ShellUIConfig } from '@shellui/core';
 
 Docs: [Core](https://docs.shellui.com/core), [CLI](https://docs.shellui.com/cli).
 
+In **Settings → MCP / AI agents**, Shellui shows a global MCP URL only when identity returns the full dashboard endpoint (`…/mcp`). Recent tool activity lists classified outcomes and identity error codes only; it never prints raw provider error bodies.
+
 ## License
 
 MIT

@@ -15,6 +15,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSkeleton,
   SidebarProvider,
 } from '../../components/ui/sidebar';
 import { Route, Routes, useLocation, useNavigate, Navigate } from 'react-router';
@@ -36,6 +37,8 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
 import { shouldShowStorageSettings } from './utils/shouldShowStorageSettings';
 import { isAiFeatureEnabled } from '../ai/isAiFeatureEnabled';
+import { useMcpPersonalStatus } from './hooks/useMcpPersonalStatus';
+import { shouldShowMcpAgentsSettings } from './utils/shouldShowMcpAgentsSettings';
 
 export const SettingsView = () => {
   const location = useLocation();
@@ -45,6 +48,12 @@ export const SettingsView = () => {
   const { user, session, logout, isAuthenticated, supportsAccountDeletion, supportsProfileUpdate } =
     useAuth();
   const { t, i18n } = useTranslation('settings');
+  const { mcpEnabled: mcpAgentsNavEnabled, navPending: mcpAgentsNavPending } = useMcpPersonalStatus(
+    config,
+    session?.accessToken ?? null,
+    isAuthenticated,
+    user?.id ?? null,
+  );
   // Re-check isTauri after mount and after a short delay so we catch late-injected __TAURI__ in dev
   const [isTauriEnv, setIsTauriEnv] = useState(() => isTauri());
 
@@ -90,6 +99,15 @@ export const SettingsView = () => {
     if (!isAiFeatureEnabled(config)) {
       routes = routes.filter((route) => route.path !== 'ai');
     }
+    if (
+      !shouldShowMcpAgentsSettings({
+        config,
+        isAuthenticated,
+        mcpEnabled: mcpAgentsNavEnabled,
+      })
+    ) {
+      routes = routes.filter((route) => route.path !== 'mcp-agents');
+    }
     const aiEnabledForStorage = isAiFeatureEnabled(config) && settings.ai?.enabled !== false;
     if (
       !shouldShowStorageSettings({
@@ -101,7 +119,7 @@ export const SettingsView = () => {
       routes = routes.filter((route) => route.path !== 'storage');
     }
     return routes;
-  }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled]);
+  }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled, mcpAgentsNavEnabled]);
 
   // Application settings from navigation items with settings URL
   const applicationRoutes = useMemo(() => {
@@ -159,9 +177,33 @@ export const SettingsView = () => {
     [userRoute, settingsNavRoutes, applicationRoutes],
   );
 
+  const mcpAgentsRoute = useMemo(
+    () => settingsNavRoutes.find((route) => route.path === 'mcp-agents'),
+    [settingsNavRoutes],
+  );
+
+  const isMcpAgentsNavSkeleton = (
+    item: (typeof settingsNavRoutes)[number] | { kind: 'mcp-agents-skeleton' },
+  ): item is { kind: 'mcp-agents-skeleton' } =>
+    'kind' in item && item.kind === 'mcp-agents-skeleton';
+
   // Group routes by category
   const groupedRoutes = useMemo(() => {
     const developerOnlyPaths = ['developpers', 'service-worker'];
+    const preferenceLeadRoutes = settingsNavRoutes.filter((route) =>
+      ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
+    );
+    const preferenceTailRoutes = [
+      ...settingsNavRoutes.filter((route) => route.path === 'storage'),
+      ...settingsNavRoutes.filter((route) => route.path === 'ai'),
+    ];
+    const mcpAgentsNavRows =
+      mcpAgentsRoute !== undefined
+        ? [mcpAgentsRoute]
+        : mcpAgentsNavPending
+          ? [{ kind: 'mcp-agents-skeleton' as const }]
+          : [];
+
     const groups = [
       ...(applicationRoutes.length > 0
         ? [{ title: t('categories.applications'), routes: applicationRoutes }]
@@ -169,12 +211,10 @@ export const SettingsView = () => {
       {
         title: t('categories.preferences'),
         routes: [
-          ...settingsNavRoutes.filter((route) =>
-            ['appearance', 'language-and-region', 'data-privacy'].includes(route.path),
-          ),
+          ...preferenceLeadRoutes,
           ...userRoute,
-          ...settingsNavRoutes.filter((route) => route.path === 'storage'),
-          ...settingsNavRoutes.filter((route) => route.path === 'ai'),
+          ...preferenceTailRoutes,
+          ...mcpAgentsNavRows,
         ],
       },
       {
@@ -189,7 +229,7 @@ export const SettingsView = () => {
       },
     ];
     return groups.filter((group) => group.routes.length > 0);
-  }, [settingsNavRoutes, applicationRoutes, userRoute, t]);
+  }, [settingsNavRoutes, applicationRoutes, userRoute, t, mcpAgentsRoute, mcpAgentsNavPending]);
 
   // Find matching nav item by checking if URL contains or ends with the item path
   const getSelectedItemFromUrl = useCallback(() => {
@@ -260,26 +300,32 @@ export const SettingsView = () => {
                 <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {group.routes.map((item) => (
-                      <SidebarMenuItem key={item.name}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={item.name === selectedItem?.name}
-                        >
-                          <button
-                            onClick={() => navigate(`${urls.settings}/${item.path}`)}
-                            className="cursor-pointer"
+                    {group.routes.map((item) =>
+                      isMcpAgentsNavSkeleton(item) ? (
+                        <SidebarMenuItem key="mcp-agents-skeleton">
+                          <SidebarMenuSkeleton showIcon />
+                        </SidebarMenuItem>
+                      ) : (
+                        <SidebarMenuItem key={item.name}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={item.name === selectedItem?.name}
                           >
-                            {'icon' in item && item.icon ? (
-                              <item.icon />
-                            ) : (
-                              <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
-                            )}
-                            <span>{item.name}</span>
-                          </button>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                            <button
+                              onClick={() => navigate(`${urls.settings}/${item.path}`)}
+                              className="cursor-pointer"
+                            >
+                              {'icon' in item && item.icon ? (
+                                <item.icon />
+                              ) : (
+                                <NavIcon src={'iconSrc' in item ? item.iconSrc : null} />
+                              )}
+                              <span>{item.name}</span>
+                            </button>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ),
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
@@ -311,6 +357,24 @@ export const SettingsView = () => {
                   <div className="flex flex-col bg-card rounded-lg overflow-hidden border border-border">
                     {group.routes.map((item, itemIndex) => {
                       const isLast = itemIndex === group.routes.length - 1;
+                      if (isMcpAgentsNavSkeleton(item)) {
+                        return (
+                          <div
+                            key="mcp-agents-skeleton"
+                            className="relative"
+                          >
+                            {!isLast && (
+                              <div className="absolute left-0 right-0 bottom-0 h-[1px] bg-border" />
+                            )}
+                            <div
+                              className="w-full px-4 py-3"
+                              aria-hidden
+                            >
+                              <SidebarMenuSkeleton showIcon />
+                            </div>
+                          </div>
+                        );
+                      }
                       const iconEl =
                         'icon' in item && item.icon ? (
                           <item.icon />

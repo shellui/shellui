@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { loadConfig } from '../src/utils/config.js';
-import { handleAuthBffRequest } from '../src/utils/auth-bff-plugin.js';
+import { handleAuthBffRequest, isBffHostEnabled } from '../src/utils/auth-bff-plugin.js';
 import { resolveShellCspHeaders } from '../src/utils/csp.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -135,7 +135,7 @@ server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);
   console.log(`Serving from: ${distDir}`);
   console.log(`Unknown routes fall back to ${path.basename(spaFallbackPath)}`);
-  if (shelluiConfig?.security?.bffAuth?.enabled) {
+  if (isBffHostEnabled(shelluiConfig)) {
     console.log('Auth BFF routes enabled at /api/auth/*');
   }
   console.log('Press Ctrl+C to stop the server');

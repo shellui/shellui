@@ -39,7 +39,12 @@ export interface AuthContextValue {
   sendMagicLink: (email: string, redirectPath?: string) => Promise<void>;
   syncUserPreferences: (preferences: UserPreferences) => Promise<void>;
   loadUserPreferences: () => Promise<UserPreferences | null>;
-  logout: () => Promise<void>;
+  /**
+   * Sign out. `returnTo` is a shell path or same-origin URL to open afterwards.
+   * When identity exposes `logout_url`, the browser is sent there and identity
+   * redirects to `returnTo`. Otherwise the shell opens `returnTo` itself.
+   */
+  logout: (options?: { returnTo?: string }) => Promise<void>;
   /** Whether the configured auth backend supports self-service account deletion. */
   supportsAccountDeletion: boolean;
   /** Delete the signed-in account for the current company, then sign out. */

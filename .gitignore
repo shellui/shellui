@@ -1,9 +1,11 @@
 node_modules/
+__pycache__/
 dist/
 *.log
 .DS_Store
 .env
 .env.local
+dev/.env.local
 .pnpm-store/
 shellui.config.*
 !packages/core/schemas/shellui.config.schema.json
@@ -15,10 +17,12 @@ shellui.administration.config.json
 shellui.storage.config.json
 shellui.email.config.json
 shellui.hosting.config.json
+shellui.aiService.config.json
 shellui.backend.config.json
 shellui.themes.config.json
 shellui.cookieConsent.config.json
 shellui.legalDocuments.config.json
+!dev/config/shellui.*.config.json
 
 # Service docs fetched at build time by tools/docusaurus/scripts/fetch-service-docs.js
 tools/docusaurus/.services/

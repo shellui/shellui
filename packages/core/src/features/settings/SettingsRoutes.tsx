@@ -9,6 +9,7 @@ import {
   RefreshDoubleIcon,
   HardDriveIcon,
   SparklesIcon,
+  McpAgentsIcon,
 } from './SettingsIcons';
 import { Appearance } from './components/Appearance';
 import { LanguageAndRegion } from './components/LanguageAndRegion';
@@ -20,6 +21,7 @@ import { ServiceWorker } from './components/ServiceWorker';
 import { LegalDocumentsPanel } from './components/LegalDocumentsPanel';
 import { Storage } from './components/Storage';
 import { Ai } from './components/Ai';
+import { McpAgents } from './components/McpAgents';
 import { isTauri } from '../../service-worker/register';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
@@ -46,6 +48,12 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     icon: SparklesIcon,
     path: 'ai',
     element: <Ai />,
+  },
+  {
+    name: t('routes.mcpAgents'),
+    icon: McpAgentsIcon,
+    path: 'mcp-agents',
+    element: <McpAgents />,
   },
   {
     name: t('routes.storage'),

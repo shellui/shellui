@@ -42,13 +42,16 @@ export const SECTION_KEYS = [
   'administration',
   'storage',
   'ai',
+  'saas',
   'hosting',
   'email',
+  'aiService',
   'backend',
   'themes',
   'cookieConsent',
   'legalDocuments',
   'sentry',
+  'security',
   'dev',
 ];
 

@@ -1,7 +1,7 @@
 ---
 title: Shellui docs
 sidebar_label: Introduction
-description: 'Developer map for Shellui - a microfrontend shell with shared navigation, authentication, administration, and storage.'
+description: 'Developer map for Shellui, a microfrontend shell with shared navigation, authentication, administration, and storage.'
 ---
 
 Shellui is an open-source web app development platform - a microfrontend shell that wraps your application with shared navigation, authentication, storage, and administration. This site documents `@shellui/cli`, `@shellui/core`, and `@shellui/sdk` for developers who host an iframe app inside that shell.
@@ -39,6 +39,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 ### Platform
 
+- [AI native platform](/features/ai-native) - local stack, SaaS MCP, OAuth, token exchange, regional tools, and discovery on `tools/list`; you can build an MCP client or agent against these endpoints from any workspace that reaches localhost
 - [Administration](/features/administration) - staff admin iframe and custom sidebar links
 - [Storage](/features/storage) - storage-service quota and `shellui.storage`
 - [Storage picker](/features/storage-picker) - `selectFolders` / `selectFiles`
@@ -56,6 +57,7 @@ Canonical docs live at [docs.shellui.com](https://docs.shellui.com). Try a runni
 
 ## Contribute and operate
 
+- [Open source or Cloud](/open-source-or-cloud) - run the MIT source yourself, or join the hosted waitlist
 - [Development](/development) - build this monorepo
 - [Publishing](/publishing) - npm tags and version sync
 - [Sentry](/sentry) - production error reporting

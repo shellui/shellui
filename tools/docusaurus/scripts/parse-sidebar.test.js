@@ -13,6 +13,7 @@ const fixtures = [
   ['storage-service.js', 8],
   ['hosting-service.js', 8],
   ['email-service.js', 8],
+  ['ai-service.js', 6],
 ];
 
 for (const [name, count] of fixtures) {

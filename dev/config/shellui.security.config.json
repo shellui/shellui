@@ -1,0 +1,8 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "security": {
+    "bffAuth": {
+      "enabled": true
+    }
+  }
+}

@@ -77,9 +77,17 @@
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting-service connection. Propagated to iframes via SDK settings. Enables `shellui deploy` when `url` is set."
         },
+        "saas": {
+          "$ref": "#/definitions/SaasConfig",
+          "description": "Optional SaaS dashboard API base URL for CLI commands such as `shellui projects`. The shell runtime ignores this key today."
+        },
         "email": {
           "$ref": "#/definitions/EmailConfig",
           "description": "Email-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no email service (`null`). `showInAdmin: false` hides Admin → Email."
+        },
+        "aiService": {
+          "$ref": "#/definitions/AiServiceConfig",
+          "description": "AI-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no ai service (`null`). `showInAdmin: false` hides Admin → AI."
         },
         "theme": {
           "$ref": "#/definitions/ThemeRef",
@@ -275,6 +283,14 @@
         "hosting": {
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting service for this app. Same fallback as `email`."
+        },
+        "saas": {
+          "$ref": "#/definitions/SaasConfig",
+          "description": "SaaS dashboard API for this app. Same fallback as `email`."
+        },
+        "aiService": {
+          "$ref": "#/definitions/AiServiceConfig",
+          "description": "AI service for this app. Same fallback as `email`."
         }
       },
       "required": ["label", "path", "url"],
@@ -384,6 +400,21 @@
       "additionalProperties": false,
       "description": "Optional email-service wiring for Admin → Email and iframe apps. The shell never invents a URL: without `url`, apps get no email service."
     },
+    "AiServiceConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
+    },
     "StorageConfig": {
       "type": "object",
       "properties": {
@@ -431,6 +462,18 @@
       "required": ["url"],
       "additionalProperties": false,
       "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
+    },
+    "SaasConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of the SaaS dashboard API (for example `http://localhost:8005`). Used by CLI commands such as `shellui projects`. Override with `SHELLUI_SAAS_URL` when unset."
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false,
+      "description": "Optional SaaS API URL for CLI regional calls. The in-shell experience does not read this block yet."
     },
     "NavigationGroup": {
       "type": "object",
@@ -999,7 +1042,7 @@
         },
         "loginUrl": {
           "type": "string",
-          "description": "Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live. Used by `shellui login`. Not the iframe admin app (`adminUrl`). Example: `https://app.example.com` or `http://127.0.0.1:4000`."
+          "description": "Public origin (or full URL) of this shell, where `/login` and OAuth `/login/callback` live. The shell allowlists this origin. It is not the iframe admin app (`adminUrl`). Example: `https://app.example.com` or `http://127.0.0.1:4000`."
         },
         "publishableKey": {
           "type": "string",
@@ -1088,7 +1131,7 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "When true, refresh tokens are stored in an HttpOnly cookie via `/api/auth/*` served by the shell host (CLI dev server or your production reverse proxy). Default: false (refresh stays in sessionStorage until you enable BFF)."
+          "description": "Shell-host refresh cookie (`shellui_refresh` on `/api/auth`). `false` turns the routes off. The page then calls identity itself and stores the refresh token in sessionStorage. `true`, or leaving this out, mounts `/api/auth/*` on `shellui start` and `serve:dist`. The page uses them only after `GET /api/auth/session` returns {\"ready\": true}. A static host without those routes keeps the sessionStorage refresh token."
         },
         "cookieName": {
           "type": "string",

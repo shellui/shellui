@@ -1,4 +1,5 @@
 import type { AuthSettings, LoginMethod } from '../types';
+import { readIdentityLogoutUrl } from './identityBrowserLogout';
 import { isLoginMethod } from './isLoginMethod';
 
 const NON_OAUTH_EXTERNAL_PROVIDERS = new Set(['email', 'phone', 'sms']);
@@ -8,7 +9,7 @@ const WEB3_EXTERNAL_PROVIDERS = new Set(['ethereum', 'solana', 'web3_ethereum', 
 export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
   const record = Array.isArray(payload) ? payload[0] : payload;
   if (!record || typeof record !== 'object') {
-    return { methods: [], oauthProviders: [], oauthClients: [] };
+    return { methods: [], oauthProviders: [], oauthClients: [], logoutUrl: null };
   }
 
   const obj = record as Record<string, unknown>;
@@ -67,5 +68,6 @@ export const normalizeAuthSettings = (payload: unknown): AuthSettings => {
     methods: Array.from(methods),
     oauthProviders: Array.from(oauthProvidersSet),
     oauthClients,
+    logoutUrl: readIdentityLogoutUrl(obj.logout_url),
   };
 };

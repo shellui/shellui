@@ -54,9 +54,20 @@ npx skills add shellui/skills --skill shellui
 
 Agents can also start from [shellui.ai](https://shellui.ai). See [shellui/skills](https://github.com/shellui/skills).
 
+## Run locally
+
+The easiest way to work on Shellui is the Docker Compose dev stack. It runs the shell, every service, admin, dashboard and files, with hot reload. Clone all Shellui repos side by side, then:
+
+```bash
+cd shellui/dev
+./start.sh
+```
+
+The shell is on [http://localhost:4000](http://localhost:4000). Folder layout, URLs, commands and troubleshooting are in [docs/dev-stack.md](docs/dev-stack.md).
+
 ## Development
 
-You need [pnpm](https://pnpm.io/).
+To work on the packages alone, you need [pnpm](https://pnpm.io/).
 
 ```bash
 pnpm install

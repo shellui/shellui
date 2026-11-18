@@ -17,6 +17,7 @@
     "legalDocuments": "Legal documents",
     "storage": "Storage",
     "ai": "AI",
+    "mcpAgents": "MCP / AI agents",
     "develop": "Develop",
     "serviceWorker": "Service Worker"
   },
@@ -273,6 +274,206 @@
       "empty": "No extra probe details right now."
     },
     "footnote": "Large models use disk space and can heat the GPU on first load. Treat prompts from apps as untrusted content."
+  },
+  "mcpAgents": {
+    "description": "Connect an AI agent to this company over MCP. The agent signs in with OAuth. Revoke a connection when you stop using that agent.",
+    "global": {
+      "title": "Connect to Shellui (global MCP)",
+      "intro": "You can use two MCP entry points: one on the Shellui dashboard for your account (projects, companies, regions, and plans) and one from this page for this company (regional services and app APIs). They use different URLs and tokens.",
+      "scopeAccount": "Global MCP on the Shellui dashboard: OAuth account scope on SaaS. It covers account metadata. It does not read your hosted app data.",
+      "scopeRegional": "This page: MCP for this company (regional identity services). Tokens are short-lived and tied to this company.",
+      "sessions": "On this page, regional MCP with ask access: identity can grant non-destructive calls for about 60 seconds on this connection without a prompt on each call. That timer is the session grant on this connection, not the token lifetime or how long the connection stays valid. First-company setup can extend non-destructive grants to about 600 to 900 seconds until the server setup step expires. After each window ends, you approve again or refresh the grant. Destructive calls always need approval. Full access does not skip approval for destructive tools.",
+      "approvals": "Global MCP uses SaaS approval and fallback endpoints. This page lists regional tool approvals for this company only. It does not list global dashboard approvals.",
+      "prerequisite": "You need a Shellui account with accepted Terms of Service before you create a connection.",
+      "globalMcpUrlLabel": "Global MCP endpoint (reference only):",
+      "globalMcpUrlUnknown": "Identity has not returned the global MCP endpoint yet. It must be the full https or http (local) URL your host publishes, ending with /mcp. Reload after identity is updated.",
+      "statusReady": "Your OAuth session includes SaaS (account scope). When the global endpoint appears above, use it for account-wide MCP. Connections you create below stay regional for this company only. They are not interchangeable and this page does not configure the dashboard client.",
+      "statusPending": "Your session is regional only. Sign in with a Shellui account that has SaaS if you need global MCP when the endpoint appears above."
+    },
+    "signInRequired": "Sign in to manage MCP agents.",
+    "status": {
+      "loading": "Checking MCP status…",
+      "error": "Unable to load MCP status.",
+      "unavailable": "MCP is not enabled for this company.",
+      "retry": "Try again"
+    },
+    "clipboard": {
+      "copyFailedTitle": "Copy failed",
+      "unavailable": "Clipboard API is not available in this environment.",
+      "copiedTitle": "Copied",
+      "copiedDescription": "{{label}} copied to clipboard.",
+      "failed": "Unable to copy to the clipboard."
+    },
+    "connections": {
+      "title": "Active connections",
+      "empty": "No active connections.",
+      "connectedMeta": "{{name}} · Connected {{date}}",
+      "connectedMetaWithExpiry": "{{name}} · Connected {{date}} · Expires {{expiry}}",
+      "revokedMeta": "{{name}} · Revoked {{date}}",
+      "scopeRegional": "All regional services",
+      "scopeRegionalSaas": "All regional services + saas",
+      "kindOauth": "Signed in with OAuth",
+      "kindPersonal": "Static secret",
+      "services": "Services: {{services}}",
+      "showRevoked": "Show revoked",
+      "hideRevoked": "Hide revoked",
+      "loading": "Loading connections…",
+      "error": "Unable to load connections.",
+      "retry": "Try again"
+    },
+    "connect": {
+      "title": "Connect an agent",
+      "intro": "Your agent adds this URL as a remote MCP server and signs in with OAuth.",
+      "urlLabel": "Company MCP URL",
+      "copyUrl": "Copy URL",
+      "promptLabel": "Prompt",
+      "copyPrompt": "Copy prompt",
+      "stepsLead": "What you do:",
+      "steps": {
+        "paste": "Paste the prompt into your agent.",
+        "openLink": "Open the link it shows.",
+        "allow": "Check the code and choose Allow."
+      }
+    },
+    "staticSecret": {
+      "summary": "Clients that only accept a static secret",
+      "helper": "Use this when the client accepts a static secret and cannot sign in with OAuth.",
+      "once": "Shellui shows the secret once. The prompt above does not include it."
+    },
+    "success": {
+      "title": "Static secret created",
+      "warning": "Copy this secret now. Shellui shows it only once. The prompt above does not include it.",
+      "copySecret": "Copy secret",
+      "hide": "Hide secret"
+    },
+    "revoke": {
+      "action": "Revoke",
+      "title": "Revoke this connection?",
+      "description": "The agent stops working with this company until you connect it again.",
+      "confirm": "Revoke",
+      "cancel": "Cancel",
+      "successTitle": "Connection revoked",
+      "successDescription": "{{name}} no longer has access.",
+      "errorTitle": "Could not revoke the connection"
+    },
+    "activity": {
+      "title": "Recent activity",
+      "show": "Show activity",
+      "hide": "Hide activity",
+      "loading": "Loading activity…",
+      "error": "Unable to load activity.",
+      "retry": "Try again",
+      "empty": "No activity recorded for this connection yet.",
+      "callLogsUnavailable": "Tool calls could not be loaded.",
+      "callLogsPageUnavailable": "More tool calls could not be loaded.",
+      "consentUnavailable": "OAuth consent events could not be loaded.",
+      "loadMore": "Load more",
+      "loadingMore": "Loading more…",
+      "consentOauth": "OAuth consent approved",
+      "consentDevice": "Device login approved",
+      "destructiveBadge": "Can change data",
+      "outcome": {
+        "allowed": "Allowed",
+        "denied": "Denied",
+        "failed": "Failed",
+        "pendingApproval": "Pending approval",
+        "sessionUsed": "Session used",
+        "unknown": "Result not classified"
+      },
+      "access": {
+        "read": "Read",
+        "write": "Write",
+        "destructive": "Destructive",
+        "unknown": "Access not classified"
+      },
+      "toolUnknown": "Unknown tool",
+      "operationSuffix": "Operation",
+      "detail": {
+        "when": "When",
+        "duration": "Duration",
+        "notProvided": "Not reported",
+        "actor": "Actor",
+        "actorUnknown": "Not reported",
+        "agent": "Connection",
+        "result": "Classified outcome",
+        "resultUnknown": "The service sent an outcome code this screen does not map. Use the badges and summary when they apply.",
+        "error": "Error code",
+        "errorMessage": "Error message",
+        "errorUnavailable": "No error code for this row.",
+        "viaWrapper": "via {{wrapper}}",
+        "approvalOutcome": "Approval",
+        "approvalOutcomeValue": {
+          "pending": "Pending",
+          "denied": "Denied",
+          "accepted": "Accepted",
+          "sessionUsed": "Session used",
+          "expired": "Expired",
+          "failed": "Failed"
+        },
+        "errorCode": {
+          "badRequest": "Bad request",
+          "unauthorized": "Not authorized",
+          "forbidden": "Forbidden",
+          "notFound": "Not found",
+          "conflict": "Conflict",
+          "rateLimited": "Rate limited",
+          "denied": "Denied",
+          "expired": "Expired",
+          "timeout": "Timed out",
+          "upstreamError": "Upstream error",
+          "internalError": "Internal error",
+          "outOfSync": "Out of sync with the server. Refresh the page or update the grant when permissions change.",
+          "identityUnreachable": "Identity unreachable",
+          "identityUnavailable": "Identity is unavailable. Try again when it responds.",
+          "identityInvalid": "Identity rejected the request",
+          "invalidGrant": "Invalid grant",
+          "permissionChanged": "Permission changed",
+          "requestExpired": "Request expired",
+          "agentRevoked": "Connection revoked. Create a new connection to use this agent again.",
+          "downstreamError": "Downstream error",
+          "serverError": "Server error",
+          "unknown": "Unknown error"
+        }
+      },
+      "link": {
+        "openApprovalById": "Jump to pending approvals",
+        "openApprovalsSection": "Jump to pending approvals (same tool name)"
+      }
+    },
+    "pendingApprovals": {
+      "title": "Pending approvals",
+      "meta": "{{agentName}} · Expires in {{expiresInMinutes}} min",
+      "destructiveBadge": "Can change data",
+      "approve": "Approve",
+      "deny": "Deny",
+      "confirmApprove": {
+        "title": "Approve {{toolName}}?",
+        "description": "This can change data in {{companyName}}.",
+        "confirm": "Approve",
+        "cancel": "Cancel"
+      },
+      "toast": {
+        "approvedTitle": "Tool approved",
+        "deniedTitle": "Tool denied",
+        "description": "{{toolName}}",
+        "errorTitle": "Could not update the approval"
+      }
+    },
+    "create": {
+      "title": "Create a static secret",
+      "nameLabel": "Name",
+      "namePlaceholder": "ChatGPT on my laptop",
+      "nameHelper": "Shown in this list.",
+      "accessHelperGlobal": "This token can call every regional service for this company, and saas.",
+      "accessHelperRegional": "This token can call every regional service for this company. Saas is not included; connect from the global dashboard when you need saas.",
+      "expiryHelper": "This connection expires in {{days}} days.",
+      "submit": "Create secret",
+      "submitting": "Creating…",
+      "cancel": "Cancel",
+      "errorGeneric": "Could not create the connection.",
+      "errorExpiryTooLong": "Identity rejected this expiry. It is longer than the maximum lifetime for this connection.",
+      "errorMissingMcpUrl": "MCP URL is not configured. Set aiService.url in your Shellui config."
+    }
   },
   "dataPrivacy": {
     "title": "Data Privacy",

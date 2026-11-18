@@ -104,25 +104,27 @@ Build a production static site to `dist/web/`. Same isolated toolchain as `start
 
 ### shellui login [root]
 
-Sign in against identity-service and store CLI credentials (mode `0600`) for later commands such as `deploy`.
+Sign in against identity-service and store CLI credentials for later commands such as `deploy`.
 
 ```bash
 shellui login
 shellui login --config ./config
-shellui login --provider github
+shellui login --no-browser
 ```
 
-Walks from `[root]` (or cwd) up to `.git` looking for config. Binds a loopback HTTP server on `127.0.0.1:<port>`, prints a **session nonce**, and opens `{backend.url}/api/v1/authorize?company_id=…&redirect_to=http://127.0.0.1:<port>/callback&state=<nonce>&code_challenge=…&code_challenge_method=S256`. The PKCE verifier stays in the CLI process memory. Loopback is always allowlisted when `DEBUG=true` or `OAUTH_ALLOW_LOOPBACK_REDIRECTS=true` on identity.
+`shellui login` uses OAuth device authorization ([RFC 8628](https://www.rfc-editor.org/rfc/rfc8628)). The command walks from `[root]` (or the current directory) up to `.git` looking for config. It posts `client_id` `shellui-cli` and `company_id` to `POST {backend.url}/oauth/cli/device/code`.
 
-After sign-in, identity **0.5.0+** redirects to the loopback URL with `?shellui_auth_code=…`. The callback page posts the code to the CLI (`/code`, nonce-bound). The CLI redeems it at `POST /api/v1/oauth/session` with `code_verifier` and the loopback `Origin`, which matches `redirect_to` as identity 0.9.0 requires. Identity 0.9.0 ignores fragment delivery (`#access_token=…`).
+Identity returns a user code (`XXXX-XXXX`), `verification_uri`, `verification_uri_complete`, `expires_in` (600 seconds), and `interval` (5 seconds unless the response sets another value). The CLI prints the user code and the complete link. The device code stays in the process and is not printed. When a display is available it opens `verification_uri_complete` in your browser.
 
-**Loopback threat model (Track F / L-11, L-12):**
+`--no-browser` skips that launch. An SSH session (`SSH_CONNECTION`, `SSH_CLIENT`, or `SSH_TTY`) skips it too, as does Linux or BSD with neither `DISPLAY` nor `WAYLAND_DISPLAY`. Open the link, check that the code matches the terminal, and choose Allow or Deny.
 
-- The CLI `/capture` endpoint accepts tokens only when the POST includes the one-time session nonce (header `X-Shellui-Login-Nonce` and JSON `nonce`). This blocks other local processes from posting tokens while `shellui login` is active.
-- **Social-engineering residual:** a malicious site can still phish the authorize URL printed in your terminal. Only trust URLs whose path starts with `{backend.url}/api/v1/authorize`. Loopback pages show the port and nonce. Verify they match your terminal before completing sign-in.
-- Auth codes and URL fragments are cleared with `history.replaceState` after capture.
+The CLI then polls `POST {backend.url}/oauth/token` with `grant_type` `urn:ietf:params:oauth:grant-type:device_code`, the device code, and the same `client_id`. It waits `interval` seconds between polls. `authorization_pending` keeps the wait. `slow_down` adds 5 seconds to the interval.
 
-Required config: `backend.type: "shellui"`, `backend.companyId`, `backend.url` (default `https://id.shellui.com`). A running shell / `backend.loginUrl` is not required. Register `{backend.url}/api/v1/oauth/callback` on the OAuth provider app.
+`access_denied` stops and reports that sign-in was denied. `expired_token` stops and tells you to run `shellui login` again. Ctrl+C cancels the wait and stores nothing.
+
+A successful poll returns `access_token`, `refresh_token`, `token_type`, and `expires_in`. Those are the same application session tokens as `POST /api/v1/oauth/session` for that company. Refresh stays on `POST /api/v1/token`. Logout stays on `POST /api/v1/logout`. `shellui whoami` and `shellui auth status` keep using this session.
+
+Required config: `backend.type` set to `shellui`, `backend.companyId`, and `backend.url` (default `https://id.shellui.com`). A running shell is not required. `backend.loginUrl` is the shell origin for `/login`. Device login reads `backend.url` only. The verification page is on identity-service and lists that company's login methods.
 
 **Credentials:** stored per account, keyed by `backend.url` plus `backend.companyId`. Each account gets its own OS keychain entry (service `shellui`, account `cli-credentials:<backend.url>#<companyId>`) through the optional `@napi-rs/keyring` package. If the keychain is not available, the CLI warns once and writes tokens to `~/.config/shellui/credentials.json` (or `$XDG_CONFIG_HOME/shellui/credentials.json`, Windows `%APPDATA%\shellui\credentials.json`) with mode `0600` (directory `0700`), under the same keys. The file fallback limits exposure to your user account but does **not** protect against root, malware or backups. `accounts.json` in the same folder lists account keys and the current one, never tokens. A login stored by an older CLI version moves to the per-account layout on first use. Tokens are never printed.
 
@@ -131,6 +133,87 @@ Commands use the account named in the project's `shellui.config.json`. Outside a
 ### shellui logout / whoami
 
 `shellui logout` removes the stored credentials for the current account (`shellui logout --all` removes every account) and best-effort `POST /api/v1/logout` with the access token and refresh token (when present) so identity revokes the server session. `shellui whoami` calls `GET /api/v1/user` and refreshes the access token when expired, persisting rotated refresh tokens.
+
+### shellui auth status [root]
+
+Shows whether CLI credentials exist, which **regional** tenant id the active JWT uses (`credential companyId`), and (without printing tokens) whether a live identity profile call succeeds. Use `--json` for machine-readable output.
+
+The CLI registers this as `shellui auth ...` so every word dispatches; unknown
+words after `auth` exit nonzero with a short error instead of no-op.
+
+- Credentials stay in the same store as `shellui login` (`getCredentialStorageInfo()` in `@shellui/cli` documents the keychain vs file layout).
+- When present, `cli-session.json` (v2) may list **regional** default `regionalCompanyId` (from `shellui companies use`) and **dashboard** default `dashboardCompanyUuid` (from `shellui projects use`). Those are separate identifiers; see below.
+
+### Regional tenant id and dashboard company UUID
+
+The CLI distinguishes two company identifiers:
+
+| Kind                                 | Shape                                    | Source                                                                             | Used for                                                                                         |
+| ------------------------------------ | ---------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Regional** (identity tenant)       | Decimal digits, same as JWT `company_id` | `backend.companyId`, `shellui companies use`, optional `storage buckets --company` | Identity-backed flows; credential account; resolving regional scope for commands that require it |
+| **Dashboard / global** (SaaS record) | UUID                                     | `shellui projects list`, then `shellui projects use <uuid>`                        | SaaS paths under `saas.url` that take a company UUID in the path (`endpoints`, company detail)   |
+
+Do not pass a regional decimal id where the SaaS API expects a dashboard UUID (and the reverse). Human CLI commands use the same Bearer session as `shellui login` (device authorization against identity). **Global MCP** agents use a separate OAuth client and tool approval path for writes; the CLI does not substitute for that. `projects create` is **not implemented** from the CLI (exit `not_implemented`); create companies in the dashboard or through approved automation when your policy allows.
+
+### shellui companies \<action> [id] [root]
+
+Reads organizations through identity `GET /api/v1/companies/` and `GET /api/v1/companies/<id>/`. Requires `shellui login`. Use `--json` for JSON on stdout.
+
+| Action     | Meaning                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `list`     | Companies the signed-in user belongs to (**regional** ids, decimal)                                                                                                                              |
+| `get <id>` | One company by **regional** numeric id                                                                                                                                                           |
+| `use <id>` | Saves a default **regional** tenant id in `cli-session.json` (next to credentials, mode `0600`), keyed with `backend.url`. Still pass `--company` when you need another tenant in the same shell |
+
+Company selection for **`storage buckets`**: `--company <id>` wins, then the CLI session default from `companies use`, then `backend.companyId` in config. That only validates scope; requests do **not** send `company_id` as a query parameter (the JWT carries the tenant). Other services (`hosting` read-only commands) do not take `--company`; they rely on the logged-in JWT only.
+
+### shellui projects \<action> [id] [root]
+
+Calls the SaaS host with the same Bearer session as `shellui login`. Requires `saas.url` in config or `SHELLUI_SAAS_URL`. The CLI default when neither is set is `http://localhost:8005` (self-host smoke only). **No** `company_id` query is sent; dashboard companies are **UUIDs** in URL paths.
+
+When `saas.url` includes a path (for example `https://example.com/saas`), requests use that origin plus the paths below (for example `https://example.com/saas/api/v1/companies/`). The CLI does not add a second `saas/` segment after the base. Paths keep a **trailing slash** on list routes where Django expects it (for example `companies/`, `regions/`).
+
+| Action             | HTTP (relative to `{saas}` base)                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| `list`             | `GET /api/v1/companies/`                                                                    |
+| `get <uuid>`       | `GET /api/v1/companies/<uuid>/`                                                             |
+| `use <uuid>`       | Writes default dashboard UUID to `cli-session.json` (no HTTP)                               |
+| `regions`          | `GET /api/v1/regions/`                                                                      |
+| `endpoints [uuid]` | `GET /api/v1/companies/<uuid>/endpoints/` (uuid from argument, else `projects use` default) |
+| `create`           | Not implemented (use dashboard or global MCP when policy allows)                            |
+
+The parser is registered as `shellui projects ...`; unknown actions exit nonzero.
+
+`shellui projects list --json` on a working stack returns JSON (shape depends on the SaaS API). Errors from services are redacted and never include access tokens.
+
+### shellui storage buckets \<action> [name] [root]
+
+Uses `storage.url` from config (or `shellui.storage.config.json` when split) and the logged-in JWT. The storage API uses the **JWT `company_id` claim** only; the CLI does **not** append `company_id` to the query string.
+
+| Action       | Meaning                                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| `list`       | `GET /storage/v1/bucket`                                                |
+| `get [name]` | `GET /storage/v1/bucket/<name>` (defaults to the `company` bucket name) |
+
+Other actions are not exposed; bucket create remains an operator or dashboard concern (`bucket_create_disabled` on typical installs). Registered as `shellui storage ...`; only `storage buckets list|get` runs.
+
+### shellui hosting apps \<action> [ref] [root]
+
+Uses `hosting.url` and the logged-in JWT (**not** `SHELLUI_DEPLOY_TOKEN`; deploy tokens apply only to `shellui deploy`). **No** `company_id` query.
+
+| Action       | Meaning                                                         |
+| ------------ | --------------------------------------------------------------- |
+| `list`       | `GET /hosting/v1/apps`                                          |
+| `get <slug>` | `GET /hosting/v1/apps/<slug>` (slug is the public preview slug) |
+
+Registered as `shellui hosting ...`; `hosting apps` and `hosting deployments` are the supported branches.
+
+### shellui hosting deployments list [root] / shellui hosting deployments status \<uuid> [root]
+
+Inspect deployments without uploading artifacts. Same JWT as above.
+
+- `list` loads `GET /hosting/v1/apps/<slug>/deployments`. Slug comes from `--slug`, else `hosting.slug` in config.
+- `status` loads the same list and picks the row whose `id` matches `<uuid>` (there is no separate `GET` for one deployment on the service today).
 
 ### shellui deploy [root]
 
@@ -150,7 +233,7 @@ Builds a `tar.gz` of `dist/web/` and uploads (create app if needed → create de
 
 In CI, set `SHELLUI_DEPLOY_TOKEN` instead of running `shellui login`. See [CI with deploy tokens](#ci-with-deploy-tokens).
 
-**Required:** `hosting.url` (for example `http://localhost:8002`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
+**Required:** `hosting.url` (for example `http://localhost:8003`). Optional `hosting.slug` to redeploy the same preview. `--slug` overrides config. `--app` is a deprecated alias for `--slug`. `hosting.app` in config is ignored for preview deploys (CLI prints a warning). Optional `hosting.publicUrl` when browsable URLs differ from the API base. `hosting.showInAdmin: false` hides Admin → Hosting without affecting deploy.
 
 ### CI with deploy tokens
 
@@ -250,6 +333,7 @@ The CLI loads dotenv from the project `.env`. Sentry also merges from `SENTRY_DS
 - **`port`** (number, optional): dev server port. Default `3000` if omitted (`init` writes `4000`).
 - **`title`** (string, optional): chrome title.
 - **`backend`**: see [Backend](/backend).
+- **`saas`**: `url` (required for `shellui projects …`). Same logical key as in Docker Compose and self-host stacks (for example `http://localhost:8005` during smoke tests). Override with `SHELLUI_SAAS_URL` when you must not commit the origin.
 - **`storage`**: `url` (required when set), optional `filesUrl`, `showInSettings`. See [Storage](/features/storage).
 - **`hosting`**: `url`, optional `slug`, `publicUrl`, `showInAdmin`.
 - **`email`**: optional `url`, optional `showInAdmin`.
@@ -272,7 +356,7 @@ Shellui config can execute code: TypeScript configs run via `tsx` with the CLI's
 
 - Prefer **`shellui.config.json`** (or split JSON). Run `shellui config migrate` to move off TypeScript for CI-safe configs.
 - **`--config` / `SHELLUI_CONFIG`:** loading config from outside the project root prints a warning. World-writable config paths are rejected; symlink escapes outside the project root are rejected.
-- TypeScript load prints an additional warning. Treat config like source code — only from trusted repositories.
+- TypeScript load prints an additional warning. Treat config like source code, but only from trusted repositories.
 
 TypeScript config is an advanced fallback. Prefer JSON. Example when you need `readFileSync` for legal markdown:
 

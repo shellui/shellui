@@ -18,6 +18,51 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.0] - 2026-11-18
+
+Shellui 0.8.0 adds MCP agents, approvals, and activity in Settings, plus OAuth device login. You can sign in to the CLI with a device code and inspect your company. The shell stores its refresh token in an HttpOnly host cookie.
+
+### ✨ Feature
+
+- Settings shows MCP agents, approvals, and activity when an AI service URL is set.
+- Connect MCP agents with OAuth device login.
+- Personal MCP agents connect from Settings, and Settings reports success or failure.
+- Settings activity lists MCP tool calls from ai-service.
+- The CLI can sign in with OAuth device authorization.
+- The CLI can inspect dashboard, storage, and hosting for the signed-in company.
+- The SDK forwards the ai-service URL to apps.
+
+### 📚 Documentation
+
+- Docs cover MCP tool discovery and an updated AI native guide.
+- Security and authentication docs explain the host refresh cookie.
+- An Open source or Cloud page is in the docs.
+- The docs site generates social preview cards.
+- Docs recommend the local dev stack for running Shellui.
+- The companion isolation page is ready to share.
+
+### 🐛 Bug Fixes
+
+- The Settings MCP nav stays in place after sign-in, including while status loads.
+- Dev-stack sign-in stays valid across browser tabs.
+- Sign-in PKCE works on plain HTTP when the browser has no SubtleCrypto.
+- CLI project commands call the SaaS `/api/v1` company routes.
+
+### 🔒 Security
+
+- `shellui start` and `serve:dist` keep the shell refresh token in an HttpOnly host cookie. Page JavaScript receives only the access token. A static host without those routes keeps the previous sessionStorage refresh token.
+- MCP connection expiry stays within Identity's 90-day limit.
+- Signing out of the shell also clears the identity browser session.
+
+### 🏗 Chore
+
+- Local Docker dev stack under `dev/` for the shell, sibling services, and front-end hot reload.
+- The dev stack runs global and regional identity, seeds local users, and creates missing databases on start.
+- `./start.sh` generates dev signing keys, forwards SaaS approvals to identity, and stops the stack cleanly.
+- Dev front ends hot-reload Shellui packages, load one Vite config, and use less idle CPU.
+- The dev stack publishes MCP resource URLs for storage, hosting, and SaaS.
+- The local admin links to Mailpit, the stack includes the playground, and the dev image skips unneeded files.
+
 ## [0.7.0] - 2026-10-31
 
 Shellui 0.7.0 brings multi-region federation: each embedded app can use its own identity server and services, with regional sessions and a new SDK app frame. It also redesigns every layout for phones and accessibility, adds token-based CI previews to the CLI and hardens sign-in with PKCE.

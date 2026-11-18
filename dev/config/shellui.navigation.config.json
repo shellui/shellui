@@ -1,0 +1,205 @@
+{
+  "$schema": "../../packages/core/schemas/shellui.config.schema.json",
+  "navigation": [
+    {
+      "label": "Homepage",
+      "path": "",
+      "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/",
+      "icon": "/icons/home.svg",
+      "safeForAuthToken": true
+    },
+    {
+      "label": "Files",
+      "path": "files",
+      "url": "${FILES_URL:-http://localhost:5175}",
+      "icon": "/icons/folder.svg",
+      "hideWhenLoggedOut": true,
+      "requiresAuth": true,
+      "safeForAuthToken": true
+    },
+    {
+      "title": {
+        "en": "Features",
+        "fr": "Fonctionnalités"
+      },
+      "items": [
+        {
+          "label": {
+            "en": "Dialog",
+            "fr": "Dialogue"
+          },
+          "path": "dialog",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/dialog",
+          "icon": "/icons/dialog.svg",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Toaster",
+            "fr": "Notifications"
+          },
+          "path": "toaster",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/toaster",
+          "icon": "/icons/toaster.svg",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Modal & Drawer",
+            "fr": "Fenêtre modale et tiroir"
+          },
+          "path": "modal",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/modal",
+          "icon": "/icons/modal.svg",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Layout",
+            "fr": "Mise en page"
+          },
+          "path": "layout",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/layout",
+          "icon": "/icons/layout.svg",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Action buttons",
+            "fr": "Boutons d'action"
+          },
+          "path": "actions",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/actions",
+          "icon": "/icons/actions.svg",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Chat",
+            "fr": "Chat"
+          },
+          "path": "chat",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/chat",
+          "safeForAuthToken": true,
+          "icon": "/icons/chat.svg"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Preferences",
+        "fr": "Préférences"
+      },
+      "items": [
+        {
+          "label": {
+            "en": "Themes",
+            "fr": "Thèmes"
+          },
+          "path": "themes",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/themes",
+          "icon": "/icons/palette.svg",
+          "settings": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/themes",
+          "safeForAuthToken": true
+        },
+        {
+          "label": {
+            "en": "Language & region",
+            "fr": "Langue & région"
+          },
+          "path": "languages",
+          "url": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/languages",
+          "icon": "/icons/languages.svg",
+          "safeForAuthToken": true
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "External Links",
+        "fr": "Liens externes"
+      },
+      "items": [
+        {
+          "label": "Website",
+          "path": "website",
+          "url": "${WEBSITE_URL:-https://shellui.com}",
+          "icon": "/icons/globe.svg"
+        },
+        {
+          "label": {
+            "en": "Docs",
+            "fr": "Documentation"
+          },
+          "path": "docs",
+          "url": "${DOCS_URL:-https://docs.shellui.com}",
+          "icon": "/icons/book-open.svg"
+        },
+        {
+          "label": "Sebastien Barbier",
+          "path": "sebastienbarbier",
+          "url": "https://sebastienbarbier.com/",
+          "icon": "/icons/user.svg"
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "System",
+        "fr": "Système"
+      },
+      "items": [
+        {
+          "label": {
+            "en": "Page not found",
+            "fr": "Page non trouvée"
+          },
+          "path": "404",
+          "url": "/thisisnotfound",
+          "hidden": true
+        },
+        {
+          "label": {
+            "en": "Administration",
+            "fr": "Administration"
+          },
+          "path": "administration",
+          "url": "/admin",
+          "icon": "/icons/user.svg",
+          "hideWhenLoggedOut": true,
+          "requiresAuth": true
+        }
+      ]
+    },
+    {
+      "label": "Playground",
+      "path": "playground",
+      "url": "/",
+      "icon": "/icons/play.svg",
+      "position": "end",
+      "settings": "${PLAYGROUND_APP_URL:-http://localhost:5176}/#/settings"
+    },
+    {
+      "label": {
+        "en": "Settings",
+        "fr": "Paramètres"
+      },
+      "path": "settings",
+      "url": "/__settings",
+      "icon": "/icons/settings.svg",
+      "openIn": "modal",
+      "position": "end"
+    },
+    {
+      "label": {
+        "en": "Login",
+        "fr": "Connexion"
+      },
+      "path": "login",
+      "url": "/login",
+      "icon": "/icons/user.svg",
+      "openIn": "modal",
+      "position": "end"
+    }
+  ]
+}

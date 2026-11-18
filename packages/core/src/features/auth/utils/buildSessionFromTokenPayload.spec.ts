@@ -26,4 +26,16 @@ describe('buildSessionFromTokenPayload', () => {
   test('returns null when tokens are missing', () => {
     expect(buildSessionFromTokenPayload({ access_token: 'only-access' }, 0)).toBeNull();
   });
+
+  test('allows a missing refresh token when the host keeps it', () => {
+    const now = 1_700_000_000;
+    const session = buildSessionFromTokenPayload(
+      { access_token: 'access-only', expires_in: 300, token_type: 'bearer' },
+      now,
+      { refreshTokenRequired: false },
+    );
+    expect(session?.accessToken).toBe('access-only');
+    expect(session?.refreshToken).toBe('');
+    expect(session?.expiresAt).toBe(now + 300);
+  });
 });

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { AuthSession } from '../types';
 import { AuthRequestError } from '../utils/authRequestError';
+import { finishShellSignOut } from '../utils/identityBrowserLogout';
 import { generateCodeChallenge } from '../utils/pkce';
 import { WEB_PKCE_FLOW_PARAM, takeWebPkceVerifier } from '../utils/webPkce';
 import { createShellUIAuthBackend } from './shellui';
@@ -344,5 +345,114 @@ describe('shellui backend deleteAccount', () => {
 
     await expect(backend.deleteAccount(null)).rejects.toBeInstanceOf(AuthRequestError);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('shellui identity browser logout', () => {
+  const fetchMock = vi.fn();
+  const session = { accessToken: 'access-1', refreshToken: 'refresh-1' } as AuthSession;
+  const returnTo = 'https://app.example.com/docs?q=a+b&next=%2Fapps';
+
+  beforeEach(() => {
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  test('revokes with bearer before navigating to the encoded logout URL', async () => {
+    const order: string[] = [];
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      order.push(`${init?.method ?? 'GET'} ${url}`);
+      if (url.includes('/api/v1/logout')) {
+        expect(init?.credentials).toBeUndefined();
+        expect((init?.headers as Record<string, string>).Authorization).toBe('Bearer access-1');
+        expect(JSON.parse(String(init?.body))).toEqual({ refresh_token: 'refresh-1' });
+        return new Response(null, { status: 204 });
+      }
+      return jsonResponse(200, { logout_url: 'https://auth.example.com/oauth/logout' });
+    });
+
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+    const resolveLogoutUrl = backend.resolveIdentityBrowserLogoutUrl;
+    if (!resolveLogoutUrl) throw new Error('Expected an identity browser logout resolver.');
+    const navigated: string[] = [];
+    const didNavigate = await finishShellSignOut({
+      revoke: () => backend.logout(session),
+      clearLocal: () => {
+        order.push('clear');
+      },
+      readBrowserLogoutUrl: () => resolveLogoutUrl(returnTo),
+      navigate: (url) => {
+        order.push('navigate');
+        navigated.push(url);
+      },
+      initiatedHere: true,
+    });
+
+    expect(didNavigate).toBe(true);
+    expect(order).toEqual([
+      'POST https://auth.example.com/api/v1/logout',
+      'clear',
+      'GET https://auth.example.com/api/v1/settings?company_id=7',
+      'navigate',
+    ]);
+    const target = new URL(navigated[0] as string);
+    expect(`${target.origin}${target.pathname}`).toBe('https://auth.example.com/oauth/logout');
+    expect(target.searchParams.get('company_id')).toBe('7');
+    expect(target.searchParams.get('return_to')).toBe(returnTo);
+    expect(navigated[0]).toContain(`return_to=${encodeURIComponent(returnTo)}`);
+  });
+
+  test('keeps token revoke and skips navigation when logout_url is absent', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      if (String(input).includes('/api/v1/logout')) return new Response(null, { status: 204 });
+      return jsonResponse(200, { methods: ['magic_link'] });
+    });
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: '7',
+    });
+    const resolveLogoutUrl = backend.resolveIdentityBrowserLogoutUrl;
+    if (!resolveLogoutUrl) throw new Error('Expected an identity browser logout resolver.');
+    const navigate = vi.fn();
+    const didNavigate = await finishShellSignOut({
+      revoke: () => backend.logout(session),
+      clearLocal: () => {},
+      readBrowserLogoutUrl: () => resolveLogoutUrl(returnTo),
+      navigate,
+      initiatedHere: true,
+    });
+
+    expect(didNavigate).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+    const logoutCall = fetchMock.mock.calls.find((call) =>
+      String(call[0]).includes('/api/v1/logout'),
+    ) as [string, RequestInit] | undefined;
+    expect(logoutCall?.[1].method).toBe('POST');
+    expect((logoutCall?.[1].headers as Record<string, string>).Authorization).toBe(
+      'Bearer access-1',
+    );
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/v1/logout');
+  });
+
+  test('does not follow a logout_url on another origin', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { logout_url: 'https://evil.example/oauth/logout' }),
+    );
+    const backend = createShellUIAuthBackend({
+      backendUrl: 'https://auth.example.com',
+      companyId: 7,
+    });
+
+    const resolveLogoutUrl = backend.resolveIdentityBrowserLogoutUrl;
+    if (!resolveLogoutUrl) throw new Error('Expected an identity browser logout resolver.');
+    await expect(resolveLogoutUrl(returnTo)).resolves.toBeNull();
   });
 });

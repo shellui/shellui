@@ -35,6 +35,11 @@ export function captureCliCallbackFromSearch(search: string): void {
   }
 }
 
+/** True when `shellui login` is waiting for tokens on a loopback URL. */
+export function hasPendingCliCallback(): boolean {
+  return readStoredCliCallback() !== null;
+}
+
 function readStoredCliCallback(): string | null {
   if (typeof sessionStorage === 'undefined') return null;
   try {

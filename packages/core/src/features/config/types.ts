@@ -88,6 +88,10 @@ export interface NavigationItem {
    * Hosting service for this app. Same fallback as `email`.
    */
   hosting?: HostingConfig;
+  /**
+   * AI service for this app. Same fallback as `email`.
+   */
+  aiService?: AiServiceConfig;
 }
 
 export interface NavigationGroup {
@@ -188,9 +192,13 @@ export interface BackendLoginConfig {
 /** Same-origin BFF auth for HttpOnly refresh cookies (see docs/features/security.md). */
 export interface BffAuthConfig {
   /**
-   * When true, refresh tokens are stored in an HttpOnly cookie via `/api/auth/*`
-   * served by the shell host (CLI dev server or your production reverse proxy).
-   * Default: false (refresh stays in sessionStorage until you enable BFF).
+   * Shell-host refresh cookie (`shellui_refresh` on `/api/auth`).
+   * `false` turns the routes off. The page then calls identity itself and
+   * stores the refresh token in sessionStorage.
+   * `true`, or leaving this out, mounts `/api/auth/*` on `shellui start` and
+   * `serve:dist`. The page uses them only after `GET /api/auth/session`
+   * returns `{ "ready": true }`. A static host without those routes keeps
+   * the sessionStorage refresh token.
    */
   enabled?: boolean;
   /** HttpOnly cookie name. Default: `shellui_refresh`. */
@@ -294,8 +302,8 @@ export interface BackendConfig {
   /** Admin content URL loaded in the admin route view (e.g. "https://example.com/admin"). */
   adminUrl?: string;
   /**
-   * Public origin (or full URL) of this shell — where `/login` and OAuth `/login/callback` live.
-   * Used by `shellui login`. Not the iframe admin app (`adminUrl`).
+   * Public origin (or full URL) of this shell, where `/login` and OAuth `/login/callback` live.
+   * The shell allowlists this origin. It is not the iframe admin app (`adminUrl`).
    * Example: `https://app.example.com` or `http://127.0.0.1:4000`.
    */
   loginUrl?: string;
@@ -383,6 +391,24 @@ export interface EmailConfig {
 }
 
 /**
+ * Optional ai-service wiring for Admin → AI and iframe apps.
+ * The shell never invents a URL: without `url`, apps get no ai service.
+ */
+export interface AiServiceConfig {
+  /**
+   * Base URL of ai-service.
+   * Required for apps to get AI. There is no built-in default.
+   * Local: `http://localhost:8006`.
+   */
+  url?: string;
+  /**
+   * When false, hide Admin → AI.
+   * Default: true (shown) when `aiService` is set.
+   */
+  showInAdmin?: boolean;
+}
+
+/**
  * Custom navigation section for the staff administration panel.
  * Admin app URL remains `backend.adminUrl` / `backend.adminPathname`.
  * v1 is a flat list only (no nested groups).
@@ -460,6 +486,12 @@ export interface ShellUIConfig {
    * `showInAdmin: false` hides Admin → Email.
    */
   email?: EmailConfig;
+  /**
+   * AI-service connection. Propagated to iframes via SDK settings.
+   * Without `url`, the shell sends no ai service (`null`).
+   * `showInAdmin: false` hides Admin → AI.
+   */
+  aiService?: AiServiceConfig;
   /**
    * Single theme: built-in name, path to a theme JSON/folder, or inline theme object.
    * When set without `themes`, only this theme is available in the selector.
