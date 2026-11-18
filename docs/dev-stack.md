@@ -49,7 +49,7 @@ cd shellui/dev
 
 On first run, `start.sh` creates `dev/.env.local` with fresh secrets. Later runs keep it and only append variables added to the example since (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, `email-worker` included. Extra arguments go to Compose, for example `./start.sh -d`.
 
-On every `./start.sh`, the stack creates any missing Postgres database after Postgres is healthy and before the backends that use Postgres start. The databases are `identity`, `identity_global`, `storage`, `hosting`, `email`, `saas`, and `ai`. The next `./start.sh` creates `identity_global` when the volume predates that database.
+On every `./start.sh`, the stack creates any missing Postgres database after Postgres is healthy and before the backends that use Postgres start. The databases are `identity`, `identity_global`, `storage`, `hosting`, `email`, `saas`, `ai`, and `ai_global`. The next `./start.sh` creates `ai_global` when the volume predates that database.
 
 Never commit `dev/.env.local`.
 
@@ -65,6 +65,7 @@ Never commit `dev/.env.local`.
 | email           | http://localhost:8004 |
 | saas            | http://localhost:8005 |
 | ai              | http://localhost:8006 |
+| ai-global       | http://localhost:8008 |
 | admin           | http://localhost:5173 |
 | dashboard       | http://localhost:5174 |
 | files           | http://localhost:5175 |
@@ -74,22 +75,37 @@ Never commit `dev/.env.local`.
 | Postgres        | `localhost:5432`      |
 | Redis           | `localhost:6379`      |
 
-Browser URLs and token issuers use `http://${DEV_PUBLIC_HOST}:<port>`. The example sets `DEV_PUBLIC_HOST` to a Tailscale address. Set it to `localhost` when the browser is on the same machine. The table lists the ports. identity-global is port 8007. In the steps below, use that host in place of `localhost` when it is not `localhost`. Calls between containers use `http://<service>:8000`, for example `http://identity:8000/.well-known/jwks.json` and `http://identity-global:8000/.well-known/jwks.json`.
+Browser URLs and token issuers use `http://${DEV_PUBLIC_HOST}:<port>`. The example sets `DEV_PUBLIC_HOST` to a Tailscale address. Set it to `localhost` when the browser is on the same machine. The table lists the ports. identity-global is port 8007. ai-global is port 8008. In the steps below, use that host in place of `localhost` when it is not `localhost`. Calls between containers use `http://<service>:8000`, for example `http://identity:8000/.well-known/jwks.json`, `http://identity-global:8000/.well-known/jwks.json`, and `http://ai-global:8000/.well-known/jwks.json`.
 
 ## Which identity each app uses
 
 The stack always starts two identity-service processes. They do not share a database, a Redis DB index, a `SECRET_KEY`, or a JWT signing key. `SHELLUI_INSTANCE_ROLE` is `region` on `identity` and `global` on `identity-global`.
 
-| App                             | Identity | How it is reached                                       |
-| ------------------------------- | -------- | ------------------------------------------------------- |
-| shell, admin, files, playground | region   | http://localhost:8001                                   |
-| storage, hosting, email, ai     | region   | `http://identity:8000` on the Compose network           |
-| dashboard                       | global   | http://localhost:8007 (`IDENTITY_SERVICE_URL`)          |
-| saas                            | global   | `http://identity-global:8000` (`IDENTITY_INTERNAL_URL`) |
+| App                             | Identity | How it is reached                                                                         |
+| ------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| shell, admin, files, playground | region   | http://localhost:8001                                                                     |
+| storage, hosting, email, ai     | region   | `http://identity:8000` on the Compose network                                             |
+| dashboard                       | global   | http://localhost:8007 (`IDENTITY_SERVICE_URL`)                                            |
+| saas, ai-global                 | global   | `http://identity-global:8000` (`IDENTITY_INTERNAL_URL` or `GLOBAL_IDENTITY_INTERNAL_URL`) |
 
 `REGION_CH_IDENTITY_ORIGIN` stays http://localhost:8001. The dashboard uses that value for the `ch` region row. Sign-in for the dashboard itself uses identity-global.
 
-Regional identity trusts two issuers. It does not fetch either JWKS over the network.
+## Which ai-service each client uses
+
+The stack always starts two ai-service processes from the same image. They do not share a database, a Redis DB index, a `SECRET_KEY`, or a signing key. `AI_SERVICE_MODE` is `region` on `ai` and `global` on `ai-global`.
+
+| Client                                                | Mode                      | How it is reached                                                                        |
+| ----------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------- |
+| shell, admin, company MCP                             | region                    | http://localhost:8006 (`/c/<company_id>/mcp`)                                            |
+| storage, hosting, email calls from the region gateway | region                    | `http://storage:8000`, `http://hosting:8000`, `http://email:8000`                        |
+| Shellui account MCP                                   | global                    | http://localhost:8008 (`/mcp`)                                                           |
+| saas API tokens and `Region.ai_url`                   | global issuer, region URL | `AI_GLOBAL_ISSUER` is http://localhost:8008. `REGION_CH_AI_URL` is http://localhost:8006 |
+
+The region process does not set `SAAS_SERVICE_URL`. SaaS tools are on ai-global. ai-global signs in through identity-global (`GLOBAL_IDENTITY_URL`, internal `http://identity-global:8000`) with `GLOBAL_OIDC_CLIENT_ID`. That client is the second entry in `IDENTITY_GLOBAL_OIDC_CLIENTS`. Its redirect is `{PUBLIC_AI_GLOBAL_URL}/oauth/mcp/signin/complete`. Company tools exchange at regional identity (`http://identity:8000` on the Compose network, http://localhost:8001 from the host). SaaS tool calls use `SAAS_SERVICE_URL` (http://localhost:8005) and `SAAS_SERVICE_INTERNAL_URL` (`http://saas:8000`). The saas API token `aud` is `SAAS_API_AUDIENCE` (`http://localhost:8005/api`).
+
+`REGION_CH_AI_ORIGIN` stays on the dashboard. saas reads `REGION_CH_AI_URL` for the same regional origin.
+
+Regional identity trusts one user issuer and two agent issuers. It does not fetch JWKS over the network.
 
 User tokens come from identity-global:
 
@@ -99,12 +115,17 @@ User tokens come from identity-global:
 - `GLOBAL_ACCESS_TOKEN_AUDIENCE` is `shellui_global`, the same value as identity-global `JWT_AUDIENCE`.
 - `GLOBAL_CLIENT_ID` and `GLOBAL_CLIENT_SECRET` match `IDENTITY_GLOBAL_OIDC_CLIENTS` on identity-global.
 
-Agent tokens come from saas. saas keeps its own OAuth server for the global MCP. Its process `GLOBAL_ISSUER_URL` is http://localhost:8005, and that is the agent token `iss`.
+Agent tokens for the global MCP come from ai-global. During migration, regional identity also trusts tokens saas still mints.
 
-- `GLOBAL_AGENT_ISSUER_URL` on regional identity is http://localhost:8005.
-- `GLOBAL_AGENT_JWKS` is the public key of `GLOBAL_AGENT_SIGNING_KEY`. That PEM is not identity-global's JWT key.
-- `GLOBAL_AGENT_KEY_ID` is the `kid` in `GLOBAL_AGENT_JWKS`.
-- `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` is `shellui_global_agent_dev`. saas and regional identity both read that name.
+- `GLOBAL_AGENT_ISSUER_URL` on regional identity is http://localhost:8008 (`PUBLIC_AI_GLOBAL_URL`).
+- `GLOBAL_AGENT_JWKS` is the public key of `AI_GLOBAL_SERVICE_SIGNING_KEY`. Inside the ai-global container that PEM is `AI_SERVICE_SIGNING_KEY`. It is not identity-global's JWT key and not the saas key.
+- `GLOBAL_AGENT_LEGACY_ISSUER_URL` is http://localhost:8005. `GLOBAL_AGENT_LEGACY_JWKS` is the public key of `GLOBAL_AGENT_SIGNING_KEY`. `GLOBAL_AGENT_KEY_ID` is the `kid` in that legacy JWKS. Drop this pair at cutover.
+- `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` is `shellui_global_agent_dev`. ai-global, saas, and regional identity all read that name.
+- `GLOBAL_MCP_URL` on regional identity is http://localhost:8008/mcp. Personal status returns that URL. When the variable is empty, identity uses `{DASHBOARD_PUBLIC_URL}/mcp`.
+
+saas keeps `GLOBAL_ISSUER_URL` at http://localhost:8005 so tokens it still mints match the legacy issuer. It verifies ai-global saas API tokens with `AI_GLOBAL_ISSUER` and `AI_GLOBAL_JWKS`.
+
+ai-service `region` ignores `SAAS_SERVICE_URL` and must not set `GLOBAL_IDENTITY_URL`, `GLOBAL_OIDC_CLIENT_ID`, `GLOBAL_OIDC_CLIENT_SECRET`, or `SAAS_API_AUDIENCE`. `global` reads `GLOBAL_IDENTITY_*`, `GLOBAL_OIDC_*`, `SAAS_SERVICE_INTERNAL_URL`, and `SAAS_API_AUDIENCE`, signs with `AI_SERVICE_SIGNING_KEY`, and must not set regional identity, storage, hosting, or `EMAIL_SERVICE_API_KEY`. identity-service accepts `GLOBAL_AGENT_LEGACY_ISSUER_URL` and `GLOBAL_AGENT_LEGACY_JWKS` next to `GLOBAL_AGENT_ISSUER_URL` and `GLOBAL_AGENT_JWKS`, and reads `GLOBAL_MCP_URL` for personal status. saas-service reads `AI_GLOBAL_ISSUER`, `AI_GLOBAL_JWKS`, and `REGION_CH_AI_URL` (`Region.ai_url`, token `aud` `SAAS_API_AUDIENCE`). identity-global registers whatever `OIDC_CLIENTS` lists, including the ai-global client.
 
 ## Try the global to regional exchange
 
@@ -112,7 +133,7 @@ Use a non-staff account. `admin` / `admin` is staff on both databases. Regional 
 
 1. Open the dashboard at http://localhost:5174. Sign-in goes to identity-global at http://localhost:8007, company 1. Request a magic link for `dev@localhost` and open it from Mailpit at http://localhost:8025. The shell at http://localhost:4000 still signs in at http://localhost:8001.
 2. In the dashboard, create or connect a company. SaaS calls the regional provisioning API on http://localhost:8001. The regional database already has company 1 (Shellui Dev, public access) from `seed_dev`, which is enough for a local exchange target.
-3. Global MCP is `POST http://localhost:8005/mcp`. After global MCP consent, exchange that global agent access token for a company MCP token. `SUBJECT_TOKEN` is the saas agent JWT (`iss` http://localhost:8005, `aud` `shellui_global_agent_dev`).
+3. Global MCP for a Shellui account is `POST http://localhost:8008/mcp` (ai-global). saas `POST http://localhost:8005/mcp` stays until cutover. After consent, exchange the global agent access token for a company MCP token. `SUBJECT_TOKEN` is the ai-global agent JWT (`iss` http://localhost:8008, `aud` `shellui_global_agent_dev`). A saas-minted token (`iss` http://localhost:8005, same `aud`) still exchanges while `GLOBAL_AGENT_LEGACY_ISSUER_URL` is set.
 
 ```bash
 G=urn:ietf:params:oauth:grant-type:token-exchange
@@ -164,13 +185,13 @@ docker compose --env-file .env.local down -v       # stop and delete all data vo
 
 ## Global issuer keys (dev)
 
-`dev/generate_env.py` fills two RSA keys. identity-global's JWT key feeds **`GLOBAL_JWKS`**. **`GLOBAL_AGENT_SIGNING_KEY`** feeds **`GLOBAL_AGENT_JWKS`** and **`GLOBAL_AGENT_KEY_ID`**. On every run the script rebuilds both JWKS from those PEMs. An existing file keeps each private key. If the two PEMs are the same, the script generates a new identity-global key and leaves the SaaS key in place. It appends missing names and does not replace `POSTGRES_PASSWORD`.
+`dev/generate_env.py` fills three RSA keys for these issuers. identity-global's JWT key feeds **`GLOBAL_JWKS`**. **`GLOBAL_AGENT_SIGNING_KEY`** feeds **`GLOBAL_AGENT_JWKS`** and **`GLOBAL_AGENT_KEY_ID`** (the legacy saas agent signer). **`AI_GLOBAL_SERVICE_SIGNING_KEY`** feeds **`AI_GLOBAL_JWKS`** and **`AI_GLOBAL_SERVICE_SIGNING_KID`**. On every run the script rebuilds those JWKS from the PEMs and rewrites `IDENTITY_GLOBAL_OIDC_CLIENTS` so the regional client and the ai-global client are both registered. An existing file keeps each private key. If identity-global's PEM matches the saas PEM, the script generates a new identity-global key and leaves the saas key in place. If the ai-global PEM matches either of those, or the regional `AI_SERVICE_SIGNING_KEY`, the script generates a new ai-global key. It appends missing names and does not replace `POSTGRES_PASSWORD`.
 
-`dev/docker-compose.yml` passes `GLOBAL_ISSUER_URL` (http://localhost:8007), `GLOBAL_JWKS`, `GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ISSUER_URL` (http://localhost:8005), `GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **identity**. saas receives `GLOBAL_ISSUER_URL` http://localhost:8005, plus `GLOBAL_AGENT_SIGNING_KEY`, `GLOBAL_AGENT_KEY_ID`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`. See [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md). **`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
+`dev/docker-compose.yml` passes `GLOBAL_ISSUER_URL` (http://localhost:8007), `GLOBAL_JWKS`, `GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ISSUER_URL` (http://localhost:8008), `GLOBAL_AGENT_JWKS` (the ai-global key), `GLOBAL_AGENT_LEGACY_ISSUER_URL` (http://localhost:8005), `GLOBAL_AGENT_LEGACY_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **identity**. saas receives `GLOBAL_ISSUER_URL` http://localhost:8005, plus `GLOBAL_AGENT_SIGNING_KEY`, `GLOBAL_AGENT_KEY_ID`, `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, `AI_GLOBAL_ISSUER`, `AI_GLOBAL_JWKS`, and `REGION_CH_AI_URL`. See [Identity MCP and agents](https://github.com/shellui/identity-service/blob/develop/docs/mcp-and-agents.md). **`GLOBAL_AGENT_PRIVATE_KEY`** is not used in **`dev/.env.local.example`**.
 
 ## Migrate an existing local stack
 
-From `shellui/dev`, refresh the env file. New names are appended. Private keys that are already set stay, except when identity-global's key is the same PEM as `GLOBAL_AGENT_SIGNING_KEY`: then identity-global gets a new key. `GLOBAL_JWKS`, `GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_KEY_ID` are rewritten so they match those PEMs.
+From `shellui/dev`, refresh the env file. New names are appended. Private keys that are already set stay, except when identity-global's key is the same PEM as `GLOBAL_AGENT_SIGNING_KEY`: then identity-global gets a new key. The same rule gives ai-global a new key when its PEM matches another signing key. `GLOBAL_JWKS`, `GLOBAL_AGENT_JWKS`, `GLOBAL_AGENT_KEY_ID`, `AI_GLOBAL_JWKS`, `AI_GLOBAL_SERVICE_SIGNING_KID`, `GLOBAL_AGENT_ISSUER_URL`, and `IDENTITY_GLOBAL_OIDC_CLIENTS` are rewritten so they match those keys and the two OIDC clients.
 
 ```bash
 ./generate-env.sh
@@ -180,7 +201,7 @@ Running `./start.sh` creates any missing Postgres database, including when the d
 
 ## Redis
 
-One Redis instance. Each backend uses its own DB: identity `0`, storage `1`, hosting `2`, email `3`, saas `4`, ai `5`, identity-global `6`. Values live in `dev/.env.local.example` as `*_REDIS_URL`.
+One Redis instance. Each backend uses its own DB: identity `0`, storage `1`, hosting `2`, email `3`, saas `4`, ai `5`, identity-global `6`, ai-global `7`. Values live in `dev/.env.local.example` as `*_REDIS_URL`.
 
 ## Workers
 

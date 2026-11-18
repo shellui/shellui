@@ -66,20 +66,28 @@ def jwks_matches_signing_pem(text: str, dev: Path) -> None:
 
     agent_pem = pem_of("GLOBAL_AGENT_SIGNING_KEY")
     issuer_pem = pem_of("IDENTITY_GLOBAL_JWT_PRIVATE_KEY")
+    ai_global_pem = pem_of("AI_GLOBAL_SERVICE_SIGNING_KEY")
     assert agent_pem.strip() != issuer_pem.strip(), "agent and identity-global keys must differ"
+    assert ai_global_pem.strip() not in {agent_pem.strip(), issuer_pem.strip()}
     agent_kid = mod.kid_from_private_pem(agent_pem)
     issuer_kid = mod.kid_from_private_pem(issuer_pem)
+    ai_global_kid = mod.kid_from_private_pem(ai_global_pem)
     assert kid_of("GLOBAL_AGENT_KEY_ID") == agent_kid
     assert kid_of("IDENTITY_GLOBAL_JWT_KEY_ID") == issuer_kid
+    assert kid_of("AI_GLOBAL_SERVICE_SIGNING_KID") == ai_global_kid
     agent_doc = assert_jwks_var(text, "GLOBAL_AGENT_JWKS")
     issuer_doc = assert_jwks_var(text, "GLOBAL_JWKS")
+    ai_global_doc = assert_jwks_var(text, "AI_GLOBAL_JWKS")
     assert agent_doc["keys"][0]["kid"] == agent_kid
     assert issuer_doc["keys"][0]["kid"] == issuer_kid
-    assert agent_kid != issuer_kid
+    assert ai_global_doc["keys"][0]["kid"] == ai_global_kid
+    assert len({agent_kid, issuer_kid, ai_global_kid}) == 3
     agent_pub = mod.public_pem_from_private(agent_pem)
     issuer_pub = mod.public_pem_from_private(issuer_pem)
+    ai_global_pub = mod.public_pem_from_private(ai_global_pem)
     assert agent_doc == json.loads(mod.jwks_for_rsa_public_pem(agent_pub, agent_kid))
     assert issuer_doc == json.loads(mod.jwks_for_rsa_public_pem(issuer_pub, issuer_kid))
+    assert ai_global_doc == json.loads(mod.jwks_for_rsa_public_pem(ai_global_pub, ai_global_kid))
 
 
 def pem_from_env_line(line: str) -> str:
@@ -95,16 +103,23 @@ def assert_global_issuer_key_matches(text: str, dev: Path) -> None:
     lines = {
         name: line
         for line in text.splitlines()
-        if (name := line.split("=", 1)[0]) in {"GLOBAL_CLIENT_ID", "IDENTITY_GLOBAL_OIDC_CLIENTS"}
+        if (name := line.split("=", 1)[0])
+        in {"GLOBAL_CLIENT_ID", "GLOBAL_OIDC_CLIENT_ID", "IDENTITY_GLOBAL_OIDC_CLIENTS"}
     }
     clients_raw = lines["IDENTITY_GLOBAL_OIDC_CLIENTS"].split("=", 1)[1].strip()
     if len(clients_raw) >= 2 and clients_raw[0] == clients_raw[-1] and clients_raw[0] in {"'", '"'}:
         clients_raw = clients_raw[1:-1]
     clients = json.loads(clients_raw)
+    assert len(clients) == 2
     client_id = lines["GLOBAL_CLIENT_ID"].split("=", 1)[1].strip()
+    ai_client_id = lines["GLOBAL_OIDC_CLIENT_ID"].split("=", 1)[1].strip()
     assert clients[0]["client_id"] == client_id
+    assert clients[1]["client_id"] == ai_client_id
+    assert client_id != ai_client_id
     assert "http://localhost:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
     assert "http://${DEV_PUBLIC_HOST}:8001/oauth/upstream-callback" in clients[0]["redirect_uris"]
+    assert "http://localhost:8008/oauth/mcp/signin/complete" in clients[1]["redirect_uris"]
+    assert "http://${DEV_PUBLIC_HOST}:8008/oauth/mcp/signin/complete" in clients[1]["redirect_uris"]
 
 
 def assert_no_duplicate_var_definitions(text: str) -> None:
@@ -131,6 +146,12 @@ def global_signing_lines(text: str) -> dict[str, str]:
         "GLOBAL_JWKS",
         "IDENTITY_GLOBAL_JWT_PRIVATE_KEY",
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE",
+        "AI_GLOBAL_SERVICE_SIGNING_KEY",
+        "AI_GLOBAL_SERVICE_SIGNING_KID",
+        "AI_GLOBAL_JWKS",
+        "GLOBAL_OIDC_CLIENT_ID",
+        "GLOBAL_OIDC_CLIENT_SECRET",
+        "IDENTITY_GLOBAL_OIDC_CLIENTS",
     )
     out: dict[str, str] = {}
     for line in text.splitlines():
