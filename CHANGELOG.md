@@ -3,7 +3,7 @@
 Notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [Semantic Versioning](https://semver.org/).
 
 <!---
-## [Unreleased] - yyyy-mm-dd
+## [x.y.z] - yyyy-mm-dd
 
 ### ✨ Feature - for new features
 ### 🛠 Improvements - for general improvements
@@ -18,11 +18,19 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.8.1] - 2026-11-18
+
+### ✨ Feature
+
+- The local dev stack runs a regional ai-service and a global ai-service. (#211)
+
+### 🚨 Changed
+
+- In the local dev stack, a Shellui account MCP uses the global ai-service. Regional identity trusts that issuer and still accepts the saas issuer. (#211)
 
 ### 🐛 Bug Fixes
 
-- **Core:** The Files app in a project admin uses that project's storage URL and regional session.
+- **Core:** The Files app in a project admin uses that project's storage URL and regional session. (#201)
 
 ## [0.8.0] - 2026-11-18
 
