@@ -88,6 +88,7 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   assert.match(example, /^GLOBAL_OIDC_CLIENT_ID=/m);
   assert.match(example, /^REGION_CH_AI_URL=\$\{PUBLIC_AI_URL\}$/m);
   assert.match(example, /^SAAS_API_AUDIENCE=\$\{PUBLIC_SAAS_URL\}\/api$/m);
+  assert.match(example, /^GLOBAL_MCP_URL=\$\{PUBLIC_AI_GLOBAL_URL\}\/mcp$/m);
   assert.match(example, /:8008/);
   assert.match(example, /^SHELLUI_INSTANCE_ROLE=region$/m);
   assert.match(compose, /GLOBAL_AGENT_SIGNING_KEY:\s*\$\{GLOBAL_AGENT_SIGNING_KEY\}/);
@@ -96,6 +97,7 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   assert.match(compose, /GLOBAL_AGENT_JWKS:\s*\$\{AI_GLOBAL_JWKS\}/);
   assert.match(compose, /GLOBAL_AGENT_LEGACY_ISSUER_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
   assert.match(compose, /GLOBAL_AGENT_LEGACY_JWKS:\s*\$\{GLOBAL_AGENT_JWKS\}/);
+  assert.match(compose, /GLOBAL_MCP_URL:\s*\$\{GLOBAL_MCP_URL\}/);
   assert.match(compose, /GLOBAL_ISSUER_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
   assert.match(compose, /GLOBAL_ISSUER_URL:\s*\$\{PUBLIC_IDENTITY_GLOBAL_URL\}/);
   assert.doesNotMatch(compose, /GLOBAL_AGENT_ISSUER:/);

@@ -121,10 +121,11 @@ Agent tokens for the global MCP come from ai-global. During migration, regional 
 - `GLOBAL_AGENT_JWKS` is the public key of `AI_GLOBAL_SERVICE_SIGNING_KEY`. Inside the ai-global container that PEM is `AI_SERVICE_SIGNING_KEY`. It is not identity-global's JWT key and not the saas key.
 - `GLOBAL_AGENT_LEGACY_ISSUER_URL` is http://localhost:8005. `GLOBAL_AGENT_LEGACY_JWKS` is the public key of `GLOBAL_AGENT_SIGNING_KEY`. `GLOBAL_AGENT_KEY_ID` is the `kid` in that legacy JWKS. Drop this pair at cutover.
 - `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` is `shellui_global_agent_dev`. ai-global, saas, and regional identity all read that name.
+- `GLOBAL_MCP_URL` on regional identity is http://localhost:8008/mcp. Personal status returns that URL. When the variable is empty, identity uses `{DASHBOARD_PUBLIC_URL}/mcp`.
 
 saas keeps `GLOBAL_ISSUER_URL` at http://localhost:8005 so tokens it still mints match the legacy issuer. It verifies ai-global saas API tokens with `AI_GLOBAL_ISSUER` and `AI_GLOBAL_JWKS`.
 
-ai-service has to honor `AI_SERVICE_MODE`: `region` ignores `SAAS_SERVICE_URL`, and `global` reads `GLOBAL_IDENTITY_*`, `GLOBAL_OIDC_*`, `SAAS_SERVICE_INTERNAL_URL`, and `SAAS_API_AUDIENCE`, signing with `AI_SERVICE_SIGNING_KEY`. identity-service has to accept `GLOBAL_AGENT_LEGACY_ISSUER_URL` and `GLOBAL_AGENT_LEGACY_JWKS` next to `GLOBAL_AGENT_ISSUER_URL` and `GLOBAL_AGENT_JWKS`. saas-service has to read `AI_GLOBAL_ISSUER`, `AI_GLOBAL_JWKS`, and `REGION_CH_AI_URL` (`Region.ai_url`, token `aud` `SAAS_API_AUDIENCE`). Until those changes are on `develop`, this stack still starts and the variables are set. identity-global already registers whatever `OIDC_CLIENTS` lists, including the ai-global client.
+ai-service `region` ignores `SAAS_SERVICE_URL` and must not set `GLOBAL_IDENTITY_URL`, `GLOBAL_OIDC_CLIENT_ID`, `GLOBAL_OIDC_CLIENT_SECRET`, or `SAAS_API_AUDIENCE`. `global` reads `GLOBAL_IDENTITY_*`, `GLOBAL_OIDC_*`, `SAAS_SERVICE_INTERNAL_URL`, and `SAAS_API_AUDIENCE`, signs with `AI_SERVICE_SIGNING_KEY`, and must not set regional identity, storage, hosting, or `EMAIL_SERVICE_API_KEY`. identity-service accepts `GLOBAL_AGENT_LEGACY_ISSUER_URL` and `GLOBAL_AGENT_LEGACY_JWKS` next to `GLOBAL_AGENT_ISSUER_URL` and `GLOBAL_AGENT_JWKS`, and reads `GLOBAL_MCP_URL` for personal status. saas-service reads `AI_GLOBAL_ISSUER`, `AI_GLOBAL_JWKS`, and `REGION_CH_AI_URL` (`Region.ai_url`, token `aud` `SAAS_API_AUDIENCE`). identity-global registers whatever `OIDC_CLIENTS` lists, including the ai-global client.
 
 ## Try the global to regional exchange
 

@@ -84,6 +84,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ident.get("GLOBAL_AGENT_ISSUER_URL") == pai_global
     assert ident.get("GLOBAL_AGENT_LEGACY_ISSUER_URL") == psaas
     assert ident.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    assert ident.get("GLOBAL_MCP_URL") == f"{pai_global}/mcp"
     assert ident.get("GLOBAL_CLIENT_ID"), "regional identity needs GLOBAL_CLIENT_ID"
     assert ident.get("GLOBAL_CLIENT_SECRET"), "regional identity needs GLOBAL_CLIENT_SECRET"
     assert ident.get("AI_SERVICE_ISSUER") == pai, "identity AI_SERVICE_ISSUER must equal PUBLIC_AI_URL"
@@ -107,6 +108,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert global_ident.get("SECRET_KEY") != ident.get("SECRET_KEY")
     assert "identity_global" in global_ident.get("POSTGRES_DATABASE_URL", "")
     assert global_ident.get("REDIS_URL", "").endswith("/6")
+    assert "GLOBAL_MCP_URL" not in global_ident
     assert global_ident.get("OIDC_CLIENTS"), "identity-global OIDC_CLIENTS"
     assert ident.get("GLOBAL_CLIENT_ID") in global_ident.get("OIDC_CLIENTS", "")
     assert dotenv["GLOBAL_OIDC_CLIENT_ID"] in global_ident.get("OIDC_CLIENTS", "")
@@ -119,6 +121,13 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ai.get("AI_SERVICE_ISSUER") == pai
     assert "SAAS_SERVICE_URL" not in ai
     assert "SAAS_SERVICE_PUBLIC_URL" not in ai
+    for name in (
+        "GLOBAL_IDENTITY_URL",
+        "GLOBAL_OIDC_CLIENT_ID",
+        "GLOBAL_OIDC_CLIENT_SECRET",
+        "SAAS_API_AUDIENCE",
+    ):
+        assert name not in ai, name
 
     assert ai_global.get("AI_SERVICE_MODE") == "global"
     assert ai_global.get("AI_PUBLIC_URL") == pai_global
@@ -141,6 +150,16 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ai_global.get("AI_SERVICE_SIGNING_KID") != ai.get("AI_SERVICE_SIGNING_KID")
     assert "IDENTITY_SERVICE_URL" not in ai_global
     assert "IDENTITY_JWKS" not in ai_global
+    for name in (
+        "IDENTITY_JWKS_FILE",
+        "IDENTITY_JWKS_URL",
+        "IDENTITY_ISSUER",
+        "IDENTITY_AUDIENCE",
+        "STORAGE_SERVICE_URL",
+        "HOSTING_SERVICE_URL",
+        "EMAIL_SERVICE_API_KEY",
+    ):
+        assert not ai_global.get(name), name
 
     assert saas.get("IDENTITY_INTERNAL_URL") == internal_global
     assert saas.get("IDENTITY_SERVICE_URL") == internal_global

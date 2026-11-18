@@ -64,6 +64,9 @@ exchange with fixtures. That is not this compose stack.
   saas `POST http://localhost:8005/mcp` stays until cutover. Identity
   `list_services` still builds that saas URL from `SAAS_SERVICE_URL`
   plus `/mcp`.
+  Regional identity personal status returns `GLOBAL_MCP_URL`
+  (http://localhost:8008/mcp). An empty value falls back to
+  `{DASHBOARD_PUBLIC_URL}/mcp`.
   It does not read regional identity, storage, hosting, or email data.
 - **Regional gateway** is `POST http://localhost:8006/c/1/mcp` for the
   seeded company (`AI_SERVICE_MODE=region`). The region service does not
