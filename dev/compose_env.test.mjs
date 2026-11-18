@@ -77,20 +77,38 @@ test('dashboard compose uses REGION_CH_* from env example', () => {
   assert.match(example, /^GLOBAL_AGENT_KEY_ID=/m);
   assert.match(example, /^DEV_PUBLIC_HOST=/m);
   assert.match(example, /^PUBLIC_IDENTITY_GLOBAL_URL=http:\/\/\$\{DEV_PUBLIC_HOST\}:8007$/m);
+  assert.match(example, /^PUBLIC_AI_GLOBAL_URL=http:\/\/\$\{DEV_PUBLIC_HOST\}:8008$/m);
   assert.match(example, /^IDENTITY_GLOBAL_JWT_AUDIENCE=shellui_global$/m);
-  assert.match(example, /^GLOBAL_AGENT_ISSUER_URL=\$\{PUBLIC_SAAS_URL\}$/m);
+  assert.match(example, /^GLOBAL_AGENT_ISSUER_URL=\$\{PUBLIC_AI_GLOBAL_URL\}$/m);
+  assert.match(example, /^GLOBAL_AGENT_LEGACY_ISSUER_URL=\$\{PUBLIC_SAAS_URL\}$/m);
   assert.match(example, /^GLOBAL_AGENT_JWKS=/m);
+  assert.match(example, /^AI_GLOBAL_JWKS=/m);
+  assert.match(example, /^AI_GLOBAL_SERVICE_SIGNING_KEY=/m);
+  assert.match(example, /^AI_GLOBAL_REDIS_URL=redis:\/\/redis:6379\/7$/m);
+  assert.match(example, /^GLOBAL_OIDC_CLIENT_ID=/m);
+  assert.match(example, /^REGION_CH_AI_URL=\$\{PUBLIC_AI_URL\}$/m);
+  assert.match(example, /^SAAS_API_AUDIENCE=\$\{PUBLIC_SAAS_URL\}\/api$/m);
+  assert.match(example, /^GLOBAL_MCP_URL=\$\{PUBLIC_AI_GLOBAL_URL\}\/mcp$/m);
+  assert.match(example, /:8008/);
   assert.match(example, /^SHELLUI_INSTANCE_ROLE=region$/m);
   assert.match(compose, /GLOBAL_AGENT_SIGNING_KEY:\s*\$\{GLOBAL_AGENT_SIGNING_KEY\}/);
   assert.match(compose, /GLOBAL_AGENT_KEY_ID:\s*\$\{GLOBAL_AGENT_KEY_ID\}/);
-  assert.match(compose, /GLOBAL_AGENT_ISSUER_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
-  assert.match(compose, /GLOBAL_AGENT_JWKS:\s*\$\{GLOBAL_AGENT_JWKS\}/);
+  assert.match(compose, /GLOBAL_AGENT_ISSUER_URL:\s*\$\{PUBLIC_AI_GLOBAL_URL\}/);
+  assert.match(compose, /GLOBAL_AGENT_JWKS:\s*\$\{AI_GLOBAL_JWKS\}/);
+  assert.match(compose, /GLOBAL_AGENT_LEGACY_ISSUER_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
+  assert.match(compose, /GLOBAL_AGENT_LEGACY_JWKS:\s*\$\{GLOBAL_AGENT_JWKS\}/);
+  assert.match(compose, /GLOBAL_MCP_URL:\s*\$\{GLOBAL_MCP_URL\}/);
   assert.match(compose, /GLOBAL_ISSUER_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
   assert.match(compose, /GLOBAL_ISSUER_URL:\s*\$\{PUBLIC_IDENTITY_GLOBAL_URL\}/);
   assert.doesNotMatch(compose, /GLOBAL_AGENT_ISSUER:/);
   assert.match(compose, /SHELLUI_INSTANCE_ROLE:\s*global/);
   assert.match(compose, /'8007:8000'/);
+  assert.match(compose, /'8008:8000'/);
   assert.match(compose, /IDENTITY_SERVICE_URL:\s*\$\{PUBLIC_IDENTITY_GLOBAL_URL\}/);
+  assert.match(compose, /AI_SERVICE_MODE: region/);
+  assert.match(compose, /AI_SERVICE_MODE: global/);
+  assert.match(compose, /REGION_CH_AI_URL:\s*\$\{PUBLIC_AI_URL\}/);
+  assert.match(compose, /AI_GLOBAL_ISSUER:\s*\$\{PUBLIC_AI_GLOBAL_URL\}/);
 });
 
 test('init list covers every *_POSTGRES_DATABASE_URL and Postgres backends wait for postgres-init', () => {
@@ -134,8 +152,31 @@ test('init list covers every *_POSTGRES_DATABASE_URL and Postgres backends wait 
   );
   assert.deepEqual(
     backends.map(([name]) => name),
-    ['identity', 'identity-global', 'storage', 'hosting', 'email', 'email-worker', 'saas', 'ai'],
+    [
+      'identity',
+      'identity-global',
+      'storage',
+      'hosting',
+      'email',
+      'email-worker',
+      'saas',
+      'ai',
+      'ai-global',
+    ],
   );
+  const ai = services.get('ai');
+  assert.ok(ai, 'ai service');
+  assert.match(ai, /AI_SERVICE_MODE: region/);
+  assert.doesNotMatch(ai, /SAAS_SERVICE_/);
+  const aiGlobal = services.get('ai-global');
+  assert.ok(aiGlobal, 'ai-global service');
+  assert.match(aiGlobal, /AI_SERVICE_MODE: global/);
+  assert.match(aiGlobal, /SAAS_SERVICE_URL:\s*\$\{PUBLIC_SAAS_URL\}/);
+  assert.match(aiGlobal, /SAAS_SERVICE_INTERNAL_URL: http:\/\/saas:8000/);
+  assert.match(aiGlobal, /GLOBAL_IDENTITY_INTERNAL_URL: http:\/\/identity-global:8000/);
+  assert.match(aiGlobal, /identity-global:\n\s+condition: service_started/);
+  assert.match(aiGlobal, /identity:\n\s+condition: service_started/);
+  assert.match(aiGlobal, /ai-global-data:\/app\/data/);
   for (const [name, block] of backends) {
     assert.match(
       block,

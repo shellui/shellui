@@ -13,6 +13,7 @@ DATABASES=(
   email
   saas
   ai
+  ai_global
 )
 
 : "${POSTGRES_USER:?POSTGRES_USER is required}"

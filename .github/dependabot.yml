@@ -6,14 +6,14 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
-    target-branch: "develop"
+    target-branch: 'develop'
     groups:
       npm-minor-patch:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
 
   - package-ecosystem: docker
     directory: /
@@ -21,14 +21,14 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
-    target-branch: "develop"
+    target-branch: 'develop'
     groups:
       docker-minor-patch:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
 
   - package-ecosystem: github-actions
     directory: /
@@ -36,11 +36,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
-    target-branch: "develop"
+    target-branch: 'develop'
     groups:
       github-actions-minor-patch:
         patterns:
-          - "*"
+          - '*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'

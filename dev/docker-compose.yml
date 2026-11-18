@@ -167,14 +167,19 @@ services:
       PROVISIONING_PUBLIC_KEY: ${PROVISIONING_PUBLIC_KEY}
       PROVISIONING_KEY_ID: dashboard-1
       SHELLUI_INSTANCE_ROLE: ${SHELLUI_INSTANCE_ROLE:-region}
-      # User tokens: identity-global. Agent tokens: saas public URL and its own key.
+      # User tokens: identity-global.
+      # Agent tokens: ai-global. saas stays trusted until cutover (GLOBAL_AGENT_LEGACY_*).
       GLOBAL_ISSUER_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
       GLOBAL_ISSUER_INTERNAL_URL: http://identity-global:8000
       GLOBAL_JWKS: ${GLOBAL_JWKS}
       GLOBAL_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_ACCESS_TOKEN_AUDIENCE}
-      GLOBAL_AGENT_ISSUER_URL: ${PUBLIC_SAAS_URL}
-      GLOBAL_AGENT_JWKS: ${GLOBAL_AGENT_JWKS}
+      GLOBAL_AGENT_ISSUER_URL: ${PUBLIC_AI_GLOBAL_URL}
+      GLOBAL_AGENT_JWKS: ${AI_GLOBAL_JWKS}
+      GLOBAL_AGENT_LEGACY_ISSUER_URL: ${PUBLIC_SAAS_URL}
+      GLOBAL_AGENT_LEGACY_JWKS: ${GLOBAL_AGENT_JWKS}
       GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
+      # Personal status global MCP URL. Empty would fall back to {DASHBOARD_PUBLIC_URL}/mcp.
+      GLOBAL_MCP_URL: ${GLOBAL_MCP_URL}
       GLOBAL_CLIENT_ID: ${GLOBAL_CLIENT_ID}
       GLOBAL_CLIENT_SECRET: ${GLOBAL_CLIENT_SECRET}
       OIDC_CORS_ALLOWED_ORIGINS: ${OIDC_CORS_ALLOWED_ORIGINS}
@@ -456,11 +461,15 @@ services:
       PROVISIONING_SIGNING_KEY: ${PROVISIONING_SIGNING_KEY}
       PROVISIONING_KEY_ID: dashboard-1
       EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
-      # Global agent JWT minting (must match identity GLOBAL_* trust in this compose file).
+      # saas still mints agent tokens until cutover. Identity trusts this key as GLOBAL_AGENT_LEGACY_*.
       GLOBAL_AGENT_SIGNING_KEY: ${GLOBAL_AGENT_SIGNING_KEY}
       GLOBAL_AGENT_KEY_ID: ${GLOBAL_AGENT_KEY_ID}
       GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
       AI_SERVICE_URL: ${PUBLIC_AI_URL}
+      # Region row ai_url, and verification of saas API tokens signed by ai-global.
+      AI_GLOBAL_ISSUER: ${PUBLIC_AI_GLOBAL_URL}
+      AI_GLOBAL_JWKS: ${AI_GLOBAL_JWKS}
+      REGION_CH_AI_URL: ${PUBLIC_AI_URL}
       STORAGE_SERVICE_URL: ${PUBLIC_STORAGE_URL}
       HOSTING_SERVICE_URL: ${PUBLIC_HOSTING_URL}
     volumes:
@@ -479,6 +488,7 @@ services:
       identity-global:
         condition: service_started
 
+  # Regional gateway. SaaS tools are not on this process (AI_SERVICE_MODE=region).
   ai:
     <<: *dev-container
     build:
@@ -493,6 +503,7 @@ services:
       <<: [*django-common, *identity-jwt, *django-dev-env]
       ALLOWED_HOSTS: localhost,127.0.0.1,ai,100.127.19.94
       SECRET_KEY: ${AI_SECRET_KEY}
+      AI_SERVICE_MODE: region
       REDIS_URL: ${AI_REDIS_URL}
       POSTGRES_DATABASE_URL: ${AI_POSTGRES_DATABASE_URL}
       AI_SERVICE_SIGNING_KEY: ${AI_SERVICE_SIGNING_KEY}
@@ -504,12 +515,10 @@ services:
       EMAIL_SERVICE_URL: http://email:8000
       EMAIL_SERVICE_API_KEY: ${AI_EMAIL_SERVICE_API_KEY}
       EMAIL_SERVICE_ALLOW_PRIVATE: 'true'
-      SAAS_SERVICE_URL: http://saas:8000
       # Public resources identity binds downstream MCP tokens to (calls still use the internal URLs above).
       STORAGE_SERVICE_PUBLIC_URL: ${PUBLIC_STORAGE_URL}
       HOSTING_SERVICE_PUBLIC_URL: ${PUBLIC_HOSTING_URL}
       EMAIL_SERVICE_PUBLIC_URL: ${PUBLIC_EMAIL_URL}
-      SAAS_SERVICE_PUBLIC_URL: ${PUBLIC_SAAS_URL}
     volumes:
       - ../../ai-service:/app
       - ai-data:/app/data
@@ -522,6 +531,58 @@ services:
       redis:
         condition: service_healthy
       identity:
+        condition: service_started
+
+  # Global MCP. Distinct database, Redis index, secret, and signing key.
+  # Sign-in is identity-global. SaaS tools call saas. Company tools exchange at regional identity.
+  ai-global:
+    <<: *dev-container
+    build:
+      context: ../../ai-service
+      dockerfile: Dockerfile
+      target: dev
+    entrypoint: ['/opt/shellui/dev/container/django-dev-path.sh', '/docker-entrypoint.sh']
+    command: ['dev']
+    ports:
+      - '8008:8000'
+    environment:
+      <<: [*django-common, *django-dev-env]
+      ALLOWED_HOSTS: localhost,127.0.0.1,ai-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
+      SECRET_KEY: ${AI_GLOBAL_SECRET_KEY}
+      AI_SERVICE_MODE: global
+      REDIS_URL: ${AI_GLOBAL_REDIS_URL}
+      POSTGRES_DATABASE_URL: ${AI_GLOBAL_POSTGRES_DATABASE_URL}
+      AI_SERVICE_SIGNING_KEY: ${AI_GLOBAL_SERVICE_SIGNING_KEY}
+      AI_SERVICE_SIGNING_KID: ${AI_GLOBAL_SERVICE_SIGNING_KID}
+      AI_SERVICE_ISSUER: ${PUBLIC_AI_GLOBAL_URL}
+      AI_PUBLIC_URL: ${PUBLIC_AI_GLOBAL_URL}
+      GLOBAL_IDENTITY_URL: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      GLOBAL_IDENTITY_INTERNAL_URL: http://identity-global:8000
+      GLOBAL_IDENTITY_ISSUER: ${PUBLIC_IDENTITY_GLOBAL_URL}
+      GLOBAL_IDENTITY_JWKS: ${GLOBAL_JWKS}
+      GLOBAL_OIDC_CLIENT_ID: ${GLOBAL_OIDC_CLIENT_ID}
+      GLOBAL_OIDC_CLIENT_SECRET: ${GLOBAL_OIDC_CLIENT_SECRET}
+      GLOBAL_OIDC_REDIRECT_URI: ${PUBLIC_AI_GLOBAL_URL}/oauth/mcp/signin/complete
+      SAAS_SERVICE_URL: ${PUBLIC_SAAS_URL}
+      SAAS_SERVICE_INTERNAL_URL: http://saas:8000
+      SAAS_API_AUDIENCE: ${SAAS_API_AUDIENCE}
+      GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE: ${GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE}
+    volumes:
+      - ../../ai-service:/app
+      - ai-global-data:/app/data
+      - ./container:/opt/shellui/dev/container:ro
+    depends_on:
+      postgres-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity:
+        condition: service_started
+      identity-global:
+        condition: service_started
+      saas:
         condition: service_started
 
   admin:
@@ -641,6 +702,7 @@ volumes:
   email-data:
   saas-data:
   ai-data:
+  ai-global-data:
   shell-node-modules:
   admin-node-modules:
   dashboard-node-modules:
