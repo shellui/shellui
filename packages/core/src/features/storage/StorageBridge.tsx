@@ -5,16 +5,21 @@ import {
   type ShellUIMessage,
   type StorageRequestPayload,
 } from '@shellui/sdk';
+import { ensureAppBackendSession } from '../auth/appBackend/appBackendSessions';
+import { findChildFrame } from '../auth/appBackend/childFrames';
 import { useAuth } from '../auth/hooks/useAuth';
 import { useConfig } from '../config/useConfig';
 import { getStorageRequestTrustDenial } from '../security/trustedFrames';
 import { handleStorageRequest } from './handleRequest';
 import { getStorageBaseUrl } from './quota';
+import { resolveStorageBridgeTarget } from './resolveStorageBridgeTarget';
 import { handleTrackedUpload, isUploadPayload } from './uploads/handleTrackedUpload';
 
 /**
- * Root-window bridge: iframe `SHELLUI_STORAGE_REQUEST` messages are handled here
- * with `storage.url` and the signed-in user's access token.
+ * Root-window bridge: iframe `SHELLUI_STORAGE_REQUEST` messages are handled here.
+ * A nested app (dashboard admin, then Files) uses the storage URL and regional
+ * session registered for that frame. A frame the shell hosts directly uses
+ * `storage.url` from shellui.config and the shell session.
  */
 export const StorageBridge = () => {
   const { config } = useConfig();
@@ -47,9 +52,24 @@ export const StorageBridge = () => {
         return;
       }
 
-      const run = isUploadPayload(payload)
-        ? handleTrackedUpload({ storageUrl, accessToken, payload })
-        : handleStorageRequest({ storageUrl, accessToken, payload });
+      const run = (async () => {
+        const child = findChildFrame(message.from ?? []);
+        const nested = child
+          ? {
+              storageUrl: child.services.storage,
+              accessToken: child.identity
+                ? await ensureAppBackendSession(child.identity, { allowSilent: true })
+                : null,
+            }
+          : null;
+        const target = resolveStorageBridgeTarget(nested, { storageUrl, accessToken });
+        const input = {
+          storageUrl: target.storageUrl,
+          accessToken: target.accessToken,
+          payload,
+        };
+        return isUploadPayload(payload) ? handleTrackedUpload(input) : handleStorageRequest(input);
+      })();
 
       void run.then((response) => {
         const reply = {
