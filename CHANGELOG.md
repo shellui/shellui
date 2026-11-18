@@ -18,47 +18,63 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
-## [Unreleased]
+## [0.8.0] - 2026-11-18
 
-### 🔒 Security
+Shellui 0.8.0 adds MCP agents, approvals, and activity in Settings, plus OAuth device login. You can sign in to the CLI with a device code and inspect your company. The shell stores its refresh token in an HttpOnly host cookie.
 
-- **Shell-host refresh cookie:** `shellui start` and `serve:dist` serve `/api/auth/*` unless `security.bffAuth.enabled` is false. The page posts the one-time `shellui_auth_code` and PKCE verifier to the host. The host exchanges them with identity, sends the shell `Origin`, sets the HttpOnly `shellui_refresh` cookie, and returns the access token, expiry, and user. The refresh token does not reach page JavaScript. A static host without those routes keeps today's sessionStorage refresh token. The page probes `GET /api/auth/session` once.
+### ✨ Feature
+
+- Settings shows MCP agents, approvals, and activity when an AI service URL is set.
+- Connect MCP agents with OAuth device login.
+- Personal MCP agents connect from Settings, and Settings reports success or failure.
+- Settings activity lists MCP tool calls from ai-service.
+- The CLI can sign in with OAuth device authorization.
+- The CLI can inspect dashboard, storage, and hosting for the signed-in company.
+- The SDK forwards the ai-service URL to apps.
 
 ### 📚 Documentation
 
-- **Security and authentication:** host refresh cookie, first-party cookie on the shell origin, the proxy contract, and the paths that still receive a refresh token in the page (fragment delivery, legacy provider code, CLI loopback, Supabase, and per-app sessions).
+- Docs cover MCP tool discovery and an updated AI native guide.
+- Security and authentication docs explain the host refresh cookie.
+- An Open source or Cloud page is in the docs.
+- The docs site generates social preview cards.
+- Docs recommend the local dev stack for running Shellui.
+- The companion isolation page is ready to share.
+
+### 🐛 Bug Fixes
+
+- The Settings MCP nav stays in place after sign-in, including while status loads.
+- Dev-stack sign-in stays valid across browser tabs.
+- Sign-in PKCE works on plain HTTP when the browser has no SubtleCrypto.
+- CLI project commands call the SaaS `/api/v1` company routes.
+
+### 🔒 Security
+
+- `shellui start` and `serve:dist` keep the shell refresh token in an HttpOnly host cookie. Page JavaScript receives only the access token. A static host without those routes keeps the previous sessionStorage refresh token.
+- MCP connection expiry stays within Identity's 90-day limit.
+- Signing out of the shell also clears the identity browser session.
+
+### 🏗 Chore
+
+- Local Docker dev stack under `dev/` for the shell, sibling services, and front-end hot reload.
+- The dev stack runs global and regional identity, seeds local users, and creates missing databases on start.
+- `./start.sh` generates dev signing keys, forwards SaaS approvals to identity, and stops the stack cleanly.
+- Dev front ends hot-reload Shellui packages, load one Vite config, and use less idle CPU.
+- The dev stack publishes MCP resource URLs for storage, hosting, and SaaS.
+- The local admin links to Mailpit, the stack includes the playground, and the dev image skips unneeded files.
 
 ## [0.7.0] - 2026-10-31
 
 Shellui 0.7.0 brings multi-region federation: each embedded app can use its own identity server and services, with regional sessions and a new SDK app frame. It also redesigns every layout for phones and accessibility, adds token-based CI previews to the CLI and hardens sign-in with PKCE.
 
-### 📚 Documentation
-
-- **Dev stack:** `dev/docker-compose.yml` always starts `identity-global` (`SHELLUI_INSTANCE_ROLE=global`, http://localhost:8007, database `identity_global`, Redis DB 6, its own JWT key). Regional `identity` stays on http://localhost:8001. Dashboard sign-in and saas user verification use identity-global. User token exchange pins `GLOBAL_ISSUER_URL` and `GLOBAL_JWKS` to identity-global. Agent token exchange pins `GLOBAL_AGENT_ISSUER_URL` (http://localhost:8005) and `GLOBAL_AGENT_JWKS` to a separate saas signing key. saas keeps `GLOBAL_ISSUER_URL` as its own public URL. `generate-env.sh` appends missing secrets and splits the two keys when they were the same PEM.
-- **AI native guide:** `docs/features/ai-native.md` adds form-urlencoded MCP OAuth and agent RFC 8693 curls, human approval routes, optional `/oauth/token` human exchange, email `api_v1_templates_list`, hosting upload `requires_bearer`, and `docs/index.md` entry text. `tools/test_generated_cli_docs.py` and `tools/test_generate_env.py` extend script checks (when Docker is present, `docker compose config --format json` asserts identity public issuer, global issuer URL and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, ai internal identity JWKS URL, saas `IDENTITY_INTERNAL_URL`, and non-empty `GLOBAL_JWKS` with `kid`; static resolution only). It still covers `ch` as the dev SaaS region, OAuth consent, `shellui.config.json`, CLI scope, and troubleshooting. `docs/cli.md` notes variadic nested commands and local hosting port **8003**. `scripts/verify-ai-native-doc.mjs` lists required substrings.
-- **Dev stack:** `dev/.env.local.example` uses `DEV_REGION_CODE=ch` and `REGION_CH_*_ORIGIN` (replacing `REGION_LOCAL_*`) so the dashboard matches SaaS region codes; identity no longer self-duplicates `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`.
-- **Dev stack:** `dev/.env.local.example` defines `GLOBAL_AGENT_SIGNING_KEY` and `GLOBAL_AGENT_KEY_ID` (from `generate_env.py`; kid matches `GLOBAL_JWKS`). `dev/docker-compose.yml` passes them and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE` into **saas** and sets `AI_PUBLIC_URL` on **ai** so MCP resource URLs match `PUBLIC_AI_URL`.
-- **Dev stack:** `dev/docker-compose.yml`, `dev/.env.local.example`, and `dev/generate-env.sh` to run the shell, Files (5175), and sibling services locally.
-- **Dev stack:** `generate-env.sh` creates dev-only RS256 keys for each service's internal MCP assertions and saas provisioning, and compose registers them as identity's trusted callers, so `./start.sh` needs no manual key setup.
-- **Dev stack:** `generate-env.sh` runs `uv` with `--with cryptography` when present; `generate_env.py` builds JWKS with **cryptography** when installed or falls back to **openssl** so plain `python3` works in CI.
-- **Dev stack:** `dev/start.sh` starts the full compose stack (including **email-worker**); no Compose profile needed for workers.
-- **Dev stack:** Front-ends in the compose stack link `@shellui/core`, `@shellui/sdk`, and `@shellui/cli` from the bind-mounted monorepo for hot reload without an npm release.
-- **Dev stack:** Vite dev for compose front-ends loads each app config once via `node_modules/.shellui/vite-dev.config.mjs` and the pnpm `vite` shim so React refresh and Tailwind resolve correctly.
-- **Dev stack:** The Vite dev wrapper loads each app's `vite.config.*` through Vite's `loadConfigFromFile` so configs that use `__dirname` work in ESM.
-- **Dev stack:** Lower idle CPU: file-watch polling off by default, Vite ignores `node_modules` and `.git`, slower Django StatReloader and email lane polls, relaxed health checks, shell config watch disabled in compose.
-- **Dev stack:** Clean compose shutdown: no restart policy, `init: true` on services, and tighter email-worker signal forwarding so `docker compose down` and Ctrl-C on `./start.sh` stop without `Error while Killing`.
-
 ### ✨ Feature
 
-- **CLI:** `shellui auth status`, `shellui companies`, `shellui projects`, `shellui storage buckets`, `shellui hosting apps`, and `shellui hosting deployments` call identity, SaaS, storage, and hosting HTTP APIs with the same logged-in session as `shellui deploy`, optional `--company`, persisted default company (`shellui companies use`), `--json`, and redacted errors. Config adds optional `saas.url` (or use `SHELLUI_SAAS_URL`). Multi-word commands use variadic dispatch so `auth status`, `storage buckets`, `hosting apps`, `hosting deployments`, and `projects` no longer no-op; unknown subcommands exit nonzero.
-- **Core:** Settings adds MCP / AI agents when `aiService.url` is configured and identity reports MCP for the company: company MCP URL, connected OAuth and personal agents, activity logs, and one-time personal token creation.
 - **Core:** Per-app identity servers: a navigation item can set `backend`, and the shell keeps a separate regional session for that app. Requires identity-service 0.9.0.
 - **Core:** Per-app `email`, `storage` and `hosting` URLs, forwarded to child apps when allowed by `childFrames.serviceOrigins`.
 - **Core:** Regional sessions use OAuth token exchange (RFC 8693) and renew with their own refresh token.
 - **SDK:** App frame (`ShelluiFrame`, `createAppFrame`) embeds a child app with its own session, service URLs, a loading overlay and session error reporting.
 - **SDK:** `useShelluiNavigation` in `@shellui/sdk/react` keeps app routes in sync with the shell.
 - **CLI:** `SHELLUI_DEPLOY_TOKEN` creates and updates 7-day previews from CI without a login. The token is never printed.
-- **AI service:** Optional `aiService.url` and `aiService.showInAdmin` in `shellui.config` are exposed to apps as `settings.aiService`.
 
 ### 🛠 Improvements
 
@@ -89,7 +105,6 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 
 ### 🐛 Bug Fixes
 
-- **Core:** Settings MCP / AI agents nav loads from cached identity status after sign-in, with a stable placeholder on first fetch, so the sidebar no longer shifts when the row appears.
 - **Login:** Sign-in works on static hosts that add a trailing slash, such as GitHub Pages, and apps return signed in after `shellui.login`.
 - **Login:** New tabs no longer look signed in without a token, and the sign-in page follows dark and light mode.
 - **Core:** Deep links keep their query string, and logged-in only navigation stays visible while the session restores.
@@ -98,7 +113,6 @@ Shellui 0.7.0 brings multi-region federation: each embedded app can use its own 
 - **CLI:** `shellui start` shows the new shell right after an upgrade instead of cached files.
 - **CLI:** `shellui deploy` errors show the server's reason, and a rejected upload shows the artifact size and limit.
 - **Desktop:** Switching pages loads the new page.
-- **CLI:** `shellui projects list` and `get` request `/api/v1/companies/...` on the SaaS base (same `api/v1` mount as `regions` and `endpoints`), not `/saas/api/v1/...`.
 
 ### 🔒 Security
 
