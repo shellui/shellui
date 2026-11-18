@@ -23,15 +23,16 @@ docker compose -f dev/docker-compose.yml \
 ```
 
 It checks resolved `environment` on `identity`, `identity-global`,
-`ai`, and `saas`: `JWT_ISSUER`, regional `GLOBAL_ISSUER_URL`
+`ai`, `ai-global`, and `saas`: `JWT_ISSUER`, regional `GLOBAL_ISSUER_URL`
 (identity-global, http://localhost:8007), saas `GLOBAL_ISSUER_URL`
-(http://localhost:8005), `GLOBAL_AGENT_ISSUER_URL`,
+(http://localhost:8005), `GLOBAL_AGENT_ISSUER_URL`
+(ai-global, http://localhost:8008), `GLOBAL_AGENT_LEGACY_ISSUER_URL`,
 `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, `AI_SERVICE_ISSUER`,
-`AI_SERVICE_JWKS_URL`, regional `IDENTITY_SERVICE_URL` and
+`AI_SERVICE_JWKS_URL`, `AI_SERVICE_MODE`, regional `IDENTITY_SERVICE_URL` and
 `IDENTITY_JWKS_URL` (`http://identity:8000`), saas
-`IDENTITY_INTERNAL_URL` (`http://identity-global:8000`), and a
-`kid` inside `GLOBAL_JWKS`. That is compose JSON. It does not
-send HTTP to the containers.
+`IDENTITY_INTERNAL_URL` (`http://identity-global:8000`), `AI_GLOBAL_ISSUER`,
+`REGION_CH_AI_URL`, and a `kid` inside `GLOBAL_JWKS`. That is compose JSON.
+It does not send HTTP to the containers.
 
 - `node scripts/verify-ai-native-doc.mjs`
 - `pnpm run docs:build`
@@ -58,16 +59,21 @@ exchange with fixtures. That is not this compose stack.
 
 ## Global vs regional (no master token)
 
-- **Global MCP** is `POST http://localhost:8005/mcp`. Identity
-  `list_services` builds that URL from `SAAS_SERVICE_URL` plus `/mcp`.
+- **Global MCP** for a Shellui account is `POST http://localhost:8008/mcp`
+  on `ai-global` (`AI_SERVICE_MODE=global`). Sign-in is identity-global.
+  saas `POST http://localhost:8005/mcp` stays until cutover. Identity
+  `list_services` still builds that saas URL from `SAAS_SERVICE_URL`
+  plus `/mcp`.
   It does not read regional identity, storage, hosting, or email data.
 - **Regional gateway** is `POST http://localhost:8006/c/1/mcp` for the
-  seeded company. `POST http://localhost:8006/mcp` returns 404
+  seeded company (`AI_SERVICE_MODE=region`). The region service does not
+  set `SAAS_SERVICE_URL`. `POST http://localhost:8006/mcp` returns 404
   `company_required`.
 - A regional access token `aud` is that per-company URL. The global agent
   JWT `aud` is `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`
   (`shellui_global_agent_dev` in `dev/.env.local.example`), not
-  `http://localhost:8005/mcp`. There is no master token.
+  `http://localhost:8005/mcp` and not `http://localhost:8008/mcp`.
+  There is no master token.
 - Regional calls use a short-lived token from RFC 8693 exchange. Do not
   send the global JWT to a regional `/mcp`, and do not mint a stand-in
   with Django admin.
@@ -96,16 +102,18 @@ Set `SHELLUI_INSTANCE_ROLE=region`, `GLOBAL_ISSUER_URL`, `GLOBAL_JWKS`,
 `GLOBAL_ACCESS_TOKEN_AUDIENCE`, `GLOBAL_AGENT_ISSUER_URL`,
 `GLOBAL_AGENT_JWKS`, and `GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE`, or
 regional agent exchange returns 404. User exchange uses
-identity-global (http://localhost:8007). Agent exchange uses the
-SaaS origin (http://localhost:8005).
+identity-global (http://localhost:8007). Agent exchange uses
+ai-global (http://localhost:8008). Until cutover it also accepts the
+saas origin (http://localhost:8005) from `GLOBAL_AGENT_LEGACY_ISSUER_URL`.
 
 `dev/generate_env.py` builds `GLOBAL_JWKS` from the identity-global
-PEM and `GLOBAL_AGENT_JWKS` from a separate
-`GLOBAL_AGENT_SIGNING_KEY`. `GLOBAL_AGENT_KEY_ID` is the `kid` in
-the agent JWKS. `dev/docker-compose.yml` passes that PEM, the key
+PEM, `GLOBAL_AGENT_JWKS` from
+`GLOBAL_AGENT_SIGNING_KEY`, and `AI_GLOBAL_JWKS` from
+`AI_GLOBAL_SERVICE_SIGNING_KEY`. `GLOBAL_AGENT_KEY_ID` is the `kid` in
+the legacy saas JWKS. `dev/docker-compose.yml` passes that saas PEM, the key
 id, and the audience into `saas`, and sets saas `GLOBAL_ISSUER_URL`
-to http://localhost:8005. If you replace a PEM by hand, rerun
-`generate-env.sh`.
+to http://localhost:8005. Identity `GLOBAL_AGENT_JWKS` is `AI_GLOBAL_JWKS`.
+If you replace a PEM by hand, rerun `generate-env.sh`.
 
 ## Human account and Terms before agent work
 
@@ -288,7 +296,8 @@ PY
 `code_challenge_method` (`S256`). It does not read `scope` or `services`.
 A repeated query key keeps the first value only. `saas_offered=1` is the
 extra query ai-service adds when `SAAS_SERVICE_URL` is set. It does not
-grant SaaS by itself. `urllib.parse.urlencode` percent-encodes the query.
+grant SaaS by itself. The region `ai` service in this stack does not set
+`SAAS_SERVICE_URL`. `urllib.parse.urlencode` percent-encodes the query.
 Identity decodes it and matches `redirect_uri` to the registered string.
 
 ```bash

@@ -4,13 +4,17 @@
 If the output already exists, only variables it does not define yet are appended,
 so existing secrets and database passwords are kept.
 
-Two issuers, two keys. identity-global's JWT private key is the user issuer.
-GLOBAL_JWKS is that public key. SaaS mints global agent tokens with a
-different PEM (GLOBAL_AGENT_SIGNING_KEY). GLOBAL_AGENT_JWKS and
-GLOBAL_AGENT_KEY_ID are recomputed from that PEM on every run.
-GLOBAL_AGENT_KEY_ID is the kid SaaS puts on agent tokens. An existing file
-keeps both private keys. If they are the same PEM, identity-global is given
-a new key and the SaaS key is left as it is. Sensitive values are never printed.
+identity-global's JWT private key is the user issuer. GLOBAL_JWKS is that
+public key. SaaS mints legacy agent tokens with a different PEM
+(GLOBAL_AGENT_SIGNING_KEY). GLOBAL_AGENT_JWKS and GLOBAL_AGENT_KEY_ID are
+recomputed from that PEM on every run. ai-global signs with
+AI_GLOBAL_SERVICE_SIGNING_KEY. AI_GLOBAL_JWKS and
+AI_GLOBAL_SERVICE_SIGNING_KID are recomputed from that PEM on every run.
+An existing file keeps each private key. If two of those PEMs match, the
+script generates a new identity-global key or a new ai-global key and leaves
+the SaaS key in place. IDENTITY_GLOBAL_OIDC_CLIENTS is rewritten each run
+so the regional client and the ai-global client stay registered.
+Sensitive values are never printed.
 """
 
 from __future__ import annotations
@@ -185,20 +189,32 @@ def jwks_quoted_for_keys(pairs: list[tuple[str, str]]) -> str:
     return "'" + json.dumps({"keys": keys}, separators=(",", ":")) + "'"
 
 
-def oidc_clients_env(client_id: str, client_secret: str) -> str:
+def oidc_clients_env(
+    client_id: str,
+    client_secret: str,
+    ai_client_id: str,
+    ai_client_secret: str,
+) -> str:
     """OIDC_CLIENTS JSON. ${DEV_PUBLIC_HOST} is expanded by Compose, not here."""
     redirects = []
+    ai_redirects = []
     for host in ("localhost", "${DEV_PUBLIC_HOST}"):
         base = f"http://{host}:8001"
         redirects.append(f"{base}/oauth/upstream-callback")
         redirects.append(f"{base}/oauth/mcp/saas-return")
+        ai_redirects.append(f"http://{host}:8008/oauth/mcp/signin/complete")
     doc = [
         {
             "client_id": client_id,
             "client_secret": client_secret,
             "redirect_uris": redirects,
             "backchannel_logout_uri": "http://${DEV_PUBLIC_HOST}:8001/oauth/backchannel-logout",
-        }
+        },
+        {
+            "client_id": ai_client_id,
+            "client_secret": ai_client_secret,
+            "redirect_uris": ai_redirects,
+        },
     ]
     return json.dumps(doc, separators=(",", ":"))
 
@@ -215,7 +231,15 @@ def trust_material_updates(
     agent_private_pem: str,
     agent_kid: str,
     agent_jwks_quoted: str,
+    ai_global_private_pem: str,
+    ai_global_kid: str,
+    ai_global_jwks_quoted: str,
     audience_template: str,
+    agent_issuer_template: str,
+    legacy_issuer_template: str,
+    oidc_clients: str,
+    ai_oidc_client_id: str,
+    ai_oidc_client_secret: str,
 ) -> dict[str, str]:
     """Lines rewritten every run so each JWKS matches its private key."""
     issuer_public = public_pem_from_private(issuer_private_pem)
@@ -228,6 +252,14 @@ def trust_material_updates(
         "GLOBAL_AGENT_KEY_ID": agent_kid,
         "GLOBAL_AGENT_JWKS": agent_jwks_quoted,
         "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE": audience_template,
+        "GLOBAL_AGENT_ISSUER_URL": agent_issuer_template,
+        "GLOBAL_AGENT_LEGACY_ISSUER_URL": legacy_issuer_template,
+        "AI_GLOBAL_SERVICE_SIGNING_KEY": quoted_pem(ai_global_private_pem),
+        "AI_GLOBAL_SERVICE_SIGNING_KID": ai_global_kid,
+        "AI_GLOBAL_JWKS": ai_global_jwks_quoted,
+        "GLOBAL_OIDC_CLIENT_ID": ai_oidc_client_id,
+        "GLOBAL_OIDC_CLIENT_SECRET": ai_oidc_client_secret,
+        "IDENTITY_GLOBAL_OIDC_CLIENTS": oidc_clients,
     }
 
 
@@ -253,8 +285,13 @@ def apply_example(
     agent_private_pem: str,
     agent_kid: str,
     agent_jwks_quoted: str,
+    ai_global_private_pem: str,
+    ai_global_kid: str,
+    ai_global_jwks_quoted: str,
     oidc_client_id: str,
     oidc_client_secret: str,
+    ai_oidc_client_id: str,
+    ai_oidc_client_secret: str,
 ) -> str:
     text = example_path.read_text(encoding="utf-8")
     issuer_public = public_pem_from_private(issuer_private_pem)
@@ -268,6 +305,7 @@ def apply_example(
         "__EMAIL_SECRET_KEY__": secret_key(),
         "__SAAS_SECRET_KEY__": secret_key(),
         "__AI_SECRET_KEY__": secret_key(),
+        "__AI_GLOBAL_SECRET_KEY__": secret_key(),
         "__JWT_PRIVATE_KEY__": "",  # filled below
         "__JWT_PUBLIC_KEY__": "",  # filled below
         "__JWT_KEY_ID__": "",  # filled below
@@ -284,7 +322,17 @@ def apply_example(
         "__GLOBAL_JWKS_JSON__": issuer_jwks_quoted,
         "__GLOBAL_OIDC_CLIENT_ID__": oidc_client_id,
         "__GLOBAL_OIDC_CLIENT_SECRET__": oidc_client_secret,
-        "__IDENTITY_GLOBAL_OIDC_CLIENTS__": oidc_clients_env(oidc_client_id, oidc_client_secret),
+        "__AI_GLOBAL_OIDC_CLIENT_ID__": ai_oidc_client_id,
+        "__AI_GLOBAL_OIDC_CLIENT_SECRET__": ai_oidc_client_secret,
+        "__IDENTITY_GLOBAL_OIDC_CLIENTS__": oidc_clients_env(
+            oidc_client_id,
+            oidc_client_secret,
+            ai_oidc_client_id,
+            ai_oidc_client_secret,
+        ),
+        "__AI_GLOBAL_SERVICE_SIGNING_KEY__": pem_for_env(ai_global_private_pem),
+        "__AI_GLOBAL_SERVICE_SIGNING_KID__": ai_global_kid,
+        "__AI_GLOBAL_JWKS_JSON__": ai_global_jwks_quoted,
         "__DASHBOARD_WEBHOOK_SECRET__": secrets.token_urlsafe(32),
         "__EMAIL_CREDENTIALS_KEY__": fernet_key(),
         "__EMAIL_VARIABLES_KEY__": fernet_key(),
@@ -331,20 +379,55 @@ def _unquote_plain(raw: str | None) -> str | None:
     return s or None
 
 
-def _existing_oidc_client(env_body: str) -> tuple[str, str] | None:
+_AI_OIDC_REDIRECT_MARK = "/oauth/mcp/signin/complete"
+
+
+def _parse_oidc_clients(env_body: str) -> list[dict]:
     raw = _unquote_plain(extract_value(env_body, "IDENTITY_GLOBAL_OIDC_CLIENTS"))
     if not raw:
-        return None
+        return []
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        return None
-    if not isinstance(data, list) or not data or not isinstance(data[0], dict):
-        return None
-    client_id = str(data[0].get("client_id") or "").strip()
-    secret = str(data[0].get("client_secret") or "")
+        return []
+    if not isinstance(data, list):
+        return []
+    return [item for item in data if isinstance(item, dict)]
+
+
+def _client_pair(item: dict) -> tuple[str, str] | None:
+    client_id = str(item.get("client_id") or "").strip()
+    secret = str(item.get("client_secret") or "")
     if client_id and secret:
         return client_id, secret
+    return None
+
+
+def _is_ai_oidc_client(item: dict) -> bool:
+    redirects = item.get("redirect_uris") or []
+    if not isinstance(redirects, list):
+        return False
+    return any(isinstance(uri, str) and _AI_OIDC_REDIRECT_MARK in uri for uri in redirects)
+
+
+def _existing_oidc_client(env_body: str) -> tuple[str, str] | None:
+    """Regional relying party. Skips the ai-global sign-in client."""
+    for item in _parse_oidc_clients(env_body):
+        if _is_ai_oidc_client(item):
+            continue
+        pair = _client_pair(item)
+        if pair:
+            return pair
+    return None
+
+
+def _existing_ai_oidc_client(env_body: str) -> tuple[str, str] | None:
+    for item in _parse_oidc_clients(env_body):
+        if not _is_ai_oidc_client(item):
+            continue
+        pair = _client_pair(item)
+        if pair:
+            return pair
     return None
 
 
@@ -363,6 +446,13 @@ def main() -> int:
         re.MULTILINE,
     )
     audience_from_example = aud_match.group(1).strip() if aud_match else "shellui_global_agent_dev"
+
+    def example_value(name: str, default: str) -> str:
+        match = re.search(rf"^{name}=(.+)$", example_raw, re.MULTILINE)
+        return match.group(1).strip() if match else default
+
+    agent_issuer_template = example_value("GLOBAL_AGENT_ISSUER_URL", "${PUBLIC_AI_GLOBAL_URL}")
+    legacy_issuer_template = example_value("GLOBAL_AGENT_LEGACY_ISSUER_URL", "${PUBLIC_SAAS_URL}")
 
     existing_body = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
     audience_from_file = extract_value(existing_body, "GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") if existing_body else None
@@ -384,12 +474,30 @@ def main() -> int:
     if issuer_pem.strip() == agent_pem.strip():
         issuer_pem, _public, _kid = rsa_keypair()
 
+    ai_global_pem = extract_private_pem(existing_body, "AI_GLOBAL_SERVICE_SIGNING_KEY") if existing_body else None
+    region_ai_pem = extract_private_pem(existing_body, "AI_SERVICE_SIGNING_KEY") if existing_body else None
+    if not ai_global_pem:
+        ai_global_pem, _public, _kid = rsa_keypair()
+    taken = {pem.strip() for pem in (issuer_pem, agent_pem, region_ai_pem) if pem}
+    if ai_global_pem.strip() in taken:
+        print(
+            "AI_GLOBAL_SERVICE_SIGNING_KEY matched another dev signing key; "
+            "generated a new ai-global key.",
+            file=sys.stderr,
+        )
+        ai_global_pem, _public, _kid = rsa_keypair()
+        while ai_global_pem.strip() in taken:
+            ai_global_pem, _public, _kid = rsa_keypair()
+
     issuer_public = public_pem_from_private(issuer_pem)
     issuer_kid = kid_from_private_pem(issuer_pem)
     agent_public = public_pem_from_private(agent_pem)
     agent_kid = kid_from_private_pem(agent_pem)
+    ai_global_public = public_pem_from_private(ai_global_pem)
+    ai_global_kid = kid_from_private_pem(ai_global_pem)
     issuer_jwks_quoted = jwks_quoted_for_keys([(issuer_public, issuer_kid)])
     agent_jwks_quoted = jwks_quoted_for_keys([(agent_public, agent_kid)])
+    ai_global_jwks_quoted = jwks_quoted_for_keys([(ai_global_public, ai_global_kid)])
 
     parsed_client = _existing_oidc_client(existing_body) if existing_body else None
     client_id = _unquote_plain(extract_value(existing_body, "GLOBAL_CLIENT_ID")) if existing_body else None
@@ -402,6 +510,23 @@ def main() -> int:
     if not client_secret:
         client_secret = secrets.token_urlsafe(32)
 
+    parsed_ai_client = _existing_ai_oidc_client(existing_body) if existing_body else None
+    ai_client_id = _unquote_plain(extract_value(existing_body, "GLOBAL_OIDC_CLIENT_ID")) if existing_body else None
+    ai_client_secret = (
+        _unquote_plain(extract_value(existing_body, "GLOBAL_OIDC_CLIENT_SECRET")) if existing_body else None
+    )
+    if parsed_ai_client:
+        ai_client_id = ai_client_id or parsed_ai_client[0]
+        ai_client_secret = ai_client_secret or parsed_ai_client[1]
+    if not ai_client_id:
+        ai_client_id = "ai-global-dev-" + secrets.token_urlsafe(9)
+    if not ai_client_secret:
+        ai_client_secret = secrets.token_urlsafe(32)
+    if ai_client_id == client_id:
+        ai_client_id = "ai-global-dev-" + secrets.token_urlsafe(9)
+
+    oidc_clients = oidc_clients_env(client_id, client_secret, ai_client_id, ai_client_secret)
+
     text = apply_example(
         example_path,
         issuer_private_pem=issuer_pem,
@@ -410,8 +535,13 @@ def main() -> int:
         agent_private_pem=agent_pem,
         agent_kid=agent_kid,
         agent_jwks_quoted=agent_jwks_quoted,
+        ai_global_private_pem=ai_global_pem,
+        ai_global_kid=ai_global_kid,
+        ai_global_jwks_quoted=ai_global_jwks_quoted,
         oidc_client_id=client_id,
         oidc_client_secret=client_secret,
+        ai_oidc_client_id=ai_client_id,
+        ai_oidc_client_secret=ai_client_secret,
     )
 
     ga_updates = trust_material_updates(
@@ -421,7 +551,15 @@ def main() -> int:
         agent_private_pem=agent_pem,
         agent_kid=agent_kid,
         agent_jwks_quoted=agent_jwks_quoted,
+        ai_global_private_pem=ai_global_pem,
+        ai_global_kid=ai_global_kid,
+        ai_global_jwks_quoted=ai_global_jwks_quoted,
         audience_template=audience_template,
+        agent_issuer_template=agent_issuer_template,
+        legacy_issuer_template=legacy_issuer_template,
+        oidc_clients=oidc_clients,
+        ai_oidc_client_id=ai_client_id,
+        ai_oidc_client_secret=ai_client_secret,
     )
 
     if output_path.exists():

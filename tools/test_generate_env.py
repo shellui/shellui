@@ -62,6 +62,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     pglobal = expand(dotenv["PUBLIC_IDENTITY_GLOBAL_URL"])
     psaas = expand(dotenv["PUBLIC_SAAS_URL"])
     pai = expand(dotenv["PUBLIC_AI_URL"])
+    pai_global = expand(dotenv["PUBLIC_AI_GLOBAL_URL"])
     ga_aud = dotenv["GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE"]
     global_aud = dotenv["IDENTITY_GLOBAL_JWT_AUDIENCE"]
     internal_identity = "http://identity:8000"
@@ -70,6 +71,7 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     ident = service_env(doc, "identity")
     global_ident = service_env(doc, "identity-global")
     ai = service_env(doc, "ai")
+    ai_global = service_env(doc, "ai-global")
     saas = service_env(doc, "saas")
     dashboard = service_env(doc, "dashboard")
     shell = service_env(doc, "shell")
@@ -79,7 +81,8 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ident.get("GLOBAL_ISSUER_URL") == pglobal, "identity GLOBAL_ISSUER_URL must equal PUBLIC_IDENTITY_GLOBAL_URL"
     assert ident.get("GLOBAL_ISSUER_INTERNAL_URL") == internal_global
     assert ident.get("GLOBAL_ACCESS_TOKEN_AUDIENCE") == global_aud
-    assert ident.get("GLOBAL_AGENT_ISSUER_URL") == psaas
+    assert ident.get("GLOBAL_AGENT_ISSUER_URL") == pai_global
+    assert ident.get("GLOBAL_AGENT_LEGACY_ISSUER_URL") == psaas
     assert ident.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
     assert ident.get("GLOBAL_CLIENT_ID"), "regional identity needs GLOBAL_CLIENT_ID"
     assert ident.get("GLOBAL_CLIENT_SECRET"), "regional identity needs GLOBAL_CLIENT_SECRET"
@@ -87,9 +90,14 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert ident.get("AI_SERVICE_JWKS_URL") == "http://ai:8000/.well-known/jwks.json"
     gjwk = ident.get("GLOBAL_JWKS", "")
     agent_jwks = ident.get("GLOBAL_AGENT_JWKS", "")
+    legacy_agent_jwks = ident.get("GLOBAL_AGENT_LEGACY_JWKS", "")
     assert gjwk, "identity GLOBAL_JWKS must be set after generate_env"
     assert '"kid"' in gjwk or "'kid'" in gjwk, "GLOBAL_JWKS should contain kid"
-    assert agent_jwks and agent_jwks != gjwk, "agent JWKS must be set and differ from the user JWKS"
+    assert agent_jwks and agent_jwks != gjwk, "ai-global JWKS must be set and differ from the user JWKS"
+    assert legacy_agent_jwks and legacy_agent_jwks != agent_jwks, "legacy saas JWKS must differ from ai-global"
+    assert legacy_agent_jwks != gjwk
+    assert agent_jwks == dotenv["AI_GLOBAL_JWKS"]
+    assert legacy_agent_jwks == dotenv["GLOBAL_AGENT_JWKS"]
     assert ident.get("JWT_KEY_ID") != global_ident.get("JWT_KEY_ID"), "regional and global signing kids must differ"
 
     assert global_ident.get("SHELLUI_INSTANCE_ROLE") == "global"
@@ -101,11 +109,38 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert global_ident.get("REDIS_URL", "").endswith("/6")
     assert global_ident.get("OIDC_CLIENTS"), "identity-global OIDC_CLIENTS"
     assert ident.get("GLOBAL_CLIENT_ID") in global_ident.get("OIDC_CLIENTS", "")
+    assert dotenv["GLOBAL_OIDC_CLIENT_ID"] in global_ident.get("OIDC_CLIENTS", "")
+    assert "8008/oauth/mcp/signin/complete" in global_ident.get("OIDC_CLIENTS", "")
 
+    assert ai.get("AI_SERVICE_MODE") == "region"
     assert ai.get("IDENTITY_SERVICE_URL") == internal_identity
     assert ai.get("IDENTITY_JWKS_URL") == f"{internal_identity}/.well-known/jwks.json"
     assert ai.get("IDENTITY_ISSUER") == pid
     assert ai.get("AI_SERVICE_ISSUER") == pai
+    assert "SAAS_SERVICE_URL" not in ai
+    assert "SAAS_SERVICE_PUBLIC_URL" not in ai
+
+    assert ai_global.get("AI_SERVICE_MODE") == "global"
+    assert ai_global.get("AI_PUBLIC_URL") == pai_global
+    assert ai_global.get("AI_SERVICE_ISSUER") == pai_global
+    assert ai_global.get("SECRET_KEY") != ai.get("SECRET_KEY")
+    assert "ai_global" in ai_global.get("POSTGRES_DATABASE_URL", "")
+    assert ai_global.get("REDIS_URL", "").endswith("/7")
+    assert ai_global.get("GLOBAL_IDENTITY_URL") == pglobal
+    assert ai_global.get("GLOBAL_IDENTITY_INTERNAL_URL") == internal_global
+    assert ai_global.get("GLOBAL_IDENTITY_ISSUER") == pglobal
+    assert ai_global.get("GLOBAL_IDENTITY_JWKS") == gjwk
+    assert ai_global.get("GLOBAL_OIDC_CLIENT_ID") == dotenv["GLOBAL_OIDC_CLIENT_ID"]
+    assert ai_global.get("GLOBAL_OIDC_CLIENT_SECRET") == dotenv["GLOBAL_OIDC_CLIENT_SECRET"]
+    assert ai_global.get("GLOBAL_OIDC_REDIRECT_URI") == f"{pai_global}/oauth/mcp/signin/complete"
+    assert ai_global.get("SAAS_SERVICE_URL") == psaas
+    assert ai_global.get("SAAS_SERVICE_INTERNAL_URL") == "http://saas:8000"
+    assert ai_global.get("SAAS_API_AUDIENCE") == f"{psaas}/api"
+    assert ai_global.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
+    assert ai_global.get("AI_SERVICE_SIGNING_KID") == dotenv["AI_GLOBAL_SERVICE_SIGNING_KID"]
+    assert ai_global.get("AI_SERVICE_SIGNING_KID") != ai.get("AI_SERVICE_SIGNING_KID")
+    assert "IDENTITY_SERVICE_URL" not in ai_global
+    assert "IDENTITY_JWKS" not in ai_global
 
     assert saas.get("IDENTITY_INTERNAL_URL") == internal_global
     assert saas.get("IDENTITY_SERVICE_URL") == internal_global
@@ -115,6 +150,9 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
     assert "GLOBAL_AGENT_ISSUER" not in saas
     assert saas.get("GLOBAL_AGENT_ACCESS_TOKEN_AUDIENCE") == ga_aud
     assert saas.get("GLOBAL_AGENT_KEY_ID") != global_ident.get("JWT_KEY_ID")
+    assert saas.get("AI_GLOBAL_ISSUER") == pai_global
+    assert saas.get("AI_GLOBAL_JWKS") == dotenv["AI_GLOBAL_JWKS"]
+    assert saas.get("REGION_CH_AI_URL") == pai
     assert shell.get("PUBLIC_IDENTITY_URL") == pid
     assert dashboard.get("IDENTITY_SERVICE_URL") == pglobal
     # In-network send URL. Identity discovery uses the public origin below.
@@ -202,7 +240,7 @@ def main() -> int:
             print(f"compose env assertion failed: {exc}", file=sys.stderr)
             return 1
 
-        print("docker compose config: ok (two identities, global issuer, internal URLs)")
+        print("docker compose config: ok (two identities, two ai modes, internal URLs)")
     finally:
         out.unlink(missing_ok=True)
     return 0
