@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- **Core:** The Files app in a project admin uses that project's storage URL and regional session.
+
 ## [0.8.0] - 2026-11-18
 
 Shellui 0.8.0 adds MCP agents, approvals, and activity in Settings, plus OAuth device login. You can sign in to the CLI with a device code and inspect your company. The shell stores its refresh token in an HttpOnly host cookie.
