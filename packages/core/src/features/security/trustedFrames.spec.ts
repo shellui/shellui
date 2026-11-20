@@ -4,6 +4,7 @@ import {
   getAiRequestTrustDenial,
   getStorageRequestTrustDenial,
   isRegisteredTrustedFrame,
+  isShellOwnedFrameMessage,
   isShellSettingsFrameMessage,
   isShellSettingsFrameSrc,
   isTrustedFrameForAuthToken,
@@ -109,6 +110,49 @@ const registry = {
       ['hostile-uuid', hostileIframe],
     ] as Array<[string, HTMLIFrameElement]>,
 };
+
+describe('isShellOwnedFrameMessage', () => {
+  const shellOrigin = 'http://localhost:4000';
+  const framesFor = (entries: Array<[string, string]>) => ({
+    getAllIframes: () =>
+      entries.map(
+        ([uuid, src]) => [uuid, { src } as HTMLIFrameElement] as [string, HTMLIFrameElement],
+      ),
+  });
+
+  it('accepts the shell window', () => {
+    expect(isShellOwnedFrameMessage([], framesFor([]), shellOrigin)).toBe(true);
+    expect(isShellOwnedFrameMessage(undefined, framesFor([]), shellOrigin)).toBe(true);
+  });
+
+  it('accepts shell pages, including settings and cookie preferences', () => {
+    const frames = framesFor([
+      ['settings', `${shellOrigin}/__settings/ai`],
+      ['cookies', '/__cookie-preferences'],
+      ['login', `${shellOrigin}/login`],
+    ]);
+    expect(isShellOwnedFrameMessage(['settings'], frames, shellOrigin)).toBe(true);
+    expect(isShellOwnedFrameMessage(['cookies'], frames, shellOrigin)).toBe(true);
+    expect(isShellOwnedFrameMessage(['login'], frames, shellOrigin)).toBe(true);
+  });
+
+  it('rejects companions, including an opted-in access-token companion and a same-origin /app/ frame', () => {
+    const frames = framesFor([
+      ['companion', 'http://localhost:5175/company'],
+      ['app', `${shellOrigin}/app/`],
+      ['relay', `${shellOrigin}/__settings/user`],
+    ]);
+    expect(isShellOwnedFrameMessage(['companion'], frames, shellOrigin)).toBe(false);
+    expect(isShellOwnedFrameMessage(['app'], frames, shellOrigin)).toBe(false);
+    expect(isShellOwnedFrameMessage(['relay', 'nested'], frames, shellOrigin)).toBe(false);
+    expect(isShellOwnedFrameMessage(['missing'], frames, shellOrigin)).toBe(false);
+  });
+
+  it('rejects a shell path hosted on another origin', () => {
+    const frames = framesFor([['evil', 'http://evil.test/__settings/user']]);
+    expect(isShellOwnedFrameMessage(['evil'], frames, shellOrigin)).toBe(false);
+  });
+});
 
 describe('isTrustedFrameForAuthToken', () => {
   it('does not trust navigation companions by default', () => {

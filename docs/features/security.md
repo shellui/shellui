@@ -28,7 +28,7 @@ This is what a static host does. `shellui start` and `serve:dist` serve the rout
 
 ### Residual risk
 
-- **Refresh tokens are JavaScript-readable** in this mode (`sessionStorage`). XSS in the shell can exfiltrate them. A same-origin companion under `/app/` can read that entry as well. See [Companion isolation](/features/companion-isolation).
+- **Refresh tokens are JavaScript-readable** in this mode (`sessionStorage`). XSS in the shell can exfiltrate them. A companion URL on the shell origin does not receive that origin: its content iframe sandbox omits `allow-same-origin`. See [Companion isolation](/features/companion-isolation).
 - **Access tokens are not written to web storage**, but they still live in memory and may be forwarded to trusted iframe companions via `SHELLUI_SETTINGS` (see [Navigation → `safeForAuthToken`](/features/navigation)). The refresh token is not forwarded.
 - **An app `backend` gets its own session.** The shell sends that server's access token to the app and does not send the shell token. Shell `email`, `storage`, and `hosting` URLs are not sent unless that item sets them. That other refresh token stays in `sessionStorage` under a separate key, including regional token exchange. Refresh tokens are still not sent to iframes. See [Apps on another identity server](/features/authentication#apps-on-another-identity-server).
 - **New tabs** do not inherit `sessionStorage`. Without the host cookie, people sign in again.
