@@ -33,7 +33,7 @@ const config: ShellUIConfig = {
 - **`url`** (string, required): iframe or route URL
 - **`icon`** (string, optional): SVG path such as `/icons/home.svg`
 - **`hidden`**: hide from sidebar and 404 links; the route still exists
-- **`locked`**: people cannot hide or remove this item from the runtime navigation overlay
+- **`locked`**: people cannot hide or remove this item from the runtime navigation overlay. Settings shows the item as locked. See [Shellui Marketplace](/features/marketplace).
 - **`hideWhenLoggedOut`**: hide while signed out
 - **`requiresAuth`**: redirect signed-out visitors to `/login?next=...`
 - **`requiresDevMode`**: only when Settings → Advanced → Developer features is on

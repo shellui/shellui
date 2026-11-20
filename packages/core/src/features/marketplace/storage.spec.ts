@@ -36,13 +36,13 @@ const sample = (): NavigationOverlay => ({
 describe('navigation storage adapters', () => {
   it('resolves the identity navigation overlay endpoint', () => {
     expect(resolveNavigationOverlayUrl({ identityBaseUrl: 'https://id.example.com/' })).toBe(
-      'https://id.example.com/api/v1/user/navigation-overlay',
+      'https://id.example.com/api/v1/navigation-overlay',
     );
     expect(
       resolveNavigationOverlayUrl({
-        apiUrl: 'https://id.example.com/api/v1/user/navigation-overlay',
+        apiUrl: 'https://id.example.com/api/v1/navigation-overlay',
       }),
-    ).toBe('https://id.example.com/api/v1/user/navigation-overlay');
+    ).toBe('https://id.example.com/api/v1/navigation-overlay');
   });
 
   it('round-trips localStorage and resets it', async () => {
@@ -70,7 +70,7 @@ describe('navigation storage adapters', () => {
       if (method === 'GET') return new Response('null', { status: 404 });
       if (method === 'PUT') {
         expect(init?.headers).toMatchObject({ Authorization: 'Bearer token' });
-        expect(String(input)).toBe('https://id.example/api/v1/user/navigation-overlay');
+        expect(String(input)).toBe('https://id.example/api/v1/navigation-overlay');
         return new Response(null, { status: 204 });
       }
       return new Response(null, { status: 204 });

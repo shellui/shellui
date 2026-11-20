@@ -119,8 +119,9 @@ export const SettingsView = () => {
     ) {
       routes = routes.filter((route) => route.path !== 'storage');
     }
-    if (!normalizeMarketplaceConfig(config?.marketplace)) {
-      routes = routes.filter((route) => route.path !== 'installed-apps');
+    const marketplace = normalizeMarketplaceConfig(config?.marketplace);
+    if (!marketplace?.navigationCustomization.enabled) {
+      routes = routes.filter((route) => route.path !== 'navigation');
     }
     return routes;
   }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled, mcpAgentsNavEnabled]);
@@ -208,9 +209,7 @@ export const SettingsView = () => {
           ? [{ kind: 'mcp-agents-skeleton' as const }]
           : [];
 
-    const installedAppsRoutes = settingsNavRoutes.filter(
-      (route) => route.path === 'installed-apps',
-    );
+    const installedAppsRoutes = settingsNavRoutes.filter((route) => route.path === 'navigation');
     const groups = [
       ...(installedAppsRoutes.length > 0 || applicationRoutes.length > 0
         ? [

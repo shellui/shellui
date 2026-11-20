@@ -1,5 +1,8 @@
 import type { ShellUIConfig } from '../../config/types';
-import { isThirdPartyFrameSrc } from '../../marketplace/installedAppRegistry';
+import {
+  isThirdPartyFrameSrc,
+  originHasThirdPartyInstall,
+} from '../../marketplace/installedAppRegistry';
 import {
   resolveAppBackendConfig,
   resolveFrameNavigationItem,
@@ -94,6 +97,10 @@ export function validateChildFrameRegistration(input: {
   if (from.length !== 1) return { ok: false, reason: 'not sent by a direct app frame' };
   if (!input.hostSrc) return { ok: false, reason: 'unknown host frame' };
   if (isThirdPartyFrameSrc(input.hostSrc)) {
+    return { ok: false, reason: 'third-party apps cannot embed apps' };
+  }
+  const hostOrigin = exactOrigin(input.hostSrc);
+  if (hostOrigin && originHasThirdPartyInstall(hostOrigin)) {
     return { ok: false, reason: 'third-party apps cannot embed apps' };
   }
   const payload = input.payload as

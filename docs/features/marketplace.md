@@ -36,7 +36,7 @@ An object overrides only the fields you set. Omitted fields keep the defaults ab
 }
 ```
 
-`storage: "auto"` syncs the navigation overlay with Shellui Identity when the person is signed in and `backend` is a Shellui identity server. Otherwise the overlay stays in `localStorage`. `storage: "api"` always uses Identity. Set `navigationCustomization.apiUrl` when the overlay endpoint is not `{backend.url}/api/v1/user/navigation-overlay`.
+`storage: "auto"` syncs the navigation overlay with Shellui Identity when the person is signed in and `backend` is a Shellui identity server. Otherwise the overlay stays in `localStorage`. `storage: "api"` always uses Identity. The Identity routes are `GET`, `PUT`, and `DELETE` `{backend.url}/api/v1/navigation-overlay` (the same style as `/api/v1/preferences`). Set `navigationCustomization.apiUrl` when that endpoint lives somewhere else.
 
 When marketplace is on, the shell adds a locked **Shellui Marketplace** route.
 
@@ -60,6 +60,26 @@ Third-party installs start with **theme** and **language** only. **Interface**, 
 **Sign-in** and **embedded frames** are never granted to a third-party install. A payload that asks for `auth`, `safeForAuthToken`, or `childFrames` does not receive them.
 
 Third-party iframes use `referrerPolicy="no-referrer"`, a sandbox without `allow-top-navigation`, and an empty Permissions-Policy `allow` attribute. Their document URL must be HTTPS. `http://localhost` is allowed for local development. Remote icons render in an image element. Inline SVG is not injected.
+
+## Customize navigation
+
+When `navigationCustomization.enabled` is true, Settings includes **Navigation**. From there a person can:
+
+- Move items up or down (buttons, keyboard focus, locked items included)
+- Hide or show unlocked items. `locked: true` stays visible and shows a locked state
+- Uninstall an app that was installed from Shellui Marketplace
+- Turn `ui`, `navigate`, `storage`, and `ai` off for a third-party app without uninstalling it. The change applies on the next message from that frame
+- Reset navigation to the build-time `shellui.config.json` list
+
+## shellui add
+
+```bash
+shellui add notes
+shellui add notes --api-url https://api.marketplace.shellui.com
+shellui add notes --allow-auth
+```
+
+The CLI reads `GET {apiUrl}/api/apps/<app-id>`. The default `apiUrl` is `https://api.marketplace.shellui.com`. It appends a `NavigationItem` to `shellui.config.json` (or `shellui.navigation.config.json` when config is split). The URL must be HTTPS. A non-official app that sets `safeForAuthToken` is refused unless you pass `--allow-auth`. An existing path is left unchanged and the command exits with an error. The command prints the name, path, URL, whether the catalog marked the app official, and whether the token will be shared.
 
 ## SDK
 

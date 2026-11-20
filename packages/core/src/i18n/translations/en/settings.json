@@ -16,7 +16,7 @@
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
     "storage": "Storage",
-    "installedApps": "Installed apps",
+    "navigation": "Navigation",
     "ai": "AI",
     "mcpAgents": "MCP / AI agents",
     "develop": "Develop",
@@ -826,10 +826,20 @@
       }
     }
   },
-  "installedApps": {
-    "description": "Choose what each app can do. Theme and language stay available.",
-    "empty": "No apps installed from Shellui Marketplace.",
-    "remove": "Remove",
+  "customizeNavigation": {
+    "description": "Reorder navigation, hide unlocked items, and manage Shellui Marketplace apps. Theme and language stay available.",
+    "disabled": "Navigation customization is off for this shell.",
+    "empty": "No navigation items.",
+    "locked": "Locked. This item stays in navigation.",
+    "visible": "Show in navigation",
+    "visibleFor": "Show {{name}} in navigation",
+    "up": "Up",
+    "down": "Down",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "uninstall": "Uninstall",
+    "reset": "Reset navigation",
+    "capabilityFor": "{{capability}} for {{name}}",
     "hostOnly": "Sign-in and embedded frames stay on the host."
   }
 }

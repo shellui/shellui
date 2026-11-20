@@ -22,6 +22,7 @@ import {
 } from '@shellui/sdk';
 import { useAuth } from '../auth/hooks/useAuth';
 import { flattenNavigationItems } from '../layouts/utils';
+import { movePathInOrder, nextHiddenPaths } from './navigationCustomization';
 import { ConfigContext } from '../config/ConfigProvider';
 import { useConfig } from '../config/useConfig';
 import { InstallConfirmDialog } from './InstallConfirmDialog';
@@ -46,6 +47,7 @@ import { createNavigationStorageAdapter, isIdentityConfigured } from './storage'
 const logger = getLogger('shellcore');
 
 export interface NavigationContextValue {
+  customizationEnabled: boolean;
   installedApps: InstalledAppRecord[];
   listInstalledApps: () => InstalledAppRecord[];
   uninstallApp: (appId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -53,6 +55,15 @@ export interface NavigationContextValue {
     appId: string,
     capabilities: readonly string[],
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  moveNavigationItem: (
+    path: string,
+    direction: 'up' | 'down',
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  setNavigationItemHidden: (
+    path: string,
+    hidden: boolean,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  resetNavigation: () => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 export const NavigationContext = createContext<NavigationContextValue | null>(null);
@@ -231,6 +242,53 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     [currentOverlay, customizationOn, marketplace, persist],
   );
 
+  const moveNavigationItem = useCallback(
+    async (path: string, direction: 'up' | 'down') => {
+      if (!customizationOn)
+        return { ok: false as const, error: 'navigation_customization_disabled' };
+      const paths = flattenNavigationItems(mergedNavigation).map((item) => item.path);
+      const order = movePathInOrder(paths, path, direction);
+      if (!order) return { ok: false as const, error: 'not_moved' };
+      const current = currentOverlay();
+      await persist({ ...current, order, updatedAt: new Date().toISOString() });
+      return { ok: true as const };
+    },
+    [currentOverlay, customizationOn, mergedNavigation, persist],
+  );
+
+  const setNavigationItemHidden = useCallback(
+    async (path: string, hidden: boolean) => {
+      if (!customizationOn)
+        return { ok: false as const, error: 'navigation_customization_disabled' };
+      const item = flattenNavigationItems(mergedNavigation).find((entry) => entry.path === path);
+      if (!item) return { ok: false as const, error: 'not_found' };
+      const current = currentOverlay();
+      const next = nextHiddenPaths({
+        hiddenPaths: current.hiddenPaths,
+        path,
+        hidden,
+        locked: item.locked === true,
+      });
+      if (!next.ok) return next;
+      await persist({
+        ...current,
+        hiddenPaths: next.hiddenPaths,
+        updatedAt: new Date().toISOString(),
+      });
+      return { ok: true as const };
+    },
+    [currentOverlay, customizationOn, mergedNavigation, persist],
+  );
+
+  const resetNavigation = useCallback(async () => {
+    if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
+    const empty = emptyNavigationOverlay();
+    overlayRef.current = empty;
+    setOverlay(empty);
+    await adapter?.reset?.();
+    return { ok: true as const };
+  }, [adapter, customizationOn]);
+
   const installFromMarketplace = useCallback(
     async (request: MarketplaceInstallRequest) => {
       if (!marketplace) return { ok: false as const, error: 'marketplace_disabled' };
@@ -341,12 +399,24 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<NavigationContextValue>(
     () => ({
+      customizationEnabled: customizationOn,
       installedApps: customizationOn ? (overlay?.installedApps ?? []) : [],
       listInstalledApps: () => overlayRef.current?.installedApps ?? [],
       uninstallApp,
       setAppCapabilities,
+      moveNavigationItem,
+      setNavigationItemHidden,
+      resetNavigation,
     }),
-    [customizationOn, overlay, setAppCapabilities, uninstallApp],
+    [
+      customizationOn,
+      moveNavigationItem,
+      overlay,
+      resetNavigation,
+      setAppCapabilities,
+      setNavigationItemHidden,
+      uninstallApp,
+    ],
   );
 
   const tree = (

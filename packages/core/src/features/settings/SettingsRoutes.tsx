@@ -22,7 +22,7 @@ import { LegalDocumentsPanel } from './components/LegalDocumentsPanel';
 import { Storage } from './components/Storage';
 import { Ai } from './components/Ai';
 import { McpAgents } from './components/McpAgents';
-import { InstalledApps } from './components/InstalledApps';
+import { CustomizeNavigation } from './components/InstalledApps';
 import { isTauri } from '../../service-worker/register';
 
 export const createSettingsRoutes = (t: (key: string) => string) => [
@@ -63,10 +63,10 @@ export const createSettingsRoutes = (t: (key: string) => string) => [
     element: <Storage />,
   },
   {
-    name: t('routes.installedApps'),
+    name: t('routes.navigation'),
     icon: PackageIcon,
-    path: 'installed-apps',
-    element: <InstalledApps />,
+    path: 'navigation',
+    element: <CustomizeNavigation />,
   },
   {
     name: t('routes.updateApp'),

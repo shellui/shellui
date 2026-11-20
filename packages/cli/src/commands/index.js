@@ -8,6 +8,7 @@
 export { startCommand } from './start.js';
 export { buildCommand } from './build.js';
 export { initCommand } from './init.js';
+export { addAppCommand } from './add.js';
 export { configCommand } from './config.js';
 export { loginCommand } from './login.js';
 export { logoutCommand } from './logout.js';

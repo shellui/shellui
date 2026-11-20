@@ -232,10 +232,16 @@ export class FrameRegistry {
     return this.capabilityGrants.get(origin);
   }
 
-  /** Grant for a concrete iframe URL, if that URL belongs to an installed app. */
+  /**
+   * Grant for a concrete iframe URL.
+   * A third-party grant covers the whole origin, so a frame cannot leave the
+   * app path and keep first-party privileges.
+   */
   matchCapabilityGrant(frameSrc: string | null | undefined): FrameCapabilityGrant | null {
     if (!frameSrc) return null;
+    const origin = originFromUrl(frameSrc);
     for (const grant of this.capabilityGrants.values()) {
+      if (grant.thirdParty && origin && grant.origin === origin) return grant;
       if (grant.urls.some((url) => frameMatchesAppUrl(frameSrc, url))) return grant;
     }
     return null;
@@ -261,10 +267,15 @@ export class FrameRegistry {
       }
     }
 
+    const grantRemains = origin ? this.capabilityGrants.has(origin) : false;
     const removed: string[] = [];
     for (const [uuid, iframe] of this.iframes.entries()) {
       const src = iframe?.src?.trim();
-      if (src && frameMatchesAppUrl(src, appUrl)) {
+      if (!src) continue;
+      const sameApp = frameMatchesAppUrl(src, appUrl);
+      const sameOrigin = origin !== null && originFromUrl(src) === origin;
+      // When this was the last app on the origin, drop every frame from it.
+      if (sameApp || (!grantRemains && sameOrigin)) {
         this.removeIframe(uuid);
         removed.push(uuid);
       }

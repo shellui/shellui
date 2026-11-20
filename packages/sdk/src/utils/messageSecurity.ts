@@ -185,9 +185,9 @@ export class MessageSecurityPolicy {
   ): string | null {
     const sourceKind = this.classifySource(event, frameRegistry);
 
-    // The embedding parent is trusted for shell → companion traffic. When
+    // The embedding parent is trusted for shell to companion traffic. When
     // ancestorOrigins/referrer are missing, getAllowedOrigins may not include
-    // the shell origin — still accept messages that literally come from parent.
+    // the shell origin. Still accept messages that literally come from parent.
     if (
       sourceKind === 'parent' &&
       typeof window !== 'undefined' &&

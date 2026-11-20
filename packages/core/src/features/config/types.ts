@@ -566,7 +566,7 @@ export interface NavigationCustomizationConfig {
   storage?: NavigationStorageMode;
   /**
    * Identity base URL, or the full navigation-overlay endpoint.
-   * When omitted, the shell uses `backend.url` for a Shellui identity server.
+   * When omitted, the shell uses `backend.url` plus `/api/v1/navigation-overlay`.
    */
   apiUrl?: string;
 }

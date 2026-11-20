@@ -103,5 +103,11 @@ export function mergeNavigationOverlay(
     staticPaths.add(app.path);
   }
 
-  return sortEntries(withHidden, overlay?.order ?? []);
+  const order = overlay?.order ?? [];
+  const withGroupOrder = withHidden.map((entry) =>
+    isGroup(entry)
+      ? { ...entry, items: sortEntries(entry.items, order) as NavigationItem[] }
+      : entry,
+  );
+  return sortEntries(withGroupOrder, order);
 }

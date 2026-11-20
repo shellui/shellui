@@ -4,6 +4,7 @@ import {
   startCommand,
   buildCommand,
   initCommand,
+  addAppCommand,
   configCommand,
   loginCommand,
   logoutCommand,
@@ -67,6 +68,19 @@ cli
   .option('--supabase-url <url>', 'Supabase project URL (required for supabase backend)')
   .option('--no-install', 'Skip installing dependencies after scaffold')
   .action((framework, options) => initCommand(framework, options));
+
+cli
+  .command('add <app-id>', 'Add a Shellui Marketplace app to shellui.config.json')
+  .option('--api-url <url>', 'Marketplace API base (default: https://api.marketplace.shellui.com)')
+  .option('--config <path>', CONFIG_OPTION_HELP)
+  .option('--allow-auth', 'Share the session token with an app the catalog does not mark official')
+  .action((appId, options) =>
+    addAppCommand(appId, {
+      apiUrl: options.apiUrl,
+      config: options.config,
+      allowAuth: options.allowAuth === true,
+    }),
+  );
 
 cli
   .command('config <action> [root]', 'Config tools: migrate | split | unsplit')

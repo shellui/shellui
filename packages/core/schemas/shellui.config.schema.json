@@ -1204,7 +1204,7 @@
         },
         "apiUrl": {
           "type": "string",
-          "description": "Identity base URL, or the full navigation-overlay endpoint. When omitted, the shell uses `backend.url` for a Shellui identity server."
+          "description": "Identity base URL, or the full navigation-overlay endpoint. When omitted, the shell uses `backend.url` plus `/api/v1/navigation-overlay`."
         }
       },
       "additionalProperties": false,
