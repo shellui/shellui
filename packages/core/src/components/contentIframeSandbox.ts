@@ -1,22 +1,63 @@
 /**
  * Companion/content iframe sandbox tokens.
  *
- * Threat model (Track F / M-18):
- * - Dev: shell (:4000) and companion (:5173, :3000, …) use distinct origins; templates
- *   set `frame-ancestors` so companions accept shell framing.
- * - Prod: companion is served from the same origin as the shell (`/app/`), which keeps
- *   postMessage and cookies workable while avoiding cross-origin framing surprises.
- * - `allow-same-origin` + `allow-scripts` lets embedded scripts remove the sandbox
- *   attribute when the iframe is same-origin to its document — acceptable only for
- *   trusted navigation URLs you configure. Residual risk is documented in
- *   docs/features/companion-isolation.md.
+ * Dev companions run on another origin (another localhost port). They keep
+ * `allow-same-origin` so cookies and storage stay on that origin.
  *
- * Incremental tightening: drop `allow-popups-to-escape-sandbox` (popups stay sandboxed).
+ * A companion URL on the shell origin (the production `/app/` path, or any
+ * other same-origin path that is not a shell page) does not get
+ * `allow-same-origin`. The frame then has its own opaque origin. The shell
+ * warns once per URL. Host that companion on its own origin when it needs
+ * cookies, storage, or a concrete postMessage origin.
+ *
+ * Shell pages (settings, cookie preferences, login, and the other shell
+ * routes) stay on the shell origin.
+ *
+ * `allow-popups-to-escape-sandbox` is not granted, so popups stay sandboxed.
  */
-const SANDBOX_CONTENT = 'allow-same-origin allow-scripts allow-forms allow-popups';
+import { isShellOwnedPath } from '../features/layouts/floating/isShellOwnedPath';
 
-/** @deprecated use SANDBOX_CONTENT — kept for tests asserting legacy tokens are gone */
+const SANDBOX_WITH_ORIGIN = 'allow-same-origin allow-scripts allow-forms allow-popups';
+const SANDBOX_OPAQUE_ORIGIN = 'allow-scripts allow-forms allow-popups';
+
+/** @deprecated use the sandbox returned by resolveContentIframeSandbox */
 export const LEGACY_POPUP_ESCAPE_TOKEN = 'allow-popups-to-escape-sandbox';
+
+const warnedSameOriginCompanions = new Set<string>();
+
+/** Test helper. Production code warns once per shell origin and companion URL. */
+export function resetContentIframeSandboxWarnings(): void {
+  warnedSameOriginCompanions.clear();
+}
+
+function warnSameOriginCompanion(iframeUrl: string, shellOrigin: string): void {
+  let path = iframeUrl;
+  try {
+    path = new URL(iframeUrl, shellOrigin).pathname;
+  } catch {
+    // Keep the raw value when it is not a URL.
+  }
+  const key = `${shellOrigin} ${path}`;
+  if (warnedSameOriginCompanions.has(key)) return;
+  warnedSameOriginCompanions.add(key);
+  // eslint-disable-next-line no-console -- operators need this without debug logging
+  console.warn(
+    `Shellui: companion path ${path} is on the shell origin (${shellOrigin}). The content iframe sandbox omits allow-same-origin. Host this companion on its own origin so it keeps cookies, storage, and a concrete postMessage origin.`,
+  );
+}
+
+function isSameOriginCompanion(
+  iframeUrl: string,
+  iframeOrigin: string,
+  shellOrigin: string,
+): boolean {
+  if (iframeOrigin !== shellOrigin) return false;
+  try {
+    return !isShellOwnedPath(new URL(iframeUrl, shellOrigin).pathname);
+  } catch {
+    return true;
+  }
+}
 
 /**
  * Resolve the `sandbox` attribute for a main content iframe.
@@ -31,13 +72,13 @@ export function resolveContentIframeSandbox(iframeUrl: string, shellOrigin?: str
     const iframeOrigin = new URL(iframeUrl, base).origin;
     const parentOrigin =
       shellOrigin ?? (typeof window !== 'undefined' ? window.location.origin : iframeOrigin);
-    // Same-origin vs cross-origin companions share the tightened token set today.
-    // Cross-origin dev companions still require `allow-same-origin` for companion
-    // cookies/localStorage on their own origin; distinct-origin framing is the isolation layer.
-    void iframeOrigin;
-    void parentOrigin;
-    return SANDBOX_CONTENT;
+    if (isSameOriginCompanion(iframeUrl, iframeOrigin, parentOrigin)) {
+      warnSameOriginCompanion(iframeUrl, parentOrigin);
+      return SANDBOX_OPAQUE_ORIGIN;
+    }
+    return SANDBOX_WITH_ORIGIN;
   } catch {
-    return SANDBOX_CONTENT;
+    warnSameOriginCompanion(iframeUrl, shellOrigin ?? 'unknown');
+    return SANDBOX_OPAQUE_ORIGIN;
   }
 }

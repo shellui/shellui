@@ -335,7 +335,7 @@ describe('explainUntrustedInboundMessage', () => {
     ).toBeNull();
   });
 
-  it('accepts shell SETTINGS from parent even when parent origin was not pre-allowlisted', () => {
+  it('rejects SHELLUI_SETTINGS when the parent origin is unknown', () => {
     const parentWin = {} as Window;
     const companionWin = {
       location: { origin: 'http://localhost:5173' },
@@ -353,6 +353,98 @@ describe('explainUntrustedInboundMessage', () => {
       data: { type: 'SHELLUI_SETTINGS' },
     } as MessageEvent;
 
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toBe(false);
+    expect(policy.explainUntrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toMatch(
+      /verified parent origin/,
+    );
+  });
+
+  it('rejects SHELLUI_SETTINGS_UPDATED from the companion origin even when source is the parent', () => {
+    const parentWin = {} as Window;
+    const companionWin = {
+      location: {
+        origin: 'http://localhost:5173',
+        ancestorOrigins: { 0: 'http://localhost:4000', length: 1 },
+      },
+      parent: parentWin,
+    } as Window;
+    vi.stubGlobal('window', companionWin);
+    vi.stubGlobal('document', {
+      referrer: 'http://localhost:4000/',
+      location: companionWin.location,
+    });
+
+    const policy = new MessageSecurityPolicy();
+    const event = {
+      origin: 'http://localhost:5173',
+      source: parentWin,
+      data: { type: 'SHELLUI_SETTINGS_UPDATED' },
+    } as MessageEvent;
+
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS_UPDATED')).toBe(false);
+  });
+
+  it('accepts SHELLUI_SETTINGS from the parent when ancestorOrigins names that origin', () => {
+    const parentWin = {} as Window;
+    const companionWin = {
+      location: { origin: 'http://localhost:5173' },
+      parent: parentWin,
+    } as Window;
+    vi.stubGlobal('window', companionWin);
+    vi.stubGlobal('document', {
+      referrer: '',
+      location: { ancestorOrigins: { 0: 'http://localhost:4000', length: 1 } },
+    });
+
+    const policy = new MessageSecurityPolicy();
+    policy.configure({ allowedOrigins: [] });
+
+    const event = {
+      origin: 'http://localhost:4000',
+      source: parentWin,
+      data: { type: 'SHELLUI_SETTINGS' },
+    } as MessageEvent;
+
     expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toBe(true);
+  });
+
+  it('accepts SHELLUI_SETTINGS when the only allowedMessageOrigins hint is the parent', () => {
+    const parentWin = {} as Window;
+    const companionWin = {
+      location: { origin: 'http://localhost:5173' },
+      parent: parentWin,
+    } as Window;
+    vi.stubGlobal('window', companionWin);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+
+    const policy = new MessageSecurityPolicy();
+    policy.configure({ allowedOrigins: ['http://localhost:4000'] });
+
+    const event = {
+      origin: 'http://localhost:4000',
+      source: parentWin,
+      data: { type: 'SHELLUI_SETTINGS' },
+    } as MessageEvent;
+
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_SETTINGS')).toBe(true);
+  });
+
+  it('still accepts non-settings parent messages when the parent origin is unknown', () => {
+    const parentWin = {} as Window;
+    const companionWin = {
+      location: { origin: 'http://localhost:5173' },
+      parent: parentWin,
+    } as Window;
+    vi.stubGlobal('window', companionWin);
+    vi.stubGlobal('document', { referrer: '', location: { ancestorOrigins: undefined } });
+
+    const policy = new MessageSecurityPolicy();
+    const event = {
+      origin: 'http://localhost:4000',
+      source: parentWin,
+      data: { type: 'SHELLUI_LAYOUT_CHROME' },
+    } as MessageEvent;
+
+    expect(policy.isTrustedInboundMessage(event, null, 'SHELLUI_LAYOUT_CHROME')).toBe(true);
   });
 });

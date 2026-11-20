@@ -3,6 +3,8 @@
  * Browser-only: handshake + URL sync + theme / language / region / layout chrome.
  */
 
+import { shouldApplySettingsFromParent } from './utils/parentSettingsMessage.js';
+
 export interface ThemeColorsMode {
   [key: string]: string;
 }
@@ -330,13 +332,16 @@ addEventListener('message', (event: MessageEvent) => {
   if (!type.startsWith('SHELLUI_')) return;
 
   const parentOrigin = resolveParentTargetOrigin();
-  // When the parent origin is unknown, rely on event.source === parent only.
-  if (parentOrigin && event.origin !== location.origin && event.origin !== parentOrigin) {
-    return;
-  }
-  if (embedded && event.source !== parent) return;
-
   if (type === 'SHELLUI_SETTINGS' || type === 'SHELLUI_SETTINGS_UPDATED') {
+    if (
+      !shouldApplySettingsFromParent({
+        parentOrigin,
+        sourceIsParent: event.source === parent,
+        eventOrigin: event.origin,
+      })
+    ) {
+      return;
+    }
     applySettings(data.payload?.settings);
     if (!ready && type === 'SHELLUI_SETTINGS') {
       ready = true;
@@ -345,7 +350,14 @@ addEventListener('message', (event: MessageEvent) => {
       resolveReady();
       emit('ready', api);
     }
+    return;
   }
+
+  // Other messages still require a known parent origin when one can be named.
+  if (parentOrigin && event.origin !== location.origin && event.origin !== parentOrigin) {
+    return;
+  }
+  if (embedded && event.source !== parent) return;
 
   if (type === 'SHELLUI_LAYOUT_CHROME') {
     const next = data.payload?.layoutChrome as LayoutChromeSnapshot | undefined;

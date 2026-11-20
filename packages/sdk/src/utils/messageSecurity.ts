@@ -3,6 +3,10 @@
  */
 
 import type { FrameRegistry } from './frameRegistry.js';
+import { shouldApplySettingsFromParent } from './parentSettingsMessage.js';
+
+/** Payloads that can carry shell settings and an access token. */
+const SETTINGS_MESSAGE_TYPES = new Set(['SHELLUI_SETTINGS', 'SHELLUI_SETTINGS_UPDATED']);
 
 export type MessageSourceKind = 'same-window' | 'parent' | 'registered-frame' | 'untrusted';
 
@@ -163,11 +167,31 @@ export class MessageSecurityPolicy {
     frameRegistry: FrameRegistry | null,
     messageType: string,
   ): string | null {
+    // Embedded apps apply settings and access tokens only from window.parent,
+    // and only when that origin is known. The top-level shell still receives
+    // these messages and decides which frames may change settings.
+    if (
+      SETTINGS_MESSAGE_TYPES.has(messageType) &&
+      typeof window !== 'undefined' &&
+      window.parent !== window
+    ) {
+      const parentOrigin = resolveParentTargetOrigin();
+      if (
+        !shouldApplySettingsFromParent({
+          parentOrigin,
+          sourceIsParent: event.source === window.parent,
+          eventOrigin: event.origin,
+        })
+      ) {
+        return 'settings message requires the parent window and a verified parent origin';
+      }
+      return null;
+    }
+
     const sourceKind = this.classifySource(event, frameRegistry);
 
-    // The embedding parent is trusted for shell → companion traffic. When
-    // ancestorOrigins/referrer are missing, getAllowedOrigins may not include
-    // the shell origin — still accept messages that literally come from parent.
+    // The embedding parent is trusted for shell to companion traffic other
+    // than settings payloads. Those are decided above.
     if (
       sourceKind === 'parent' &&
       typeof window !== 'undefined' &&
