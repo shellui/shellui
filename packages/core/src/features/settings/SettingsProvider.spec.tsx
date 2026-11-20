@@ -25,14 +25,35 @@ function OllamaProbe() {
   return <output>{settings.ai?.ollamaBaseUrl ?? ''}</output>;
 }
 
+/** In-memory storage. Node 25's global localStorage has no clear(). */
+function memoryStorage(): Storage {
+  const data = new Map<string, string>();
+  return {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      data.set(key, value);
+    },
+    removeItem: (key: string) => {
+      data.delete(key);
+    },
+    clear: () => {
+      data.clear();
+    },
+    key: (index: number) => [...data.keys()][index] ?? null,
+    get length() {
+      return data.size;
+    },
+  };
+}
+
 describe('SettingsProvider settings messages', () => {
   let container: HTMLDivElement;
-  let root: Root;
+  let root: Root | undefined;
   let listeners: Map<string, (message: ShellUIMessage) => void>;
   let warn: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    localStorage.clear();
+    vi.stubGlobal('localStorage', memoryStorage());
     listeners = new Map();
     vi.spyOn(shellui, 'addMessageListener').mockImplementation((type, cb) => {
       listeners.set(type, cb);
@@ -47,10 +68,10 @@ describe('SettingsProvider settings messages', () => {
   });
 
   afterEach(() => {
-    act(() => root.unmount());
-    container.remove();
+    if (root) act(() => root.unmount());
+    container?.remove();
     vi.restoreAllMocks();
-    localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   async function renderProvider() {
