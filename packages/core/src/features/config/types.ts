@@ -34,6 +34,11 @@ export interface NavigationItem {
   icon?: string; // Path to SVG icon file (e.g., '/icons/book-open.svg')
   /** When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings. */
   hidden?: boolean;
+  /**
+   * When true, people cannot hide or remove this item.
+   * The route stays in navigation even if a runtime overlay lists its path.
+   */
+  locked?: boolean;
   /** When true, hide this item from navigation when the user is not authenticated. */
   hideWhenLoggedOut?: boolean;
   /** When true, navigating to this route requires authentication and redirects to login with a next URL. */
@@ -527,8 +532,14 @@ export interface ShellUIConfig {
    * Browser shells ignore this block.
    */
   auth?: AuthConfig;
-  /** Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md). */
+  /** Host security (postMessage allowlist, BFF auth, CSP: see docs/features/security.md). */
   security?: SecurityConfig;
+  /**
+   * Shellui Marketplace. `true` opts in with the public defaults
+   * (marketplace URL, API URL, third-party installs, and navigation overlay storage).
+   * An object overrides only the fields you set. Free in 0.9: no price or payment fields.
+   */
+  marketplace?: boolean | MarketplaceConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
   cookieConsent?: CookieConsentConfig;
   /** Legal documents content rendered as markdown. */
@@ -538,6 +549,52 @@ export interface ShellUIConfig {
    * Stripped before the config is sent to the browser.
    */
   dev?: DevConfig;
+}
+
+/** Where a signed-in person's navigation overlay is stored. */
+export type NavigationStorageMode = 'auto' | 'localStorage' | 'api';
+
+/**
+ * User-level navigation changes (order, hidden items, installed apps).
+ * `auto` syncs with Shellui Identity when the person is signed in and Identity
+ * is configured, and uses localStorage otherwise.
+ */
+export interface NavigationCustomizationConfig {
+  /** When false, the shell ignores the runtime overlay. Default: true when marketplace is on. */
+  enabled?: boolean;
+  /** `auto` (default), `localStorage`, or `api`. */
+  storage?: NavigationStorageMode;
+  /**
+   * Identity base URL, or the full navigation-overlay endpoint.
+   * When omitted, the shell uses `backend.url` for a Shellui identity server.
+   */
+  apiUrl?: string;
+}
+
+/**
+ * Shellui Marketplace. There is no pricing in 0.9.
+ * `true` selects the public defaults. An object overrides only the fields you set.
+ */
+export interface MarketplaceConfig {
+  /** Marketplace app origin. Default: `https://marketplace.shellui.com`. */
+  url?: string;
+  /** Marketplace HTTP API. Default: `https://api.marketplace.shellui.com`. */
+  apiUrl?: string;
+  /** When false, third-party installs are rejected. Default: true. */
+  allowThirdParty?: boolean;
+  navigationCustomization?: NavigationCustomizationConfig;
+}
+
+/** Marketplace config after defaults are applied. */
+export interface ResolvedMarketplaceConfig {
+  url: string;
+  apiUrl: string;
+  allowThirdParty: boolean;
+  navigationCustomization: {
+    enabled: boolean;
+    storage: NavigationStorageMode;
+    apiUrl?: string;
+  };
 }
 
 /** Companion process for local `shellui start` (not used at runtime in the shell). */

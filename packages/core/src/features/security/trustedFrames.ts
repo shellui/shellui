@@ -1,4 +1,5 @@
 import type { ShellUIConfig } from '../config/types';
+import { isThirdPartyFrameSrc } from '../marketplace/installedAppRegistry';
 import urls from '../../constants/urls';
 import { isAdminFrame } from '../admin/utils';
 import { flattenNavigationItems, isFrameForAppUrl } from '../layouts/utils';
@@ -41,6 +42,12 @@ export function isTrustedFrameForAuthToken(frameSrc: string, config?: ShellUICon
   const shellOrigin = currentShellOrigin();
   if (shellOrigin && isShellSettingsFrameSrc(frameSrc, shellOrigin)) {
     return true;
+  }
+
+  // Marketplace installs cannot receive the shell access token, even if a
+  // payload or nav item sets safeForAuthToken.
+  if (isThirdPartyFrameSrc(frameSrc)) {
+    return false;
   }
 
   if (isAdminFrame(frameSrc, config)) {

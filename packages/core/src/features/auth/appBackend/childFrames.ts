@@ -1,4 +1,5 @@
 import type { ShellUIConfig } from '../../config/types';
+import { isThirdPartyFrameSrc } from '../../marketplace/installedAppRegistry';
 import {
   resolveAppBackendConfig,
   resolveFrameNavigationItem,
@@ -92,6 +93,9 @@ export function validateChildFrameRegistration(input: {
   const from = (input.from ?? []).filter(Boolean);
   if (from.length !== 1) return { ok: false, reason: 'not sent by a direct app frame' };
   if (!input.hostSrc) return { ok: false, reason: 'unknown host frame' };
+  if (isThirdPartyFrameSrc(input.hostSrc)) {
+    return { ok: false, reason: 'third-party apps cannot embed apps' };
+  }
   const payload = input.payload as
     | { frameId?: unknown; url?: unknown; backend?: unknown; services?: unknown }
     | null
@@ -177,4 +181,13 @@ export function listChildFrames(isHostKnown: (uuid: string) => boolean): ChildFr
 
 export function clearChildFrames(): void {
   entries.clear();
+}
+
+/** Drop child frames hosted by iframes that were just unregistered. */
+export function removeChildFramesForHosts(hostUuids: readonly string[]): void {
+  if (hostUuids.length === 0) return;
+  const hosts = new Set(hostUuids);
+  for (const [key, entry] of entries) {
+    if (hosts.has(entry.hostUuid)) entries.delete(key);
+  }
 }

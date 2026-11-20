@@ -43,6 +43,8 @@ export default defineConfig({
       'src/components/**/*.spec.ts',
       'src/components/**/*.spec.tsx',
       'src/features/messaging/**/*.spec.ts',
+      'src/features/marketplace/**/*.spec.ts',
+      'src/features/marketplace/**/*.spec.tsx',
       '../sdk/src/**/*.spec.ts',
     ],
   },

@@ -3,6 +3,7 @@
  * Manages iframe references with UUID tracking
  */
 
+import { sanitizeCapabilityList } from '../marketplace/capabilities.js';
 import { getLogger } from '../logger/logger.js';
 import { generateUuid } from './uuid.js';
 
@@ -27,10 +28,49 @@ export const FRAME_LIVE_MESSAGE_TYPES = new Set([
   'SHELLUI_INITIALIZED',
 ]);
 
+export type FrameCapabilityGrantInput = {
+  origin: string;
+  thirdParty: boolean;
+  capabilities: readonly string[];
+  /** App URLs this grant applies to. Matching is by origin and path prefix. */
+  urls: readonly string[];
+};
+
+export type FrameCapabilityGrant = {
+  origin: string;
+  thirdParty: boolean;
+  capabilities: ReadonlySet<string>;
+  urls: readonly string[];
+};
+
+function frameMatchesAppUrl(frameSrc: string, appUrl: string): boolean {
+  try {
+    const frame = new URL(
+      frameSrc,
+      typeof window !== 'undefined' ? window.location.href : undefined,
+    );
+    const app = new URL(appUrl, typeof window !== 'undefined' ? window.location.href : undefined);
+    if (frame.origin !== app.origin) return false;
+    const appPath = framePathname(app.pathname);
+    const framePath = framePathname(frame.pathname);
+    if (appPath === '/') return true;
+    return framePath === appPath || framePath.startsWith(`${appPath}/`);
+  } catch {
+    return false;
+  }
+}
+
+function framePathname(pathname: string): string {
+  if (!pathname || pathname === '/') return '/';
+  return pathname.replace(/\/+$/, '') || '/';
+}
+
 export class FrameRegistry {
   private iframes = new Map<string, HTMLIFrameElement>();
   /** Frames that have completed (or started) the settings handshake. */
   private liveUuids = new Set<string>();
+  /** Installed-app grants. Third-party `auth` is stripped on write. */
+  private capabilityGrants = new Map<string, FrameCapabilityGrant>();
 
   getUuidByIframe(windowRef: Window | null | undefined): string | undefined {
     if (!windowRef) {
@@ -155,5 +195,90 @@ export class FrameRegistry {
 
   getLiveIframes(): Array<[string, HTMLIFrameElement]> {
     return this.getAllIframes().filter(([uuid]) => this.liveUuids.has(uuid));
+  }
+
+  /**
+   * Replace installed-app capability grants.
+   * Third-party grants drop `auth` even if the caller includes it.
+   */
+  setCapabilityGrants(grants: readonly FrameCapabilityGrantInput[]): void {
+    this.capabilityGrants.clear();
+    for (const grant of grants) {
+      const origin = originFromUrl(grant.origin);
+      if (!origin) continue;
+      const urls = grant.urls.filter((url) => typeof url === 'string' && url.trim());
+      const existing = this.capabilityGrants.get(origin);
+      const thirdParty = Boolean(grant.thirdParty || existing?.thirdParty);
+      let capabilities = sanitizeCapabilityList([...grant.capabilities], thirdParty);
+      if (existing) {
+        const previous = new Set(existing.capabilities);
+        capabilities = capabilities.filter(
+          (capability) =>
+            previous.has(capability) ||
+            (thirdParty && (capability === 'theme' || capability === 'locale')),
+        );
+        if (thirdParty) capabilities = sanitizeCapabilityList(capabilities, true);
+      }
+      this.capabilityGrants.set(origin, {
+        origin,
+        thirdParty,
+        capabilities: new Set(capabilities),
+        urls: [...new Set([...(existing?.urls ?? []), ...urls])],
+      });
+    }
+  }
+
+  getCapabilityGrant(origin: string): FrameCapabilityGrant | undefined {
+    return this.capabilityGrants.get(origin);
+  }
+
+  /** Grant for a concrete iframe URL, if that URL belongs to an installed app. */
+  matchCapabilityGrant(frameSrc: string | null | undefined): FrameCapabilityGrant | null {
+    if (!frameSrc) return null;
+    for (const grant of this.capabilityGrants.values()) {
+      if (grant.urls.some((url) => frameMatchesAppUrl(frameSrc, url))) return grant;
+    }
+    return null;
+  }
+
+  /**
+   * Drop iframes whose document URL belongs to an uninstalled app and forget
+   * that URL on the capability grant. Returns the removed frame ids.
+   */
+  unregisterFramesForUrl(appUrl: string): string[] {
+    let origin: string | null = null;
+    try {
+      origin = new URL(appUrl).origin;
+    } catch {
+      origin = null;
+    }
+    if (origin) {
+      const grant = this.capabilityGrants.get(origin);
+      if (grant) {
+        const urls = grant.urls.filter((url) => !frameMatchesAppUrl(url, appUrl) && url !== appUrl);
+        if (urls.length === 0) this.capabilityGrants.delete(origin);
+        else this.capabilityGrants.set(origin, { ...grant, urls });
+      }
+    }
+
+    const removed: string[] = [];
+    for (const [uuid, iframe] of this.iframes.entries()) {
+      const src = iframe?.src?.trim();
+      if (src && frameMatchesAppUrl(src, appUrl)) {
+        this.removeIframe(uuid);
+        removed.push(uuid);
+      }
+    }
+    return removed;
+  }
+}
+
+function originFromUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    return url.origin;
+  } catch {
+    return null;
   }
 }

@@ -16,6 +16,7 @@
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
     "storage": "Stockage",
+    "installedApps": "Applications installées",
     "ai": "IA",
     "mcpAgents": "Agents MCP / IA",
     "develop": "Développement",
@@ -824,5 +825,11 @@
         "logStreamError": "Échec du flux : {{message}}"
       }
     }
+  },
+  "installedApps": {
+    "description": "Choisissez ce que chaque application peut faire. Le thème et la langue restent disponibles.",
+    "empty": "Aucune application installée depuis Shellui Marketplace.",
+    "remove": "Retirer",
+    "hostOnly": "La connexion et les cadres imbriqués restent sur l'hôte."
   }
 }

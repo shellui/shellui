@@ -1,4 +1,5 @@
 import { cn } from '../../../lib/utils';
+import { isUnsafeNavIconSrc } from '../../marketplace/icons';
 import { isAppIcon } from './sidebarUtils';
 
 /** Inline SVG: external link (arrow up right). Bundled so consumers don't need to serve static SVGs. */
@@ -120,7 +121,7 @@ export function DefaultNavIcon({ className }: { className?: string }) {
  * Local `/icons/*.svg` use a CSS mask + `currentColor`; external images stay as `<img>`.
  */
 export function NavIcon({ src, className }: { src?: string | null; className?: string }) {
-  if (!src) {
+  if (!src || isUnsafeNavIconSrc(src)) {
     return <DefaultNavIcon className={className} />;
   }
 
@@ -147,6 +148,7 @@ export function NavIcon({ src, className }: { src?: string | null; className?: s
     <img
       src={src}
       alt=""
+      referrerPolicy="no-referrer"
       className={cn('size-4 shrink-0', className)}
     />
   );

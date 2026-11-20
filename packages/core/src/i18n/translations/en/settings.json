@@ -16,6 +16,7 @@
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
     "storage": "Storage",
+    "installedApps": "Installed apps",
     "ai": "AI",
     "mcpAgents": "MCP / AI agents",
     "develop": "Develop",
@@ -824,5 +825,11 @@
         "logStreamError": "Stream failed: {{message}}"
       }
     }
+  },
+  "installedApps": {
+    "description": "Choose what each app can do. Theme and language stay available.",
+    "empty": "No apps installed from Shellui Marketplace.",
+    "remove": "Remove",
+    "hostOnly": "Sign-in and embedded frames stay on the host."
   }
 }
