@@ -178,8 +178,17 @@ If you serve `dist/web/` from a CDN without Shellui middleware, replicate the sa
 4. DevTools → Network: HTML responses include `Content-Security-Policy-Report-Only` (unless enforcing).
 5. Run unit tests: `pnpm test` (core auth persistence + CLI CSP helpers).
 
+## Shellui Marketplace installs
+
+Third-party apps installed from Shellui Marketplace receive theme and language only, until the host confirms extra capabilities (`ui`, `navigate`, `storage`, `ai`). Those grants are stored on the install record and can be turned off in Settings without uninstalling the app.
+
+`auth` (`safeForAuthToken`, sign-in, sign-out, profile changes) and `childFrames` are never granted to a third-party install. The shell drops those requests in message checks and in the frame registry, including when a payload asks for them. Uninstalling an app removes its origin from the postMessage allowlist and unregisters its frame.
+
+Marketplace bridge calls (`shellui.marketplace.*`) are accepted only from the configured `marketplace.url` origin.
+
 ## Related docs
 
 - [Authentication](/features/authentication)
 - [Connect a backend](/backend)
 - [AI native platform](/features/ai-native)
+- [Shellui Marketplace](/features/marketplace)

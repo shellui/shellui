@@ -77,10 +77,6 @@
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting-service connection. Propagated to iframes via SDK settings. Enables `shellui deploy` when `url` is set."
         },
-        "saas": {
-          "$ref": "#/definitions/SaasConfig",
-          "description": "Optional SaaS dashboard API base URL for CLI commands such as `shellui projects`. The shell runtime ignores this key today."
-        },
         "email": {
           "$ref": "#/definitions/EmailConfig",
           "description": "Email-service connection. Propagated to iframes via SDK settings. Without `url`, the shell sends no email service (`null`). `showInAdmin: false` hides Admin → Email."
@@ -133,7 +129,18 @@
         },
         "security": {
           "$ref": "#/definitions/SecurityConfig",
-          "description": "Host security (postMessage allowlist, BFF auth, CSP — see docs/features/security.md)."
+          "description": "Host security (postMessage allowlist, BFF auth, CSP: see docs/features/security.md)."
+        },
+        "marketplace": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/definitions/MarketplaceConfig"
+            }
+          ],
+          "description": "Shellui Marketplace. `true` opts in with the public defaults (marketplace URL, API URL, third-party installs, and navigation overlay storage). An object overrides only the fields you set. Free in 0.9: no price or payment fields."
         },
         "cookieConsent": {
           "$ref": "#/definitions/CookieConsentConfig",
@@ -214,6 +221,10 @@
           "type": "boolean",
           "description": "When true, hide this item from the sidebar and 404 page; route remains valid and item still appears in Develop settings."
         },
+        "locked": {
+          "type": "boolean",
+          "description": "When true, people cannot hide or remove this item. The route stays in navigation even if a runtime overlay lists its path."
+        },
         "hideWhenLoggedOut": {
           "type": "boolean",
           "description": "When true, hide this item from navigation when the user is not authenticated."
@@ -283,10 +294,6 @@
         "hosting": {
           "$ref": "#/definitions/HostingConfig",
           "description": "Hosting service for this app. Same fallback as `email`."
-        },
-        "saas": {
-          "$ref": "#/definitions/SaasConfig",
-          "description": "SaaS dashboard API for this app. Same fallback as `email`."
         },
         "aiService": {
           "$ref": "#/definitions/AiServiceConfig",
@@ -378,7 +385,7 @@
           "items": {
             "type": "string"
           },
-          "description": "Exact origins of service URLs (email, storage, files, hosting) a host may pass to a child with `ShelluiFrame` or `createAppFrame`, such as `https://storage.eu.shellui.com`. No wildcards. A URL outside this list, or a missing one, reaches the child as `null`. Omit to send children no service URLs."
+          "description": "Exact origins of service URLs (email, storage, hosting) a host may pass to a child with `ShelluiFrame` or `createAppFrame`, such as `https://storage.eu.shellui.com`. No wildcards. A URL outside this list, or a missing one, reaches the child as `null`. Omit to send children no service URLs."
         }
       },
       "required": ["origins"],
@@ -399,21 +406,6 @@
       },
       "additionalProperties": false,
       "description": "Optional email-service wiring for Admin → Email and iframe apps. The shell never invents a URL: without `url`, apps get no email service."
-    },
-    "AiServiceConfig": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
-        },
-        "showInAdmin": {
-          "type": "boolean",
-          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
     },
     "StorageConfig": {
       "type": "object",
@@ -463,17 +455,20 @@
       "additionalProperties": false,
       "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
     },
-    "SaasConfig": {
+    "AiServiceConfig": {
       "type": "object",
       "properties": {
         "url": {
           "type": "string",
-          "description": "Base URL of the SaaS dashboard API (for example `http://localhost:8005`). Used by CLI commands such as `shellui projects`. Override with `SHELLUI_SAAS_URL` when unset."
+          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
         }
       },
-      "required": ["url"],
       "additionalProperties": false,
-      "description": "Optional SaaS API URL for CLI regional calls. The in-shell experience does not read this block yet."
+      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
     },
     "NavigationGroup": {
       "type": "object",
@@ -1131,7 +1126,7 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Shell-host refresh cookie (`shellui_refresh` on `/api/auth`). `false` turns the routes off. The page then calls identity itself and stores the refresh token in sessionStorage. `true`, or leaving this out, mounts `/api/auth/*` on `shellui start` and `serve:dist`. The page uses them only after `GET /api/auth/session` returns {\"ready\": true}. A static host without those routes keeps the sessionStorage refresh token."
+          "description": "Shell-host refresh cookie (`shellui_refresh` on `/api/auth`). `false` turns the routes off. The page then calls identity itself and stores the refresh token in sessionStorage. `true`, or leaving this out, mounts `/api/auth/*` on `shellui start` and `serve:dist`. The page uses them only after `GET /api/auth/session` returns `{ \"ready\": true }`. A static host without those routes keeps the sessionStorage refresh token."
         },
         "cookieName": {
           "type": "string",
@@ -1173,6 +1168,52 @@
       },
       "additionalProperties": false,
       "description": "Shell document security headers (CSP, staged rollout)."
+    },
+    "MarketplaceConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Marketplace app origin. Default: `https://marketplace.shellui.com`."
+        },
+        "apiUrl": {
+          "type": "string",
+          "description": "Marketplace HTTP API. Default: `https://api.marketplace.shellui.com`."
+        },
+        "allowThirdParty": {
+          "type": "boolean",
+          "description": "When false, third-party installs are rejected. Default: true."
+        },
+        "navigationCustomization": {
+          "$ref": "#/definitions/NavigationCustomizationConfig"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Shellui Marketplace. There is no pricing in 0.9. `true` selects the public defaults. An object overrides only the fields you set."
+    },
+    "NavigationCustomizationConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "When false, the shell ignores the runtime overlay. Default: true when marketplace is on."
+        },
+        "storage": {
+          "$ref": "#/definitions/NavigationStorageMode",
+          "description": "`auto` (default), `localStorage`, or `api`."
+        },
+        "apiUrl": {
+          "type": "string",
+          "description": "Identity base URL, or the full navigation-overlay endpoint. When omitted, the shell uses `backend.url` plus `/api/v1/navigation-overlay`."
+        }
+      },
+      "additionalProperties": false,
+      "description": "User-level navigation changes (order, hidden items, installed apps). `auto` syncs with Shellui Identity when the person is signed in and Identity is configured, and uses localStorage otherwise."
+    },
+    "NavigationStorageMode": {
+      "type": "string",
+      "enum": ["auto", "localStorage", "api"],
+      "description": "Where a signed-in person's navigation overlay is stored."
     },
     "CookieConsentConfig": {
       "type": "object",

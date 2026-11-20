@@ -16,6 +16,7 @@
     "dataPrivacy": "Confidentialité des données",
     "legalDocuments": "Documents légaux",
     "storage": "Stockage",
+    "navigation": "Navigation",
     "ai": "IA",
     "mcpAgents": "Agents MCP / IA",
     "develop": "Développement",
@@ -824,5 +825,21 @@
         "logStreamError": "Échec du flux : {{message}}"
       }
     }
+  },
+  "customizeNavigation": {
+    "description": "Réordonnez la navigation, masquez les éléments non verrouillés et gérez les applications Shellui Marketplace. Le thème et la langue restent disponibles.",
+    "disabled": "La personnalisation de la navigation est désactivée pour cette interface.",
+    "empty": "Aucun élément de navigation.",
+    "locked": "Verrouillé. Cet élément reste dans la navigation.",
+    "visible": "Afficher dans la navigation",
+    "visibleFor": "Afficher {{name}} dans la navigation",
+    "up": "Haut",
+    "down": "Bas",
+    "moveUp": "Monter {{name}}",
+    "moveDown": "Descendre {{name}}",
+    "uninstall": "Désinstaller",
+    "reset": "Réinitialiser la navigation",
+    "capabilityFor": "{{capability}} pour {{name}}",
+    "hostOnly": "La connexion et les cadres imbriqués restent sur l'hôte."
   }
 }

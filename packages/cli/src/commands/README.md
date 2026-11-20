@@ -9,6 +9,7 @@ Each command is a separate file that exports a command function:
 - `start.js` - Start the Shellui development server (`dev` alias, `--app` for Tauri, optional companion `--run` / `--follow`)
 - `build.js` - Build the Shellui application for production (`--app` for Tauri)
 - `init.js` - Create a `shellui.config.json` boilerplate
+- `add.js` - `shellui add <app-id>` (Shellui Marketplace catalog into `shellui.config.json`)
 - `config.js` - `config migrate` / `config split` / `config unsplit`
 - `login.js` - `shellui login` (OAuth device authorization against identity-service; `--no-browser` skips opening the verification page)
 - `auth-status.js` - `auth status` (session summary, no token output)
@@ -49,6 +50,7 @@ export { newCommandCommand } from './new-command.js';
 - **dev** / **start** - Starts the development server (`--app` for Tauri desktop; `--run` / `--follow` companion)
 - **build** - Builds the application for production (`--app` for Tauri desktop)
 - **init** - Creates a `shellui.config.json` boilerplate
+- **add** - Adds a Shellui Marketplace app to navigation (`shellui add <app-id>`, optional `--api-url` and `--allow-auth`)
 - **config migrate** - Evaluates TypeScript config and writes JSON
 - **config split** / **config unsplit** - Split or merge JSON configuration files
 - **login** - Device authorization against identity-service (`--no-browser` prints the link and code only). Tokens stay in the OS keychain, or a mode `0600` file when the keychain is unavailable

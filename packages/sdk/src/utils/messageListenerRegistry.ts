@@ -54,7 +54,10 @@ export class MessageListenerRegistry {
     this.messageSecurity = messageSecurity;
   }
 
-  configureMessageSecurity(options?: { allowedOrigins?: string[] }): void {
+  configureMessageSecurity(options?: {
+    allowedOrigins?: string[];
+    marketplaceOrigin?: string | null;
+  }): void {
     this.messageSecurity.configure(options);
   }
 

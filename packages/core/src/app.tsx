@@ -30,6 +30,7 @@ import {
 import { useSettings } from './features/settings/hooks/useSettings';
 import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
 import { MessagingSecurityBootstrap } from './features/messaging/MessagingSecurityBootstrap';
+import { NavigationProvider } from './features/marketplace/NavigationProvider';
 import { McpPersonalStatusPrefetch } from './features/settings/components/McpPersonalStatusPrefetch';
 
 const AppContent = () => {
@@ -136,27 +137,29 @@ const App = () => {
     <ConfigProvider>
       <MessagingSecurityBootstrap />
       <AuthProvider>
-        <AppBackendSessionHost />
-        <StorageBridge />
-        <SettingsProvider>
-          <McpPersonalStatusPrefetch />
-          <ShellAiHost />
-          <ThemeProvider>
-            <I18nProvider>
-              <DialogProvider>
-                <SonnerProvider>
-                  <ChromeActionsProvider>
-                    {/* Toaster + transfer progress (uploads / AI downloads) live at Shellui root. */}
-                    <Toaster />
-                    <TransferToaster />
-                    <ChromeActionsHost />
-                    <AppContent />
-                  </ChromeActionsProvider>
-                </SonnerProvider>
-              </DialogProvider>
-            </I18nProvider>
-          </ThemeProvider>
-        </SettingsProvider>
+        <NavigationProvider>
+          <AppBackendSessionHost />
+          <StorageBridge />
+          <SettingsProvider>
+            <McpPersonalStatusPrefetch />
+            <ShellAiHost />
+            <ThemeProvider>
+              <I18nProvider>
+                <DialogProvider>
+                  <SonnerProvider>
+                    <ChromeActionsProvider>
+                      {/* Toaster + transfer progress (uploads / AI downloads) live at Shellui root. */}
+                      <Toaster />
+                      <TransferToaster />
+                      <ChromeActionsHost />
+                      <AppContent />
+                    </ChromeActionsProvider>
+                  </SonnerProvider>
+                </DialogProvider>
+              </I18nProvider>
+            </ThemeProvider>
+          </SettingsProvider>
+        </NavigationProvider>
       </AuthProvider>
     </ConfigProvider>
   );

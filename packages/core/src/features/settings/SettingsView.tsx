@@ -37,6 +37,7 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { getLegalDocuments } from '../legal/legalDocuments';
 import { shouldShowStorageSettings } from './utils/shouldShowStorageSettings';
 import { isAiFeatureEnabled } from '../ai/isAiFeatureEnabled';
+import { normalizeMarketplaceConfig } from '../marketplace/normalizeMarketplaceConfig';
 import { useMcpPersonalStatus } from './hooks/useMcpPersonalStatus';
 import { shouldShowMcpAgentsSettings } from './utils/shouldShowMcpAgentsSettings';
 
@@ -117,6 +118,10 @@ export const SettingsView = () => {
       })
     ) {
       routes = routes.filter((route) => route.path !== 'storage');
+    }
+    const marketplace = normalizeMarketplaceConfig(config?.marketplace);
+    if (!marketplace?.navigationCustomization.enabled) {
+      routes = routes.filter((route) => route.path !== 'navigation');
     }
     return routes;
   }, [filteredRoutes, config, isAuthenticated, settings.ai?.enabled, mcpAgentsNavEnabled]);
@@ -204,9 +209,15 @@ export const SettingsView = () => {
           ? [{ kind: 'mcp-agents-skeleton' as const }]
           : [];
 
+    const installedAppsRoutes = settingsNavRoutes.filter((route) => route.path === 'navigation');
     const groups = [
-      ...(applicationRoutes.length > 0
-        ? [{ title: t('categories.applications'), routes: applicationRoutes }]
+      ...(installedAppsRoutes.length > 0 || applicationRoutes.length > 0
+        ? [
+            {
+              title: t('categories.applications'),
+              routes: [...installedAppsRoutes, ...applicationRoutes],
+            },
+          ]
         : []),
       {
         title: t('categories.preferences'),

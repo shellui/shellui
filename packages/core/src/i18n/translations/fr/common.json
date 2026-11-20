@@ -170,6 +170,24 @@
     "unreadCount": "{{count}} non lus",
     "sheetDescription": "Navigation principale et liens du compte"
   },
+  "marketplace": {
+    "installTitle": "Installer {{name}}",
+    "installBody": "{{name}} ({{origin}}) sera ajouté à cette interface.",
+    "capabilities": "Capacités : {{list}}.",
+    "hostOnly": "La connexion et les cadres imbriqués restent sur l'hôte.",
+    "install": "Installer",
+    "cancel": "Annuler",
+    "blockedFrame": "Cette application ne peut pas s'afficher. Les applications Shellui Marketplace doivent utiliser HTTPS.",
+    "capability": {
+      "theme": "Thème",
+      "locale": "Langue",
+      "ui": "Interface",
+      "navigate": "Navigation",
+      "storage": "Stockage",
+      "ai": "IA",
+      "auth": "Connexion"
+    }
+  },
   "windows": {
     "applications": "Applications",
     "chooseApp": "Choisissez une application à ouvrir dans une fenêtre",

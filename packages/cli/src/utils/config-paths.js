@@ -39,6 +39,7 @@ export const ROOT_KEYS = [
  */
 export const SECTION_KEYS = [
   'navigation',
+  'marketplace',
   'administration',
   'storage',
   'ai',

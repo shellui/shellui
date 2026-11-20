@@ -16,6 +16,7 @@
     "dataPrivacy": "Data Privacy",
     "legalDocuments": "Legal documents",
     "storage": "Storage",
+    "navigation": "Navigation",
     "ai": "AI",
     "mcpAgents": "MCP / AI agents",
     "develop": "Develop",
@@ -824,5 +825,21 @@
         "logStreamError": "Stream failed: {{message}}"
       }
     }
+  },
+  "customizeNavigation": {
+    "description": "Reorder navigation, hide unlocked items, and manage Shellui Marketplace apps. Theme and language stay available.",
+    "disabled": "Navigation customization is off for this shell.",
+    "empty": "No navigation items.",
+    "locked": "Locked. This item stays in navigation.",
+    "visible": "Show in navigation",
+    "visibleFor": "Show {{name}} in navigation",
+    "up": "Up",
+    "down": "Down",
+    "moveUp": "Move {{name}} up",
+    "moveDown": "Move {{name}} down",
+    "uninstall": "Uninstall",
+    "reset": "Reset navigation",
+    "capabilityFor": "{{capability}} for {{name}}",
+    "hostOnly": "Sign-in and embedded frames stay on the host."
   }
 }
