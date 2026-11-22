@@ -18,6 +18,7 @@ export default defineConfig({
       'src/components/ui/shell-divider.spec.tsx',
       'src/features/settings/utils/**/*.spec.ts',
       'src/features/settings/components/**/*.spec.tsx',
+      'src/features/settings/SettingsProvider.spec.tsx',
       'src/features/storage/**/*.spec.ts',
       'src/service-worker/**/*.spec.ts',
       'src/features/transfers/**/*.spec.ts',

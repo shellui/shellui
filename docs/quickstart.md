@@ -122,7 +122,7 @@ The [playground](https://github.com/shellui/playground) uses that pattern: Shell
 
 `shellui start` and `shellui build` do not load your `vite.config.*`, PostCSS, `tsconfig.json`, or `VITE_*`. Tailwind for the shell scans `@shellui/core` only. The shell Vite cache is `node_modules/.vite-shellui`. See [tooling isolation](/cli#tooling-isolation).
 
-Point navigation `url`s at the companion origin in development (for example `http://localhost:5173/#/`) and at the built path in production. From **0.5.1**, set `safeForAuthToken: true` on items whose companion needs `settings.accessToken`. See [Authentication, iframe apps](/features/authentication#iframe-apps). Call [`@shellui/sdk`](/sdk) inside the iframe.
+Point navigation `url`s at the companion origin in development (for example `http://localhost:5173/#/`). In production, point them at the companion's own origin. The build default `/app/` is on the shell origin, and that frame is sandboxed without `allow-same-origin`. See [Companion isolation](/features/companion-isolation). From **0.5.1**, set `safeForAuthToken: true` on items whose companion needs `settings.accessToken`. See [Authentication, iframe apps](/features/authentication#iframe-apps). Call [`@shellui/sdk`](/sdk) inside the iframe.
 
 Typical tree:
 

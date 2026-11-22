@@ -27,10 +27,16 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🚨 Changed
 
 - In the local dev stack, a Shellui account MCP uses the global ai-service. Regional identity trusts that issuer and still accepts the saas issuer. (#211)
+- A companion URL on the shell origin, including the production `/app/` path, loads without `allow-same-origin`. Host the companion on its own origin and set `SHELLUI_APP_URL` or the navigation `url` to that absolute URL when it needs cookies, storage, or the settings handshake. Cross-origin companions, including local dev, are unchanged.
 
 ### 🐛 Bug Fixes
 
 - **Core:** The Files app in a project admin uses that project's storage URL and regional session. (#201)
+
+### 🔒 Security
+
+- The shell applies `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only from the shell window or a shell page (settings, cookie preferences, login, and the other shell routes). A companion frame cannot change shell settings.
+- The SDK and the tiny embed apply `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only when the sender is `window.parent` and the parent origin is known. If that origin is unknown, those messages are ignored.
 
 ## [0.8.0] - 2026-11-18
 
