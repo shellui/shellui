@@ -48,12 +48,7 @@ export type McpAgentSummary = {
 export type McpActivityAccessKind = 'read' | 'write' | 'destructive' | 'unknown';
 
 export type McpActivityOutcomeKind =
-  | 'allowed'
-  | 'denied'
-  | 'failed'
-  | 'pending_approval'
-  | 'session_used'
-  | 'unknown';
+  'allowed' | 'denied' | 'failed' | 'pending_approval' | 'session_used' | 'unknown';
 
 /**
  * Identity `error_code` for activity rows: fixed allowlist from identity (and gateway when present).

@@ -12,9 +12,7 @@ export type ResolvedAppBackend = {
 };
 
 export type FrameAppBackend =
-  | { kind: 'shell' }
-  | { kind: 'foreign'; identity: ResolvedAppBackend }
-  | { kind: 'withhold' };
+  { kind: 'shell' } | { kind: 'foreign'; identity: ResolvedAppBackend } | { kind: 'withhold' };
 
 /** http(s) base URL without trailing slash, query, or hash. Host is lowercased. */
 export function normalizeBackendUrl(raw: string | null | undefined): string | null {

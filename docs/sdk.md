@@ -52,7 +52,7 @@ URL changes are shared with the shell automatically. Auth, storage, toasts, dial
 ## Install and init
 
 ```bash
-npm install @shellui/sdk@0.8.1
+npm install @shellui/sdk@0.8.2
 ```
 
 ```typescript
@@ -77,6 +77,16 @@ Concurrent `init()` calls share one in-flight promise (e.g. React StrictMode). *
 When embedded, `init()` posts `SHELLUI_SETTINGS_REQUESTED` and waits for `SHELLUI_SETTINGS`, then posts `SHELLUI_INITIALIZED`. The shell does **not** push messages into the iframe before that request — it only sets `iframe.src` from navigation and reacts. Layout chrome for the main frame arrives inside the settings payload; later chrome/settings updates go only to frames that have started the handshake.
 
 Embedded companions automatically allow the parent shell origin (same as tiny), so cross-origin local dev (`localhost:4000` shell ↔ `localhost:5173` app) works without passing `allowedMessageOrigins`. Use that option only for extra hosts.
+
+The SDK applies `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only when the sender is `window.parent` and the parent origin is known. That origin is read from a same-origin parent, `ancestorOrigins`, the document referrer, or a single `allowedMessageOrigins` hint. If the parent origin is unknown, those messages are ignored, including any access token they carry. The content iframe uses `referrerPolicy="no-referrer-when-downgrade"`, so a normal shell embed can name the parent. When that lookup fails, pass the shell origin alone:
+
+```typescript
+await shellui.init({
+  allowedMessageOrigins: ['https://shell.example'],
+});
+```
+
+More than one hint is not used to guess the parent. The tiny embed follows the same parent rule and does not read `allowedMessageOrigins`. It needs a same-origin parent, `ancestorOrigins`, or the document referrer.
 
 ## Layout chrome (safe insets)
 

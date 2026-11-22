@@ -5,8 +5,7 @@ export const TOKEN_EXCHANGE_GRANT = 'urn:ietf:params:oauth:grant-type:token-exch
 export const ACCESS_TOKEN_TYPE = 'urn:ietf:params:oauth:token-type:access_token';
 
 export type TokenExchangeOutcome =
-  | { ok: true; session: AuthSession }
-  | { ok: false; reason: string };
+  { ok: true; session: AuthSession } | { ok: false; reason: string };
 
 /**
  * RFC 8693 token exchange against a regional identity server.

@@ -1,10 +1,7 @@
 import type { NavigationItem } from '../../features/config/types';
 
 export type NavigationRouteAccess =
-  | { kind: 'allow' }
-  | { kind: 'loading' }
-  | { kind: 'login'; next: string }
-  | { kind: 'forbidden' };
+  { kind: 'allow' } | { kind: 'loading' } | { kind: 'login'; next: string } | { kind: 'forbidden' };
 
 export type NavigationRouteAccessState = {
   isLoading: boolean;

@@ -18,6 +18,22 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.2] - 2026-11-22
+
+### 🚨 Changed
+
+- Companion URLs on the shell origin, including the production `/app/` path, now load without `allow-same-origin` by default. Host companions on their own origin and set `SHELLUI_APP_URL` or the navigation `url` to that absolute URL when they need cookies, storage, or the settings handshake. Cross-origin companions, including local dev, are unchanged. (#216)
+
+### 🔒 Security
+
+- The shell applies `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only from the shell window or a shell page (settings, cookie preferences, login, and other shell routes). A companion frame cannot change shell settings. (#216)
+- The SDK and the tiny embed apply `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only when the sender is `window.parent` and the parent origin is known. If that origin is unknown, those messages are ignored. (#216)
+
+### 🏗 Chore
+
+- Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` from GitHub releases using npm trusted publishing with provenance. (#217)
+- Update minor/patch npm dependencies, GitHub Action pins (`pnpm/action-setup` 6.1.1), `lint-staged` 17, and `vitest` 5. (#218)
+
 ## [0.8.1] - 2026-11-18
 
 ### ✨ Feature

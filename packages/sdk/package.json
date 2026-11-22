@@ -1,6 +1,6 @@
 {
   "name": "@shellui/sdk",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "JavaScript and TypeScript SDK for apps hosted in Shellui, the open-source app shell. Connect any framework to the host to show toasts, dialogs and drawers, follow the theme, read the signed-in user and use storage. MIT licensed.",
   "homepage": "https://shellui.com",
   "repository": {
@@ -60,14 +60,14 @@
   "author": "Shellui",
   "license": "MIT",
   "dependencies": {
-    "roarr": "^7.21.4"
+    "roarr": "^7.21.7"
   },
   "devDependencies": {
-    "@types/react": "^19.2.2",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19",
-    "esbuild": "^0.25.0",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
+    "esbuild": "^0.28.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^5.9.3"
   },
   "publishConfig": {
