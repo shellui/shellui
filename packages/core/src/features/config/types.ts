@@ -12,13 +12,7 @@ export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
 /** Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass chrome over full-bleed content (bottom tabs on phone/tablet, floating sidebar on desktop). */
 export type LayoutType =
-  | 'sidebar'
-  | 'sidebar-inset'
-  | 'fullscreen'
-  | 'windows'
-  | 'app-bar'
-  | 'app-bar-inset'
-  | 'floating';
+  'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset' | 'floating';
 
 /** Map legacy layout ids (e.g. early `cupertino`) onto current LayoutType. */
 export function normalizeLayoutType(layout: string | null | undefined): LayoutType | undefined {
@@ -131,10 +125,7 @@ export interface SentryConfig {
  * - social_media_embedded: Social widgets, embedded content.
  */
 export type CookieConsentCategory =
-  | 'strict_necessary'
-  | 'functional_performance'
-  | 'targeting'
-  | 'social_media_embedded';
+  'strict_necessary' | 'functional_performance' | 'targeting' | 'social_media_embedded';
 
 /**
  * Definition of a cookie that can be toggled by the user via cookie consent.

@@ -8,12 +8,7 @@ export type AiAvailabilityValue = 'available' | 'downloadable' | 'downloading' |
 export type AiProviderId = 'ollama' | 'webllm';
 
 export type AiModelStatus =
-  | 'ready'
-  | 'downloadable'
-  | 'downloading'
-  | 'unavailable'
-  | 'needs-webgpu'
-  | 'unsupported';
+  'ready' | 'downloadable' | 'downloading' | 'unavailable' | 'needs-webgpu' | 'unsupported';
 
 export type AiModelInfo = {
   id: string;

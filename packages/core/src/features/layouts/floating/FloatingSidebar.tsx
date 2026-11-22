@@ -37,8 +37,7 @@ const isGroup = (item: NavigationItem | NavigationGroup): item is NavigationGrou
 };
 
 type NavSection =
-  | { type: 'group'; group: NavigationGroup }
-  | { type: 'items'; items: NavigationItem[] };
+  { type: 'group'; group: NavigationGroup } | { type: 'items'; items: NavigationItem[] };
 
 function buildSections(navigation: (NavigationItem | NavigationGroup)[]): NavSection[] {
   const result: NavSection[] = [];

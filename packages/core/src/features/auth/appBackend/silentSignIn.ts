@@ -29,8 +29,7 @@ export function isSilentAuthCallbackFrame(): boolean {
 }
 
 export type SilentAuthResult =
-  | { ok: true; authCode: string }
-  | { ok: false; error: string; errorCode: string | null };
+  { ok: true; authCode: string } | { ok: false; error: string; errorCode: string | null };
 
 /**
  * Accept a silent-auth result only from the frame we opened, on this origin, for this state.
