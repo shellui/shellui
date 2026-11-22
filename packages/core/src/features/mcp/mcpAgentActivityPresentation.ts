@@ -85,8 +85,7 @@ export function formatActivityWhen(iso: string, locale: string): string {
 }
 
 export type ActivityPendingLink =
-  | { type: 'id'; approvalId: string }
-  | { type: 'tool'; toolName: string };
+  { type: 'id'; approvalId: string } | { type: 'tool'; toolName: string };
 
 export function resolveActivityPendingLink(
   row: McpAgentActivityRow,

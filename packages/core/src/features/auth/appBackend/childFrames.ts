@@ -22,8 +22,7 @@ export type ChildFrameServices = Record<ChildFrameServiceKey, string | null>;
 const SERVICE_KEYS: readonly ChildFrameServiceKey[] = ['email', 'storage', 'files', 'hosting'];
 
 export type ChildFrameRegistration =
-  | { ok: true; entry: ChildFrameEntry }
-  | { ok: false; reason: string };
+  { ok: true; entry: ChildFrameEntry } | { ok: false; reason: string };
 
 const entries = new Map<string, ChildFrameEntry>();
 
@@ -93,9 +92,7 @@ export function validateChildFrameRegistration(input: {
   if (from.length !== 1) return { ok: false, reason: 'not sent by a direct app frame' };
   if (!input.hostSrc) return { ok: false, reason: 'unknown host frame' };
   const payload = input.payload as
-    | { frameId?: unknown; url?: unknown; backend?: unknown; services?: unknown }
-    | null
-    | undefined;
+    { frameId?: unknown; url?: unknown; backend?: unknown; services?: unknown } | null | undefined;
   const frameId = typeof payload?.frameId === 'string' ? payload.frameId.trim() : '';
   if (!frameId) return { ok: false, reason: 'missing frameId' };
   const childOrigin = exactOrigin(payload?.url);
@@ -110,9 +107,7 @@ export function validateChildFrameRegistration(input: {
 
   let identity: ResolvedAppBackend | null = null;
   const backend = payload?.backend as
-    | { url?: unknown; companyId?: unknown; type?: unknown; provider?: unknown }
-    | null
-    | undefined;
+    { url?: unknown; companyId?: unknown; type?: unknown; provider?: unknown } | null | undefined;
   if (backend) {
     const backendOrigin = exactOrigin(backend.url);
     if (!backendOrigin || !originList(rules.backendOrigins).has(backendOrigin)) {

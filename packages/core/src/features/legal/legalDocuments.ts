@@ -2,10 +2,7 @@ import type { ShellUIConfig } from '../config/types';
 import urls from '../../constants/urls';
 
 export type LegalDocumentKey =
-  | 'privacyPolicy'
-  | 'termsOfService'
-  | 'legalNotice'
-  | 'dataProcessingAgreement';
+  'privacyPolicy' | 'termsOfService' | 'legalNotice' | 'dataProcessingAgreement';
 
 export type LegalDocumentDescriptor = {
   key: LegalDocumentKey;

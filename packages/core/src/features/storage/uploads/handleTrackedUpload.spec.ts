@@ -10,8 +10,7 @@ class MockXHR {
   responseText = '';
   upload: {
     onprogress:
-      | ((event: { lengthComputable: boolean; loaded: number; total: number }) => void)
-      | null;
+      ((event: { lengthComputable: boolean; loaded: number; total: number }) => void) | null;
   } = {
     onprogress: null,
   };
