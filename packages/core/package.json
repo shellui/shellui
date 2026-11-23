@@ -76,7 +76,7 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@radix-ui/react-tabs": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.4.1",
-    "@sentry/react": "^10.39.0",
+    "@sentry/react": "^11.16.0",
     "@shellui/sdk": "workspace:*",
     "@supabase/supabase-js": "^2.119.0",
     "class-variance-authority": "^0.7.1",
