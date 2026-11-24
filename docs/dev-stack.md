@@ -4,7 +4,7 @@ sidebar_label: Dev stack
 description: Run the Shellui shell, backends, admin, dashboard, and files together with Docker Compose.
 ---
 
-The dev stack is the recommended way to run Shellui locally. One command starts every backend, every front-end, Postgres, Redis and Mailpit. Your code is mounted from disk, so Django reloads and Vite hot reloads on save.
+The dev stack is the recommended way to run Shellui locally. One command starts every backend, every front-end, Postgres, Redis, Mailpit and Jaeger. Your code is mounted from disk, so Django reloads and Vite hot reloads on save.
 
 ## Requirements
 
@@ -47,7 +47,7 @@ cd shellui/dev
 ./start.sh
 ```
 
-On first run, `start.sh` creates `dev/.env.local` with fresh secrets. Later runs keep it and only append variables added to the example since (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, `email-worker` included. Extra arguments go to Compose, for example `./start.sh -d`.
+On first run, `start.sh` creates `dev/.env.local` with fresh secrets. Later runs keep it and only append variables added to the example since (`generate-env.sh`, which uses `uv run` when available, else `python3`). It then runs `docker compose --env-file .env.local up --build` with the full stack, including `email-worker` and Jaeger. Extra arguments go to Compose, for example `./start.sh -d`.
 
 On every `./start.sh`, the stack creates any missing Postgres database after Postgres is healthy and before the backends that use Postgres start. The databases are `identity`, `identity_global`, `storage`, `hosting`, `email`, `saas`, `ai`, and `ai_global`. The next `./start.sh` creates `ai_global` when the volume predates that database.
 
@@ -55,27 +55,50 @@ Never commit `dev/.env.local`.
 
 ## 3. Open
 
-| Service         | URL                   |
-| --------------- | --------------------- |
-| shell           | http://localhost:4000 |
-| identity        | http://localhost:8001 |
-| identity-global | http://localhost:8007 |
-| storage         | http://localhost:8002 |
-| hosting         | http://localhost:8003 |
-| email           | http://localhost:8004 |
-| saas            | http://localhost:8005 |
-| ai              | http://localhost:8006 |
-| ai-global       | http://localhost:8008 |
-| admin           | http://localhost:5173 |
-| dashboard       | http://localhost:5174 |
-| files           | http://localhost:5175 |
-| playground      | http://localhost:5176 |
-| Mailpit UI      | http://localhost:8025 |
-| Mailpit SMTP    | `localhost:1025`      |
-| Postgres        | `localhost:5432`      |
-| Redis           | `localhost:6379`      |
+| Service         | URL                    |
+| --------------- | ---------------------- |
+| shell           | http://localhost:4000  |
+| identity        | http://localhost:8001  |
+| identity-global | http://localhost:8007  |
+| storage         | http://localhost:8002  |
+| hosting         | http://localhost:8003  |
+| email           | http://localhost:8004  |
+| saas            | http://localhost:8005  |
+| ai              | http://localhost:8006  |
+| ai-global       | http://localhost:8008  |
+| admin           | http://localhost:5173  |
+| dashboard       | http://localhost:5174  |
+| files           | http://localhost:5175  |
+| playground      | http://localhost:5176  |
+| Mailpit UI      | http://localhost:8025  |
+| Mailpit SMTP    | `localhost:1025`       |
+| Jaeger UI       | http://localhost:16686 |
+| Postgres        | `localhost:5432`       |
+| Redis           | `localhost:6379`       |
 
 Browser URLs and token issuers use `http://${DEV_PUBLIC_HOST}:<port>`. The example sets `DEV_PUBLIC_HOST` to a Tailscale address. Set it to `localhost` when the browser is on the same machine. The table lists the ports. identity-global is port 8007. ai-global is port 8008. In the steps below, use that host in place of `localhost` when it is not `localhost`. Calls between containers use `http://<service>:8000`, for example `http://identity:8000/.well-known/jwks.json`, `http://identity-global:8000/.well-known/jwks.json`, and `http://ai-global:8000/.well-known/jwks.json`.
+
+## Traces
+
+`./start.sh` starts Jaeger all-in-one with the rest of the stack. Open the trace UI at http://localhost:16686. Traces stay in memory until that container stops.
+
+Services export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. The generated `dev/.env.local` sets it to `http://jaeger:4318` (OpenTelemetry Protocol (OTLP) over HTTP, on the Compose network). `OTEL_EXPORTER_OTLP_PROTOCOL` is `http/protobuf`. `OTEL_RESOURCE_ATTRIBUTES` sets `deployment.environment` to `dev` and `cloud.region` to `DEV_REGION_CODE`.
+
+Compose maps one generated name to `OTEL_SERVICE_NAME` on each process:
+
+- **identity**: `shellui-identity`
+- **identity-global**: `shellui-identity-global`
+- **email**: `shellui-email`
+- **email-worker**: `shellui-email-worker`
+- **storage**: `shellui-storage`
+- **hosting**: `shellui-hosting`
+- **saas**: `shellui-saas`
+- **ai**: `shellui-ai`
+- **ai-global**: `shellui-ai-global`
+
+To use another collector, set `OTEL_EXPORTER_OTLP_ENDPOINT` in `dev/.env.local` to that collector's OTLP/HTTP base URL. The exporter adds `/v1/traces`. Keep `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`. Set `OTEL_EXPORTER_OTLP_HEADERS` when the collector requires a header.
+
+The same variables work with any OTLP/HTTP collector. Run `./start.sh` again after you save the file. Clear `OTEL_EXPORTER_OTLP_ENDPOINT` to stop export. Jaeger still starts, because `./start.sh` takes no extra options.
 
 ## Which identity each app uses
 
