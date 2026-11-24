@@ -2,7 +2,7 @@
   "$schema": "../../packages/core/schemas/shellui.config.schema.json",
   "port": 4000,
   "title": "Shellui",
-  "version": "0.8.2-dev",
+  "version": "0.8.3-dev",
   "favicon": "/favicon.svg",
   "appIcon": "/app-icon.svg",
   "logo": "/logo.svg",

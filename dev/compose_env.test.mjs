@@ -194,3 +194,59 @@ test('init list covers every *_POSTGRES_DATABASE_URL and Postgres backends wait 
     /exec docker compose --env-file \.env\.local -f docker-compose\.yml up --build "\$@"/,
   );
 });
+
+test('django services export OTLP to Jaeger all-in-one', () => {
+  assert.match(example, /^OTEL_EXPORTER_OTLP_ENDPOINT=http:\/\/jaeger:4318$/m);
+  assert.match(example, /^OTEL_EXPORTER_OTLP_PROTOCOL=http\/protobuf$/m);
+  assert.match(
+    example,
+    /^OTEL_RESOURCE_ATTRIBUTES=deployment\.environment=dev,cloud\.region=\$\{DEV_REGION_CODE\}$/m,
+  );
+  assert.doesNotMatch(compose, /prometheus|signoz|clickhouse/i);
+  assert.doesNotMatch(example, /prometheus|signoz|clickhouse/i);
+
+  const services = composeServices(compose);
+  const jaeger = services.get('jaeger');
+  assert.ok(jaeger, 'jaeger service');
+  assert.match(jaeger, /image: jaegertracing\/jaeger:2\.23\.0/);
+  assert.match(jaeger, /JAEGER_LISTEN_HOST: '0\.0\.0\.0'/);
+  assert.match(jaeger, /'16686:16686'/);
+  assert.doesNotMatch(jaeger, /4317:4317|4318:4318/);
+
+  const expected = {
+    identity: 'OTEL_SERVICE_NAME_IDENTITY',
+    'identity-global': 'OTEL_SERVICE_NAME_IDENTITY_GLOBAL',
+    email: 'OTEL_SERVICE_NAME_EMAIL',
+    'email-worker': 'OTEL_SERVICE_NAME_EMAIL_WORKER',
+    storage: 'OTEL_SERVICE_NAME_STORAGE',
+    hosting: 'OTEL_SERVICE_NAME_HOSTING',
+    saas: 'OTEL_SERVICE_NAME_SAAS',
+    ai: 'OTEL_SERVICE_NAME_AI',
+    'ai-global': 'OTEL_SERVICE_NAME_AI_GLOBAL',
+  };
+  for (const [name, key] of Object.entries(expected)) {
+    assert.match(example, new RegExp(`^${key}=shellui-`, 'm'), `${key} missing from example`);
+    const block = services.get(name);
+    assert.ok(block, name);
+    assert.match(block, /\*otel-export/, `${name} must merge otel-export`);
+    assert.match(block, new RegExp(`OTEL_SERVICE_NAME:\\s*\\$\\{${key}\\}`), name);
+  }
+  assert.match(compose, /OTEL_EXPORTER_OTLP_ENDPOINT:\s*\$\{OTEL_EXPORTER_OTLP_ENDPOINT\}/);
+  assert.match(compose, /OTEL_EXPORTER_OTLP_PROTOCOL:\s*\$\{OTEL_EXPORTER_OTLP_PROTOCOL\}/);
+  assert.match(compose, /OTEL_RESOURCE_ATTRIBUTES:\s*\$\{OTEL_RESOURCE_ATTRIBUTES\}/);
+
+  for (const name of [
+    'shell',
+    'admin',
+    'dashboard',
+    'files',
+    'playground',
+    'postgres',
+    'redis',
+    'mailpit',
+  ]) {
+    const block = services.get(name);
+    assert.ok(block, name);
+    assert.doesNotMatch(block, /OTEL_|otel-export/, `${name} must not export traces`);
+  }
+});

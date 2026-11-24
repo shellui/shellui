@@ -29,13 +29,13 @@ npx shellui build --app --bundles app,dmg
 
 ## Install this release
 
-These docs describe Shellui **0.8.2** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.8.2 and not a later version:
+These docs describe Shellui **0.8.3** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.8.3 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@0.8.2
-npm install --save-dev @shellui/cli@0.8.2
-npm install @shellui/sdk@0.8.2
-npm install @shellui/core@0.8.2
+npm install -g @shellui/cli@0.8.3
+npm install --save-dev @shellui/cli@0.8.3
+npm install @shellui/sdk@0.8.3
+npm install @shellui/core@0.8.3
 ```
 
 See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in each release.
