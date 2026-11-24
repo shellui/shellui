@@ -407,6 +407,10 @@
           "type": "string",
           "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
         },
+        "mcpUrl": {
+          "type": "string",
+          "description": "Full Shellui account MCP URL. Path must be exactly `/mcp`. When set, Settings shows this URL for MCP / AI agents, even if `backend.companyId` is also set. Use it for the global MCP (saas tools), for example `https://ai.example/mcp`. Omit it in a regional project so Settings can use `{url}/c/{companyId}/mcp`."
+        },
         "showInAdmin": {
           "type": "boolean",
           "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."

@@ -393,6 +393,16 @@ export interface AiServiceConfig {
    */
   url?: string;
   /**
+   * Full Shellui account MCP URL (path must be exactly `/mcp`).
+   * When set, Settings shows this URL for MCP / AI agents, even if
+   * `backend.companyId` is also set (as on the dashboard).
+   * Use this for the global MCP (saas tools), for example
+   * `https://ai.example/mcp` or `http://localhost:8008/mcp`.
+   * Omit it in a regional project so Settings can use
+   * `{url}/c/{companyId}/mcp`.
+   */
+  mcpUrl?: string;
+  /**
    * When false, hide Admin → AI.
    * Default: true (shown) when `aiService` is set.
    */

@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import {
   agentIncludesSaasScope,
   buildAgentPrompt,
-  buildCompanyMcpUrl,
+  resolveSettingsMcpUrl,
   MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
   defaultPersonalAgentExpiresAt,
   formatAgentExpiry,
@@ -76,9 +76,17 @@ export const McpAgents = () => {
     return u || null;
   }, [status?.globalMcpUrl]);
 
+  const configuredGlobalMcpUrl = config?.aiService?.mcpUrl ?? null;
   const companyMcpUrl = useMemo(
-    () => buildCompanyMcpUrl(aiServiceUrl, companyId, status?.mcpUrl),
-    [aiServiceUrl, companyId, status?.mcpUrl],
+    () =>
+      resolveSettingsMcpUrl({
+        aiServiceUrl,
+        companyId,
+        configuredGlobalMcpUrl,
+        statusMcpUrl: status?.mcpUrl,
+        statusGlobalMcpUrl: status?.globalMcpUrl,
+      }),
+    [aiServiceUrl, companyId, configuredGlobalMcpUrl, status?.globalMcpUrl, status?.mcpUrl],
   );
   const absoluteMcpUrl = useMemo(
     () => (companyMcpUrl && isAbsoluteHttpUrl(companyMcpUrl) ? companyMcpUrl : null),

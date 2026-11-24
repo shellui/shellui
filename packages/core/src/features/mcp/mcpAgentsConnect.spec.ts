@@ -8,6 +8,8 @@ import {
   agentPromptContainsCredentialMaterial,
   buildAgentPrompt,
   buildCompanyMcpUrl,
+  buildGlobalMcpUrl,
+  resolveSettingsMcpUrl,
   defaultPersonalAgentExpiresAt,
   formatDefaultAgentName,
   getDefaultPersonalAgentServices,
@@ -29,6 +31,66 @@ describe('buildCompanyMcpUrl', () => {
     expect(buildCompanyMcpUrl(null, '1', 'https://ai.test/c/1/mcp')).toBe(
       'https://ai.test/c/1/mcp',
     );
+  });
+});
+
+describe('buildGlobalMcpUrl', () => {
+  it('uses a configured /mcp URL and ignores a trailing slash on the ai host', () => {
+    expect(buildGlobalMcpUrl('https://ai.example/', 'https://global.example/mcp')).toBe(
+      'https://global.example/mcp',
+    );
+    expect(buildGlobalMcpUrl('https://ai.example/')).toBe('https://ai.example/mcp');
+  });
+
+  it('ignores a configured URL that is not an absolute /mcp endpoint', () => {
+    expect(buildGlobalMcpUrl('https://ai.example', 'https://global.example/c/1/mcp')).toBe(
+      'https://ai.example/mcp',
+    );
+    expect(buildGlobalMcpUrl(null, 'not-a-url')).toBe(null);
+  });
+});
+
+describe('resolveSettingsMcpUrl', () => {
+  it('uses the configured global MCP URL even when a company id is set', () => {
+    expect(
+      resolveSettingsMcpUrl({
+        aiServiceUrl: 'https://ai.example',
+        companyId: '1',
+        configuredGlobalMcpUrl: 'https://global.example/mcp',
+        statusMcpUrl: 'https://ai.example/c/1/mcp',
+      }),
+    ).toBe('https://global.example/mcp');
+  });
+
+  it('uses the regional company URL when no global MCP URL is configured', () => {
+    expect(
+      resolveSettingsMcpUrl({
+        aiServiceUrl: 'https://ai.example/',
+        companyId: '42',
+        statusMcpUrl: 'https://unused.example/c/42/mcp',
+      }),
+    ).toBe('https://ai.example/c/42/mcp');
+  });
+
+  it('falls back to {ai}/mcp when there is no company id', () => {
+    expect(
+      resolveSettingsMcpUrl({
+        aiServiceUrl: 'https://ai.example/',
+        companyId: '',
+        statusGlobalMcpUrl: 'https://status.example/mcp',
+      }),
+    ).toBe('https://ai.example/mcp');
+  });
+
+  it('falls back to status global MCP URL when a configured URL is invalid', () => {
+    expect(
+      resolveSettingsMcpUrl({
+        aiServiceUrl: null,
+        companyId: '1',
+        configuredGlobalMcpUrl: 'https://ai.example/c/1/mcp',
+        statusGlobalMcpUrl: 'https://status.example/mcp',
+      }),
+    ).toBe('https://status.example/mcp');
   });
 });
 

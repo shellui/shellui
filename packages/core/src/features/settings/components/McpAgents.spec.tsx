@@ -15,6 +15,8 @@ import { McpAgents } from './McpAgents';
 const page = vi.hoisted(() => ({
   language: 'en',
   aiUrl: 'https://ai.example/' as string | null,
+  mcpUrl: null as string | null,
+  companyId: '42',
   visibility: 'visible',
 }));
 
@@ -42,8 +44,15 @@ vi.mock('../../config/useConfig', () => ({
   useConfig: () => ({
     config: {
       title: 'Acme',
-      backend: { type: 'shellui', url: 'https://id.example', companyId: '42' },
-      ...(page.aiUrl ? { aiService: { url: page.aiUrl } } : {}),
+      backend: { type: 'shellui', url: 'https://id.example', companyId: page.companyId },
+      ...(page.aiUrl
+        ? {
+            aiService: {
+              url: page.aiUrl,
+              ...(page.mcpUrl ? { mcpUrl: page.mcpUrl } : {}),
+            },
+          }
+        : {}),
     },
   }),
 }));
@@ -145,6 +154,8 @@ let root: Root;
 beforeEach(() => {
   page.language = 'en';
   page.aiUrl = 'https://ai.example/';
+  page.mcpUrl = null;
+  page.companyId = '42';
   page.visibility = 'visible';
   Object.defineProperty(document, 'visibilityState', {
     configurable: true,
@@ -242,6 +253,24 @@ describe('McpAgents connect prompt', () => {
     expect(container.textContent).toContain('MCP URL is not configured.');
     expect(container.querySelector('pre')).toBeNull();
     expect(buttonByText('Copy prompt')).toBeUndefined();
+  });
+
+  it('shows the global account MCP URL when aiService.mcpUrl is set, even with a company id', async () => {
+    const globalUrl = 'https://global.example/mcp';
+    page.companyId = '1';
+    page.mcpUrl = globalUrl;
+    await renderPage();
+
+    expect(container.textContent).toContain(globalUrl);
+    expect(container.textContent).not.toContain('https://ai.example/c/1/mcp');
+    const prompt = container.querySelector('pre')?.textContent ?? '';
+    expect(prompt).toBe(buildAgentPrompt(globalUrl, 'en'));
+
+    await act(async () => {
+      buttonByText('Copy URL')?.click();
+      await Promise.resolve();
+    });
+    expect(writeText).toHaveBeenCalledWith(globalUrl);
   });
 });
 
