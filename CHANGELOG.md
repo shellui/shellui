@@ -18,6 +18,16 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.3] - 2026-11-24
+
+### 🐛 Bug Fixes
+
+- Settings shows the Shellui account MCP URL (`/mcp`) when `aiService.mcpUrl` is set, so dashboard settings no longer use the regional `/c/{companyId}/mcp` URL. A regional project that omits that field still shows the company URL. (#227)
+
+### ✨ Feature
+
+- The local dev stack includes Jaeger all-in-one for traces. (#225)
+
 ## [0.8.2] - 2026-11-22
 
 ### 🚨 Changed
