@@ -45,6 +45,7 @@ export type AppFrameServices = {
   /** Files app URL, sent to the child as `settings.storage.filesUrl`. Needs `storage`. */
   files?: string | null;
   hosting?: string | null;
+  aiService?: string | null;
 };
 
 export type ChildFrameRegisterPayload = {
@@ -67,6 +68,8 @@ export type AppFrameOptions = {
   files?: string | null;
   /** Hosting-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
   hosting?: string | null;
+  /** ai-service URL for the child. Must be allowed by `childFrames.serviceOrigins`. */
+  aiService?: string | null;
   /** Called when the child app changes its own URL. */
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Called each time the child app finishes Shellui init (`SHELLUI_INITIALIZED`). */
@@ -120,7 +123,7 @@ function cleanBackend(backend: AppFrameBackend | null | undefined): AppFrameBack
 
 function cleanServices(options: AppFrameOptions): AppFrameServices | undefined {
   const services: AppFrameServices = {};
-  for (const key of ['email', 'storage', 'files', 'hosting'] as const) {
+  for (const key of ['email', 'storage', 'files', 'hosting', 'aiService'] as const) {
     const value = options[key]?.trim();
     if (value) services[key] = value;
   }

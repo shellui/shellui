@@ -6,7 +6,7 @@ React runtime for Shellui, the open-source app shell: navigation, layouts, light
 npm install @shellui/core
 ```
 
-Shellui **0.8.4** is the current stable release: `npm install @shellui/core@0.8.4`.
+Shellui **0.8.5** is the current stable release: `npm install @shellui/core@0.8.5`.
 
 ```typescript
 import type { ShellUIConfig } from '@shellui/core';

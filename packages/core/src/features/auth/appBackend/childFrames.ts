@@ -17,9 +17,15 @@ export type ChildFrameEntry = {
   rejectedServices: ChildFrameServiceKey[];
 };
 
-export type ChildFrameServiceKey = 'email' | 'storage' | 'files' | 'hosting';
+export type ChildFrameServiceKey = 'email' | 'storage' | 'files' | 'hosting' | 'aiService';
 export type ChildFrameServices = Record<ChildFrameServiceKey, string | null>;
-const SERVICE_KEYS: readonly ChildFrameServiceKey[] = ['email', 'storage', 'files', 'hosting'];
+const SERVICE_KEYS: readonly ChildFrameServiceKey[] = [
+  'email',
+  'storage',
+  'files',
+  'hosting',
+  'aiService',
+];
 
 export type ChildFrameRegistration =
   { ok: true; entry: ChildFrameEntry } | { ok: false; reason: string };
@@ -63,7 +69,13 @@ export function resolveChildFrameServices(
 ): { services: ChildFrameServices; rejected: ChildFrameServiceKey[] } {
   const allowed = originList(allowedOrigins);
   const raw = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
-  const services: ChildFrameServices = { email: null, storage: null, files: null, hosting: null };
+  const services: ChildFrameServices = {
+    email: null,
+    storage: null,
+    files: null,
+    hosting: null,
+    aiService: null,
+  };
   const rejected: ChildFrameServiceKey[] = [];
   for (const key of SERVICE_KEYS) {
     const value = raw[key];
