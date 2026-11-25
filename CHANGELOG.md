@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.4] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Keep `allow-same-origin` in the `ContentView` iframe sandbox for valid `http(s)` and custom desktop shell URLs (including same-origin `/app/` companions and nested hash routes). Omitting `allow-same-origin` gave those frames an opaque origin (`Origin: null`), breaking Vite module script and stylesheet CORS fetches, SDK `postMessage` origin verification, and nested admin frame detection. Unparseable, empty, and non-`http(s)` URLs still omit `allow-same-origin`. (#230)
+
 ## [0.8.3] - 2026-11-24
 
 ### 🐛 Bug Fixes
