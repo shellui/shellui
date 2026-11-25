@@ -29,7 +29,7 @@ import { ShelluiFrame } from '@shellui/sdk/react';
 Without React, call `createAppFrame(iframe, { url, backend, email, storage, hosting, onNavigate, onReady })` from `@shellui/sdk` and `destroy()` the handle when the frame goes away.
 
 - The frame stays hidden behind the `fallback` slot until the child app sends `SHELLUI_INITIALIZED`. If it does not arrive within 20 seconds, the `renderError` slot shows with a retry.
-- `email`, `storage` and `hosting` are optional service URLs for the child. The shell forwards each one only when its origin is in `childFrames.serviceOrigins`.
+- `email`, `storage`, `hosting` and `aiService` are optional service URLs for the child. The shell forwards each one only when its origin is in `childFrames.serviceOrigins`.
 - `files` is the optional files app URL. The child gets it as `settings.storage.filesUrl`, only when `storage` is also allowed and its own origin is in `childFrames.serviceOrigins`.
 - A new `src`, `backend` or service URL reloads the frame and shows the fallback again.
 - `onNavigate` receives the child URL on every route change. Mirror it in the host route, and pass it back in `src` to deep link.
@@ -61,7 +61,7 @@ Hosting is off by default. Allow it on the host app's navigation item, with exac
 - The host registers the child with `SHELLUI_CHILD_FRAME_REGISTER`. The shell accepts it only from a direct app frame whose item allows that child origin and backend origin.
 - The shell signs in to the child's identity server with the same isolated session it uses for per-app backends (token exchange for a regional server with `provider: "upstream"`, silent sign-in otherwise), and refreshes it. The child gets that session only. The shell token is never sent to a child.
 - A child with no allowed backend gets settings with no token and no user.
-- A child gets only the service URLs its host passed and `serviceOrigins` allows. A missing or rejected URL is `null`. The shell never falls back to its own `email`, `storage` or `hosting`, and has no built-in default. Rejections are logged with the service name only.
+- A child gets only the service URLs its host passed and `serviceOrigins` allows. A missing or rejected URL is `null`. The shell never falls back to its own `email`, `storage`, `hosting` or `aiService`, and has no built-in default. Rejections are logged with the service name only.
 - Theme, language and token changes are pushed to every registered child.
 
 ## Route sync for the host app

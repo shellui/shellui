@@ -158,6 +158,7 @@ describe('childFrameAuthPropagationOptions', () => {
     expect(options.storage).toBeNull();
     expect(options.email).toBeNull();
     expect(options.hosting).toBeNull();
+    expect(options.aiService).toBeNull();
   });
 
   it('sends no token when the child has no identity', () => {
@@ -186,6 +187,7 @@ describe('child frame service URLs', () => {
             'https://email.eu.example.com',
             'https://storage.eu.example.com',
             'https://files.example.com',
+            'https://ai.eu.example.com',
             'https://*.example.com',
             '*',
           ],
@@ -205,6 +207,7 @@ describe('child frame service URLs', () => {
     const result = register({
       email: 'https://email.eu.example.com/',
       storage: 'https://storage.eu.example.com',
+      aiService: 'https://ai.eu.example.com/',
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -213,6 +216,7 @@ describe('child frame service URLs', () => {
       storage: 'https://storage.eu.example.com',
       files: null,
       hosting: null,
+      aiService: 'https://ai.eu.example.com',
     });
     expect(result.entry.rejectedServices).toEqual([]);
     const options = childFrameAuthPropagationOptions({
@@ -223,6 +227,7 @@ describe('child frame service URLs', () => {
     expect(options.email).toEqual({ url: 'https://email.eu.example.com' });
     expect(options.storage).toEqual({ url: 'https://storage.eu.example.com' });
     expect(options.hosting).toBeNull();
+    expect(options.aiService).toEqual({ url: 'https://ai.eu.example.com' });
   });
 
   it('drops a service URL whose origin is not allowed', () => {
@@ -237,6 +242,7 @@ describe('child frame service URLs', () => {
       storage: null,
       files: null,
       hosting: null,
+      aiService: null,
     });
     expect(result.entry.rejectedServices).toEqual(['storage', 'hosting']);
   });
@@ -300,6 +306,7 @@ describe('child frame service URLs', () => {
       email: { url: 'https://email.example.com' },
       storage: { url: 'https://storage.example.com' },
       hosting: { url: 'https://hosting.example.com' },
+      aiService: { url: 'https://ai.example.com' },
     };
     const result = register(undefined, shellWithServices);
     expect(result.ok).toBe(true);
@@ -309,13 +316,14 @@ describe('child frame service URLs', () => {
       storage: null,
       files: null,
       hosting: null,
+      aiService: null,
     });
     const options = childFrameAuthPropagationOptions({
       identity: result.entry.identity,
       getAppSession: () => null,
       services: result.entry.services,
     });
-    expect(options).toMatchObject({ email: null, storage: null, hosting: null });
+    expect(options).toMatchObject({ email: null, storage: null, hosting: null, aiService: null });
   });
 
   it('drops every service URL when serviceOrigins is not configured', () => {
