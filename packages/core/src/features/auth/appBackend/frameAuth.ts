@@ -185,7 +185,9 @@ export function frameAuthPropagationOptions(input: {
 export function childFrameAuthPropagationOptions(input: {
   identity: ResolvedAppBackend | null;
   getAppSession: (key: string) => AuthSession | null;
-  services?: Partial<Record<'email' | 'storage' | 'files' | 'hosting', string | null>> | null;
+  services?: Partial<
+    Record<'email' | 'storage' | 'files' | 'hosting' | 'aiService', string | null>
+  > | null;
 }): FrameAuthPropagationOptions {
   const { identity, getAppSession } = input;
   const allowed = input.services ?? {};
@@ -204,6 +206,7 @@ export function childFrameAuthPropagationOptions(input: {
         ? { url: allowed.storage, ...(allowed.files ? { filesUrl: allowed.files } : {}) }
         : null,
       hosting: allowed.hosting ? { url: allowed.hosting } : null,
+      aiService: allowed.aiService ? { url: allowed.aiService } : null,
     },
   });
 }

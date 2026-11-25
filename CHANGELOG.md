@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.5] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Allow `ShelluiFrame` (`@shellui/sdk`) and `childFrameAuthPropagationOptions` (`@shellui/core`) to pass a per-frame `aiService` origin override (allowlisted through `childFrames.serviceOrigins`) so embedded regional admin frames receive the company's regional AI service URL instead of falling back to the global AI service.
+
 ## [0.8.4] - 2026-11-25
 
 ### 🐛 Bug Fixes
