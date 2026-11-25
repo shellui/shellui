@@ -8,7 +8,7 @@ JavaScript and TypeScript SDK for apps hosted in Shellui, the open-source app sh
 npm install @shellui/sdk
 ```
 
-Shellui **0.8.3** is the current stable release: `npm install @shellui/sdk@0.8.3`.
+Shellui **0.8.4** is the current stable release: `npm install @shellui/sdk@0.8.4`.
 
 ## Full SDK
 
