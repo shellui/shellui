@@ -52,7 +52,7 @@ URL changes are shared with the shell automatically. Auth, storage, toasts, dial
 ## Install and init
 
 ```bash
-npm install @shellui/sdk@0.8.5
+npm install @shellui/sdk@0.8.6
 ```
 
 ```typescript

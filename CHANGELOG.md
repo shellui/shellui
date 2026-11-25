@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [0.8.6] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Dashboard Settings, MCP / agents, lists global MCP connections from ai-service (`GET /ai/v1/mcp/global/agents`) when the session is a Shellui account, and revokes them with `POST /ai/v1/mcp/global/agents/{id}/revoke`. An approved global device grant no longer disappears behind "No active connections," which only listed regional identity personal agents.
+
 ## [0.8.5] - 2026-11-25
 
 ### 🐛 Bug Fixes

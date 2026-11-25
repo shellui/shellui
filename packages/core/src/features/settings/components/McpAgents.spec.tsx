@@ -18,12 +18,18 @@ const page = vi.hoisted(() => ({
   mcpUrl: null as string | null,
   companyId: '42',
   visibility: 'visible',
+  mcpEnabled: true,
+  globalIdentity: false,
+  globalMcpUrl: 'https://ai.example/mcp',
+  statusError: false,
 }));
 
 const api = vi.hoisted(() => ({
   fetchMcpPersonalAgents: vi.fn(),
+  fetchMcpGlobalAgents: vi.fn(),
   createMcpPersonalAgent: vi.fn(),
   revokeMcpPersonalAgent: vi.fn(),
+  revokeMcpGlobalAgent: vi.fn(),
 }));
 
 const dialogMock = vi.hoisted(() => vi.fn());
@@ -35,8 +41,10 @@ vi.mock('../../mcp/personalAgentsApi', async (importOriginal) => {
   return {
     ...actual,
     fetchMcpPersonalAgents: api.fetchMcpPersonalAgents,
+    fetchMcpGlobalAgents: api.fetchMcpGlobalAgents,
     createMcpPersonalAgent: api.createMcpPersonalAgent,
     revokeMcpPersonalAgent: api.revokeMcpPersonalAgent,
+    revokeMcpGlobalAgent: api.revokeMcpGlobalAgent,
   };
 });
 
@@ -68,13 +76,13 @@ vi.mock('../../auth/hooks/useAuth', () => ({
 vi.mock('../hooks/useMcpPersonalStatus', () => ({
   useMcpPersonalStatus: () => ({
     status: {
-      mcpEnabled: true,
+      mcpEnabled: page.mcpEnabled,
       mcpUrl: null,
-      globalMcpUrl: 'https://saas.example/mcp',
-      globalIdentity: false,
+      globalMcpUrl: page.globalMcpUrl,
+      globalIdentity: page.globalIdentity,
     },
     loading: false,
-    error: false,
+    error: page.statusError,
     refresh: vi.fn(),
   }),
 }));
@@ -156,6 +164,10 @@ beforeEach(() => {
   page.aiUrl = 'https://ai.example/';
   page.mcpUrl = null;
   page.companyId = '42';
+  page.mcpEnabled = true;
+  page.globalIdentity = false;
+  page.globalMcpUrl = 'https://ai.example/mcp';
+  page.statusError = false;
   page.visibility = 'visible';
   Object.defineProperty(document, 'visibilityState', {
     configurable: true,
@@ -170,9 +182,12 @@ beforeEach(() => {
   dialogMock.mockReset();
   toastMock.mockReset();
   api.fetchMcpPersonalAgents.mockReset();
+  api.fetchMcpGlobalAgents.mockReset();
   api.createMcpPersonalAgent.mockReset();
   api.revokeMcpPersonalAgent.mockReset();
+  api.revokeMcpGlobalAgent.mockReset();
   api.fetchMcpPersonalAgents.mockResolvedValue([]);
+  api.fetchMcpGlobalAgents.mockResolvedValue([]);
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -321,6 +336,60 @@ describe('McpAgents static secret', () => {
 });
 
 describe('McpAgents connections', () => {
+  it('lists a global device grant when identity returns no regional agents', async () => {
+    page.globalIdentity = true;
+    const globalAgent = connection({
+      id: 'global-1',
+      name: 'Hermes on this Mac',
+      servicesAllowed: ['saas'],
+      expiresAt: null,
+    });
+    api.fetchMcpPersonalAgents.mockResolvedValue([]);
+    api.fetchMcpGlobalAgents.mockResolvedValue([globalAgent]);
+
+    await renderPage();
+
+    expect(container.textContent).toContain('Hermes on this Mac');
+    expect(container.textContent).not.toContain('No active connections.');
+    expect(api.fetchMcpGlobalAgents).toHaveBeenCalledWith('https://ai.example', 'session-token');
+    expect(buttonByText('Revoke')).toBeTruthy();
+  });
+
+  it('revokes a global connection through ai-service', async () => {
+    page.globalIdentity = true;
+    const globalAgent = connection({
+      id: 'global-1',
+      name: 'Hermes on this Mac',
+      servicesAllowed: ['saas'],
+      expiresAt: null,
+    });
+    api.fetchMcpPersonalAgents.mockResolvedValue([]);
+    api.fetchMcpGlobalAgents.mockResolvedValue([globalAgent]);
+    api.revokeMcpGlobalAgent.mockResolvedValue({
+      ...globalAgent,
+      revokedAt: '2026-11-25T12:00:00.000Z',
+      isActive: false,
+    });
+
+    await renderPage();
+    dialogMock.mockImplementation(async (options: { onOk?: () => Promise<void> }) => {
+      await options.onOk?.();
+    });
+
+    await act(async () => {
+      buttonByText('Revoke')?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(api.revokeMcpGlobalAgent).toHaveBeenCalledWith(
+      'https://ai.example',
+      'session-token',
+      'global-1',
+    );
+    expect(api.revokeMcpPersonalAgent).not.toHaveBeenCalled();
+  });
+
   it('renders an OAuth connection and reloads when the tab is visible again', async () => {
     const oauth = connection();
     api.fetchMcpPersonalAgents.mockResolvedValueOnce([]).mockResolvedValue([oauth]);
