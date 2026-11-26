@@ -55,7 +55,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 Confirm with `cargo --version` and `rustc --version`. If those fail, restart the terminal or run `source ~/.cargo/env`. `failed to run 'cargo metadata'` means Cargo is missing or off PATH.
 
-2. **Node.js** 18+ and a package manager.
+2. **Node.js** 20.19 or later, or 22.12 or later, and a package manager.
 
 Platform extras - see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/):
 
