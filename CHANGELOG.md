@@ -24,6 +24,10 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - Installation, quickstart, Tauri and README now give the Node.js versions the CLI needs: 20.19 or later, or 22.12 or later. The root `engines` field matches.
 
+### 🏗 Chore
+
+- CLI now declares supported Node.js versions (20.19 or later, or 22.12 or later).
+
 ## [0.8.6] - 2026-11-25
 
 ### 🐛 Bug Fixes

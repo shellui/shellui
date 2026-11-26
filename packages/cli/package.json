@@ -45,6 +45,9 @@
   ],
   "author": "Shellui",
   "license": "MIT",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "optionalDependencies": {
     "@napi-rs/keyring": "2.1.2"
   },
