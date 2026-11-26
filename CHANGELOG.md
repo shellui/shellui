@@ -18,6 +18,12 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 📚 Documentation
+
+- Installation, quickstart, Tauri and README now give the Node.js versions the CLI needs: 20.19 or later, or 22.12 or later. The root `engines` field matches.
+
 ## [0.8.6] - 2026-11-25
 
 ### 🐛 Bug Fixes
