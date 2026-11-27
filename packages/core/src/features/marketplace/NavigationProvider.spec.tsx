@@ -37,6 +37,26 @@ vi.mock('../config/useConfig', () => ({
   useConfig: () => ({ loading: false, config: page.config }),
 }));
 vi.mock('../auth/hooks/useAuth', () => ({ useAuth: () => ({ session: page.session }) }));
+/** When `save` is set, the provider's storage adapter saves through it instead. */
+const standIn = vi.hoisted(() => ({
+  save: null as null | ((overlay: unknown) => Promise<void>),
+}));
+vi.mock('./storage', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./storage')>();
+  return {
+    ...real,
+    createNavigationStorageAdapter: (
+      options: Parameters<typeof real.createNavigationStorageAdapter>[0],
+    ) => {
+      const adapter = real.createNavigationStorageAdapter(options);
+      return {
+        ...adapter,
+        save: (overlay: Parameters<typeof adapter.save>[0]) =>
+          standIn.save ? standIn.save(overlay) : adapter.save(overlay),
+      };
+    },
+  };
+});
 vi.mock('./InstallConfirmDialog', () => ({
   InstallConfirmDialog: (props: NonNullable<typeof dialog.props>) => {
     dialog.props = props;
@@ -279,6 +299,7 @@ beforeEach(() => {
   toasts.length = 0;
   renderWrites.length = 0;
   dialog.props = null;
+  standIn.save = null;
   page.config = makeConfig('localStorage');
   page.session = null;
   resetServer();
@@ -1151,7 +1172,8 @@ describe('NavigationProvider changes in flight during an account switch', () => 
     await act(async () => release());
     await flush();
 
-    expect(await grant).toEqual({ ok: false, error: 'not_saved' });
+    expect(await grant).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(toasts).toEqual([]);
     expect(localStorage.getItem(u2Key)).toBeNull();
     expect(
       sessionStorage.getItem(`shellui.navigation.pendingRemovals:${JSON.stringify(['u2', '1'])}`),
@@ -1176,7 +1198,8 @@ describe('NavigationProvider changes in flight during an account switch', () => 
     await act(async () => release());
     await flush();
 
-    expect(await reset).toEqual({ ok: false, error: 'not_saved' });
+    expect(await reset).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(toasts).toEqual([]);
     expect(localStorage.getItem(u2Key)).toBe(u2Copy);
   });
 
@@ -1194,10 +1217,81 @@ describe('NavigationProvider changes in flight during an account switch', () => 
 
     await act(async () => release());
     await flush();
-    expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+    expect(await hide).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(toasts).toEqual([]);
 
     await run(() => api.moveNavigationItem('about', 'up'));
     expect(server.ifMatch.slice(-1)).toEqual(['"v1"']);
+  });
+
+  const pendingKey = (userId: string) =>
+    `shellui.navigation.pendingRemovals:${JSON.stringify([userId, '1'])}`;
+  const storageRevoke = JSON.stringify([
+    { kind: 'revoke', appId: 'notes', capabilities: ['storage'] },
+  ]);
+
+  it('a u1 revoke stored after the switch is settled for u1 only, without a toast', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBe(storageRevoke);
+    server.writeGate = null;
+    await switchToU2();
+
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(toasts).toEqual([]);
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBeNull();
+  });
+
+  it('settles a late save in the scope it started in, leaving u2 pending removals alone', async () => {
+    await mountSignedInWithApp();
+    // u2 has its own unsaved revoke, equal to the one u1 is about to make.
+    sessionStorage.setItem(pendingKey('u2'), storageRevoke);
+    let release!: () => void;
+    standIn.save = () => new Promise<void>((resolve) => (release = resolve));
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    standIn.save = null;
+    await switchToU2();
+    expect(api.unsavedRemovals).toBe(true);
+
+    // The save resolves after the switch without raising.
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(sessionStorage.getItem(pendingKey('u2'))).toBe(storageRevoke);
+    expect(api.unsavedRemovals).toBe(true);
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBeNull();
+  });
+
+  it('closes an open install dialog on the switch, and confirming it installs nothing', async () => {
+    await mountSignedInWithApp();
+    await requestInstall('other', ['ui']);
+    const opened = dialog.props as { summary: unknown; onConfirm: () => void } | null;
+    expect(opened?.summary).toBeTruthy();
+    server.overlay = null;
+    await switchToU2();
+
+    const shown = dialog as { props: { summary: unknown } | null };
+    expect(shown.props?.summary ?? null).toBeNull();
+    await act(async () => opened?.onConfirm());
+    await flush();
+
+    expect(api.installedApps).toEqual([]);
+    expect(server.overlay).toBeNull();
+    expect(installResults().slice(-1)[0]?.payload).toMatchObject({
+      ok: false,
+      error: 'scope_changed',
+    });
   });
 });
 

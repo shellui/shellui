@@ -154,12 +154,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const signedIn = Boolean(session?.accessToken);
   const scopeRef = useRef<string | null>(null);
   const [unsavedRemovals, setUnsavedRemovals] = useState(false);
-  /**
-   * `at` is the scope a change started in. When another account or company is active by the
-   * time it settles, nothing is recorded, so one account's bookkeeping never lands on another.
-   */
-  const setPendingRemovals = useCallback((removals: PendingRemoval[], at?: string | null) => {
-    if (at !== undefined && at !== scopeRef.current) return;
+  const setPendingRemovals = useCallback((removals: PendingRemoval[]) => {
     pendingRemovalsRef.current = removals;
     setUnsavedRemovals(removals.length > 0);
     if (scopeRef.current !== null) writePendingRemovals(scopeRef.current, removals);
@@ -255,6 +250,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     scopeRef.current = scope;
     pendingRemovalsRef.current = readPendingRemovals(scope);
     setUnsavedRemovals(pendingRemovalsRef.current.length > 0);
+    // An install dialog opened for the previous account is closed unanswered.
+    const openDialog = pendingRef.current;
+    if (switched && openDialog) {
+      pendingRef.current = null;
+      setPending(null);
+      openDialog.resolve(false);
+    }
     if (!switched || !adapter || !customizationOn) return;
     readyRef.current = false;
     setLayoutReady(false);
@@ -341,12 +343,23 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     [adapter],
   );
 
-  /** Forget the removals a successful save included. */
+  /**
+   * Forget the removals a successful save included, in the scope (`at`) the save started in.
+   * When another account is active by then, only that scope's stored list changes.
+   */
   const settleRemovals = useCallback(
     (included: readonly PendingRemoval[], at: string | null) => {
-      setPendingRemovals(
-        pendingRemovalsRef.current.filter((removal) => !included.includes(removal)),
+      if (at === scopeRef.current) {
+        setPendingRemovals(
+          pendingRemovalsRef.current.filter((removal) => !included.includes(removal)),
+        );
+        return;
+      }
+      if (at === null) return;
+      const saved = new Set(included.map((removal) => JSON.stringify(removal)));
+      writePendingRemovals(
         at,
+        readPendingRemovals(at).filter((removal) => !saved.has(JSON.stringify(removal))),
       );
     },
     [setPendingRemovals],
@@ -368,7 +381,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     async (
       proposed: NavigationOverlay,
       options: { removal?: PendingRemoval | null; removalOnly?: boolean } = {},
-    ): Promise<{ ok: true } | { ok: false; error: string }> => {
+    ): Promise<{ ok: true } | { ok: false; error: string; stored?: boolean }> => {
       if (!readyRef.current) return { ok: false, error: 'layout_loading' };
       const at = scopeRef.current;
       if (options.removal) setPendingRemovals([...pendingRemovalsRef.current, options.removal]);
@@ -383,15 +396,19 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       try {
         await adapter.save(next);
         settleRemovals(included, at);
+        if (scopeRef.current !== at) return { ok: false, error: 'scope_changed', stored: true };
         return { ok: true };
       } catch (error) {
-        // Only the device copy was written (Identity still has the older layout and wins on the
-        // next load), or another account signed in meanwhile and nothing was stored. The
-        // removals stay pending for the scope they were made in, and the person is told.
-        if (
-          error instanceof NavigationOverlayDeviceOnlyError ||
-          error instanceof NavigationOverlayScopeChangedError
-        ) {
+        // Another account or company is active now: nothing is stored for it and it is not
+        // told. If identity stored the change, the removals it carried are settled for the
+        // account that made them.
+        if (error instanceof NavigationOverlayScopeChangedError) {
+          if (error.stored) settleRemovals(included, at);
+          return { ok: false, error: 'scope_changed', stored: error.stored };
+        }
+        // Only the device copy was written. Identity still has the older layout and wins on
+        // the next load, so the removals stay pending and the person is told.
+        if (error instanceof NavigationOverlayDeviceOnlyError) {
           notify('layoutNotSaved', NOT_SAVED);
           return { ok: false, error: 'not_saved' };
         }
@@ -551,15 +568,22 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       return { ok: true as const };
     }
     const sequence = commitSeqRef.current;
+    const settleReset = () => {
+      if (at === scopeRef.current) setPendingRemovals([]);
+      else if (at !== null) writePendingRemovals(at, []);
+    };
     try {
       await adapter.reset();
-      setPendingRemovals([], at);
+      settleReset();
+      if (scopeRef.current !== at)
+        return { ok: false as const, error: 'scope_changed', stored: true };
       return { ok: true as const };
     } catch (error) {
-      if (
-        error instanceof NavigationOverlayDeviceOnlyError ||
-        error instanceof NavigationOverlayScopeChangedError
-      ) {
+      if (error instanceof NavigationOverlayScopeChangedError) {
+        if (error.stored) settleReset();
+        return { ok: false as const, error: 'scope_changed', stored: error.stored };
+      }
+      if (error instanceof NavigationOverlayDeviceOnlyError) {
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false as const, error: 'not_saved' };
       }
@@ -574,9 +598,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       // This device never shows the newer layout, so its version is sent for this one delete
       // only. A refused retry leaves the version as it was, so the next edit cannot save over it.
       await adapter.reset(remote.etag);
-      setPendingRemovals([], at);
+      settleReset();
       return { ok: true as const };
-    } catch {
+    } catch (error) {
+      if (error instanceof NavigationOverlayScopeChangedError) {
+        if (error.stored) settleReset();
+        return { ok: false as const, error: 'scope_changed', stored: error.stored };
+      }
       notify('layoutNotSaved', NOT_SAVED);
       return { ok: false as const, error: 'not_saved' };
     }
@@ -619,7 +647,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           existing: current.installedApps.find((app) => app.id === requestedId) ?? null,
         });
         if (!prepared.ok) return prepared;
+        const at = scopeRef.current;
         const accepted = await askConfirm(prepared.summary);
+        // The dialog is closed when the account or company changes; it never installs for
+        // the next one.
+        if (scopeRef.current !== at) return { ok: false as const, error: 'scope_changed' };
         if (!accepted) return { ok: false as const, error: 'confirmation_declined' };
         // The layout may have changed while the dialog was open.
         const latest = currentOverlay();

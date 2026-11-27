@@ -164,10 +164,11 @@ export class NavigationOverlayDeviceOnlyError extends Error {
 
 /**
  * The signed-in user or company changed while the call was in flight. Nothing was stored for
- * the new scope (no version, no device copy), and the change counts as not saved.
+ * the new scope (no version, no device copy). `stored` says whether identity accepted the write
+ * for the scope the call started in.
  */
 export class NavigationOverlayScopeChangedError extends Error {
-  constructor() {
+  constructor(readonly stored = false) {
     super('navigation_overlay_scope_changed');
     this.name = 'NavigationOverlayScopeChangedError';
   }
@@ -177,8 +178,8 @@ const scopeKeyOf = (options: { scope?: () => NavigationLayoutScope }) =>
   navigationLayoutStorageKey(options.scope?.());
 
 /** Throw when the scope a call started in is no longer the active one. */
-function assertScope(options: { scope?: () => NavigationLayoutScope }, at: string) {
-  if (scopeKeyOf(options) !== at) throw new NavigationOverlayScopeChangedError();
+function assertScope(options: { scope?: () => NavigationLayoutScope }, at: string, stored = false) {
+  if (scopeKeyOf(options) !== at) throw new NavigationOverlayScopeChangedError(stored);
 }
 
 export function createApiNavigationAdapter(
@@ -253,7 +254,7 @@ export function createApiNavigationAdapter(
     async save(overlay) {
       const at = scopeKeyOf(options);
       const response = await request('PUT', overlay, versionFor(at));
-      assertScope(options, at);
+      assertScope(options, at, response.ok);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       keep(at, etagOf(response) ?? versionFor(at));
@@ -265,7 +266,7 @@ export function createApiNavigationAdapter(
         undefined,
         ifMatch === undefined ? versionFor(at) : ifMatch,
       );
-      assertScope(options, at);
+      assertScope(options, at, response.ok || response.status === 404);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}`);
       keep(at, null);
