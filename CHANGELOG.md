@@ -27,6 +27,8 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 ### 🏗 Chore
 
 - CLI now declares supported Node.js versions (20.19 or later, or 22.12 or later).
+- Dependencies: Vite 8 (Rolldown and Oxc), cac 7, @sentry/react 11, React 19.3, opentype.js 2 and minor updates. The shell now pins its TypeScript settings with Vite's `tsconfig` option (`packages/cli/src/utils/shell-tsconfig.json`), so a consumer `tsconfig.json` still never applies. CSS minification uses Vite's default Lightning CSS.
+- Docker image and CI run on Node.js 26 (current LTS).
 
 ## [0.8.6] - 2026-11-25
 
