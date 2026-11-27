@@ -1295,6 +1295,212 @@ describe('NavigationProvider changes in flight during an account switch', () => 
   });
 });
 
+describe('NavigationProvider device copy after a stored write', () => {
+  const u1Key = navigationLayoutStorageKey({ userId: 'u1', companyId: '1' });
+  const pendingKey = (userId: string) =>
+    `shellui.navigation.pendingRemovals:${JSON.stringify([userId, '1'])}`;
+  const storageRevoke = JSON.stringify([
+    { kind: 'revoke', appId: 'notes', capabilities: ['storage'] },
+  ]);
+  const switchTo = async (userId: string) => {
+    page.session = { accessToken: `token-${userId}`, userId };
+    mount();
+    await flush();
+  };
+  const holdWrites = () => {
+    let release!: () => void;
+    server.writeGate = new Promise<void>((resolve) => (release = resolve));
+    return release;
+  };
+  /** A save that identity refuses with 503 leaves a u1 device copy with notes on storage. */
+  const leaveDeviceCopy = async () => {
+    server.writeFails = true;
+    expect(await run(() => api.setNavigationItemHidden('about', true))).toEqual({
+      ok: false,
+      error: 'not_saved',
+    });
+    server.writeFails = false;
+    expect(localStorage.getItem(u1Key)).toContain('storage');
+    toasts.length = 0;
+  };
+
+  it('X17: a saved revoke removes the device copy, so a reload with identity down keeps it', async () => {
+    await mountSignedInWithApp();
+    await leaveDeviceCopy();
+
+    expect((await run(() => api.setAppCapabilities('notes', ['ui']))).ok).toBe(true);
+    expect(localStorage.getItem(u1Key)).toBeNull();
+
+    server.getFails = true;
+    await reload();
+    expect(currentGrant()).not.toContain('storage');
+  });
+
+  it('X17x: a revoke stored after a switch removes the u1 device copy too', async () => {
+    await mountSignedInWithApp();
+    await leaveDeviceCopy();
+    const release = holdWrites();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    server.writeGate = null;
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: true });
+
+    server.getFails = true;
+    await switchTo('u1');
+    expect(currentGrant()).not.toContain('storage');
+  });
+
+  it('X16: a reset stored after a switch removes the u1 device copy', async () => {
+    await mountSignedInWithApp();
+    await leaveDeviceCopy();
+    const release = holdWrites();
+    let reset!: Promise<Result>;
+    await act(async () => {
+      reset = api.resetNavigation();
+    });
+    server.writeGate = null;
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+    expect(await reset).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBeNull();
+
+    server.getFails = true;
+    await switchTo('u1');
+    expect(api.installedApps).toEqual([]);
+    expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+  });
+
+  it('a late 412 after a switch keeps the u1 revoke pending and in force', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    server.writeGate = null;
+    server.writeScript = [412];
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(toasts).toEqual([]);
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBe(storageRevoke);
+    expect(serverCapabilities()).toContain('storage');
+
+    await switchTo('u1');
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+  });
+
+  it.each([
+    ['412', 412],
+    ['503', 503],
+  ])('a late %s reset after a switch keeps the u1 removals pending', async (_name, status) => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let reset!: Promise<Result>;
+    await act(async () => {
+      reset = api.resetNavigation();
+    });
+    server.writeGate = null;
+    server.writeScript = [status];
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+
+    expect(await reset).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(JSON.parse(sessionStorage.getItem(pendingKey('u1')) ?? '[]')).toEqual([
+      { kind: 'uninstall', appId: 'notes' },
+    ]);
+  });
+
+  it('X20: a late u1 reset clears the u1 list only, and u2 keeps its own pending revoke', async () => {
+    await mountSignedInWithApp();
+    sessionStorage.setItem(pendingKey('u2'), storageRevoke);
+    const release = holdWrites();
+    let reset!: Promise<Result>;
+    await act(async () => {
+      reset = api.resetNavigation();
+    });
+    server.writeGate = null;
+    await switchTo('u2');
+    expect(api.unsavedRemovals).toBe(true);
+    await act(async () => release());
+    await flush();
+
+    expect(await reset).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBeNull();
+    expect(sessionStorage.getItem(pendingKey('u2'))).toBe(storageRevoke);
+    expect(api.unsavedRemovals).toBe(true);
+  });
+
+  it('a conflict read that crosses a switch reports scope_changed without a toast', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
+    let release!: () => void;
+    server.getGates = [new Promise<void>((resolve) => (release = resolve))];
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(toasts).toEqual([]);
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBe(storageRevoke);
+  });
+
+  it('a conflict retry stored after a switch is settled for u1, without a toast', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
+    let releaseRead!: () => void;
+    server.getGates = [new Promise<void>((resolve) => (releaseRead = resolve))];
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    const release = holdWrites();
+    await act(async () => releaseRead());
+    server.writeGate = null;
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    expect(toasts).toEqual([]);
+    expect(sessionStorage.getItem(pendingKey('u1'))).toBeNull();
+    expect(serverCapabilities()).not.toContain('storage');
+  });
+});
+
+describe('NavigationProvider install confirmation', () => {
+  it('ignores an answer meant for an earlier dialog', async () => {
+    await mountSignedInWithApp();
+    await requestInstall('first', ['ui']);
+    const first = dialog.props as NonNullable<typeof dialog.props>;
+    await act(async () => first.onCancel());
+    await flush();
+    await requestInstall('second', ['ui']);
+    expect(dialog.props?.summary).toBeTruthy();
+
+    await act(async () => first.onConfirm());
+    await flush();
+
+    expect(dialog.props?.summary).toBeTruthy();
+    expect(serverApps()).toEqual(['notes']);
+    await confirmInstall();
+    expect(serverApps()).toEqual(['notes', 'second']);
+  });
+});
+
 describe('NavigationProvider loading state on an account switch', () => {
   /** Edits from a passive effect of a child, which runs before the provider reads the layout. */
   function EditOnSwitch({ results }: { results: Array<Promise<Result>> }) {

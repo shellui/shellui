@@ -393,18 +393,21 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         return { ok: true };
       }
       const sequence = commitSeqRef.current;
+      // Another account or company is active now: nothing is stored for it and it is not told.
+      // If identity stored the change, the removals it carried are settled for the account that
+      // made them.
+      const scopeChanged = (stored: boolean, removals: readonly PendingRemoval[]) => {
+        if (stored) settleRemovals(removals, at);
+        return { ok: false as const, error: 'scope_changed', stored };
+      };
       try {
         await adapter.save(next);
+        if (scopeRef.current !== at) return scopeChanged(true, included);
         settleRemovals(included, at);
-        if (scopeRef.current !== at) return { ok: false, error: 'scope_changed', stored: true };
         return { ok: true };
       } catch (error) {
-        // Another account or company is active now: nothing is stored for it and it is not
-        // told. If identity stored the change, the removals it carried are settled for the
-        // account that made them.
         if (error instanceof NavigationOverlayScopeChangedError) {
-          if (error.stored) settleRemovals(included, at);
-          return { ok: false, error: 'scope_changed', stored: error.stored };
+          return scopeChanged(error.stored, included);
         }
         // Only the device copy was written. Identity still has the older layout and wins on
         // the next load, so the removals stay pending and the person is told.
@@ -417,7 +420,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       let remote: LoadedNavigationOverlay;
       try {
         remote = await loadAfterConflict();
-      } catch {
+      } catch (error) {
+        if (error instanceof NavigationOverlayScopeChangedError) return scopeChanged(false, []);
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false, error: 'not_saved' };
       }
@@ -435,7 +439,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       try {
         await adapter.save(merged);
         settleRemovals(removals, at);
-      } catch {
+      } catch (error) {
+        if (error instanceof NavigationOverlayScopeChangedError) {
+          return scopeChanged(error.stored, removals);
+        }
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false, error: 'not_saved' };
       }
@@ -460,11 +467,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const settleConfirm = useCallback((accepted: boolean) => {
-    const current = pendingRef.current;
+  /** Answer one install request. An answer meant for an earlier dialog does nothing. */
+  const settleConfirm = useCallback((request: PendingConfirm | null, accepted: boolean) => {
+    if (!request || pendingRef.current !== request) return;
     pendingRef.current = null;
     setPending(null);
-    current?.resolve(accepted);
+    request.resolve(accepted);
   }, []);
 
   const uninstallApp = useCallback(
@@ -770,8 +778,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       {children}
       <InstallConfirmDialog
         summary={pending?.summary ?? null}
-        onConfirm={() => settleConfirm(true)}
-        onCancel={() => settleConfirm(false)}
+        onConfirm={() => settleConfirm(pending, true)}
+        onCancel={() => settleConfirm(pending, false)}
       />
     </NavigationContext.Provider>
   );

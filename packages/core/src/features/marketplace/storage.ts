@@ -292,6 +292,21 @@ export function createNavigationStorageAdapter(
     options.storage ?? (typeof localStorage !== 'undefined' ? localStorage : memoryStorage());
   const local = createLocalStorageNavigationAdapter(memory, options);
   const api = createApiNavigationAdapter(options);
+  /**
+   * An identity write. Once identity stores it, the device copy of the scope the call started in
+   * is removed, also when another account is active by then. A copy left by an earlier failed
+   * save would otherwise bring back, while identity is down, what the stored write took away.
+   */
+  const write = async (at: string, call: () => Promise<void>) => {
+    try {
+      await call();
+    } catch (error) {
+      if (error instanceof NavigationOverlayScopeChangedError && error.stored)
+        memory.removeItem(at);
+      throw error;
+    }
+    memory.removeItem(at);
+  };
 
   return {
     readDevice: () => local.readDevice?.() ?? null,
@@ -321,7 +336,7 @@ export function createNavigationStorageAdapter(
       }
       const at = scopeKeyOf(options);
       try {
-        await api.save(overlay);
+        await write(at, () => api.save(overlay));
       } catch (error) {
         // A conflict is not an outage. Falling back would hide that another device changed
         // the layout, so the caller reloads the remote copy and tells the person.
@@ -337,7 +352,7 @@ export function createNavigationStorageAdapter(
       const at = scopeKeyOf(options);
       if (useIdentity(options)) {
         try {
-          await api.reset?.(ifMatch);
+          await write(at, async () => api.reset?.(ifMatch));
         } catch (error) {
           // A conflict leaves the saved layout in place. Keep the device copy too, and let the
           // caller retry or report that nothing was reset.
