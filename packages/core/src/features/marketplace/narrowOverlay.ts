@@ -1,54 +1,69 @@
 import type { NavigationOverlay } from './overlay';
 
 /**
- * Changes that only take access away. After a save conflict they are applied again on top of
- * the newer layout, because dropping them would hand back access the person just removed.
- * Each returns `null` when the newer layout already has nothing left to remove.
+ * A change on this device that takes access away and is not saved yet. Until a save that
+ * includes it succeeds, it is applied to every layout the shell commits, including a newer
+ * layout loaded after a save conflict, so no conflict or concurrent edit can hand access back.
  */
+export type PendingRemoval =
+  | { kind: 'uninstall'; appId: string }
+  | { kind: 'revoke'; appId: string; capabilities: readonly string[] };
 
-export function overlayWithoutApp(
+/** Capabilities every installed app keeps. A revoke never lists them. */
+const BASELINE = new Set(['theme', 'locale']);
+
+/** The capabilities in `current` that `next` drops. Empty when nothing is taken away. */
+export function revokedCapabilities(current: readonly string[], next: readonly string[]): string[] {
+  return current.filter((capability) => !BASELINE.has(capability) && !next.includes(capability));
+}
+
+/**
+ * Apply each pending removal. Only what this device removed is taken out, so a capability or
+ * app the other device added stays.
+ */
+export function applyPendingRemovals(
   overlay: NavigationOverlay,
+  removals: readonly PendingRemoval[],
+): NavigationOverlay {
+  let result = overlay;
+  for (const removal of removals) {
+    const existing = result.installedApps.find((app) => app.id === removal.appId);
+    if (!existing) continue;
+    if (removal.kind === 'uninstall') {
+      result = {
+        ...result,
+        installedApps: result.installedApps.filter((app) => app.id !== removal.appId),
+        order: result.order.filter((path) => path !== existing.path),
+        hiddenPaths: result.hiddenPaths.filter((path) => path !== existing.path),
+      };
+      continue;
+    }
+    const kept = existing.capabilities.filter((c) => !removal.capabilities.includes(c));
+    if (kept.length === existing.capabilities.length) continue;
+    result = {
+      ...result,
+      installedApps: result.installedApps.map((app) =>
+        app.id === removal.appId ? { ...app, capabilities: kept } : app,
+      ),
+    };
+  }
+  return result;
+}
+
+/**
+ * Drop pending removals that a later choice on this device undid: granting a capability again,
+ * or installing the app again.
+ */
+export function withoutUndoneRemovals(
+  removals: readonly PendingRemoval[],
   appId: string,
-  now: string,
-): NavigationOverlay | null {
-  const existing = overlay.installedApps.find((app) => app.id === appId);
-  if (!existing) return null;
-  return {
-    ...overlay,
-    installedApps: overlay.installedApps.filter((app) => app.id !== appId),
-    order: overlay.order.filter((path) => path !== existing.path),
-    hiddenPaths: overlay.hiddenPaths.filter((path) => path !== existing.path),
-    updatedAt: now,
-  };
+  granted: readonly string[] | 'reinstall',
+): PendingRemoval[] {
+  return removals.flatMap((removal): PendingRemoval[] => {
+    if (removal.appId !== appId) return [removal];
+    if (granted === 'reinstall') return [];
+    if (removal.kind === 'uninstall') return [removal];
+    const capabilities = removal.capabilities.filter((c) => !granted.includes(c));
+    return capabilities.length ? [{ ...removal, capabilities }] : [];
+  });
 }
-
-/** Keep only the capabilities in `allowed`. Never adds one, so it cannot widen access. */
-export function overlayWithCapabilitiesNarrowedTo(
-  overlay: NavigationOverlay,
-  appId: string,
-  allowed: readonly string[],
-  now: string,
-): NavigationOverlay | null {
-  const existing = overlay.installedApps.find((app) => app.id === appId);
-  if (!existing) return null;
-  const kept = existing.capabilities.filter((capability) => allowed.includes(capability));
-  if (kept.length === existing.capabilities.length) return null;
-  return {
-    ...overlay,
-    installedApps: overlay.installedApps.map((app) =>
-      app.id === appId ? { ...app, capabilities: kept, updatedAt: now } : app,
-    ),
-    updatedAt: now,
-  };
-}
-
-/** True when `next` grants nothing that `current` did not. */
-export function onlyNarrowsCapabilities(
-  current: readonly string[],
-  next: readonly string[],
-): boolean {
-  return next.every((capability) => current.includes(capability));
-}
-
-/** Applies a narrowing change to the newer layout, or returns `null` when it has nothing to do. */
-export type NarrowingReapply = (remote: NavigationOverlay) => NavigationOverlay | null;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_MARKETPLACE_API_URL,
   DEFAULT_MARKETPLACE_URL,
@@ -43,5 +43,21 @@ describe('normalizeMarketplaceConfig', () => {
     expect(normalizeMarketplaceConfig(undefined)).toBeNull();
     expect(normalizeMarketplaceConfig(false)).toBeNull();
     expect(normalizeMarketplaceConfig(null)).toBeNull();
+  });
+
+  it('is always off in the desktop app, whatever the config says', () => {
+    vi.stubGlobal('__SHELLUI_TARGET__', 'tauri');
+    try {
+      expect(normalizeMarketplaceConfig(true)).toBeNull();
+      expect(normalizeMarketplaceConfig({ allowThirdParty: true })).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    vi.stubGlobal('__SHELLUI_TARGET__', 'web');
+    try {
+      expect(normalizeMarketplaceConfig(true)).not.toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

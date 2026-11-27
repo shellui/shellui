@@ -40,7 +40,7 @@ When marketplace is on, the shell adds a locked **Shellui Marketplace** route.
 
 ## Desktop app
 
-Shellui Marketplace is not available in the desktop (Tauri) app. A directory that installs web apps at runtime is not compatible with Mac App Store distribution, so the desktop build always runs with `"marketplace": false`. Turn it on only for web builds.
+Shellui Marketplace is not available in the desktop (Tauri) app. A directory that installs web apps at runtime is not compatible with Mac App Store distribution, so the shell turns the marketplace off for the desktop target whatever `shellui.config.json` says. It runs only in web builds.
 
 ## Navigation overlay
 
@@ -72,7 +72,7 @@ Third-party iframes use `referrerPolicy="no-referrer"`, a sandbox of `allow-same
 - **Honest labels.** A third-party app's navigation label ends with "(third-party)", and its toasts and dialogs are prefixed with the app name.
 - **Frames only for installed origins.** The shell renders a third-party frame only when its origin matches an installed app. `http://localhost` is refused outside development. Grants, the token rule, and the settings a frame receives are all chosen by origin, so another path on an installed origin gets the same limits.
 - **`frame-src` stays broad.** The shell CSP still allows `https:` in `frame-src` and is report-only by default, so it does not limit which apps can be installed. The installed-origin check above is the control. A host that enforces CSP and wants a tighter list has to narrow `frame-src` itself.
-- **Layout conflicts.** If another device saved the layout first, the save is refused. A change that only takes access away (revoking a capability, uninstalling an app, resetting) is applied again on top of the newer layout and saved once more, so a conflict can never hand access back. The removal stays in force in the shell even if that second save fails, and a toast says plainly that the change was not saved. Any other change gives way to the newer layout, with a toast. A newer edit made on this device while the newer layout loads is never overwritten. The device copy is not used to hide a conflict, and a reset that conflicts does not clear it.
+- **Layout conflicts.** If another device saved the layout first, the save is refused and the shell reads the newer layout from Identity, never from the device copy. Every removal made on this device that is not saved yet (a revoked capability, an uninstalled app, a reset) stays in force and is applied to the newer layout and to any other edit made meanwhile, until a save that includes it succeeds. Only what this device removed is taken out, so a capability or app added on the other device is kept. A change that only removes access is then saved once more. Any other change gives way to the newer layout, with a toast. If the newer layout cannot be read or the second save fails, the removals stay in force in the shell and a toast says plainly that the change was not saved. A reset that conflicts does not clear the device copy.
 - **Layout sync.** The shell sends the access token only to an HTTPS layout API on a known origin (the Identity base URL of the shell). The copy kept on the device is not uploaded when someone signs in.
 
 ## Customize navigation

@@ -42,10 +42,10 @@ import {
 } from './mergeNavigation';
 import { marketplaceOrigin, normalizeMarketplaceConfig } from './normalizeMarketplaceConfig';
 import {
-  onlyNarrowsCapabilities,
-  overlayWithCapabilitiesNarrowedTo,
-  overlayWithoutApp,
-  type NarrowingReapply,
+  applyPendingRemovals,
+  revokedCapabilities,
+  withoutUndoneRemovals,
+  type PendingRemoval,
 } from './narrowOverlay';
 import { emptyNavigationOverlay, type InstalledAppRecord, type NavigationOverlay } from './overlay';
 import { commitInstalledApps } from './securitySync';
@@ -116,6 +116,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const pendingRef = useRef<PendingConfirm | null>(null);
   const overlayRef = useRef<NavigationOverlay | null>(null);
   const commitSeqRef = useRef(0);
+  /** Removals made on this device that no successful save includes yet. */
+  const pendingRemovalsRef = useRef<PendingRemoval[]>([]);
 
   const marketplace = useMemo(
     () => normalizeMarketplaceConfig(base.marketplace),
@@ -208,7 +210,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     adapter
       .load()
       .then((loaded) => {
-        if (!cancelled) commitOverlay(loaded ?? emptyNavigationOverlay());
+        if (cancelled) return;
+        commitOverlay(
+          applyPendingRemovals(loaded ?? emptyNavigationOverlay(), pendingRemovalsRef.current),
+        );
       })
       .catch((error: unknown) => {
         logger.warn('Navigation overlay could not be loaded', { error });
@@ -223,62 +228,82 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     shellui.toast({ type: 'warning', title: i18n.t(`marketplace.${key}`, { defaultValue }) });
   }, []);
 
+  /** Load the saved identity copy after a conflict. Never the device copy. */
+  const loadAfterConflict = useCallback(
+    () => (adapter?.loadRemote ? adapter.loadRemote() : (adapter?.load() ?? null)),
+    [adapter],
+  );
+
+  /** Forget the removals a successful save included. */
+  const settleRemovals = useCallback((included: readonly PendingRemoval[]) => {
+    pendingRemovalsRef.current = pendingRemovalsRef.current.filter(
+      (removal) => !included.includes(removal),
+    );
+  }, []);
+
   /**
-   * Save the layout. On a conflict with another device:
-   * - a change that only removes access (`reapply`) is applied again on the newer layout and
-   *   saved once more. The removal stays in force locally even if that save also fails, so
-   *   grants never end up looser than what the person asked for, and the person is told
-   *   plainly that the change was not saved;
-   * - any other change gives way to the newer layout and a toast, unless a newer local edit
-   *   was made while the newer layout was loading.
+   * Save the layout. Every pending removal is applied first, so the layout this device commits
+   * and saves never grants what the person took away. On a conflict with another device:
+   * - the newer layout is read from identity only, never from the device copy;
+   * - when a newer local edit was made meanwhile, that edit resolves the conflict and carries
+   *   the pending removals;
+   * - otherwise the pending removals are applied to the newer layout, which is committed and
+   *   saved once more. A change that only removes access then counts as saved. Any other
+   *   change gives way to the newer layout, with a toast;
+   * - if the newer layout cannot be read, or the second save fails, the local layout keeps the
+   *   removals and the person is told plainly that the change was not saved.
    */
   const persist = useCallback(
     async (
-      next: NavigationOverlay,
-      reapply?: NarrowingReapply,
+      proposed: NavigationOverlay,
+      options: { removal?: PendingRemoval | null; removalOnly?: boolean } = {},
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (options.removal)
+        pendingRemovalsRef.current = [...pendingRemovalsRef.current, options.removal];
+      const included = pendingRemovalsRef.current;
+      const next = applyPendingRemovals(proposed, included);
       commitOverlay(next);
-      if (!adapter) return { ok: true };
+      if (!adapter) {
+        settleRemovals(included);
+        return { ok: true };
+      }
       const sequence = commitSeqRef.current;
       try {
         await adapter.save(next);
+        settleRemovals(included);
         return { ok: true };
       } catch (error) {
         if (!(error instanceof NavigationOverlayConflictError)) throw error;
       }
       let remote: NavigationOverlay | null;
       try {
-        remote = await adapter.load();
+        remote = await loadAfterConflict();
       } catch {
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false, error: 'not_saved' };
       }
-      if (commitSeqRef.current !== sequence) {
-        // A newer local edit is in flight and carries its own save. Do not overwrite it.
-        notify('layoutConflict', CONFLICT);
-        return { ok: false, error: 'layout_conflict' };
-      }
-      const latest = remote ?? emptyNavigationOverlay();
-      if (!reapply) {
-        commitOverlay(latest);
-        notify('layoutConflict', CONFLICT);
-        return { ok: false, error: 'layout_conflict' };
-      }
-      const merged = reapply(latest);
-      if (!merged) {
-        commitOverlay(latest);
-        return { ok: true };
-      }
+      // A newer local edit is in flight. It resolves the conflict and carries every pending
+      // removal, this one included, so nothing is committed here.
+      if (commitSeqRef.current !== sequence) return { ok: false, error: 'superseded' };
+      const removals = pendingRemovalsRef.current;
+      const merged = applyPendingRemovals(remote ?? emptyNavigationOverlay(), removals);
       commitOverlay(merged);
+      if (removals.length === 0) {
+        notify('layoutConflict', CONFLICT);
+        return { ok: false, error: 'layout_conflict' };
+      }
       try {
         await adapter.save(merged);
-        return { ok: true };
+        settleRemovals(removals);
       } catch {
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false, error: 'not_saved' };
       }
+      if (options.removalOnly) return { ok: true };
+      notify('layoutConflict', CONFLICT);
+      return { ok: false, error: 'layout_conflict' };
     },
-    [adapter, commitOverlay, notify],
+    [adapter, commitOverlay, loadAfterConflict, notify, settleRemovals],
   );
 
   const currentOverlay = useCallback((): NavigationOverlay => {
@@ -309,9 +334,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const current = currentOverlay();
       const existing = current.installedApps.find((app) => app.id === appId);
       if (!existing) return { ok: false as const, error: 'not_found' };
-      const now = new Date().toISOString();
-      const next = overlayWithoutApp(current, existing.id, now) ?? current;
-      return persist(next, (remote) => overlayWithoutApp(remote, appId, now));
+      return persist(
+        { ...current, updatedAt: new Date().toISOString() },
+        { removal: { kind: 'uninstall', appId }, removalOnly: true },
+      );
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -335,13 +361,18 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         ),
         updatedAt: now,
       };
-      // Taking capabilities away is safe to apply again after a conflict. Adding one is not.
-      return persist(
-        next,
-        onlyNarrowsCapabilities(existing.capabilities, nextCaps)
-          ? (remote) => overlayWithCapabilitiesNarrowedTo(remote, appId, nextCaps, now)
-          : undefined,
+      // Granting again undoes an earlier pending revoke. Taking away is kept until saved.
+      pendingRemovalsRef.current = withoutUndoneRemovals(
+        pendingRemovalsRef.current,
+        appId,
+        nextCaps,
       );
+      const revoked = revokedCapabilities(existing.capabilities, nextCaps);
+      const widens = nextCaps.some((capability) => !existing.capabilities.includes(capability));
+      return persist(next, {
+        removal: revoked.length ? { kind: 'revoke', appId, capabilities: revoked } : null,
+        removalOnly: !widens,
+      });
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -384,27 +415,48 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const resetNavigation = useCallback(async () => {
     if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
+    // Reset removes every installed app. Those removals stay pending until a save includes
+    // them, so a concurrent edit or a conflict cannot bring an app back.
+    const removals: PendingRemoval[] = currentOverlay().installedApps.map((app) => ({
+      kind: 'uninstall',
+      appId: app.id,
+    }));
+    pendingRemovalsRef.current = [...pendingRemovalsRef.current, ...removals];
     commitOverlay(emptyNavigationOverlay());
-    if (!adapter?.reset) return { ok: true as const };
+    if (!adapter?.reset) {
+      settleRemovals(removals);
+      return { ok: true as const };
+    }
     const sequence = commitSeqRef.current;
     try {
       await adapter.reset();
+      settleRemovals(removals);
       return { ok: true as const };
     } catch (error) {
       if (!(error instanceof NavigationOverlayConflictError)) throw error;
     }
-    // Another device saved first. Reset is a removal, so apply it again on the newer layout
-    // unless a newer local edit was made meanwhile. The device copy is kept until it succeeds.
+    // Another device saved first. Read its layout from identity (for the ETag), then reset
+    // again, unless a newer local edit was made meanwhile. The device copy is kept until a
+    // reset succeeds.
     try {
-      await adapter.load();
-      if (commitSeqRef.current !== sequence) throw new Error('newer_local_edit');
+      await loadAfterConflict();
+      if (commitSeqRef.current !== sequence) return { ok: false as const, error: 'superseded' };
       await adapter.reset();
+      settleRemovals(removals);
       return { ok: true as const };
     } catch {
       notify('layoutNotSaved', NOT_SAVED);
       return { ok: false as const, error: 'not_saved' };
     }
-  }, [adapter, commitOverlay, customizationOn, notify]);
+  }, [
+    adapter,
+    commitOverlay,
+    currentOverlay,
+    customizationOn,
+    loadAfterConflict,
+    notify,
+    settleRemovals,
+  ]);
 
   const installFromMarketplace = useCallback(
     async (request: MarketplaceInstallRequest) => {
@@ -439,6 +491,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         // The layout may have changed while the dialog was open.
         const latest = currentOverlay();
         const record = prepared.record;
+        pendingRemovalsRef.current = withoutUndoneRemovals(
+          pendingRemovalsRef.current,
+          record.id,
+          'reinstall',
+        );
         const installedApps = upsertInstalledApp(latest.installedApps, record);
         const stored = installedApps.find((app) => app.id === record.id) ?? record;
         const next: NavigationOverlay = {

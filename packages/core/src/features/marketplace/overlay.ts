@@ -16,6 +16,11 @@ export interface NavigationStorageAdapter {
   load(): Promise<NavigationOverlay | null>;
   save(overlay: NavigationOverlay): Promise<void>;
   reset?(): Promise<void>;
+  /**
+   * The saved copy in identity only, never the device copy. Used after a save conflict, where a
+   * stale device copy must not stand in for the newer layout.
+   */
+  loadRemote?(): Promise<NavigationOverlay | null>;
 }
 
 export function emptyNavigationOverlay(now = new Date().toISOString()): NavigationOverlay {

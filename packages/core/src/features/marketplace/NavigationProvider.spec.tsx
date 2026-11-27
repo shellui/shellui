@@ -77,15 +77,18 @@ let hiddenPaths: string[] = [];
 let root: Root;
 let container: HTMLElement;
 
-/** What the identity service would hold for this person, with the ETag rules the shell relies on. */
+/**
+ * What identity-service would hold for this person. A write must send the current ETag in
+ * If-Match once a document exists, or it gets a 412 without an ETag.
+ */
 const server = {
   overlay: null as null | Record<string, unknown>,
   version: 0,
   gate: null as null | Promise<void>,
   /** Refuse every write with 412, as if another device keeps saving first. */
   alwaysConflict: false,
-  /** Accept a write whatever its If-Match says. */
-  acceptStale: false,
+  /** Every GET fails, as if identity were down. */
+  getFails: false,
   calls: [] as string[],
 };
 
@@ -95,7 +98,7 @@ function resetServer() {
     version: 0,
     gate: null,
     alwaysConflict: false,
-    acceptStale: false,
+    getFails: false,
     calls: [],
   });
 }
@@ -108,12 +111,14 @@ function installFakeServer() {
     const etag = () => ({ ETag: `"v${server.version}"` });
     if (method === 'GET') {
       if (server.gate) await server.gate;
+      if (server.getFails) return new Response(null, { status: 503 });
       if (!server.overlay) return new Response(null, { status: 404 });
       return new Response(JSON.stringify(server.overlay), { status: 200, headers: etag() });
     }
     const stale = server.overlay !== null && headers['If-Match'] !== `"v${server.version}"`;
-    if (server.alwaysConflict || (stale && !server.acceptStale)) {
-      return new Response(null, { status: 412, headers: etag() });
+    if (server.alwaysConflict || stale) {
+      // Like identity-service: the 412 carries no ETag the client could rely on.
+      return new Response(null, { status: 412 });
     }
     server.version += 1;
     server.overlay = method === 'PUT' ? JSON.parse(String(init?.body)) : null;
@@ -381,55 +386,68 @@ describe('conflict messages', () => {
   });
 });
 
+const OTHER = ['theme', 'locale', 'ui', 'storage', 'ai'];
+
+/** Start edits together, so each is still waiting on its save when the next one starts. */
+async function together(...edits: Array<() => Promise<Result>>): Promise<Result[]> {
+  let pending!: Promise<Result[]>;
+  await act(async () => {
+    pending = Promise.all(edits.map((edit) => edit()));
+  });
+  await flush();
+  return pending;
+}
+
+const serverApps = () =>
+  ((server.overlay as { installedApps: Array<{ id: string }> } | null)?.installedApps ?? []).map(
+    (app) => app.id,
+  );
+
 describe('NavigationProvider on a save conflict (412)', () => {
-  it('keeps a revoke applied on top of the newer layout and saves it again', async () => {
+  it('keeps a revoke and the other device additions, and saves once more', async () => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
 
     const before = snapshots.length;
     const result = await run(() => api.setAppCapabilities('notes', ['ui']));
 
     expect(result.ok).toBe(true);
-    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
-    expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
     expect(server.calls.slice(-3)).toEqual(['PUT', 'GET', 'PUT']);
     expect(toasts).toEqual([]);
     expect(snapshots.length).toBeGreaterThan(before);
-    for (const snapshot of snapshots.slice(before)) {
+    for (const snapshot of snapshots.slice(before))
       expect(snapshot.grants).not.toContain('storage');
-      expect(snapshot.grants).not.toContain('ai');
-    }
   });
 
   it('keeps the removal in force and says so when the second save fails too', async () => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
     server.alwaysConflict = true;
 
     const result = await run(() => api.setAppCapabilities('notes', ['ui']));
 
     expect(result).toEqual({ ok: false, error: 'not_saved' });
-    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
     expect(currentGrant()).not.toContain('storage');
-    expect(currentGrant()).not.toContain('ai');
     expect(toasts).toEqual([en.marketplace.layoutNotSaved]);
   });
 
   it('keeps an uninstall applied on top of the newer layout', async () => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
 
     const result = await run(() => api.uninstallApp('notes'));
 
     expect(result.ok).toBe(true);
     expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
     expect(getInstalledAppRecords()).toHaveLength(0);
-    expect((server.overlay as { installedApps: unknown[] }).installedApps).toEqual([]);
+    expect(serverApps()).toEqual([]);
   });
 
   it('shows the newer layout for a change that is not a removal', async () => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
 
     const result = await run(() => api.setNavigationItemHidden('about', true));
 
@@ -439,9 +457,28 @@ describe('NavigationProvider on a save conflict (412)', () => {
     expect(toasts).toEqual([en.marketplace.layoutConflict]);
   });
 
-  it('does not overwrite a newer local edit while the newer layout is loading', async () => {
+  it.each([
+    ['hide', () => api.setNavigationItemHidden('about', true)],
+    ['move', () => api.moveNavigationItem('about', 'up')],
+    ['widen', () => api.setAppCapabilities('notes', ['ui', 'ai'])],
+  ])('keeps a revoke when a %s edit is in flight with it', async (_name, second) => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
+
+    const [revoke] = await together(() => api.setAppCapabilities('notes', ['ui']), second);
+
+    expect(revoke).toEqual({ ok: false, error: 'superseded' });
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    for (const snapshot of snapshots) {
+      if (snapshot.overlay.length)
+        expect(snapshot.overlay.includes('storage')).toBe(snapshot.grants.includes('storage'));
+    }
+  });
+
+  it('keeps a revoke when a widen starts while the newer layout is still loading', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
     let release!: () => void;
     server.gate = new Promise<void>((resolve) => {
       release = resolve;
@@ -451,22 +488,96 @@ describe('NavigationProvider on a save conflict (412)', () => {
     await act(async () => {
       revoke = api.setAppCapabilities('notes', ['ui']);
     });
-    // The revoke is waiting for the newer layout. A newer local edit saves meanwhile.
-    server.acceptStale = true;
-    await run(() => api.setNavigationItemHidden('about', true));
+    let widen!: Promise<Result>;
+    await act(async () => {
+      widen = api.setAppCapabilities('notes', ['ui', 'ai']);
+    });
+    expect(currentGrant()).not.toContain('storage');
     await act(async () => release());
-    const result = await revoke;
+    await flush();
 
-    expect(result).toEqual({ ok: false, error: 'layout_conflict' });
-    expect(hiddenPaths).toContain('about');
+    expect(await revoke).toEqual({ ok: false, error: 'superseded' });
+    await widen;
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
+  });
+
+  it('keeps an uninstall when a hide is in flight with it', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
+
+    await together(
+      () => api.uninstallApp('notes'),
+      () => api.setNavigationItemHidden('about', true),
+    );
+
+    expect(api.installedApps).toEqual([]);
+    expect(getInstalledAppRecords()).toHaveLength(0);
+    expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+    expect(serverApps()).toEqual([]);
+  });
+
+  it('does not overwrite a newer local edit while the newer layout is loading', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
+    let release!: () => void;
+    server.gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    // The hide is a stale write too, so it also gets a 412 and waits for the newer layout.
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'superseded' });
+    expect(await hide).toEqual({ ok: false, error: 'layout_conflict' });
+    expect(server.calls.filter((call) => call === 'PUT')).toHaveLength(4);
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+  });
+
+  it('never falls back to the device copy when identity cannot be read after a conflict', async () => {
+    await mountSignedInWithApp();
+    const stale = structuredClone(server.overlay) as {
+      installedApps: Array<Record<string, unknown>>;
+    };
+    stale.installedApps.push({
+      ...stale.installedApps[0],
+      id: 'old',
+      name: 'App old',
+      origin: 'https://old.example',
+      url: 'https://old.example/',
+      path: 'old',
+      capabilities: ['theme', 'locale', 'ui', 'storage'],
+    });
+    localStorage.setItem(
+      navigationLayoutStorageKey({ userId: 'u1', companyId: '1' }),
+      JSON.stringify(stale),
+    );
+    otherDeviceSets(OTHER);
+    server.getFails = true;
+
+    const result = await run(() => api.setAppCapabilities('notes', ['ui']));
+
+    expect(result).toEqual({ ok: false, error: 'not_saved' });
+    expect(api.installedApps.map((app) => app.id)).toEqual(['notes']);
+    expect(shellui.frameRegistry.getCapabilityGrant('https://old.example')).toBeUndefined();
     expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+    expect(toasts).toEqual([en.marketplace.layoutNotSaved]);
   });
 
   it('does not report a reset as done when the conflict persists', async () => {
     await mountSignedInWithApp();
     const key = navigationLayoutStorageKey({ userId: 'u1', companyId: '1' });
     localStorage.setItem(key, JSON.stringify({ kept: true }));
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
     server.alwaysConflict = true;
 
     const result = await run(() => api.resetNavigation());
@@ -475,11 +586,12 @@ describe('NavigationProvider on a save conflict (412)', () => {
     expect(localStorage.getItem(key)).not.toBeNull();
     expect(toasts).toEqual([en.marketplace.layoutNotSaved]);
     expect(server.overlay).not.toBeNull();
+    expect(getInstalledAppRecords()).toHaveLength(0);
   });
 
   it('applies a reset again on the newer layout', async () => {
     await mountSignedInWithApp();
-    otherDeviceSets(['theme', 'locale', 'ui', 'storage', 'ai']);
+    otherDeviceSets(OTHER);
 
     const result = await run(() => api.resetNavigation());
 

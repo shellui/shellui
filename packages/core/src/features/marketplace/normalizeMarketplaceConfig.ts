@@ -31,13 +31,20 @@ function storageMode(value: unknown): NavigationStorageMode {
   return 'auto';
 }
 
+function isDesktopTarget(): boolean {
+  return typeof __SHELLUI_TARGET__ !== 'undefined' && __SHELLUI_TARGET__ === 'tauri';
+}
+
 /**
  * `true` selects every default. An object overrides only the fields that are set.
- * `false`, `null`, and omission leave Shellui Marketplace off.
+ * `false`, `null`, and omission leave Shellui Marketplace off. It is always off in the
+ * desktop (Tauri) app.
  */
 export function normalizeMarketplaceConfig(
   value: boolean | MarketplaceConfig | null | undefined,
 ): ResolvedMarketplaceConfig | null {
+  // Shellui Marketplace is not available in the desktop app, whatever the config says.
+  if (isDesktopTarget()) return null;
   if (value === null || value === undefined || value === false) return null;
   if (value !== true && (typeof value !== 'object' || Array.isArray(value))) return null;
   const input: MarketplaceConfig = value === true ? {} : value;

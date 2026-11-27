@@ -230,6 +230,9 @@ export function createNavigationStorageAdapter(
   const api = createApiNavigationAdapter(options);
 
   return {
+    async loadRemote() {
+      return useIdentity(options) ? api.load() : local.load();
+    },
     async load() {
       if (!useIdentity(options)) return local.load();
       try {
