@@ -98,7 +98,11 @@ const server = {
   bodyGate: null as null | Promise<void>,
   /** One entry per next GET: when set, that GET waits for it before it answers at all. */
   getGates: [] as Array<Promise<void> | null>,
+  /** While set, a write waits for it before it answers. */
+  writeGate: null as null | Promise<void>,
   calls: [] as string[],
+  /** The If-Match each write sent, in order. */
+  ifMatch: [] as Array<string | undefined>,
 };
 
 function resetServer() {
@@ -112,7 +116,9 @@ function resetServer() {
     writeScript: [],
     bodyGate: null,
     getGates: [],
+    writeGate: null,
     calls: [],
+    ifMatch: [],
   });
 }
 
@@ -140,6 +146,9 @@ function installFakeServer() {
         },
       } as unknown as Response;
     }
+    server.ifMatch.push(headers['If-Match']);
+    const writeGate = server.writeGate;
+    if (writeGate) await writeGate;
     // Like identity-service: a 412 carries the current ETag (none when there is no document).
     const conflict = () =>
       new Response(null, { status: 412, headers: server.overlay ? etag() : {} });
@@ -1111,5 +1120,123 @@ describe('NavigationProvider scope changes', () => {
     expect(server.calls.length).toBe(calls);
     expect(api.layoutReady).toBe(true);
     expect((await run(() => api.setNavigationItemHidden('about', true))).ok).toBe(true);
+  });
+});
+
+describe('NavigationProvider changes in flight during an account switch', () => {
+  const u2Key = navigationLayoutStorageKey({ userId: 'u2', companyId: '1' });
+  const holdWrites = () => {
+    let release!: () => void;
+    server.writeGate = new Promise<void>((resolve) => (release = resolve));
+    return release;
+  };
+  const switchToU2 = async () => {
+    page.session = { accessToken: 'token-u2', userId: 'u2' };
+    mount();
+    await flush();
+  };
+
+  it('a u1 save that fails after the switch writes no device copy for u2', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let grant!: Promise<Result>;
+    await act(async () => {
+      grant = api.setAppCapabilities('notes', ['ui', 'storage', 'ai']);
+    });
+    server.writeGate = null;
+    server.writeScript = [503];
+    server.overlay = null;
+    await switchToU2();
+
+    await act(async () => release());
+    await flush();
+
+    expect(await grant).toEqual({ ok: false, error: 'not_saved' });
+    expect(localStorage.getItem(u2Key)).toBeNull();
+    expect(
+      sessionStorage.getItem(`shellui.navigation.pendingRemovals:${JSON.stringify(['u2', '1'])}`),
+    ).toBeNull();
+    expect(api.installedApps).toEqual([]);
+    expect(currentGrant()).toEqual([]);
+  });
+
+  it('a u1 reset that fails after the switch leaves the u2 device copy alone', async () => {
+    await mountSignedInWithApp();
+    const u2Copy = JSON.stringify(server.overlay);
+    localStorage.setItem(u2Key, u2Copy);
+    const release = holdWrites();
+    let reset!: Promise<Result>;
+    await act(async () => {
+      reset = api.resetNavigation();
+    });
+    server.writeGate = null;
+    server.writeScript = [503];
+    await switchToU2();
+
+    await act(async () => release());
+    await flush();
+
+    expect(await reset).toEqual({ ok: false, error: 'not_saved' });
+    expect(localStorage.getItem(u2Key)).toBe(u2Copy);
+  });
+
+  it('a u1 save that succeeds after the switch does not give u2 its version', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    server.writeGate = null;
+    // u2 reads the layout at v1 while the u1 write is still in flight.
+    await switchToU2();
+    expect(api.layoutReady).toBe(true);
+
+    await act(async () => release());
+    await flush();
+    expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+
+    await run(() => api.moveNavigationItem('about', 'up'));
+    expect(server.ifMatch.slice(-1)).toEqual(['"v1"']);
+  });
+});
+
+describe('NavigationProvider loading state on an account switch', () => {
+  /** Edits from a passive effect of a child, which runs before the provider reads the layout. */
+  function EditOnSwitch({ results }: { results: Array<Promise<Result>> }) {
+    const navigation = useNavigation();
+    const userId = page.session?.userId;
+    useEffect(() => {
+      if (userId === 'u2') results.push(navigation.setNavigationItemHidden('about', true));
+    }, [userId]);
+    return null;
+  }
+
+  it('refuses an edit made before the new account read has started', async () => {
+    const results: Array<Promise<Result>> = [];
+    const render = () =>
+      act(() =>
+        root.render(
+          createElement(
+            NavigationProvider,
+            null,
+            createElement(Probe),
+            createElement(EditOnSwitch, { results }),
+          ),
+        ),
+      );
+    page.config = makeConfig('api');
+    page.session = { accessToken: 'token', userId: 'u1' };
+    installFakeServer();
+    render();
+    await flush();
+    expect(api.layoutReady).toBe(true);
+
+    page.session = { accessToken: 'token-u2', userId: 'u2' };
+    render();
+    await flush();
+
+    expect(results).toHaveLength(1);
+    expect(await results[0]).toEqual({ ok: false, error: 'layout_loading' });
   });
 });

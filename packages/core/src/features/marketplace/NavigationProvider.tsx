@@ -60,6 +60,7 @@ import { createOverlayValidationContext, reservedShellPaths } from './validation
 import {
   NavigationOverlayConflictError,
   NavigationOverlayDeviceOnlyError,
+  NavigationOverlayScopeChangedError,
   createNavigationStorageAdapter,
   isIdentityConfigured,
 } from './storage';
@@ -153,7 +154,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const signedIn = Boolean(session?.accessToken);
   const scopeRef = useRef<string | null>(null);
   const [unsavedRemovals, setUnsavedRemovals] = useState(false);
-  const setPendingRemovals = useCallback((removals: PendingRemoval[]) => {
+  /**
+   * `at` is the scope a change started in. When another account or company is active by the
+   * time it settles, nothing is recorded, so one account's bookkeeping never lands on another.
+   */
+  const setPendingRemovals = useCallback((removals: PendingRemoval[], at?: string | null) => {
+    if (at !== undefined && at !== scopeRef.current) return;
     pendingRemovalsRef.current = removals;
     setUnsavedRemovals(removals.length > 0);
     if (scopeRef.current !== null) writePendingRemovals(scopeRef.current, removals);
@@ -337,9 +343,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   /** Forget the removals a successful save included. */
   const settleRemovals = useCallback(
-    (included: readonly PendingRemoval[]) => {
+    (included: readonly PendingRemoval[], at: string | null) => {
       setPendingRemovals(
         pendingRemovalsRef.current.filter((removal) => !included.includes(removal)),
+        at,
       );
     },
     [setPendingRemovals],
@@ -363,23 +370,28 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       options: { removal?: PendingRemoval | null; removalOnly?: boolean } = {},
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
       if (!readyRef.current) return { ok: false, error: 'layout_loading' };
+      const at = scopeRef.current;
       if (options.removal) setPendingRemovals([...pendingRemovalsRef.current, options.removal]);
       const included = pendingRemovalsRef.current;
       const next = applyPendingRemovals(proposed, included);
       commitOverlay(next);
       if (!adapter) {
-        settleRemovals(included);
+        settleRemovals(included, at);
         return { ok: true };
       }
       const sequence = commitSeqRef.current;
       try {
         await adapter.save(next);
-        settleRemovals(included);
+        settleRemovals(included, at);
         return { ok: true };
       } catch (error) {
-        // Only the device copy was written. Identity still has the older layout and wins on
-        // the next load, so the removals stay pending and the person is told.
-        if (error instanceof NavigationOverlayDeviceOnlyError) {
+        // Only the device copy was written (Identity still has the older layout and wins on the
+        // next load), or another account signed in meanwhile and nothing was stored. The
+        // removals stay pending for the scope they were made in, and the person is told.
+        if (
+          error instanceof NavigationOverlayDeviceOnlyError ||
+          error instanceof NavigationOverlayScopeChangedError
+        ) {
           notify('layoutNotSaved', NOT_SAVED);
           return { ok: false, error: 'not_saved' };
         }
@@ -405,7 +417,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       }
       try {
         await adapter.save(merged);
-        settleRemovals(removals);
+        settleRemovals(removals, at);
       } catch {
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false, error: 'not_saved' };
@@ -531,6 +543,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       kind: 'uninstall',
       appId: app.id,
     }));
+    const at = scopeRef.current;
     setPendingRemovals([...pendingRemovalsRef.current, ...removals]);
     commitOverlay(emptyNavigationOverlay());
     if (!adapter?.reset) {
@@ -540,10 +553,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     const sequence = commitSeqRef.current;
     try {
       await adapter.reset();
-      setPendingRemovals([]);
+      setPendingRemovals([], at);
       return { ok: true as const };
     } catch (error) {
-      if (error instanceof NavigationOverlayDeviceOnlyError) {
+      if (
+        error instanceof NavigationOverlayDeviceOnlyError ||
+        error instanceof NavigationOverlayScopeChangedError
+      ) {
         notify('layoutNotSaved', NOT_SAVED);
         return { ok: false as const, error: 'not_saved' };
       }
@@ -558,7 +574,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       // This device never shows the newer layout, so its version is sent for this one delete
       // only. A refused retry leaves the version as it was, so the next edit cannot save over it.
       await adapter.reset(remote.etag);
-      setPendingRemovals([]);
+      setPendingRemovals([], at);
       return { ok: true as const };
     } catch {
       notify('layoutNotSaved', NOT_SAVED);

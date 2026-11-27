@@ -162,6 +162,25 @@ export class NavigationOverlayDeviceOnlyError extends Error {
   }
 }
 
+/**
+ * The signed-in user or company changed while the call was in flight. Nothing was stored for
+ * the new scope (no version, no device copy), and the change counts as not saved.
+ */
+export class NavigationOverlayScopeChangedError extends Error {
+  constructor() {
+    super('navigation_overlay_scope_changed');
+    this.name = 'NavigationOverlayScopeChangedError';
+  }
+}
+
+const scopeKeyOf = (options: { scope?: () => NavigationLayoutScope }) =>
+  navigationLayoutStorageKey(options.scope?.());
+
+/** Throw when the scope a call started in is no longer the active one. */
+function assertScope(options: { scope?: () => NavigationLayoutScope }, at: string) {
+  if (scopeKeyOf(options) !== at) throw new NavigationOverlayScopeChangedError();
+}
+
 export function createApiNavigationAdapter(
   options: NavigationStorageOptions,
 ): NavigationStorageAdapter {
@@ -171,12 +190,14 @@ export function createApiNavigationAdapter(
   /**
    * Version of the layout identity last returned, for the scope (user and company) it was read
    * in. Sent back as `If-Match` on a write in that scope only, so another account never sends it.
+   * Each call captures its scope when it starts; a response that arrives after the scope changed
+   * stores nothing.
    */
-  const scopeKey = () => navigationLayoutStorageKey(options.scope?.());
   let held: { scope: string; etag: string | null } = { scope: '', etag: null };
-  const current = () => (held.scope === scopeKey() ? held.etag : null);
-  const keep = (etag: string | null) => {
-    held = { scope: scopeKey(), etag };
+  const versionFor = (at: string) => (held.scope === at ? held.etag : null);
+  const keep = (at: string, etag: string | null) => {
+    assertScope(options, at);
+    held = { scope: at, etag };
   };
   const endpoint = () =>
     resolveTrustedNavigationOverlayUrl({
@@ -188,8 +209,8 @@ export function createApiNavigationAdapter(
 
   const request = async (
     method: 'GET' | 'PUT' | 'DELETE',
-    body?: NavigationOverlay,
-    version: string | null = current(),
+    body: NavigationOverlay | undefined,
+    version: string | null,
   ) => {
     const url = endpoint();
     if (!url) throw new Error('navigation_overlay_untrusted_url');
@@ -217,29 +238,37 @@ export function createApiNavigationAdapter(
     // read that layout. The version moves only on a successful write, or when the caller
     // commits a layout it read (`adoptVersion`).
     async load() {
-      const response = await request('GET');
+      const at = scopeKeyOf(options);
+      const response = await request('GET', undefined, null);
+      assertScope(options, at);
       if (response.status === 404 || response.status === 204) return { overlay: null, etag: null };
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const version = etagOf(response);
       const payload = (await response.json()) as unknown;
       return { overlay: parseNavigationOverlay(payload, validation()), etag: version };
     },
-    adoptVersion: keep,
+    adoptVersion(version) {
+      keep(scopeKeyOf(options), version);
+    },
     async save(overlay) {
-      const response = await request('PUT', overlay);
+      const at = scopeKeyOf(options);
+      const response = await request('PUT', overlay, versionFor(at));
+      assertScope(options, at);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      keep(etagOf(response) ?? current());
+      keep(at, etagOf(response) ?? versionFor(at));
     },
     async reset(ifMatch) {
+      const at = scopeKeyOf(options);
       const response = await request(
         'DELETE',
         undefined,
-        ifMatch === undefined ? current() : ifMatch,
+        ifMatch === undefined ? versionFor(at) : ifMatch,
       );
+      assertScope(options, at);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}`);
-      keep(null);
+      keep(at, null);
     },
   };
 }
@@ -271,11 +300,16 @@ export function createNavigationStorageAdapter(
     adoptVersion(version) {
       api.adoptVersion?.(version);
     },
+    // The device copy is read or written only for the scope the call started in, never for an
+    // account that signed in while identity was answering.
     async load() {
       if (!useIdentity(options)) return local.load();
+      const at = scopeKeyOf(options);
       try {
         return await api.load();
-      } catch {
+      } catch (error) {
+        if (error instanceof NavigationOverlayScopeChangedError) throw error;
+        assertScope(options, at);
         return local.load();
       }
     },
@@ -284,18 +318,22 @@ export function createNavigationStorageAdapter(
         await local.save(overlay);
         return;
       }
+      const at = scopeKeyOf(options);
       try {
         await api.save(overlay);
       } catch (error) {
         // A conflict is not an outage. Falling back would hide that another device changed
         // the layout, so the caller reloads the remote copy and tells the person.
         if (error instanceof NavigationOverlayConflictError) throw error;
+        if (error instanceof NavigationOverlayScopeChangedError) throw error;
+        assertScope(options, at);
         await local.save(overlay);
         throw new NavigationOverlayDeviceOnlyError();
       }
     },
     async reset(ifMatch) {
       let deviceOnly = false;
+      const at = scopeKeyOf(options);
       if (useIdentity(options)) {
         try {
           await api.reset?.(ifMatch);
@@ -303,10 +341,12 @@ export function createNavigationStorageAdapter(
           // A conflict leaves the saved layout in place. Keep the device copy too, and let the
           // caller retry or report that nothing was reset.
           if (error instanceof NavigationOverlayConflictError) throw error;
+          if (error instanceof NavigationOverlayScopeChangedError) throw error;
           // Any other failure still clears the device copy, and the caller is told.
           deviceOnly = true;
         }
       }
+      assertScope(options, at);
       await local.reset?.();
       if (deviceOnly) throw new NavigationOverlayDeviceOnlyError();
     },
