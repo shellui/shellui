@@ -25,6 +25,7 @@ export default defineConfig({
       'src/features/ai/**/*.spec.ts',
       'src/features/mcp/**/*.spec.ts',
       'src/features/security/**/*.spec.ts',
+      'src/features/sentry/**/*.spec.ts',
       'src/features/modal/**/*.spec.ts',
       'src/routes/utils/**/*.spec.ts',
       'src/features/overlays/**/*.spec.ts',

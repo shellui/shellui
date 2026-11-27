@@ -435,6 +435,34 @@ describe('dispatchAuthBff refresh and logout', () => {
     expect(JSON.parse(result.body).error).toBe('missing refresh cookie');
   });
 
+  test('returns 401 and clears the cookie when the refresh cookie is malformed', async () => {
+    const result = await dispatchAuthBff({
+      method: 'POST',
+      pathname: '/refresh',
+      headers: shellPostHeaders({ cookie: 'shellui_refresh=%E0%A4%A' }),
+      body: {},
+      shelluiConfig: shellConfig('http://127.0.0.1:9'),
+      secure: true,
+    });
+    expect(result.status).toBe(401);
+    expect(JSON.parse(result.body).error).toBe('invalid refresh cookie');
+    expect(result.headers['Set-Cookie']).toContain('shellui_refresh=;');
+    expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+  });
+
+  test('logout with a malformed refresh cookie still clears it', async () => {
+    const result = await dispatchAuthBff({
+      method: 'POST',
+      pathname: '/logout',
+      headers: shellPostHeaders({ cookie: 'shellui_refresh=%' }),
+      body: {},
+      shelluiConfig: shellConfig('http://127.0.0.1:9'),
+      secure: true,
+    });
+    expect(result.status).toBe(204);
+    expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+  });
+
   test('logout revokes with the cookie on the host and clears it', async () => {
     delete process.env.SHELLUI_BFF_BACKEND_URL;
     const identity = await withIdentity(() => ({ status: 200, body: { success: true } }));

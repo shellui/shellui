@@ -47,16 +47,32 @@ function parseJsonBody(raw) {
   }
 }
 
-function getCookieValue(cookieHeader, name) {
-  if (!cookieHeader) return null;
+/**
+ * Read one cookie. A value that is not valid percent-encoding (for example a
+ * stray `%`) is reported as `malformed` instead of throwing, so the route can
+ * answer with a clean 401 rather than a 500.
+ * @param {string | null | undefined} cookieHeader
+ * @param {string} name
+ * @returns {{ value: string | null, malformed: boolean }}
+ */
+function readCookie(cookieHeader, name) {
+  if (!cookieHeader) return { value: null, malformed: false };
   const parts = cookieHeader.split(';');
   for (const part of parts) {
     const [key, ...rest] = part.trim().split('=');
     if (key === name) {
-      return decodeURIComponent(rest.join('='));
+      try {
+        return { value: decodeURIComponent(rest.join('=')), malformed: false };
+      } catch {
+        return { value: null, malformed: true };
+      }
     }
   }
-  return null;
+  return { value: null, malformed: false };
+}
+
+function getCookieValue(cookieHeader, name) {
+  return readCookie(cookieHeader, name).value;
 }
 
 function appendSetCookie(res, cookie) {
@@ -531,7 +547,15 @@ export async function dispatchAuthBff({
   }
 
   if (method === 'POST' && pathname === '/refresh') {
-    const refreshToken = getCookieValue(headerValue(headers, 'cookie'), cookieName);
+    const cookie = readCookie(headerValue(headers, 'cookie'), cookieName);
+    if (cookie.malformed) {
+      return jsonResult(
+        401,
+        { error: 'invalid refresh cookie' },
+        { 'Set-Cookie': clearRefreshCookie(cookieName, { secure }) },
+      );
+    }
+    const refreshToken = cookie.value;
     if (!refreshToken) {
       return jsonResult(401, { error: 'missing refresh cookie' });
     }

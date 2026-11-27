@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { shellui, type Settings } from '@shellui/sdk';
@@ -164,10 +165,7 @@ const JwtPayloadPre = ({
   );
 };
 
-const formatLoginMethod = (
-  authProvider: string | null,
-  t: (key: string, options?: { [key: string]: string }) => string,
-) => {
+const formatLoginMethod = (authProvider: string | null, t: TFunction<'settings'>) => {
   if (!authProvider) return t('userAccount.loginMethods.unknown');
   const normalized = authProvider.toLowerCase();
   if (normalized === 'email') return t('userAccount.loginMethods.magicLinkEmail');

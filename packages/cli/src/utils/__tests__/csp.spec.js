@@ -1,7 +1,12 @@
+import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 import {
   AI_CSP_CONNECT_SRC,
   buildShellContentSecurityPolicy,
+  SHELL_THEME_INIT_SCRIPT,
   computeThemeInitScriptHash,
   resolveShellCspHeaders,
 } from '../csp.js';
@@ -93,5 +98,20 @@ describe('resolveShellCspHeaders', () => {
     const policy = headers['Content-Security-Policy-Report-Only'];
     expect(policy).not.toContain('huggingface.co');
     expect(policy).not.toContain("'wasm-unsafe-eval'");
+  });
+});
+
+describe('computeThemeInitScriptHash', () => {
+  it('matches the exact inline script in the core index.html', () => {
+    const indexHtml = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      '../../../../core/src/index.html',
+    );
+    const html = fs.readFileSync(indexHtml, 'utf8');
+    const inline = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    expect(inline).toHaveLength(1);
+    expect(SHELL_THEME_INIT_SCRIPT).toBe(inline[0][1]);
+    const digest = crypto.createHash('sha256').update(inline[0][1], 'utf8').digest('base64');
+    expect(computeThemeInitScriptHash()).toBe(`'sha256-${digest}'`);
   });
 });

@@ -48,7 +48,8 @@
     "test": "node scripts/test.js",
     "generate:config-schema": "node scripts/generate-config-schema.mjs",
     "generate:curated-themes": "node scripts/generate-curated-themes.mjs",
-    "build": "pnpm run generate:config-schema && pnpm run generate:curated-themes"
+    "build": "pnpm run generate:config-schema && pnpm run generate:curated-themes",
+    "typecheck": "node scripts/check-types.mjs"
   },
   "keywords": [
     "shellui",
@@ -81,8 +82,8 @@
     "@supabase/supabase-js": "^2.119.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^25.8.11",
-    "react-i18next": "^16.5.4",
+    "i18next": "^27.2.9",
+    "react-i18next": "^18.0.3",
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
     "react-router": "^7.18.4",

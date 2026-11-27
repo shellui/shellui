@@ -24,11 +24,25 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 - Installation, quickstart, Tauri and README now give the Node.js versions the CLI needs: 20.19 or later, or 22.12 or later. The root `engines` field matches.
 
+### 🚨 Changed
+
+- cac 7 (CLI argument parser) now errors on extra positional arguments, for example `shellui build ./app extra`. Remove stray arguments from scripts that call the CLI.
+- Sentry reporting no longer sends default personal data. The shell sets `dataCollection` explicitly with user info, cookies, headers, bodies and query strings off (Sentry 11 replaced `sendDefaultPii`).
+
+### 🐛 Bug Fixes
+
+- `shellui login --no-browser` now skips opening the browser. The option was read under the wrong name.
+- The CLI auth BFF answers a malformed refresh cookie with `401` and clears it, instead of a `500`.
+- The inline theme script hash in the production CSP now matches the script served in `index.html` (it was computed over slightly different text).
+- Core i18next 27 and react-i18next 18 (fixes GHSA-6jcc-5g8w-32mx, a DoS in `deepExtend`).
+
 ### 🏗 Chore
 
 - CLI now declares supported Node.js versions (20.19 or later, or 22.12 or later).
 - Dependencies: Vite 8 (Rolldown and Oxc), cac 7, @sentry/react 11, React 19.3, opentype.js 2 and minor updates. The shell now pins its TypeScript settings with Vite's `tsconfig` option (`packages/cli/src/utils/shell-tsconfig.json`), so a consumer `tsconfig.json` still never applies. CSS minification uses Vite's default Lightning CSS.
-- Docker image and CI run on Node.js 26 (current LTS).
+- Docker image, dev compose and CI run on Node.js 26 (current LTS). CLI tests also run on Node.js 20.19 and 22.12, the supported minimums.
+- CI type-checks `@shellui/core` and fails on any error not in `packages/core/typecheck-baseline.json` (69 existing errors are tracked there).
+- CLI uses @vitejs/plugin-react 5.2 (Vite 8 peer range). Added a regression test that the shell ignores a consumer `tsconfig.json`.
 
 ## [0.8.6] - 2026-11-25
 
