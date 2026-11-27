@@ -3,6 +3,7 @@ import type {
   NavigationStorageMode,
   ResolvedMarketplaceConfig,
 } from '../config/types';
+import { isTauri } from '../../service-worker/register';
 
 export const DEFAULT_MARKETPLACE_URL = 'https://marketplace.shellui.com';
 export const DEFAULT_MARKETPLACE_API_URL = 'https://api.marketplace.shellui.com';
@@ -31,8 +32,10 @@ function storageMode(value: unknown): NavigationStorageMode {
   return 'auto';
 }
 
+/** The desktop build target, or a desktop package running a plain web build. */
 function isDesktopTarget(): boolean {
-  return typeof __SHELLUI_TARGET__ !== 'undefined' && __SHELLUI_TARGET__ === 'tauri';
+  if (typeof __SHELLUI_TARGET__ !== 'undefined' && __SHELLUI_TARGET__ === 'tauri') return true;
+  return isTauri();
 }
 
 /**

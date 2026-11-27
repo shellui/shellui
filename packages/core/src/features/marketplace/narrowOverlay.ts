@@ -67,3 +67,48 @@ export function withoutUndoneRemovals(
     return capabilities.length ? [{ ...removal, capabilities }] : [];
   });
 }
+
+const PENDING_KEY = 'shellui.navigation.pendingRemovals';
+
+function tabStorage(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function isRemoval(value: unknown): value is PendingRemoval {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Record<string, unknown>;
+  if (typeof item.appId !== 'string') return false;
+  if (item.kind === 'uninstall') return true;
+  return (
+    item.kind === 'revoke' &&
+    Array.isArray(item.capabilities) &&
+    item.capabilities.every((c) => typeof c === 'string')
+  );
+}
+
+/**
+ * Pending removals of one user and company, kept in this tab's sessionStorage so a page reload
+ * after "NOT saved" does not hand the access back. Another account never sees them.
+ */
+export function readPendingRemovals(scope: string): PendingRemoval[] {
+  try {
+    const parsed = JSON.parse(tabStorage()?.getItem(`${PENDING_KEY}:${scope}`) ?? '[]') as unknown;
+    return Array.isArray(parsed) ? parsed.filter(isRemoval) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writePendingRemovals(scope: string, removals: readonly PendingRemoval[]): void {
+  try {
+    const key = `${PENDING_KEY}:${scope}`;
+    if (removals.length) tabStorage()?.setItem(key, JSON.stringify(removals));
+    else tabStorage()?.removeItem(key);
+  } catch {
+    // Storage full or blocked: the removals still apply for as long as this page is open.
+  }
+}

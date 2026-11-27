@@ -89,6 +89,8 @@ const server = {
   alwaysConflict: false,
   /** Every GET fails, as if identity were down. */
   getFails: false,
+  /** Every write fails with 503, as if identity were down. */
+  writeFails: false,
   calls: [] as string[],
 };
 
@@ -99,6 +101,7 @@ function resetServer() {
     gate: null,
     alwaysConflict: false,
     getFails: false,
+    writeFails: false,
     calls: [],
   });
 }
@@ -115,6 +118,7 @@ function installFakeServer() {
       if (!server.overlay) return new Response(null, { status: 404 });
       return new Response(JSON.stringify(server.overlay), { status: 200, headers: etag() });
     }
+    if (server.writeFails) return new Response(null, { status: 503 });
     const stale = server.overlay !== null && headers['If-Match'] !== `"v${server.version}"`;
     if (server.alwaysConflict || stale) {
       // Like identity-service: the 412 carries no ETag the client could rely on.
@@ -246,6 +250,7 @@ beforeEach(() => {
   page.session = null;
   resetServer();
   localStorage.clear();
+  sessionStorage.clear();
   vi.spyOn(shellui, 'addMessageListener').mockImplementation(((type: string, handler: never) => {
     handlers.set(type, handler);
     return () => handlers.delete(type);
@@ -599,5 +604,110 @@ describe('NavigationProvider on a save conflict (412)', () => {
     expect(server.overlay).toBeNull();
     expect(getInstalledAppRecords()).toHaveLength(0);
     expect(toasts).toEqual([]);
+  });
+});
+
+/** Unmount and mount again, as a page reload in the same tab does. */
+async function reload() {
+  act(() => root.unmount());
+  root = createRoot(container);
+  mount();
+  await flush();
+}
+
+describe('NavigationProvider when identity cannot save', () => {
+  it('keeps a revoke pending and says NOT saved when only the device copy was written', async () => {
+    await mountSignedInWithApp();
+    server.writeFails = true;
+
+    const result = await run(() => api.setAppCapabilities('notes', ['ui']));
+
+    expect(result).toEqual({ ok: false, error: 'not_saved' });
+    expect(toasts).toEqual([en.marketplace.layoutNotSaved]);
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+    expect(serverCapabilities()).toContain('storage');
+
+    // Identity still has storage. A reload in this tab must not hand it back.
+    await reload();
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+
+    // The next save that reaches identity carries the revoke.
+    server.writeFails = false;
+    expect((await run(() => api.setNavigationItemHidden('about', true))).ok).toBe(true);
+    expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
+  });
+
+  it('says NOT saved when identity cannot reset', async () => {
+    await mountSignedInWithApp();
+    server.writeFails = true;
+
+    const result = await run(() => api.resetNavigation());
+
+    expect(result).toEqual({ ok: false, error: 'not_saved' });
+    expect(toasts).toEqual([en.marketplace.layoutNotSaved]);
+    await reload();
+    expect(api.installedApps).toEqual([]);
+    expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+  });
+
+  it('grants again after an unsaved revoke', async () => {
+    await mountSignedInWithApp();
+    server.writeFails = true;
+    await run(() => api.setAppCapabilities('notes', ['ui']));
+    server.writeFails = false;
+
+    const result = await run(() => api.setAppCapabilities('notes', ['ui', 'storage']));
+
+    expect(result.ok).toBe(true);
+    expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
+    expect(serverCapabilities()).toEqual(['locale', 'storage', 'theme', 'ui']);
+  });
+
+  it('installs again after an unsaved uninstall', async () => {
+    await mountSignedInWithApp();
+    server.writeFails = true;
+    await run(() => api.uninstallApp('notes'));
+    server.writeFails = false;
+
+    await requestInstall('notes', ['ui', 'storage']);
+    await confirmInstall();
+
+    expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
+    expect(serverApps()).toEqual(['notes']);
+  });
+
+  it('never applies one account pending removals to another account', async () => {
+    await mountSignedInWithApp();
+    const otherAccountLayout = structuredClone(server.overlay);
+    server.writeFails = true;
+    await run(() => api.setAppCapabilities('notes', ['ui']));
+
+    // u2 signs in on the same tab. Its own layout has notes with storage.
+    server.writeFails = false;
+    server.overlay = otherAccountLayout;
+    server.version += 1;
+    page.session = { accessToken: 'token-u2', userId: 'u2' };
+    mount();
+    await flush();
+    expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
+
+    expect((await run(() => api.setNavigationItemHidden('about', true))).ok).toBe(true);
+    expect(serverCapabilities()).toEqual(['locale', 'storage', 'theme', 'ui']);
+  });
+});
+
+describe('NavigationProvider reset racing another edit', () => {
+  it('keeps every app the reset removed', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSets(OTHER);
+
+    await together(
+      () => api.resetNavigation(),
+      () => api.setNavigationItemHidden('about', true),
+    );
+
+    expect(api.installedApps).toEqual([]);
+    expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+    expect(serverApps()).toEqual([]);
   });
 });

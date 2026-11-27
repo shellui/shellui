@@ -60,4 +60,15 @@ describe('normalizeMarketplaceConfig', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('is off in a desktop package that runs a plain web build', () => {
+    vi.stubGlobal('__SHELLUI_TARGET__', 'web');
+    vi.stubGlobal('window', { __TAURI_INTERNALS__: {} });
+    try {
+      expect(normalizeMarketplaceConfig(true)).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(normalizeMarketplaceConfig(true)).not.toBeNull();
+  });
 });

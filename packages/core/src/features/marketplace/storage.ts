@@ -147,6 +147,17 @@ export class NavigationOverlayConflictError extends Error {
   }
 }
 
+/**
+ * Identity could not be reached or refused the write (anything but a conflict). Only the device
+ * copy changed, and identity still has the older layout, which wins on the next load.
+ */
+export class NavigationOverlayDeviceOnlyError extends Error {
+  constructor() {
+    super('navigation_overlay_device_only');
+    this.name = 'NavigationOverlayDeviceOnlyError';
+  }
+}
+
 export function createApiNavigationAdapter(
   options: NavigationStorageOptions,
 ): NavigationStorageAdapter {
@@ -253,9 +264,11 @@ export function createNavigationStorageAdapter(
         // the layout, so the caller reloads the remote copy and tells the person.
         if (error instanceof NavigationOverlayConflictError) throw error;
         await local.save(overlay);
+        throw new NavigationOverlayDeviceOnlyError();
       }
     },
     async reset() {
+      let deviceOnly = false;
       if (useIdentity(options)) {
         try {
           await api.reset?.();
@@ -263,10 +276,12 @@ export function createNavigationStorageAdapter(
           // A conflict leaves the saved layout in place. Keep the device copy too, and let the
           // caller retry or report that nothing was reset.
           if (error instanceof NavigationOverlayConflictError) throw error;
-          // Any other failure still clears the device copy.
+          // Any other failure still clears the device copy, and the caller is told.
+          deviceOnly = true;
         }
       }
       await local.reset?.();
+      if (deviceOnly) throw new NavigationOverlayDeviceOnlyError();
     },
   };
 }

@@ -43,7 +43,9 @@ import {
 import { marketplaceOrigin, normalizeMarketplaceConfig } from './normalizeMarketplaceConfig';
 import {
   applyPendingRemovals,
+  readPendingRemovals,
   revokedCapabilities,
+  writePendingRemovals,
   withoutUndoneRemovals,
   type PendingRemoval,
 } from './narrowOverlay';
@@ -52,6 +54,7 @@ import { commitInstalledApps } from './securitySync';
 import { createOverlayValidationContext, reservedShellPaths } from './validationContext';
 import {
   NavigationOverlayConflictError,
+  NavigationOverlayDeviceOnlyError,
   createNavigationStorageAdapter,
   isIdentityConfigured,
 } from './storage';
@@ -116,8 +119,27 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const pendingRef = useRef<PendingConfirm | null>(null);
   const overlayRef = useRef<NavigationOverlay | null>(null);
   const commitSeqRef = useRef(0);
-  /** Removals made on this device that no successful save includes yet. */
+  /**
+   * Removals made on this device that no successful save includes yet, for the signed-in user
+   * and company only. They are kept in this tab's sessionStorage under that scope.
+   */
   const pendingRemovalsRef = useRef<PendingRemoval[]>([]);
+  const companyId =
+    base.backend?.companyId === undefined || base.backend.companyId === null
+      ? null
+      : String(base.backend.companyId);
+  const scope = JSON.stringify([session?.userId ?? null, companyId]);
+  const scopeRef = useRef<string | null>(null);
+  const setPendingRemovals = useCallback((removals: PendingRemoval[]) => {
+    pendingRemovalsRef.current = removals;
+    if (scopeRef.current !== null) writePendingRemovals(scopeRef.current, removals);
+  }, []);
+  // Another account or company never inherits this one's removals.
+  useLayoutEffect(() => {
+    if (scopeRef.current === scope) return;
+    scopeRef.current = scope;
+    pendingRemovalsRef.current = readPendingRemovals(scope);
+  }, [scope]);
 
   const marketplace = useMemo(
     () => normalizeMarketplaceConfig(base.marketplace),
@@ -193,16 +215,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       identityBaseUrl: base.backend?.type === 'shellui' ? (base.backend.url ?? null) : null,
       apiUrl: marketplace.navigationCustomization.apiUrl ?? null,
       allowLocalhost: isShellDevelopment(),
-      scope: () => ({
-        userId: userIdRef.current,
-        companyId:
-          base.backend?.companyId === undefined || base.backend.companyId === null
-            ? null
-            : String(base.backend.companyId),
-      }),
+      scope: () => ({ userId: userIdRef.current, companyId }),
       validation: () => createOverlayValidationContext({ config: base, staticItems }),
     });
-  }, [base, marketplace]);
+  }, [base, companyId, marketplace]);
 
   useEffect(() => {
     if (!adapter || !customizationOn) return;
@@ -235,11 +251,14 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   );
 
   /** Forget the removals a successful save included. */
-  const settleRemovals = useCallback((included: readonly PendingRemoval[]) => {
-    pendingRemovalsRef.current = pendingRemovalsRef.current.filter(
-      (removal) => !included.includes(removal),
-    );
-  }, []);
+  const settleRemovals = useCallback(
+    (included: readonly PendingRemoval[]) => {
+      setPendingRemovals(
+        pendingRemovalsRef.current.filter((removal) => !included.includes(removal)),
+      );
+    },
+    [setPendingRemovals],
+  );
 
   /**
    * Save the layout. Every pending removal is applied first, so the layout this device commits
@@ -258,8 +277,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       proposed: NavigationOverlay,
       options: { removal?: PendingRemoval | null; removalOnly?: boolean } = {},
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
-      if (options.removal)
-        pendingRemovalsRef.current = [...pendingRemovalsRef.current, options.removal];
+      if (options.removal) setPendingRemovals([...pendingRemovalsRef.current, options.removal]);
       const included = pendingRemovalsRef.current;
       const next = applyPendingRemovals(proposed, included);
       commitOverlay(next);
@@ -273,6 +291,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         settleRemovals(included);
         return { ok: true };
       } catch (error) {
+        // Only the device copy was written. Identity still has the older layout and wins on
+        // the next load, so the removals stay pending and the person is told.
+        if (error instanceof NavigationOverlayDeviceOnlyError) {
+          notify('layoutNotSaved', NOT_SAVED);
+          return { ok: false, error: 'not_saved' };
+        }
         if (!(error instanceof NavigationOverlayConflictError)) throw error;
       }
       let remote: NavigationOverlay | null;
@@ -303,7 +327,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       notify('layoutConflict', CONFLICT);
       return { ok: false, error: 'layout_conflict' };
     },
-    [adapter, commitOverlay, loadAfterConflict, notify, settleRemovals],
+    [adapter, commitOverlay, loadAfterConflict, notify, setPendingRemovals, settleRemovals],
   );
 
   const currentOverlay = useCallback((): NavigationOverlay => {
@@ -362,11 +386,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         updatedAt: now,
       };
       // Granting again undoes an earlier pending revoke. Taking away is kept until saved.
-      pendingRemovalsRef.current = withoutUndoneRemovals(
-        pendingRemovalsRef.current,
-        appId,
-        nextCaps,
-      );
+      setPendingRemovals(withoutUndoneRemovals(pendingRemovalsRef.current, appId, nextCaps));
       const revoked = revokedCapabilities(existing.capabilities, nextCaps);
       const widens = nextCaps.some((capability) => !existing.capabilities.includes(capability));
       return persist(next, {
@@ -374,7 +394,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         removalOnly: !widens,
       });
     },
-    [currentOverlay, customizationOn, marketplace, persist],
+    [currentOverlay, customizationOn, marketplace, persist, setPendingRemovals],
   );
 
   const moveNavigationItem = useCallback(
@@ -421,7 +441,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       kind: 'uninstall',
       appId: app.id,
     }));
-    pendingRemovalsRef.current = [...pendingRemovalsRef.current, ...removals];
+    setPendingRemovals([...pendingRemovalsRef.current, ...removals]);
     commitOverlay(emptyNavigationOverlay());
     if (!adapter?.reset) {
       settleRemovals(removals);
@@ -433,6 +453,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       settleRemovals(removals);
       return { ok: true as const };
     } catch (error) {
+      if (error instanceof NavigationOverlayDeviceOnlyError) {
+        notify('layoutNotSaved', NOT_SAVED);
+        return { ok: false as const, error: 'not_saved' };
+      }
       if (!(error instanceof NavigationOverlayConflictError)) throw error;
     }
     // Another device saved first. Read its layout from identity (for the ETag), then reset
@@ -455,6 +479,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     customizationOn,
     loadAfterConflict,
     notify,
+    setPendingRemovals,
     settleRemovals,
   ]);
 
@@ -491,10 +516,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         // The layout may have changed while the dialog was open.
         const latest = currentOverlay();
         const record = prepared.record;
-        pendingRemovalsRef.current = withoutUndoneRemovals(
-          pendingRemovalsRef.current,
-          record.id,
-          'reinstall',
+        setPendingRemovals(
+          withoutUndoneRemovals(pendingRemovalsRef.current, record.id, 'reinstall'),
         );
         const installedApps = upsertInstalledApp(latest.installedApps, record);
         const stored = installedApps.find((app) => app.id === record.id) ?? record;
@@ -510,7 +533,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         installLockRef.current = false;
       }
     },
-    [askConfirm, base, currentOverlay, customizationOn, marketplace, persist],
+    [askConfirm, base, currentOverlay, customizationOn, marketplace, persist, setPendingRemovals],
   );
 
   useEffect(() => {
