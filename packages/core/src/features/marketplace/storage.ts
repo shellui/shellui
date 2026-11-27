@@ -256,8 +256,11 @@ export function createNavigationStorageAdapter(
       if (useIdentity(options)) {
         try {
           await api.reset?.();
-        } catch {
-          // Still clear the device copy.
+        } catch (error) {
+          // A conflict leaves the saved layout in place. Keep the device copy too, and let the
+          // caller retry or report that nothing was reset.
+          if (error instanceof NavigationOverlayConflictError) throw error;
+          // Any other failure still clears the device copy.
         }
       }
       await local.reset?.();

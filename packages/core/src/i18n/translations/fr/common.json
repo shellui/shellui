@@ -176,6 +176,7 @@
     "capabilities": "Capacités : {{list}}.",
     "thirdPartySender": "{{name}} (application tierce)",
     "layoutConflict": "Votre disposition a changé sur un autre appareil. La plus récente est affichée.",
+    "layoutNotSaved": "Votre modification n'a PAS été enregistrée. Réessayez.",
     "hostOnly": "La connexion et les cadres imbriqués restent sur l'hôte.",
     "install": "Installer",
     "cancel": "Annuler",

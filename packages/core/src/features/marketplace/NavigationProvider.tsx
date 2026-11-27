@@ -41,6 +41,12 @@ import {
   type NavigationEntry,
 } from './mergeNavigation';
 import { marketplaceOrigin, normalizeMarketplaceConfig } from './normalizeMarketplaceConfig';
+import {
+  onlyNarrowsCapabilities,
+  overlayWithCapabilitiesNarrowedTo,
+  overlayWithoutApp,
+  type NarrowingReapply,
+} from './narrowOverlay';
 import { emptyNavigationOverlay, type InstalledAppRecord, type NavigationOverlay } from './overlay';
 import { commitInstalledApps } from './securitySync';
 import { createOverlayValidationContext, reservedShellPaths } from './validationContext';
@@ -51,6 +57,9 @@ import {
 } from './storage';
 
 const logger = getLogger('shellcore');
+
+const CONFLICT = 'Your layout changed on another device. The latest one is shown.';
+const NOT_SAVED = 'Your change was NOT saved. Try again.';
 
 export interface NavigationContextValue {
   customizationEnabled: boolean;
@@ -106,6 +115,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const pendingRef = useRef<PendingConfirm | null>(null);
   const overlayRef = useRef<NavigationOverlay | null>(null);
+  const commitSeqRef = useRef(0);
 
   const marketplace = useMemo(
     () => normalizeMarketplaceConfig(base.marketplace),
@@ -130,9 +140,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   /**
    * The only writer of the installed-app registry and the message policy. It runs when the
-   * overlay changes (save, load, reset), never during render, and again in a layout effect for
-   * the committed overlay, so a render that React abandoned cannot leave grants looser than what
-   * was committed.
+   * overlay changes (save, load, reset), never during render. A layout effect runs it again for
+   * the committed overlay. That applies the policy at mount and on a config change before the
+   * layout has loaded, and it pulls the policy back to what was committed when an update that
+   * is still pending in a transition had written ahead of it.
    */
   const syncSecurity = useCallback(
     (value: NavigationOverlay | null) => {
@@ -148,12 +159,12 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   );
 
   useLayoutEffect(() => {
-    overlayRef.current = overlay;
     syncSecurity(overlay);
   }, [overlay, syncSecurity]);
 
   const commitOverlay = useCallback(
     (next: NavigationOverlay) => {
+      commitSeqRef.current += 1;
       overlayRef.current = next;
       syncSecurity(next);
       setOverlay(next);
@@ -208,27 +219,66 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     };
   }, [adapter, commitOverlay, customizationOn, session?.accessToken, session?.userId]);
 
+  const notify = useCallback((key: 'layoutConflict' | 'layoutNotSaved', defaultValue: string) => {
+    shellui.toast({ type: 'warning', title: i18n.t(`marketplace.${key}`, { defaultValue }) });
+  }, []);
+
+  /**
+   * Save the layout. On a conflict with another device:
+   * - a change that only removes access (`reapply`) is applied again on the newer layout and
+   *   saved once more. The removal stays in force locally even if that save also fails, so
+   *   grants never end up looser than what the person asked for, and the person is told
+   *   plainly that the change was not saved;
+   * - any other change gives way to the newer layout and a toast, unless a newer local edit
+   *   was made while the newer layout was loading.
+   */
   const persist = useCallback(
-    async (next: NavigationOverlay): Promise<{ ok: true } | { ok: false; error: string }> => {
+    async (
+      next: NavigationOverlay,
+      reapply?: NarrowingReapply,
+    ): Promise<{ ok: true } | { ok: false; error: string }> => {
       commitOverlay(next);
       if (!adapter) return { ok: true };
+      const sequence = commitSeqRef.current;
       try {
         await adapter.save(next);
         return { ok: true };
       } catch (error) {
         if (!(error instanceof NavigationOverlayConflictError)) throw error;
-        // Another device saved first. Show its layout instead of overwriting it.
-        commitOverlay((await adapter.load()) ?? emptyNavigationOverlay());
-        shellui.toast({
-          type: 'warning',
-          title: i18n.t('marketplace.layoutConflict', {
-            defaultValue: 'Your layout changed on another device. The latest one is shown.',
-          }),
-        });
+      }
+      let remote: NavigationOverlay | null;
+      try {
+        remote = await adapter.load();
+      } catch {
+        notify('layoutNotSaved', NOT_SAVED);
+        return { ok: false, error: 'not_saved' };
+      }
+      if (commitSeqRef.current !== sequence) {
+        // A newer local edit is in flight and carries its own save. Do not overwrite it.
+        notify('layoutConflict', CONFLICT);
         return { ok: false, error: 'layout_conflict' };
       }
+      const latest = remote ?? emptyNavigationOverlay();
+      if (!reapply) {
+        commitOverlay(latest);
+        notify('layoutConflict', CONFLICT);
+        return { ok: false, error: 'layout_conflict' };
+      }
+      const merged = reapply(latest);
+      if (!merged) {
+        commitOverlay(latest);
+        return { ok: true };
+      }
+      commitOverlay(merged);
+      try {
+        await adapter.save(merged);
+        return { ok: true };
+      } catch {
+        notify('layoutNotSaved', NOT_SAVED);
+        return { ok: false, error: 'not_saved' };
+      }
     },
-    [adapter, commitOverlay],
+    [adapter, commitOverlay, notify],
   );
 
   const currentOverlay = useCallback((): NavigationOverlay => {
@@ -260,14 +310,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const existing = current.installedApps.find((app) => app.id === appId);
       if (!existing) return { ok: false as const, error: 'not_found' };
       const now = new Date().toISOString();
-      const next: NavigationOverlay = {
-        ...current,
-        installedApps: current.installedApps.filter((app) => app.id !== appId),
-        order: current.order.filter((path) => path !== existing.path),
-        hiddenPaths: current.hiddenPaths.filter((path) => path !== existing.path),
-        updatedAt: now,
-      };
-      return persist(next);
+      const next = overlayWithoutApp(current, existing.id, now) ?? current;
+      return persist(next, (remote) => overlayWithoutApp(remote, appId, now));
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -291,7 +335,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         ),
         updatedAt: now,
       };
-      return persist(next);
+      // Taking capabilities away is safe to apply again after a conflict. Adding one is not.
+      return persist(
+        next,
+        onlyNarrowsCapabilities(existing.capabilities, nextCaps)
+          ? (remote) => overlayWithCapabilitiesNarrowedTo(remote, appId, nextCaps, now)
+          : undefined,
+      );
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -335,9 +385,26 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const resetNavigation = useCallback(async () => {
     if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
     commitOverlay(emptyNavigationOverlay());
-    await adapter?.reset?.();
-    return { ok: true as const };
-  }, [adapter, commitOverlay, customizationOn]);
+    if (!adapter?.reset) return { ok: true as const };
+    const sequence = commitSeqRef.current;
+    try {
+      await adapter.reset();
+      return { ok: true as const };
+    } catch (error) {
+      if (!(error instanceof NavigationOverlayConflictError)) throw error;
+    }
+    // Another device saved first. Reset is a removal, so apply it again on the newer layout
+    // unless a newer local edit was made meanwhile. The device copy is kept until it succeeds.
+    try {
+      await adapter.load();
+      if (commitSeqRef.current !== sequence) throw new Error('newer_local_edit');
+      await adapter.reset();
+      return { ok: true as const };
+    } catch {
+      notify('layoutNotSaved', NOT_SAVED);
+      return { ok: false as const, error: 'not_saved' };
+    }
+  }, [adapter, commitOverlay, customizationOn, notify]);
 
   const installFromMarketplace = useCallback(
     async (request: MarketplaceInstallRequest) => {

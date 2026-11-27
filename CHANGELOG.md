@@ -25,7 +25,7 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 - Shellui Marketplace runtime (early, opt-in with `marketplace` in `shellui.config.json`). The shell merges a per-user navigation overlay (`localStorage`, or Identity `/api/v1/navigation-overlay`) with the static navigation. Settings has a **Navigation** page to reorder, hide, uninstall and revoke capabilities. `shellui add <app-id>` appends a catalog app to the config.
 - Every runtime install is treated as third-party. One shared validator and JSON Schema (`packages/sdk/schemas/navigation-overlay.v1.json`) cover installs, `localStorage` and Identity layouts. Core paths are reserved. Third-party frames receive appearance, language, region and layout only, and their inbound messages use an allowlist.
 - The installed-app registry and the message policy are written when the layout is saved or loaded, not during render. A component test renders the real `NavigationProvider` (revoke, StrictMode, install lock, transitions).
-- Frames on an installed origin get the third-party settings by origin, hosts with a trailing dot are refused, and a layout save that conflicts with another device is shown to the person. `shellui add` treats only `admin`, `dashboard`, and `files` on `shellui.com` as official.
+- Frames on an installed origin get the third-party settings by origin, hosts with a trailing dot are refused, and a layout save that conflicts with another device is shown to the person. A conflicting revoke, uninstall or reset is applied again on the newer layout and saved once more, and the person is told if that fails, so a conflict cannot undo a removal. `shellui add` treats only `admin`, `dashboard`, and `files` on `shellui.com` as official.
 
 ### 📚 Documentation
 
