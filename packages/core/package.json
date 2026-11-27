@@ -48,7 +48,8 @@
     "test": "node scripts/test.js",
     "generate:config-schema": "node scripts/generate-config-schema.mjs",
     "generate:curated-themes": "node scripts/generate-curated-themes.mjs",
-    "build": "pnpm run generate:config-schema && pnpm run generate:curated-themes"
+    "build": "pnpm run generate:config-schema && pnpm run generate:curated-themes",
+    "typecheck": "node scripts/check-types.mjs"
   },
   "keywords": [
     "shellui",
@@ -67,7 +68,7 @@
   "author": "Shellui",
   "license": "MIT",
   "dependencies": {
-    "@mlc-ai/web-llm": "0.2.88",
+    "@mlc-ai/web-llm": "0.2.89",
     "@radix-ui/react-alert-dialog": "^1.2.1",
     "@radix-ui/react-collapsible": "^1.2.1",
     "@radix-ui/react-dialog": "^1.3.1",
@@ -76,13 +77,13 @@
     "@radix-ui/react-slot": "^1.5.0",
     "@radix-ui/react-tabs": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.4.1",
-    "@sentry/react": "^10.39.0",
+    "@sentry/react": "^11.19.0",
     "@shellui/sdk": "workspace:*",
     "@supabase/supabase-js": "^2.119.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "i18next": "^25.8.11",
-    "react-i18next": "^16.5.4",
+    "i18next": "^27.2.9",
+    "react-i18next": "^18.0.3",
     "react-icons": "^5.7.0",
     "react-markdown": "^10.1.0",
     "react-router": "^7.18.4",
@@ -113,7 +114,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "ts-json-schema-generator": "^2.9.0",
+    "ts-json-schema-generator": "^2.10.0",
     "typescript": "^5.9.3",
     "vitest": "^5.1.0"
   }

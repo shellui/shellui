@@ -1,7 +1,12 @@
 import crypto from 'crypto';
 
-/** Inline theme bootstrap in packages/core/src/index.html (must stay in sync). */
-export const SHELL_THEME_INIT_SCRIPT = `      // Initialize theme immediately to prevent FOUC
+/**
+ * Inline theme bootstrap in packages/core/src/index.html (must stay in sync).
+ * CSP hashes cover the exact text between `<script>` and `</script>`, including the
+ * leading newline and the trailing indent, so both are part of this constant.
+ */
+export const SHELL_THEME_INIT_SCRIPT = `
+      // Initialize theme immediately to prevent FOUC
       // This sets both the dark class AND CSS variables before React loads
       (function () {
         try {
@@ -60,7 +65,8 @@ export const SHELL_THEME_INIT_SCRIPT = `      // Initialize theme immediately to
           // Ignore errors
           console.error('[Theme Init] Error:', e);
         }
-      })();`;
+      })();
+    `;
 
 /** SHA-256 hash source for production CSP (`script-src 'sha256-…'`). */
 export function computeThemeInitScriptHash() {

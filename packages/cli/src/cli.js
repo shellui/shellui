@@ -14,6 +14,7 @@ import {
   companiesCommand,
 } from './commands/index.js';
 import { dispatchVariadicCli } from './cli-dispatch.js';
+import { registerLoginCommand } from './cli-login.js';
 import pkg from '../package.json' with { type: 'json' };
 
 const cli = cac('shellui');
@@ -73,16 +74,7 @@ cli
   .option('--config <path>', CONFIG_OPTION_HELP)
   .action((action, root, options) => configCommand(action, root, options));
 
-cli
-  .command('login [root]', 'Sign in with device authorization and store CLI credentials')
-  .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--no-browser', 'Print the link and code without opening a browser')
-  .action((root, options) =>
-    loginCommand(root, {
-      config: options.config,
-      noBrowser: options.noBrowser === true,
-    }),
-  );
+registerLoginCommand(cli, loginCommand, CONFIG_OPTION_HELP);
 
 cli
   .command('logout [root]', 'Remove stored CLI credentials for this account')

@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
 import tailwindcssPlugin from '@tailwindcss/postcss';
 import autoprefixerPlugin from 'autoprefixer';
 import { resolvePackagePath, resolveSdkEntry } from './index.js';
@@ -156,20 +157,12 @@ export function createResolveAlias() {
 export const SHELLUI_VITE_CACHE_DIR = '.vite-shellui';
 
 /**
- * esbuild options that skip walking up to the consumer `tsconfig.json`.
- * Matches @shellui/core JSX settings.
+ * tsconfig for every shell transform and the dependency optimizer, so Vite
+ * never walks up to the consumer `tsconfig.json`. Matches @shellui/core JSX settings.
  */
-const SHELLUI_ESBUILD_TSCONFIG_RAW = {
-  compilerOptions: {
-    target: 'ES2020',
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-    useDefineForClassFields: true,
-    module: 'ESNext',
-    moduleResolution: 'bundler',
-    skipLibCheck: true,
-  },
-};
+export const SHELLUI_TSCONFIG_PATH = fileURLToPath(
+  new URL('./shell-tsconfig.json', import.meta.url),
+);
 
 /**
  * Create PostCSS configuration for Vite.
@@ -297,13 +290,9 @@ export function createIsolatedViteConfig({
   }
 
   /** @type {import('vite').DepOptimizationOptions} */
-  const optimizeDeps = {
-    esbuildOptions: {
-      tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
-    },
-  };
+  const optimizeDeps = {};
   if (aiEnabled) {
-    // `@mlc-ai/web-llm` is a large pure-ESM barrel; Vite/esbuild dep-optimize often
+    // `@mlc-ai/web-llm` is a large pure-ESM barrel; the dep optimizer often
     // mangles its named re-exports (CreateWebWorkerMLCEngine missing entirely).
     // Serve the real package entry via alias — do not prebundle it.
     optimizeDeps.exclude = ['@mlc-ai/web-llm'];
@@ -327,9 +316,7 @@ export function createIsolatedViteConfig({
     css: {
       postcss: createPostCSSConfig(coreSrcPath),
     },
-    esbuild: {
-      tsconfigRaw: SHELLUI_ESBUILD_TSCONFIG_RAW,
-    },
+    tsconfig: SHELLUI_TSCONFIG_PATH,
     optimizeDeps,
     // Module workers (WebLLM) must be ES format for `type: 'module'` + import.meta.url.
     worker: {
@@ -346,9 +333,6 @@ export function createIsolatedViteConfig({
         strict: true,
         allow: fsAllow,
       },
-    },
-    build: {
-      cssMinify: 'esbuild',
     },
   };
 }

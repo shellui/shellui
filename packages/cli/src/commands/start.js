@@ -81,10 +81,6 @@ async function startServer(root, cwd, shouldOpen = false, host = false) {
       shellCspPlugin(config),
       desktopDevLinkPlugin(config),
     ],
-    esbuild: {
-      ...isolated.esbuild,
-      sourcemap: false,
-    },
     server: {
       ...isolated.server,
       port: config.port || 3000,

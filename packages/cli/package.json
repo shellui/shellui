@@ -46,7 +46,7 @@
   "author": "Shellui",
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "optionalDependencies": {
     "@napi-rs/keyring": "2.1.2"
@@ -55,15 +55,15 @@
     "@clack/prompts": "^1.9.0",
     "@shellui/core": "workspace:*",
     "@tailwindcss/postcss": "^4.3.5",
-    "@vitejs/plugin-react": "^5.1.4",
+    "@vitejs/plugin-react": "^5.2.0",
     "ajv": "^8.20.0",
     "autoprefixer": "^10.6.2",
-    "cac": "^6.7.14",
+    "cac": "^7.1.1",
     "dotenv": "^17.3.1",
     "picocolors": "^1.1.1",
     "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
-    "vite": "7.3.7",
+    "vite": "8.3.8",
     "workbox-build": "^7.4.1"
   },
   "publishConfig": {
