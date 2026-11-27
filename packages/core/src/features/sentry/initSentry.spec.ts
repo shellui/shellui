@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import source from './initSentry.ts?raw';
 
 const sentry = vi.hoisted(() => ({
   init: vi.fn(),
@@ -38,7 +37,6 @@ describe('Sentry init', () => {
     });
     // The env check in initSentry() cannot be switched off under Vitest, so check the source:
     // every Sentry.init call (there are two) carries the constant and none the removed option.
-    const source = readFileSync(path.resolve(__dirname, 'initSentry.ts'), 'utf8');
     const calls = source.match(/Sentry\.init\(\{[\s\S]*?\}\);/g) ?? [];
     expect(calls).toHaveLength(2);
     for (const call of calls) {

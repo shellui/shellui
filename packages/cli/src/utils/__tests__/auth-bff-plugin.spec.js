@@ -446,8 +446,9 @@ describe('dispatchAuthBff refresh and logout', () => {
     });
     expect(result.status).toBe(401);
     expect(JSON.parse(result.body).error).toBe('invalid refresh cookie');
-    expect(result.headers['Set-Cookie']).toContain('shellui_refresh=;');
-    expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+    expect(result.headers['Set-Cookie']).toBe(
+      'shellui_refresh=; HttpOnly; SameSite=Lax; Path=/api/auth; Max-Age=0; Secure',
+    );
   });
 
   test('logout with a malformed refresh cookie still clears it', async () => {
@@ -460,7 +461,9 @@ describe('dispatchAuthBff refresh and logout', () => {
       secure: true,
     });
     expect(result.status).toBe(204);
-    expect(result.headers['Set-Cookie']).toContain('Max-Age=0');
+    expect(result.headers['Set-Cookie']).toBe(
+      'shellui_refresh=; HttpOnly; SameSite=Lax; Path=/api/auth; Max-Age=0; Secure',
+    );
   });
 
   test('logout revokes with the cookie on the host and clears it', async () => {

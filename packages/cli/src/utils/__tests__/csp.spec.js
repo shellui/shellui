@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
@@ -114,4 +115,34 @@ describe('computeThemeInitScriptHash', () => {
     const digest = crypto.createHash('sha256').update(inline[0][1], 'utf8').digest('base64');
     expect(computeThemeInitScriptHash()).toBe(`'sha256-${digest}'`);
   });
+});
+
+describe('production theme script hash', () => {
+  it('matches the inline script in a built dist/web/index.html', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'shellui-csp-build-'));
+    try {
+      fs.writeFileSync(
+        path.join(dir, 'shellui.config.json'),
+        JSON.stringify({ title: 't', navigation: [] }),
+      );
+      const { spawnSync } = await import('node:child_process');
+      spawnSync('git', ['init', '-q'], { cwd: dir });
+      const cli = fileURLToPath(new URL('../../../src/cli.js', import.meta.url));
+      const result = spawnSync(process.execPath, [cli, 'build', dir], {
+        encoding: 'utf8',
+        cwd: dir,
+      });
+      if (result.status !== 0) {
+        throw new Error(result.stderr || result.stdout || `build exited ${result.status}`);
+      }
+      const html = fs.readFileSync(path.join(dir, 'dist/web/index.html'), 'utf8');
+      const inline = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)];
+      expect(inline).toHaveLength(1);
+      expect(SHELL_THEME_INIT_SCRIPT).toBe(inline[0][1]);
+      const digest = crypto.createHash('sha256').update(inline[0][1], 'utf8').digest('base64');
+      expect(computeThemeInitScriptHash()).toBe(`'sha256-${digest}'`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }, 30_000);
 });
