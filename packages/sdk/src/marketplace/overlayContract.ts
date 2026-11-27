@@ -175,7 +175,7 @@ export function normalizeInstalledAppPath(value: unknown): string | null {
   return path;
 }
 
-/** Turn a free-form string (an app id, a suggested path) into a candidate path. */
+/** Turn an arbitrary string (an app id, a suggested path) into a candidate path. */
 export function slugifyPath(value: string): string {
   return value
     .trim()

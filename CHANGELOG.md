@@ -20,6 +20,11 @@ Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/
 
 ## [Unreleased]
 
+### ✨ Feature
+
+- Shellui Marketplace runtime (early, opt-in with `marketplace` in `shellui.config.json`). The shell merges a per-user navigation overlay (`localStorage`, or Identity `/api/v1/navigation-overlay`) with the static navigation. Settings has a **Navigation** page to reorder, hide, uninstall and revoke capabilities. `shellui add <app-id>` appends a catalog app to the config.
+- Every runtime install is treated as third-party. One shared validator and JSON Schema (`packages/sdk/schemas/navigation-overlay.v1.json`) cover installs, `localStorage` and Identity layouts. Core paths are reserved. Third-party frames receive appearance, language, region and layout only, and their inbound messages use an allowlist.
+
 ### 📚 Documentation
 
 - Installation, quickstart, Tauri and README now give the Node.js version the CLI needs: 22.12 or later. The root `engines` field matches.

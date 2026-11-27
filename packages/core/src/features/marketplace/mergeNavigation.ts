@@ -75,7 +75,7 @@ export function installedAppNavigationItem(app: InstalledAppRecord): NavigationI
 /**
  * Merge build-time navigation with a runtime overlay.
  * Locked items stay visible. Installed apps never receive `safeForAuthToken` or `childFrames`.
- * The marketplace route is appended when that path is still free.
+ * The marketplace route is appended when that path is unused.
  * An installed app on a reserved core path is skipped, so `/admin`, `/__settings` and the
  * other core routes always stay with the shell, whatever a stored layout says.
  */
