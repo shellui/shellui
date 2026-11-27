@@ -827,6 +827,15 @@
     }
   },
   "customizeNavigation": {
+    "loading": "Loading your navigation. Changes are available once it has loaded.",
+    "loadFailed": "Your saved navigation could not be loaded. Changes are off until it loads.",
+    "retry": "Try again",
+    "resetConfirmDevice": {
+      "title": "Reset navigation on this device?",
+      "description": "This removes every installed app and restores the original navigation on this device.",
+      "confirm": "Reset",
+      "cancel": "Cancel"
+    },
     "resetConfirm": {
       "title": "Reset navigation on every device?",
       "description": "This removes every installed app and restores the original navigation. When you are signed in, it applies on every device where you use this account, not only this one.",

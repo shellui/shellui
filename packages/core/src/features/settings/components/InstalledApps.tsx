@@ -22,7 +22,11 @@ export function CustomizeNavigation() {
     resetNavigation,
     unsavedRemovals,
     layoutReady,
+    layoutLoadFailed,
+    retryLayoutLoad,
+    syncsAcrossDevices,
   } = useNavigation();
+  const resetCopy = syncsAcrossDevices ? 'resetConfirm' : 'resetConfirmDevice';
   const items = flattenNavigationItems(config.navigation ?? []);
   const lang = i18n.language || 'en';
 
@@ -34,6 +38,29 @@ export function CustomizeNavigation() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">{t('customizeNavigation.description')}</p>
+        {layoutLoadFailed ? (
+          <div
+            role="status"
+            className="flex items-center gap-3 text-sm text-destructive"
+          >
+            <span>{t('customizeNavigation.loadFailed')}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={retryLayoutLoad}
+            >
+              {t('customizeNavigation.retry')}
+            </Button>
+          </div>
+        ) : !layoutReady ? (
+          <p
+            role="status"
+            className="text-sm text-muted-foreground"
+          >
+            {t('customizeNavigation.loading')}
+          </p>
+        ) : null}
         {unsavedRemovals ? (
           <p
             role="status"
@@ -50,12 +77,12 @@ export function CustomizeNavigation() {
             disabled={!layoutReady}
             onClick={() => {
               shellui.dialog({
-                title: t('customizeNavigation.resetConfirm.title'),
-                description: t('customizeNavigation.resetConfirm.description'),
+                title: t(`customizeNavigation.${resetCopy}.title`),
+                description: t(`customizeNavigation.${resetCopy}.description`),
                 mode: 'delete',
                 size: 'sm',
-                okLabel: t('customizeNavigation.resetConfirm.confirm'),
-                cancelLabel: t('customizeNavigation.resetConfirm.cancel'),
+                okLabel: t(`customizeNavigation.${resetCopy}.confirm`),
+                cancelLabel: t(`customizeNavigation.${resetCopy}.cancel`),
                 onOk: () => {
                   void resetNavigation();
                 },

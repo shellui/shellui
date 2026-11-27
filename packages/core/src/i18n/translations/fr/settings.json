@@ -827,10 +827,19 @@
     }
   },
   "customizeNavigation": {
+    "loading": "Chargement de votre navigation. Les modifications seront possibles une fois le chargement terminé.",
+    "loadFailed": "Votre navigation enregistrée n'a pas pu être chargée. Les modifications sont désactivées jusqu'au chargement.",
+    "retry": "Réessayer",
+    "resetConfirmDevice": {
+      "title": "Réinitialiser la navigation sur cet appareil ?",
+      "description": "Cela retire toutes les applications installées et rétablit la navigation d'origine sur cet appareil.",
+      "confirm": "Réinitialiser",
+      "cancel": "Annuler"
+    },
     "resetConfirm": {
       "title": "Réinitialiser la navigation sur tous les appareils ?",
       "description": "Cela retire toutes les applications installées et rétablit la navigation d'origine. Si vous êtes connecté, cela s'applique sur tous les appareils où vous utilisez ce compte, pas seulement celui-ci.",
-      "confirm": "Tout réinitialiser",
+      "confirm": "Réinitialiser partout",
       "cancel": "Annuler"
     },
     "notSavedYet": "Une modification qui retire un accès s'applique ici mais n'est PAS encore enregistrée. Elle le sera avec votre prochaine modification.",

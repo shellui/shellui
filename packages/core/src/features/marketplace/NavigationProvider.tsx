@@ -68,6 +68,8 @@ const logger = getLogger('shellcore');
 
 const CONFLICT = 'Your layout changed on another device. The latest one is shown.';
 const NOT_SAVED = 'Your change was NOT saved. Try again.';
+/** How long the shell waits for the saved layout before it stops waiting and offers a retry. */
+export const LAYOUT_READ_TIMEOUT_MS = 15_000;
 
 export interface NavigationContextValue {
   customizationEnabled: boolean;
@@ -91,6 +93,11 @@ export interface NavigationContextValue {
   unsavedRemovals: boolean;
   /** The saved layout has been read and committed. Until then every change is refused. */
   layoutReady: boolean;
+  /** The first read did not answer in time. Changes stay refused until `retryLayoutLoad` works. */
+  layoutLoadFailed: boolean;
+  retryLayoutLoad: () => void;
+  /** The layout is kept in identity, so a reset applies on every signed-in device. */
+  syncsAcrossDevices: boolean;
 }
 
 export const NavigationContext = createContext<NavigationContextValue | null>(null);
@@ -130,6 +137,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const commitSeqRef = useRef(0);
   const readyRef = useRef(false);
   const [layoutReady, setLayoutReady] = useState(false);
+  const [layoutLoadFailed, setLayoutLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const retryLayoutLoad = useCallback(() => setLoadAttempt((attempt) => attempt + 1), []);
   /**
    * Removals made on this device that no successful save includes yet, for the signed-in user
    * and company only. They are kept in this tab's sessionStorage under that scope.
@@ -244,11 +254,19 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     readyRef.current = false;
     setLayoutReady(false);
+    setLayoutLoadFailed(false);
     const sequence = commitSeqRef.current;
     const ready = () => {
+      clearTimeout(timer);
       readyRef.current = true;
       setLayoutReady(true);
     };
+    // A read that never answers leaves the layout as it is (no apps on a first load) with every
+    // change refused, and offers a retry. A late answer is ignored.
+    const timer = setTimeout(() => {
+      cancelled = true;
+      setLayoutLoadFailed(true);
+    }, LAYOUT_READ_TIMEOUT_MS);
     adapter
       .load()
       .then((loaded) => {
@@ -275,8 +293,17 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       });
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [adapter, commitOverlay, customizationOn, session?.accessToken, session?.userId]);
+  }, [adapter, commitOverlay, customizationOn, loadAttempt, session?.accessToken, session?.userId]);
+
+  const syncsAcrossDevices = Boolean(
+    marketplace &&
+    (marketplace.navigationCustomization.storage === 'api' ||
+      (marketplace.navigationCustomization.storage === 'auto' &&
+        isIdentityConfigured(base, marketplace.navigationCustomization.apiUrl) &&
+        session?.accessToken)),
+  );
 
   const notify = useCallback((key: 'layoutConflict' | 'layoutNotSaved', defaultValue: string) => {
     shellui.toast({ type: 'warning', title: i18n.t(`marketplace.${key}`, { defaultValue }) });
@@ -511,8 +538,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     try {
       const remote = await loadAfterConflict();
       if (commitSeqRef.current !== sequence) return { ok: false as const, error: 'superseded' };
-      adapter.adoptVersion?.(remote.etag);
-      await adapter.reset();
+      // This device never shows the newer layout, so its version is sent for this one delete
+      // only. A refused retry leaves the version as it was, so the next edit cannot save over it.
+      await adapter.reset(remote.etag);
       setPendingRemovals([]);
       return { ok: true as const };
     } catch {
@@ -652,15 +680,21 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       resetNavigation,
       unsavedRemovals,
       layoutReady,
+      layoutLoadFailed,
+      retryLayoutLoad,
+      syncsAcrossDevices,
     }),
     [
       customizationOn,
+      layoutLoadFailed,
       layoutReady,
       moveNavigationItem,
       overlay,
       resetNavigation,
+      retryLayoutLoad,
       setAppCapabilities,
       setNavigationItemHidden,
+      syncsAcrossDevices,
       uninstallApp,
       unsavedRemovals,
     ],

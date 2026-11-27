@@ -24,7 +24,11 @@ export interface LoadedNavigationOverlay {
 export interface NavigationStorageAdapter {
   load(): Promise<LoadedNavigationOverlay>;
   save(overlay: NavigationOverlay): Promise<void>;
-  reset?(): Promise<void>;
+  /**
+   * Remove the saved layout. `ifMatch` sends that version for this one request only and never
+   * adopts it, for a retry after a conflict where this device has not shown the newer layout.
+   */
+  reset?(ifMatch?: string | null): Promise<void>;
   /**
    * The saved copy in identity only, never the device copy. Used after a save conflict, where a
    * stale device copy must not stand in for the newer layout.

@@ -12,6 +12,7 @@ import {
 import type { ShellUIConfig } from '../config/types';
 import { ConfigContext } from '../config/ConfigProvider';
 import {
+  LAYOUT_READ_TIMEOUT_MS,
   NavigationProvider,
   useNavigation,
   type NavigationContextValue,
@@ -810,11 +811,14 @@ describe('NavigationProvider reset racing another edit', () => {
 });
 
 /** Another device saves a layout this device has not seen. */
-function otherDeviceSaves(change: (layout: { hiddenPaths: string[] }) => void) {
-  const layout = structuredClone(server.overlay) as {
-    installedApps: Array<Record<string, unknown>>;
-    hiddenPaths: string[];
-  };
+type ServerLayout = {
+  installedApps: Array<Record<string, unknown>>;
+  hiddenPaths: string[];
+  order: string[];
+};
+
+function otherDeviceSaves(change: (layout: ServerLayout) => void) {
+  const layout = structuredClone(server.overlay) as ServerLayout;
   layout.installedApps[0].capabilities = OTHER;
   change(layout);
   server.overlay = layout;
@@ -911,5 +915,132 @@ describe('NavigationProvider when a read body arrives after its headers', () => 
     expect(settled.some((result) => result.ok)).toBe(false);
     expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
     expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+  });
+});
+
+const serverOrder = () => (server.overlay as { order?: string[] } | null)?.order ?? [];
+
+/** Another device installed a second app and moved it to the top. */
+function otherDeviceAddsExtra() {
+  otherDeviceSaves((layout) => {
+    layout.installedApps.push({
+      ...layout.installedApps[0],
+      id: 'extra',
+      name: 'App extra',
+      path: 'extra',
+      url: 'https://extra.example/',
+      origin: 'https://extra.example',
+    });
+    layout.order = ['extra'];
+  });
+}
+
+describe('NavigationProvider versions it never showed', () => {
+  it('a reset retry that fails does not leave the newer version for the next edit', async () => {
+    await mountSignedInWithApp();
+    otherDeviceAddsExtra();
+    // reset: DELETE 412, GET, DELETE again refused with 503.
+    server.writeScript = [412, 503];
+
+    expect(await run(() => api.resetNavigation())).toEqual({ ok: false, error: 'not_saved' });
+    expect(server.calls.slice(-3)).toEqual(['DELETE', 'GET', 'DELETE']);
+
+    const hide = await run(() => api.setNavigationItemHidden('about', true));
+
+    expect(hide.ok).toBe(false);
+    expect(serverApps()).toEqual(['extra']);
+    expect(serverOrder()).toEqual(['extra']);
+  });
+
+  it('a first read made stale by a change in flight adopts no version', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSaves(() => {});
+    // The hide is refused (412), and its conflict read (v2) is held at the body.
+    const releaseConflictRead = holdBodies();
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    await flush();
+    // Another device saves v3, then a token refresh reads the layout again, also held.
+    otherDeviceSaves((layout) => {
+      layout.order = ['about'];
+    });
+    const releaseReload = holdBodies();
+    page.session = { accessToken: 'token-refreshed', userId: 'u1' };
+    mount();
+    await flush();
+    server.bodyGate = null;
+
+    // The hide commits v2 first, so the v3 read is stale when it lands.
+    await act(async () => releaseConflictRead());
+    await flush();
+    expect(await hide).toEqual({ ok: false, error: 'layout_conflict' });
+    await act(async () => releaseReload());
+    await flush();
+    expect(api.layoutReady).toBe(true);
+
+    const move = await run(() => api.moveNavigationItem('about', 'down'));
+
+    expect(move.ok).toBe(false);
+    expect(serverOrder()).toEqual(['about']);
+  });
+
+  it('refuses a marketplace install before the layout has loaded, without the dialog', async () => {
+    await mountSignedInWithApp();
+    const release = holdBodies();
+    act(() => root.unmount());
+    root = createRoot(container);
+    dialog.props = null;
+    mount();
+    await flush();
+    server.bodyGate = null;
+
+    await requestInstall('other', ['ui']);
+
+    const shown = dialog as { props: { summary: unknown } | null };
+    expect(shown.props?.summary ?? null).toBeNull();
+    expect(installResults().slice(-1)[0]?.payload).toMatchObject({
+      ok: false,
+      error: 'layout_loading',
+    });
+    await act(async () => release());
+    await flush();
+  });
+
+  it('stops waiting for a first read that never answers, and can retry', async () => {
+    await mountSignedInWithApp();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let answerLate!: () => void;
+      server.gate = new Promise<void>((resolve) => (answerLate = resolve));
+      act(() => root.unmount());
+      root = createRoot(container);
+      mount();
+      await flush();
+      expect(api.layoutLoadFailed).toBe(false);
+      await act(async () => {
+        vi.advanceTimersByTime(LAYOUT_READ_TIMEOUT_MS);
+      });
+      expect(api.layoutLoadFailed).toBe(true);
+      expect(api.layoutReady).toBe(false);
+      expect(await run(() => api.moveNavigationItem('about', 'up'))).toEqual({
+        ok: false,
+        error: 'layout_loading',
+      });
+      // A read that answers after the timeout is ignored; only a retry loads.
+      server.gate = null;
+      await act(async () => answerLate());
+      await flush();
+      expect(api.layoutReady).toBe(false);
+
+      await act(async () => api.retryLayoutLoad());
+      await flush();
+      expect(api.layoutLoadFailed).toBe(false);
+      expect(api.layoutReady).toBe(true);
+      expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

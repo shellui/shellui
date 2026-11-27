@@ -177,7 +177,11 @@ export function createApiNavigationAdapter(
       allowLocalhost: options.allowLocalhost,
     });
 
-  const request = async (method: 'GET' | 'PUT' | 'DELETE', body?: NavigationOverlay) => {
+  const request = async (
+    method: 'GET' | 'PUT' | 'DELETE',
+    body?: NavigationOverlay,
+    version: string | null = etag,
+  ) => {
     const url = endpoint();
     if (!url) throw new Error('navigation_overlay_untrusted_url');
     const token = await options.getAccessToken();
@@ -190,7 +194,7 @@ export function createApiNavigationAdapter(
         Accept: 'application/json',
         Authorization: `Bearer ${token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(method !== 'GET' && etag ? { 'If-Match': etag } : {}),
+        ...(method !== 'GET' && version ? { 'If-Match': version } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
     });
@@ -220,8 +224,8 @@ export function createApiNavigationAdapter(
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       etag = etagOf(response) ?? etag;
     },
-    async reset() {
-      const response = await request('DELETE');
+    async reset(ifMatch) {
+      const response = await request('DELETE', undefined, ifMatch === undefined ? etag : ifMatch);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}`);
       etag = null;
@@ -278,11 +282,11 @@ export function createNavigationStorageAdapter(
         throw new NavigationOverlayDeviceOnlyError();
       }
     },
-    async reset() {
+    async reset(ifMatch) {
       let deviceOnly = false;
       if (useIdentity(options)) {
         try {
-          await api.reset?.();
+          await api.reset?.(ifMatch);
         } catch (error) {
           // A conflict leaves the saved layout in place. Keep the device copy too, and let the
           // caller retry or report that nothing was reset.
