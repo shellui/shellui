@@ -38,6 +38,10 @@ An object overrides only the fields you set. Omitted fields keep the defaults ab
 
 When marketplace is on, the shell adds a locked **Shellui Marketplace** route.
 
+## Desktop app
+
+Shellui Marketplace is not available in the desktop (Tauri) app. A directory that installs web apps at runtime is not compatible with Mac App Store distribution, so the desktop build always runs with `"marketplace": false`. Turn it on only for web builds.
+
 ## Navigation overlay
 
 The overlay is version `1` and stores one layout per person and company:
