@@ -1404,6 +1404,75 @@ describe('NavigationProvider device copy after a stored write', () => {
     },
   );
 
+  it('Y4: an older save that fails after a stored reset writes no copy', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    server.writeGate = null;
+    expect((await run(() => api.resetNavigation())).ok).toBe(true);
+    server.writeScript = [503];
+    await act(async () => release());
+    await flush();
+    expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+    expect(localStorage.getItem(u1Key)).toBeNull();
+
+    server.getFails = true;
+    await reload();
+    expect(api.installedApps).toEqual([]);
+    expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+  });
+
+  it('Y7: a revoke stored during A to B to A keeps an older failed u1 save from writing a copy', async () => {
+    await mountSignedInWithApp();
+    const releaseHide = holdWrites();
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    const releaseRevoke = holdWrites();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    server.writeGate = null;
+    await switchTo('u2');
+    await act(async () => releaseRevoke());
+    await flush();
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: true });
+    await switchTo('u1');
+    server.writeScript = [503];
+    await act(async () => releaseHide());
+    await flush();
+    expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+    expect(localStorage.getItem(u1Key)).toBeNull();
+
+    server.getFails = true;
+    await reload();
+    expect(currentGrant()).not.toContain('storage');
+  });
+
+  it('a write stored for u2 never skips the device copy of a failed u1 save', async () => {
+    await mountSignedInWithApp();
+    const release = holdWrites();
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    server.writeGate = null;
+    await switchTo('u2');
+    expect((await run(() => api.moveNavigationItem('about', 'up'))).ok).toBe(true);
+    await switchTo('u1');
+    server.writeScript = [503];
+    await act(async () => release());
+    await flush();
+
+    expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+    expect(localStorage.getItem(u1Key)).toContain('about');
+  });
+
   it('a write not stored across a switch leaves the u1 device copy in place', async () => {
     await mountSignedInWithApp();
     await leaveDeviceCopy();
