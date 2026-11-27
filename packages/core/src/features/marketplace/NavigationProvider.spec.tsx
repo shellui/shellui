@@ -91,6 +91,8 @@ const server = {
   getFails: false,
   /** Every write fails with 503, as if identity were down. */
   writeFails: false,
+  /** Status for each next write, in order (412 or 503), before the rules above apply. */
+  writeScript: [] as number[],
   calls: [] as string[],
 };
 
@@ -102,6 +104,7 @@ function resetServer() {
     alwaysConflict: false,
     getFails: false,
     writeFails: false,
+    writeScript: [],
     calls: [],
   });
 }
@@ -118,12 +121,14 @@ function installFakeServer() {
       if (!server.overlay) return new Response(null, { status: 404 });
       return new Response(JSON.stringify(server.overlay), { status: 200, headers: etag() });
     }
-    if (server.writeFails) return new Response(null, { status: 503 });
+    // Like identity-service: a 412 carries the current ETag (none when there is no document).
+    const conflict = () =>
+      new Response(null, { status: 412, headers: server.overlay ? etag() : {} });
+    const scripted = server.writeScript.shift();
+    if (scripted === 412) return conflict();
+    if (scripted !== undefined || server.writeFails) return new Response(null, { status: 503 });
     const stale = server.overlay !== null && headers['If-Match'] !== `"v${server.version}"`;
-    if (server.alwaysConflict || stale) {
-      // Like identity-service: the 412 carries no ETag the client could rely on.
-      return new Response(null, { status: 412 });
-    }
+    if (server.alwaysConflict || stale) return conflict();
     server.version += 1;
     server.overlay = method === 'PUT' ? JSON.parse(String(init?.body)) : null;
     return new Response(null, { status: 204, headers: etag() });
@@ -661,6 +666,54 @@ describe('NavigationProvider when identity cannot save', () => {
     expect((await run(() => api.moveNavigationItem('about', 'up'))).ok).toBe(true);
     expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
     expect(api.unsavedRemovals).toBe(false);
+  });
+
+  it.each([
+    ['412 then 412', [412, 412]],
+    ['412 then 503', [412, 503]],
+  ])(
+    'keeps a revoke refused %s, across a reload, until a save reaches identity',
+    async (_name, statuses) => {
+      await mountSignedInWithApp();
+      server.writeScript = [...statuses];
+
+      expect(await run(() => api.setAppCapabilities('notes', ['ui']))).toEqual({
+        ok: false,
+        error: 'not_saved',
+      });
+      expect(server.calls.slice(-3)).toEqual(['PUT', 'GET', 'PUT']);
+      expect(server.writeScript).toEqual([]);
+      expect(api.unsavedRemovals).toBe(true);
+      expect(serverCapabilities()).toContain('storage');
+
+      await reload();
+      expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+      expect(api.unsavedRemovals).toBe(true);
+
+      expect((await run(() => api.moveNavigationItem('about', 'up'))).ok).toBe(true);
+      expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
+      expect(api.unsavedRemovals).toBe(false);
+    },
+  );
+
+  it('clears every pending removal once a reset succeeds', async () => {
+    await mountSignedInWithApp();
+    const withNotes = structuredClone(server.overlay);
+    server.writeFails = true;
+    await run(() => api.uninstallApp('notes'));
+    expect((await run(() => api.resetNavigation())).ok).toBe(false);
+    expect(api.unsavedRemovals).toBe(true);
+
+    server.writeFails = false;
+    expect((await run(() => api.resetNavigation())).ok).toBe(true);
+    expect(api.unsavedRemovals).toBe(false);
+    expect(Object.keys(sessionStorage)).toEqual([]);
+
+    // Notes installed again elsewhere is not removed by a leftover entry in this tab.
+    server.overlay = withNotes;
+    server.version += 1;
+    await reload();
+    expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
   });
 
   it('says NOT saved when identity cannot reset', async () => {

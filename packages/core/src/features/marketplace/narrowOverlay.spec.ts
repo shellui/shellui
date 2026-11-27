@@ -27,6 +27,7 @@ describe('stored pending removals', () => {
         { kind: 'revoke', appId: 'notes', capabilities: [] },
         { kind: 'revoke', appId: 'notes', capabilities: [1] },
         { kind: 'grant', appId: 'notes' },
+        { kind: 'grant', appId: 'notes', capabilities: ['ai'] },
         { kind: 'uninstall' },
         'notes',
         { kind: 'uninstall', appId: 'files' },

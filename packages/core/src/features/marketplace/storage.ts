@@ -191,8 +191,11 @@ export function createApiNavigationAdapter(
       },
       body: body ? JSON.stringify(body) : undefined,
     });
+    // A 412 also carries the current ETag, but this device has not read that layout. Taking
+    // it would let the next write overwrite the other device's change unseen, so only a read
+    // or a successful write moves the ETag.
     const next = response.headers?.get?.('ETag');
-    if (next) etag = next;
+    if (next && response.status !== 412) etag = next;
     return response;
   };
 

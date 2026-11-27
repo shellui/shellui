@@ -440,8 +440,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const resetNavigation = useCallback(async () => {
     if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
-    // Reset removes every installed app. Those removals stay pending until a save includes
-    // them, so a concurrent edit or a conflict cannot bring an app back.
+    // Reset removes every installed app. Those removals stay pending until a reset succeeds, so
+    // a concurrent edit or a conflict cannot bring an app back. A successful reset leaves nothing
+    // to remove, so it clears every pending removal, including ones for apps already gone.
     const removals: PendingRemoval[] = currentOverlay().installedApps.map((app) => ({
       kind: 'uninstall',
       appId: app.id,
@@ -449,13 +450,13 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setPendingRemovals([...pendingRemovalsRef.current, ...removals]);
     commitOverlay(emptyNavigationOverlay());
     if (!adapter?.reset) {
-      settleRemovals(removals);
+      setPendingRemovals([]);
       return { ok: true as const };
     }
     const sequence = commitSeqRef.current;
     try {
       await adapter.reset();
-      settleRemovals(removals);
+      setPendingRemovals([]);
       return { ok: true as const };
     } catch (error) {
       if (error instanceof NavigationOverlayDeviceOnlyError) {
@@ -471,7 +472,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       await loadAfterConflict();
       if (commitSeqRef.current !== sequence) return { ok: false as const, error: 'superseded' };
       await adapter.reset();
-      settleRemovals(removals);
+      setPendingRemovals([]);
       return { ok: true as const };
     } catch {
       notify('layoutNotSaved', NOT_SAVED);
@@ -485,7 +486,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     loadAfterConflict,
     notify,
     setPendingRemovals,
-    settleRemovals,
   ]);
 
   const installFromMarketplace = useCallback(
