@@ -3,11 +3,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+import i18n from 'i18next';
 import {
   getLogger,
   sanitizeCapabilityList,
@@ -33,7 +35,6 @@ import {
   type InstallSummary,
   type MarketplaceInstallRequest,
 } from './installApp';
-import { replaceInstalledAppRecords } from './installedAppRegistry';
 import {
   createMarketplaceNavigationItem,
   mergeNavigationOverlay,
@@ -41,9 +42,13 @@ import {
 } from './mergeNavigation';
 import { marketplaceOrigin, normalizeMarketplaceConfig } from './normalizeMarketplaceConfig';
 import { emptyNavigationOverlay, type InstalledAppRecord, type NavigationOverlay } from './overlay';
-import { applyNavigationMessageSecurity } from './securitySync';
+import { commitInstalledApps } from './securitySync';
 import { createOverlayValidationContext, reservedShellPaths } from './validationContext';
-import { createNavigationStorageAdapter, isIdentityConfigured } from './storage';
+import {
+  NavigationOverlayConflictError,
+  createNavigationStorageAdapter,
+  isIdentityConfigured,
+} from './storage';
 
 const logger = getLogger('shellcore');
 
@@ -101,8 +106,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const pendingRef = useRef<PendingConfirm | null>(null);
   const overlayRef = useRef<NavigationOverlay | null>(null);
-  const knownUrlsRef = useRef<Set<string>>(new Set());
-  overlayRef.current = overlay;
 
   const marketplace = useMemo(
     () => normalizeMarketplaceConfig(base.marketplace),
@@ -111,15 +114,52 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const customizationOn =
     marketplace?.navigationCustomization.enabled !== false && Boolean(marketplace);
 
-  const mergedNavigation = useMemo<NavigationEntry[]>(() => {
-    if (!marketplace) return base.navigation ?? [];
-    return mergeNavigationOverlay(
-      base.navigation,
-      customizationOn ? overlay : null,
-      createMarketplaceNavigationItem(marketplace.url),
-      reservedShellPaths(base),
-    );
-  }, [base, customizationOn, marketplace, overlay]);
+  const mergeFor = useCallback(
+    (value: NavigationOverlay | null): NavigationEntry[] => {
+      if (!marketplace) return base.navigation ?? [];
+      return mergeNavigationOverlay(
+        base.navigation,
+        customizationOn ? value : null,
+        createMarketplaceNavigationItem(marketplace.url),
+        reservedShellPaths(base),
+      );
+    },
+    [base, customizationOn, marketplace],
+  );
+  const mergedNavigation = useMemo(() => mergeFor(overlay), [mergeFor, overlay]);
+
+  /**
+   * The only writer of the installed-app registry and the message policy. It runs when the
+   * overlay changes (save, load, reset), never during render, and again in a layout effect for
+   * the committed overlay, so a render that React abandoned cannot leave grants looser than what
+   * was committed.
+   */
+  const syncSecurity = useCallback(
+    (value: NavigationOverlay | null) => {
+      if (!marketplace) return;
+      commitInstalledApps({
+        config: base,
+        navigation: mergeFor(value),
+        apps: customizationOn ? (value?.installedApps ?? []) : [],
+        marketplaceOrigin: marketplaceOrigin(marketplace.url),
+      });
+    },
+    [base, customizationOn, marketplace, mergeFor],
+  );
+
+  useLayoutEffect(() => {
+    overlayRef.current = overlay;
+    syncSecurity(overlay);
+  }, [overlay, syncSecurity]);
+
+  const commitOverlay = useCallback(
+    (next: NavigationOverlay) => {
+      overlayRef.current = next;
+      syncSecurity(next);
+      setOverlay(next);
+    },
+    [syncSecurity],
+  );
 
   const effectiveConfig = useMemo(() => {
     if (!marketplace) return base;
@@ -157,41 +197,38 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     adapter
       .load()
       .then((loaded) => {
-        if (!cancelled) setOverlay(loaded ?? emptyNavigationOverlay());
+        if (!cancelled) commitOverlay(loaded ?? emptyNavigationOverlay());
       })
       .catch((error: unknown) => {
         logger.warn('Navigation overlay could not be loaded', { error });
-        if (!cancelled) setOverlay(emptyNavigationOverlay());
+        if (!cancelled) commitOverlay(emptyNavigationOverlay());
       });
     return () => {
       cancelled = true;
     };
-  }, [adapter, customizationOn, session?.accessToken, session?.userId]);
-
-  const apps = customizationOn ? (overlay?.installedApps ?? []) : [];
-
-  if (typeof window !== 'undefined') {
-    const removedUrls = [...knownUrlsRef.current].filter(
-      (url) => !apps.some((app) => app.url === url),
-    );
-    knownUrlsRef.current = new Set(apps.map((app) => app.url));
-    replaceInstalledAppRecords(apps);
-    applyNavigationMessageSecurity({
-      config: base,
-      navigation: mergedNavigation,
-      apps,
-      marketplaceOrigin: marketplace ? marketplaceOrigin(marketplace.url) : null,
-      removedAppUrls: removedUrls,
-    });
-  }
+  }, [adapter, commitOverlay, customizationOn, session?.accessToken, session?.userId]);
 
   const persist = useCallback(
-    async (next: NavigationOverlay) => {
-      setOverlay(next);
-      overlayRef.current = next;
-      if (adapter) await adapter.save(next);
+    async (next: NavigationOverlay): Promise<{ ok: true } | { ok: false; error: string }> => {
+      commitOverlay(next);
+      if (!adapter) return { ok: true };
+      try {
+        await adapter.save(next);
+        return { ok: true };
+      } catch (error) {
+        if (!(error instanceof NavigationOverlayConflictError)) throw error;
+        // Another device saved first. Show its layout instead of overwriting it.
+        commitOverlay((await adapter.load()) ?? emptyNavigationOverlay());
+        shellui.toast({
+          type: 'warning',
+          title: i18n.t('marketplace.layoutConflict', {
+            defaultValue: 'Your layout changed on another device. The latest one is shown.',
+          }),
+        });
+        return { ok: false, error: 'layout_conflict' };
+      }
     },
-    [adapter],
+    [adapter, commitOverlay],
   );
 
   const currentOverlay = useCallback((): NavigationOverlay => {
@@ -230,8 +267,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         hiddenPaths: current.hiddenPaths.filter((path) => path !== existing.path),
         updatedAt: now,
       };
-      await persist(next);
-      return { ok: true as const };
+      return persist(next);
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -255,8 +291,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         ),
         updatedAt: now,
       };
-      await persist(next);
-      return { ok: true as const };
+      return persist(next);
     },
     [currentOverlay, customizationOn, marketplace, persist],
   );
@@ -269,8 +304,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const order = movePathInOrder(paths, path, direction);
       if (!order) return { ok: false as const, error: 'not_moved' };
       const current = currentOverlay();
-      await persist({ ...current, order, updatedAt: new Date().toISOString() });
-      return { ok: true as const };
+      return persist({ ...current, order, updatedAt: new Date().toISOString() });
     },
     [currentOverlay, customizationOn, mergedNavigation, persist],
   );
@@ -289,24 +323,21 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         locked: item.locked === true,
       });
       if (!next.ok) return next;
-      await persist({
+      return persist({
         ...current,
         hiddenPaths: next.hiddenPaths,
         updatedAt: new Date().toISOString(),
       });
-      return { ok: true as const };
     },
     [currentOverlay, customizationOn, mergedNavigation, persist],
   );
 
   const resetNavigation = useCallback(async () => {
     if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
-    const empty = emptyNavigationOverlay();
-    overlayRef.current = empty;
-    setOverlay(empty);
+    commitOverlay(emptyNavigationOverlay());
     await adapter?.reset?.();
     return { ok: true as const };
-  }, [adapter, customizationOn]);
+  }, [adapter, commitOverlay, customizationOn]);
 
   const installFromMarketplace = useCallback(
     async (request: MarketplaceInstallRequest) => {
@@ -349,8 +380,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           order: latest.order.includes(stored.path) ? latest.order : [...latest.order, stored.path],
           updatedAt: record.updatedAt,
         };
-        await persist(next);
-        return { ok: true as const, app: stored };
+        const saved = await persist(next);
+        return saved.ok ? { ok: true as const, app: stored } : saved;
       } finally {
         installLockRef.current = false;
       }

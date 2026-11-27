@@ -175,6 +175,7 @@
     "installBody": "{{name}} from {{origin}} will be added to this shell.",
     "capabilities": "Capabilities: {{list}}.",
     "thirdPartySender": "{{name}} (third-party app)",
+    "layoutConflict": "Your layout changed on another device. The latest one is shown.",
     "hostOnly": "Sign-in and embedded frames stay on the host.",
     "install": "Install",
     "cancel": "Cancel",

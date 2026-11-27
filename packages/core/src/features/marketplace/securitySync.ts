@@ -3,6 +3,7 @@ import type { ShellUIConfig } from '../config/types';
 import { removeChildFramesForHosts } from '../auth/appBackend/childFrames';
 import { deriveAllowedMessageOrigins } from '../messaging/deriveAllowedMessageOrigins';
 import type { NavigationEntry } from './mergeNavigation';
+import { getInstalledAppRecords, replaceInstalledAppRecords } from './installedAppRegistry';
 import type { InstalledAppRecord } from './overlay';
 
 export function grantsFromInstalledApps(
@@ -58,4 +59,22 @@ export function applyNavigationMessageSecurity(input: {
   }
   if (removedIds.length > 0) removeChildFramesForHosts(removedIds);
   return removedIds;
+}
+
+/**
+ * Replace the installed-app registry and the message policy in one synchronous step, so no
+ * message is handled against grants that disagree with the registry. Frames of apps that left
+ * the list are dropped.
+ */
+export function commitInstalledApps(input: {
+  config: ShellUIConfig;
+  navigation: readonly NavigationEntry[];
+  apps: readonly InstalledAppRecord[];
+  marketplaceOrigin: string | null;
+}): string[] {
+  const removedAppUrls = getInstalledAppRecords()
+    .filter((previous) => !input.apps.some((app) => app.url === previous.url))
+    .map((previous) => previous.url);
+  replaceInstalledAppRecords(input.apps);
+  return applyNavigationMessageSecurity({ ...input, removedAppUrls });
 }

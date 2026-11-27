@@ -7,7 +7,10 @@ import type {
   ShellUIConfig,
   StorageConfig,
 } from '../../config/types';
-import { findThirdPartyAppForFrameSrc } from '../../marketplace/installedAppRegistry';
+import {
+  findThirdPartyAppForFrameSrc,
+  originHasThirdPartyInstall,
+} from '../../marketplace/installedAppRegistry';
 import { isShellSettingsFrameSrc, isTrustedFrameForAuthToken } from '../../security/trustedFrames';
 import urls from '../../../constants/urls';
 import type { AuthSession } from '../types';
@@ -168,6 +171,14 @@ function toPropagationOptions(delivery: FrameAuthDelivery): FrameAuthPropagation
   };
 }
 
+function frameOriginHasThirdPartyInstall(frameSrc: string, shellOrigin?: string | null): boolean {
+  try {
+    return originHasThirdPartyInstall(new URL(frameSrc, shellOrigin ?? undefined).origin);
+  } catch {
+    return false;
+  }
+}
+
 /** Options for `buildSettingsForPropagation`. Shell frames omit the override keys. */
 export function frameAuthPropagationOptions(input: {
   frameSrc: string;
@@ -176,12 +187,14 @@ export function frameAuthPropagationOptions(input: {
   getAppSession: (key: string) => AuthSession | null;
   shellOrigin?: string | null;
 }): FrameAuthPropagationOptions {
+  // Chosen by origin, like the capability grants, so a frame on an installed origin but outside
+  // the app's path still gets the third-party projection. AI needs the path-matched app.
   const installed = findThirdPartyAppForFrameSrc(input.frameSrc);
-  if (installed) {
+  if (installed || frameOriginHasThirdPartyInstall(input.frameSrc, input.shellOrigin)) {
     return {
       includeAuthAccessToken: false,
       accessToken: null,
-      thirdParty: { ai: installed.capabilities.includes('ai') },
+      thirdParty: { ai: Boolean(installed?.capabilities.includes('ai')) },
     };
   }
   return toPropagationOptions(resolveFrameAuthDelivery(input));

@@ -753,13 +753,17 @@ describe('settings for an installed third-party app', () => {
     aiService: { url: 'https://ai.example' },
   } as unknown as ShellUIConfig;
 
-  const build = (ai: boolean) => {
+  const build = (
+    ai: boolean,
+    frameSrc = 'https://notes.example/',
+    appUrl = 'https://notes.example/',
+  ) => {
     replaceInstalledAppRecords([
       {
         id: 'notes',
         name: 'Notes',
         origin: 'https://notes.example',
-        url: 'https://notes.example/',
+        url: appUrl,
         path: 'notes',
         thirdParty: true,
         capabilities: ai ? ['theme', 'ai'] : ['theme'],
@@ -781,7 +785,7 @@ describe('settings for an installed third-party app', () => {
       config,
       'en',
       frameAuthPropagationOptions({
-        frameSrc: 'https://notes.example/',
+        frameSrc,
         config,
         shellAccessToken: 'shell-token',
         getAppSession: () => null,
@@ -814,6 +818,15 @@ describe('settings for an installed third-party app', () => {
     ]) {
       expect(json).not.toContain(leaked);
     }
+  });
+
+  it('gives a frame on an installed origin, outside the app path, the same projection', () => {
+    const result = build(true, 'https://notes.example/other/deep', 'https://notes.example/app/');
+    expect(result.user).toBeNull();
+    expect(result.storage).toBeNull();
+    expect(result.authBackendBaseUrl).toBeNull();
+    expect(result.navigation?.items).toEqual([]);
+    expect(result.ai?.enabled).toBe(false);
   });
 
   it('reports AI as enabled only for an app that was granted it', () => {

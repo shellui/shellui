@@ -138,6 +138,9 @@ export function explainCapabilityDenial(
   messageType: string,
   grant: CapabilityGrantView | null | undefined,
 ): string | null {
+  // No grant means this frame is not an installed app, so another check owns it. For a frame
+  // that has a grant, this allowlist is the fail-closed layer: a type that is not on it is
+  // refused, so a message nobody mapped to a capability never passes by default.
   if (!grant) return null;
   if (grant.thirdParty) return isThirdPartyMessageAllowed(messageType, grant.capabilities);
   const required = requiredCapabilityForMessage(messageType);

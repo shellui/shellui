@@ -168,6 +168,9 @@ describe('reserved paths and hosts', () => {
       'db.internal',
       'printer.local',
       'fd00::1',
+      'localhost.',
+      '10.0.0.4.',
+      'printer.local.',
     ]) {
       expect(isPrivateOrLoopbackHost(host)).toBe(true);
     }
@@ -187,5 +190,14 @@ describe('reserved paths and hosts', () => {
       error: 'localhost_not_allowed',
     });
     expect(validateInstalledApp(local, { ...context, allowLocalhost: true }).ok).toBe(true);
+  });
+
+  it('refuses a host with a trailing dot, so it cannot dodge the host checks', () => {
+    for (const url of ['https://localhost./', 'https://notes.example./']) {
+      const app = { ...clone(example.installedApps[0]), url, origin: new URL(url).origin };
+      for (const allowLocalhost of [false, true]) {
+        expect(validateInstalledApp(app, { ...context, allowLocalhost }).ok).toBe(false);
+      }
+    }
   });
 });

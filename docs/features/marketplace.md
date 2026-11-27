@@ -66,7 +66,9 @@ Third-party iframes use `referrerPolicy="no-referrer"`, a sandbox of `allow-same
 - **Third-party frames get appearance, language, region, and layout only.** They never receive the user, a token, the navigation list, admin data, or service URLs.
 - **Short message allowlist.** A third-party frame can send `SHELLUI_INITIALIZED`, `SHELLUI_SETTINGS_REQUESTED`, `SHELLUI_CONTENT_SCROLL`, and the message types of the capabilities it was granted. Anything else is dropped. `SHELLUI_SETTINGS_UPDATED` is accepted only from the shell's own Settings page and cookie preferences page.
 - **Honest labels.** A third-party app's navigation label ends with "(third-party)", and its toasts and dialogs are prefixed with the app name.
-- **Frames only for installed origins.** The shell renders a third-party frame only when its origin matches an installed app. `http://localhost` is refused outside development.
+- **Frames only for installed origins.** The shell renders a third-party frame only when its origin matches an installed app. `http://localhost` is refused outside development. Grants, the token rule, and the settings a frame receives are all chosen by origin, so another path on an installed origin gets the same limits.
+- **`frame-src` stays broad.** The shell CSP still allows `https:` in `frame-src` and is report-only by default, so it does not limit which apps can be installed. The installed-origin check above is the control. A host that enforces CSP and wants a tighter list has to narrow `frame-src` itself.
+- **Layout conflicts.** If another device saved the layout first, the save is refused, the shell loads the newer layout, and a toast says so. The device copy is not used to hide the conflict.
 - **Layout sync.** The shell sends the access token only to an HTTPS layout API on a known origin (the Identity base URL of the shell). The copy kept on the device is not uploaded when someone signs in.
 
 ## Customize navigation
@@ -87,7 +89,7 @@ shellui add notes --api-url https://api.marketplace.shellui.com
 shellui add notes --allow-auth
 ```
 
-The CLI reads `GET {apiUrl}/api/apps/<app-id>`. The default `apiUrl` is `https://api.marketplace.shellui.com`. It appends a `NavigationItem` to `shellui.config.json` (or `shellui.navigation.config.json` when config is split). The URL must be HTTPS. The CLI decides for itself whether an app is official: HTTPS on `shellui.com` or a subdomain of it. The catalog's own flags are ignored. A non-official app that sets `safeForAuthToken` is refused unless you pass `--allow-auth`. Paths that the shell routes itself (`admin`, `__settings`, `legal`, `files`, `login`, `marketplace`, `settings`) are refused. An existing path is left unchanged and the command exits with an error. The command prints the name, path, URL, whether the URL is official, and whether the token will be shared.
+The CLI reads `GET {apiUrl}/api/apps/<app-id>`. The default `apiUrl` is `https://api.marketplace.shellui.com`. It appends a `NavigationItem` to `shellui.config.json` (or `shellui.navigation.config.json` when config is split). The URL must be HTTPS. The CLI decides for itself whether an app is official: its origin has to be on a short built-in list (`https://admin.shellui.com`, `https://dashboard.shellui.com`, `https://files.shellui.com`). Other `shellui.com` hosts are not official. The catalog's own flags are ignored. A non-official app that sets `safeForAuthToken` is refused unless you pass `--allow-auth`. Paths that the shell routes itself (`admin`, `__settings`, `legal`, `files`, `login`, `marketplace`, `settings`) are refused. An existing path is left unchanged and the command exits with an error. The command prints the name, path, URL, whether the URL is official, and whether the token will be shared.
 
 ## SDK
 

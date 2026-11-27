@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  NavigationOverlayConflictError,
   createNavigationStorageAdapter,
   navigationLayoutStorageKey,
   resolveNavigationOverlayUrl,
@@ -202,7 +203,7 @@ describe('one layout per user and company', () => {
     expect(methods).toEqual(['GET']);
   });
 
-  it('sends If-Match with the last ETag and reports a conflict as a failure', async () => {
+  it('sends If-Match with the last ETag and surfaces a conflict', async () => {
     const storage = memory();
     const seen: Array<Record<string, string>> = [];
     let putStatus = 204;
@@ -232,10 +233,10 @@ describe('one layout per user and company', () => {
     await adapter.save(sample());
     expect(seen[2]).toMatchObject({ 'If-Match': '"v2"' });
     putStatus = 412;
-    await adapter.save(sample());
-    // A conflict falls back to the scoped device copy and does not overwrite identity.
+    // A conflict is surfaced, not hidden behind the device copy.
+    await expect(adapter.save(sample())).rejects.toBeInstanceOf(NavigationOverlayConflictError);
     const key = navigationLayoutStorageKey({ userId: 'u1', companyId: '10' });
-    expect(storage.getItem(key)).not.toBeNull();
+    expect(storage.getItem(key)).toBeNull();
   });
 });
 

@@ -10,11 +10,16 @@ import {
 export const DEFAULT_MARKETPLACE_API_URL = 'https://api.marketplace.shellui.com';
 
 /**
- * Hosts whose apps count as official. This is the same rule as the in-code allowlist in
- * marketplace-service (`apps/catalog/official.py`): https on `shellui.com` or a subdomain.
- * The catalog's own `official` flag is never read, so a poisoned row cannot raise trust.
+ * Origins whose apps count as official: the Shellui apps that are built to receive the shell
+ * session token. An exact list, so a new `*.shellui.com` host gets nothing until it is added
+ * here on purpose. The catalog's own `official` flag is never read, so a poisoned row cannot
+ * raise trust.
  */
-export const OFFICIAL_HOST = 'shellui.com';
+export const OFFICIAL_APP_ORIGINS = [
+  'https://admin.shellui.com',
+  'https://dashboard.shellui.com',
+  'https://files.shellui.com',
+];
 
 /**
  * First path segments the shell routes itself. Keep in step with `RESERVED_PATH_SEGMENTS`
@@ -35,8 +40,7 @@ export function isOfficialAppUrl(url) {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
-    const host = parsed.hostname.toLowerCase();
-    return host === OFFICIAL_HOST || host.endsWith(`.${OFFICIAL_HOST}`);
+    return OFFICIAL_APP_ORIGINS.includes(parsed.origin);
   } catch {
     return false;
   }

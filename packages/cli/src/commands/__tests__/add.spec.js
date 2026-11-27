@@ -53,7 +53,7 @@ describe('navigationItemFromCatalog', () => {
   test('trusts the app URL against the code allowlist, not the catalog flag', () => {
     const official = navigationItemFromCatalog(
       catalog({
-        url: 'https://notes.shellui.com/',
+        url: 'https://files.shellui.com/',
         official: false,
         safeForAuthToken: true,
         icon: 'https://cdn.example/icon.png',
@@ -88,10 +88,14 @@ describe('navigationItemFromCatalog', () => {
     if (inline.ok) expect(inline.item.icon).toBeUndefined();
   });
 
-  test('matches official hosts exactly', () => {
-    expect(isOfficialAppUrl('https://shellui.com/')).toBe(true);
+  test('matches official origins exactly, not every shellui.com subdomain', () => {
     expect(isOfficialAppUrl('https://files.shellui.com/app')).toBe(true);
+    expect(isOfficialAppUrl('https://admin.shellui.com:443/')).toBe(true);
     for (const url of [
+      'https://notes.shellui.com/',
+      'https://shellui.com/',
+      'https://files.shellui.com:8443/',
+      'https://sub.files.shellui.com/',
       'https://shellui.com.evil.example/',
       'https://notshellui.com/',
       'http://files.shellui.com/',

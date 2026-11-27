@@ -139,6 +139,14 @@ export function createLocalStorageNavigationAdapter(
   };
 }
 
+/** The saved layout changed on another device since it was last read. */
+export class NavigationOverlayConflictError extends Error {
+  constructor() {
+    super('navigation_overlay_conflict');
+    this.name = 'NavigationOverlayConflictError';
+  }
+}
+
 export function createApiNavigationAdapter(
   options: NavigationStorageOptions,
 ): NavigationStorageAdapter {
@@ -190,12 +198,12 @@ export function createApiNavigationAdapter(
     },
     async save(overlay) {
       const response = await request('PUT', overlay);
-      if (response.status === 412) throw new Error('navigation_overlay_conflict');
+      if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     },
     async reset() {
       const response = await request('DELETE');
-      if (response.status === 412) throw new Error('navigation_overlay_conflict');
+      if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}`);
       etag = null;
     },
@@ -237,7 +245,10 @@ export function createNavigationStorageAdapter(
       }
       try {
         await api.save(overlay);
-      } catch {
+      } catch (error) {
+        // A conflict is not an outage. Falling back would hide that another device changed
+        // the layout, so the caller reloads the remote copy and tells the person.
+        if (error instanceof NavigationOverlayConflictError) throw error;
         await local.save(overlay);
       }
     },

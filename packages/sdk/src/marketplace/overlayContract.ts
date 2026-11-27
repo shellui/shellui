@@ -118,14 +118,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Lowercase, without IPv6 brackets or the one trailing dot of a fully qualified name. */
+function normalizeHost(hostname: string): string {
+  return hostname
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '')
+    .toLowerCase();
+}
+
 export function isLoopbackHost(hostname: string): boolean {
-  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const host = normalizeHost(hostname);
   return host === 'localhost' || host === '127.0.0.1' || host === '::1';
 }
 
 /** Loopback, private, link-local, and internal-only hosts. An installed app is never one of these. */
 export function isPrivateOrLoopbackHost(hostname: string): boolean {
-  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  const host = normalizeHost(hostname);
   if (!host) return true;
   if (isLoopbackHost(host) || host === '0.0.0.0') return true;
   if (host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) {
@@ -214,6 +222,8 @@ function httpsOrigin(
     return 'invalid_request';
   }
   if (parsed.username || parsed.password) return 'invalid_request';
+  // `https://shell.example./` is a different origin to the browser. Never store one.
+  if (parsed.hostname.endsWith('.')) return 'invalid_request';
   const localhost = isLoopbackHost(parsed.hostname);
   if (parsed.protocol === 'https:') {
     if (isPrivateOrLoopbackHost(parsed.hostname)) {
