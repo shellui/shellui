@@ -120,17 +120,18 @@ export function createLocalStorageNavigationAdapter(
   const now = options.now ?? (() => new Date().toISOString());
   const validation = options.validation ?? defaultValidation(now);
   const key = () => navigationLayoutStorageKey(options.scope?.());
+  const read = (): NavigationOverlay | null => {
+    try {
+      const raw = storage.getItem(key());
+      if (!raw || raw.length > OVERLAY_LIMITS.maxBytes) return null;
+      return parseNavigationOverlay(JSON.parse(raw) as unknown, validation());
+    } catch {
+      return null;
+    }
+  };
   return {
+    readDevice: read,
     async load() {
-      const read = (): NavigationOverlay | null => {
-        try {
-          const raw = storage.getItem(key());
-          if (!raw || raw.length > OVERLAY_LIMITS.maxBytes) return null;
-          return parseNavigationOverlay(JSON.parse(raw) as unknown, validation());
-        } catch {
-          return null;
-        }
-      };
       return { overlay: read(), etag: null };
     },
     async save(overlay) {
@@ -167,8 +168,16 @@ export function createApiNavigationAdapter(
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? (() => new Date().toISOString());
   const validation = options.validation ?? defaultValidation(now);
-  /** Version of the layout identity last returned. Sent back as `If-Match` on a write. */
-  let etag: string | null = null;
+  /**
+   * Version of the layout identity last returned, for the scope (user and company) it was read
+   * in. Sent back as `If-Match` on a write in that scope only, so another account never sends it.
+   */
+  const scopeKey = () => navigationLayoutStorageKey(options.scope?.());
+  let held: { scope: string; etag: string | null } = { scope: '', etag: null };
+  const current = () => (held.scope === scopeKey() ? held.etag : null);
+  const keep = (etag: string | null) => {
+    held = { scope: scopeKey(), etag };
+  };
   const endpoint = () =>
     resolveTrustedNavigationOverlayUrl({
       apiUrl: options.apiUrl,
@@ -180,7 +189,7 @@ export function createApiNavigationAdapter(
   const request = async (
     method: 'GET' | 'PUT' | 'DELETE',
     body?: NavigationOverlay,
-    version: string | null = etag,
+    version: string | null = current(),
   ) => {
     const url = endpoint();
     if (!url) throw new Error('navigation_overlay_untrusted_url');
@@ -215,20 +224,22 @@ export function createApiNavigationAdapter(
       const payload = (await response.json()) as unknown;
       return { overlay: parseNavigationOverlay(payload, validation()), etag: version };
     },
-    adoptVersion(version) {
-      etag = version;
-    },
+    adoptVersion: keep,
     async save(overlay) {
       const response = await request('PUT', overlay);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      etag = etagOf(response) ?? etag;
+      keep(etagOf(response) ?? current());
     },
     async reset(ifMatch) {
-      const response = await request('DELETE', undefined, ifMatch === undefined ? etag : ifMatch);
+      const response = await request(
+        'DELETE',
+        undefined,
+        ifMatch === undefined ? current() : ifMatch,
+      );
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok && response.status !== 404) throw new Error(`HTTP ${response.status}`);
-      etag = null;
+      keep(null);
     },
   };
 }
@@ -253,6 +264,7 @@ export function createNavigationStorageAdapter(
   const api = createApiNavigationAdapter(options);
 
   return {
+    readDevice: () => local.readDevice?.() ?? null,
     async loadRemote() {
       return useIdentity(options) ? api.load() : local.load();
     },

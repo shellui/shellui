@@ -150,6 +150,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       ? null
       : String(base.backend.companyId);
   const scope = JSON.stringify([session?.userId ?? null, companyId]);
+  const signedIn = Boolean(session?.accessToken);
   const scopeRef = useRef<string | null>(null);
   const [unsavedRemovals, setUnsavedRemovals] = useState(false);
   const setPendingRemovals = useCallback((removals: PendingRemoval[]) => {
@@ -157,13 +158,6 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     setUnsavedRemovals(removals.length > 0);
     if (scopeRef.current !== null) writePendingRemovals(scopeRef.current, removals);
   }, []);
-  // Another account or company never inherits this one's removals.
-  useLayoutEffect(() => {
-    if (scopeRef.current === scope) return;
-    scopeRef.current = scope;
-    pendingRemovalsRef.current = readPendingRemovals(scope);
-    setUnsavedRemovals(pendingRemovalsRef.current.length > 0);
-  }, [scope]);
 
   const marketplace = useMemo(
     () => normalizeMarketplaceConfig(base.marketplace),
@@ -245,6 +239,28 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   }, [base, companyId, marketplace]);
 
   /**
+   * Another account or company never inherits this one's removals or layout (the adapter keeps
+   * the version per scope). On a switch the previous layout is dropped before the new one is read, and the new scope starts
+   * from its device copy narrowed by its pending removals, or from nothing installed.
+   */
+  useLayoutEffect(() => {
+    if (scopeRef.current === scope) return;
+    const switched = scopeRef.current !== null;
+    scopeRef.current = scope;
+    pendingRemovalsRef.current = readPendingRemovals(scope);
+    setUnsavedRemovals(pendingRemovalsRef.current.length > 0);
+    if (!switched || !adapter || !customizationOn) return;
+    readyRef.current = false;
+    setLayoutReady(false);
+    commitOverlay(
+      applyPendingRemovals(
+        adapter.readDevice?.() ?? emptyNavigationOverlay(),
+        pendingRemovalsRef.current,
+      ),
+    );
+  }, [adapter, commitOverlay, customizationOn, scope]);
+
+  /**
    * Read the saved layout. Changes are refused until it is committed, so nothing is written on
    * top of a layout this device has not seen. Its version is adopted only when it is committed;
    * a read that a change in flight made stale is dropped and adopts nothing.
@@ -295,7 +311,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [adapter, commitOverlay, customizationOn, loadAttempt, session?.accessToken, session?.userId]);
+    // Read again only when the scope or the signed-in state changes, not on a token refresh.
+  }, [adapter, commitOverlay, customizationOn, loadAttempt, scope, signedIn]);
 
   const syncsAcrossDevices = Boolean(
     marketplace &&

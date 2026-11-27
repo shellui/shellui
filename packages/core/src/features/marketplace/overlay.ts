@@ -34,6 +34,8 @@ export interface NavigationStorageAdapter {
    * stale device copy must not stand in for the newer layout.
    */
   loadRemote?(): Promise<LoadedNavigationOverlay>;
+  /** The device copy for the current scope, read at once. Shown while the saved layout loads. */
+  readDevice?(): NavigationOverlay | null;
   /** Send this version as `If-Match` from now on. Call it when the layout read at it is committed. */
   adoptVersion?(etag: string | null): void;
 }

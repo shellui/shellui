@@ -962,13 +962,12 @@ describe('NavigationProvider versions it never showed', () => {
       hide = api.setNavigationItemHidden('about', true);
     });
     await flush();
-    // Another device saves v3, then a token refresh reads the layout again, also held.
+    // Another device saves v3, then the layout is read again (a retry), also held.
     otherDeviceSaves((layout) => {
       layout.order = ['about'];
     });
     const releaseReload = holdBodies();
-    page.session = { accessToken: 'token-refreshed', userId: 'u1' };
-    mount();
+    await act(async () => api.retryLayoutLoad());
     await flush();
     server.bodyGate = null;
 
@@ -1042,5 +1041,75 @@ describe('NavigationProvider versions it never showed', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('NavigationProvider scope changes', () => {
+  const switchTo = async (userId: string) => {
+    page.session = { accessToken: `token-${userId}`, userId };
+    mount();
+    await flush();
+  };
+
+  it('drops the previous account layout at once on a direct switch, also after a timeout', async () => {
+    await mountSignedInWithApp();
+    expect(currentGrant()).toEqual(['locale', 'storage', 'theme', 'ui']);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      server.gate = new Promise(() => {});
+      await switchTo('u2');
+
+      expect(api.layoutReady).toBe(false);
+      expect(api.installedApps).toEqual([]);
+      expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+
+      await act(async () => {
+        vi.advanceTimersByTime(LAYOUT_READ_TIMEOUT_MS);
+      });
+      expect(api.layoutLoadFailed).toBe(true);
+      expect(api.installedApps).toEqual([]);
+      expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+      expect(await run(() => api.setNavigationItemHidden('about', true))).toEqual({
+        ok: false,
+        error: 'layout_loading',
+      });
+    } finally {
+      server.gate = null;
+      vi.useRealTimers();
+    }
+  });
+
+  it('starts the new account from its own device copy, narrowed by its pending removals', async () => {
+    await mountSignedInWithApp();
+    const scope = JSON.stringify(['u2', '1']);
+    localStorage.setItem(
+      navigationLayoutStorageKey({ userId: 'u2', companyId: '1' }),
+      JSON.stringify(server.overlay),
+    );
+    sessionStorage.setItem(
+      `shellui.navigation.pendingRemovals:${scope}`,
+      JSON.stringify([{ kind: 'revoke', appId: 'notes', capabilities: ['storage'] }]),
+    );
+    server.gate = new Promise(() => {});
+    await switchTo('u2');
+    server.gate = null;
+
+    expect(api.layoutReady).toBe(false);
+    expect(api.unsavedRemovals).toBe(true);
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+  });
+
+  it('a token refresh for the same account does not read again or drop to loading', async () => {
+    await mountSignedInWithApp();
+    const calls = server.calls.length;
+    server.gate = new Promise(() => {});
+    page.session = { accessToken: 'token-refreshed', userId: 'u1' };
+    mount();
+    await flush();
+    server.gate = null;
+
+    expect(server.calls.length).toBe(calls);
+    expect(api.layoutReady).toBe(true);
+    expect((await run(() => api.setNavigationItemHidden('about', true))).ok).toBe(true);
   });
 });

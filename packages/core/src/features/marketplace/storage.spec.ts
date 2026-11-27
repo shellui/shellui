@@ -203,6 +203,33 @@ describe('one layout per user and company', () => {
     expect(methods).toEqual(['GET']);
   });
 
+  it('never sends one account version as If-Match for another account', async () => {
+    let userId = 'u1';
+    const seen: Array<Record<string, string>> = [];
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      seen.push({ ...(init?.headers as Record<string, string>) });
+      return new Response(null, { status: 204, headers: { ETag: '"u1-v2"' } });
+    });
+    const adapter = createNavigationStorageAdapter({
+      mode: 'api',
+      identityConfigured: true,
+      isSignedIn: () => true,
+      getAccessToken: () => 'token',
+      identityBaseUrl: 'https://id.example',
+      scope: () => ({ userId, companyId: '10' }),
+      storage: memory(),
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+    adapter.adoptVersion?.('"u1-v1"');
+    userId = 'u2';
+    await adapter.save(sample());
+    expect(seen[0]).not.toHaveProperty('If-Match');
+    // Back on u1, the version saved under u2 is not sent either.
+    userId = 'u1';
+    await adapter.save(sample());
+    expect(seen[1]).not.toHaveProperty('If-Match');
+  });
+
   it('sends If-Match with the last ETag and surfaces a conflict', async () => {
     const storage = memory();
     const seen: Array<Record<string, string>> = [];
