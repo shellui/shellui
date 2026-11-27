@@ -3,6 +3,11 @@ import type { NavigationItem } from '../config/types';
 import { createMarketplaceNavigationItem, mergeNavigationOverlay } from './mergeNavigation';
 import { emptyNavigationOverlay, parseNavigationOverlay, type InstalledAppRecord } from './overlay';
 
+const context = {
+  now: '2026-01-01T00:00:00.000Z',
+  shellOrigin: 'https://shell.example',
+};
+
 const home: NavigationItem = {
   label: 'Home',
   path: 'home',
@@ -61,6 +66,7 @@ describe('mergeNavigationOverlay', () => {
     expect(notesItem.safeForAuthToken).toBeUndefined();
     expect(notesItem.childFrames).toBeUndefined();
     expect(notesItem.url).toBe('https://notes.example/app/');
+    expect(notesItem.label).toEqual({ en: 'Notes (third-party)', fr: 'Notes (tiers)' });
   });
 
   it('drops inline SVG icons from installed apps', () => {
@@ -75,31 +81,59 @@ describe('mergeNavigationOverlay', () => {
 });
 
 describe('parseNavigationOverlay', () => {
-  it('strips spoofed auth from a stored third-party app', () => {
-    const parsed = parseNavigationOverlay({
-      version: 1,
-      updatedAt: '2026-01-01T00:00:00.000Z',
-      order: [],
-      hiddenPaths: [],
-      installedApps: [
-        {
-          ...app(),
-          capabilities: ['theme', 'locale', 'auth'],
-          safeForAuthToken: true,
-          childFrames: { origins: ['https://evil.example'] },
-        },
-      ],
-    });
-    expect(parsed?.installedApps[0]?.capabilities).toEqual(['theme', 'locale']);
+  const doc = (installedApps: unknown[]) => ({
+    version: 1,
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    order: [],
+    hiddenPaths: [],
+    installedApps,
+  });
+
+  it('drops a stored app that asks for auth instead of silently trimming it', () => {
+    const parsed = parseNavigationOverlay(
+      doc([{ ...app(), capabilities: ['theme', 'locale', 'auth'] }, app({ id: 'ok', path: 'ok' })]),
+      context,
+    );
+    expect(parsed?.installedApps.map((entry) => entry.id)).toEqual(['ok']);
+  });
+
+  it('never carries unknown fields such as safeForAuthToken or childFrames', () => {
+    const parsed = parseNavigationOverlay(
+      doc([
+        { ...app(), safeForAuthToken: true, childFrames: { origins: ['https://evil.example'] } },
+      ]),
+      context,
+    );
     expect(parsed?.installedApps[0]).not.toHaveProperty('safeForAuthToken');
     expect(parsed?.installedApps[0]).not.toHaveProperty('childFrames');
   });
 
-  it('rejects a non-https remote app url', () => {
-    const parsed = parseNavigationOverlay({
-      version: 1,
-      installedApps: [app({ url: 'http://notes.example/app', origin: 'http://notes.example' })],
-    });
+  it('rejects a non-https remote app url, a first-party record, and the shell origin', () => {
+    const parsed = parseNavigationOverlay(
+      doc([
+        app({ url: 'http://notes.example/app', origin: 'http://notes.example' }),
+        { ...app({ id: 'first', path: 'first' }), thirdParty: false },
+        app({
+          id: 'self',
+          path: 'self',
+          url: 'https://shell.example/x',
+          origin: 'https://shell.example',
+        }),
+      ]),
+      context,
+    );
     expect(parsed?.installedApps).toEqual([]);
+  });
+
+  it('refuses a layout over 100 apps', () => {
+    const many = Array.from({ length: 101 }, (_, n) =>
+      app({
+        id: `app-${n}`,
+        path: `app-${n}`,
+        url: `https://a${n}.example/`,
+        origin: `https://a${n}.example`,
+      }),
+    );
+    expect(parseNavigationOverlay(doc(many), context)).toBeNull();
   });
 });

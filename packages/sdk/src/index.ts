@@ -796,6 +796,27 @@ export {
   explainMarketplaceRequestDenial,
 } from './marketplace/capabilities.js';
 export type { MarketplaceAppInfo, MarketplaceInstallRequest } from './marketplace/types.js';
+export {
+  NAVIGATION_OVERLAY_VERSION,
+  OVERLAY_LIMITS,
+  RESERVED_PATH_SEGMENTS,
+  THIRD_PARTY_CAPABILITIES,
+  isPrivateOrLoopbackHost,
+  hasPathTraversal,
+  isReservedAppPath,
+  normalizeInstalledAppPath,
+  slugifyPath,
+  validateInstalledApp,
+  validateNavigationOverlay,
+  type InstalledAppRecordShape,
+  type NavigationOverlayShape,
+  type OverlayRejection,
+  type OverlayValidationContext,
+} from './marketplace/overlayContract.js';
+export {
+  THIRD_PARTY_INBOUND_MESSAGE_TYPES,
+  isThirdPartyMessageAllowed,
+} from './marketplace/capabilities.js';
 export type { FrameCapabilityGrantInput } from './utils/frameRegistry.js';
 export {
   MARKETPLACE_INSTALL,

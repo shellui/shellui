@@ -3,6 +3,7 @@ import type { Settings } from '@shellui/sdk';
 import type { AuthSession } from '../../auth/types';
 import { frameAuthPropagationOptions } from '../../auth/appBackend/frameAuth';
 import type { ShellUIConfig } from '../../config/types';
+import { replaceInstalledAppRecords } from '../../marketplace/installedAppRegistry';
 import { buildSettingsForPropagation } from './buildSettingsForPropagation';
 
 const baseSettings: Settings = {
@@ -736,5 +737,88 @@ describe('buildSettingsForPropagation', () => {
     expect(json).not.toContain('https://files-api.example');
     expect(json).not.toContain('https://hosting.example');
     expect(json).not.toContain(shellToken);
+  });
+});
+
+describe('settings for an installed third-party app', () => {
+  const secretUser = {
+    id: 'u1',
+    email: 'person@example.com',
+    name: 'Person',
+  } as unknown as Settings['user'];
+  const config = {
+    navigation: [{ label: 'Admin tools', path: 'tools', url: 'https://tools.example/' }],
+    backend: { adminPathname: '/admin' },
+    storage: { filesUrl: 'https://files-api.example' },
+    aiService: { url: 'https://ai.example' },
+  } as unknown as ShellUIConfig;
+
+  const build = (ai: boolean) => {
+    replaceInstalledAppRecords([
+      {
+        id: 'notes',
+        name: 'Notes',
+        origin: 'https://notes.example',
+        url: 'https://notes.example/',
+        path: 'notes',
+        thirdParty: true,
+        capabilities: ai ? ['theme', 'ai'] : ['theme'],
+        installedAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
+    vi.stubGlobal('window', {
+      location: { origin: 'https://shell.example' },
+      matchMedia: () => ({ matches: false }),
+    });
+    return buildSettingsForPropagation(
+      {
+        ...baseSettings,
+        user: secretUser,
+        developerFeatures: { enabled: true },
+        cookieConsent: { acceptedHosts: ['tracker.example'], consentedCookieHosts: [] },
+      } as Settings,
+      config,
+      'en',
+      frameAuthPropagationOptions({
+        frameSrc: 'https://notes.example/',
+        config,
+        shellAccessToken: 'shell-token',
+        getAppSession: () => null,
+        shellOrigin: 'https://shell.example',
+      }),
+    );
+  };
+
+  it('carries appearance, language, region, and layout, and nothing else', () => {
+    const result = build(false);
+    expect(result.appearance?.availableThemes?.length).toBeGreaterThan(0);
+    expect(result.language).toEqual({ code: 'en' });
+    expect(result.region).toEqual({ timezone: 'UTC' });
+    expect(result.user).toBeNull();
+    expect(result.accessToken).toBeNull();
+    expect(result.navigation?.items).toEqual([]);
+    expect(result.administration).toBeNull();
+    expect(result.storage).toBeNull();
+    expect(result.aiService).toBeNull();
+    expect(result.authBackendBaseUrl).toBeNull();
+    expect(result.developerFeatures).toEqual({ enabled: false });
+    expect(result.cookieConsent).toBeUndefined();
+    const json = JSON.stringify(result);
+    for (const leaked of [
+      'person@example.com',
+      'tracker.example',
+      'files-api.example',
+      'ai.example',
+      'Admin tools',
+    ]) {
+      expect(json).not.toContain(leaked);
+    }
+  });
+
+  it('reports AI as enabled only for an app that was granted it', () => {
+    expect(build(false).ai?.enabled).toBe(false);
+    expect(build(true).ai?.enabled).toBe(true);
+    expect(build(true).ai?.ollamaEnabled).toBe(false);
   });
 });

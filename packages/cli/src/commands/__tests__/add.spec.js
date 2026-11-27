@@ -2,7 +2,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { addAppCommand, marketplaceAppEndpoint, navigationItemFromCatalog } from '../add.js';
+import {
+  addAppCommand,
+  isOfficialAppUrl,
+  marketplaceAppEndpoint,
+  navigationItemFromCatalog,
+  RESERVED_NAV_SEGMENTS,
+} from '../add.js';
+import { RESERVED_PATH_SEGMENTS } from '../../../../sdk/src/marketplace/overlayContract.ts';
 import { MAIN_CONFIG_FILE } from '../../utils/config-paths.js';
 
 const testRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), 'test-fixtures-add');
@@ -43,20 +50,61 @@ describe('navigationItemFromCatalog', () => {
     expect(allowed.item.safeForAuthToken).toBe(true);
   });
 
-  test('allows safeForAuthToken on an official catalog app and rejects http', () => {
+  test('trusts the app URL against the code allowlist, not the catalog flag', () => {
     const official = navigationItemFromCatalog(
-      catalog({ official: true, safeForAuthToken: true, icon: 'https://cdn.example/icon.png' }),
+      catalog({
+        url: 'https://notes.shellui.com/',
+        official: false,
+        safeForAuthToken: true,
+        icon: 'https://cdn.example/icon.png',
+      }),
     );
     expect(official.ok).toBe(true);
     if (!official.ok) return;
     expect(official.item.safeForAuthToken).toBe(true);
+    expect(official.summary.official).toBe(true);
     expect(official.item.icon).toBe('https://cdn.example/icon.png');
 
+    const poisoned = navigationItemFromCatalog(
+      catalog({
+        url: 'https://evil.example/',
+        official: true,
+        firstParty: true,
+        safeForAuthToken: true,
+      }),
+    );
+    expect(poisoned.ok).toBe(false);
+    const plain = navigationItemFromCatalog(
+      catalog({ url: 'https://evil.example/', official: true }),
+    );
+    expect(plain.ok).toBe(true);
+    if (plain.ok) {
+      expect(plain.summary.official).toBe(false);
+      expect(plain.item.safeForAuthToken).toBeUndefined();
+    }
     expect(navigationItemFromCatalog(catalog({ url: 'http://notes.example/' })).ok).toBe(false);
-    expect(navigationItemFromCatalog(catalog({ icon: '<svg></svg>' })).ok).toBe(true);
-    if (navigationItemFromCatalog(catalog({ icon: '<svg></svg>' })).ok) {
-      const item = navigationItemFromCatalog(catalog({ icon: '<svg></svg>' }));
-      if (item.ok) expect(item.item.icon).toBeUndefined();
+    const inline = navigationItemFromCatalog(catalog({ icon: '<svg></svg>' }));
+    expect(inline.ok).toBe(true);
+    if (inline.ok) expect(inline.item.icon).toBeUndefined();
+  });
+
+  test('matches official hosts exactly', () => {
+    expect(isOfficialAppUrl('https://shellui.com/')).toBe(true);
+    expect(isOfficialAppUrl('https://files.shellui.com/app')).toBe(true);
+    for (const url of [
+      'https://shellui.com.evil.example/',
+      'https://notshellui.com/',
+      'http://files.shellui.com/',
+      'https://user:pw@files.shellui.com/',
+      'not a url',
+    ]) {
+      expect(isOfficialAppUrl(url)).toBe(false);
+    }
+  });
+
+  test('refuses a core shell path', () => {
+    for (const path of ['admin', 'files', 'Settings/profile', '__settings', 'legal']) {
+      expect(navigationItemFromCatalog(catalog({ path })).ok).toBe(false);
     }
   });
 
@@ -146,5 +194,12 @@ describe('addAppCommand', () => {
     expect(process.exitCode).toBe(1);
     const config = JSON.parse(fs.readFileSync(MAIN_CONFIG_FILE, 'utf8'));
     expect(config.navigation).toEqual([]);
+  });
+});
+
+describe('shared reserved paths', () => {
+  test('the CLI refuses the same first segments as the shell and identity', () => {
+    // The CLI keeps its own short copy so it needs no SDK at run time. This guards drift.
+    expect([...RESERVED_NAV_SEGMENTS].sort()).toEqual([...RESERVED_PATH_SEGMENTS].sort());
   });
 });

@@ -1,10 +1,15 @@
 import {
-  GRANTABLE_EXTRA_CAPABILITIES,
+  hasPathTraversal,
+  isReservedAppPath,
+  normalizeInstalledAppPath,
   sanitizeCapabilityList,
+  slugifyPath,
+  validateInstalledApp,
   type AppCapability,
+  type OverlayRejection,
+  type OverlayValidationContext,
 } from '@shellui/sdk';
-import type { NavigationItem } from '../config/types';
-import { isLocalDevHost, safeRemoteIconUrl } from './icons';
+import { safeRemoteIconUrl } from './icons';
 import type { InstalledAppRecord } from './overlay';
 
 export interface MarketplaceInstallRequest {
@@ -13,6 +18,7 @@ export interface MarketplaceInstallRequest {
   url?: unknown;
   path?: unknown;
   icon?: unknown;
+  /** Ignored. Every runtime install is third-party, whatever the catalog says. */
   thirdParty?: unknown;
   capabilities?: unknown;
   childFrames?: unknown;
@@ -25,29 +31,44 @@ export interface InstallSummary {
   capabilities: AppCapability[];
   /** True when the request asked for sign-in or child frames. Those are not granted. */
   deniedPrivileged: boolean;
+  /** True when this id is already installed. The person confirms the update again. */
+  update: boolean;
 }
 
+export type InstallError = OverlayRejection | 'third_party_disabled';
+
 export type InstallPreparation =
-  | { ok: false; error: string }
+  | { ok: false; error: InstallError }
   | {
       ok: true;
-      needsConfirmation: boolean;
+      /** Always true. A runtime install is never silent. */
+      needsConfirmation: true;
       record: InstalledAppRecord;
       summary: InstallSummary;
     };
 
-const EXTRA = new Set<string>(GRANTABLE_EXTRA_CAPABILITIES);
+/** Zero-width, bidirectional, and control characters that can disguise a name. */
+const INVISIBLE =
+  /[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g;
+const SHELL_LABELS = new Set([
+  'settings',
+  'admin',
+  'administration',
+  'security',
+  'account',
+  'sign in',
+  'log in',
+  'login',
+]);
 
-function normalizePath(value: unknown, fallbackId: string): string | null {
-  const raw = typeof value === 'string' && value.trim() ? value : fallbackId;
-  const path = raw
-    .trim()
-    .replace(/^\/+|\/+$/g, '')
-    .replace(/[^a-zA-Z0-9/_-]+/g, '-')
-    .replace(/-+/g, '-');
-  if (!path || path.includes('..')) return null;
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9/_-]{0,120}$/.test(path)) return null;
-  return path;
+/** A display name with no hidden characters that does not pass itself off as the shell. */
+export function cleanAppName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const name = value.normalize('NFKC').replace(INVISIBLE, '').replace(/\s+/g, ' ').trim();
+  if (!name || name.length > 80) return null;
+  const lower = name.toLowerCase();
+  if (lower.includes('shellui') || SHELL_LABELS.has(lower)) return null;
+  return name;
 }
 
 function allocatePath(desired: string, taken: ReadonlySet<string>): string {
@@ -57,60 +78,46 @@ function allocatePath(desired: string, taken: ReadonlySet<string>): string {
   return `${desired}-${n}`;
 }
 
-function originOf(url: string): string | null {
-  try {
-    return new URL(url).origin;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * Check one install request and build the record to store.
+ *
+ * Every runtime install is treated as third-party and needs a confirmation, including
+ * a reinstall of an id that is already present. The catalog's `thirdParty`, `auth`,
+ * `safeForAuthToken`, and child-frame fields are ignored. The record then goes through
+ * the same validator as a layout read from storage, so the two cannot disagree.
+ */
 export function prepareInstall(
   request: MarketplaceInstallRequest,
   options: {
     allowThirdParty: boolean;
-    now: string;
+    validation: OverlayValidationContext;
     takenPaths: ReadonlySet<string>;
-    staticOrigins: ReadonlySet<string>;
-    shellOrigin?: string | null;
+    existing?: InstalledAppRecord | null;
   },
 ): InstallPreparation {
   const id = typeof request.id === 'string' ? request.id.trim() : '';
-  const name = typeof request.name === 'string' ? request.name.trim() : '';
+  const name = cleanAppName(request.name);
   const url = typeof request.url === 'string' ? request.url.trim() : '';
   if (!id || !name || !url) return { ok: false, error: 'invalid_request' };
-  if (id.length > 128 || name.length > 80) return { ok: false, error: 'invalid_request' };
+  if (!options.allowThirdParty) return { ok: false, error: 'third_party_disabled' };
 
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return { ok: false, error: 'invalid_request' };
-  }
-  const localhost = isLocalDevHost(parsed.hostname);
-  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && localhost)) {
-    return { ok: false, error: 'invalid_request' };
-  }
-
-  const thirdParty = request.thirdParty !== false;
-  if (thirdParty && !options.allowThirdParty) return { ok: false, error: 'third_party_disabled' };
-  if (thirdParty && options.shellOrigin && parsed.origin === options.shellOrigin) {
-    return { ok: false, error: 'origin_in_use' };
-  }
-  if (thirdParty && options.staticOrigins.has(parsed.origin)) {
-    return { ok: false, error: 'origin_in_use' };
-  }
-
-  const desired = normalizePath(request.path, id);
+  const existing = options.existing ?? null;
+  const rawPath = typeof request.path === 'string' && request.path.trim() ? request.path : id;
+  if (hasPathTraversal(rawPath)) return { ok: false, error: 'invalid_request' };
+  const desired = existing?.path ?? normalizeInstalledAppPath(slugifyPath(rawPath));
   if (!desired) return { ok: false, error: 'invalid_request' };
-  const path = allocatePath(desired, options.takenPaths);
+  if (isReservedAppPath(desired, options.validation.reservedPaths)) {
+    return { ok: false, error: 'path_reserved' };
+  }
+  const taken = new Set(options.takenPaths);
+  if (existing) taken.delete(existing.path);
+  const path = existing ? existing.path : allocatePath(desired, taken);
 
   const requested = Array.isArray(request.capabilities) ? request.capabilities : [];
   const capabilities = sanitizeCapabilityList(
     ['theme', 'locale', ...requested.filter((entry) => entry !== 'auth')],
-    thirdParty,
+    true,
   );
-  const askedForExtra = requested.some((entry) => typeof entry === 'string' && EXTRA.has(entry));
   const deniedPrivileged =
     requested.includes('auth') ||
     requested.includes('childFrames') ||
@@ -118,30 +125,41 @@ export function prepareInstall(
     request.safeForAuthToken === true ||
     (request.childFrames !== undefined && request.childFrames !== null);
 
-  const needsConfirmation = thirdParty || askedForExtra || deniedPrivileged;
+  const now = options.validation.now;
   const icon = safeRemoteIconUrl(request.icon);
-  const record: InstalledAppRecord = {
-    id,
-    name,
-    origin: parsed.origin,
-    url,
-    path,
-    ...(icon ? { icon } : {}),
-    thirdParty,
-    capabilities,
-    installedAt: options.now,
-    updatedAt: options.now,
-  };
+  const checked = validateInstalledApp(
+    {
+      id,
+      name,
+      origin: (() => {
+        try {
+          return new URL(url).origin;
+        } catch {
+          return undefined;
+        }
+      })(),
+      url,
+      path,
+      ...(icon ? { icon } : {}),
+      thirdParty: true,
+      capabilities,
+      installedAt: existing?.installedAt ?? now,
+      updatedAt: now,
+    },
+    options.validation,
+  );
+  if (!checked.ok) return { ok: false, error: checked.error };
 
   return {
     ok: true,
-    needsConfirmation,
-    record,
+    needsConfirmation: true,
+    record: checked.app,
     summary: {
       name,
-      origin: parsed.origin,
-      capabilities,
+      origin: checked.app.origin,
+      capabilities: checked.app.capabilities,
       deniedPrivileged,
+      update: existing !== null,
     },
   };
 }
@@ -155,13 +173,4 @@ export function upsertInstalledApp(
     ? { ...record, installedAt: existing.installedAt, path: existing.path }
     : record;
   return [...apps.filter((app) => app.id !== record.id), next];
-}
-
-export function staticNavigationOrigins(items: readonly NavigationItem[]): Set<string> {
-  const origins = new Set<string>();
-  for (const item of items) {
-    const origin = originOf(item.url);
-    if (origin) origins.add(origin);
-  }
-  return origins;
 }

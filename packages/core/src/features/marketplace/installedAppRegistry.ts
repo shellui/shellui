@@ -32,6 +32,11 @@ export function isThirdPartyFrameSrc(frameSrc: string): boolean {
   return records.some((app) => app.thirdParty && frameMatchesInstalledApp(frameSrc, app.url));
 }
 
+/** The installed third-party app that owns this frame URL, if any. */
+export function findThirdPartyAppForFrameSrc(frameSrc: string): InstalledAppRecord | undefined {
+  return records.find((app) => app.thirdParty && frameMatchesInstalledApp(frameSrc, app.url));
+}
+
 export function clearInstalledAppRecords(): void {
   records = [];
 }

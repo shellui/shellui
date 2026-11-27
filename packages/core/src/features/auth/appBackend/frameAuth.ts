@@ -7,6 +7,7 @@ import type {
   ShellUIConfig,
   StorageConfig,
 } from '../../config/types';
+import { findThirdPartyAppForFrameSrc } from '../../marketplace/installedAppRegistry';
 import { isShellSettingsFrameSrc, isTrustedFrameForAuthToken } from '../../security/trustedFrames';
 import urls from '../../../constants/urls';
 import type { AuthSession } from '../types';
@@ -153,6 +154,8 @@ export type FrameAuthPropagationOptions = {
   email?: EmailConfig | null;
   hosting?: HostingConfig | null;
   aiService?: AiServiceConfig | null;
+  /** Set for an installed third-party app. `buildSettingsForPropagation` then sends the short list only. */
+  thirdParty?: { ai: boolean };
 };
 
 function toPropagationOptions(delivery: FrameAuthDelivery): FrameAuthPropagationOptions {
@@ -173,6 +176,14 @@ export function frameAuthPropagationOptions(input: {
   getAppSession: (key: string) => AuthSession | null;
   shellOrigin?: string | null;
 }): FrameAuthPropagationOptions {
+  const installed = findThirdPartyAppForFrameSrc(input.frameSrc);
+  if (installed) {
+    return {
+      includeAuthAccessToken: false,
+      accessToken: null,
+      thirdParty: { ai: installed.capabilities.includes('ai') },
+    };
+  }
   return toPropagationOptions(resolveFrameAuthDelivery(input));
 }
 

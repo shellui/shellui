@@ -1,3 +1,4 @@
+import { attributeTitle, thirdPartySenderLabel } from '../marketplace/attribution';
 import { shellui, type ShellUIMessage, type DialogOptions } from '@shellui/sdk';
 import {
   createContext,
@@ -233,7 +234,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
       const payload = data.payload as DialogOptions & { id: string };
       setDialogState({
         id: payload.id,
-        title: payload.title,
+        title: attributeTitle(payload.title, thirdPartySenderLabel(data.from)),
         description: payload.description,
         mode: payload.mode || 'ok',
         okLabel: payload.okLabel,
@@ -257,7 +258,7 @@ export const DialogProvider = ({ children }: DialogProviderProps) => {
         const payload = data.payload as DialogOptions & { id: string };
         setDialogState({
           id: payload.id,
-          title: payload.title,
+          title: attributeTitle(payload.title, thirdPartySenderLabel(data.from)),
           description: payload.description,
           mode: payload.mode || 'ok',
           okLabel: payload.okLabel,

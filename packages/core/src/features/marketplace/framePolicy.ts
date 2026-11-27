@@ -1,13 +1,16 @@
 import { resolveContentIframeSandbox } from '../../components/contentIframeSandbox';
 import { isSafeIframeUrl } from '../../components/iframeUrlSafety';
+import { isShellDevelopment } from '../security/urlAllowlist';
 import { isLocalDevHost } from './icons';
+import { originHasThirdPartyInstall } from './installedAppRegistry';
 
 /**
- * Third-party frames never receive `allow-top-navigation` or a Permissions-Policy allowlist.
- * Cross-origin URLs must be HTTPS. `http://localhost` stays available for local development.
+ * Third-party frames never receive `allow-top-navigation`, `allow-popups`, `allow-modals`,
+ * or a Permissions-Policy allowlist. `allow-same-origin` only keeps the app's own storage
+ * working, and a frame can never share the shell's origin (installs on it are refused).
+ * Cross-origin URLs must be HTTPS. `http://localhost` is available in development builds only.
  */
-export const THIRD_PARTY_IFRAME_SANDBOX =
-  'allow-same-origin allow-scripts allow-forms allow-popups';
+export const THIRD_PARTY_IFRAME_SANDBOX = 'allow-same-origin allow-scripts allow-forms';
 
 export interface ContentFramePolicy {
   sandbox: string;
@@ -16,13 +19,18 @@ export interface ContentFramePolicy {
   permitted: boolean;
 }
 
+/**
+ * A third-party frame renders only for an origin that was installed. This is the shell-side
+ * frame-src: a navigation item or deep link cannot point an installed app's slot at another host.
+ */
 export function isAllowedThirdPartyFrameUrl(url: string): boolean {
   const trimmed = url.trim();
   if (!/^https?:\/\//i.test(trimmed)) return false;
   try {
     const parsed = new URL(trimmed);
+    if (!originHasThirdPartyInstall(parsed.origin)) return false;
     if (parsed.protocol === 'https:') return true;
-    return parsed.protocol === 'http:' && isLocalDevHost(parsed.hostname);
+    return parsed.protocol === 'http:' && isLocalDevHost(parsed.hostname) && isShellDevelopment();
   } catch {
     return false;
   }

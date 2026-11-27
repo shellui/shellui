@@ -24,11 +24,11 @@ import { useAuth } from '../auth/hooks/useAuth';
 import { flattenNavigationItems } from '../layouts/utils';
 import { movePathInOrder, nextHiddenPaths } from './navigationCustomization';
 import { ConfigContext } from '../config/ConfigProvider';
+import { isShellDevelopment } from '../security/urlAllowlist';
 import { useConfig } from '../config/useConfig';
 import { InstallConfirmDialog } from './InstallConfirmDialog';
 import {
   prepareInstall,
-  staticNavigationOrigins,
   upsertInstalledApp,
   type InstallSummary,
   type MarketplaceInstallRequest,
@@ -42,6 +42,7 @@ import {
 import { marketplaceOrigin, normalizeMarketplaceConfig } from './normalizeMarketplaceConfig';
 import { emptyNavigationOverlay, type InstalledAppRecord, type NavigationOverlay } from './overlay';
 import { applyNavigationMessageSecurity } from './securitySync';
+import { createOverlayValidationContext, reservedShellPaths } from './validationContext';
 import { createNavigationStorageAdapter, isIdentityConfigured } from './storage';
 
 const logger = getLogger('shellcore');
@@ -94,6 +95,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth();
   const tokenRef = useRef<string | null>(null);
   tokenRef.current = session?.accessToken ?? null;
+  const userIdRef = useRef<string | null>(null);
+  userIdRef.current = session?.userId ?? null;
   const [overlay, setOverlay] = useState<NavigationOverlay | null>(null);
   const [pending, setPending] = useState<PendingConfirm | null>(null);
   const pendingRef = useRef<PendingConfirm | null>(null);
@@ -114,8 +117,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       base.navigation,
       customizationOn ? overlay : null,
       createMarketplaceNavigationItem(marketplace.url),
+      reservedShellPaths(base),
     );
-  }, [base.navigation, customizationOn, marketplace, overlay]);
+  }, [base, customizationOn, marketplace, overlay]);
 
   const effectiveConfig = useMemo(() => {
     if (!marketplace) return base;
@@ -124,6 +128,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const adapter = useMemo(() => {
     if (!marketplace) return null;
+    const staticItems = [
+      ...flattenNavigationItems(base.navigation ?? []),
+      createMarketplaceNavigationItem(marketplace.url),
+    ];
     return createNavigationStorageAdapter({
       mode: marketplace.navigationCustomization.storage,
       identityConfigured: isIdentityConfigured(base, marketplace.navigationCustomization.apiUrl),
@@ -131,6 +139,15 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       getAccessToken: () => tokenRef.current,
       identityBaseUrl: base.backend?.type === 'shellui' ? (base.backend.url ?? null) : null,
       apiUrl: marketplace.navigationCustomization.apiUrl ?? null,
+      allowLocalhost: isShellDevelopment(),
+      scope: () => ({
+        userId: userIdRef.current,
+        companyId:
+          base.backend?.companyId === undefined || base.backend.companyId === null
+            ? null
+            : String(base.backend.companyId),
+      }),
+      validation: () => createOverlayValidationContext({ config: base, staticItems }),
     });
   }, [base, marketplace]);
 
@@ -149,7 +166,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [adapter, customizationOn, session?.accessToken]);
+  }, [adapter, customizationOn, session?.accessToken, session?.userId]);
 
   const apps = customizationOn ? (overlay?.installedApps ?? []) : [];
 
@@ -180,6 +197,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const currentOverlay = useCallback((): NavigationOverlay => {
     return overlayRef.current ?? emptyNavigationOverlay();
   }, []);
+
+  const installLockRef = useRef(false);
 
   const askConfirm = useCallback((summary: InstallSummary) => {
     return new Promise<boolean>((resolve) => {
@@ -227,7 +246,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       const nextCaps = sanitizeCapabilityList(
         ['theme', 'locale', ...capabilities.filter((capability) => capability !== 'auth')],
-        existing.thirdParty,
+        true,
       );
       const next: NavigationOverlay = {
         ...current,
@@ -294,49 +313,49 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       if (!marketplace) return { ok: false as const, error: 'marketplace_disabled' };
       if (!customizationOn)
         return { ok: false as const, error: 'navigation_customization_disabled' };
-      const current = currentOverlay();
-      const staticItems = flattenNavigationItems(base.navigation ?? []);
-      const prepared = prepareInstall(request, {
-        allowThirdParty: marketplace.allowThirdParty,
-        now: new Date().toISOString(),
-        takenPaths: new Set([
-          ...staticItems.map((item) => item.path),
-          ...current.installedApps.map((app) => app.path),
-          'marketplace',
-        ]),
-        staticOrigins: staticNavigationOrigins([
-          ...staticItems,
-          createMarketplaceNavigationItem(marketplace.url),
-        ]),
-        shellOrigin: typeof window !== 'undefined' ? window.location.origin : null,
-      });
-      if (!prepared.ok) return prepared;
-      if (prepared.needsConfirmation) {
+      // One install at a time. A second request while the dialog is open is refused, so a page
+      // cannot queue installs behind a confirmation the person already answered.
+      if (installLockRef.current) return { ok: false as const, error: 'install_in_progress' };
+      installLockRef.current = true;
+      try {
+        const current = currentOverlay();
+        const staticItems = flattenNavigationItems(base.navigation ?? []);
+        const marketplaceItem = createMarketplaceNavigationItem(marketplace.url);
+        const requestedId = typeof request.id === 'string' ? request.id.trim() : '';
+        const prepared = prepareInstall(request, {
+          allowThirdParty: marketplace.allowThirdParty,
+          validation: createOverlayValidationContext({
+            config: base,
+            staticItems: [...staticItems, marketplaceItem],
+          }),
+          takenPaths: new Set([
+            ...staticItems.map((item) => item.path),
+            ...current.installedApps.map((app) => app.path),
+            marketplaceItem.path,
+          ]),
+          existing: current.installedApps.find((app) => app.id === requestedId) ?? null,
+        });
+        if (!prepared.ok) return prepared;
         const accepted = await askConfirm(prepared.summary);
         if (!accepted) return { ok: false as const, error: 'confirmation_declined' };
+        // The layout may have changed while the dialog was open.
+        const latest = currentOverlay();
+        const record = prepared.record;
+        const installedApps = upsertInstalledApp(latest.installedApps, record);
+        const stored = installedApps.find((app) => app.id === record.id) ?? record;
+        const next: NavigationOverlay = {
+          ...latest,
+          installedApps,
+          order: latest.order.includes(stored.path) ? latest.order : [...latest.order, stored.path],
+          updatedAt: record.updatedAt,
+        };
+        await persist(next);
+        return { ok: true as const, app: stored };
+      } finally {
+        installLockRef.current = false;
       }
-      const existing = current.installedApps.find((app) => app.id === prepared.record.id);
-      const record = existing
-        ? {
-            ...prepared.record,
-            path: existing.path,
-            installedAt: existing.installedAt,
-            updatedAt: prepared.record.updatedAt,
-          }
-        : prepared.record;
-      const installedApps = upsertInstalledApp(current.installedApps, record);
-      const next: NavigationOverlay = {
-        ...current,
-        installedApps,
-        order: current.order.includes(record.path)
-          ? current.order
-          : [...current.order, record.path],
-        updatedAt: record.updatedAt,
-      };
-      await persist(next);
-      return { ok: true as const, app: record };
     },
-    [askConfirm, base.navigation, currentOverlay, customizationOn, marketplace, persist],
+    [askConfirm, base, currentOverlay, customizationOn, marketplace, persist],
   );
 
   useEffect(() => {
@@ -360,8 +379,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     const onInstall = (message: ShellUIMessage, event: MessageEvent) => {
       if (event.origin !== expectedOrigin) return;
       const payload = message.payload as
-        | { id?: string; request?: MarketplaceInstallRequest }
-        | undefined;
+        { id?: string; request?: MarketplaceInstallRequest } | undefined;
       void installFromMarketplace(payload?.request ?? {}).then((result) => {
         reply(
           MARKETPLACE_INSTALL_RESULT,

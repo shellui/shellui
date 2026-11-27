@@ -538,7 +538,7 @@ export interface ShellUIConfig {
   /**
    * Shellui Marketplace. `true` opts in with the public defaults
    * (marketplace URL, API URL, third-party installs, and navigation overlay storage).
-   * An object overrides only the fields you set. Free in 0.9: no price or payment fields.
+   * An object overrides only the fields you set.
    */
   marketplace?: boolean | MarketplaceConfig;
   /** Cookie consent: list of cookies by category; accepted ids are stored in settings. */
@@ -573,7 +573,7 @@ export interface NavigationCustomizationConfig {
 }
 
 /**
- * Shellui Marketplace. There is no pricing in 0.9.
+ * Shellui Marketplace.
  * `true` selects the public defaults. An object overrides only the fields you set.
  */
 export interface MarketplaceConfig {

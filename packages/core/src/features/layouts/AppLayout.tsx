@@ -7,6 +7,7 @@ import {
   type ThemeAsset,
 } from '../config/types';
 import { useSettings } from '../settings/SettingsContext';
+import { useConfig } from '../config/useConfig';
 import { ModalProvider } from '../modal/ModalContext';
 import { DrawerProvider } from '../drawer/DrawerContext';
 import { OverlayShell } from './OverlayShell';
@@ -50,10 +51,13 @@ export function AppLayout({
   title,
   appIcon,
   logo,
-  navigation,
+  navigation: navigationProp,
   children,
 }: AppLayoutProps) {
   const { settings } = useSettings();
+  // The route table is not rebuilt when navigation is hidden or reordered, so read the live list.
+  const { config } = useConfig();
+  const navigation = navigationProp ?? config.navigation;
   // Nested shell-in-iframe (e.g. Playground → `/`) keeps its configured layout so
   // the demo can show chrome-inside-chrome. Safe-area top bands still skip nesting
   // elsewhere so notches aren’t double-padded.

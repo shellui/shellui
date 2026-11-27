@@ -46,10 +46,9 @@ const COMMANDS = {
 } as const;
 
 function hostWindow() {
-  const shellWindow = {
+  const shellWindow: { location: { origin: string }; parent?: unknown } = {
     location: { origin: 'https://shell.example' },
-    parent: null as unknown as Window,
-  } as Window;
+  };
   shellWindow.parent = shellWindow;
   vi.stubGlobal('window', shellWindow);
 }
@@ -99,10 +98,8 @@ describe('malicious iframe security', () => {
       },
       {
         allowThirdParty: true,
-        now: '2026-01-01T00:00:00.000Z',
         takenPaths: new Set(),
-        staticOrigins: new Set(),
-        shellOrigin: 'https://shell.example',
+        validation: { now: '2026-01-01T00:00:00.000Z', shellOrigin: 'https://shell.example' },
       },
     );
     expect(prepared.ok).toBe(true);
@@ -224,7 +221,7 @@ describe('malicious iframe security', () => {
           origin: 'https://shell.example',
           source: window,
           data: { type: 'SHELLUI_MARKETPLACE_UNINSTALL' },
-        } as MessageEvent,
+        } as unknown as MessageEvent,
         evil.registry,
         'SHELLUI_MARKETPLACE_UNINSTALL',
       ),
@@ -238,8 +235,8 @@ describe('malicious iframe security', () => {
       origin: APP,
       url: APP_URL,
       path: 'notes',
-      thirdParty: true,
-      capabilities: ['theme', 'locale'] as const,
+      thirdParty: true as const,
+      capabilities: ['theme', 'locale'] as Array<'theme' | 'locale'>,
       installedAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
     };
@@ -310,6 +307,19 @@ describe('malicious iframe security', () => {
   });
 
   it('hardens third-party iframes and refuses inline SVG icons', () => {
+    replaceInstalledAppRecords([
+      {
+        id: 'notes',
+        name: 'Notes',
+        origin: APP,
+        url: APP_URL,
+        path: 'notes',
+        thirdParty: true,
+        capabilities: ['theme', 'locale'],
+        installedAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]);
     const policy = resolveContentFramePolicy('http://notes.example/', { thirdParty: true });
     expect(policy.permitted).toBe(false);
     expect(policy.referrerPolicy).toBe('no-referrer');

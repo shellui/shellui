@@ -10,6 +10,39 @@ import {
 export const DEFAULT_MARKETPLACE_API_URL = 'https://api.marketplace.shellui.com';
 
 /**
+ * Hosts whose apps count as official. This is the same rule as the in-code allowlist in
+ * marketplace-service (`apps/catalog/official.py`): https on `shellui.com` or a subdomain.
+ * The catalog's own `official` flag is never read, so a poisoned row cannot raise trust.
+ */
+export const OFFICIAL_HOST = 'shellui.com';
+
+/**
+ * First path segments the shell routes itself. Keep in step with `RESERVED_PATH_SEGMENTS`
+ * in `@shellui/sdk` (a test in this package compares the two).
+ */
+export const RESERVED_NAV_SEGMENTS = [
+  'admin',
+  '__settings',
+  'legal',
+  'files',
+  'login',
+  'marketplace',
+  'settings',
+];
+
+/** @param {string} url */
+export function isOfficialAppUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return false;
+    const host = parsed.hostname.toLowerCase();
+    return host === OFFICIAL_HOST || host.endsWith(`.${OFFICIAL_HOST}`);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Catalog URL for one app. `apiUrl` is the marketplace API origin, or a base
  * that already ends in `/api/apps`.
  * @param {string | undefined} apiUrl
@@ -63,7 +96,8 @@ function httpsUrl(value) {
 
 /**
  * Build a navigation item from Shellui Marketplace catalog JSON.
- * Non-official apps cannot set `safeForAuthToken` unless `allowAuth` is true.
+ * "Official" comes from the app URL and the allowlist above, not from the catalog flag.
+ * Other apps cannot set `safeForAuthToken` unless `allowAuth` is true.
  * @param {unknown} metadata
  * @param {{ allowAuth?: boolean, appId?: string }} [options]
  */
@@ -100,13 +134,17 @@ export function navigationItemFromCatalog(metadata, options = {}) {
   ) {
     return { ok: false, error: 'The catalog path is not a valid navigation path.' };
   }
-  const official = record.official === true || record.firstParty === true;
+  const firstSegment = itemPath.split('/')[0].toLowerCase();
+  if (RESERVED_NAV_SEGMENTS.includes(firstSegment) || firstSegment.startsWith('__')) {
+    return { ok: false, error: `"${firstSegment}" is a core shell path. Pick another path.` };
+  }
+  const official = isOfficialAppUrl(url);
   const wantsAuth = record.safeForAuthToken === true;
   if (wantsAuth && !official && options.allowAuth !== true) {
     return {
       ok: false,
       error:
-        'This app is not marked official and asks for safeForAuthToken. Re-run with --allow-auth if you intend to share the session token.',
+        'This app is not served from an official Shellui origin and asks for safeForAuthToken. Re-run with --allow-auth if you intend to share the session token.',
     };
   }
   const icon = httpsUrl(record.icon);

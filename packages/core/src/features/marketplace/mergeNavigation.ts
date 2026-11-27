@@ -1,3 +1,4 @@
+import { isReservedAppPath } from '@shellui/sdk';
 import type { NavigationGroup, NavigationItem } from '../config/types';
 import { MARKETPLACE_NAV_LABEL, MARKETPLACE_NAV_PATH } from './normalizeMarketplaceConfig';
 import type { InstalledAppRecord, NavigationOverlay } from './overlay';
@@ -56,10 +57,15 @@ function sortEntries(entries: NavigationEntry[], order: readonly string[]): Navi
     .map((row) => row.entry);
 }
 
+/** The nav label of an installed app always says it is third-party, so a name cannot pass as the shell. */
+export function thirdPartyLabel(name: string): { en: string; fr: string } {
+  return { en: `${name} (third-party)`, fr: `${name} (tiers)` };
+}
+
 export function installedAppNavigationItem(app: InstalledAppRecord): NavigationItem {
   const icon = app.icon && !isUnsafeNavIconSrc(app.icon) ? app.icon : undefined;
   return {
-    label: app.name,
+    label: thirdPartyLabel(app.name),
     path: app.path,
     url: app.url,
     ...(icon ? { icon } : {}),
@@ -70,11 +76,14 @@ export function installedAppNavigationItem(app: InstalledAppRecord): NavigationI
  * Merge build-time navigation with a runtime overlay.
  * Locked items stay visible. Installed apps never receive `safeForAuthToken` or `childFrames`.
  * The marketplace route is appended when that path is still free.
+ * An installed app on a reserved core path is skipped, so `/admin`, `/__settings` and the
+ * other core routes always stay with the shell, whatever a stored layout says.
  */
 export function mergeNavigationOverlay(
   navigation: readonly NavigationEntry[] | undefined,
   overlay: NavigationOverlay | null | undefined,
   marketplaceItem?: NavigationItem | null,
+  reservedPaths?: Iterable<string>,
 ): NavigationEntry[] {
   const base = cloneNavigation(navigation ?? []);
   const hidden = new Set(overlay?.hiddenPaths ?? []);
@@ -97,8 +106,9 @@ export function mergeNavigationOverlay(
     staticPaths.add(marketplaceItem.path);
   }
 
+  const reserved = [...(reservedPaths ?? [])];
   for (const app of overlay?.installedApps ?? []) {
-    if (!app.path || staticPaths.has(app.path)) continue;
+    if (!app.path || staticPaths.has(app.path) || isReservedAppPath(app.path, reserved)) continue;
     withHidden.push(installedAppNavigationItem(app));
     staticPaths.add(app.path);
   }

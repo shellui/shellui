@@ -74,7 +74,10 @@ cli
   .command('add <app-id>', 'Add a Shellui Marketplace app to shellui.config.json')
   .option('--api-url <url>', 'Marketplace API base (default: https://api.marketplace.shellui.com)')
   .option('--config <path>', CONFIG_OPTION_HELP)
-  .option('--allow-auth', 'Share the session token with an app the catalog does not mark official')
+  .option(
+    '--allow-auth',
+    'Share the session token with an app that is not on an official Shellui origin',
+  )
   .action((appId, options) =>
     addAppCommand(appId, {
       apiUrl: options.apiUrl,

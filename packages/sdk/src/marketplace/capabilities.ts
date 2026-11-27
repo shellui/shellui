@@ -101,20 +101,47 @@ export type CapabilityGrantView = {
 };
 
 /**
+ * Messages a third-party frame may send without any capability: the handshake, a request for
+ * the settings it is allowed to see, and scroll reports. Everything else needs a granted
+ * capability, and any type that is not listed here or in `MESSAGE_CAPABILITY` is refused.
+ * `SHELLUI_SETTINGS_UPDATED` is deliberately absent. Only the shell's own pages may change settings.
+ */
+export const THIRD_PARTY_INBOUND_MESSAGE_TYPES: ReadonlySet<string> = new Set([
+  'SHELLUI_INITIALIZED',
+  'SHELLUI_SETTINGS_REQUESTED',
+  'SHELLUI_CONTENT_SCROLL',
+]);
+
+/** Why a third-party frame may not send this message, or `null` when it may. */
+export function isThirdPartyMessageAllowed(
+  messageType: string,
+  capabilities: ReadonlySet<string>,
+): string | null {
+  if (THIRD_PARTY_INBOUND_MESSAGE_TYPES.has(messageType)) return null;
+  // Marketplace calls are decided by origin right after this check.
+  if (MARKETPLACE_REQUEST_TYPES.has(messageType)) return null;
+  const required = requiredCapabilityForMessage(messageType);
+  if (!required) return `third-party apps cannot send ${messageType}`;
+  if (required === 'auth' || required === 'childFrames') {
+    return `third-party apps cannot use ${required}`;
+  }
+  if (!capabilities.has(required)) return `app is missing the ${required} capability`;
+  return null;
+}
+
+/**
  * Fail closed for a frame that has an installed-app grant.
- * `auth` and `childFrames` are refused for third-party grants even if the set
- * still contains them.
+ * A third-party grant may send only the short allowlist above plus the types its
+ * capabilities cover. `auth` and `childFrames` are refused even if the set still contains them.
  */
 export function explainCapabilityDenial(
   messageType: string,
   grant: CapabilityGrantView | null | undefined,
 ): string | null {
   if (!grant) return null;
+  if (grant.thirdParty) return isThirdPartyMessageAllowed(messageType, grant.capabilities);
   const required = requiredCapabilityForMessage(messageType);
   if (!required) return null;
-  if (grant.thirdParty && (required === 'auth' || required === 'childFrames')) {
-    return `third-party apps cannot use ${required}`;
-  }
   if (required === 'childFrames') {
     return 'this app cannot embed frames';
   }

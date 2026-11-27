@@ -62,7 +62,7 @@ import {
 } from './utils';
 import { unregisterServiceWorker } from '../../service-worker/register';
 import { refreshFrameAccessTokenIfNeeded } from '../auth/utils/frameSessionRefresher';
-import { isShellOwnedFrameMessage } from '../security/trustedFrames';
+import { isShellOwnedFrameMessage, isShellSettingsUpdateSource } from '../security/trustedFrames';
 
 const logger = getLogger('shellcore');
 
@@ -521,9 +521,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const settingsMessageFromShell = (message: ShellUIMessage): boolean => {
+    const settingsMessageFromShell = (
+      message: ShellUIMessage,
+      accepts: typeof isShellOwnedFrameMessage = isShellOwnedFrameMessage,
+    ): boolean => {
       const from = (message.from ?? []).filter(Boolean);
-      if (isShellOwnedFrameMessage(from, shellui.frameRegistry, window.location.origin)) {
+      if (accepts(from, shellui.frameRegistry, window.location.origin)) {
         return true;
       }
       // Visible without the shellcore debug namespace. Do not log the payload.
@@ -538,7 +541,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const cleanup = shellui.addMessageListener(
       'SHELLUI_SETTINGS_UPDATED',
       (message: ShellUIMessage) => {
-        if (!settingsMessageFromShell(message)) return;
+        // Only the shell's own Settings (and cookie preferences) pages may change settings.
+        if (!settingsMessageFromShell(message, isShellSettingsUpdateSource)) return;
         const payload = message.payload as { settings: Settings };
         const newSettings = payload.settings;
         if (newSettings) {

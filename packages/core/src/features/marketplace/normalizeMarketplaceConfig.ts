@@ -10,7 +10,6 @@ export const DEFAULT_MARKETPLACE_API_URL = 'https://api.marketplace.shellui.com'
 export const MARKETPLACE_NAV_PATH = 'marketplace';
 export const MARKETPLACE_NAV_LABEL = 'Shellui Marketplace';
 
-export const NAVIGATION_OVERLAY_VERSION = 1 as const;
 export const NAVIGATION_OVERLAY_STORAGE_KEY = 'shellui.navigation.overlay';
 export const NAVIGATION_OVERLAY_ENDPOINT = '/api/v1/navigation-overlay';
 

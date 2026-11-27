@@ -140,7 +140,7 @@
               "$ref": "#/definitions/MarketplaceConfig"
             }
           ],
-          "description": "Shellui Marketplace. `true` opts in with the public defaults (marketplace URL, API URL, third-party installs, and navigation overlay storage). An object overrides only the fields you set. Free in 0.9: no price or payment fields."
+          "description": "Shellui Marketplace. `true` opts in with the public defaults (marketplace URL, API URL, third-party installs, and navigation overlay storage). An object overrides only the fields you set."
         },
         "cookieConsent": {
           "$ref": "#/definitions/CookieConsentConfig",
@@ -1193,7 +1193,7 @@
         }
       },
       "additionalProperties": false,
-      "description": "Shellui Marketplace. There is no pricing in 0.9. `true` selects the public defaults. An object overrides only the fields you set."
+      "description": "Shellui Marketplace. `true` selects the public defaults. An object overrides only the fields you set."
     },
     "NavigationCustomizationConfig": {
       "type": "object",
