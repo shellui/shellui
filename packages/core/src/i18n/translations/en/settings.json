@@ -827,6 +827,7 @@
     }
   },
   "customizeNavigation": {
+    "notSavedYet": "A change that takes access away is in force here but NOT saved yet. It is saved with your next change.",
     "description": "Reorder navigation, hide unlocked items, and manage Shellui Marketplace apps. Theme and language stay available.",
     "disabled": "Navigation customization is off for this shell.",
     "empty": "No navigation items.",

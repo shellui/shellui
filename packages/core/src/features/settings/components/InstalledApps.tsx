@@ -20,6 +20,7 @@ export function CustomizeNavigation() {
     moveNavigationItem,
     setNavigationItemHidden,
     resetNavigation,
+    unsavedRemovals,
   } = useNavigation();
   const items = flattenNavigationItems(config.navigation ?? []);
   const lang = i18n.language || 'en';
@@ -32,6 +33,14 @@ export function CustomizeNavigation() {
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted-foreground">{t('customizeNavigation.description')}</p>
+        {unsavedRemovals ? (
+          <p
+            role="status"
+            className="text-sm text-destructive"
+          >
+            {t('customizeNavigation.notSavedYet')}
+          </p>
+        ) : null}
         <div>
           <Button
             type="button"

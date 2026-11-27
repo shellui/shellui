@@ -82,6 +82,8 @@ export interface NavigationContextValue {
     hidden: boolean,
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   resetNavigation: () => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** A removal on this device is in force but not saved to the layout yet. */
+  unsavedRemovals: boolean;
 }
 
 export const NavigationContext = createContext<NavigationContextValue | null>(null);
@@ -130,8 +132,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       : String(base.backend.companyId);
   const scope = JSON.stringify([session?.userId ?? null, companyId]);
   const scopeRef = useRef<string | null>(null);
+  const [unsavedRemovals, setUnsavedRemovals] = useState(false);
   const setPendingRemovals = useCallback((removals: PendingRemoval[]) => {
     pendingRemovalsRef.current = removals;
+    setUnsavedRemovals(removals.length > 0);
     if (scopeRef.current !== null) writePendingRemovals(scopeRef.current, removals);
   }, []);
   // Another account or company never inherits this one's removals.
@@ -139,6 +143,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     if (scopeRef.current === scope) return;
     scopeRef.current = scope;
     pendingRemovalsRef.current = readPendingRemovals(scope);
+    setUnsavedRemovals(pendingRemovalsRef.current.length > 0);
   }, [scope]);
 
   const marketplace = useMemo(
@@ -603,6 +608,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       moveNavigationItem,
       setNavigationItemHidden,
       resetNavigation,
+      unsavedRemovals,
     }),
     [
       customizationOn,
@@ -612,6 +618,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       setAppCapabilities,
       setNavigationItemHidden,
       uninstallApp,
+      unsavedRemovals,
     ],
   );
 

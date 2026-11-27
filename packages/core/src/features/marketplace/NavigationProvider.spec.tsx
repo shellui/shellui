@@ -637,6 +637,32 @@ describe('NavigationProvider when identity cannot save', () => {
     expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
   });
 
+  it('keeps a revoke refused twice in a row, across a reload, until a save reaches identity', async () => {
+    await mountSignedInWithApp();
+    server.writeFails = true;
+
+    expect(await run(() => api.setAppCapabilities('notes', ['ui']))).toEqual({
+      ok: false,
+      error: 'not_saved',
+    });
+    expect(api.unsavedRemovals).toBe(true);
+    expect(await run(() => api.setNavigationItemHidden('about', true))).toEqual({
+      ok: false,
+      error: 'not_saved',
+    });
+    expect(api.unsavedRemovals).toBe(true);
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+
+    await reload();
+    expect(currentGrant()).toEqual(['locale', 'theme', 'ui']);
+    expect(api.unsavedRemovals).toBe(true);
+
+    server.writeFails = false;
+    expect((await run(() => api.moveNavigationItem('about', 'up'))).ok).toBe(true);
+    expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
+    expect(api.unsavedRemovals).toBe(false);
+  });
+
   it('says NOT saved when identity cannot reset', async () => {
     await mountSignedInWithApp();
     server.writeFails = true;

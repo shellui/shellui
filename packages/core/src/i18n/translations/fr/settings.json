@@ -827,6 +827,7 @@
     }
   },
   "customizeNavigation": {
+    "notSavedYet": "Une modification qui retire un accès s'applique ici mais n'est PAS encore enregistrée. Elle le sera avec votre prochaine modification.",
     "description": "Réordonnez la navigation, masquez les éléments non verrouillés et gérez les applications Shellui Marketplace. Le thème et la langue restent disponibles.",
     "disabled": "La personnalisation de la navigation est désactivée pour cette interface.",
     "empty": "Aucun élément de navigation.",

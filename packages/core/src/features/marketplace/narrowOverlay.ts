@@ -83,10 +83,12 @@ function isRemoval(value: unknown): value is PendingRemoval {
   const item = value as Record<string, unknown>;
   if (typeof item.appId !== 'string') return false;
   if (item.kind === 'uninstall') return true;
+  // A revoke never lists the baseline capabilities, so a stored one that does is not ours.
   return (
     item.kind === 'revoke' &&
     Array.isArray(item.capabilities) &&
-    item.capabilities.every((c) => typeof c === 'string')
+    item.capabilities.length > 0 &&
+    item.capabilities.every((c) => typeof c === 'string' && !BASELINE.has(c))
   );
 }
 
