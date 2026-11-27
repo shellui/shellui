@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shellui/sdk': fileURLToPath(new URL('../sdk/src/index.ts', import.meta.url)),
+      '@shellui/config': fileURLToPath(new URL('./test/shellui-config.stub.ts', import.meta.url)),
     },
   },
   test: {
@@ -45,6 +46,8 @@ export default defineConfig({
       'src/components/**/*.spec.ts',
       'src/components/**/*.spec.tsx',
       'src/features/messaging/**/*.spec.ts',
+      'src/features/marketplace/**/*.spec.ts',
+      'src/features/marketplace/**/*.spec.tsx',
       '../sdk/src/**/*.spec.ts',
     ],
   },

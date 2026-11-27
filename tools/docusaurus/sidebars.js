@@ -73,6 +73,11 @@ const sidebars = {
             },
             {
               type: 'doc',
+              id: 'features/marketplace',
+              label: 'Shellui Marketplace',
+            },
+            {
+              type: 'doc',
               id: 'features/layouts',
               label: 'Layouts',
             },

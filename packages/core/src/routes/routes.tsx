@@ -176,7 +176,6 @@ export const createRoutes = (config: ShellUIConfig): RouteObject[] => {
         title={config.title}
         appIcon={config.appIcon}
         logo={config.logo}
-        navigation={config.navigation || []}
       />
     ),
     children: [],

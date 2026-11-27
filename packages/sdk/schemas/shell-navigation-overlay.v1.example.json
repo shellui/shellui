@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "installedApps": [
+    {
+      "id": "notes",
+      "name": "Notes",
+      "origin": "https://notes.example.com",
+      "url": "https://notes.example.com/app",
+      "path": "notes",
+      "icon": "https://notes.example.com/icon.svg",
+      "thirdParty": true,
+      "capabilities": ["theme", "locale", "ui", "storage"],
+      "installedAt": "2026-11-20T02:43:00.000Z",
+      "updatedAt": "2026-11-20T02:43:00.000Z"
+    }
+  ],
+  "order": ["notes"],
+  "hiddenPaths": ["/archive"],
+  "updatedAt": "2026-11-20T02:43:00.000Z"
+}

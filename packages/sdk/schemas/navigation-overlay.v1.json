@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shellui.com/schemas/navigation-overlay.v1.json",
+  "title": "Shellui navigation overlay",
+  "description": "Shared contract for a version-1 navigation overlay stored by identity-service and produced by the Shellui shell. Keep this file identical in shellui (packages/sdk/schemas/navigation-overlay.v1.json) and identity-service (apps/authapi/schemas/navigation-overlay.v1.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "installedApps", "order", "hiddenPaths"],
+  "properties": {
+    "version": { "const": 1 },
+    "installedApps": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/installedApp" }
+    },
+    "order": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+      "uniqueItems": true
+    },
+    "hiddenPaths": {
+      "type": "array",
+      "maxItems": 200,
+      "items": { "type": "string", "minLength": 1, "maxLength": 200 },
+      "uniqueItems": true
+    },
+    "updatedAt": {
+      "type": "string",
+      "description": "ISO-8601 timestamp with a timezone. The identity API overwrites this with the server time on write.",
+      "minLength": 1,
+      "maxLength": 40
+    }
+  },
+  "$defs": {
+    "installedApp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "origin",
+        "url",
+        "path",
+        "thirdParty",
+        "capabilities",
+        "installedAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+        },
+        "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "origin": {
+          "type": "string",
+          "description": "https origin of url, with no path, query, or fragment.",
+          "minLength": 8,
+          "maxLength": 2048
+        },
+        "url": {
+          "type": "string",
+          "description": "https URL of the installed app frame. Loopback and private IP hosts are rejected.",
+          "minLength": 8,
+          "maxLength": 2048
+        },
+        "path": {
+          "type": "string",
+          "description": "Shell path for the app. Must not be a reserved core path (admin, __settings, legal, files, login, marketplace, settings) or a traversal.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional https URL of the app icon.",
+          "minLength": 8,
+          "maxLength": 2048
+        },
+        "thirdParty": { "const": true },
+        "capabilities": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["theme", "locale", "ui", "navigate", "storage", "ai"]
+          }
+        },
+        "installedAt": {
+          "type": "string",
+          "description": "ISO-8601 timestamp with a timezone.",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO-8601 timestamp with a timezone.",
+          "minLength": 1,
+          "maxLength": 40
+        }
+      }
+    }
+  }
+}

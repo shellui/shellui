@@ -170,6 +170,27 @@
     "unreadCount": "{{count}} unread",
     "sheetDescription": "Main navigation and account links"
   },
+  "marketplace": {
+    "installTitle": "Install {{name}}",
+    "installBody": "{{name}} from {{origin}} will be added to this shell.",
+    "capabilities": "Capabilities: {{list}}.",
+    "thirdPartySender": "{{name}} (third-party app)",
+    "layoutConflict": "Your layout changed on another device. The latest one is shown.",
+    "layoutNotSaved": "Your change was NOT saved. Try again.",
+    "hostOnly": "Sign-in and embedded frames stay on the host.",
+    "install": "Install",
+    "cancel": "Cancel",
+    "blockedFrame": "This app cannot be shown. Shellui Marketplace apps must use HTTPS.",
+    "capability": {
+      "theme": "Theme",
+      "locale": "Language",
+      "ui": "Interface",
+      "navigate": "Navigation",
+      "storage": "Storage",
+      "ai": "AI",
+      "auth": "Sign-in"
+    }
+  },
   "windows": {
     "applications": "Applications",
     "chooseApp": "Choose an app to open in a window",

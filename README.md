@@ -39,6 +39,7 @@ Everything is at [docs.shellui.com](https://docs.shellui.com).
 
 - [Install the CLI](https://docs.shellui.com/installation/) and [create a project](https://docs.shellui.com/quickstart/)
 - [CLI reference](https://docs.shellui.com/cli/) and [SDK reference](https://docs.shellui.com/sdk/)
+- [Shellui Marketplace](docs/features/marketplace.md): `"marketplace": true`, customizable navigation, and `shellui add <app-id>`
 - [Desktop apps with Tauri](https://docs.shellui.com/tauri/)
 - Services: [identity](https://docs.shellui.com/identity), [storage](https://docs.shellui.com/storage), [hosting](https://docs.shellui.com/hosting) and [email](https://docs.shellui.com/email)
 

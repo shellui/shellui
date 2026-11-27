@@ -2,6 +2,10 @@
  * Origin allowlist and trusted-frame checks for Shellui postMessage traffic.
  */
 
+import {
+  explainCapabilityDenial,
+  explainMarketplaceRequestDenial,
+} from '../marketplace/capabilities.js';
 import type { FrameRegistry } from './frameRegistry.js';
 import { shouldApplySettingsFromParent } from './parentSettingsMessage.js';
 
@@ -78,10 +82,22 @@ export function collectOriginsFromUrls(...urls: (string | undefined | null)[]): 
   return [...origins];
 }
 
+function frameSrcForEvent(event: MessageEvent, frameRegistry: FrameRegistry | null): string | null {
+  if (!frameRegistry || typeof frameRegistry.getAllIframes !== 'function') return null;
+  if (typeof frameRegistry.getUuidByIframe !== 'function') return null;
+  const uuid = frameRegistry.getUuidByIframe(event.source as Window | null);
+  if (!uuid) return null;
+  const iframe = frameRegistry.getAllIframes().find(([id]) => id === uuid)?.[1];
+  const src = iframe?.src?.trim();
+  return src || null;
+}
+
 export class MessageSecurityPolicy {
   private extraAllowedOrigins = new Set<string>();
   /** Exact origins of child app frames this window hosts. Counted so two frames can share one. */
   private frameOrigins = new Map<string, number>();
+  /** Shellui Marketplace app origin. Marketplace requests from anywhere else are dropped. */
+  private marketplaceOrigin: string | null = null;
 
   /**
    * Trust one exact child frame origin until the returned cleanup runs.
@@ -103,13 +119,17 @@ export class MessageSecurityPolicy {
     };
   }
 
-  configure(options?: { allowedOrigins?: string[] }): void {
+  configure(options?: { allowedOrigins?: string[]; marketplaceOrigin?: string | null }): void {
     this.extraAllowedOrigins.clear();
     if (options?.allowedOrigins) {
       for (const origin of options.allowedOrigins) {
         const trimmed = origin?.trim();
         if (trimmed) this.extraAllowedOrigins.add(trimmed);
       }
+    }
+    if (options && 'marketplaceOrigin' in options) {
+      const origin = options.marketplaceOrigin?.trim();
+      this.marketplaceOrigin = origin || null;
     }
     setParentTargetOriginHints([...this.extraAllowedOrigins]);
   }
@@ -191,7 +211,9 @@ export class MessageSecurityPolicy {
     const sourceKind = this.classifySource(event, frameRegistry);
 
     // The embedding parent is trusted for shell to companion traffic other
-    // than settings payloads. Those are decided above.
+    // than settings payloads. Those are decided above. When
+    // ancestorOrigins/referrer are missing, getAllowedOrigins may not include
+    // the shell origin. Still accept messages that literally come from parent.
     if (
       sourceKind === 'parent' &&
       typeof window !== 'undefined' &&
@@ -211,11 +233,25 @@ export class MessageSecurityPolicy {
     }
 
     if (PRIVILEGED_COMPANION_MESSAGE_TYPES.has(messageType)) {
-      if (sourceKind === 'registered-frame' || sourceKind === 'same-window') {
-        return null;
+      if (sourceKind !== 'registered-frame' && sourceKind !== 'same-window') {
+        return `privileged message type requires registered frame or same-window (got ${sourceKind})`;
       }
-      return `privileged message type requires registered frame or same-window (got ${sourceKind})`;
     }
+
+    const frameSrc = frameSrcForEvent(event, frameRegistry);
+    const grant =
+      frameSrc && frameRegistry && typeof frameRegistry.matchCapabilityGrant === 'function'
+        ? frameRegistry.matchCapabilityGrant(frameSrc)
+        : null;
+    const capabilityDenial = explainCapabilityDenial(messageType, grant);
+    if (capabilityDenial) return capabilityDenial;
+
+    const marketplaceDenial = explainMarketplaceRequestDenial(
+      messageType,
+      event.origin,
+      this.marketplaceOrigin,
+    );
+    if (marketplaceDenial) return marketplaceDenial;
 
     return null;
   }

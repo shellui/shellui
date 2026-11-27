@@ -46,6 +46,21 @@ The shell stays on port **4000** in generated config. Next.js and Nuxt companion
 
 **Options:** positional `framework` or `--framework`; `--backend none|shellui|supabase`; `--company-id`; `--supabase-url`; `--force`; `--no-install`; `--config`.
 
+### shellui add \<app-id\>
+
+Add one Shellui Marketplace app to `shellui.config.json` navigation (or the split navigation file).
+
+```bash
+shellui add notes
+shellui add notes --api-url https://api.marketplace.shellui.com
+shellui add notes --allow-auth
+shellui add notes --config ./shellui.config.json
+```
+
+Fetches `GET {apiUrl}/api/apps/<app-id>`. The default API base is `https://api.marketplace.shellui.com`. The item URL must be HTTPS. If the catalog sets `safeForAuthToken` and does not mark the app official, the command stops unless `--allow-auth` is set. A path that is already in navigation is not written twice. The command prints a short summary (name, path, URL, official, token sharing).
+
+**Options:** `--api-url`; `--allow-auth`; `--config`.
+
 ### shellui config migrate [root]
 
 Evaluate `shellui.config.ts` the same way `start` / `build` do, write `shellui.config.json` with `$schema`, and rename the TypeScript file to `shellui.config.ts.bak`. Runtime values (`process.env`, `readFileSync`, computed fields) become plain JSON. The result is schema-validated. Review env-dependent values, then optionally `shellui config split`.

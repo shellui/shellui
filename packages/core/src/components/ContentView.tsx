@@ -13,8 +13,10 @@ import { useLocation, useNavigate } from 'react-router';
 import { LoadingOverlay } from './LoadingOverlay';
 import { LOADING_OVERLAY_DURATION_MS } from '../constants/loading';
 import { IFRAME_FOREIGN_ATTR } from '../features/layouts/chrome/constants';
-import { resolveContentIframeSandbox } from './contentIframeSandbox';
 import { isSafeIframeUrl, isSameOrigin } from './iframeUrlSafety';
+import { useTranslation } from 'react-i18next';
+import { resolveContentFramePolicy } from '../features/marketplace/framePolicy';
+import { isThirdPartyFrameSrc } from '../features/marketplace/installedAppRegistry';
 
 const logger = getLogger('shellcore');
 
@@ -70,6 +72,7 @@ export const ContentView = ({
 }: ContentViewProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   const mountTimeRef = useRef(Date.now());
@@ -336,32 +339,43 @@ export const ContentView = ({
     return () => iframe.removeEventListener('load', onLoad);
   }, [iframeUrl, navItem?.path, frameGeneration]);
 
+  const thirdParty = isThirdPartyFrameSrc(navItem.url) || isThirdPartyFrameSrc(iframeUrl);
+  const framePolicy = resolveContentFramePolicy(iframeUrl, { thirdParty });
+
   return (
     <div
       style={{ width: '100%', height: '100%', display: 'flex', position: 'relative' }}
       className="min-h-0 flex-1 bg-background"
     >
+      {thirdParty && !framePolicy.permitted ? (
+        <p className="m-auto max-w-sm px-6 text-center text-sm text-muted-foreground">
+          {t('marketplace.blockedFrame')}
+        </p>
+      ) : null}
       {/* Sandbox policy: see contentIframeSandbox.ts and docs/features/companion-isolation.md */}
       {/* Strategy to prevent browser deprioritizing iframe rendering:
           - loading="eager" explicitly requests immediate loading (not deferred)
           - opacity:0 hides the iframe during loading while keeping it in the rendering pipeline
           - Reveal is instant (no transition) after deferred double-rAF to avoid blink */}
-      <iframe
-        ref={iframeRef}
-        src={iframeUrl}
-        key={`${navItem?.path ?? ''}:${frameGeneration}`}
-        loading="eager"
-        data-shellui-frame={layoutChrome ? 'main' : 'overlay'}
-        style={{
-          width: '100%',
-          height: '100%',
-          border: 'none',
-          display: 'block',
-          opacity: isLoading ? 0 : 1,
-        }}
-        sandbox={resolveContentIframeSandbox(iframeUrl)}
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+      {thirdParty && !framePolicy.permitted ? null : (
+        <iframe
+          ref={iframeRef}
+          src={iframeUrl}
+          key={`${navItem?.path ?? ''}:${frameGeneration}`}
+          loading="eager"
+          data-shellui-frame={layoutChrome ? 'main' : 'overlay'}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+            display: 'block',
+            opacity: isLoading ? 0 : 1,
+          }}
+          sandbox={framePolicy.sandbox}
+          referrerPolicy={framePolicy.referrerPolicy}
+          allow={framePolicy.allow}
+        />
+      )}
       {isLoading && <LoadingOverlay />}
     </div>
   );

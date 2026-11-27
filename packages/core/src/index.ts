@@ -38,7 +38,18 @@ export type {
   CookieDefinition,
   CookieConsentConfig,
   LegalDocumentsConfig,
+  MarketplaceConfig,
+  NavigationCustomizationConfig,
+  NavigationStorageMode,
+  ResolvedMarketplaceConfig,
 } from './features/config/types.js';
+export { normalizeMarketplaceConfig } from './features/marketplace/normalizeMarketplaceConfig.js';
+export { useNavigation } from './features/marketplace/NavigationProvider.js';
+export type {
+  InstalledAppRecord,
+  NavigationOverlay,
+  NavigationStorageAdapter,
+} from './features/marketplace/overlay.js';
 export {
   defaultTheme,
   themes,

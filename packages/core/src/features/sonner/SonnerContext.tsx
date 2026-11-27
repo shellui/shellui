@@ -1,3 +1,4 @@
+import { attributeTitle, thirdPartySenderLabel } from '../marketplace/attribution';
 import { shellui, type ShellUIMessage } from '@shellui/sdk';
 import { createContext, useContext, useCallback, useEffect, type ReactNode } from 'react';
 import { toast as sonnerToast } from 'sonner';
@@ -197,8 +198,10 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
   useEffect(() => {
     const cleanupToast = shellui.addMessageListener('SHELLUI_TOAST', (data: ShellUIMessage) => {
       const payload = data.payload as ToastOptions;
+      const sender = thirdPartySenderLabel(data.from);
       toast({
         ...payload,
+        ...(sender ? { title: attributeTitle(payload.title ?? '', sender) } : {}),
         onDismiss: () => {
           shellui.sendMessage({
             type: 'SHELLUI_TOAST_CLEAR',
@@ -232,11 +235,13 @@ export const SonnerProvider = ({ children }: SonnerProviderProps) => {
       'SHELLUI_TOAST_UPDATE',
       (data: ShellUIMessage) => {
         const payload = data.payload as ToastOptions;
+        const sender = thirdPartySenderLabel(data.from);
         // CRITICAL: When updating a toast, we MUST re-register action handlers
         // The callbackRegistry still has the callbacks, but the toast button needs onClick handlers
         // that trigger the callbackRegistry via SHELLUI_TOAST_ACTION messages
         toast({
           ...payload,
+          ...(sender ? { title: attributeTitle(payload.title ?? '', sender) } : {}),
           // Re-register action handlers so the button works after update
           // These handlers send messages that trigger the callbackRegistry
           action:

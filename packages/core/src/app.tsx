@@ -1,9 +1,10 @@
-import { useMemo, useLayoutEffect, useState, useEffect } from 'react';
+import { useMemo, useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { RouterProvider } from 'react-router';
 import { shellui } from '@shellui/sdk';
 import { useConfig } from './features/config/useConfig';
 import { ConfigProvider } from './features/config/ConfigProvider';
 import { createAppRouter } from './routes/router';
+import { routeSignature } from './routes/routeSignature';
 import { SettingsProvider } from './features/settings/SettingsProvider';
 import { ThemeProvider } from './features/theme/ThemeProvider';
 import { I18nProvider } from './i18n/I18nProvider';
@@ -30,6 +31,7 @@ import {
 import { useSettings } from './features/settings/hooks/useSettings';
 import { DesktopChrome } from './features/layouts/chrome/DesktopChrome';
 import { MessagingSecurityBootstrap } from './features/messaging/MessagingSecurityBootstrap';
+import { NavigationProvider } from './features/marketplace/NavigationProvider';
 import { McpPersonalStatusPrefetch } from './features/settings/components/McpPersonalStatusPrefetch';
 
 const AppContent = () => {
@@ -85,12 +87,16 @@ const AppContent = () => {
   }, [settings?.serviceWorker?.enabled, config?.navigation]);
 
   // Create router from config using data mode
+  // Rebuild only when the set of routes changes. A hide or reorder keeps the router.
+  const configRef = useRef(config);
+  configRef.current = config;
+  const signature = config ? routeSignature(config) : null;
   const router = useMemo(() => {
-    if (!config) {
+    if (!signature || !configRef.current) {
       return null;
     }
-    return createAppRouter(config);
-  }, [config]);
+    return createAppRouter(configRef.current);
+  }, [signature]);
 
   // If no navigation, show simple layout
   if (!config.navigation || config.navigation.length === 0) {
@@ -136,27 +142,29 @@ const App = () => {
     <ConfigProvider>
       <MessagingSecurityBootstrap />
       <AuthProvider>
-        <AppBackendSessionHost />
-        <StorageBridge />
-        <SettingsProvider>
-          <McpPersonalStatusPrefetch />
-          <ShellAiHost />
-          <ThemeProvider>
-            <I18nProvider>
-              <DialogProvider>
-                <SonnerProvider>
-                  <ChromeActionsProvider>
-                    {/* Toaster + transfer progress (uploads / AI downloads) live at Shellui root. */}
-                    <Toaster />
-                    <TransferToaster />
-                    <ChromeActionsHost />
-                    <AppContent />
-                  </ChromeActionsProvider>
-                </SonnerProvider>
-              </DialogProvider>
-            </I18nProvider>
-          </ThemeProvider>
-        </SettingsProvider>
+        <NavigationProvider>
+          <AppBackendSessionHost />
+          <StorageBridge />
+          <SettingsProvider>
+            <McpPersonalStatusPrefetch />
+            <ShellAiHost />
+            <ThemeProvider>
+              <I18nProvider>
+                <DialogProvider>
+                  <SonnerProvider>
+                    <ChromeActionsProvider>
+                      {/* Toaster + transfer progress (uploads / AI downloads) live at Shellui root. */}
+                      <Toaster />
+                      <TransferToaster />
+                      <ChromeActionsHost />
+                      <AppContent />
+                    </ChromeActionsProvider>
+                  </SonnerProvider>
+                </DialogProvider>
+              </I18nProvider>
+            </ThemeProvider>
+          </SettingsProvider>
+        </NavigationProvider>
       </AuthProvider>
     </ConfigProvider>
   );

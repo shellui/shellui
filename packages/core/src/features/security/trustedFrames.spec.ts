@@ -7,6 +7,7 @@ import {
   isShellOwnedFrameMessage,
   isShellSettingsFrameMessage,
   isShellSettingsFrameSrc,
+  isShellSettingsUpdateSource,
   isTrustedFrameForAuthToken,
   resolveRegisteredFrameSrc,
 } from './trustedFrames';
@@ -250,5 +251,41 @@ describe('getAiRequestTrustDenial', () => {
       message: 'AI request rejected: untrusted frame',
       code: 'untrusted_frame',
     });
+  });
+});
+
+describe('isShellSettingsUpdateSource', () => {
+  const shellOrigin = 'https://shell.example';
+  const frames = (entries: Array<[string, string]>) => ({
+    getAllIframes: () =>
+      entries.map(
+        ([uuid, src]) => [uuid, { src } as HTMLIFrameElement] as [string, HTMLIFrameElement],
+      ),
+  });
+  const known = frames([
+    ['settings', 'https://shell.example/__settings/appearance'],
+    ['cookies', 'https://shell.example/__cookie-preferences'],
+    ['app', 'https://notes.example/'],
+    ['companion', 'https://docs.example/'],
+  ]);
+
+  it('accepts the shell itself, its Settings frame, and its cookie preferences frame', () => {
+    expect(isShellSettingsUpdateSource(undefined, known, shellOrigin)).toBe(true);
+    expect(isShellSettingsUpdateSource([], known, shellOrigin)).toBe(true);
+    expect(isShellSettingsUpdateSource(['settings'], known, shellOrigin)).toBe(true);
+    expect(isShellSettingsUpdateSource(['cookies'], known, shellOrigin)).toBe(true);
+  });
+
+  it('refuses every other frame, an unknown frame, and a nested frame', () => {
+    expect(isShellSettingsUpdateSource(['app'], known, shellOrigin)).toBe(false);
+    expect(isShellSettingsUpdateSource(['companion'], known, shellOrigin)).toBe(false);
+    expect(isShellSettingsUpdateSource(['missing'], known, shellOrigin)).toBe(false);
+    expect(isShellSettingsUpdateSource(['settings', 'app'], known, shellOrigin)).toBe(false);
+    expect(isShellSettingsUpdateSource(['app', 'settings'], known, shellOrigin)).toBe(false);
+  });
+
+  it('does not accept a lookalike path on another origin', () => {
+    const lookalike = frames([['x', 'https://evil.example/__settings']]);
+    expect(isShellSettingsUpdateSource(['x'], lookalike, shellOrigin)).toBe(false);
   });
 });

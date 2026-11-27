@@ -72,6 +72,53 @@ const propagateAiService = (
 };
 
 /**
+ * What a third-party app sees: appearance, language, region, and layout. No user, token,
+ * navigation or admin lists, service URLs, consent hosts, or developer flags. `ai.enabled`
+ * is the only AI field, and only for an app that was granted the `ai` capability.
+ */
+const buildThirdPartySettings = (
+  settings: Settings,
+  config: ShellUIConfig | undefined,
+  options: { ai: boolean; includeLayoutChrome: boolean; frameUuid?: string },
+): Settings => {
+  const resolved = getResolvedAppearanceForSettings(settings, config) ?? settings.appearance;
+  const appearance =
+    resolved && typeof window !== 'undefined'
+      ? { ...resolved, availableThemes: getAvailableThemesForSettings() }
+      : resolved;
+  const layoutChrome = options.includeLayoutChrome
+    ? options.frameUuid
+      ? getLayoutChromeForFrame(options.frameUuid)
+      : getPublishedLayoutChrome()
+    : null;
+  return {
+    developerFeatures: { enabled: false },
+    errorReporting: { enabled: false },
+    logging: { namespaces: { shellsdk: false, shellcore: false } },
+    appearance,
+    language: settings.language,
+    region: settings.region,
+    ai: {
+      enabled: options.ai && settings.ai?.enabled === true,
+      defaultModelId: null,
+      ollamaEnabled: false,
+      browserEnabled: false,
+    },
+    ...(settings.layout ? { layout: settings.layout } : {}),
+    ...(layoutChrome ? { layoutChrome } : {}),
+    user: null,
+    accessToken: null,
+    authBackendBaseUrl: null,
+    navigation: { items: [] },
+    administration: null,
+    storage: null,
+    hosting: null,
+    email: null,
+    aiService: null,
+  };
+};
+
+/**
  * Build settings for propagation to iframes: inject navigation, full theme object,
  * and list of available themes so apps can render theme pickers.
  */
@@ -104,8 +151,17 @@ export const buildSettingsForPropagation = (
     includeLayoutChrome?: boolean;
     /** Merge this frame's action-bar insets into layoutChrome. */
     frameUuid?: string;
+    /** The frame is an installed third-party app. It gets appearance, language, region, and layout only. */
+    thirdParty?: { ai: boolean };
   },
 ): Settings => {
+  if (options?.thirdParty) {
+    return buildThirdPartySettings(settings, config, {
+      ai: options.thirdParty.ai,
+      includeLayoutChrome: options.includeLayoutChrome !== false,
+      frameUuid: options.frameUuid,
+    });
+  }
   const appearance = getResolvedAppearanceForSettings(settings, config);
   let result: Settings = {
     ...settings,

@@ -53,6 +53,7 @@ import {
   LAYOUT_CHROME_ANIMATE_READY_MS,
 } from './layoutChrome.js';
 import { waitForInitialSettings } from './utils/waitForInitialSettings.js';
+import { createMarketplaceClient, type MarketplaceClient } from './marketplace/client.js';
 import {
   bindVisibleResume,
   createSessionRequestGate,
@@ -249,6 +250,8 @@ export class ShellUISDK {
   storage: StorageClient;
   /** On-device AI (Prompt API / LanguageModel shape). Shell runs inference. */
   ai: AiClient;
+  /** Shellui Marketplace bridge. The host accepts these calls only from `marketplace.url`. */
+  marketplace: MarketplaceClient;
   /** Cached layout chrome from settings / SHELLUI_LAYOUT_CHROME. */
   layoutChrome: LayoutChrome | null = null;
   private _autoLayoutPadding = true;
@@ -279,9 +282,13 @@ export class ShellUISDK {
     this.initialSettings = null;
     this.storage = new StorageClient(createPostMessageTransport(this));
     this.ai = new AiClient(createAiPostMessageTransport(this));
+    this.marketplace = createMarketplaceClient(this);
   }
 
-  configureMessageSecurity(options?: { allowedOrigins?: string[] }): void {
+  configureMessageSecurity(options?: {
+    allowedOrigins?: string[];
+    marketplaceOrigin?: string | null;
+  }): void {
     this.messageListenerRegistry.configureMessageSecurity(options);
   }
 
@@ -714,8 +721,10 @@ export const init = async (options?: {
   autoLayoutPadding?: boolean;
   allowedMessageOrigins?: string[];
 }): Promise<ShellUISDK> => await sdk.init(options);
-export const configureMessageSecurity = (options?: { allowedOrigins?: string[] }): void =>
-  sdk.configureMessageSecurity(options);
+export const configureMessageSecurity = (options?: {
+  allowedOrigins?: string[];
+  marketplaceOrigin?: string | null;
+}): void => sdk.configureMessageSecurity(options);
 export const getVersion = (): string => sdk.getVersion();
 export const openModal = (urlOrOptions?: string | OpenModalOptions): void =>
   openModalAction(urlOrOptions);
@@ -774,5 +783,48 @@ export {
 export const shellui = sdk;
 export const storage = sdk.storage;
 export const ai = sdk.ai;
+export const marketplace = sdk.marketplace;
+
+export type { AppCapability } from './marketplace/capabilities.js';
+export {
+  APP_CAPABILITIES,
+  DEFAULT_APP_CAPABILITIES,
+  GRANTABLE_EXTRA_CAPABILITIES,
+  MARKETPLACE_REQUEST_TYPES,
+  sanitizeCapabilityList,
+  explainCapabilityDenial,
+  explainMarketplaceRequestDenial,
+} from './marketplace/capabilities.js';
+export type { MarketplaceAppInfo, MarketplaceInstallRequest } from './marketplace/types.js';
+export {
+  NAVIGATION_OVERLAY_VERSION,
+  OVERLAY_LIMITS,
+  RESERVED_PATH_SEGMENTS,
+  THIRD_PARTY_CAPABILITIES,
+  isPrivateOrLoopbackHost,
+  hasPathTraversal,
+  isReservedAppPath,
+  normalizeInstalledAppPath,
+  slugifyPath,
+  validateInstalledApp,
+  validateNavigationOverlay,
+  type InstalledAppRecordShape,
+  type NavigationOverlayShape,
+  type OverlayRejection,
+  type OverlayValidationContext,
+} from './marketplace/overlayContract.js';
+export {
+  THIRD_PARTY_INBOUND_MESSAGE_TYPES,
+  isThirdPartyMessageAllowed,
+} from './marketplace/capabilities.js';
+export type { FrameCapabilityGrantInput } from './utils/frameRegistry.js';
+export {
+  MARKETPLACE_INSTALL,
+  MARKETPLACE_INSTALL_RESULT,
+  MARKETPLACE_LIST,
+  MARKETPLACE_LIST_RESULT,
+  MARKETPLACE_UNINSTALL,
+  MARKETPLACE_UNINSTALL_RESULT,
+} from './marketplace/messages.js';
 
 export default sdk;

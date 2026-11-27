@@ -1,4 +1,8 @@
 import type { ShellUIConfig } from '../config/types';
+import {
+  isThirdPartyFrameSrc,
+  originHasThirdPartyInstall,
+} from '../marketplace/installedAppRegistry';
 import urls from '../../constants/urls';
 import { isAdminFrame } from '../admin/utils';
 import { isShellOwnedPath } from '../layouts/floating/isShellOwnedPath';
@@ -42,6 +46,19 @@ export function isTrustedFrameForAuthToken(frameSrc: string, config?: ShellUICon
   const shellOrigin = currentShellOrigin();
   if (shellOrigin && isShellSettingsFrameSrc(frameSrc, shellOrigin)) {
     return true;
+  }
+
+  // Marketplace installs cannot receive the shell access token, even if a
+  // payload or nav item sets safeForAuthToken. The whole origin is closed:
+  // navigating to another path on that host does not restore the token.
+  if (isThirdPartyFrameSrc(frameSrc)) {
+    return false;
+  }
+  try {
+    const origin = new URL(frameSrc, globalThis.window?.location?.href).origin;
+    if (originHasThirdPartyInstall(origin)) return false;
+  } catch {
+    // Unparseable frame URLs stay on the checks below.
   }
 
   if (isAdminFrame(frameSrc, config)) {
@@ -149,6 +166,27 @@ export function isShellOwnedFrameMessage(
     return false;
   }
   return isShellOwnedFrameSrc(frameSrc, shellOrigin);
+}
+
+/**
+ * Whether a settings update came from the shell window itself or directly from one of the
+ * shell's own settings pages: Settings, or the cookie preferences page that edits consent.
+ * Any other frame is refused, including other shell pages, installed apps, and relayed messages.
+ */
+export function isShellSettingsUpdateSource(
+  from: string[] | undefined,
+  frameRegistry: FrameRegistryLike,
+  shellOrigin: string,
+): boolean {
+  const hops = (from ?? []).filter(Boolean);
+  if (hops.length === 0) return true;
+  if (hops.length !== 1) return false;
+  const frameSrc = resolveRegisteredFrameSrc(hops, frameRegistry);
+  if (!frameSrc) return false;
+  return (
+    isShellSettingsFrameSrc(frameSrc, shellOrigin, urls.settings) ||
+    isShellSettingsFrameSrc(frameSrc, shellOrigin, urls.cookiePreferences)
+  );
 }
 
 export type StorageTrustDenial = { message: string; status: 403 };
