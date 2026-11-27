@@ -51,6 +51,62 @@ def service_env(doc: dict[str, Any], service: str) -> dict[str, str]:
     return {}
 
 
+def published_ports(service: dict[str, Any]) -> set[str]:
+    found: set[str] = set()
+    for port in service.get("ports") or []:
+        if isinstance(port, dict):
+            published = port.get("published")
+            if published is not None:
+                found.add(str(published))
+        elif isinstance(port, str) and ":" in port:
+            found.add(port.rsplit(":", 1)[0].split(":")[-1])
+    return found
+
+
+def assert_otel_env(doc: dict[str, Any], dotenv: dict[str, str]) -> None:
+    """Resolved OTLP env for each Django process, and the Jaeger UI port."""
+    endpoint = "http://jaeger:4318"
+    protocol = "http/protobuf"
+    region = dotenv["DEV_REGION_CODE"]
+    attributes = f"deployment.environment=dev,cloud.region={region}"
+    assert dotenv["OTEL_EXPORTER_OTLP_ENDPOINT"] == endpoint
+    assert dotenv["OTEL_EXPORTER_OTLP_PROTOCOL"] == protocol
+    assert "${" not in attributes
+
+    expected = {
+        "identity": "shellui-identity",
+        "identity-global": "shellui-identity-global",
+        "email": "shellui-email",
+        "email-worker": "shellui-email-worker",
+        "storage": "shellui-storage",
+        "hosting": "shellui-hosting",
+        "saas": "shellui-saas",
+        "ai": "shellui-ai",
+        "ai-global": "shellui-ai-global",
+    }
+    for service, service_name in expected.items():
+        env = service_env(doc, service)
+        assert env.get("OTEL_SERVICE_NAME") == service_name, service
+        assert env.get("OTEL_EXPORTER_OTLP_ENDPOINT") == endpoint, service
+        assert env.get("OTEL_EXPORTER_OTLP_PROTOCOL") == protocol, service
+        assert env.get("OTEL_RESOURCE_ATTRIBUTES") == attributes, service
+
+    for name in ("shell", "admin", "dashboard", "files", "playground"):
+        assert "OTEL_SERVICE_NAME" not in service_env(doc, name), name
+
+    services = doc.get("services") or {}
+    jaeger = services.get("jaeger") or {}
+    assert jaeger.get("image") == "jaegertracing/jaeger:2.23.0"
+    assert "16686" in published_ports(jaeger)
+    jaeger_env = jaeger.get("environment")
+    if isinstance(jaeger_env, dict):
+        assert str(jaeger_env.get("JAEGER_LISTEN_HOST")) == "0.0.0.0"
+    elif isinstance(jaeger_env, list):
+        assert "JAEGER_LISTEN_HOST=0.0.0.0" in jaeger_env
+    else:
+        raise AssertionError("jaeger environment missing")
+
+
 def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> None:
     """Static checks on resolved compose env (issuer URL, internal hostname, JWT audiences)."""
     host = dotenv.get("DEV_PUBLIC_HOST", "localhost")
@@ -187,6 +243,8 @@ def assert_identity_ai_saas_env(doc: dict[str, Any], dotenv: dict[str, str]) -> 
         assert env.get("EMAIL_PUBLIC_URL") == public_email, name
         joined = f"{env.get('IDENTITY_SERVICE_URL', '')} {env.get('IDENTITY_JWKS_URL', '')}"
         assert "localhost:8001" not in joined, name
+
+    assert_otel_env(doc, dotenv)
 
     # Identity list_services publishes the public email origin when the key is set.
     assert ident.get("EMAIL_SERVICE_URL") == public_email

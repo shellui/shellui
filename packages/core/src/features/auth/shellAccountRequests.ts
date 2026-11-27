@@ -5,8 +5,7 @@ type ShellUIMessageType = ShellUIMessage['type'];
 export type DeleteAccountResultStatus = 'deleted' | 'cancelled' | 'error';
 
 export type UpdateProfileResult =
-  | { status: 'saved'; name: string }
-  | { status: 'error'; error?: string };
+  { status: 'saved'; name: string } | { status: 'error'; error?: string };
 
 /** The delete confirmation dialog stays open until the user answers, so only give up after a long wait. */
 const DELETE_RESULT_TIMEOUT_MS = 10 * 60_000;

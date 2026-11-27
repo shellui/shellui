@@ -134,11 +134,21 @@ company, put that integer in the path.
 
 ## Connect an agent from Settings
 
-Open **Settings**, then **MCP / AI agents**. Copy the company MCP URL
-on that page (`{ai-service}/c/{company_id}/mcp`, absolute) and the
-prompt next to it. The prompt tells the agent to add that URL as a
-remote MCP server and sign in with OAuth. It does not include an
-access token, a refresh token, a device code, or a user code.
+Open **Settings**, then **MCP / AI agents**. Copy the MCP URL on that
+page and the prompt next to it. The prompt tells the agent to add that
+URL as a remote MCP server and sign in with OAuth. It does not include
+an access token, a refresh token, a device code, or a user code.
+
+The URL comes from config, not from a hardcoded host:
+
+- Dashboard settings, and any other shell that sets `aiService.mcpUrl`,
+  show the Shellui account MCP (global, for saas tools). That value is
+  an absolute `/mcp` URL, for example `http://localhost:8008/mcp` in
+  the local stack or `{ai-service}/mcp` when the configured AI host is
+  already the global one.
+- Settings opened in a project or app that uses a regional identity
+  and a company id, and that does not set `aiService.mcpUrl`, show the
+  company MCP: `{ai-service}/c/{company_id}/mcp`.
 
 What you do:
 
@@ -149,7 +159,7 @@ What you do:
 A browser client opens the Identity consent page. A headless client or
 a command-line interface (CLI) uses device login. The agent calls
 `POST /oauth/mcp/device/code` with `client_id` and `resource` set to
-the company MCP URL. Identity returns a device code, a user code, and
+the MCP URL shown in Settings. Identity returns a device code, a user code, and
 `verification_uri` (`{identity}/oauth/mcp/device`). The code expires
 in 600 seconds. The agent shows you the link and the code, then polls.
 

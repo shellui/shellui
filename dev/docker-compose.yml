@@ -31,6 +31,12 @@ x-frontend-file-watch: &frontend-file-watch
 x-django-dev-env: &django-dev-env
   DJANGO_STATRELOAD_SLEEP: ${DJANGO_STATRELOAD_SLEEP:-3}
 
+# OTLP/HTTP export from the generated .env.local. An empty endpoint leaves telemetry off.
+x-otel-export: &otel-export
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+  OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL}
+  OTEL_RESOURCE_ATTRIBUTES: ${OTEL_RESOURCE_ATTRIBUTES}
+
 # init forwards SIGTERM to PID 1 children; omit restart so compose stop does not race the engine.
 x-dev-container: &dev-container
   init: true
@@ -95,6 +101,17 @@ services:
       - '8025:8025'
       - '1025:1025'
 
+  # Jaeger all-in-one, in-memory. UI is published on 16686.
+  # OTLP/HTTP stays on 4318 inside the Compose network (not published on the host).
+  # JAEGER_LISTEN_HOST makes that receiver reachable from other services.
+  jaeger:
+    <<: *dev-container
+    image: jaegertracing/jaeger:2.23.0
+    environment:
+      JAEGER_LISTEN_HOST: '0.0.0.0'
+    ports:
+      - '16686:16686'
+
   shell:
     <<: *dev-container
     build:
@@ -136,7 +153,8 @@ services:
     ports:
       - '8001:8000'
     environment:
-      <<: [*django-common, *django-dev-env]
+      <<: [*django-common, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_IDENTITY}
       ALLOWED_HOSTS: localhost,127.0.0.1,identity,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${IDENTITY_SECRET_KEY}
       JWT_ISSUER: ${PUBLIC_IDENTITY_URL}
@@ -213,7 +231,8 @@ services:
     ports:
       - '8007:8000'
     environment:
-      <<: [*django-common, *django-dev-env]
+      <<: [*django-common, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_IDENTITY_GLOBAL}
       ALLOWED_HOSTS: localhost,127.0.0.1,identity-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${IDENTITY_GLOBAL_SECRET_KEY}
       SHELLUI_INSTANCE_ROLE: global
@@ -257,7 +276,8 @@ services:
     ports:
       - '8002:8000'
     environment:
-      <<: [*django-common, *identity-jwt, *django-dev-env]
+      <<: [*django-common, *identity-jwt, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_STORAGE}
       ALLOWED_HOSTS: localhost,127.0.0.1,storage,100.127.19.94
       SECRET_KEY: ${STORAGE_SECRET_KEY}
       REDIS_URL: ${STORAGE_REDIS_URL}
@@ -305,7 +325,8 @@ services:
     ports:
       - '8003:8000'
     environment:
-      <<: [*django-common, *identity-jwt, *django-dev-env]
+      <<: [*django-common, *identity-jwt, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_HOSTING}
       ALLOWED_HOSTS: localhost,127.0.0.1,hosting,.shellui.local,100.127.19.94
       SECRET_KEY: ${HOSTING_SECRET_KEY}
       REDIS_URL: ${HOSTING_REDIS_URL}
@@ -344,7 +365,8 @@ services:
     ports:
       - '8004:8000'
     environment:
-      <<: [*django-common, *identity-jwt, *django-dev-env]
+      <<: [*django-common, *identity-jwt, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_EMAIL}
       ALLOWED_HOSTS: localhost,127.0.0.1,email,100.127.19.94
       SECRET_KEY: ${EMAIL_SECRET_KEY}
       REDIS_URL: ${EMAIL_REDIS_URL}
@@ -390,7 +412,8 @@ services:
       target: dev
     entrypoint: ['/opt/shellui/dev/container/email-worker-dev-entrypoint.sh']
     environment:
-      <<: *identity-jwt
+      <<: [*identity-jwt, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_EMAIL_WORKER}
       EMAIL_LANE_WORKER_POLL_SECONDS: ${EMAIL_LANE_WORKER_POLL_SECONDS:-5}
       DEBUG: 'true'
       SECRET_KEY: ${EMAIL_SECRET_KEY}
@@ -438,7 +461,8 @@ services:
     ports:
       - '8005:8000'
     environment:
-      <<: [*django-common, *identity-jwt, *django-dev-env]
+      <<: [*django-common, *identity-jwt, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_SAAS}
       ALLOWED_HOSTS: localhost,127.0.0.1,saas,100.127.19.94
       SECRET_KEY: ${SAAS_SECRET_KEY}
       REDIS_URL: ${SAAS_REDIS_URL}
@@ -500,7 +524,8 @@ services:
     ports:
       - '8006:8000'
     environment:
-      <<: [*django-common, *identity-jwt, *django-dev-env]
+      <<: [*django-common, *identity-jwt, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_AI}
       ALLOWED_HOSTS: localhost,127.0.0.1,ai,100.127.19.94
       SECRET_KEY: ${AI_SECRET_KEY}
       AI_SERVICE_MODE: region
@@ -546,7 +571,8 @@ services:
     ports:
       - '8008:8000'
     environment:
-      <<: [*django-common, *django-dev-env]
+      <<: [*django-common, *django-dev-env, *otel-export]
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME_AI_GLOBAL}
       ALLOWED_HOSTS: localhost,127.0.0.1,ai-global,100.127.19.94,${DEV_PUBLIC_HOST:-localhost}
       SECRET_KEY: ${AI_GLOBAL_SECRET_KEY}
       AI_SERVICE_MODE: global
@@ -675,7 +701,7 @@ services:
   # Playground companion (sibling repo ../../playground). Vite dev server with hot reload.
   playground:
     <<: [*dev-container, *frontend-shellui-local]
-    image: node:22-bookworm-slim
+    image: node:26-bookworm-slim
     working_dir: /app
     entrypoint: ['/opt/shellui/dev/container/frontend-dev-entrypoint.sh']
     command:

@@ -59,11 +59,10 @@ async function buildIndexHtml(target) {
       ...isolated,
       logLevel: 'silent',
       build: {
-        ...isolated.build,
         outDir,
         emptyOutDir: true,
         sourcemap: false,
-        rollupOptions: {
+        rolldownOptions: {
           input: {
             main: path.join(coreSrcPath, 'index.html'),
           },

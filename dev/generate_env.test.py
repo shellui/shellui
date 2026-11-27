@@ -231,6 +231,20 @@ def main() -> int:
         assert "eyJ" not in (p0.stdout or "") and "eyJ" not in (p0.stderr or "")
         text = out.read_text(encoding="utf-8")
         assert_jwks_parses(text)
+        assert "OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318" in text
+        assert "OTEL_RESOURCE_ATTRIBUTES=deployment.environment=dev,cloud.region=${DEV_REGION_CODE}" in text
+        for service_name in (
+            "shellui-identity",
+            "shellui-identity-global",
+            "shellui-email",
+            "shellui-email-worker",
+            "shellui-storage",
+            "shellui-hosting",
+            "shellui-saas",
+            "shellui-ai",
+            "shellui-ai-global",
+        ):
+            assert f"={service_name}\n" in text or text.endswith(f"={service_name}")
         jwks_matches_signing_pem(text, dev)
         assert_global_issuer_key_matches(text, dev)
         assert_no_duplicate_var_definitions(text)

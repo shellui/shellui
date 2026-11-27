@@ -62,6 +62,7 @@ import {
 } from './utils';
 import { unregisterServiceWorker } from '../../service-worker/register';
 import { refreshFrameAccessTokenIfNeeded } from '../auth/utils/frameSessionRefresher';
+import { isShellOwnedFrameMessage } from '../security/trustedFrames';
 
 const logger = getLogger('shellcore');
 
@@ -520,9 +521,24 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const settingsMessageFromShell = (message: ShellUIMessage): boolean => {
+      const from = (message.from ?? []).filter(Boolean);
+      if (isShellOwnedFrameMessage(from, shellui.frameRegistry, window.location.origin)) {
+        return true;
+      }
+      // Visible without the shellcore debug namespace. Do not log the payload.
+      // eslint-disable-next-line no-console
+      console.warn('Shellui rejected a settings message from a companion frame.', {
+        type: message.type,
+        from,
+      });
+      return false;
+    };
+
     const cleanup = shellui.addMessageListener(
       'SHELLUI_SETTINGS_UPDATED',
       (message: ShellUIMessage) => {
+        if (!settingsMessageFromShell(message)) return;
         const payload = message.payload as { settings: Settings };
         const newSettings = payload.settings;
         if (newSettings) {
@@ -624,6 +640,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       'SHELLUI_SETTINGS',
       (data: ShellUIMessage) => {
         const message = data as ShellUIMessage;
+        if (!settingsMessageFromShell(message)) return;
         const payload = message.payload as { settings: Settings };
         const newSettings = payload.settings;
         if (newSettings) {

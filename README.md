@@ -18,7 +18,7 @@ This monorepo holds the three npm packages:
 
 ## Get started
 
-You need Node.js 18 or later.
+You need Node.js 22.12 or later.
 
 ```bash
 npm install -g @shellui/cli

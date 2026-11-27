@@ -1,22 +1,27 @@
 /**
  * Companion/content iframe sandbox tokens.
  *
- * Threat model (Track F / M-18):
- * - Dev: shell (:4000) and companion (:5173, :3000, …) use distinct origins; templates
- *   set `frame-ancestors` so companions accept shell framing.
- * - Prod: companion is served from the same origin as the shell (`/app/`), which keeps
- *   postMessage and cookies workable while avoiding cross-origin framing surprises.
- * - `allow-same-origin` + `allow-scripts` lets embedded scripts remove the sandbox
- *   attribute when the iframe is same-origin to its document — acceptable only for
- *   trusted navigation URLs you configure. Residual risk is documented in
- *   docs/features/companion-isolation.md.
+ * Valid HTTP(S) companion URLs (both cross-origin dev/prod apps and same-origin
+ * `/app/` or hash-routed apps) and shell routes keep `allow-same-origin`.
+ * Omitting `allow-same-origin` gives the frame an opaque origin (`null`), which
+ * breaks Vite `<script type="module" crossorigin>` and stylesheet fetches via
+ * CORS, breaks Shellui SDK `postMessage` origin checks, and breaks same-origin
+ * nested admin frames (`isAdminContentFrame`).
  *
- * Incremental tightening: drop `allow-popups-to-escape-sandbox` (popups stay sandboxed).
+ * Unparseable URLs, empty URLs, and non-HTTP(S) schemes (such as `data:` or
+ * `javascript:`) omit `allow-same-origin`.
+ *
+ * `allow-popups-to-escape-sandbox` is not granted, so popups stay sandboxed.
  */
-const SANDBOX_CONTENT = 'allow-same-origin allow-scripts allow-forms allow-popups';
 
-/** @deprecated use SANDBOX_CONTENT — kept for tests asserting legacy tokens are gone */
+const SANDBOX_WITH_ORIGIN = 'allow-same-origin allow-scripts allow-forms allow-popups';
+const SANDBOX_OPAQUE_ORIGIN = 'allow-scripts allow-forms allow-popups';
+
+/** @deprecated use the sandbox returned by resolveContentIframeSandbox */
 export const LEGACY_POPUP_ESCAPE_TOKEN = 'allow-popups-to-escape-sandbox';
+
+/** @deprecated No-op retained for callers that reset sandbox warning state in tests. */
+export function resetContentIframeSandboxWarnings(): void {}
 
 /**
  * Resolve the `sandbox` attribute for a main content iframe.
@@ -25,19 +30,22 @@ export const LEGACY_POPUP_ESCAPE_TOKEN = 'allow-popups-to-escape-sandbox';
  * @param shellOrigin - Optional shell origin (for unit tests without `window`)
  */
 export function resolveContentIframeSandbox(iframeUrl: string, shellOrigin?: string): string {
+  const trimmed = iframeUrl.trim();
+  if (!trimmed) return SANDBOX_OPAQUE_ORIGIN;
+
   try {
     const base =
       typeof window !== 'undefined' ? window.location.href : (shellOrigin ?? 'http://localhost/');
-    const iframeOrigin = new URL(iframeUrl, base).origin;
-    const parentOrigin =
-      shellOrigin ?? (typeof window !== 'undefined' ? window.location.origin : iframeOrigin);
-    // Same-origin vs cross-origin companions share the tightened token set today.
-    // Cross-origin dev companions still require `allow-same-origin` for companion
-    // cookies/localStorage on their own origin; distinct-origin framing is the isolation layer.
-    void iframeOrigin;
-    void parentOrigin;
-    return SANDBOX_CONTENT;
+    const parsed = new URL(trimmed, base);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return SANDBOX_WITH_ORIGIN;
+    }
+    const baseUrl = new URL(base);
+    if (parsed.host !== '' && parsed.protocol === baseUrl.protocol) {
+      return SANDBOX_WITH_ORIGIN;
+    }
+    return SANDBOX_OPAQUE_ORIGIN;
   } catch {
-    return SANDBOX_CONTENT;
+    return SANDBOX_OPAQUE_ORIGIN;
   }
 }

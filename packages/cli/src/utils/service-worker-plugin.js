@@ -41,10 +41,9 @@ export function serviceWorkerDevPlugin(corePackagePath, coreSrcPath, projectRoot
         publicDir: false,
         plugins: [react()],
         build: {
-          ...isolated.build,
           write: false,
           sourcemap: false, // Disable source maps for service worker in dev mode
-          rollupOptions: {
+          rolldownOptions: {
             input: swPath,
             output: {
               format: 'es',

@@ -1,36 +1,32 @@
 ---
 title: Publish npm packages
 sidebar_label: Publishing
-description: 'Sync versions, build, and run pnpm run publish so SDK, core, and CLI ship with the correct npm dist-tag.'
+description: 'Publish a GitHub release and GitHub Actions ships the SDK, core, and CLI to npm with the right dist-tag.'
 ---
 
-Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` with one script. The npm dist-tag comes from the **root** `package.json` version:
-
-- Version contains `alpha` (for example `0.2.0-alpha.0`) → tag `alpha`
-- Version contains `beta` (for example `0.2.0-beta.1`) → tag `beta`
-- Otherwise → tag `latest`
-
-Put `alpha` or `beta` in the version string for pre-releases so `latest` is not overwritten.
+Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` by publishing a GitHub release.
 
 ## Steps
 
-1. `npm login`
-2. Set the version in the root `package.json`
-3. Sync packages: `pnpm run version:sync`
-4. Build: `pnpm run build`
-5. From the repo root: `pnpm run publish`
+Releases are published to npm by GitHub Actions. Nobody needs an npm token or `npm login`.
 
-That runs `scripts/publish-with-tag.js` in order SDK → Core → CLI. You do not pass the tag by hand.
+1. Bump the root `package.json` version, run `pnpm run version:sync`, and add the release to `CHANGELOG.md` (`## [x.y.z] - YYYY-MM-DD`).
+2. Merge `develop` into `main`.
+3. Create a GitHub release on `main` with the tag `vx.y.z` and the changelog entry as its description.
 
-Before publishing, the script runs `pnpm run changelog:check`. It stops the release unless:
+Publishing the release runs [`.github/workflows/publish-npm.yml`](https://github.com/shellui/shellui/blob/main/.github/workflows/publish-npm.yml) in the `npm` environment, which only accepts `v*` tags. The workflow:
 
-- The root version is `x.y.z`, `x.y.z-alpha.N`, or `x.y.z-beta.N`
-- `CHANGELOG.md` has no active `## [Unreleased]` section
-- Every release heading reads `## [<version>] - YYYY-MM-DD`, and the topmost one matches the root version (for example `## [0.6.3] - 2026-10-19`)
+- fails if the tag does not match the root and package versions
+- runs the changelog check, lint, tests and the build
+- packs each package (this turns `workspace:*` into the real version) and publishes `@shellui/sdk`, `@shellui/core` and `@shellui/cli` in that order
+- uses dist-tag `alpha` or `beta` for prerelease versions (`0.9.0-alpha.0`, `0.9.0-beta.1`) and `latest` otherwise
+- skips a package whose version is already on npm, so a failed run can be rerun safely
+
+npm trusted publishing (OIDC) authenticates the workflow, and every version gets a provenance attestation linking it to the commit and run. On npmjs.com, each package trusts the `shellui/shellui` repository, the `publish-npm.yml` workflow and the `npm` environment.
 
 Run `pnpm run changelog:check` on its own to validate the changelog before you start.
 
-For a later bump: change the root version, `pnpm run version:sync`, `pnpm run publish`. Stable releases omit `alpha` / `beta`.
+`pnpm run publish` still works from a local machine after `npm login` as a fallback.
 
 If the release changes agent-relevant APIs or config, update the matching skill in [shellui/skills](https://github.com/shellui/skills), bump `metadata.version` and that skill's `CHANGELOG.md`, and keep the skill lean - see [ADR 0001](/adr/ai-skill).
 
@@ -51,8 +47,8 @@ shellui --version
 
 ## Failures
 
-- **"Package already exists":** bump the version and `pnpm run version:sync` before publishing again
-- **"Access denied":** `npm login` and publish rights on `@shellui`
+- **"Package already exists":** the workflow skips that package; for a new release, bump the version and `pnpm run version:sync`
+- **"Access denied" or OIDC errors:** check the trusted publisher settings for each package on npmjs.com
 - **Wrong tag:** check that the root version contains `alpha` or `beta` for pre-releases
 - **"CHANGELOG.md is not ready":** rename the top release heading to the root version with today's date, and move any `## [Unreleased]` notes into it
 - **"Missing files":** check the `files` field in each package `package.json`

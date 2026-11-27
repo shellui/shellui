@@ -1,5 +1,6 @@
 import {
   MCP_PERSONAL_SERVICE_OPTIONS,
+  parseValidatedGlobalMcpEndpointUrl,
   type McpAgentSummary,
   type McpPersonalService,
   type McpPersonalStatus,
@@ -22,6 +23,54 @@ export function buildCompanyMcpUrl(
   }
   const fallback = fallbackUrl?.trim();
   return fallback || null;
+}
+
+/** `{aiServiceUrl}/mcp`, or a configured absolute `/mcp` URL. */
+export function buildGlobalMcpUrl(
+  aiServiceUrl: string | null | undefined,
+  configuredMcpUrl?: string | null,
+): string | null {
+  const configured = parseValidatedGlobalMcpEndpointUrl(configuredMcpUrl);
+  if (configured) return configured;
+  const base = aiServiceUrl?.trim().replace(/\/+$/, '') || '';
+  if (!base) return null;
+  return parseValidatedGlobalMcpEndpointUrl(`${base}/mcp`);
+}
+
+export type ResolveSettingsMcpUrlInput = {
+  aiServiceUrl: string | null | undefined;
+  companyId: string;
+  /**
+   * Full account MCP URL from `aiService.mcpUrl`.
+   * When set, Settings uses the global MCP even if `companyId` is present.
+   */
+  configuredGlobalMcpUrl?: string | null;
+  statusMcpUrl?: string | null;
+  statusGlobalMcpUrl?: string | null;
+};
+
+/**
+ * MCP URL shown in Settings.
+ * A configured `aiService.mcpUrl` selects the global account MCP
+ * (`https://host/mcp`), for dashboard and other global shells.
+ * Otherwise a company id selects the regional `{ai}/c/{id}/mcp` URL.
+ */
+export function resolveSettingsMcpUrl(input: ResolveSettingsMcpUrlInput): string | null {
+  const hasConfiguredGlobal = Boolean(input.configuredGlobalMcpUrl?.trim());
+  if (hasConfiguredGlobal) {
+    return (
+      buildGlobalMcpUrl(input.aiServiceUrl, input.configuredGlobalMcpUrl) ??
+      parseValidatedGlobalMcpEndpointUrl(input.statusGlobalMcpUrl)
+    );
+  }
+  const companyId = input.companyId.trim();
+  if (companyId) {
+    return buildCompanyMcpUrl(input.aiServiceUrl, companyId, input.statusMcpUrl);
+  }
+  return (
+    buildGlobalMcpUrl(input.aiServiceUrl) ??
+    parseValidatedGlobalMcpEndpointUrl(input.statusGlobalMcpUrl)
+  );
 }
 
 export function isAbsoluteHttpUrl(value: string | null | undefined): boolean {

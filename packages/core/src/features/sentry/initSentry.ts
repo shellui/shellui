@@ -1,7 +1,29 @@
 import { getCookieConsentAccepted } from '../cookieConsent/cookieConsent';
 import shelluiConfig from '@shellui/config';
+import type { BrowserOptions } from '@sentry/react';
 
 const SETTINGS_KEY = 'shellui:settings';
+
+/**
+ * What Sentry may collect with an error report. Sentry 11 removed `sendDefaultPii`, so the
+ * defaults of `dataCollection` apply unless set here, and they include request and response
+ * bodies, database query data and gen AI inputs and outputs. Everything optional is off:
+ * the report carries the error, its stack and the release, nothing about the user or the
+ * data the shell handled.
+ */
+export const SENTRY_DATA_COLLECTION: NonNullable<BrowserOptions['dataCollection']> = {
+  userInfo: false,
+  cookies: false,
+  httpHeaders: false,
+  httpBodies: [],
+  urlQueryParams: false,
+  graphQL: { document: false, variables: false },
+  genAI: { inputs: false, outputs: false },
+  mcp: { inputs: false, outputs: false },
+  databaseQueryData: false,
+  queues: false,
+  stackFrameVariables: false,
+};
 
 /** True after @sentry/react has been lazy-loaded and init() was called. */
 let sentryLoaded = false;
@@ -57,7 +79,7 @@ export function initSentry(): void {
       dsn,
       environment: sentry.environment ?? 'production',
       release: sentry.release,
-      sendDefaultPii: true,
+      dataCollection: SENTRY_DATA_COLLECTION,
       // Use tunnel for localhost to avoid CORS issues
       ...(tunnel && { tunnel }),
     });
@@ -120,7 +142,7 @@ export async function captureException(error: Error): Promise<void> {
       dsn,
       environment: sentry.environment ?? 'production',
       release: sentry.release,
-      sendDefaultPii: true,
+      dataCollection: SENTRY_DATA_COLLECTION,
       // Use tunnel for localhost to avoid CORS issues
       ...(tunnel && { tunnel }),
     });

@@ -234,13 +234,12 @@ export async function buildCommand(root = '.', options = {}) {
       ...isolated,
       plugins: [react(), createShelluiConfigPlugin(config)],
       build: {
-        ...isolated.build,
         outDir: distPath,
         emptyOutDir: true,
         sourcemap: true,
         // Ensure every build generates unique filenames with content hashes
         // Content hash changes when file content changes, ensuring cache busting
-        rollupOptions: {
+        rolldownOptions: {
           input: {
             main: path.join(coreSrcPath, 'index.html'),
           },
@@ -267,11 +266,10 @@ export async function buildCommand(root = '.', options = {}) {
       publicDir: false,
       plugins: [createShelluiConfigPlugin(config)],
       build: {
-        ...isolated.build,
         outDir: distPath,
         emptyOutDir: false,
         sourcemap: true,
-        rollupOptions: {
+        rolldownOptions: {
           input: swInputPath,
           output: {
             dir: distPath,

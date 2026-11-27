@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Local dev stack (dev/docker-compose.yml): deps only; bind-mount the monorepo at /app.
-FROM node:22-bookworm-slim AS dev
+FROM node:26-bookworm-slim AS dev
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg \

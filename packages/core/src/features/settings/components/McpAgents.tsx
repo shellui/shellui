@@ -7,7 +7,7 @@ import { useAuth } from '../../auth/hooks/useAuth';
 import {
   agentIncludesSaasScope,
   buildAgentPrompt,
-  buildCompanyMcpUrl,
+  resolveSettingsMcpUrl,
   MCP_PERSONAL_AGENT_MAX_LIFETIME_DAYS,
   defaultPersonalAgentExpiresAt,
   formatAgentExpiry,
@@ -21,9 +21,12 @@ import {
 } from '../../mcp/mcpAgentsConnect';
 import {
   createMcpPersonalAgent,
+  fetchMcpGlobalAgents,
   fetchMcpPersonalAgents,
   getMcpPersonalCompanyId,
   getShellIdentityBackendUrl,
+  resolveGlobalMcpServiceUrl,
+  revokeMcpGlobalAgent,
   revokeMcpPersonalAgent,
   type CreatePersonalAgentResult,
   type McpAgentSummary,
@@ -38,6 +41,27 @@ import { McpPendingApprovals } from './McpPendingApprovals';
 
 type IssuedSecret = {
   accessToken: string;
+};
+
+type ListedMcpAgent = McpAgentSummary & { source: 'regional' | 'global' };
+
+const withSource = (
+  agents: McpAgentSummary[],
+  source: ListedMcpAgent['source'],
+): ListedMcpAgent[] => agents.map((agent) => ({ ...agent, source }));
+
+const mergeAgentLists = (
+  globalAgents: McpAgentSummary[],
+  regionalAgents: McpAgentSummary[],
+): ListedMcpAgent[] => {
+  const seen = new Set(globalAgents.map((agent) => agent.id));
+  return [
+    ...withSource(globalAgents, 'global'),
+    ...withSource(
+      regionalAgents.filter((agent) => !seen.has(agent.id)),
+      'regional',
+    ),
+  ];
 };
 
 export const McpAgents = () => {
@@ -76,9 +100,17 @@ export const McpAgents = () => {
     return u || null;
   }, [status?.globalMcpUrl]);
 
+  const configuredGlobalMcpUrl = config?.aiService?.mcpUrl ?? null;
   const companyMcpUrl = useMemo(
-    () => buildCompanyMcpUrl(aiServiceUrl, companyId, status?.mcpUrl),
-    [aiServiceUrl, companyId, status?.mcpUrl],
+    () =>
+      resolveSettingsMcpUrl({
+        aiServiceUrl,
+        companyId,
+        configuredGlobalMcpUrl,
+        statusMcpUrl: status?.mcpUrl,
+        statusGlobalMcpUrl: status?.globalMcpUrl,
+      }),
+    [aiServiceUrl, companyId, configuredGlobalMcpUrl, status?.globalMcpUrl, status?.mcpUrl],
   );
   const absoluteMcpUrl = useMemo(
     () => (companyMcpUrl && isAbsoluteHttpUrl(companyMcpUrl) ? companyMcpUrl : null),
@@ -92,7 +124,7 @@ export const McpAgents = () => {
     [absoluteMcpUrl, locale],
   );
 
-  const [agents, setAgents] = useState<McpAgentSummary[]>([]);
+  const [agents, setAgents] = useState<ListedMcpAgent[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [agentsError, setAgentsError] = useState(false);
   const [showRevoked, setShowRevoked] = useState(false);
@@ -131,9 +163,18 @@ export const McpAgents = () => {
     [t],
   );
 
+  const globalAgentsUrl = useMemo(
+    () => resolveGlobalMcpServiceUrl(aiServiceUrl, status?.globalMcpUrl),
+    [aiServiceUrl, status?.globalMcpUrl],
+  );
+  const loadGlobalAgents = Boolean(
+    accessToken && isGlobalIdentitySession(status) && globalAgentsUrl,
+  );
+  const loadRegionalAgents = Boolean(backendUrl && accessToken && status?.mcpEnabled);
+
   const loadAgents = useCallback(
     async (options?: { silent?: boolean }) => {
-      if (!backendUrl || !accessToken || !status?.mcpEnabled) {
+      if (!loadGlobalAgents && !loadRegionalAgents) {
         setAgents([]);
         return;
       }
@@ -142,8 +183,35 @@ export const McpAgents = () => {
         setAgentsError(false);
       }
       try {
-        const list = await fetchMcpPersonalAgents(backendUrl, accessToken, companyId);
-        setAgents(list);
+        const regionalResult = loadRegionalAgents
+          ? fetchMcpPersonalAgents(backendUrl as string, accessToken as string, companyId)
+              .then((rows) => ({ ok: true as const, rows }))
+              .catch(() => ({ ok: false as const, rows: [] as McpAgentSummary[] }))
+          : Promise.resolve({ ok: true as const, rows: [] as McpAgentSummary[] });
+        const globalResult = loadGlobalAgents
+          ? fetchMcpGlobalAgents(globalAgentsUrl as string, accessToken as string)
+              .then((rows) => ({ ok: true as const, rows }))
+              .catch(() => ({ ok: false as const, rows: [] as McpAgentSummary[] }))
+          : Promise.resolve({ ok: true as const, rows: [] as McpAgentSummary[] });
+        const [regional, global] = await Promise.all([regionalResult, globalResult]);
+        if (!regional.ok && !global.ok) {
+          if (!options?.silent) {
+            setAgents([]);
+            setAgentsError(true);
+          }
+          return;
+        }
+        if (
+          (loadRegionalAgents && !regional.ok && !loadGlobalAgents) ||
+          (loadGlobalAgents && !global.ok && !loadRegionalAgents)
+        ) {
+          if (!options?.silent) {
+            setAgents([]);
+            setAgentsError(true);
+          }
+          return;
+        }
+        setAgents(mergeAgentLists(global.ok ? global.rows : [], regional.ok ? regional.rows : []));
         setAgentsError(false);
       } catch {
         if (!options?.silent) {
@@ -156,7 +224,7 @@ export const McpAgents = () => {
         }
       }
     },
-    [accessToken, backendUrl, companyId, status?.mcpEnabled],
+    [accessToken, backendUrl, companyId, globalAgentsUrl, loadGlobalAgents, loadRegionalAgents],
   );
 
   useEffect(() => {
@@ -200,7 +268,7 @@ export const McpAgents = () => {
   );
 
   const handleRevoke = useCallback(
-    (agent: McpAgentSummary) => {
+    (agent: ListedMcpAgent) => {
       shellui.dialog({
         title: t('mcpAgents.revoke.title'),
         description: t('mcpAgents.revoke.description'),
@@ -209,9 +277,15 @@ export const McpAgents = () => {
         okLabel: t('mcpAgents.revoke.confirm'),
         cancelLabel: t('mcpAgents.revoke.cancel'),
         onOk: async () => {
-          if (!backendUrl || !accessToken) return;
+          if (!accessToken) return;
           try {
-            await revokeMcpPersonalAgent(backendUrl, accessToken, companyId, agent.id);
+            if (agent.source === 'global') {
+              if (!globalAgentsUrl) return;
+              await revokeMcpGlobalAgent(globalAgentsUrl, accessToken, agent.id);
+            } else {
+              if (!backendUrl) return;
+              await revokeMcpPersonalAgent(backendUrl, accessToken, companyId, agent.id);
+            }
             shellui.toast({
               type: 'success',
               title: t('mcpAgents.revoke.successTitle'),
@@ -228,7 +302,7 @@ export const McpAgents = () => {
         onCancel: () => {},
       });
     },
-    [accessToken, backendUrl, companyId, loadAgents, t],
+    [accessToken, backendUrl, companyId, globalAgentsUrl, loadAgents, t],
   );
 
   const handleCreate = useCallback(async () => {
@@ -291,7 +365,9 @@ export const McpAgents = () => {
     return <p className="text-sm text-muted-foreground">{t('mcpAgents.status.loading')}</p>;
   }
 
-  if (statusError || !status?.mcpEnabled) {
+  const connectionsAvailable = Boolean(status?.mcpEnabled || loadGlobalAgents);
+
+  if (statusError || !connectionsAvailable) {
     return (
       <div className="space-y-3">
         <p className="text-sm text-muted-foreground">

@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { ReactElement } from 'react';
 import type { Settings } from '@shellui/sdk';
 import type { AuthUser } from '../../auth/hooks/useAuth';
@@ -14,7 +15,7 @@ type SettingsRouteItem = {
 export const createUserSettingsRoute = (
   user: AuthUser | null,
   logout: () => Promise<void>,
-  t: (key: string, options?: { defaultValue?: string }) => string,
+  t: TFunction<'settings'>,
   options: {
     developerModeEnabled: boolean;
     accessToken: string | null;

@@ -1,9 +1,11 @@
 import { test, describe, expect } from 'vitest';
+import fs from 'fs';
 import path from 'path';
 import {
   createIsolatedViteConfig,
   createPostCSSConfig,
   getShelluiViteCacheDir,
+  SHELLUI_TSCONFIG_PATH,
   SHELLUI_VITE_CACHE_DIR,
 } from '../vite.js';
 
@@ -43,8 +45,9 @@ describe('createIsolatedViteConfig', () => {
   });
 
   test('skips consumer tsconfig for transforms and optimizeDeps', () => {
-    expect(isolated.esbuild.tsconfigRaw.compilerOptions.jsx).toBe('automatic');
-    expect(isolated.optimizeDeps.esbuildOptions.tsconfigRaw.compilerOptions.jsx).toBe('automatic');
+    expect(isolated.tsconfig).toBe(SHELLUI_TSCONFIG_PATH);
+    const { compilerOptions } = JSON.parse(fs.readFileSync(SHELLUI_TSCONFIG_PATH, 'utf8'));
+    expect(compilerOptions.jsx).toBe('react-jsx');
   });
 
   test('does not allow serving the consumer project src', () => {

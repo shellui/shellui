@@ -272,7 +272,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
       - run: npm ci
       # Updates the preview saved in hosting.slug (shellui.config.json)
       - run: npx shellui deploy --build
@@ -423,7 +423,7 @@ The CLI does not replace your app toolchain. Set `dev.run` so one `shellui start
 | --------------------------------------- | ------------------------------------------------------------------------ |
 | `vite.config.*`                         | Inline config, root = `@shellui/core`                                    |
 | `postcss.config.*`, `tailwind.config.*` | CLI PostCSS + Tailwind v4, scan limited to `@shellui/core/src`           |
-| `tsconfig.json` / `jsconfig.json`       | Inline `esbuild.tsconfigRaw` (React JSX)                                 |
+| `tsconfig.json` / `jsconfig.json`       | CLI `shell-tsconfig.json` via Vite `tsconfig` (React JSX)                |
 | `.env`, `.env.*`, `VITE_*`              | Vite `envDir: false`; `import.meta.env` prefix is `SHELLUI_PUBLIC_` only |
 | `node_modules/.vite`                    | `node_modules/.vite-shellui`                                             |
 

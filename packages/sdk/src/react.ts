@@ -47,6 +47,8 @@ export type ShelluiFrameProps = Omit<IframeHTMLAttributes<HTMLIFrameElement>, 's
   files?: string | null;
   /** Hosting-service URL for the child. Same rule as `email`. */
   hosting?: string | null;
+  /** ai-service URL for the child. Same rule as `email`. */
+  aiService?: string | null;
   /** The child app changed its URL. Mirror it in the host route here. */
   onNavigate?: (location: ShellUIUrlPayload) => void;
   /** Shown over the hidden frame until the child app finishes Shellui init. */
@@ -119,6 +121,7 @@ export function ShelluiFrame({
   storage,
   files,
   hosting,
+  aiService,
   onNavigate,
   fallback,
   renderError,
@@ -143,6 +146,7 @@ export function ShelluiFrame({
   const storageUrl = storage ?? '';
   const filesUrl = files ?? '';
   const hostingUrl = hosting ?? '';
+  const aiServiceUrl = aiService ?? '';
 
   useEffect(() => {
     statusRef.current?.(status);
@@ -187,6 +191,7 @@ export function ShelluiFrame({
       ...(storageUrl ? { storage: storageUrl } : {}),
       ...(filesUrl ? { files: filesUrl } : {}),
       ...(hostingUrl ? { hosting: hostingUrl } : {}),
+      ...(aiServiceUrl ? { aiService: aiServiceUrl } : {}),
       onNavigate: (location) => {
         const href = hrefFromLocation(origin, location);
         childHrefRef.current = href;
@@ -230,6 +235,7 @@ export function ShelluiFrame({
     storageUrl,
     filesUrl,
     hostingUrl,
+    aiServiceUrl,
     attempt,
     readyTimeoutMs,
   ]);

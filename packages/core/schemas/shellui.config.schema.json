@@ -407,6 +407,25 @@
       "additionalProperties": false,
       "description": "Optional email-service wiring for Admin → Email and iframe apps. The shell never invents a URL: without `url`, apps get no email service."
     },
+    "AiServiceConfig": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
+        },
+        "mcpUrl": {
+          "type": "string",
+          "description": "Full Shellui account MCP URL. Path must be exactly `/mcp`. When set, Settings shows this URL for MCP / AI agents, even if `backend.companyId` is also set. Use it for the global MCP (saas tools), for example `https://ai.example/mcp`. Omit it in a regional project so Settings can use `{url}/c/{companyId}/mcp`."
+        },
+        "showInAdmin": {
+          "type": "boolean",
+          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
+    },
     "StorageConfig": {
       "type": "object",
       "properties": {
@@ -454,21 +473,6 @@
       "required": ["url"],
       "additionalProperties": false,
       "description": "Optional hosting-service wiring for `shellui deploy` preview uploads. Preview sites expire after 7 days unless redeployed to the same slug."
-    },
-    "AiServiceConfig": {
-      "type": "object",
-      "properties": {
-        "url": {
-          "type": "string",
-          "description": "Base URL of ai-service. Required for apps to get AI. There is no built-in default. Local: `http://localhost:8006`."
-        },
-        "showInAdmin": {
-          "type": "boolean",
-          "description": "When false, hide Admin → AI. Default: true (shown) when `aiService` is set."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Optional ai-service wiring for Admin → AI and iframe apps. The shell never invents a URL: without `url`, apps get no ai service."
     },
     "NavigationGroup": {
       "type": "object",

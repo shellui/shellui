@@ -3,6 +3,7 @@ import type { ShellUIConfig } from '../config/types';
 import {
   createMcpPersonalAgent,
   fetchMcpPersonalAgentCallLogs,
+  fetchMcpGlobalAgents,
   fetchMcpPersonalAgents,
   fetchMcpPersonalStatus,
   getMcpPersonalCompanyId,
@@ -17,6 +18,8 @@ import {
   parseStrictMcpActivityErrorCode,
   parseStrictMcpActivityOutcome,
   parseValidatedGlobalMcpEndpointUrl,
+  resolveGlobalMcpServiceUrl,
+  revokeMcpGlobalAgent,
   revokeMcpPersonalAgent,
   MCP_ACTIVITY_ERROR_CODES,
 } from './personalAgentsApi';
@@ -657,5 +660,77 @@ describe('fetchMcpPersonalAgentCallLogs', () => {
     await expect(
       fetchMcpPersonalAgentCallLogs('http://localhost:8006', 'tok', 'agent-1'),
     ).rejects.toBeInstanceOf(McpCallLogUnavailableError);
+  });
+});
+
+describe('resolveGlobalMcpServiceUrl', () => {
+  it('prefers a configured ai-service URL', () => {
+    expect(resolveGlobalMcpServiceUrl(' https://ai.example/ ', 'https://other.example/mcp')).toBe(
+      'https://ai.example',
+    );
+  });
+
+  it('falls back to the origin of a valid global MCP URL', () => {
+    expect(resolveGlobalMcpServiceUrl(null, 'https://ai.shellui.com/mcp')).toBe(
+      'https://ai.shellui.com',
+    );
+  });
+
+  it('returns null when neither is usable', () => {
+    expect(resolveGlobalMcpServiceUrl('', 'https://ai.example/not-mcp')).toBeNull();
+  });
+});
+
+describe('mcp global agents fetch helpers', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const agent = {
+    id: 'g1',
+    kind: 'oauth',
+    name: 'Hermes',
+    access_mode: 'ask',
+    read_level: 'safe',
+    allow_destructive_without_asking: false,
+    services_allowed: ['saas'],
+    expires_at: null,
+    paused_at: null,
+    revoked_at: null,
+    is_active: true,
+    created_at: '2026-11-25T11:12:00Z',
+    oauth_client_id: 'client-1',
+    personal_token_id: null,
+  };
+
+  it('fetchMcpGlobalAgents lists agents from ai-service', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ agents: [agent] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const rows = await fetchMcpGlobalAgents('https://ai.shellui.com/', 'session-tok');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe('g1');
+    expect(rows[0]?.kind).toBe('oauth');
+    expect(rows[0]?.name).toBe('Hermes');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://ai.shellui.com/ai/v1/mcp/global/agents');
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer session-tok' });
+  });
+
+  it('revokeMcpGlobalAgent posts to the revoke path', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        agent: { ...agent, revoked_at: '2026-11-25T12:00:00Z', is_active: false },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const revoked = await revokeMcpGlobalAgent('https://ai.shellui.com', 'session-tok', 'g1');
+    expect(revoked.revokedAt).toBe('2026-11-25T12:00:00Z');
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://ai.shellui.com/ai/v1/mcp/global/agents/g1/revoke');
+    expect(init.method).toBe('POST');
   });
 });

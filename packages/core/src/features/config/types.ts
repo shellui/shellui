@@ -12,13 +12,7 @@ export type DrawerPosition = 'top' | 'bottom' | 'left' | 'right';
 
 /** Layout mode: 'sidebar' (default) shows navigation sidebar; 'sidebar-inset' is sidebar with a padded, rounded main frame; 'fullscreen' shows only content area; 'windows' shows a taskbar with start menu and multi-window desktop; 'app-bar' shows a compact top bar; 'app-bar-inset' is app-bar with the same padded, rounded main frame as sidebar-inset; 'floating' is glass chrome over full-bleed content (bottom tabs on phone/tablet, floating sidebar on desktop). */
 export type LayoutType =
-  | 'sidebar'
-  | 'sidebar-inset'
-  | 'fullscreen'
-  | 'windows'
-  | 'app-bar'
-  | 'app-bar-inset'
-  | 'floating';
+  'sidebar' | 'sidebar-inset' | 'fullscreen' | 'windows' | 'app-bar' | 'app-bar-inset' | 'floating';
 
 /** Map legacy layout ids (e.g. early `cupertino`) onto current LayoutType. */
 export function normalizeLayoutType(layout: string | null | undefined): LayoutType | undefined {
@@ -136,10 +130,7 @@ export interface SentryConfig {
  * - social_media_embedded: Social widgets, embedded content.
  */
 export type CookieConsentCategory =
-  | 'strict_necessary'
-  | 'functional_performance'
-  | 'targeting'
-  | 'social_media_embedded';
+  'strict_necessary' | 'functional_performance' | 'targeting' | 'social_media_embedded';
 
 /**
  * Definition of a cookie that can be toggled by the user via cookie consent.
@@ -406,6 +397,16 @@ export interface AiServiceConfig {
    * Local: `http://localhost:8006`.
    */
   url?: string;
+  /**
+   * Full Shellui account MCP URL (path must be exactly `/mcp`).
+   * When set, Settings shows this URL for MCP / AI agents, even if
+   * `backend.companyId` is also set (as on the dashboard).
+   * Use this for the global MCP (saas tools), for example
+   * `https://ai.example/mcp` or `http://localhost:8008/mcp`.
+   * Omit it in a regional project so Settings can use
+   * `{url}/c/{companyId}/mcp`.
+   */
+  mcpUrl?: string;
   /**
    * When false, hide Admin → AI.
    * Default: true (shown) when `aiService` is set.

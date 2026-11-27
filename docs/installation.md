@@ -4,7 +4,7 @@ sidebar_label: Installation
 description: 'Install @shellui/cli globally or as a project dependency, then confirm the shellui command.'
 ---
 
-Install `@shellui/cli` so you can create a project, run the development server, and build a production shell. Node.js 18.0.0 or higher is required. npm ships with Node.js.
+Install `@shellui/cli` so you can create a project, run the development server, and build a production shell. It needs Node.js 22.12 or later. npm ships with Node.js.
 
 ## Install globally
 
@@ -29,13 +29,13 @@ npx shellui build --app --bundles app,dmg
 
 ## Install this release
 
-These docs describe Shellui **0.8.1** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.8.1 and not a later version:
+These docs describe Shellui **0.8.6** on the npm `latest` tag. The commands above install that release. Pin it when you want 0.8.6 and not a later version:
 
 ```bash
-npm install -g @shellui/cli@0.8.1
-npm install --save-dev @shellui/cli@0.8.1
-npm install @shellui/sdk@0.8.1
-npm install @shellui/core@0.8.1
+npm install -g @shellui/cli@0.8.6
+npm install --save-dev @shellui/cli@0.8.6
+npm install @shellui/sdk@0.8.6
+npm install @shellui/core@0.8.6
 ```
 
 See the [changelog](https://github.com/shellui/shellui/blob/main/CHANGELOG.md) for what changed in each release.

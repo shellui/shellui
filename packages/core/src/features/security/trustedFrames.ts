@@ -5,6 +5,7 @@ import {
 } from '../marketplace/installedAppRegistry';
 import urls from '../../constants/urls';
 import { isAdminFrame } from '../admin/utils';
+import { isShellOwnedPath } from '../layouts/floating/isShellOwnedPath';
 import { flattenNavigationItems, isFrameForAppUrl } from '../layouts/utils';
 
 function currentShellOrigin(): string | null {
@@ -131,6 +132,40 @@ export function isShellSettingsFrameMessage(
     return false;
   }
   return isShellSettingsFrameSrc(frameSrc, shellOrigin, settingsPath);
+}
+
+/** Same-origin shell page (settings, cookie preferences, login, admin, legal, demos). */
+export function isShellOwnedFrameSrc(frameSrc: string, shellOrigin: string): boolean {
+  try {
+    const url = new URL(frameSrc, shellOrigin);
+    return url.origin === shellOrigin && isShellOwnedPath(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a message came from the shell window itself or directly from a shell
+ * page. Companion frames are rejected, including ones opted in for an access
+ * token. Messages relayed through a nested frame (more than one hop) are rejected.
+ */
+export function isShellOwnedFrameMessage(
+  from: string[] | undefined,
+  frameRegistry: FrameRegistryLike,
+  shellOrigin: string,
+): boolean {
+  const hops = (from ?? []).filter(Boolean);
+  if (hops.length === 0) {
+    return true;
+  }
+  if (hops.length !== 1) {
+    return false;
+  }
+  const frameSrc = resolveRegisteredFrameSrc(hops, frameRegistry);
+  if (!frameSrc) {
+    return false;
+  }
+  return isShellOwnedFrameSrc(frameSrc, shellOrigin);
 }
 
 export type StorageTrustDenial = { message: string; status: 403 };

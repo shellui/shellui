@@ -48,12 +48,7 @@ export type McpAgentSummary = {
 export type McpActivityAccessKind = 'read' | 'write' | 'destructive' | 'unknown';
 
 export type McpActivityOutcomeKind =
-  | 'allowed'
-  | 'denied'
-  | 'failed'
-  | 'pending_approval'
-  | 'session_used'
-  | 'unknown';
+  'allowed' | 'denied' | 'failed' | 'pending_approval' | 'session_used' | 'unknown';
 
 /**
  * Identity `error_code` for activity rows: fixed allowlist from identity (and gateway when present).
@@ -177,6 +172,21 @@ export function parseValidatedGlobalMcpEndpointUrl(raw: unknown): string | null 
   } catch {
     return null;
   }
+}
+
+/**
+ * Base URL of the global AI service: configured aiService.url, or the origin of
+ * identity `global_mcp_url` (`https://ai.example/mcp` -> `https://ai.example`).
+ */
+export function resolveGlobalMcpServiceUrl(
+  aiServiceUrl: string | null | undefined,
+  globalMcpUrl: string | null | undefined,
+): string | null {
+  const fromAi = typeof aiServiceUrl === 'string' ? aiServiceUrl.trim().replace(/\/+$/, '') : '';
+  if (fromAi) return fromAi;
+  const mcp = parseValidatedGlobalMcpEndpointUrl(globalMcpUrl);
+  if (!mcp) return null;
+  return mcp.replace(/\/mcp$/, '');
 }
 
 export const parseMcpPersonalStatus = (payload: unknown): McpPersonalStatus | null => {
@@ -462,6 +472,58 @@ export const fetchMcpPersonalAgents = (
     { method: 'GET' },
     (payload) => parseMcpAgentList(payload),
   );
+
+const globalAgentsUrl = (aiServiceUrl: string, suffix: string): string => {
+  const base = aiServiceUrl.trim().replace(/\/+$/, '');
+  return `${base}${suffix}`;
+};
+
+export const fetchMcpGlobalAgents = async (
+  aiServiceUrl: string,
+  accessToken: string,
+): Promise<McpAgentSummary[]> => {
+  const response = await fetch(globalAgentsUrl(aiServiceUrl, '/ai/v1/mcp/global/agents'), {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return parseMcpAgentList(payload);
+};
+
+export const revokeMcpGlobalAgent = async (
+  aiServiceUrl: string,
+  accessToken: string,
+  agentId: string,
+): Promise<McpAgentSummary> => {
+  const response = await fetch(
+    globalAgentsUrl(aiServiceUrl, `/ai/v1/mcp/global/agents/${encodeURIComponent(agentId)}/revoke`),
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const agent =
+    payload && typeof payload === 'object'
+      ? parseMcpAgentSummary((payload as Record<string, unknown>).agent)
+      : null;
+  if (!agent) {
+    throw new Error('Unexpected response from ai-service.');
+  }
+  return agent;
+};
 
 export type CreateMcpPersonalAgentOptions = {
   /** When false, `saas` is removed from the request (regional identity surfaces). */

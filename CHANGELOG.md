@@ -18,6 +18,81 @@ Notable changes to this project. Format: [Keep a Changelog](https://keepachangel
 Sample: https://raw.githubusercontent.com/favoloso/conventional-changelog-emoji/master/CHANGELOG.md
 -->
 
+## [Unreleased]
+
+### 📚 Documentation
+
+- Installation, quickstart, Tauri and README now give the Node.js version the CLI needs: 22.12 or later. The root `engines` field matches.
+
+### 🔒 Security
+
+- Core i18next 27 and react-i18next 18 (fixes GHSA-6jcc-5g8w-32mx, a DoS in `deepExtend`).
+
+### 🚨 Changed
+
+- cac 7 (CLI argument parser) now errors on extra positional arguments, for example `shellui build ./app extra`. Remove stray arguments from scripts that call the CLI.
+- Sentry reporting no longer sends default personal data. The shell sets `dataCollection` explicitly with user info, cookies, headers, bodies and query strings off (Sentry 11 replaced `sendDefaultPii`).
+- Node.js 22.12 is now the minimum for the CLI. Node 20 is EOL, and i18next 27 and react-i18next 18 need Node 22 or later.
+
+### 🐛 Bug Fixes
+
+- `shellui login --no-browser` now skips opening the browser. The option was read under the wrong name.
+- The CLI auth BFF answers a malformed refresh cookie with `401` and clears it, instead of a `500`.
+- `POST /api/auth/logout` with a malformed refresh cookie now returns `204` and still clears the cookie.
+- The inline theme script hash in the production CSP now matches the script served in `index.html` (it was computed over slightly different text).
+
+### 🏗 Chore
+
+- The CLI `engines` field is `node: ">=22.12.0"`.
+- Dependencies: Vite 8 (Rolldown and Oxc), cac 7, @sentry/react 11, React 19.3, opentype.js 2 and minor updates. The shell now pins its TypeScript settings with Vite's `tsconfig` option (`packages/cli/src/utils/shell-tsconfig.json`), so a consumer `tsconfig.json` still never applies. CSS minification uses Vite's default Lightning CSS.
+- Docker image, dev compose and CI run on Node.js 26 (current LTS). CLI tests also run on Node.js 22.12, the supported minimum.
+- CI type-checks `@shellui/core` and fails on any error not in `packages/core/typecheck-baseline.json` (66 existing errors, keyed by file, code and message). The check also fails when the total drops, so the baseline is lowered.
+- CLI uses @vitejs/plugin-react 5.2 (Vite 8 peer range). Added a regression test that the shell ignores a consumer `tsconfig.json`.
+
+## [0.8.6] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Dashboard Settings, MCP / agents, lists global MCP connections from ai-service (`GET /ai/v1/mcp/global/agents`) when the session is a Shellui account, and revokes them with `POST /ai/v1/mcp/global/agents/{id}/revoke`. An approved global device grant no longer disappears behind "No active connections," which only listed regional identity personal agents.
+
+## [0.8.5] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Allow `ShelluiFrame` (`@shellui/sdk`) and `childFrameAuthPropagationOptions` (`@shellui/core`) to pass a per-frame `aiService` origin override (allowlisted through `childFrames.serviceOrigins`) so embedded regional admin frames receive the company's regional AI service URL instead of falling back to the global AI service.
+
+## [0.8.4] - 2026-11-25
+
+### 🐛 Bug Fixes
+
+- Keep `allow-same-origin` in the `ContentView` iframe sandbox for valid `http(s)` and custom desktop shell URLs (including same-origin `/app/` companions and nested hash routes). Omitting `allow-same-origin` gave those frames an opaque origin (`Origin: null`), breaking Vite module script and stylesheet CORS fetches, SDK `postMessage` origin verification, and nested admin frame detection. Unparseable, empty, and non-`http(s)` URLs still omit `allow-same-origin`. (#230)
+
+## [0.8.3] - 2026-11-24
+
+### 🐛 Bug Fixes
+
+- Settings shows the Shellui account MCP URL (`/mcp`) when `aiService.mcpUrl` is set, so dashboard settings no longer use the regional `/c/{companyId}/mcp` URL. A regional project that omits that field still shows the company URL. (#227)
+
+### ✨ Feature
+
+- The local dev stack includes Jaeger all-in-one for traces. (#225)
+
+## [0.8.2] - 2026-11-22
+
+### 🚨 Changed
+
+- Companion URLs on the shell origin, including the production `/app/` path, now load without `allow-same-origin` by default. Host companions on their own origin and set `SHELLUI_APP_URL` or the navigation `url` to that absolute URL when they need cookies, storage, or the settings handshake. Cross-origin companions, including local dev, are unchanged. (#216)
+
+### 🔒 Security
+
+- The shell applies `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only from the shell window or a shell page (settings, cookie preferences, login, and other shell routes). A companion frame cannot change shell settings. (#216)
+- The SDK and the tiny embed apply `SHELLUI_SETTINGS` and `SHELLUI_SETTINGS_UPDATED` only when the sender is `window.parent` and the parent origin is known. If that origin is unknown, those messages are ignored. (#216)
+
+### 🏗 Chore
+
+- Publish `@shellui/sdk`, `@shellui/core`, and `@shellui/cli` from GitHub releases using npm trusted publishing with provenance. (#217)
+- Update minor/patch npm dependencies, GitHub Action pins (`pnpm/action-setup` 6.1.1), `lint-staged` 17, and `vitest` 5. (#218)
+
 ## [0.8.1] - 2026-11-18
 
 ### ✨ Feature

@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
@@ -18,10 +19,7 @@ const CATEGORY_ORDER: CookieConsentCategory[] = [
 ];
 
 /** Format duration in human-readable format */
-function formatDuration(
-  seconds: number,
-  t: (key: string, options?: Record<string, unknown>) => string,
-): string {
+function formatDuration(seconds: number, t: TFunction<'cookieConsent'>): string {
   if (seconds < 60) return t('preferences.duration.seconds', { count: seconds });
   if (seconds < 3600) return t('preferences.duration.minutes', { count: Math.floor(seconds / 60) });
   if (seconds < 86400)
