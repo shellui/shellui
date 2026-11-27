@@ -112,7 +112,7 @@ const server = {
   getFails: false,
   /** Every write fails with 503, as if identity were down. */
   writeFails: false,
-  /** Status for each next write, in order (412 or 503), before the rules above apply. */
+  /** Status for each next write, in order (412, 503, or 0 for a network error), first. */
   writeScript: [] as number[],
   /** While set, a GET sends its headers (with the ETag) at once and its body only later. */
   bodyGate: null as null | Promise<void>,
@@ -173,6 +173,7 @@ function installFakeServer() {
     const conflict = () =>
       new Response(null, { status: 412, headers: server.overlay ? etag() : {} });
     const scripted = server.writeScript.shift();
+    if (scripted === 0) throw new TypeError('Failed to fetch');
     if (scripted === 412) return conflict();
     if (scripted !== undefined || server.writeFails) return new Response(null, { status: 503 });
     const stale = server.overlay !== null && headers['If-Match'] !== `"v${server.version}"`;
@@ -1374,6 +1375,52 @@ describe('NavigationProvider device copy after a stored write', () => {
     await switchTo('u1');
     expect(api.installedApps).toEqual([]);
     expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
+  });
+
+  it.each([
+    ['503', 503],
+    ['a network error', 0],
+  ])(
+    'X21: an older hide that fails with %s after a stored revoke writes no wider copy',
+    async (_name, status) => {
+      await mountSignedInWithApp();
+      const release = holdWrites();
+      let hide!: Promise<Result>;
+      await act(async () => {
+        hide = api.setNavigationItemHidden('about', true);
+      });
+      server.writeGate = null;
+      expect((await run(() => api.setAppCapabilities('notes', ['ui']))).ok).toBe(true);
+      expect(serverCapabilities()).toEqual(['locale', 'theme', 'ui']);
+      server.writeScript = [status];
+      await act(async () => release());
+      await flush();
+      expect(await hide).toEqual({ ok: false, error: 'not_saved' });
+      expect(localStorage.getItem(u1Key) ?? '').not.toContain('storage');
+
+      server.getFails = true;
+      await reload();
+      expect(currentGrant()).not.toContain('storage');
+    },
+  );
+
+  it('a write not stored across a switch leaves the u1 device copy in place', async () => {
+    await mountSignedInWithApp();
+    await leaveDeviceCopy();
+    const copy = localStorage.getItem(u1Key);
+    const release = holdWrites();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    server.writeGate = null;
+    server.writeScript = [503];
+    await switchTo('u2');
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'scope_changed', stored: false });
+    expect(localStorage.getItem(u1Key)).toBe(copy);
   });
 
   it('a late 412 after a switch keeps the u1 revoke pending and in force', async () => {
