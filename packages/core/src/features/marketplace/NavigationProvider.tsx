@@ -49,7 +49,12 @@ import {
   withoutUndoneRemovals,
   type PendingRemoval,
 } from './narrowOverlay';
-import { emptyNavigationOverlay, type InstalledAppRecord, type NavigationOverlay } from './overlay';
+import {
+  emptyNavigationOverlay,
+  type InstalledAppRecord,
+  type LoadedNavigationOverlay,
+  type NavigationOverlay,
+} from './overlay';
 import { commitInstalledApps } from './securitySync';
 import { createOverlayValidationContext, reservedShellPaths } from './validationContext';
 import {
@@ -84,6 +89,8 @@ export interface NavigationContextValue {
   resetNavigation: () => Promise<{ ok: true } | { ok: false; error: string }>;
   /** A removal on this device is in force but not saved to the layout yet. */
   unsavedRemovals: boolean;
+  /** The saved layout has been read and committed. Until then every change is refused. */
+  layoutReady: boolean;
 }
 
 export const NavigationContext = createContext<NavigationContextValue | null>(null);
@@ -121,6 +128,8 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const pendingRef = useRef<PendingConfirm | null>(null);
   const overlayRef = useRef<NavigationOverlay | null>(null);
   const commitSeqRef = useRef(0);
+  const readyRef = useRef(false);
+  const [layoutReady, setLayoutReady] = useState(false);
   /**
    * Removals made on this device that no successful save includes yet, for the signed-in user
    * and company only. They are kept in this tab's sessionStorage under that scope.
@@ -225,20 +234,44 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     });
   }, [base, companyId, marketplace]);
 
+  /**
+   * Read the saved layout. Changes are refused until it is committed, so nothing is written on
+   * top of a layout this device has not seen. Its version is adopted only when it is committed;
+   * a read that a change in flight made stale is dropped and adopts nothing.
+   */
   useEffect(() => {
     if (!adapter || !customizationOn) return;
     let cancelled = false;
+    readyRef.current = false;
+    setLayoutReady(false);
+    const sequence = commitSeqRef.current;
+    const ready = () => {
+      readyRef.current = true;
+      setLayoutReady(true);
+    };
     adapter
       .load()
       .then((loaded) => {
         if (cancelled) return;
-        commitOverlay(
-          applyPendingRemovals(loaded ?? emptyNavigationOverlay(), pendingRemovalsRef.current),
-        );
+        if (commitSeqRef.current === sequence) {
+          commitOverlay(
+            applyPendingRemovals(
+              loaded.overlay ?? emptyNavigationOverlay(),
+              pendingRemovalsRef.current,
+            ),
+          );
+          adapter.adoptVersion?.(loaded.etag);
+        }
+        ready();
       })
       .catch((error: unknown) => {
         logger.warn('Navigation overlay could not be loaded', { error });
-        if (!cancelled) commitOverlay(emptyNavigationOverlay());
+        if (cancelled) return;
+        if (commitSeqRef.current === sequence) {
+          commitOverlay(emptyNavigationOverlay());
+          adapter.adoptVersion?.(null);
+        }
+        ready();
       });
     return () => {
       cancelled = true;
@@ -251,7 +284,10 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   /** Load the saved identity copy after a conflict. Never the device copy. */
   const loadAfterConflict = useCallback(
-    () => (adapter?.loadRemote ? adapter.loadRemote() : (adapter?.load() ?? null)),
+    (): Promise<LoadedNavigationOverlay> =>
+      adapter?.loadRemote
+        ? adapter.loadRemote()
+        : (adapter?.load() ?? Promise.resolve({ overlay: null, etag: null })),
     [adapter],
   );
 
@@ -282,6 +318,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       proposed: NavigationOverlay,
       options: { removal?: PendingRemoval | null; removalOnly?: boolean } = {},
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
+      if (!readyRef.current) return { ok: false, error: 'layout_loading' };
       if (options.removal) setPendingRemovals([...pendingRemovalsRef.current, options.removal]);
       const included = pendingRemovalsRef.current;
       const next = applyPendingRemovals(proposed, included);
@@ -304,7 +341,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
         }
         if (!(error instanceof NavigationOverlayConflictError)) throw error;
       }
-      let remote: NavigationOverlay | null;
+      let remote: LoadedNavigationOverlay;
       try {
         remote = await loadAfterConflict();
       } catch {
@@ -315,8 +352,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       // removal, this one included, so nothing is committed here.
       if (commitSeqRef.current !== sequence) return { ok: false, error: 'superseded' };
       const removals = pendingRemovalsRef.current;
-      const merged = applyPendingRemovals(remote ?? emptyNavigationOverlay(), removals);
+      const merged = applyPendingRemovals(remote.overlay ?? emptyNavigationOverlay(), removals);
       commitOverlay(merged);
+      adapter.adoptVersion?.(remote.etag);
       if (removals.length === 0) {
         notify('layoutConflict', CONFLICT);
         return { ok: false, error: 'layout_conflict' };
@@ -378,6 +416,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       const current = currentOverlay();
       const existing = current.installedApps.find((app) => app.id === appId);
       if (!existing) return { ok: false as const, error: 'not_found' };
+      if (!readyRef.current) return { ok: false as const, error: 'layout_loading' };
       const now = new Date().toISOString();
       const nextCaps = sanitizeCapabilityList(
         ['theme', 'locale', ...capabilities.filter((capability) => capability !== 'auth')],
@@ -440,6 +479,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const resetNavigation = useCallback(async () => {
     if (!customizationOn) return { ok: false as const, error: 'navigation_customization_disabled' };
+    if (!readyRef.current) return { ok: false as const, error: 'layout_loading' };
     // Reset removes every installed app. Those removals stay pending until a reset succeeds, so
     // a concurrent edit or a conflict cannot bring an app back. A successful reset leaves nothing
     // to remove, so it clears every pending removal, including ones for apps already gone.
@@ -469,8 +509,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     // again, unless a newer local edit was made meanwhile. The device copy is kept until a
     // reset succeeds.
     try {
-      await loadAfterConflict();
+      const remote = await loadAfterConflict();
       if (commitSeqRef.current !== sequence) return { ok: false as const, error: 'superseded' };
+      adapter.adoptVersion?.(remote.etag);
       await adapter.reset();
       setPendingRemovals([]);
       return { ok: true as const };
@@ -496,6 +537,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       // One install at a time. A second request while the dialog is open is refused, so a page
       // cannot queue installs behind a confirmation the person already answered.
       if (installLockRef.current) return { ok: false as const, error: 'install_in_progress' };
+      if (!readyRef.current) return { ok: false as const, error: 'layout_loading' };
       installLockRef.current = true;
       try {
         const current = currentOverlay();
@@ -609,9 +651,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
       setNavigationItemHidden,
       resetNavigation,
       unsavedRemovals,
+      layoutReady,
     }),
     [
       customizationOn,
+      layoutReady,
       moveNavigationItem,
       overlay,
       resetNavigation,

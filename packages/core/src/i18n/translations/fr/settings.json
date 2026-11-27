@@ -827,6 +827,12 @@
     }
   },
   "customizeNavigation": {
+    "resetConfirm": {
+      "title": "Réinitialiser la navigation sur tous les appareils ?",
+      "description": "Cela retire toutes les applications installées et rétablit la navigation d'origine. Si vous êtes connecté, cela s'applique sur tous les appareils où vous utilisez ce compte, pas seulement celui-ci.",
+      "confirm": "Tout réinitialiser",
+      "cancel": "Annuler"
+    },
     "notSavedYet": "Une modification qui retire un accès s'applique ici mais n'est PAS encore enregistrée. Elle le sera avec votre prochaine modification.",
     "description": "Réordonnez la navigation, masquez les éléments non verrouillés et gérez les applications Shellui Marketplace. Le thème et la langue restent disponibles.",
     "disabled": "La personnalisation de la navigation est désactivée pour cette interface.",

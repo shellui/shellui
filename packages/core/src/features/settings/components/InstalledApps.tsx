@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import type { AppCapability } from '@shellui/sdk';
+import { shellui, type AppCapability } from '@shellui/sdk';
 import { Button } from '../../../components/ui/button';
 import { Switch } from '../../../components/ui/switch';
 import { flattenNavigationItems, resolveLocalizedString } from '../../layouts/utils';
@@ -21,6 +21,7 @@ export function CustomizeNavigation() {
     setNavigationItemHidden,
     resetNavigation,
     unsavedRemovals,
+    layoutReady,
   } = useNavigation();
   const items = flattenNavigationItems(config.navigation ?? []);
   const lang = i18n.language || 'en';
@@ -46,8 +47,19 @@ export function CustomizeNavigation() {
             type="button"
             variant="outline"
             size="sm"
+            disabled={!layoutReady}
             onClick={() => {
-              void resetNavigation();
+              shellui.dialog({
+                title: t('customizeNavigation.resetConfirm.title'),
+                description: t('customizeNavigation.resetConfirm.description'),
+                mode: 'delete',
+                size: 'sm',
+                okLabel: t('customizeNavigation.resetConfirm.confirm'),
+                cancelLabel: t('customizeNavigation.resetConfirm.cancel'),
+                onOk: () => {
+                  void resetNavigation();
+                },
+              });
             }}
           >
             {t('customizeNavigation.reset')}
@@ -83,7 +95,7 @@ export function CustomizeNavigation() {
                       variant="outline"
                       size="sm"
                       aria-label={t('customizeNavigation.moveUp', { name: label })}
-                      disabled={index === 0}
+                      disabled={!layoutReady || index === 0}
                       onClick={() => {
                         void moveNavigationItem(item.path, 'up');
                       }}
@@ -95,7 +107,7 @@ export function CustomizeNavigation() {
                       variant="outline"
                       size="sm"
                       aria-label={t('customizeNavigation.moveDown', { name: label })}
-                      disabled={index === items.length - 1}
+                      disabled={!layoutReady || index === items.length - 1}
                       onClick={() => {
                         void moveNavigationItem(item.path, 'down');
                       }}
@@ -108,7 +120,7 @@ export function CustomizeNavigation() {
                   <span>{t('customizeNavigation.visible')}</span>
                   <Switch
                     checked={!item.hidden}
-                    disabled={locked}
+                    disabled={!layoutReady || locked}
                     aria-label={t('customizeNavigation.visibleFor', { name: label })}
                     onCheckedChange={(visible) => {
                       void setNavigationItemHidden(item.path, !visible);
@@ -123,6 +135,7 @@ export function CustomizeNavigation() {
                         type="button"
                         variant="outline"
                         size="sm"
+                        disabled={!layoutReady}
                         onClick={() => {
                           void uninstallApp(installed.id);
                         }}
@@ -143,6 +156,7 @@ export function CustomizeNavigation() {
                               <span>{capabilityLabel}</span>
                               <Switch
                                 checked={checked}
+                                disabled={!layoutReady}
                                 aria-label={t('customizeNavigation.capabilityFor', {
                                   name: label,
                                   capability: capabilityLabel,

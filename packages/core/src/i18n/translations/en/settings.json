@@ -827,6 +827,12 @@
     }
   },
   "customizeNavigation": {
+    "resetConfirm": {
+      "title": "Reset navigation on every device?",
+      "description": "This removes every installed app and restores the original navigation. When you are signed in, it applies on every device where you use this account, not only this one.",
+      "confirm": "Reset everywhere",
+      "cancel": "Cancel"
+    },
     "notSavedYet": "A change that takes access away is in force here but NOT saved yet. It is saved with your next change.",
     "description": "Reorder navigation, hide unlocked items, and manage Shellui Marketplace apps. Theme and language stay available.",
     "disabled": "Navigation customization is off for this shell.",

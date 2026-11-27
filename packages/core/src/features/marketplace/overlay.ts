@@ -12,15 +12,26 @@ export type InstalledAppRecord = InstalledAppRecordShape;
 export type NavigationOverlay = NavigationOverlayShape<InstalledAppRecord>;
 export type { AppCapability, OverlayValidationContext };
 
+/**
+ * A layout as read, with the identity version (`ETag`) it was read at. The version is not used
+ * for writes until the caller commits that layout and calls `adoptVersion`.
+ */
+export interface LoadedNavigationOverlay {
+  overlay: NavigationOverlay | null;
+  etag: string | null;
+}
+
 export interface NavigationStorageAdapter {
-  load(): Promise<NavigationOverlay | null>;
+  load(): Promise<LoadedNavigationOverlay>;
   save(overlay: NavigationOverlay): Promise<void>;
   reset?(): Promise<void>;
   /**
    * The saved copy in identity only, never the device copy. Used after a save conflict, where a
    * stale device copy must not stand in for the newer layout.
    */
-  loadRemote?(): Promise<NavigationOverlay | null>;
+  loadRemote?(): Promise<LoadedNavigationOverlay>;
+  /** Send this version as `If-Match` from now on. Call it when the layout read at it is committed. */
+  adoptVersion?(etag: string | null): void;
 }
 
 export function emptyNavigationOverlay(now = new Date().toISOString()): NavigationOverlay {

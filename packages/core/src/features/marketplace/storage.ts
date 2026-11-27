@@ -122,13 +122,16 @@ export function createLocalStorageNavigationAdapter(
   const key = () => navigationLayoutStorageKey(options.scope?.());
   return {
     async load() {
-      try {
-        const raw = storage.getItem(key());
-        if (!raw || raw.length > OVERLAY_LIMITS.maxBytes) return null;
-        return parseNavigationOverlay(JSON.parse(raw) as unknown, validation());
-      } catch {
-        return null;
-      }
+      const read = (): NavigationOverlay | null => {
+        try {
+          const raw = storage.getItem(key());
+          if (!raw || raw.length > OVERLAY_LIMITS.maxBytes) return null;
+          return parseNavigationOverlay(JSON.parse(raw) as unknown, validation());
+        } catch {
+          return null;
+        }
+      };
+      return { overlay: read(), etag: null };
     },
     async save(overlay) {
       storage.setItem(key(), JSON.stringify(overlay));
@@ -191,29 +194,31 @@ export function createApiNavigationAdapter(
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-    // A 412 also carries the current ETag, but this device has not read that layout. Taking
-    // it would let the next write overwrite the other device's change unseen, so only a read
-    // or a successful write moves the ETag.
-    const next = response.headers?.get?.('ETag');
-    if (next && response.status !== 412) etag = next;
     return response;
   };
+  const etagOf = (response: Response) =>
+    (response.ok ? response.headers?.get?.('ETag') : null) || null;
 
   return {
+    // A read never moves the ETag by itself. A 412 carries one too, but this device has not
+    // read that layout. The version moves only on a successful write, or when the caller
+    // commits a layout it read (`adoptVersion`).
     async load() {
       const response = await request('GET');
-      if (response.status === 404 || response.status === 204) {
-        etag = null;
-        return null;
-      }
+      if (response.status === 404 || response.status === 204) return { overlay: null, etag: null };
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const version = etagOf(response);
       const payload = (await response.json()) as unknown;
-      return parseNavigationOverlay(payload, validation());
+      return { overlay: parseNavigationOverlay(payload, validation()), etag: version };
+    },
+    adoptVersion(version) {
+      etag = version;
     },
     async save(overlay) {
       const response = await request('PUT', overlay);
       if (response.status === 412) throw new NavigationOverlayConflictError();
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      etag = etagOf(response) ?? etag;
     },
     async reset() {
       const response = await request('DELETE');
@@ -246,6 +251,9 @@ export function createNavigationStorageAdapter(
   return {
     async loadRemote() {
       return useIdentity(options) ? api.load() : local.load();
+    },
+    adoptVersion(version) {
+      api.adoptVersion?.(version);
     },
     async load() {
       if (!useIdentity(options)) return local.load();

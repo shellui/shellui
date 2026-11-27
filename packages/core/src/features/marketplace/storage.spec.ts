@@ -61,11 +61,11 @@ describe('navigation storage adapters', () => {
       storage,
     });
     await adapter.save(sample());
-    await expect(adapter.load()).resolves.toMatchObject({
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toMatchObject({
       installedApps: [expect.objectContaining({ id: 'notes' })],
     });
     await adapter.reset?.();
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
   });
 
   it('uses identity when auto mode is signed in, and localStorage otherwise', async () => {
@@ -93,7 +93,7 @@ describe('navigation storage adapters', () => {
 
     await adapter.save(sample());
     expect(fetchImpl).not.toHaveBeenCalled();
-    await expect(adapter.load()).resolves.toMatchObject({
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toMatchObject({
       installedApps: [expect.objectContaining({ id: 'notes' })],
     });
 
@@ -111,7 +111,7 @@ describe('navigation storage adapters', () => {
       return new Response(null, { status: 204 });
     });
     await adapter.save(sample());
-    await expect(adapter.load()).resolves.toMatchObject({
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toMatchObject({
       installedApps: [expect.objectContaining({ id: 'notes' })],
     });
     expect(fetchImpl).toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe('navigation storage adapters', () => {
         throw new Error('offline');
       }) as typeof fetch,
     });
-    await expect(adapter.load()).resolves.toMatchObject({
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toMatchObject({
       installedApps: [expect.objectContaining({ id: 'notes' })],
     });
   });
@@ -158,11 +158,11 @@ describe('one layout per user and company', () => {
     });
     await adapter.save(sample());
     scope = { userId: 'u1', companyId: '11' };
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
     scope = { userId: 'u2', companyId: '10' };
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
     scope = { userId: 'u1', companyId: '10' };
-    await expect(adapter.load()).resolves.toMatchObject({
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toMatchObject({
       installedApps: [expect.objectContaining({ id: 'notes' })],
     });
     expect(navigationLayoutStorageKey({ userId: 'u1', companyId: '10' })).not.toBe(
@@ -198,7 +198,7 @@ describe('one layout per user and company', () => {
       storage,
       fetchImpl: fetchImpl as typeof fetch,
     });
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
     const methods = fetchImpl.mock.calls.map(([, init]) => init?.method ?? 'GET');
     expect(methods).toEqual(['GET']);
   });
@@ -227,11 +227,16 @@ describe('one layout per user and company', () => {
       storage,
       fetchImpl: fetchImpl as typeof fetch,
     });
-    await adapter.load();
+    const read = await adapter.load();
+    expect(read.etag).toBe('"v1"');
+    // A read does not move the version until the caller commits that layout.
+    await adapter.save(sample()).catch(() => undefined);
+    expect(seen[1]).not.toHaveProperty('If-Match');
+    adapter.adoptVersion?.(read.etag);
     await adapter.save(sample());
-    expect(seen[1]).toMatchObject({ method: 'PUT', 'If-Match': '"v1"' });
+    expect(seen[2]).toMatchObject({ method: 'PUT', 'If-Match': '"v1"' });
     await adapter.save(sample());
-    expect(seen[2]).toMatchObject({ 'If-Match': '"v2"' });
+    expect(seen[3]).toMatchObject({ 'If-Match': '"v2"' });
     putStatus = 412;
     // A conflict is surfaced, not hidden behind the device copy.
     await expect(adapter.save(sample())).rejects.toBeInstanceOf(NavigationOverlayConflictError);
@@ -280,7 +285,7 @@ describe('layout API URL', () => {
       storage: memory(),
       fetchImpl: fetchImpl as typeof fetch,
     });
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
@@ -315,7 +320,7 @@ describe('stored layouts use the shared validator', () => {
       storage,
       validation: () => ({ now: '2026-01-01T00:00:00.000Z', shellOrigin: 'https://shell.example' }),
     });
-    const loaded = await adapter.load();
+    const loaded = (await adapter.load()).overlay;
     expect(loaded?.installedApps.map((app) => app.id)).toEqual(['notes']);
   });
 
@@ -332,6 +337,6 @@ describe('stored layouts use the shared validator', () => {
       getAccessToken: () => null,
       storage,
     });
-    await expect(adapter.load()).resolves.toBeNull();
+    await expect(adapter.load().then((read) => read.overlay)).resolves.toBeNull();
   });
 });

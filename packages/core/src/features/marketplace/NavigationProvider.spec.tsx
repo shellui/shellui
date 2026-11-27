@@ -93,6 +93,10 @@ const server = {
   writeFails: false,
   /** Status for each next write, in order (412 or 503), before the rules above apply. */
   writeScript: [] as number[],
+  /** While set, a GET sends its headers (with the ETag) at once and its body only later. */
+  bodyGate: null as null | Promise<void>,
+  /** One entry per next GET: when set, that GET waits for it before it answers at all. */
+  getGates: [] as Array<Promise<void> | null>,
   calls: [] as string[],
 };
 
@@ -105,6 +109,8 @@ function resetServer() {
     getFails: false,
     writeFails: false,
     writeScript: [],
+    bodyGate: null,
+    getGates: [],
     calls: [],
   });
 }
@@ -116,10 +122,22 @@ function installFakeServer() {
     const headers = (init?.headers ?? {}) as Record<string, string>;
     const etag = () => ({ ETag: `"v${server.version}"` });
     if (method === 'GET') {
+      const held = server.getGates.shift();
+      if (held) await held;
       if (server.gate) await server.gate;
       if (server.getFails) return new Response(null, { status: 503 });
       if (!server.overlay) return new Response(null, { status: 404 });
-      return new Response(JSON.stringify(server.overlay), { status: 200, headers: etag() });
+      const body = structuredClone(server.overlay);
+      const bodyGate = server.bodyGate;
+      return {
+        status: 200,
+        ok: true,
+        headers: new Headers(etag()),
+        json: async () => {
+          if (bodyGate) await bodyGate;
+          return body;
+        },
+      } as unknown as Response;
     }
     // Like identity-service: a 412 carries the current ETag (none when there is no document).
     const conflict = () =>
@@ -788,5 +806,110 @@ describe('NavigationProvider reset racing another edit', () => {
     expect(api.installedApps).toEqual([]);
     expect(shellui.frameRegistry.getCapabilityGrant(APP_ORIGIN)).toBeUndefined();
     expect(serverApps()).toEqual([]);
+  });
+});
+
+/** Another device saves a layout this device has not seen. */
+function otherDeviceSaves(change: (layout: { hiddenPaths: string[] }) => void) {
+  const layout = structuredClone(server.overlay) as {
+    installedApps: Array<Record<string, unknown>>;
+    hiddenPaths: string[];
+  };
+  layout.installedApps[0].capabilities = OTHER;
+  change(layout);
+  server.overlay = layout;
+  server.version += 1;
+}
+
+function holdBodies() {
+  let release!: () => void;
+  server.bodyGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return release;
+}
+
+const serverHidden = () => (server.overlay as { hiddenPaths?: string[] } | null)?.hiddenPaths ?? [];
+
+describe('NavigationProvider when a read body arrives after its headers', () => {
+  it('a hide during the conflict read does not save over the other device', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSaves(() => {});
+    const release = holdBodies();
+    let revoke!: Promise<Result>;
+    await act(async () => {
+      revoke = api.setAppCapabilities('notes', ['ui']);
+    });
+    server.bodyGate = null;
+    let hide!: Promise<Result>;
+    await act(async () => {
+      hide = api.setNavigationItemHidden('about', true);
+    });
+    await act(async () => release());
+    await flush();
+
+    expect(await revoke).toEqual({ ok: false, error: 'superseded' });
+    expect(await hide).toEqual({ ok: false, error: 'layout_conflict' });
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
+  });
+
+  it('refuses every change until the first read is committed, and writes nothing', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSaves((layout) => {
+      layout.hiddenPaths = ['about'];
+    });
+    const release = holdBodies();
+    act(() => root.unmount());
+    root = createRoot(container);
+    mount();
+    await flush();
+    server.bodyGate = null;
+    const calls = server.calls.length;
+
+    expect(api.layoutReady).toBe(false);
+    expect(await run(() => api.moveNavigationItem('about', 'up'))).toEqual({
+      ok: false,
+      error: 'layout_loading',
+    });
+    expect(await run(() => api.resetNavigation())).toEqual({ ok: false, error: 'layout_loading' });
+    expect(server.calls.length).toBe(calls);
+
+    await act(async () => release());
+    await flush();
+    expect(api.layoutReady).toBe(true);
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'storage', 'theme', 'ui']);
+    expect(serverHidden()).toEqual(['about']);
+    expect(currentGrant()).toEqual(['ai', 'locale', 'storage', 'theme', 'ui']);
+  });
+
+  it('a read dropped as stale adopts no version, so a later edit cannot overwrite', async () => {
+    await mountSignedInWithApp();
+    otherDeviceSaves(() => {});
+    // The revoke's conflict read answers at once and is dropped (the hide is newer). The
+    // hide's conflict read is held while a move is made.
+    let release!: () => void;
+    server.getGates = [
+      null,
+      new Promise<void>((resolve) => {
+        release = resolve;
+      }),
+    ];
+    const results: Array<Promise<Result>> = [];
+    await act(async () => {
+      results.push(api.setAppCapabilities('notes', ['ui']));
+      results.push(api.setNavigationItemHidden('about', true));
+    });
+    await flush();
+    await act(async () => {
+      results.push(api.moveNavigationItem('about', 'up'));
+    });
+    await act(async () => release());
+    await flush();
+
+    const settled = await Promise.all(results);
+    expect(settled.some((result) => result.ok)).toBe(false);
+    expect(serverCapabilities()).toEqual(['ai', 'locale', 'theme', 'ui']);
+    expect(currentGrant()).toEqual(['ai', 'locale', 'theme', 'ui']);
   });
 });
